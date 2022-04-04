@@ -151,35 +151,56 @@ Use these links to navigate to a particular top-level stanza.
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
-        The role must be connected to the Consul server's service account and
-        have a policy with read capabilities for the following secrets:
-        - gossip encryption key defined by `global.gossipEncryption.secretName`
-        - certificate issue path defined by `server.serverCert.secretName`
-        - CA certificate defined by `global.tls.caCert.secretName`
-        - replication token defined by `global.acls.replicationToken.secretName` if `global.federation.enabled` is `true`
+        The role must be connected to the Consul server's service account.
+        The role must also have a policy with read capabilities for the following secrets:
+        - gossip encryption key defined by the `global.gossipEncryption.secretName` value
+        - certificate issue path defined by the `server.serverCert.secretName` value
+        - CA certificate defined by the `global.tls.caCert.secretName` value
+        - replication token defined by the `global.acls.replicationToken.secretName` value if `global.federation.enabled` is `true`
         To discover the service account name of the Consul server, run
-            ```shell-session
-            $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/server-serviceaccount.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `consulClientRole` ((#v-global-secretsbackend-vault-consulclientrole)) (`string: ""`) - The Vault role for the Consul client.
-        The role must be connected to the Consul client's service account and
-        have a policy with read capabilities for the following secrets:
-        - gossip encryption key defined by `global.gossipEncryption.secretName`.
+        The role must be connected to the Consul client's service account.
+        The role must also have a policy with read capabilities for the gossip encryption
+        key defined by the `global.gossipEncryption.secretName` value.
         To discover the service account name of the Consul client, run
-            ```shell-session
-            $ helm template --show-only templates/client-serviceaccount.yaml <release-name> charts/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/client-serviceaccount.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
-      - `manageSystemACLsRole` ((#v-global-secretsbackend-vault-managesystemaclsrole)) (`string: ""`) - A Vault role to allow Kubernetes job that manages ACLs for this Helm chart (`server-acl-init`)
-        to read and update Vault secrets for the Consul's bootstrap and replication tokens.
-        This role must be bound the `server-acl-init`'s service account.
+      - `consulSnapshotAgentRole` ((#v-global-secretsbackend-vault-consulsnapshotagentrole)) (`string: ""`) - <EnterpriseAlert inline /> The Vault role for the Consul client snapshot agent.
+        The role must be connected to the Consul client snapshot agent's service account.
+        The role must also have a policy with read capabilities for the snapshot agent config
+        defined by the `client.snapshotAgent.configSecret.secretName` value.
+        To discover the service account name of the Consul client, run
+        ```shell-session
+        $ helm template --show-only templates/client-snapshot-agent-serviceaccount.yaml --set client.snapshotAgent.enabled=true <release-name> hashicorp/consul
+        ```
+        and check the name of `metadata.name`.
+
+      - `manageSystemACLsRole` ((#v-global-secretsbackend-vault-managesystemaclsrole)) (`string: ""`) - A Vault role for the Consul `server-acl-init` job, which manages setting ACLs so that clients and components can obtain ACL tokens.
+        The role must be connected to the `server-acl-init` job's service account.
+        The role must also have a policy with read and write capabilities for the bootstrap, replication or partition tokens
         To discover the service account name of the `server-acl-init` job, run
-            ```shell-session
-            $ helm template --show-only templates/server-acl-init-serviceaccount.yaml <release-name> charts/consul
-            ```
+        ```shell-session
+        $ helm template --show-only templates/server-acl-init-serviceaccount.yaml \
+          --set global.acls.manageSystemACLs=true <release-name> hashicorp/consul
+        ```
+        and check the name of `metadata.name`.
+
+      - `adminPartitionsRole` ((#v-global-secretsbackend-vault-adminpartitionsrole)) (`string: ""`) - <EnterpriseAlert inline /> A Vault role that allows the Consul `partition-init` job to read a Vault secret for the partition ACL token.
+         The `partition-init` job bootstraps Admin Partitions on Consul servers.
+        .
+        This role must be bound the `partition-init` job's service account.
+        To discover the service account name of the `partition-init` job, run with Helm values for the client cluster:
+        ```shell-session
+        $ helm template --show-only templates/partition-init-serviceaccount.yaml -f client-cluster-values.yaml <release-name> hashicorp/consul
+        ```
         and check the name of `metadata.name`.
 
       - `agentAnnotations` ((#v-global-secretsbackend-vault-agentannotations)) (`string: null`) - This value defines additional annotations for
@@ -200,10 +221,10 @@ Use these links to navigate to a particular top-level stanza.
       - `ca` ((#v-global-secretsbackend-vault-ca)) - Configuration for Vault server CA certificate. This certificate will be mounted
         to any pod where Vault agent needs to run.
 
-        - `secretName` ((#v-global-secretsbackend-vault-ca-secretname)) (`string: ""`) - secretName is the name of the Kubernetes secret that holds the Vault CA certificate.
+        - `secretName` ((#v-global-secretsbackend-vault-ca-secretname)) (`string: ""`) - The name of the Kubernetes or Vault secret that holds the Vault CA certificate.
           A Kubernetes secret must be in the same namespace that Consul is installed into.
 
-        - `secretKey` ((#v-global-secretsbackend-vault-ca-secretkey)) (`string: ""`) - secretKey is the key within the Kubernetes secret that holds the Vault CA certificate.
+        - `secretKey` ((#v-global-secretsbackend-vault-ca-secretkey)) (`string: ""`) - The key within the Kubernetes or Vault secret that holds the Vault CA certificate.
 
       - `connectCA` ((#v-global-secretsbackend-vault-connectca)) - Configuration for the Vault Connect CA provider.
         The provider will be configured to use the Vault Kubernetes auth method
@@ -261,12 +282,12 @@ Use these links to navigate to a particular top-level stanza.
     `gossipEncryption.secretName="consul/data/secrets/gossip"`
     `gossipEncryption.secretKey="key"`
 
-    - `autoGenerate` ((#v-global-gossipencryption-autogenerate)) (`boolean: false`) - Automatically generate a gossip encryption key and save it to a Kubernetes secret.
+    - `autoGenerate` ((#v-global-gossipencryption-autogenerate)) (`boolean: false`) - Automatically generate a gossip encryption key and save it to a Kubernetes or Vault secret.
 
-    - `secretName` ((#v-global-gossipencryption-secretname)) (`string: ""`) - secretName is the name of the Kubernetes secret or Vault secret path that holds the gossip
+    - `secretName` ((#v-global-gossipencryption-secretname)) (`string: ""`) - The name of the Kubernetes secret or Vault secret path that holds the gossip
       encryption key. A Kubernetes secret must be in the same namespace that Consul is installed into.
 
-    - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - secretKey is the key within the Kubernetes secret or Vault secret key that holds the gossip
+    - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret or Vault secret key that holds the gossip
       encryption key.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
@@ -294,11 +315,11 @@ Use these links to navigate to a particular top-level stanza.
       in the server certificate. This is useful when you need to access the
       Consul server(s) externally, for example, if you're using the UI.
 
-    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `tls.defaults.verify_outgoing`,
-      `tls.internal_rpc.verify_server_hostname`, and `tls.internal_rpc.verify_incoming` will be set
-      to `true` for Consul servers and clients. Set this to false to incrementally roll out TLS
-      on an existing Consul cluster.
-      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster for more details.
+    - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
+      and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
+      Set this to false to incrementally roll out TLS on an existing Consul cluster.
+      Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster
+      for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
       both clients and servers and to only accept HTTPS connections.
@@ -317,11 +338,11 @@ Use these links to navigate to a particular top-level stanza.
       This will be consumed by the `global.secretsBackend.vault.consulCARole` role by all Consul components.
       When using Vault the secretKey is not used.
 
-      - `secretName` ((#v-global-tls-cacert-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-global-tls-cacert-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the CA certificate.
 
-      - `secretKey` ((#v-global-tls-cacert-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-global-tls-cacert-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA certificate.
 
-    - `caKey` ((#v-global-tls-cakey)) - A Kubernetes secret containing the private key of the CA to use for
+    - `caKey` ((#v-global-tls-cakey)) - A Kubernetes or Vault secret containing the private key of the CA to use for
       TLS communication within the Consul cluster. If you have generated the CA yourself
       with the consul CLI, you could use the following command to create the secret
       in Kubernetes:
@@ -336,9 +357,9 @@ Use these links to navigate to a particular top-level stanza.
       as Subject Alternative Names. In the future, we may support bringing your own server
       certificates.
 
-      - `secretName` ((#v-global-tls-cakey-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-global-tls-cakey-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the CA key.
 
-      - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA key.
 
   - `enableConsulNamespaces` ((#v-global-enableconsulnamespaces)) (`boolean: false`) - <EnterpriseAlert inline /> `enableConsulNamespaces` indicates that you are running
     Consul Enterprise v1.7+ with a valid Consul Enterprise license and would
@@ -353,14 +374,14 @@ Use these links to navigate to a particular top-level stanza.
       for all Consul and consul-k8s-control-plane components.
       This requires Consul >= 1.4.
 
-    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes secret containing the bootstrap token to use for
+    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for
       creating policies and tokens for all Consul and consul-k8s-control-plane components.
       If set, we will skip ACL bootstrapping of the servers and will only
       initialize ACLs for the Consul clients and consul-k8s-control-plane system components.
 
-      - `secretName` ((#v-global-acls-bootstraptoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-global-acls-bootstraptoken-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the bootstrap token.
 
-      - `secretKey` ((#v-global-acls-bootstraptoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-global-acls-bootstraptoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the bootstrap token.
 
     - `createReplicationToken` ((#v-global-acls-createreplicationtoken)) (`boolean: false`) - If true, an ACL token will be created that can be used in secondary
       datacenters for replication. This should only be set to true in the
@@ -374,21 +395,32 @@ Use these links to navigate to a particular top-level stanza.
       and create ACL tokens and policies.
       This value is ignored if `bootstrapToken` is also set.
 
-      - `secretName` ((#v-global-acls-replicationtoken-secretname)) (`string: null`) - The name of the Kubernetes secret or the path of the secret in Vault.
+      - `secretName` ((#v-global-acls-replicationtoken-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the replication token.
 
-      - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key of the Kubernetes or Vault secret.
+      - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the replication token.
 
-  - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes secret that you have created
+    - `partitionToken` ((#v-global-acls-partitiontoken)) - partitionToken references a Vault secret containing the ACL token to be used in non-default partitions.
+      This value should only be provided in the default partition and only when setting
+      the `global.secretsBackend.vault.enabled` value to true.
+      Consul will use the value of the secret stored in Vault to create an ACL token in Consul with the value of the
+      secret as the secretID for the token.
+      In non-default, partitions set this secret as the `bootstrapToken`.
+
+      - `secretName` ((#v-global-acls-partitiontoken-secretname)) (`string: null`) - The name of the Vault secret that holds the partition token.
+
+      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the parition token.
+
+  - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
     has been elected. If you are not using an enterprise image or if you plan to
     introduce the license key via another route, then set these fields to null.
     Note: the job to apply license runs on both Helm installs and upgrades.
 
-    - `secretName` ((#v-global-enterpriselicense-secretname)) (`string: null`) - secretName is the name of the Kubernetes secret or Vault secret path that holds the enterprise license.
+    - `secretName` ((#v-global-enterpriselicense-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the enterprise license.
       A Kubernetes secret must be in the same namespace that Consul is installed into.
 
-    - `secretKey` ((#v-global-enterpriselicense-secretkey)) (`string: null`) - secretKey is the key within the Kubernetes secret or Vault secret key that holds the enterprise license.
+    - `secretKey` ((#v-global-enterpriselicense-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the enterprise license.
 
     - `enableLicenseAutoload` ((#v-global-enterpriselicense-enablelicenseautoload)) (`boolean: true`) - Manages license autoload. Required in Consul 1.10.0+, 1.9.7+ and 1.8.12+.
 
@@ -408,10 +440,24 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: ""`) - The name of the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
+
+    - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
+      set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
+      This address must be reachable from the Consul servers in the primary datacenter.
+      This authmethod will be used to provision ACL tokens for Consul components and is different
+      from the one used by the Consul Service Mesh.
+      Please see the Kubernetes Auth Method documentation (https://consul.io/docs/acl/auth-methods/kubernetes).
+
+      You could retrieve this value from your `kubeconfig` by running:
+
+      ```shell-session
+      $ kubectl config view \
+        -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+      ```
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -511,7 +557,7 @@ Use these links to navigate to a particular top-level stanza.
     Note: when using TLS, both the `server.serverCert` and `global.tls.caCert` which points to the CA endpoint of this PKI engine
     must be provided.
 
-    - `secretName` ((#v-server-servercert-secretname)) (`string: null`) - The name of the Kubernetes secret or Vault secret path containing the PEM encoded server certificate.
+    - `secretName` ((#v-server-servercert-secretname)) (`string: null`) - The name of the Vault secret that holds the PEM encoded server certificate.
 
   - `exposeGossipAndRPCPorts` ((#v-server-exposegossipandrpcports)) (`boolean: false`) - Exposes the servers' gossip and RPC ports as hostPorts. To enable a client
     agent outside of the k8s cluster to join the datacenter, you would need to
@@ -860,7 +906,7 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-client-resources)) (`map`) - Resource settings for Client agents.
+  - `resources` ((#v-client-resources)) (`map`) - The resource settings for Client agents.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
 
@@ -1033,15 +1079,15 @@ Use these links to navigate to a particular top-level stanza.
 
     - `replicas` ((#v-client-snapshotagent-replicas)) (`integer: 2`) - The number of snapshot agents to run.
 
-    - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes secret that should be manually created to contain the entire
+    - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes or Vault secret that should be manually created to contain the entire
       config to be used on the snapshot agent.
       This is the preferred method of configuration since there are usually storage
       credentials present. Please see Snapshot agent config (https://consul.io/commands/snapshot/agent#config-file-options)
       for details.
 
-      - `secretName` ((#v-client-snapshotagent-configsecret-secretname)) (`string: null`) - The name of the Kubernetes secret.
+      - `secretName` ((#v-client-snapshotagent-configsecret-secretname)) (`string: null`) - The name of the Kubernetes secret or Vault secret path that holds the snapshot agent config.
 
-      - `secretKey` ((#v-client-snapshotagent-configsecret-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+      - `secretKey` ((#v-client-snapshotagent-configsecret-secretkey)) (`string: null`) - The key within the Kubernetes secret or Vault secret key that holds the snapshot agent config.
 
     - `serviceAccount` ((#v-client-snapshotagent-serviceaccount))
 
@@ -1054,7 +1100,7 @@ Use these links to navigate to a particular top-level stanza.
           "sample/annotation2": "bar"
         ```
 
-    - `resources` ((#v-client-snapshotagent-resources)) (`map`) - Resource settings for snapshot agent pods.
+    - `resources` ((#v-client-snapshotagent-resources)) (`map`) - The resource settings for snapshot agent pods.
 
     - `caCert` ((#v-client-snapshotagent-cacert)) (`string: null`) - Optional PEM-encoded CA certificate that will be added to the trusted system CAs.
       Useful if using an S3-compatible storage exposing a self-signed certificate.
@@ -1326,9 +1372,9 @@ Use these links to navigate to a particular top-level stanza.
     an ACL token for your Consul cluster which allows the sync process the correct
     permissions. This is only needed if ACLs are enabled on the Consul cluster.
 
-    - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+    - `secretName` ((#v-synccatalog-aclsynctoken-secretname)) (`string: null`) - The name of the Vault secret that holds the acl sync token.
 
-    - `secretKey` ((#v-synccatalog-aclsynctoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+    - `secretKey` ((#v-synccatalog-aclsynctoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the acl sync.
 
   - `nodeSelector` ((#v-synccatalog-nodeselector)) (`string: null`) - This value defines `nodeSelector` (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
     labels for catalog sync pod assignment, formatted as a multi-line string.
@@ -1358,7 +1404,7 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-synccatalog-resources)) (`map`) - Resource settings for sync catalog pods.
+  - `resources` ((#v-synccatalog-resources)) (`map`) - The resource settings for sync catalog pods.
 
   - `logLevel` ((#v-synccatalog-loglevel)) (`string: ""`) - Override global log verbosity level. One of "debug", "info", "warn", or "error".
 
@@ -1464,7 +1510,7 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-connectinject-resources)) (`map`) - Resource settings for connect inject pods.
+  - `resources` ((#v-connectinject-resources)) (`map`) - The resource settings for connect inject pods.
 
   - `failurePolicy` ((#v-connectinject-failurepolicy)) (`string: Fail`) - Sets the failurePolicy for the mutating webhook. By default this will cause pods not part of the consul installation to fail scheduling while the webhook
     is offline. This prevents a pod from skipping mutation if the webhook were to be momentarily offline.
@@ -1576,9 +1622,9 @@ Use these links to navigate to a particular top-level stanza.
     This token needs to have `operator = "write"` privileges to be able to
     create Consul namespaces.
 
-    - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+    - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) (`string: null`) - The name of the Vault secret that holds the ACL inject token.
 
-    - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+    - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the ACL inject token.
 
   - `sidecarProxy` ((#v-connectinject-sidecarproxy))
 
@@ -1603,7 +1649,7 @@ Use these links to navigate to a particular top-level stanza.
 
         - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended default: 100m
 
-  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - Resource settings for the Connect injected init container.
+  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container.
 
 ### controller
 
@@ -1628,7 +1674,7 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-controller-resources)) (`map`) - Resource settings for controller pods.
+  - `resources` ((#v-controller-resources)) (`map`) - The resource settings for controller pods.
 
   - `nodeSelector` ((#v-controller-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
 
@@ -1654,9 +1700,9 @@ Use these links to navigate to a particular top-level stanza.
     ```
     If running Consul Enterprise, talk to your account manager for assistance.
 
-    - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+    - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Vault secret that holds the ACL token.
 
-    - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+    - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the ACL token.
 
 ### meshGateway
 
@@ -1760,13 +1806,13 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-meshgateway-resources)) (`map`) - Resource settings for mesh gateway pods.
+  - `resources` ((#v-meshgateway-resources)) (`map`) - The resource settings for mesh gateway pods.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
 
-  - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
+  - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
-  - `initServiceInitContainer` ((#v-meshgateway-initserviceinitcontainer)) (`map`) - Resource settings for the `service-init` init container.
+  - `initServiceInitContainer` ((#v-meshgateway-initserviceinitcontainer)) (`map`) - The resource settings for the `service-init` init container.
 
   - `affinity` ((#v-meshgateway-affinity)) (`string`) - By default, we set an anti-affinity so that two gateway pods won't be
     on the same node. NOTE: Gateways require that Consul client agents are
@@ -1846,7 +1892,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `resources` ((#v-ingressgateways-defaults-resources)) (`map`) - Resource limits for all ingress gateway pods
 
-    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
+    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
     - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are
@@ -1919,7 +1965,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `resources` ((#v-terminatinggateways-defaults-resources)) (`map`) - Resource limits for all terminating gateway pods
 
-    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
+    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
     - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are
@@ -2068,6 +2114,10 @@ Use these links to navigate to a particular top-level stanza.
         annotations: |
           "annotation-key": "annotation-value"
         ```
+
+  - `resources` ((#v-apigateway-resources)) (`map`) - The resource settings for api gateway pods.
+
+  - `initCopyConsulContainer` ((#v-apigateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
 ### webhookCertManager
 
