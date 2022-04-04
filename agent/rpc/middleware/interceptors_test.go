@@ -59,6 +59,8 @@ func (wr writeRequest) IsRead() bool {
 
 // TestRequestRecorder_SimpleOK tests that the RequestRecorder can record a simple request.
 func TestRequestRecorder_SimpleOK(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 		RecorderFunc: simpleRecorderFunc,
@@ -82,6 +84,8 @@ func TestRequestRecorder_SimpleOK(t *testing.T) {
 
 // TestRequestRecorder_ReadRequest tests that RequestRecorder can record a read request AND a responseErrored arg.
 func TestRequestRecorder_ReadRequest(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 		RecorderFunc: simpleRecorderFunc,
@@ -104,6 +108,8 @@ func TestRequestRecorder_ReadRequest(t *testing.T) {
 
 // TestRequestRecorder_WriteRequest tests that RequestRecorder can record a write request.
 func TestRequestRecorder_WriteRequest(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 		RecorderFunc: simpleRecorderFunc,
