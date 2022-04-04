@@ -73,8 +73,8 @@ func (r rateLimitedFileWatcher) coalesceTimer(ctx context.Context, inputCh chan 
 				if coalesceTimer == nil {
 					coalesceTimer = time.AfterFunc(coalesceDuration, func() {
 						// This runs in another goroutine so we can't just do the send
-						// directly here as access to snap is racy. Instead, signal the main
-						// loop above.
+						// directly here as access to fileWatcherEvents is racy. Instead,
+						// signal the main loop above.
 						sendCh <- struct{}{}
 					})
 				}
