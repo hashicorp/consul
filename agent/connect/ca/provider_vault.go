@@ -64,6 +64,7 @@ type VaultProvider struct {
 	spiffeID                     *connect.SpiffeIDSigning
 	setupIntermediatePKIPathDone bool
 	logger                       hclog.Logger
+	namespace                    string
 }
 
 func NewVaultProvider(logger hclog.Logger) *VaultProvider {
@@ -117,6 +118,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	// client also makes sure the inputs are not empty strings so let's do the
 	// same.
 	if config.Namespace != "" {
+		v.namespace = config.Namespace
 		client.SetNamespace(config.Namespace)
 	}
 	v.config = config
@@ -284,7 +286,8 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	rootPEM, err := v.getCA(v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
-		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
+
+		err := v.mountNamespaced(v.config.RootPKIPath, &vaultapi.MountInput{
 			Type:        "pki",
 			Description: "root CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
@@ -360,14 +363,14 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	_, err := v.getCA(v.config.IntermediatePKIPath)
 	if err != nil {
 		if err == ErrBackendNotMounted {
-			err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
-				Type:        "pki",
-				Description: "intermediate CA backend for Consul Connect",
-				Config: vaultapi.MountConfigInput{
-					MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
-				},
-			})
-
+			err := v.mountNamespaced(v.config.IntermediatePKIPath,
+				&vaultapi.MountInput{
+					Type:        "pki",
+					Description: "intermediate CA backend for Consul Connect",
+					Config: vaultapi.MountConfigInput{
+						MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
+					},
+				})
 			if err != nil {
 				return err
 			}
@@ -379,11 +382,12 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	// Create the role for issuing leaf certs if it doesn't exist yet
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
 	role, err := v.client.Logical().Read(rolePath)
+
 	if err != nil {
 		return err
 	}
 	if role == nil {
-		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
+		r, err := v.client.Logical().Write(rolePath, map[string]interface{}{
 			"allow_any_name":   true,
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
@@ -391,6 +395,8 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			"no_store":         true,
 			"require_cn":       false,
 		})
+		v.logger.Info("======= Role %v Error%v", r, err)
+
 		if err != nil {
 			return err
 		}
@@ -690,7 +696,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 		}
 	}
 
-	err := v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+	err := v.unmountNamespaced(v.config.IntermediatePKIPath)
 
 	switch err {
 	case ErrBackendNotMounted, ErrBackendNotInitialized:
@@ -707,6 +713,44 @@ func (v *VaultProvider) Stop() {
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
+
+func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountInput) error {
+	r := v.client.NewRequest("POST", namespacedSysMountPath(path))
+	if err := r.SetJSONBody(mountInfo); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func (v *VaultProvider) unmountNamespaced(path string) error {
+	r := v.client.NewRequest("DELETE", namespacedSysMountPath(path))
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func extractNamespaceFromObject(objectName string) (string, string) {
+	parts := strings.Split(strings.TrimSuffix(objectName, "/"), "/")
+
+	base := parts[len(parts)-1] + "/"
+
+	namespace := strings.Join(parts[0:len(parts)-1], "/")
+	return namespace, base
+}
+
+func namespacedSysMountPath(objectName string) string {
+	namespace, base := extractNamespaceFromObject(objectName)
+	if namespace == "" {
+		return fmt.Sprintf("/v1/sys/mounts/%s", base)
+	}
+	return fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, base)
+}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{
