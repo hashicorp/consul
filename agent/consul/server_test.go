@@ -1133,6 +1133,55 @@ func TestServer_RPC(t *testing.T) {
 	}
 }
 
+func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	storage := make(map[string]float32)
+	keyMakingFunc := func(key []string) string {
+		return strings.Join(key, "+")
+	}
+
+	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
+		storage[keyMakingFunc(key)] = val
+	}
+
+	_, conf := testServerConfig(t)
+
+	// "disable" metrics net/rpc interceptor
+	conf.GetNetRPCInterceptorFunc = nil
+
+	s, err := newServer(t, conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s.Shutdown()
+	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
+
+	// "hijack" the rpc recorder for asserts;
+	// note that there will be "internal" net/rpc calls made
+	// that will still show up; those don't go thru the net/rpc interceptor;
+	// see consul.agent.rpc.middleware.RPCTypeInternal for context
+	s.rpcRecorder = &middleware.RequestRecorder{
+		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
+		RecorderFunc: simpleRecorderFunc,
+	}
+
+	t.Run("test no net/rpc interceptor metric", func(t *testing.T) {
+		var out struct{}
+		if err := s.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name)
+
+		if _, ok := storage[key]; ok {
+			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
+		}
+	})
+}
+
 func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1199,7 +1248,6 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
 
 		if _, ok := storage[key]; !ok {
-			fmt.Println(storage)
 			t.Fatalf("Did not find key %s in the metrics log, ", key)
 		}
 	})
