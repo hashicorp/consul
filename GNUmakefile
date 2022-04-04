@@ -292,7 +292,9 @@ tools: proto-tools
 	done
 
 proto-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-tools.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
+		--protoc-version "$(PROTOC_VERSION)" \
+		--tools-only
 
 version:
 	@echo -n "Version:                    "
@@ -348,7 +350,7 @@ proto: -proto-files -mog-files
 
 .PHONY: -proto-files
 -proto-files:
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-all.sh \
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
 		--protoc-version "$(PROTOC_VERSION)"
 
 .PHONY: -mog-files

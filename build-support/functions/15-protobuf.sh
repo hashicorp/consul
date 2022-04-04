@@ -5,8 +5,6 @@ function protoc_install {
     local protoc_version="${1:-}"
     local protoc_os
 
-    # TODO ERROR IF no version
-
     if test -z "${protoc_version}"
     then
         protoc_version="$(make --no-print-directory print-PROTOC_VERSION)"
@@ -36,7 +34,7 @@ function protoc_install {
     protoc_bin="${protoc_root}/bin/protoc"
 
     if [[ -x "${protoc_bin}" ]]; then
-        status_stage "protocol buffer compiler version already installed: ${protoc_version}"
+        status "protocol buffer compiler version already installed: ${protoc_version}"
         return 0
     fi
 
@@ -64,9 +62,9 @@ function proto_tools_install {
     mog_version="$(make --no-print-directory print-MOG_VERSION)"
     protoc_go_inject_tag_version="$(make --no-print-directory print-PROTOC_GO_INJECT_TAG_VERSION)"
 
-    echo "go: ${protoc_gen_go_version}"
-    echo "mog: ${mog_version}"
-    echo "tag: ${protoc_go_inject_tag_version}"
+    # echo "go: ${protoc_gen_go_version}"
+    # echo "mog: ${mog_version}"
+    # echo "tag: ${protoc_go_inject_tag_version}"
 
     install_versioned_tool \
         'protoc-gen-go' \
@@ -98,8 +96,10 @@ function install_unversioned_tool {
     local install="$2"
 
     if ! command -v "${command}" &>/dev/null ; then
-        echo "=== TOOL: ${install}"
+        status_stage "installing tool: ${install}"
         go install "${install}"
+    else
+        debug "skipping tool: ${install} (installed)"
     fi
 
     return 0
@@ -119,7 +119,7 @@ function install_versioned_tool {
     local install="${installbase}@${version}"
 
     if [[ -z "$version" ]]; then
-        echo "cannot install '${command}' no version selected" >&2
+        err "cannot install '${command}' no version selected"
         return 1
     fi
 
@@ -127,7 +127,8 @@ function install_versioned_tool {
         got="$(go version -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
             awk '{print $2 "@" $3}')"
         if [[ "$expect_dev" = "$got" ]]; then
-            echo "=== TOOL: ${install} (skipped; using development version)"
+            status "skipping tool: ${install} (using development version)"
+            return 0
         elif [[ "$expect" != "$got" ]]; then
             should_install=1
         fi
@@ -136,8 +137,10 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        echo "=== TOOL: ${install}"
+        status_stage "installing tool: ${install}"
         go install "${install}"
+    else
+        debug "skipping tool: ${install} (installed)"
     fi
     return 0
 }

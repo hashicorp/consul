@@ -13,7 +13,7 @@ set -euo pipefail
 
 usage() {
 cat <<-EOF
-Usage: ${SCRIPT_NAME} [<options ...>] <proto filepath>
+Usage: ${SCRIPT_NAME} [<options ...>]
 
 Description:
     Generate all Go files from protobuf definitions. In addition to
@@ -22,6 +22,7 @@ Description:
 
 Options:
     --protoc-bin             Path to protoc.
+    --tools-only             Install all required tools but do not generate outputs.
     -h | --help              Print this help text.
 EOF
 }
@@ -34,6 +35,7 @@ err_usage() {
 
 main() {
     local protoc_version=
+    local tools_only=
 
     while test $# -gt 0
     do
@@ -45,6 +47,10 @@ main() {
             --protoc-version )
                 protoc_version="$2"
                 shift 2
+                ;;
+            --tools-only )
+                tools_only=1
+                shift
                 ;;
         esac
     done
@@ -67,7 +73,10 @@ main() {
 
     # ensure these tools are installed
     proto_tools_install
-    # ${SCRIPT_DIR}/proto-tools.sh
+
+    if [[ -n $tools_only ]]; then
+        return 0
+    fi
 
     declare -a proto_files
     while IFS= read -r pkg; do
