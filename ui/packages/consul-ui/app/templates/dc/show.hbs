@@ -9,7 +9,8 @@ as |route|>
     </BlockSlot>
     <BlockSlot @name="toolbar">
     </BlockSlot>
-    <BlockSlot @name="content">
+    <BlockSlot @name="nav">
+{{#if false}}
       <TabNav @items={{
         compact
           (array
@@ -18,12 +19,14 @@ as |route|>
               href=(href-to "dc.show.serverstatus")
               selected=(is-href "dc.show.serverstatus")
             )
+(if false
             (hash
-              label=(compute (fn route.t 'health.title'))
-              href=(href-to 'dc.show.health')
-              selected=(is-href 'dc.show.health')
+              label=(compute (fn route.t 'cataloghealth.title'))
+              href=(href-to 'dc.show.cataloghealth')
+              selected=(is-href 'dc.show.cataloghealth')
             )
-(if (and (can 'read license') (not (is 'hcp')))
+'')
+(if (can 'read license')
             (hash
               label=(compute (fn route.t 'license.title'))
               href=(href-to 'dc.show.license')
@@ -32,6 +35,15 @@ as |route|>
           )
 '')
       }}/>
+{{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <Outlet
+        @name={{routeName}}
+        @model={{route.model}}
+      as |o|>
+        {{outlet}}
+      </Outlet>
     </BlockSlot>
 
   </AppView>

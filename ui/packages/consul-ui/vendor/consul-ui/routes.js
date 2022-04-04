@@ -13,18 +13,17 @@
       show: {
         _options: {
           path: '/overview',
-          redirect: './serverstatus',
           abilities: ['access overview']
         },
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['access overview', 'read raft']
+            abilities: ['access overview', 'read zones']
           },
         },
-        health: {
+        cataloghealth: {
           _options: {
-            path: '/health',
+            path: '/catalog-health',
             abilities: ['access overview']
           },
         },
@@ -417,6 +416,7 @@
     },
     index: {
       _options: { path: '/' },
+      // root index redirects are currently dealt with in application.hbs
     },
     settings: {
       _options: {

@@ -3,10 +3,20 @@ dc:
     title: Cluster Overview
     serverstatus:
       title: Server status
-    health:
+      unassigned: Unassigned Zones
+      tolerance:
+        header: Server fault tolerance
+        immediate:
+          header: Immediate
+          body: the number of healthy active voting servers that can fail at once without causing an outage
+        optimistic:
+          header: Optimistic
+          body: the number of healthy active and back-up voting servers that can fail gradually without causing an outage
+    cataloghealth:
       title: Health
     license:
       title: License
+
   nodes:
     show:
       healthchecks:
