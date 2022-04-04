@@ -1148,7 +1148,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 		allKey := strings.Join(key, "+")
 
 		for _, label := range labels {
-			allKey = allKey + "+"  + label.Value
+			allKey = allKey + "+" + label.Value
 		}
 
 		return allKey
@@ -1175,7 +1175,6 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 		}
 	}
 
-
 	s, err := newServer(t, conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -1186,7 +1185,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	// asserts
 	t.Run("test happy path for metrics interceptor", func(t *testing.T) {
 		var out struct{}
-		if err := s.RPC("Status.Ping", struct {}{}, &out); err != nil {
+		if err := s.RPC("Status.Ping", struct{}{}, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
