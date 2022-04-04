@@ -6,12 +6,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -115,6 +117,11 @@ type Config struct {
 	// RPCAdvertise will be set to the listener address if it hasn't been
 	// configured at this point.
 	NotifyListen func()
+
+	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
+	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
+	// the rpc server.
+	GetNetRPCInterceptorFunc func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor
 
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
@@ -508,6 +515,8 @@ func DefaultConfig() *Config {
 		AutopilotInterval:        10 * time.Second,
 		DefaultQueryTime:         300 * time.Second,
 		MaxQueryTime:             600 * time.Second,
+
+		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}

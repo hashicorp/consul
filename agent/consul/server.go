@@ -380,21 +380,20 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	recorder := middleware.NewRequestRecorder(serverLogger)
 	// Create server.
 	s := &Server{
-		config:       config,
-		tokens:       flat.Tokens,
-		connPool:     flat.ConnPool,
-		grpcConnPool: flat.GRPCConnPool,
-		eventChLAN:   make(chan serf.Event, serfEventChSize),
-		eventChWAN:   make(chan serf.Event, serfEventChSize),
-		logger:       serverLogger,
-		loggers:      loggers,
-		leaveCh:      make(chan struct{}),
-		reconcileCh:  make(chan serf.Member, reconcileChSize),
-		router:       flat.Router,
-		rpcRecorder:  recorder,
-		// TODO(rpc-metrics-improv): consider pulling out the interceptor from config in order to isolate testing
-		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
-		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
+		config:                  config,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
+		grpcConnPool:            flat.GRPCConnPool,
+		eventChLAN:              make(chan serf.Event, serfEventChSize),
+		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		logger:                  serverLogger,
+		loggers:                 loggers,
+		leaveCh:                 make(chan struct{}),
+		reconcileCh:             make(chan serf.Member, reconcileChSize),
+		router:                  flat.Router,
+		rpcRecorder:             recorder,
+		rpcServer:               rpc.NewServer(),
+		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         flat.TLSConfigurator,
 		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
@@ -405,6 +404,11 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
+	}
+
+	if config.GetNetRPCInterceptorFunc != nil {
+		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(config.GetNetRPCInterceptorFunc(recorder)))
+		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(config.GetNetRPCInterceptorFunc(recorder)))
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {

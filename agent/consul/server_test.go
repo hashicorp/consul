@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/ipaddr"
 
 	"github.com/hashicorp/go-uuid"
@@ -1127,6 +1131,79 @@ func TestServer_RPC(t *testing.T) {
 	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestServer_RPC_MetricsIntercept(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, conf := testServerConfig(t)
+
+	// The method used to record metric observations here is similar to that used in
+	// interceptors_test.go; at present, we don't have a need to lock yet but if we do
+	// we can imitate that set up further or just factor it out as a "mock" metrics backend
+	storage := make(map[string]float32)
+	keyMakingFunc := func(key []string, labels []metrics.Label) string {
+		allKey := strings.Join(key, "+")
+
+		for _, label := range labels {
+			allKey = allKey + "+"  + label.Value
+		}
+
+		return allKey
+	}
+
+	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
+		storage[keyMakingFunc(key, labels)] = val
+	}
+	actualRecorder := &middleware.RequestRecorder{
+		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
+		RecorderFunc: simpleRecorderFunc,
+	}
+
+	conf.GetNetRPCInterceptorFunc = func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor {
+		// we re-assign our recorder in here
+		recorder = actualRecorder
+
+		return func(reqServiceMethod string, argv, replyv reflect.Value, handler func() error) {
+			reqStart := time.Now()
+
+			err := handler()
+
+			recorder.Record(reqServiceMethod, "test", reqStart, argv.Interface(), err != nil)
+		}
+	}
+
+
+	s, err := newServer(t, conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s.Shutdown()
+	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
+
+	// asserts
+	t.Run("test happy path for metrics interceptor", func(t *testing.T) {
+		var out struct{}
+		if err := s.RPC("Status.Ping", struct {}{}, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		expectedLabels := []metrics.Label{
+			{Name: "method", Value: "Status.Ping"},
+			{Name: "errored", Value: "false"},
+			{Name: "request_type", Value: "read"},
+			{Name: "rpc_type", Value: "test"},
+		}
+
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
+
+		if _, ok := storage[key]; !ok {
+			fmt.Println(storage)
+			t.Fatalf("Did not find key %s in the metrics log, ", key)
+		}
+	})
 }
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
