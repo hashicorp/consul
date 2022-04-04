@@ -1,33 +1,43 @@
 ---
 layout: docs
-page_title: Storing Enterprise License in Vault
+page_title: Storing ACL Replication Token in Vault
 description: >-
-  Configuring the Consul Helm chart to use enterprise license stored in Vault.
+  Configuring the Consul Helm chart to use ACL replication token stored in Vault.
 ---
 
-# Storing the Enterprise License in Vault
+# Storing the ACL Replication Token in Vault
 
-To use an enterprise license stored in Vault, the steps will be similar to [Storing Gossip Encryption Key in Vault](/docs/k8s/installation/vault/gossip). You need to do the following:
+## Pre-requisites
+Prior to setting up data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
-1. Store an enterprise license key in Vault's KV2 secrets engine.
-1. Create Vault Policies that allow read access to the key.
-1. Create a Vault Kubernetes Auth Role that links policies from step 2 to the Kubernetes service accounts of the Consul servers and clients.
+## Overview
+To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration):
 
-## Configuring Vault
+- One time set up in Vault
+  1. Store the secret in Vault.
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+- Set up per Consul data center
+  1. Create a Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart..
 
-First, store the license key in Vault:
+## One time set up in Vault
+### Store the Secret in Vault
+
+First, store the ACL replication token in Vault:
 
 ```shell-session
-$ vault kv put secret/consul/enterpriselicense key="<enterprise license>"
+$ vault kv put secret/consul/replication-token token="<ACL replication Token>"
 ```
 
 Next, you will need to create a policy that allows read access to this secret:
 
 
-<CodeBlockConfig filename="enterpriselicense-policy.hcl">
+<CodeBlockConfig filename="replication-token-policy.hcl">
 
 ```HCL
-path "secret/data/consul/enterpriselicense" {
+path "secret/data/consul/replication-token" {
   capabilities = ["read"]
 }
 ```
@@ -35,26 +45,18 @@ path "secret/data/consul/enterpriselicense" {
 </CodeBlockConfig>
 
 ```shell-session
-$ vault policy write enterpriselicense-policy enterpriselicense-policy.hcl
+$ vault policy write replication-token-policy replication-token-policy.hcl
 ```
 
 Prior to creating Vault auth roles for the Consul servers and clients, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
-Next, you will create Kubernetes auth roles for the Consul server and client:
+Next, you will create Kubernetes auth roles for the Consul ACL manger, which is technically the `server-acl-init` container that runs as part of the Consul server statefulset:
 
 ```shell-session
-$ vault write auth/kubernetes/role/consul-server \
+$ vault write auth/kubernetes/role/consul-acl-manager \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=enterpriselicense-policy \
-    ttl=1h
-```
-
-```shell-session
-$ vault write auth/kubernetes/role/consul-client \
-    bound_service_account_names=<Consul client service account> \
-    bound_service_account_namespaces=<Consul installation namespace> \
-    policies=enterpriselicense-policy \
+    policies=replication-token-policy \
     ttl=1h
 ```
 
@@ -64,11 +66,6 @@ you can run the following `helm template` commands with your Consul on Kubernete
 - Generate Consul server service account name
   ```shell-session
   $ helm template --release-name ${RELEASE_NAME} -s templates/server-serviceaccount.yaml hashicorp/consul
-  ```
-
-- Generate Consul client service account name
-  ```shell-session
-  $ helm template --release-name ${RELEASE_NAME} -s templates/client-serviceaccount.yaml hashicorp/consul
   ```
 
 ## Deploying the Consul Helm chart
@@ -83,16 +80,16 @@ global:
   secretsBackend:
     vault:
       enabled: true
-      consulServerRole: consul-server
-      consulClientRole: consul-client
-  enterpriseLicense:
-    secretName: secret/data/consul/enterpriselicense
-    secretKey: key
+      manageSystemACLsRole: consul-acl-manager
+  acls:
+    replicationToken:
+      secretName: secret/data/consul/replication-token
+      secretKey: token
 ```
 
 </CodeBlockConfig>
 
-Note that `global.enterpriseLicense.secretName` is the path of the secret in Vault.
+Note that `global.acls.replicationToken.secretName` is the path of the secret in Vault.
 This should be the same path as the one you included in your Vault policy.
-`global.enterpriseLicense.secretKey` is the key inside the secret data. This should be the same
+`global.acls.replicationToken.secretKey` is the key inside the secret data. This should be the same
 as the key you passed when creating the enterprise license secret in Vault.
