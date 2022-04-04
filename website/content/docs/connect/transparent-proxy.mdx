@@ -47,7 +47,7 @@ proxy, and dial the local listener to reach the appropriate upstream. Users woul
 specific services to talk to one another. Transparent proxying reduces this duplication, by determining upstreams
 implicitly from Service Intentions. Explicit upstreams are still supported in the [proxy service
 registration](/docs/connect/registration/service-registration) on VMs and via the
-[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
+[annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
 
 To support transparent proxying, Consul's CLI now has a command
 [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and
@@ -153,20 +153,21 @@ or the Pod annotation `consul.hashicorp.com/transparent-proxy-overwrite-probes`.
 Pods with transparent proxy enabled will have an init container injected that sets up traffic redirection for all
 inbound and outbound traffic through the sidecar proxies. This will include all traffic by default, with the ability to
 configure exceptions on a per-Pod basis. The following Pod annotations allow you to exclude certain traffic from redirection to the sidecar proxies:
-- [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports)
-- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports)
-- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs)
-- [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-uids)
+
+- [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports)
+- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports)
+- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs)
+- [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/annotations-and-labels#consul-hashicorp-com-transparent-proxy-exclude-uids)
 
 
 ## Known Limitations
 
 * Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the
 transparent proxy's datacenter. Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
-[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
+[annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) such as
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
 in the datacenter `dc2`.
-* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
+* In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.

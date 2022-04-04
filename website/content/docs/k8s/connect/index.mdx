@@ -192,7 +192,7 @@ When ACLs are enabled with default `deny` policy,
 you must supply an [intention](/docs/connect/intentions) to tell Consul which upstream you need to talk to.
 
 When upstreams are specified explicitly with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams),
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
 the injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
 and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
 upstream. This is analogous to the standard Kubernetes service environment variables, but
