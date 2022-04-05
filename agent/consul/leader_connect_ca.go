@@ -1376,6 +1376,48 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 	return l.csrRateLimiter
 }
 
+// AuthorizeAndSignCertificate signs a leaf certificate for the service or agent
+// identified by the SPIFFE ID in the given CSR's SAN. It performs authorization
+// using the given acl.Authorizer.
+func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
+	// Parse the SPIFFE ID from the CSR SAN.
+	if len(csr.URIs) == 0 {
+		return nil, errors.New("CSR SAN does not contain a SPIFFE ID")
+	}
+	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Perform authorization.
+	var authzContext acl.AuthorizerContext
+	allow := authz.ToAllowAuthorizer()
+	switch v := spiffeID.(type) {
+	case *connect.SpiffeIDService:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.ServiceWriteAllowed(v.Service, &authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the service URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
+	case *connect.SpiffeIDAgent:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("SPIFFE ID in CSR must be a service or agent ID")
+	}
+
+	return c.SignCertificate(csr, spiffeID)
+}
+
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
 	if provider == nil {
