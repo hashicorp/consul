@@ -47,9 +47,9 @@ func (m *delegateMock) RemoveFailedNode(node string, prune bool, entMeta *struct
 	return m.Called(node, prune, entMeta).Error(0)
 }
 
-func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	ret := m.Called(token, entMeta, authzContext)
-	return ret.Get(0).(acl.Authorizer), ret.Error(1)
+	return ret.Get(0).(consul.ACLResolveResult), ret.Error(1)
 }
 
 func (m *delegateMock) RPC(method string, args interface{}, reply interface{}) error {
