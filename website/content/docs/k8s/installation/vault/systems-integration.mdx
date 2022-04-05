@@ -127,7 +127,7 @@ $ vault write auth/kubernetes/config \
 Finally, you will configure the Consul on Kubernetes helm chart for the data center to expect to receive the following values (if you have configured them) to be retreived from Vault:
 - ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
 - Gossip encryption key ([`global.gossipEncryption`]())
-- Enterprise license ([`global.enterpriseLicense]())
+- Enterprise license ([`global.enterpriseLicense`]())
 - ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
 - Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 - TLS CA certificates ([`global.tls.caCert`](/docs/k8s/helm#v-global-tls-cacert))
