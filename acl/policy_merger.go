@@ -19,6 +19,8 @@ type policyRulesMergeContext struct {
 	servicePrefixRules       map[string]*ServiceRule
 	sessionRules             map[string]*SessionRule
 	sessionPrefixRules       map[string]*SessionRule
+	// namespaceRule is an enterprise-only field
+	namespaceRule string
 }
 
 func (p *policyRulesMergeContext) init() {
