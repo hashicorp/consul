@@ -72,14 +72,14 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "node --max-old-space-size=4096 ./node_modules/.bin/next build",
+    "build": "./scripts/website-build.sh",
     "dynamic": "NODE_ENV=production next build && next start",
     "export": "node --max-old-space-size=4096 ./node_modules/.bin/next export",
     "format": "next-hashicorp format",
     "generate:component": "next-hashicorp generate component",
     "generate:readme": "next-hashicorp markdown-blocks README.md",
     "lint": "next-hashicorp lint",
-    "start": "next-remote-watch './content/**/*.mdx'",
+    "start": "./scripts/website-start.sh",
     "static": "npm run build && npm run export && cp _redirects out/.",
     "linkcheck": "linkcheck https://consul.io"
   },
