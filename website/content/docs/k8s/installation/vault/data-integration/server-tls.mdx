@@ -44,7 +44,6 @@ which also uses an intermediate signing authority.
 To use an Vault as the Server TLS Certificate Provider on Kubernetes, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
 - One time set up in Vault
-  1. ~~Store the secret in Vault.~~
   1. Create a Vault policy that authorizes the desired level of access to the secret.
 - Set up per Consul data center
   1. (Added) Create a Vault PKI role that establishes the domains that it is allowed to issue certificates for
