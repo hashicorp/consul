@@ -95,3 +95,20 @@ If the following conditions apply, ECS health checks automatically sync with Con
 The `mesh-init` container creates a TTL health check for
 every container that fits these criteria and the `health-sync` container ensures
 that the ECS and Consul health checks remain in sync.
+
+## Admin Partitions and Namespaces
+
+Consul on ECS supports admin partitions and namespaces.
+When [Admin Partitions and Namespaces](/docs/ecs/enterprise#admin-partitions-and-namespaces) are enabled,
+the ACL Controller checks that its admin partition exists when it starts up. If the partition does not exist the ACL Controller creates it.
+
+Once started, the ACL Controller monitors the tasks in the cluster and inspects their tags.
+If the task contains a partition tag the ACL Controller checks to see if the partition matches its configured partition.
+The ACL Controller only provisions tokens for tasks that are tagged with the same partition that it is managing and it ignores all other tasks.
+
+If a task is in the ACL Controller's partition and contains a namespace tag, the ACL Controller will check to see if the namespace exists.
+If the namespace does not exist, the ACL Controller creates it.
+
+When the ACL Controller provisions tokens for the clients and services, it ensures that those tokens are scoped to the applicable admin partition and namespace.
+The ACL Controller creates service tokens with attached policies that allow services to communicate with upstreams
+in different namespaces and admin partitions.
