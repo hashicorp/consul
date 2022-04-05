@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
 )
@@ -81,9 +80,6 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithPromoter(s.autopilotPromoter()),
 		autopilot.WithReconciliationDisabled(),
 	)
-
-	// start autopilot.
-	s.autopilot.Start(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
 	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
