@@ -16,12 +16,13 @@ cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>]
 
 Description:
-    Generate all Go files from protobuf definitions. In addition to
-    running the protoc generator it will also fixup build tags in the
-    generated code and regenerate mog outputs and RPC stubs.
+    Installs protoc, various supporting Go tools, and then regenerates all Go
+    files from protobuf definitions. In addition to running the protoc
+    generator it will also fixup build tags in the generated code and
+    regenerate mog outputs and RPC stubs.
 
 Options:
-    --protoc-bin             Path to protoc.
+    --protoc-version         Version of protoc to install. It defaults to what is specified in the makefile.
     --tools-only             Install all required tools but do not generate outputs.
     -h | --help              Print this help text.
 EOF
