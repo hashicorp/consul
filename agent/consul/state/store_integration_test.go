@@ -25,9 +25,9 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -71,9 +71,9 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	sub2, err := publisher.Subscribe(subscription2)
 	require.NoError(t, err)
@@ -112,9 +112,9 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -162,9 +162,9 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(t, err)
@@ -191,9 +191,9 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription3)
 	require.NoError(t, err)
@@ -233,9 +233,9 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -278,9 +278,9 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(t, err)
@@ -396,7 +396,9 @@ var topicService topic = "test-topic-service"
 func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
 		topicService: func(req stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
-			idx, nodes, err := s.ServiceNodes(nil, req.Key, nil)
+			key := req.Subject.String()
+
+			idx, nodes, err := s.ServiceNodes(nil, key, nil)
 			if err != nil {
 				return idx, err
 			}
@@ -405,7 +407,7 @@ func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 				event := stream.Event{
 					Topic:   req.Topic,
 					Index:   node.ModifyIndex,
-					Payload: nodePayload{node: node, key: req.Key},
+					Payload: nodePayload{node: node, key: key},
 				}
 				snap.Append([]stream.Event{event})
 			}
@@ -424,7 +426,7 @@ func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 }
 
 func (p nodePayload) Subject() stream.Subject {
-	return stream.Subject(p.node.PartitionOrDefault() + "/" + p.node.NamespaceOrDefault() + "/" + p.key)
+	return stringer(p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
@@ -451,9 +453,9 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	// so we know the initial token write event has been sent out before
 	// continuing...
 	req := &stream.SubscribeRequest{
-		Topic: topicService,
-		Key:   "nope",
-		Token: token.SecretID,
+		Topic:   topicService,
+		Subject: stringer("nope"),
+		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

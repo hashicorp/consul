@@ -13,6 +13,7 @@ import (
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/ipaddr"
 
@@ -263,7 +264,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, newDefaultDeps(t, c), nil)
+	srv, err := NewServer(c, newDefaultDeps(t, c), grpc.NewServer())
 	if err != nil {
 		return nil, err
 	}
