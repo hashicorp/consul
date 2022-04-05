@@ -3,12 +3,13 @@ package dataplane
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	acl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc/public"
 	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (d *Server) SupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.SupportedDataplaneFeaturesRequest) (*pbdataplane.SupportedDataplaneFeaturesResponse, error) {

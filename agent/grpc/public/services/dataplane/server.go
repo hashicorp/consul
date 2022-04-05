@@ -1,11 +1,11 @@
 package dataplane
 
 import (
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
 type Server struct {
@@ -19,7 +19,7 @@ type Config struct {
 
 //go:generate mockery -name ACLResolver -inpkg
 type ACLResolver interface {
-	ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
 }
 
 func NewServer(cfg Config) *Server {

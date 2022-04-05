@@ -995,7 +995,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1128,7 +1128,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})

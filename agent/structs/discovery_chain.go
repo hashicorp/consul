@@ -3,8 +3,9 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/acl"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
 
 	"github.com/hashicorp/consul/lib"
 )

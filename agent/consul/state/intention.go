@@ -150,7 +150,7 @@ func areIntentionsInConfigEntries(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
 
 // LegacyIntentions is like Intentions() but only returns legacy intentions.
 // This is exposed for migration purposes.
-func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -159,7 +159,7 @@ func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseM
 }
 
 // Intentions returns the list of all intentions. The boolean response value is true if it came from config entries.
-func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func (s *Store) Intentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -173,7 +173,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 	return configIntentionsListTxn(tx, ws, entMeta)
 }
 
-func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {

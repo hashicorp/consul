@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -176,7 +177,7 @@ func kvsSetTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry, updateSession b
 }
 
 // KVSGet is used to retrieve a key/value pair from the state store.
-func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
+func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *acl.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -191,7 +192,7 @@ func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.Enterpris
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
 func kvsGetTxn(tx ReadTxn,
-	ws memdb.WatchSet, key string, entMeta structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
+	ws memdb.WatchSet, key string, entMeta acl.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 
 	// Get the table index.
 	idx := kvsMaxIndex(tx, entMeta)
@@ -212,7 +213,7 @@ func kvsGetTxn(tx ReadTxn,
 // is the max index of the returned kvs entries or applicable tombstones, or
 // else it's the full table indexes for kvs and tombstones.
 func (s *Store) KVSList(ws memdb.WatchSet,
-	prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	prefix string, entMeta *acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -228,7 +229,7 @@ func (s *Store) KVSList(ws memdb.WatchSet,
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
 func (s *Store) kvsListTxn(tx ReadTxn,
-	ws memdb.WatchSet, prefix string, entMeta structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	// Get the table indexes.
 	idx := kvsMaxIndex(tx, entMeta)
@@ -262,7 +263,7 @@ func (s *Store) kvsListTxn(tx ReadTxn,
 
 // KVSDelete is used to perform a shallow delete on a single key in the
 // the state store.
-func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) KVSDelete(idx uint64, key string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -276,7 +277,7 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *acl.EnterpriseMeta) error {
 
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -303,7 +304,7 @@ func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *struc
 // raft index. If the CAS index specified is not equal to the last
 // observed index for the given key, then the call is a noop, otherwise
 // a normal KV delete is invoked.
-func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *acl.EnterpriseMeta) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -318,7 +319,7 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
 // transaction.
-func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *acl.EnterpriseMeta) (bool, error) {
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
@@ -390,7 +391,7 @@ func kvsSetCASTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error
 // KVSDeleteTree is used to do a recursive delete on a key prefix
 // in the state store. If any keys are modified, the last index is
 // set, otherwise this is a no-op.
-func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -403,7 +404,7 @@ func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.Enterp
 
 // KVSLockDelay returns the expiration time for any lock delay associated with
 // the given key.
-func (s *Store) KVSLockDelay(key string, entMeta *structs.EnterpriseMeta) time.Time {
+func (s *Store) KVSLockDelay(key string, entMeta *acl.EnterpriseMeta) time.Time {
 	return s.lockDelay.GetExpiration(key, entMeta)
 }
 
@@ -527,7 +528,7 @@ func kvsUnlockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error
 // kvsCheckSessionTxn checks to see if the given session matches the current
 // entry for a key.
 func kvsCheckSessionTxn(tx WriteTxn,
-	key string, session string, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
+	key string, session string, entMeta *acl.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -552,7 +553,7 @@ func kvsCheckSessionTxn(tx WriteTxn,
 // kvsCheckIndexTxn checks to see if the given modify index matches the current
 // entry for a key.
 func kvsCheckIndexTxn(tx WriteTxn,
-	key string, cidx uint64, entMeta structs.EnterpriseMeta) (*structs.DirEntry, error) {
+	key string, cidx uint64, entMeta acl.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: entMeta})
 	if err != nil {

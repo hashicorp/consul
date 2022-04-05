@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -12,7 +13,7 @@ import (
 // enterprise identifier.
 type Query struct {
 	Value string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (q Query) IDValue() string {
@@ -33,7 +34,7 @@ func (q Query) PartitionOrDefault() string {
 
 type MultiQuery struct {
 	Value []string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (q MultiQuery) IDValue() []string {
@@ -118,7 +119,7 @@ func parseUUIDString(uuid string) ([]byte, error) {
 // enterprise identifier.
 type BoolQuery struct {
 	Value bool
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -138,7 +139,7 @@ func (q BoolQuery) PartitionOrDefault() string {
 type KeyValueQuery struct {
 	Key   string
 	Value string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -168,8 +169,8 @@ func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
 
 type AuthMethodQuery struct {
 	Value             string
-	AuthMethodEntMeta structs.EnterpriseMeta
-	structs.EnterpriseMeta
+	AuthMethodEntMeta acl.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

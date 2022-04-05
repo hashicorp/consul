@@ -1000,7 +1000,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	var authzContext acl.AuthorizerContext
-	var requestMeta structs.EnterpriseMeta
+	var requestMeta acl.EnterpriseMeta
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &requestMeta, &authzContext)
 	if err != nil {
 		return err
@@ -1012,7 +1012,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return err
 	}
 
-	var methodMeta *structs.EnterpriseMeta
+	var methodMeta *acl.EnterpriseMeta
 	if args.AuthMethod != "" {
 		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
 		// attempt to merge in the overall meta, wildcards will not be merged
@@ -2449,7 +2449,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 
 func (a *ACL) tokenSetFromAuthMethod(
 	method *structs.ACLAuthMethod,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	tokenDescriptionPrefix string,
 	tokenMetadata map[string]string,
 	validator authmethod.Validator,
