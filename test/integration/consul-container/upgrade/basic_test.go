@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var curImage = flag.String("cur-image", "consul:local", "docker image to be used as current")
+var curImage = flag.String("uut-image", "consul:local", "docker image to be used as UUT (unit under test)")
 var latestImage = flag.String("latest-image", "consul:latest", "docker image to be used as latest")
 
 func TestBasic(t *testing.T) {
