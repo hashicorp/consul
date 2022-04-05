@@ -1,16 +1,13 @@
-package connectca
+package testutils
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/stretchr/testify/require"
 )
 
-// testAuthorizer returns an ACL policy authorizer with `service:write` on an
-// arbitrary service.
-func testAuthorizer(t *testing.T) acl.Authorizer {
+func TestAuthorizer(t *testing.T) acl.Authorizer {
 	t.Helper()
 
 	policy, err := acl.NewPolicyFromSource(`
