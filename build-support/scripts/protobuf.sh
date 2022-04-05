@@ -104,21 +104,6 @@ function main {
     return 0
 }
 
-function generate_mog_code {
-    local mog_order
-
-    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
-
-	for FULL_PKG in ${mog_order}; do
-		PKG="${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}"
-        status_stage "Generating ${PKG}/*.pb.go into ${PKG}/*.gen.go with mog"
-		find "$PKG" -name '*.gen.go' -delete
-        print_run mog -tags "${GOTAGS}" -source "${PKG}/*.pb.go"
-	done
-
-    return 0
-}
-
 # Installs the version of protoc specified by the first argument.
 #
 # Will set 'protoc_bin'
@@ -323,6 +308,21 @@ function generate_protobuf_code {
         err "Failed to generate consul rpc glue outputs from ${proto_path}"
         return 1
     }
+
+    return 0
+}
+
+function generate_mog_code {
+    local mog_order
+
+    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
+
+	for FULL_PKG in ${mog_order}; do
+		PKG="${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}"
+        status_stage "Generating ${PKG}/*.pb.go into ${PKG}/*.gen.go with mog"
+		find "$PKG" -name '*.gen.go' -delete
+        print_run mog -tags "${GOTAGS}" -source "${PKG}/*.pb.go"
+	done
 
     return 0
 }
