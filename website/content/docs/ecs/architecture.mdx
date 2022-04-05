@@ -67,9 +67,9 @@ This diagram shows an example timeline of a task shutting down:
 
 ## ACL Controller
 
-The ACL controller is responsible for:
-* Automatically provisioning Consul ACL tokens for Consul clients and service mesh services.
-* Automatically managing Consul admin partitions and namespaces.
+The ACL controller is performs the following operations:
+* Provisions Consul ACL tokens for Consul clients and service mesh services.
+* Manages Consul admin partitions and namespaces.
 
 ### Automatic ACL Token Provisioning
 
@@ -97,12 +97,12 @@ the ACL controller is assigned to its configured admin partition. The ACL contro
 tokens for tasks in a single admin partition and supports one ACL controller instance per ECS
 cluster. This results in an architecture with one admin partition per ECS cluster.
 
-The ACL controller automatically performs the following:
-* Create its configured admin partition at startup if it does not exist.
-* Inspect ECS task tags to discover a task's intended partition and namespace.
-  The ACL controller ignores tasks which do not have a matching partition tag.
-* Create namespaces when tasks startup. Namespaces are only created if the do not exist.
-* Provision ACL tokens and ACL policies that are scoped to the applicable admin partition and namespace.
+The ACL controller automatically performs the following actions:
+* Creates its admin partition at startup if it does not exist.
+* Inspects ECS task tags for the task's intended partition and namespace.
+  The ACL controller ignores tasks that do not match the `partition` tag.
+* Creates namespaces when tasks start up. Namespaces are only created if the do not exist.
+* Provisions ACL tokens and ACL policies that are scoped to the applicable admin partition and namespace.
 * Provision ACL tokens that allow services to communicate with upstreams across admin partitions and namespaces.
 
 ## ECS Health Check Syncing
