@@ -37,9 +37,9 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 	var maxIndex uint64 = 200
 	count := &counter{latest: 3}
 	producers := map[string]*eventProducer{
-		"srv1": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv1", count, maxIndex),
-		"srv2": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv2", count, maxIndex),
-		"srv3": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv3", count, maxIndex),
+		state.EventSubjectService{Key: "srv1"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv1", count, maxIndex),
+		state.EventSubjectService{Key: "srv2"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv2", count, maxIndex),
+		state.EventSubjectService{Key: "srv3"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv3", count, maxIndex),
 	}
 
 	sh := snapshotHandler{producers: producers}
@@ -88,7 +88,7 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 		t.Run(fmt.Sprintf("consumer %d", i), func(t *testing.T) {
 			require.True(t, len(consumer.states) > 2, "expected more than %d events", len(consumer.states))
 
-			expected := producers[consumer.srvName].nodesByIndex
+			expected := producers[state.EventSubjectService{Key: consumer.srvName}.String()].nodesByIndex
 			for idx, nodes := range consumer.states {
 				assertDeepEqual(t, idx, expected[idx], nodes)
 			}
@@ -348,7 +348,7 @@ type snapshotHandler struct {
 }
 
 func (s *snapshotHandler) Snapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
-	producer := s.producers[req.Key]
+	producer := s.producers[req.Subject.String()]
 
 	producer.nodesLock.Lock()
 	defer producer.nodesLock.Unlock()

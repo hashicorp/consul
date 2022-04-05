@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package connectca;
+
+option go_package = "github.com/hashicorp/consul/proto-public/pbconnectca";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service ConnectCAService {
+  // WatchRoots provides a stream on which you can receive the list of active
+  // Connect CA roots. Current roots are sent immediately at the start of the
+  // stream, and new lists will be sent whenever the roots are rotated.
+  rpc WatchRoots(google.protobuf.Empty) returns (stream WatchRootsResponse) {};
+}
+
+message WatchRootsResponse {
+  // active_root_id is the ID of a root in Roots that is the active CA root.
+  // Other roots are still valid if they're in the Roots list but are in the
+  // process of being rotated out.
+  string active_root_id = 1;
+
+  // trust_domain is the identification root for this Consul cluster. All
+  // certificates signed by the cluster's CA must have their identifying URI
+  // in this domain.
+  //
+  // This does not include the protocol (currently spiffe://) since we may
+  // implement other protocols in future with equivalent semantics. It should
+  // be compared against the "authority" section of a URI (i.e. host:port).
+  string trust_domain = 2;
+
+  // roots is a list of root CA certs to trust.
+  repeated CARoot roots = 3;
+}
+
+message CARoot {
+   // id is a globally unique ID (UUID) representing this CA root.
+   string id = 1;
+
+   // name is a human-friendly name for this CA root. This value is opaque to
+   // Consul and is not used for anything internally.
+   string name = 2;
+
+   // serial_number is the x509 serial number of the certificate.
+   uint64 serial_number = 3;
+
+   // signing_key_id is the connect.HexString encoded id of the public key that
+   // corresponds to the private key used to sign leaf certificates in the
+   // local datacenter.
+   //
+   // The value comes from x509.Certificate.SubjectKeyId of the local leaf
+   // signing cert.
+   //
+   // See https://www.rfc-editor.org/rfc/rfc3280#section-4.2.1.1 for more detail.
+   string signing_key_id = 4;
+
+   // root_cert is the PEM-encoded public certificate.
+   string root_cert = 5;
+
+   // intermediate_certs is a list of PEM-encoded intermediate certs to
+   // attach to any leaf certs signed by this CA.
+   repeated string intermediate_certs = 6;
+
+   // active is true if this is the current active CA. This must only
+   // be true for exactly one CA.
+   bool active = 7;
+
+   // rotated_out_at is the time at which this CA was removed from the state.
+   // This will only be set on roots that have been rotated out from being the
+   // active root.
+   google.protobuf.Timestamp rotated_out_at = 8;
+}
