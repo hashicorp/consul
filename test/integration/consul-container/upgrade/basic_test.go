@@ -16,9 +16,10 @@ import (
 )
 
 var curImage = flag.String("cur-image", "consul:local", "docker image to be used as current")
+var latestImage = flag.String("latest-image", "consul:latest", "docker image to be used as latest")
 
 func TestBasic(t *testing.T) {
-	consulNode, err := consulcontainer.NewNode()
+	consulNode, err := consulcontainer.NewNodeWitConfig(context.Background(), consulcontainer.Config{Image: *latestImage})
 	require.NoError(t, err)
 	defer Terminate(t, []*consulcontainer.ConsulNode{consulNode})
 	retry.Run(t, func(r *retry.R) {
@@ -30,7 +31,7 @@ func TestBasic(t *testing.T) {
 
 func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	numServers := 3
-	Servers, err := serversCluster(t, numServers, "consul:latest")
+	Servers, err := serversCluster(t, numServers, *latestImage)
 	require.NoError(t, err)
 	defer Terminate(t, Servers)
 	numClients := 2
@@ -111,7 +112,7 @@ func TestMixedServersMajorityLatest(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:   []string{"agent", "-client=0.0.0.0"},
-				Image: "consul:latest",
+				Image: *latestImage,
 			})
 
 		require.NoError(t, err)
@@ -140,7 +141,7 @@ func TestMixedServersMajorityCurrent(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 			Cmd:   []string{"agent", "-client=0.0.0.0"},
-			Image: "consul:latest",
+			Image: *latestImage,
 		})
 
 	require.NoError(t, err)

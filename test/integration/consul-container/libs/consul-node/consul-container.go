@@ -32,16 +32,9 @@ type Config struct {
 	Cmd          []string
 }
 
-func (c *Config) ApplyDefaults() {
-	if c.Image == "" {
-		c.Image = "consul"
-	}
-}
-
 const bootLogLine = "Consul agent running"
 
 func NewNodeWitConfig(ctx context.Context, config Config) (*ConsulNode, error) {
-	config.ApplyDefaults()
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("/tmp", name)
