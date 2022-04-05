@@ -28,13 +28,13 @@ Options:
 EOF
 }
 
-err_usage() {
+function err_usage() {
     err "$1"
     err ""
     err "$(usage)"
 }
 
-main() {
+function main() {
     local protoc_version=
     local tools_only=
 
