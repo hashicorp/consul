@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
-	consul_cluster "github.com/hashicorp/consul/integration/ca/libs/consul-cluster"
+	consul_cluster "github.com/hashicorp/consul/integration/consul-container/libs/consul-cluster"
+	consulcontainer "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
 
-	consulcontainer "github.com/hashicorp/consul/integration/ca/libs/consul-node"
-
-	"github.com/hashicorp/consul/integration/ca/libs/utils"
+	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
@@ -77,12 +76,6 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 				Image: *curImage,
 			})
 	}
-	t.Cleanup(func() {
-		for _, c := range Clients {
-			err := c.Terminate()
-			require.NoError(t, err)
-		}
-	})
 	err = Cluster.AddNodes(Clients)
 	retry.Run(t, func(r *retry.R) {
 		leader, err := Cluster.Leader()

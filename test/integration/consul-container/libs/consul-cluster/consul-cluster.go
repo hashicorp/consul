@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	consulcontainer "github.com/hashicorp/consul/integration/ca/libs/consul-node"
+	consulcontainer "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
 )
 
 type Cluster struct {

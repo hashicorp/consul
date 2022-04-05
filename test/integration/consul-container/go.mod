@@ -1,4 +1,4 @@
-module github.com/hashicorp/consul/integration/ca
+module github.com/hashicorp/consul/integration/consul-container
 
 go 1.16
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/docker/docker/pkg/ioutils"
 
-	"github.com/hashicorp/consul/integration/ca/libs/utils"
+	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 
 	"github.com/testcontainers/testcontainers-go"
 
