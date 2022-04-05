@@ -49,7 +49,7 @@ $ vault policy write gossip-policy gossip-policy.hcl
 
 -> **Note:** The secret path referenced by the above Policy will be your `global.gossipEncryption.secretName` Helm value.
 
-## Set up per Consul data center
+## Set up per Consul datacenter
 ### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 Next, we will create Kubernetes auth roles for the Consul server and client:
 
