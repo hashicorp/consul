@@ -15,12 +15,12 @@ PROTOC_VERSION=3.15.8
 
 ###
 # MOG_VERSION can be either a valid string for "go install <module>@<version>"
-# or the string @DEV to imply use whatever is currently installed locall.
+# or the string @DEV to imply use whatever is currently installed locally.
 ###
 MOG_VERSION='v0.2.0'
 ###
 # PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
-# or the string @DEV to imply use whatever is currently installed locall.
+# or the string @DEV to imply use whatever is currently installed locally.
 ###
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
