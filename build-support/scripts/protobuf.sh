@@ -317,12 +317,16 @@ function generate_mog_code {
 
     mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
 
-	for FULL_PKG in ${mog_order}; do
-		PKG="${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}"
+    for FULL_PKG in ${mog_order}; do
+        PKG="${FULL_PKG/#github.com\/hashicorp\/consul\/}"
         status_stage "Generating ${PKG}/*.pb.go into ${PKG}/*.gen.go with mog"
-		find "$PKG" -name '*.gen.go' -delete
-        print_run mog -tags "${GOTAGS}" -source "${PKG}/*.pb.go"
-	done
+        find "$PKG" -name '*.gen.go' -delete
+        if [[ -n "${GOTAGS}" ]]; then
+            print_run mog -tags "${GOTAGS}" -source "./${PKG}/*.pb.go"
+        else
+            print_run mog -source "./${PKG}/*.pb.go"
+        fi
+    done
 
     return 0
 }
