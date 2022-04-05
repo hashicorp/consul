@@ -79,6 +79,12 @@ function main {
         return 0
     fi
 
+    # Compute some data from dependencies in non-local variables.
+    go mod download
+    golang_proto_path="$(go list -f '{{ .Dir }}' -m github.com/golang/protobuf)"
+    # golang_proto_mod_path="$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${golang_proto_path}")"
+    golang_proto_mod_path="$(go env GOMODCACHE)"
+
     declare -a proto_files
     while IFS= read -r pkg; do
         pkg="${pkg#"./"}"
@@ -86,7 +92,7 @@ function main {
     done < <(find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' | sort )
 
     for proto_file in "${proto_files[@]}"; do
-        ${SCRIPT_DIR}/proto-gen.sh --grpc --protoc-bin "${protoc_bin}" "$proto_file"
+        generate_protobuf_code "${proto_file}"
     done
 
 	echo "Generated all protobuf Go files"
@@ -238,6 +244,67 @@ function install_versioned_tool {
     else
         debug "skipping tool: ${install} (installed)"
     fi
+    return 0
+}
+
+function generate_protobuf_code {
+    local proto_path="${1:-}"
+    if [[ -z "${proto_path}" ]]; then
+        err "missing protobuf path argument"
+        return 1
+    fi
+
+    if [[ -z "${golang_proto_path}" ]]; then
+        err "golang_proto_path was not set"
+        return 1
+    fi
+    if [[ -z "${golang_proto_mod_path}" ]]; then
+        err "golang_proto_mod_path was not set"
+        return 1
+    fi
+
+    local proto_go_path="${proto_path%%.proto}.pb.go"
+    local proto_go_bin_path="${proto_path%%.proto}.pb.binary.go"
+    local proto_go_rpcglue_path="${proto_path%%.proto}.rpcglue.pb.go"
+
+    local go_proto_out='paths=source_relative,plugins=grpc:'
+
+    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
+
+    rm -f "${proto_go_path}" ${proto_go_bin_path}" ${proto_go_rpcglue_path}"
+
+    print_run ${protoc_bin} \
+        -I="${golang_proto_path}" \
+        -I="${golang_proto_mod_path}" \
+        -I="${SOURCE_DIR}" \
+        --go_out="${go_proto_out}${SOURCE_DIR}" \
+        --go-binary_out="${SOURCE_DIR}" \
+        "${proto_path}" || {
+
+      err "Failed to run protoc for ${proto_path}"
+      return 1
+    }
+
+    print_run protoc-go-inject-tag -input="${proto_go_path}" || {
+        err "Failed to run protoc-go-inject-tag for ${proto_path}"
+        return 1
+    }
+
+    local build_tags
+    build_tags="$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build' || true)"
+    if test -n "${build_tags}"; then
+        echo -e "${build_tags}\n" >> "${proto_go_bin_path}.new"
+        cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
+        mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"
+    fi
+
+    # NOTE: this has to run after we fix up the build tags above
+    rm -f "${proto_go_rpcglue_path}"
+    print_run go run ./internal/tools/proto-gen-rpc-glue/main.go -path "${proto_go_path}" || {
+        err "Failed to generate consul rpc glue outputs from ${proto_path}"
+        return 1
+    }
+
     return 0
 }
 
