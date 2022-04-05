@@ -95,7 +95,26 @@ function main {
         generate_protobuf_code "${proto_file}"
     done
 
-	echo "Generated all protobuf Go files"
+    status "Generated all protobuf Go files"
+
+    generate_mog_code
+
+    status "Generated all mog Go files"
+
+    return 0
+}
+
+function generate_mog_code {
+    local mog_order
+
+    mog_order="$(go list -tags "${GOTAGS}" -deps ./proto/pb... | grep "consul/proto")"
+
+	for FULL_PKG in ${mog_order}; do
+		PKG="${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}"
+        status_stage "Generating ${PKG}/*.pb.go into ${PKG}/*.gen.go with mog"
+		find "$PKG" -name '*.gen.go' -delete
+        print_run mog -tags "${GOTAGS}" -source "${PKG}/*.pb.go"
+	done
 
     return 0
 }

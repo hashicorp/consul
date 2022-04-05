@@ -29,8 +29,6 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
-PROTO_MOG_ORDER=$(shell go list -tags '$(GOTAGS)' -deps ./proto/pb... | grep "consul/proto")
-
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
 else
@@ -346,22 +344,9 @@ else
 endif
 
 .PHONY: proto
-proto: -proto-files -mog-files
-
-.PHONY: -proto-files
--proto-files:
+proto:
 	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
 		--protoc-version "$(PROTOC_VERSION)"
-
-.PHONY: -mog-files
--mog-files:
-	@for FULL_PKG in $(PROTO_MOG_ORDER); do \
-		PKG="$${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}" ; \
-		find "$$PKG" -name '*.gen.go' -delete ; \
-		echo "mog -tags '$(GOTAGS)' -source \"$${PKG}/*.pb.go\"" ; \
-		mog -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
-	done
-	@echo "Generated all mog Go files"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
