@@ -12,23 +12,23 @@ GOTOOLS = \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.15.8
-PROTOC_OS := $(shell if test "$$(uname)" == "Darwin"; then echo osx; else echo linux; fi)
-PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-x86_64.zip
-PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
-PROTOC_ROOT := .protobuf/protoc-$(PROTOC_OS)-$(PROTOC_VERSION)
-PROTOC_BIN := $(PROTOC_ROOT)/bin/protoc
-GOPROTOVERSION?=$(shell grep github.com/golang/protobuf go.mod | awk '{print $$2}')
-GOPROTOTOOLS = \
-	github.com/golang/protobuf/protoc-gen-go@$(GOPROTOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary@master \
-	github.com/favadi/protoc-go-inject-tag@v1.3.0 \
-	github.com/hashicorp/mog@v0.2.0
+
+###
+# MOG_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use whatever is currently installed locally.
+###
+MOG_VERSION='v0.2.0'
+###
+# PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use whatever is currently installed locally.
+###
+PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-export PATH := $(PWD)/bin:$(PATH)
+export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
@@ -37,11 +37,6 @@ GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
-
-PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/' | grep -v '.protobuf' )
-PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
-PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
-PROTO_MOG_ORDER=$(shell go list -tags '$(GOTAGS)' -deps ./proto/pb... | grep "consul/proto")
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -304,11 +299,9 @@ tools: proto-tools
 	done
 
 proto-tools:
-	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
-	@for TOOL in $(GOPROTOTOOLS); do \
-		echo "=== TOOL: $$TOOL" ; \
-		go install -v $$TOOL ; \
-	done
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
+		--protoc-version "$(PROTOC_VERSION)" \
+		--tools-only
 
 version:
 	@echo -n "Version:                    "
@@ -359,39 +352,10 @@ else
 	@go test -v ./agent -run Vault
 endif
 
-.PHONY: protoc-install
-protoc-install:
-	$(info locally installing protocol buffer compiler version if needed (expect: $(PROTOC_VERSION)))
-	@if [[ ! -x $(PROTOC_ROOT)/bin/protoc ]]; then \
-		mkdir -p .protobuf/tmp ; \
-		if [[ ! -f .protobuf/tmp/$(PROTOC_ZIP) ]]; then \
-			( cd .protobuf/tmp && curl -sSL "$(PROTOC_URL)" -o "$(PROTOC_ZIP)" ) ; \
-		fi ; \
-		mkdir -p $(PROTOC_ROOT) ; \
-		unzip -d $(PROTOC_ROOT) .protobuf/tmp/$(PROTOC_ZIP) ; \
-		chmod -R a+Xr $(PROTOC_ROOT) ; \
-		chmod +x $(PROTOC_ROOT)/bin/protoc ; \
-	fi
-
 .PHONY: proto
-proto: -protoc-files -mog-files
-
-.PHONY: -mog-files
--mog-files:
-	@for FULL_PKG in $(PROTO_MOG_ORDER); do \
-		PKG="$${FULL_PKG/#github.com\/hashicorp\/consul\//.\/}" ; \
-		find "$$PKG" -name '*.gen.go' -delete ; \
-		echo "mog -tags '$(GOTAGS)' -source \"$${PKG}/*.pb.go\"" ; \
-		mog -tags '$(GOTAGS)' -source "$${PKG}/*.pb.go" ; \
-	done
-	@echo "Generated all mog Go files"
-
-.PHONY: -protoc-files
--protoc-files: protoc-install $(PROTOGOFILES) $(PROTOGOBINFILES)
-	@echo "Generated all protobuf Go files"
-
-%.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --protoc-bin "$(PROTOC_BIN)" "$<"
+proto:
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
+		--protoc-version "$(PROTOC_VERSION)"
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
