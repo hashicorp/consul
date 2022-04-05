@@ -32,7 +32,11 @@ For more information about how Consul works in general, see Consul's [Architectu
 
 This diagram shows the timeline of a task starting up and all its containers:
 
-<img alt="Task Startup Timeline" src="/img/ecs-task-startup.svg" style={{display: "block", maxWidth: "400px"}} />
+<ImageConfig width={400}>
+
+![Task Startup Timeline](/img/ecs-task-startup.svg)
+
+</ImageConfig>
 
 - **T0:** ECS starts the task. The `consul-client` and `mesh-init` containers start:
   - `consul-client` uses the `retry-join` option to join the Consul cluster
@@ -49,7 +53,11 @@ This diagram shows the timeline of a task starting up and all its containers:
 
 This diagram shows an example timeline of a task shutting down:
 
-<img alt="Task Shutdown Timeline" src="/img/ecs-task-shutdown.svg" style={{display: "block", maxWidth: "400px"}} />
+<ImageConfig width={400}>
+
+![Task Shutdown Timeline](/img/ecs-task-shutdown.svg)
+
+</ImageConfig>
 
 - **T0**: ECS sends a TERM signal to all containers. Each container reacts to the TERM signal:
   - `consul-client` begins to gracefully leave the Consul cluster.
