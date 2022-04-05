@@ -38,16 +38,16 @@ run Consul Enterprise clients then you must enable ACLs.
 
 ## Running Open Source Consul Clients
 
-Consul supports running Consul Enterprise servers with Consul OSS (Open Source) clients. Since
-currently no Consul Enterprise features are supported that require Consul client support,
-you can run Consul OSS clients with Consul Enterprise servers without issue.
+Consul supports running Consul Enterprise servers with Consul OSS (Open Source) clients.
+Consul OSS clients can run with Consul Enterprise servers without issue as long as you are
+not using features that require Consul Enterprise client support.
+Admin Partitions and Namespaces require Consul Enterprise clients.
 
 ## Feature Support
 
-Consul on ECS does not currently support any Consul Enterprise features that require
-support from Consul clients. That being said, there are many enterprise features that
-are activated only on Consul servers and so Consul on ECS will run fine with those
-features.
+Consul on ECS supports the following Enterprise features.
+If you are only using features that run on Consul servers, then you can use an OSS client in your mesh-tasks.
+If client support is required for any of the features, then you must use an Enterprise client in your mesh-tasks.
 
 | Feature                           | Supported     | Description                                                                                                                                                             |
 |-----------------------------------|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -59,7 +59,72 @@ features.
 | Advanced Federation/Network Areas | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
 | Sentinel                          | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
 | Network Segments                  | No            | Currently there is no capability to configure the network segment Consul clients on ECS run in.                                                                         |
-| Namespaces                        | No            | Currently there is no capability to configure the Consul namespace for a service on ECS.                                                                                |
-| Admin Partitions                  | No*           | Supported if Consul ECS clients run in the default partition. Otherwise there is currently no capability to configure the admin partition Consul clients in ECS run in. |
+| Namespaces                        | Yes           | This feature requires Consul Enterprise servers and clients.                                                                                                            |
+| Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers and clients.                                                                                                            |
 | Audit Logging                     | No*           | Audit logging can be enabled on Consul servers that run outside of ECS but is not currently supported on the Consul clients that run inside ECS.                        |
 
+### Admin Partitions and Namespaces
+
+Consul on ECS supports [Admin Partitions](/docs/enterprise/admin-partitions) and [Namespaces](/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used.
+These features require:
+* That ACLs are enabled.
+* The ACL Controller is running in the ECS cluster.
+* Mesh-tasks are using a Consul Enterprise client image.
+
+The ACL Controller automatically manages ACL policies and token provisioning for clients and services on the service mesh.
+It also creates admin partitions and namespaces if they do not already exist.
+
+-> **NOTE:** The ACL Controller does not delete admin partitions or namespaces once they are created.
+
+Each ACL Controller manages a single admin partition. Consul on ECS supports one ACL Controller per ECS cluster;
+therefore, the administrative boundary for admin partitions is one admin partition per ECS cluster.
+
+The following example demonstrates how to configure the ACL Controller to enable admin partitions
+and manage an admin partition named `my-partition`. The `consul_partition` field is optional and if it
+is not provided when `consul_partitions_enabled = true`, will default to the `default` admin partition.
+
+<CodeBlockConfig highlight="6-7">
+
+```hcl
+module "acl_controller" {
+  source = "hashicorp/consul/aws-ecs//modules/acl-controller"
+
+  ...
+
+  consul_partitions_enabled = true
+  consul_partition          = "my-partition"
+}
+```
+
+</CodeBlockConfig>
+
+Services are assigned to admin partitions and namespaces through the use of task tags.
+The `mesh-task` module automatically adds the necessary tags to the task definition.
+If the ACL Controller is configured for admin partitions, services on the mesh will
+always be assigned to an admin partition and namespace. If the `mesh-task` does not define
+the partition it will default to the `default` admin partition. Similarly, if a `mesh-task` does
+not define the namespace it will default to the `default` namespace.
+
+To support admin partitions and namespaces, a `mesh-task` must use a Consul Enterprise image.
+By default the `mesh-task` module uses a Consul OSS image. The module provides
+a `consul_image` field that can be used to set the Consul client image to an Enterprise version.
+
+The following example demonstrates how to create a `mesh-task` assigned to the admin partition named
+`my-partition`, in the `my-namespace` namespace.
+
+<CodeBlockConfig highlight="7-9">
+
+```hcl
+module "my_task" {
+  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  family = "my_task"
+
+  ...
+
+  consul_image     = "hashicorp/consul-enterprise:<version>-ent"
+  consul_partition = "my-partition"
+  consul_namespace = "my-namespace"
+}
+```
+
+</CodeBlockConfig>
