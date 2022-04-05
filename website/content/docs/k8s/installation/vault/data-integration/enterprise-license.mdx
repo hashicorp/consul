@@ -18,7 +18,7 @@ To use an enterprise license stored in Vault, we will follow the steps outlined 
 - One time set up in Vault
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
-- Set up per Consul data center
+- Set up per Consul datacenter
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
