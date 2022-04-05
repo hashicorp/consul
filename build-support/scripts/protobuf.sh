@@ -221,7 +221,6 @@ function install_versioned_tool {
     local got
 
     local expect="${module}@${version}"
-    local expect_dev="${module}@(devel)"
     local install="${installbase}@${version}"
 
     if [[ -z "$version" ]]; then
@@ -229,13 +228,19 @@ function install_versioned_tool {
         return 1
     fi
 
+    if [[ "$version" = "@DEV" ]]; then
+        if ! command -v "${command}" &>/dev/null ; then
+            err "dev version of '${command}' requested but not installed"
+            return 1
+        fi
+        status "skipping tool: ${installbase} (using development version)"
+        return 0
+    fi
+
     if command -v "${command}" &>/dev/null ; then
         got="$(go version -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
             awk '{print $2 "@" $3}')"
-        if [[ "$expect_dev" = "$got" ]]; then
-            status "skipping tool: ${install} (using development version)"
-            return 0
-        elif [[ "$expect" != "$got" ]]; then
+        if [[ "$expect" != "$got" ]]; then
             should_install=1
         fi
     else
