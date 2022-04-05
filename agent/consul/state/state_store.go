@@ -8,6 +8,7 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -143,7 +144,7 @@ type sessionCheck struct {
 	Session string
 
 	CheckID structs.CheckID
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NewStateStore creates a new in-memory state storage layer.

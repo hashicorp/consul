@@ -2156,7 +2156,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	})
 }
 
-func servicesInSync(state *local.State, wantServices int, entMeta *structs.EnterpriseMeta) error {
+func servicesInSync(state *local.State, wantServices int, entMeta *acl.EnterpriseMeta) error {
 	services := state.ServiceStates(entMeta)
 	if got, want := len(services), wantServices; got != want {
 		return fmt.Errorf("got %d services want %d", got, want)
@@ -2169,7 +2169,7 @@ func servicesInSync(state *local.State, wantServices int, entMeta *structs.Enter
 	return nil
 }
 
-func checksInSync(state *local.State, wantChecks int, entMeta *structs.EnterpriseMeta) error {
+func checksInSync(state *local.State, wantChecks int, entMeta *acl.EnterpriseMeta) error {
 	checks := state.CheckStates(entMeta)
 	if got, want := len(checks), wantChecks; got != want {
 		return fmt.Errorf("got %d checks want %d", got, want)
@@ -2421,6 +2421,6 @@ func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error 
 	return nil
 }
 
-func (f *fakeRPC) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+func (f *fakeRPC) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	return consul.ACLResolveResult{}, nil
 }

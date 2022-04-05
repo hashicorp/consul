@@ -3,12 +3,12 @@
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import "github.com/hashicorp/consul/acl"
 
 func partitionedIndexEntryName(entry string, _ string) string {
 	return entry
 }
 
-func partitionedAndNamespacedIndexEntryName(entry string, _ *structs.EnterpriseMeta) string {
+func partitionedAndNamespacedIndexEntryName(entry string, _ *acl.EnterpriseMeta) string {
 	return entry
 }

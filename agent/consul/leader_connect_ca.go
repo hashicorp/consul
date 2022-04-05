@@ -15,6 +15,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -1396,7 +1397,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if isService {
 		if !signingID.CanSign(spiffeID) {
 			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+

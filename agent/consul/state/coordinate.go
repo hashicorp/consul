@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -66,7 +67,7 @@ type CoordinateQuery struct {
 }
 
 func (c CoordinateQuery) PartitionOrDefault() string {
-	return structs.PartitionOrDefault(c.Partition)
+	return acl.PartitionOrDefault(c.Partition)
 }
 
 // coordinatesTableSchema returns a new table schema used for storing
@@ -128,7 +129,7 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
-func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
+func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -157,7 +158,7 @@ func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *structs.Ente
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Coordinates, error) {
+func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Coordinates, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

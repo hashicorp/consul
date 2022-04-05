@@ -4,6 +4,7 @@
 package state
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -24,7 +25,7 @@ func testIndexerTableConfigEntries() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{

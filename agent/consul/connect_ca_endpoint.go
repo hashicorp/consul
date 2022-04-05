@@ -164,7 +164,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	var authzContext acl.AuthorizerContext
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)

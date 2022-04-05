@@ -86,7 +86,7 @@ type GatewayKey struct {
 
 func (k GatewayKey) String() string {
 	resp := k.Datacenter
-	if !structs.IsDefaultPartition(k.Partition) {
+	if !acl.IsDefaultPartition(k.Partition) {
 		resp = k.Partition + "." + resp
 	}
 	return resp
@@ -97,7 +97,7 @@ func (k GatewayKey) IsEmpty() bool {
 }
 
 func (k GatewayKey) Matches(dc, partition string) bool {
-	return structs.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
+	return acl.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
 }
 
 func gatewayKeyFromString(s string) GatewayKey {

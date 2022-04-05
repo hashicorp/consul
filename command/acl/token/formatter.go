@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -165,7 +166,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		}
 	}
 
-	entMeta := structs.NewEnterpriseMetaWithPartition(token.Partition, token.Namespace)
+	entMeta := acl.NewEnterpriseMetaWithPartition(token.Partition, token.Namespace)
 	formatServiceIdentity := func(svcIdentity *api.ACLServiceIdentity, indent string) {
 		if len(svcIdentity.Datacenters) > 0 {
 			buffer.WriteString(fmt.Sprintf(indent+"Name: %s (Datacenters: %s)\n", svcIdentity.ServiceName, strings.Join(svcIdentity.Datacenters, ", ")))

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 const (
@@ -64,7 +64,7 @@ type SubscribeRequest struct {
 	Key string
 	// EnterpriseMeta is used to filter events in the topic. Only events matching
 	// the partition and namespace will be returned by the subscription.
-	EnterpriseMeta structs.EnterpriseMeta
+	EnterpriseMeta acl.EnterpriseMeta
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string

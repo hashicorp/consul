@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 func noopUnSub() {}
@@ -18,7 +18,7 @@ func TestSubscription_Subject(t *testing.T) {
 		sub Subject
 	}{
 		"default partition and namespace": {
-			SubscribeRequest{Key: "foo", EnterpriseMeta: structs.EnterpriseMeta{}},
+			SubscribeRequest{Key: "foo", EnterpriseMeta: acl.EnterpriseMeta{}},
 			"default/default/foo",
 		},
 		"mixed casing": {

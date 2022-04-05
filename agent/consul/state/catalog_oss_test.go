@@ -6,6 +6,7 @@ package state
 import (
 	"net"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -33,7 +34,7 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{
@@ -193,11 +194,11 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   (*structs.EnterpriseMeta)(nil),
+					source:   (*acl.EnterpriseMeta)(nil),
 					expected: nil,
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{
@@ -220,11 +221,11 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   (*structs.EnterpriseMeta)(nil),
+					source:   (*acl.EnterpriseMeta)(nil),
 					expected: nil,
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{ // partial length
@@ -286,11 +287,11 @@ func testIndexerTableServices() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   (*structs.EnterpriseMeta)(nil),
+					source:   (*acl.EnterpriseMeta)(nil),
 					expected: nil,
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{

@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if headerNS := req.Header.Get("X-Consul-Namespace"); headerNS != "" {
 		return BadRequestError{Reason: "Invalid header: \"X-Consul-Namespace\" - Namespaces are a Consul Enterprise feature"}
 	}
@@ -46,7 +47,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, 
 	return BadRequestError{Reason: "Invalid " + logName + "(" + ns + ")" + ": Namespaces is a Consul Enterprise feature"}
 }
 
-func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *acl.EnterpriseMeta) error {
 	return s.parseEntMeta(req, nil)
 }
 
@@ -88,7 +89,7 @@ func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) erro
 	return nil
 }
 
-func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *acl.EnterpriseMeta) error {
 	if headerAP := req.Header.Get("X-Consul-Partition"); headerAP != "" {
 		return BadRequestError{Reason: "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature"}
 	}
