@@ -1188,7 +1188,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{"method", "Status.Ping"}})
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
 		if _, ok := storage[key]; ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
@@ -1228,7 +1228,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{"method", "Status.Ping"}})
+		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
 		if _, ok := storage[key]; ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
