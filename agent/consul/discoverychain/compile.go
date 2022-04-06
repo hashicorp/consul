@@ -921,6 +921,9 @@ RESOLVE_AGAIN:
 		connectTimeout = 5 * time.Second
 	}
 
+	// Expose a copy of this on the targets for ease of access.
+	target.ConnectTimeout = connectTimeout
+
 	if c.overrideConnectTimeout > 0 {
 		if connectTimeout != c.overrideConnectTimeout {
 			connectTimeout = c.overrideConnectTimeout

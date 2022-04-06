@@ -234,9 +234,10 @@ type DiscoveryTarget struct {
 	Namespace     string
 	Datacenter    string
 
-	MeshGateway MeshGatewayConfig
-	Subset      ServiceResolverSubset
-	External    bool
-	SNI         string
-	Name        string
+	MeshGateway    MeshGatewayConfig
+	Subset         ServiceResolverSubset
+	ConnectTimeout time.Duration
+	External       bool
+	SNI            string
+	Name           string
 }
