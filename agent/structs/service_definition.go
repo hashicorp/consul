@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -33,7 +34,7 @@ type ServiceDefinition struct {
 	// also called just "Config"
 	Proxy *ConnectProxyConfig
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	Connect *ServiceConnect
 }

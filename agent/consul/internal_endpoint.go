@@ -362,7 +362,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	var authzContext acl.AuthorizerContext
 
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, &authzContext)

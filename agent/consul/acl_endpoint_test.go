@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
@@ -5415,7 +5416,7 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 
 // upsertTestToken creates a token for testing purposes
 func upsertTestTokenInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken), entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	tokenModificationFn func(token *structs.ACLToken), entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
@@ -5455,7 +5456,7 @@ func upsertTestToken(codec rpc.ClientCodec, initialManagementToken string, datac
 		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
@@ -5585,7 +5586,7 @@ func upsertTestPolicyWithRules(codec rpc.ClientCodec, initialManagementToken str
 	return upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	return upsertTestCustomizedPolicy(codec, initialManagementToken, datacenter, func(policy *structs.ACLPolicy) {
 		if entMeta == nil {
 			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()

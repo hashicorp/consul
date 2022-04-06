@@ -30,7 +30,7 @@ type StateStore interface {
 
 //go:generate mockery -name ACLResolver -inpkg
 type ACLResolver interface {
-	ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
 }
 
 func NewServer(cfg Config) *Server {

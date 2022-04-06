@@ -1439,7 +1439,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if isService {
 		if !signingID.CanSign(spiffeID) {
 			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
