@@ -56,7 +56,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	}
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
-	tmpDir, err := ioutils.TempDir("/tmp", name)
+	tmpDir, err := ioutils.TempDir("", name)
 	if err != nil {
 		return nil, err
 	}
