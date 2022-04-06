@@ -101,7 +101,7 @@ The ACL controller automatically performs the following actions:
 * Creates its admin partition at startup if it does not exist.
 * Inspects ECS task tags for the task's intended partition and namespace.
   The ACL controller ignores tasks that do not match the `partition` tag.
-* Creates namespaces when tasks start up. Namespaces are only created if the do not exist.
+* Creates namespaces when tasks start up. Namespaces are only created if they do not exist.
 * Provisions ACL tokens and ACL policies that are scoped to the applicable admin partition and namespace.
 * Provision ACL tokens that allow services to communicate with upstreams across admin partitions and namespaces.
 
