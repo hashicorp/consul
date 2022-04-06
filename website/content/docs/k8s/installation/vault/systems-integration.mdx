@@ -21,7 +21,9 @@ At a high level, configuring a systems integration of Vault with Consul on Kuber
 
 ## One time set up on Vault
 
-A one time setup on a Vault deployment is necessary to enable both the Vault KV Secrets Engine and the Vault PKI Engine. 
+A one time setup on a Vault deployment is necessary to enable both the Vault KV Secrets Engine and the Vault PKI Engine. These docs assume that you have already setup a Vault cluster for use with Consul on Kubernetes. 
+
+Please read [Run Vault on Kubernetes](https://www.vaultproject.io/docs/platform/k8s/helm/run) if instructions on setting up a Vault cluster are needed. 
 
 ### Vault KV Secrets Engine - Version 2
 
@@ -57,14 +59,14 @@ Before installing the Vault Injector and configure the Vault Kubernetes Auth Met
 #### DATACENTER
 
   - **Recommended value:** value of `global.datacenter` in you helm values file.
-    ```shell
+    ```shell-session
     $ export DATACENTER=dc1
     ```
 #### VAULT_AUTH_METHOD_NAME 
 
   - **Recommended value:** a concatentation of a `kubernetes-` prefix (to denote the auth method type) with `DATACENTER` environment variable.
-    ```shell
-    export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
+    ```shell-session
+    $ export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
     ```
     
 #### VAULT_SERVER_HOST
@@ -72,22 +74,22 @@ Before installing the Vault Injector and configure the Vault Kubernetes Auth Met
   - **Recommended value:** find the external IP address of your Vault cluster. 
     - If Vault is install in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
       - On GKE or AKS, it'll be an IP:
-        ```shell
+        ```shell-session
         $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         ```
       - On EKS, it'll be a hostname:
-        ```shell
+        ```shell-session
         $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         ```
     - If Vault is not running on Kubernetes, <TO DO: HOW DO WE DESCRIBE HOW TO GET THIS?>
-        ```shell
+        ```shell-session
         $ export VAULT_SERVER_HOST=<external IP for vault cluster>
         ```
         
 #### VAULT_ADDR
 
   - **Recommended value:** Connecting to Port 8200 of 
-    ```shell
+    ```shell-session
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
 
@@ -95,7 +97,7 @@ Before installing the Vault Injector and configure the Vault Kubernetes Auth Met
 
 A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes as described via the `externalvaultaddr` value in the Vault Helm Configuration.
 
-```shell
+```shell-session
 $ cat <<EOF >> vault-injector.yaml
 # vault-injector.yaml
 server:
@@ -107,7 +109,9 @@ injector:
 EOF
 ``` 
 
-```shell
+Issue the Helm `install` command to install the Vault agent injector using the HashiCorp Vault Helm chart.
+
+```shell-session
 $ helm install vault-${DATACENTER} -f vault-injector.yaml hashicorp/vault --wait
 ```
 
@@ -117,7 +121,7 @@ $ helm install vault-${DATACENTER} -f vault-injector.yaml hashicorp/vault --wait
 
 Ensure that the Vault Kubernetes Auth method is enabled. 
 
-```shell
+```shell-session
 $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 ```
 
@@ -127,7 +131,7 @@ After enabling the Kubernetes auth method, in Vault, ensure that you have config
 
 First, while targeting your Consul cluster, get the externally reachable address of the Consul Kubernetes cluster.
 
-```
+```shell-session
 $ export KUBE_API_URL=$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
 ```
 
