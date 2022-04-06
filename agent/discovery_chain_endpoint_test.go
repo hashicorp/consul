@@ -35,7 +35,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 		return t
 	}
 
-	targetConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+	targetWithConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
 		t.ConnectTimeout = connectTimeout
 		return t
 	}
@@ -264,11 +264,11 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": targetConnectTimeout(
+					"web.default.default.dc1": targetWithConnectTimeout(
 						newTarget("web", "", "default", "default", "dc1"),
 						33*time.Second,
 					),
-					"web.default.default.dc2": targetConnectTimeout(
+					"web.default.default.dc2": targetWithConnectTimeout(
 						newTarget("web", "", "default", "default", "dc2"),
 						33*time.Second,
 					),
@@ -280,7 +280,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 		})
 	}))
 
-	expectTarget_DC1 := targetConnectTimeout(
+	expectTarget_DC1 := targetWithConnectTimeout(
 		newTarget("web", "", "default", "default", "dc1"),
 		33*time.Second,
 	)
@@ -288,7 +288,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 		Mode: structs.MeshGatewayModeLocal,
 	}
 
-	expectTarget_DC2 := targetConnectTimeout(
+	expectTarget_DC2 := targetWithConnectTimeout(
 		newTarget("web", "", "default", "default", "dc2"),
 		33*time.Second,
 	)

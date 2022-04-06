@@ -63,7 +63,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		return t
 	}
 
-	targetConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+	targetWithConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
 		t.ConnectTimeout = connectTimeout
 		return t
 	}
@@ -243,7 +243,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": targetConnectTimeout(
+					"web.default.default.dc1": targetWithConnectTimeout(
 						newTarget("web", "", "default", "default", "dc1"),
 						33*time.Second,
 					),

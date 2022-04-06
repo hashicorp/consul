@@ -293,7 +293,7 @@ func testcase_RouterWithDefaults_NoSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": targetConnectTimeout(
+			"main.default.default.dc1": targetWithConnectTimeout(
 				newTarget("main", "", "default", "default", "dc1", nil),
 				33*time.Second,
 			),
@@ -497,7 +497,7 @@ func testcase_RouterWithDefaults_WithNoopSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": targetConnectTimeout(
+			"main.default.default.dc1": targetWithConnectTimeout(
 				newTarget("main", "", "default", "default", "dc1", nil),
 				33*time.Second,
 			),
@@ -693,7 +693,7 @@ func testcase_NoopSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": targetConnectTimeout(
+			"main.default.default.dc1": targetWithConnectTimeout(
 				newTarget("main", "", "default", "default", "dc1", nil),
 				33*time.Second,
 			),
@@ -1856,11 +1856,11 @@ func testcase_MultiDatacenterCanary() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc2": targetConnectTimeout(
+			"main.default.default.dc2": targetWithConnectTimeout(
 				newTarget("main", "", "default", "default", "dc2", nil),
 				33*time.Second,
 			),
-			"main.default.default.dc3": targetConnectTimeout(
+			"main.default.default.dc3": targetWithConnectTimeout(
 				newTarget("main", "", "default", "default", "dc3", nil),
 				33*time.Second,
 			),
@@ -2802,7 +2802,7 @@ func newTarget(service, serviceSubset, namespace, partition, datacenter string, 
 	return t
 }
 
-func targetConnectTimeout(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+func targetWithConnectTimeout(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
 	t.ConnectTimeout = connectTimeout
 	return t
 }
