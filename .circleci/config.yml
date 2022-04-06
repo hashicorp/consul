@@ -865,6 +865,7 @@ jobs:
             docker run consul:local consul version
             cd ./test/integration/consul-container            
             gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
+            ls -lrt
           environment:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
