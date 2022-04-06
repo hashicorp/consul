@@ -853,7 +853,7 @@ jobs:
           at: .
       - setup_remote_docker
       # Build the consul-dev image from the already built binary
-      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev-Build.dockerfile .
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
           command: |
@@ -862,7 +862,8 @@ jobs:
             echo "$subtests"
             subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
             mkdir -p /tmp/test-results/
-            gotestsum -- -timeout=30m ./test/integration/consul-container -run="$subtests_pipe_sepr)"
+            docker run consul:local consul version
+            gotestsum -- -timeout=30m ./test/integration/consul-container -run="$subtests_pipe_sepr)" --uut-version local --latest-version latest
           environment:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
