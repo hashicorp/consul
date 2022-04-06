@@ -839,6 +839,44 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
+  upgrade-integration-test-latest:
+    executor:
+    docker:
+      # We only really need bash and docker-compose which is installed on all
+      # Circle images but pick Go since we have to pick one of them.
+      - image: *GOLANG_IMAGE
+      parallelism: 2
+    steps:
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      # Build the consul-dev image from the already built binary
+      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev-Build.dockerfile .
+      - run:
+          name: Envoy Integration Tests
+          command: |
+            subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
+            echo "Running $(echo $subtests | wc -w) subtests"
+            echo "$subtests"
+            subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
+            mkdir -p /tmp/test-results/
+            gotestsum -- -timeout=30m ./test/integration/consul-container -run="$subtests_pipe_sepr)"
+          environment:
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/consul-container/upgrade/workdir/logs
+          destination: container-logs
+            - store_test_results:
+                path: *TEST_RESULTS_DIR
+            - store_artifacts:
+                path: *TEST_RESULTS_DIR
+            - run: *notify-slack-failure
   envoy-integration-test-1_17_4: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
@@ -1145,6 +1183,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1_20_2:
+          requires:
+            - dev-build
+      - upgrade-integration-test-latest:
           requires:
             - dev-build
 
