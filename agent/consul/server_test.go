@@ -1179,7 +1179,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer())
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1216,7 +1216,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer())
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1250,7 +1250,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1269,7 +1269,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without a non nil RPC request recorder")
