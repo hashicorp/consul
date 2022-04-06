@@ -872,11 +872,11 @@ jobs:
       - store_artifacts:
           path: ./test/integration/consul-container/upgrade/workdir/logs
           destination: container-logs
-            - store_test_results:
-                path: *TEST_RESULTS_DIR
-            - store_artifacts:
-                path: *TEST_RESULTS_DIR
-            - run: *notify-slack-failure
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
   envoy-integration-test-1_17_4: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
