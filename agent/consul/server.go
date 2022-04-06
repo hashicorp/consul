@@ -381,7 +381,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc == nil {
-	        return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
+		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
 	}
 	recorder = flat.NewRequestRecorderFunc(serverLogger)
 	if recorder == nil {
