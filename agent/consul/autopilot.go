@@ -3,9 +3,6 @@ package consul
 import (
 	"context"
 	"fmt"
-	"strconv"
-
-	"math"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -48,14 +45,11 @@ func (d *AutopilotDelegate) FetchServerStats(ctx context.Context, servers map[ra
 }
 
 func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
-	isLeader := d.server.raft.State() == raft.Leader
-	leaderLabel := metrics.Label{Name: "leader", Value: strconv.FormatBool(isLeader)}
-
-	metrics.SetGaugeWithLabels([]string{"autopilot", "failure_tolerance"}, float32(state.FailureTolerance), []metrics.Label{leaderLabel})
+	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(state.FailureTolerance))
 	if state.Healthy {
-		metrics.SetGaugeWithLabels([]string{"autopilot", "healthy"}, 1, []metrics.Label{leaderLabel})
+		metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
 	} else {
-		metrics.SetGaugeWithLabels([]string{"autopilot", "healthy"}, 0, []metrics.Label{leaderLabel})
+		metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 	}
 }
 
@@ -80,9 +74,6 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithPromoter(s.autopilotPromoter()),
 		autopilot.WithReconciliationDisabled(),
 	)
-
-	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
-	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
