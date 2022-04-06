@@ -390,6 +390,9 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
+				if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
+					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
+				}
 			}
 
 			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
@@ -803,6 +806,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...connect.SpiffeIDService) error {
+	var matchStrings []string
+	for _, id := range spiffeIDs {
+		matchStrings = append(matchStrings, id.URI().String())
+	}
+
+	return injectRawSANMatcher(tlsContext, matchStrings)
+}
+
+func injectRawSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings []string) error {
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
@@ -810,10 +822,10 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...co
 	}
 
 	var matchers []*envoy_matcher_v3.StringMatcher
-	for _, id := range spiffeIDs {
+	for _, m := range matchStrings {
 		matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
 			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-				Exact: id.URI().String(),
+				Exact: m,
 			},
 		})
 	}

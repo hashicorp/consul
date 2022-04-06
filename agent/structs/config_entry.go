@@ -82,6 +82,14 @@ type UpdatableConfigEntry interface {
 	ConfigEntry
 }
 
+// WarningConfigEntry is an optional interface implemented by a ConfigEntry
+// if it wants to be able to emit warnings when it is being upserted.
+type WarningConfigEntry interface {
+	Warnings() []string
+
+	ConfigEntry
+}
+
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {

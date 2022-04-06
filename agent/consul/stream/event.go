@@ -17,12 +17,16 @@ type Topic fmt.Stringer
 // Subject identifies a portion of a topic for which a subscriber wishes to
 // receive events (e.g. health events for a particular service) usually the
 // normalized resource name (including partition and namespace if applicable).
-type Subject string
+type Subject fmt.Stringer
 
 // SubjectNone is used when all events on a given topic are "global" and not
 // further partitioned by subject. For example: the "CA Roots" topic which is
 // used to notify subscribers when the global set CA root certificates changes.
-const SubjectNone Subject = "none"
+const SubjectNone stringer = "none"
+
+type stringer string
+
+func (s stringer) String() string { return string(s) }
 
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.
@@ -121,6 +125,12 @@ func (e Event) IsEndOfSnapshot() bool {
 // Subscription.Next will be a new snapshot, followed by an EndOfSnapshot event.
 func (e Event) IsNewSnapshotToFollow() bool {
 	return e.Payload == newSnapshotToFollow{}
+}
+
+// IsFramingEvent returns true if this is a framing event (e.g. EndOfSnapshot
+// or NewSnapshotToFollow).
+func (e Event) IsFramingEvent() bool {
+	return e.IsEndOfSnapshot() || e.IsNewSnapshotToFollow()
 }
 
 type framingEvent struct{}

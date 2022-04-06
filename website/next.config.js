@@ -1,5 +1,5 @@
 const withHashicorp = require('@hashicorp/platform-nextjs-plugin')
-const redirects = require('./redirects.next')
+const redirects = require('./redirects')
 
 module.exports = withHashicorp({
   dato: {

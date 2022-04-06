@@ -64,6 +64,12 @@ function debug_run {
    return $?
 }
 
+function print_run {
+   echo "$@"
+   "$@"
+   return $?
+}
+
 function sed_i {
    if test "$(uname)" == "Darwin"
    then
