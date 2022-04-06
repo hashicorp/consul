@@ -379,24 +379,40 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	recorder := middleware.NewRequestRecorder(serverLogger)
+	var recorder *middleware.RequestRecorder
+	if flat.NewRequestRecorderFunc == nil {
+		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
+	}
+	recorder = flat.NewRequestRecorderFunc(serverLogger)
+	if recorder == nil {
+		return nil, fmt.Errorf("cannot initialize server without a non nil RPC request recorder")
+	}
+
+	var rpcServer, insecureRPCServer *rpc.Server
+	if flat.GetNetRPCInterceptorFunc == nil {
+		rpcServer = rpc.NewServer()
+		insecureRPCServer = rpc.NewServer()
+	} else {
+		rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
 	// Create server.
 	s := &Server{
-		config:       config,
-		tokens:       flat.Tokens,
-		connPool:     flat.ConnPool,
-		grpcConnPool: flat.GRPCConnPool,
-		eventChLAN:   make(chan serf.Event, serfEventChSize),
-		eventChWAN:   make(chan serf.Event, serfEventChSize),
-		logger:       serverLogger,
-		loggers:      loggers,
-		leaveCh:      make(chan struct{}),
-		reconcileCh:  make(chan serf.Member, reconcileChSize),
-		router:       flat.Router,
-		rpcRecorder:  recorder,
-		// TODO(rpc-metrics-improv): consider pulling out the interceptor from config in order to isolate testing
-		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
-		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
+		config:                  config,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
+		grpcConnPool:            flat.GRPCConnPool,
+		eventChLAN:              make(chan serf.Event, serfEventChSize),
+		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		logger:                  serverLogger,
+		loggers:                 loggers,
+		leaveCh:                 make(chan struct{}),
+		reconcileCh:             make(chan serf.Member, reconcileChSize),
+		router:                  flat.Router,
+		rpcRecorder:             recorder,
+		rpcServer:               rpcServer,
+		insecureRPCServer:       insecureRPCServer,
 		tlsConfigurator:         flat.TLSConfigurator,
 		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
