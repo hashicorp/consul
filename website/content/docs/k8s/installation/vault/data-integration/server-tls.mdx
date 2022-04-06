@@ -178,7 +178,7 @@ $ vault write auth/kubernetes/role/consul-ca \
 The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
 `global.secretsBackend.vault.consulCARole` respectively.
 
-## Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
+### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that we've configured Vault, you can configure the Consul Helm chart to
 use the Server TLS certificates from Vault:

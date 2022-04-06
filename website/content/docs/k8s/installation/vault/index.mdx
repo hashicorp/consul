@@ -11,12 +11,26 @@ By default, Consul Helm chart will expect that any credentials it needs are stor
 As of Consul 1.11 and Consul Helm chart v0.38.0, we integrate more natively with Vault making it easier
 to use Consul Helm chart with Vault as the secrets storage backend.
 
+## Secrets Overview
+
+By default, Consul on Kubernetes leverages Kubernetes secrets which are base64 encoded and unencrypted. In addition, the following limitations exist with mangaging sensitive data within Kubernetes secrets: 
+
+- There are no lease or time-to-live properties associated with these secrets. 
+- Kubernetes can only manage resources, such as secrets, within a cluster boundary. If you have sets of clusters, the resources across them need to be managed separately.
+
+By leveraging Vault as a secrets backend for Consul on Kubernetes, you can now manage and store Consul related secrets within a centralized Vault cluster to use across one or many Consul on Kubernetes datacenters.  
+
+### Secrets stored in the Vault KV Secrets Engine
+
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 - ACL Bootstrap token
 - Gossip encryption key
 - Enterprise license
 - ACL Replication token
 - Snapshot Agent config
+
+
+### Secrets generated and managed by the Vault PKI Engine
 
 The following TLS certificates and keys can generated and managed by Vault the Vault PKI Engine, which is meant to handle things like certificate expiration and rotation:
 - Consul Server TLS credentials
@@ -31,8 +45,9 @@ The following TLS certificates and keys can generated and managed by Vault the V
 ## Next Steps
 
 The Vault integration with Consul on Kubernetes has two aspects or phases:
-- [Systems Integration](/docs/k8s/installation/vault/systems-integration)
-- [Data Integration](/docs/k8s/installation/vault/data-integration) 
+- [Systems Integration](/docs/k8s/installation/vault/systems-integration) - Configure Vault and Consul on Kubernetes systems to leverage Vault as the secrets store.  
+- [Data Integration](/docs/k8s/installation/vault/data-integration) - Configure specific secrets to be stored and 
+retrieved from Vault for use with Consul on Kubernetes.  
 
-As a next step, please proceed to Vault integration with Consul on Kubernetes' [Systems Integration](/docs/k8s/installation/vault/systems-integration).
+As a next step, please proceed to [Systems Integration](/docs/k8s/installation/vault/systems-integration) overview to understand how to first setup Vault and Consul on Kubernetes to leverage Vault as a secrets backend.
 
