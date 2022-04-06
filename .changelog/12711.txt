@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: ensure that the service-resolver default connect timeout applies even for tproxy direct dial connections
+```
