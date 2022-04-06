@@ -30,7 +30,9 @@ which also uses an intermediate signing authority.
   $ vault secrets tune -max-lease-ttl=87600h pki
   ```
 
-* Generate the root CA
+* Generate the root CA:
+
+  -> **Note:** The `common_name` value is comprised of combining `global.datacenter` dot `global.domain`.
 
   ```shell-session
   $ vault write -field=certificate pki/root/generate/internal \
@@ -38,7 +40,6 @@ which also uses an intermediate signing authority.
           ttl=87600h
   ```
 
-  -> **Note:** Where `common_name` is comprised of combining `global.datacenter` dot `global.domain`.
 
 ## Overview
 To use an Vault as the Server TLS Certificate Provider on Kubernetes, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
@@ -53,7 +54,9 @@ To use an Vault as the Server TLS Certificate Provider on Kubernetes, we will ne
 
 ## One time set up in Vault
 ### Store the secret in Vault
+
 This step is not valid to this use case because we are not storing a single secret.  We are configuring Vault as a provider to mint certificates on an ongaing basis.  
+
 ### Create a Vault policy that authorizes the desired level of access to the secret
 To use Vault to issue Server TLS certificates, you will need to create the following:
 
@@ -61,6 +64,8 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
 1. Vault Policies that will allow the Consul components, e.g. ingress gateways, controller, to access the CA url.
 
 #### Create Vault Policies for the Server TLS Certificates
+
+-> **Note:** The PKI secret path referenced by the Vault Policy below will be your `server.serverCert.secretName` Helm value.
 
 Next we will create a policy that allows `["create", "update"]` access to the
 [certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so the Consul servers can
@@ -76,11 +81,11 @@ path "pki/issue/consul-server" {
 
 </CodeBlockConfig>
 
+Apply the Vault policy by issuing the `vault policy write` CLI command:
+
 ```shell-session
 $ vault policy write consul-server consul-server-policy.hcl
 ```
-
--> **Note:** The PKI secret path referenced by the above Policy will be your `server.serverCert.secretName` Helm value.
 
 #### Create Vault Policies for the CA URL
 

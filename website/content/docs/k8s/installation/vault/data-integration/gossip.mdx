@@ -32,9 +32,9 @@ $ vault kv put secret/consul/gossip key="$(consul keygen)"
 ```
 ### Create a Vault policy that authorizes the desired level of access to the secret
 
-Next, we will need to create a policy that allows read access to this secret:
+-> **Note:** The secret path referenced by the Vault Policy below will be your `global.gossipEncryption.secretName` Helm value.
 
--> **Note:** The secret path referenced by the above Policy will be your `global.gossipEncryption.secretName` Helm value.
+Next, we will need to create a policy that allows read access to this secret:
 
 <CodeBlockConfig filename="gossip-policy.hcl">
 
@@ -45,6 +45,8 @@ path "secret/data/consul/gossip" {
 ```
 
 </CodeBlockConfig>
+
+Apply the Vault policy by issuing the `vault policy write` CLI command:
 
 ```shell-session
 $ vault policy write gossip-policy gossip-policy.hcl

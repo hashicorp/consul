@@ -33,8 +33,10 @@ $ vault kv put secret/consul/license key="<enterprise license>"
 ```
 
 ### Create a Vault policy that authorizes the desired level of access to the secret
-Next, you will need to create a policy that allows read access to this secret:
 
+-> **Note:** The secret path referenced by the Vault Policy below will be your `global.enterpriseLicense.secretName` Helm value.
+
+Next, you will need to create a policy that allows read access to this secret:
 
 <CodeBlockConfig filename="license-policy.hcl">
 
@@ -46,11 +48,11 @@ path "secret/data/consul/license" {
 
 </CodeBlockConfig>
 
+Apply the Vault policy by issuing the `vault policy write` CLI command:
+
 ```shell-session
 $ vault policy write license-policy license-policy.hcl
 ```
-
--> **Note:** The secret path referenced by the above Policy will be your `global.enterpriseLicense.secretName` Helm value.
 
 ## Set up per Consul datacenter
 ### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access

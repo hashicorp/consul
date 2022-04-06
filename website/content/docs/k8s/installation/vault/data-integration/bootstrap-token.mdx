@@ -35,7 +35,7 @@ $ vault kv put secret/consul/boostrap-token token="<ACL bootstrap Token>"
 
 ### Create a Vault policy that authorizes the desired level of access to the secret
 
--> **Note:** The secret path referenced by the below Vault Policy will be your `global.acls.bootstrapToken.secretName` Helm value.
+-> **Note:** The secret path referenced by the Vault Policy below will be your `global.acls.bootstrapToken.secretName` Helm value.
 
 Next, you will need to create a Vault policy that allows read access to this secret:
 
