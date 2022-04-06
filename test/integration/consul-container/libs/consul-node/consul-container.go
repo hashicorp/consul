@@ -1,4 +1,4 @@
-package consulcontainer
+package node
 
 import (
 	"context"
@@ -17,24 +17,37 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type ConsulNode struct {
+type consulContainerNode struct {
 	ctx       context.Context
-	Client    *api.Client
+	client    *api.Client
 	container testcontainers.Container
-	IP        string
-	Port      int
+	ip        string
+	port      int
+}
+
+func (c *consulContainerNode) GetClient() *api.Client {
+	return c.client
+}
+
+func (c *consulContainerNode) GetAddr() (string, int) {
+	return c.ip, c.port
 }
 
 type Config struct {
-	ConsulConfig string
-	Image        string
-	ConsulPath   string
-	Cmd          []string
+	HCL     string
+	Version string
+	Cmd     []string
+}
+
+type Node interface {
+	Terminate() error
+	GetClient() *api.Client
+	GetAddr() (string, int)
 }
 
 const bootLogLine = "Consul agent running"
 
-func NewNodeWitConfig(ctx context.Context, config Config) (*ConsulNode, error) {
+func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("/tmp", name)
@@ -46,13 +59,13 @@ func NewNodeWitConfig(ctx context.Context, config Config) (*ConsulNode, error) {
 		return nil, err
 	}
 	configFile := tmpDir + "/config/config.hcl"
-	err = os.WriteFile(configFile, []byte(config.ConsulConfig), 0644)
+	err = os.WriteFile(configFile, []byte(config.HCL), 0644)
 	if err != nil {
 		return nil, err
 	}
 
 	req := testcontainers.ContainerRequest{
-		Image:        config.Image,
+		Image:        "consul:" + config.Version,
 		ExposedPorts: []string{"8500/tcp"},
 		WaitingFor:   wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
 		AutoRemove:   false,
@@ -85,13 +98,13 @@ func NewNodeWitConfig(ctx context.Context, config Config) (*ConsulNode, error) {
 	}
 
 	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
-	c := new(ConsulNode)
+	c := new(consulContainerNode)
 	c.container = container
-	c.IP = ip
-	c.Port = mappedPort.Int()
+	c.ip = ip
+	c.port = mappedPort.Int()
 	apiConfig := api.DefaultConfig()
 	apiConfig.Address = uri
-	c.Client, err = api.NewClient(apiConfig)
+	c.client, err = api.NewClient(apiConfig)
 	c.ctx = ctx
 
 	if err != nil {
@@ -100,10 +113,6 @@ func NewNodeWitConfig(ctx context.Context, config Config) (*ConsulNode, error) {
 	return c, nil
 }
 
-func NewNode() (*ConsulNode, error) {
-	return NewNodeWitConfig(context.Background(), Config{})
-}
-
-func (c *ConsulNode) Terminate() error {
+func (c *consulContainerNode) Terminate() error {
 	return c.container.Terminate(c.ctx)
 }

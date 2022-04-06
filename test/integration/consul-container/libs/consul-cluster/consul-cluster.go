@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"strings"
 
-	consulcontainer "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
+	consulnode "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
 )
 
 type Cluster struct {
-	Nodes []consulcontainer.ConsulNode
+	Nodes []consulnode.Node
 }
 
-func New(configs []consulcontainer.Config) (*Cluster, error) {
+func New(configs []consulnode.Config) (*Cluster, error) {
 	cluster := Cluster{}
 
 	for _, c := range configs {
-		n, err := consulcontainer.NewNodeWitConfig(context.Background(), c)
+		n, err := consulnode.NewConsulContainer(context.Background(), c)
 		if err != nil {
 			return nil, err
 		}
-		cluster.Nodes = append(cluster.Nodes, *n)
+		cluster.Nodes = append(cluster.Nodes, n)
 	}
 	err := cluster.join()
 	if err != nil {
@@ -36,7 +36,8 @@ func (c *Cluster) join() error {
 	n0 := c.Nodes[0]
 	for _, n := range c.Nodes {
 		if n != n0 {
-			err := n.Client.Agent().Join(n0.IP, false)
+			addr, _ := n0.GetAddr()
+			err := n.GetClient().Agent().Join(addr, false)
 			if err != nil {
 				return err
 			}
@@ -45,14 +46,15 @@ func (c *Cluster) join() error {
 	return nil
 }
 
-func (c *Cluster) AddNodes(nodes []*consulcontainer.ConsulNode) error {
+func (c *Cluster) AddNodes(nodes []consulnode.Node) error {
 	n0 := c.Nodes[0]
 	for _, node := range nodes {
-		err := node.Client.Agent().Join(n0.IP, false)
+		addr, _ := n0.GetAddr()
+		err := node.GetClient().Agent().Join(addr, false)
 		if err != nil {
 			return err
 		}
-		c.Nodes = append(c.Nodes, *node)
+		c.Nodes = append(c.Nodes, node)
 	}
 	return nil
 }
@@ -67,12 +69,12 @@ func (c *Cluster) Terminate() error {
 	return nil
 }
 
-func (c *Cluster) Leader() (*consulcontainer.ConsulNode, error) {
+func (c *Cluster) Leader() (consulnode.Node, error) {
 	if len(c.Nodes) < 1 {
 		return nil, fmt.Errorf("no node available")
 	}
 	n0 := c.Nodes[0]
-	leaderAdd, err := n0.Client.Status().Leader()
+	leaderAdd, err := n0.GetClient().Status().Leader()
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +82,9 @@ func (c *Cluster) Leader() (*consulcontainer.ConsulNode, error) {
 		return nil, fmt.Errorf("no leader available")
 	}
 	for _, n := range c.Nodes {
-		if strings.Contains(leaderAdd, n.IP) {
-			return &n, nil
+		addr, _ := n0.GetAddr()
+		if strings.Contains(leaderAdd, addr) {
+			return n, nil
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
