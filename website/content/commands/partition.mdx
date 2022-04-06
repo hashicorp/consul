@@ -77,12 +77,6 @@ This subcommand has the following characteristics:
 | [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 | [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
-#### Usage
-
-```shell-session
-consul partition create <OPTIONS>
-```
-
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
 | Option                                     | Description                                                                                                                                                             | Default  | Required |
@@ -107,7 +101,7 @@ $ consul partition create -name "webdev" -description "Partition for admin of we
 
 ### `write`
 
-The `write` subcommand sends a request to the server to create a new admin partition or update an existing partition from its full definition.
+The `write` subcommand sends a request to the server to create a new admin partition or update an existing partition from its full definition. You can specify an admin partition definition file or use values from `stdin`.
 This subcommand has the following characteristics:
 
 | Characteristic | Value |
@@ -116,11 +110,6 @@ This subcommand has the following characteristics:
 | Corresponding HTTP API Endpoint | [\[PUT\] /partition/:name](/api-docs/admin-partitions#update-a-partition) |
 | [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 | [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-
-#### Usage
-
-You can specify an admin partition definition file or use values from `stdin`
-in either JSON or HCL format.
 
 Use the following syntax to write from file:
 
@@ -134,7 +123,7 @@ Use the following syntax to write from `stdin`:
 consul partition write <OPTIONS> -
 ```
 
-Refer to the [Admin Partition Definition](#partition-definition) section for details about the supported parameters.
+The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the [Admin Partition Definition](#admin-partition-definition) section for details about the supported parameters.
 
 You can specify the following options:
 
@@ -168,12 +157,6 @@ This subcommand has the following characteristics:
 | [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 | [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
-#### Usage
-
-```shell-session
-consul partition read <OPTIONS> <PARTITION_NAME>
-```
-
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
 | Option                  | Description                                                                                                                                                             | Default  | Required |
@@ -204,12 +187,6 @@ This subcommand has the following characteristics:
 | Corresponding HTTP API Endpoint | [\[GET\] /partitions](/api-docs/admin-partitions#list-all-partitions) |
 | [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 | [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-
-#### Usage
-
-```shell-session
-consul partition list <OPTIONS>
-```
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -255,12 +232,6 @@ This subcommand has the following characteristics:
 | Corresponding HTTP API Endpoint | [\[DELETE\] /partitions](/api-docs/admin-partitions#delete-a-partition) |
 | [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 | [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-
-#### Usage
-
-```shell-session
-$ consul partition delete <PARTITION_NAME>
-```
 
 In the following example, the `webdev-bu` partition is deleted:
 
