@@ -276,8 +276,11 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
-	s.stopEventPublisher()
+	// Note: the order of these operations matters. Subscribers may receive on
+	// abandonCh to determine whether their subscription was closed because the
+	// store was abandoned, therefore it's important abandonCh is closed first.
 	close(s.abandonCh)
+	s.stopEventPublisher()
 }
 
 // maxIndex is a helper used to retrieve the highest known index

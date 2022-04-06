@@ -43,6 +43,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
+	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
+	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -648,6 +650,17 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
+
+	// Initialize public gRPC server - register services on public gRPC server.
+	connectca.NewServer(connectca.Config{
+		GetStore:    func() connectca.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.connect-ca"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+	}).Register(s.publicGRPCServer)
+	dataplane.NewServer(dataplane.Config{
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+	}).Register(s.publicGRPCServer)
 
 	// Start listening for RPC requests.
 	go func() {

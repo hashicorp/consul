@@ -44,8 +44,8 @@ type EventPublisher struct {
 // topicSubject is used as a map key when accessing topic buffers and cached
 // snapshots.
 type topicSubject struct {
-	Topic   Topic
-	Subject Subject
+	Topic   string
+	Subject string
 }
 
 type subscriptions struct {
@@ -138,7 +138,10 @@ func (e *EventPublisher) publishEvent(events []Event) {
 			continue
 		}
 
-		groupKey := topicSubject{event.Topic, event.Payload.Subject()}
+		groupKey := topicSubject{
+			Topic:   event.Topic.String(),
+			Subject: event.Payload.Subject().String(),
+		}
 		groupedEvents[groupKey] = append(groupedEvents[groupKey], event)
 	}
 

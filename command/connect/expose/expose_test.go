@@ -3,11 +3,12 @@ package expose
 import (
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestConnectExpose(t *testing.T) {
@@ -47,6 +48,7 @@ func TestConnectExpose(t *testing.T) {
 		Kind:      api.IngressGateway,
 		Name:      "ingress",
 		Namespace: ns,
+		Partition: ap,
 		Listeners: []api.IngressListener{
 			{
 				Port:     8888,
@@ -280,6 +282,7 @@ func TestConnectExpose_existingConfig(t *testing.T) {
 				},
 			},
 		})
+		ingressConf.Partition = entryConf.Partition
 		ingressConf.Namespace = entryConf.Namespace
 		for i, listener := range ingressConf.Listeners {
 			listener.Services[0].Namespace = entryConf.Listeners[i].Services[0].Namespace

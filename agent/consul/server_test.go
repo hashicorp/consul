@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/ipaddr"
@@ -271,7 +272,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, nil)
+	srv, err := NewServer(c, deps, grpc.NewServer())
+
 	if err != nil {
 		return nil, err
 	}
