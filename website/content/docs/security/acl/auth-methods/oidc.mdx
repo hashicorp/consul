@@ -215,8 +215,7 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
 
 ## Token Locality
 
-By default, tokens created by the OIDC Auth Method will have local scope and will
-therefore only be valid for the datacenter in which they were created. When the
+By default, tokens created by the OIDC Auth Method are scoped to the local datacenter in which they were created. When the
 Auth Method is created with [`-token-locality=global`](/commands/acl/auth-method/create#token-locality),
 all tokens will be replicated to all other datacenters. Cross-datacenter requests
 that are authenticated with tokens provided by this Auth Method must be configured
