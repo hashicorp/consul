@@ -54,7 +54,7 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
 	r.recorderFunc(metricRPCRequest, float32(elapsed), labels)
-	r.Logger.Debug(requestLogName,
+	r.Logger.Trace(requestLogName,
 		"method", requestName,
 		"errored", respErrored,
 		"request_type", reqType,
