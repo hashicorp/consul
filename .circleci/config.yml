@@ -845,7 +845,7 @@ jobs:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
-      parallelism: 2
+    parallelism: 2
     steps:
       - checkout
       # Get go binary from workspace
