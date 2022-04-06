@@ -31,6 +31,12 @@ func TestDiscoveryChainRead(t *testing.T) {
 		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
+		t.ConnectTimeout = 5 * time.Second // default
+		return t
+	}
+
+	targetConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+		t.ConnectTimeout = connectTimeout
 		return t
 	}
 
@@ -258,8 +264,14 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
-					"web.default.default.dc2": newTarget("web", "", "default", "default", "dc2"),
+					"web.default.default.dc1": targetConnectTimeout(
+						newTarget("web", "", "default", "default", "dc1"),
+						33*time.Second,
+					),
+					"web.default.default.dc2": targetConnectTimeout(
+						newTarget("web", "", "default", "default", "dc2"),
+						33*time.Second,
+					),
 				},
 			}
 			if !reflect.DeepEqual(expect, value.Chain) {
@@ -268,12 +280,18 @@ func TestDiscoveryChainRead(t *testing.T) {
 		})
 	}))
 
-	expectTarget_DC1 := newTarget("web", "", "default", "default", "dc1")
+	expectTarget_DC1 := targetConnectTimeout(
+		newTarget("web", "", "default", "default", "dc1"),
+		33*time.Second,
+	)
 	expectTarget_DC1.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
 	}
 
-	expectTarget_DC2 := newTarget("web", "", "default", "default", "dc2")
+	expectTarget_DC2 := targetConnectTimeout(
+		newTarget("web", "", "default", "default", "dc2"),
+		33*time.Second,
+	)
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
 	}

@@ -59,6 +59,12 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
+		t.ConnectTimeout = 5 * time.Second // default
+		return t
+	}
+
+	targetConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+		t.ConnectTimeout = connectTimeout
 		return t
 	}
 
@@ -237,7 +243,10 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
+					"web.default.default.dc1": targetConnectTimeout(
+						newTarget("web", "", "default", "default", "dc1"),
+						33*time.Second,
+					),
 				},
 			},
 		}
