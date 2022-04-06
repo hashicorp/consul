@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -25,7 +26,7 @@ func prefixIndexForIDValue(arg interface{}) ([]byte, error) {
 	// DeletePrefix always uses a string, pass it along unmodified
 	case string:
 		return []byte(v), nil
-	case structs.EnterpriseMeta:
+	case acl.EnterpriseMeta:
 		return nil, nil
 	case singleValueID:
 		var b indexBuilder
@@ -56,7 +57,7 @@ func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) e
 	return nil
 }
 
-func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -79,7 +80,7 @@ func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta str
 
 // kvsDeleteTreeTxn is the inner method that does a recursive delete inside an
 // existing transaction.
-func (s *Store) kvsDeleteTreeTxn(tx WriteTxn, idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTreeTxn(tx WriteTxn, idx uint64, prefix string, entMeta *acl.EnterpriseMeta) error {
 	// For prefix deletes, only insert one tombstone and delete the entire subtree
 	deleted, err := tx.DeletePrefix(tableKVs, indexID+"_prefix", prefix)
 	if err != nil {
@@ -100,7 +101,7 @@ func (s *Store) kvsDeleteTreeTxn(tx WriteTxn, idx uint64, prefix string, entMeta
 	return nil
 }
 
-func kvsMaxIndex(tx ReadTxn, entMeta structs.EnterpriseMeta) uint64 {
+func kvsMaxIndex(tx ReadTxn, entMeta acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "kvs", "tombstones")
 }
 

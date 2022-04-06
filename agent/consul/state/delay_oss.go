@@ -4,9 +4,10 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // Delay is used to mark certain locks as unacquirable. When a lock is
@@ -36,7 +37,7 @@ func NewDelay() *Delay {
 // GetExpiration returns the expiration time of a key lock delay. This must be
 // checked on the leader node, and not in KVSLock due to the variability of
 // clocks.
-func (d *Delay) GetExpiration(key string, entMeta *structs.EnterpriseMeta) time.Time {
+func (d *Delay) GetExpiration(key string, entMeta *acl.EnterpriseMeta) time.Time {
 	d.lock.RLock()
 	expires := d.delay[key]
 	d.lock.RUnlock()
@@ -45,7 +46,7 @@ func (d *Delay) GetExpiration(key string, entMeta *structs.EnterpriseMeta) time.
 
 // SetExpiration sets the expiration time for the lock delay to the given
 // delay from the given now time.
-func (d *Delay) SetExpiration(key string, now time.Time, delay time.Duration, entMeta *structs.EnterpriseMeta) {
+func (d *Delay) SetExpiration(key string, now time.Time, delay time.Duration, entMeta *acl.EnterpriseMeta) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 

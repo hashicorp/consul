@@ -308,7 +308,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	var token string
 	s.parseToken(req, &token)
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -397,7 +397,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 	var token string
 	s.parseToken(req, &token)
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -576,7 +576,7 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 			// Older 'consul members' calls will default to adding segment=_all
 			// so we only choose to use that request argument in the case where
 			// the partition is also the default and ignore it the rest of the time.
-			if structs.IsDefaultPartition(filter.Partition) {
+			if acl.IsDefaultPartition(filter.Partition) {
 				filter.AllSegments = true
 			}
 		} else {
@@ -984,7 +984,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -1046,7 +1046,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, &BadRequestError{Reason: "Missing service Name"}
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}

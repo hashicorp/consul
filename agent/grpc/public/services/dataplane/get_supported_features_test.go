@@ -4,15 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/grpc/public"
-	"github.com/hashicorp/consul/agent/grpc/public/testutils"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/go-hclog"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc/public"
+	"github.com/hashicorp/consul/agent/grpc/public/testutils"
+	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
 const testACLToken = "acl-token"

@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -882,13 +883,13 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 func TestConfigSnapshotIngressGatewayWithChain(
 	t testing.T,
 	variant string,
-	webEntMeta, fooEntMeta *structs.EnterpriseMeta,
+	webEntMeta, fooEntMeta *acl.EnterpriseMeta,
 ) *ConfigSnapshot {
 	if webEntMeta == nil {
-		webEntMeta = &structs.EnterpriseMeta{}
+		webEntMeta = &acl.EnterpriseMeta{}
 	}
 	if fooEntMeta == nil {
-		fooEntMeta = &structs.EnterpriseMeta{}
+		fooEntMeta = &acl.EnterpriseMeta{}
 	}
 
 	var (

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -175,7 +176,7 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 			}
 			if response.Segment != "" {
 				pool += " [segment: " + response.Segment + "]"
-			} else if !structs.IsDefaultPartition(response.Partition) {
+			} else if !acl.IsDefaultPartition(response.Partition) {
 				pool += " [partition: " + response.Partition + "]"
 			}
 			errs = multierror.Append(errs, fmt.Errorf("%s error: %s", pool, response.Error))

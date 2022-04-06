@@ -6,12 +6,14 @@ import (
 	"net"
 	"testing"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -116,9 +118,9 @@ func joinAddrWAN(s *Server) string {
 }
 
 type clientOrServer interface {
-	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error)
+	JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (int, error)
 	LANMembersInAgentPartition() []serf.Member
-	AgentEnterpriseMeta() *structs.EnterpriseMeta
+	AgentEnterpriseMeta() *acl.EnterpriseMeta
 	agentSegmentName() string
 }
 

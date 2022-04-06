@@ -3,6 +3,8 @@ package structs
 import (
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -47,7 +49,7 @@ type CheckDefinition struct {
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {

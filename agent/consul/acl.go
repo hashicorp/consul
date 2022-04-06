@@ -108,7 +108,7 @@ func (id *missingIdentity) IsLocal() bool {
 	return false
 }
 
-func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
+func (id *missingIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
@@ -182,7 +182,7 @@ type ACLResolverSettings struct {
 	ACLsEnabled    bool
 	Datacenter     string
 	NodeName       string
-	EnterpriseMeta structs.EnterpriseMeta
+	EnterpriseMeta acl.EnterpriseMeta
 
 	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
@@ -264,7 +264,7 @@ type ACLResolver struct {
 	agentRecoveryAuthz acl.Authorizer
 }
 
-func agentRecoveryAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
+func agentRecoveryAuthorizer(nodeName string, entMeta *acl.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
 	var conf acl.Config
 	if aclConf != nil {
 		conf = *aclConf
@@ -638,7 +638,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	return filtered, nil
 }
 
-func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(serviceIdentities) == 0 {
 		return nil
 	}
@@ -651,7 +651,7 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
-func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(nodeIdentities) == 0 {
 		return nil
 	}
@@ -676,7 +676,7 @@ type plainACLResolver struct {
 
 func (r plainACLResolver) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	// ACLResolver.ResolveTokenAndDefaultMeta returns a ACLResolveResult which
@@ -1174,14 +1174,14 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
 	result, err := r.ResolveToken(token)
 	if err != nil {
 		return ACLResolveResult{}, err
 	}
 
 	if entMeta == nil {
-		entMeta = &structs.EnterpriseMeta{}
+		entMeta = &acl.EnterpriseMeta{}
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -1279,7 +1279,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 
 // filterServices is used to filter a set of services based on ACLs. Returns
 // true if any elements were removed.
-func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) bool {
+func (f *aclFilter) filterServices(services structs.Services, entMeta *acl.EnterpriseMeta) bool {
 	var authzContext acl.AuthorizerContext
 	entMeta.FillAuthzContext(&authzContext)
 

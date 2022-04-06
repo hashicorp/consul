@@ -1246,7 +1246,7 @@ func (s *Server) WANMembers() []serf.Member {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster.
-func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
@@ -1266,7 +1266,7 @@ func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.Ente
 }
 
 // RemoveFailedNodeWAN is used to remove a failed node from the WAN cluster.
-func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
@@ -1299,7 +1299,7 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
 }
 
-func (s *Server) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 	return s.config.AgentEnterpriseMeta()
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	bexpr "github.com/hashicorp/go-bexpr"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -564,7 +565,7 @@ func makeLoadAssignmentEndpointGroup(
 		gatewayKey = localKey
 	}
 
-	if gatewayKey.IsEmpty() || (structs.EqualPartitions(localKey.Partition, target.Partition) && localKey.Datacenter == target.Datacenter) {
+	if gatewayKey.IsEmpty() || (acl.EqualPartitions(localKey.Partition, target.Partition) && localKey.Datacenter == target.Datacenter) {
 		// Gateways are not needed if the request isn't for a remote DC or partition.
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,

@@ -883,7 +883,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
-func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1016,7 +1016,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1122,7 +1122,7 @@ AFTER_CHECK:
 
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1184,18 +1184,18 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 
 // handleLeftMember is used to handle members that gracefully
 // left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("left", member, nodeEntMeta)
 }
 
 // handleReapMember is used to handle members that have been
 // reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
 }
 
 // handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}

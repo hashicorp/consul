@@ -3,8 +3,9 @@ package testutils
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestAuthorizer(t *testing.T) acl.Authorizer {

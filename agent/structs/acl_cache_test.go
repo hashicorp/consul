@@ -3,8 +3,9 @@ package structs
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestStructs_ACLCaches(t *testing.T) {

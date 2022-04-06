@@ -19,7 +19,7 @@ type ServiceIntentionsConfigEntry struct {
 
 	Meta map[string]string `json:",omitempty"` // formerly Intention.Meta
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"` // formerly DestinationNS
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"` // formerly DestinationNS
 	RaftIndex
 }
 
@@ -258,7 +258,7 @@ type SourceIntention struct {
 	// Things like L7 rules or Sentinel rules could go here later.
 
 	// formerly Intention.SourceNS
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 type IntentionPermission struct {
@@ -498,7 +498,7 @@ func computeIntentionPrecedence(entry *ServiceIntentionsConfigEntry, src *Source
 
 // intentionCountExact counts the number of exact values (not wildcards) in
 // the given namespace and name.
-func intentionCountExact(name string, entMeta *EnterpriseMeta) int {
+func intentionCountExact(name string, entMeta *acl.EnterpriseMeta) int {
 	ns := entMeta.NamespaceOrDefault()
 
 	// If NS is wildcard, pair must be */* since an exact service cannot follow a wildcard NS
@@ -753,7 +753,7 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 }
 
 // Wildcard usage verification
-func validateIntentionWildcards(name string, entMeta *EnterpriseMeta) error {
+func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta) error {
 	ns := entMeta.NamespaceOrDefault()
 	if ns != WildcardSpecifier {
 		if strings.Contains(ns, WildcardSpecifier) {
@@ -783,7 +783,7 @@ func (e *ServiceIntentionsConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceIntentionsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceIntentionsConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

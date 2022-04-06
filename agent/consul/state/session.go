@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -291,7 +292,7 @@ func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 
 // SessionGet is used to retrieve an active session from the state store.
 func (s *Store) SessionGet(ws memdb.WatchSet,
-	sessionID string, entMeta *structs.EnterpriseMeta) (uint64, *structs.Session, error) {
+	sessionID string, entMeta *acl.EnterpriseMeta) (uint64, *structs.Session, error) {
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -318,7 +319,7 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
-func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *acl.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -336,7 +337,7 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.
 // SessionDestroy is used to remove an active session. This will
 // implicitly invalidate the session and invoke the specified
 // session destroy behavior.
-func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -350,7 +351,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *acl.EnterpriseMeta) error {
 	// Look up the session.
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()

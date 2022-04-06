@@ -7,6 +7,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
@@ -28,7 +29,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 	}
 
 	args.EvaluateInDatacenter = req.URL.Query().Get("compile-dc")
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}

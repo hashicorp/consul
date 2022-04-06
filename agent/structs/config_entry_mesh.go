@@ -15,8 +15,8 @@ type MeshConfigEntry struct {
 
 	TLS *MeshTLSConfig `json:",omitempty"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -113,7 +113,7 @@ func (e *MeshConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *MeshConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *MeshConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

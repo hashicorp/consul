@@ -72,7 +72,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	if !uriService.MatchesPartition(req.TargetPartition()) {
 		reason = fmt.Sprintf("Mismatched partitions: %q != %q",
 			uriService.PartitionOrDefault(),
-			structs.PartitionOrDefault(req.TargetPartition()))
+			acl.PartitionOrDefault(req.TargetPartition()))
 		return false, reason, nil, nil
 	}
 
