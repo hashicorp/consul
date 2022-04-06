@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var curImage = flag.String("uut-image", "local", "docker image to be used as UUT (unit under test)")
-var latestImage = flag.String("latest-image", "latest", "docker image to be used as latest")
+var curImage = flag.String("uut-version", "local", "docker image to be used as UUT (unit under test)")
+var latestImage = flag.String("latest-version", "latest", "docker image to be used as latest")
 
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
