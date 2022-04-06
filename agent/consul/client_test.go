@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -542,8 +543,10 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
 		}),
-		LeaderForwarder: builder,
-		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
+		LeaderForwarder:          builder,
+		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
+		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
+		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 	}
 }
 

@@ -377,7 +377,25 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	recorder := middleware.NewRequestRecorder(serverLogger)
+	var recorder *middleware.RequestRecorder
+	if flat.NewRequestRecorderFunc != nil {
+		recorder = flat.NewRequestRecorderFunc(serverLogger)
+	} else {
+		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
+	}
+	if recorder == nil {
+		return nil, fmt.Errorf("cannot initialize server without a non nil RPC request recorder")
+	}
+
+	var rpcServer, insecureRPCServer *rpc.Server
+	if flat.GetNetRPCInterceptorFunc == nil {
+		rpcServer = rpc.NewServer()
+		insecureRPCServer = rpc.NewServer()
+	} else {
+		rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -392,8 +410,8 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
 		rpcRecorder:             recorder,
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
+		rpcServer:               rpcServer,
+		insecureRPCServer:       insecureRPCServer,
 		tlsConfigurator:         flat.TLSConfigurator,
 		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
@@ -404,11 +422,6 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
-	}
-
-	if config.GetNetRPCInterceptorFunc != nil {
-		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(config.GetNetRPCInterceptorFunc(recorder)))
-		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(config.GetNetRPCInterceptorFunc(recorder)))
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
