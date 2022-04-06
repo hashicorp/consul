@@ -2,10 +2,10 @@ import format from 'pretty-ms';
 import parse from 'parse-duration';
 import { assert } from '@ember/debug';
 import dayjs from 'dayjs';
-import realtiveTime from 'dayjs/plugin/relativeTime';
-dayjs.extend(realtiveTime);
-
+import relativeTime from 'dayjs/plugin/relativeTime';
 import Service from '@ember/service';
+
+dayjs.extend(relativeTime);
 
 export default class TemporalService extends Service {
 
