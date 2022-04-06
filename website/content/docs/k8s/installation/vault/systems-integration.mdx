@@ -143,7 +143,7 @@ Next, you will configure the Vault Kubernetes Auth Method for the datacenter.  Y
 ```shell-session
 $ vault write auth/kubernetes/config \
     token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-    kubernetes_host="https://$KUBE_API_URL:443" \
+    kubernetes_host="https://${KUBE_API_URL}:443" \
     kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 ```
 
