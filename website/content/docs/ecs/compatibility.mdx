@@ -1,0 +1,23 @@
+---
+layout: docs
+page_title: Compatibility Matrix
+description: Compatibility Matrix for Consul ECS
+---
+
+# Compatibility Matrix for Consul on ECS
+
+For every release of Consul on ECS, `consul-ecs` binary and `consul-ecs` terraform module is updated. The terraform module and binary are tightly coupled.
+
+## Supported Consul versions
+
+### Version 0.2.0 and above
+
+
+| Consul Version | Compatible consul-ecs Versions  |
+| -------------- | ------------------------------- |
+| 1.10.x - latest| 0.2.0  - latest                 |
+
+
+## Supported Envoy versions
+
+Supported versions of Envoy for Consul versions are also found in [Envoy - Supported Versions](/docs/connect/proxies/envoy#supported-versions). The recommended best practice is to use the default version of Envoy that is provided in the terraform module, as that is the version that has been tested with the default Consul and Consul ECS binaries for a given version.
