@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -48,6 +49,11 @@ type Node interface {
 const bootLogLine = "Consul agent running"
 
 func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
+	skipReaperStr := os.Getenv("TESTCONTAINERS_RYUK_DISABLED")
+	skipReaper := true
+	if skipReaperStr == "1" || strings.ToLower(skipReaperStr) == "true" {
+		skipReaper = true
+	}
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("/tmp", name)
@@ -72,6 +78,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		Name:         name,
 		BindMounts:   map[string]string{"/consul/config/config.hcl": configFile},
 		Cmd:          config.Cmd,
+		SkipReaper:   skipReaper,
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{

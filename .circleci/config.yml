@@ -864,8 +864,6 @@ jobs:
             mkdir -p /tmp/test-results/
             docker run consul:local consul version
             cd ./test/integration/consul-container
-            env
-            export TESTCONTAINERS_RYUK_DISABLED=true
             gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
             ls -lrt
           environment:
