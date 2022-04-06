@@ -863,7 +863,8 @@ jobs:
             subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
             mkdir -p /tmp/test-results/
             docker run consul:local consul version
-            gotestsum -- -timeout=30m ./test/integration/consul-container -run="$subtests_pipe_sepr)" --uut-version local --latest-version latest
+            cd ./test/integration/consul-container            
+            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
           environment:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
