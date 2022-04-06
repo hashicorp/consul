@@ -47,19 +47,28 @@ $ vault secrets enable pki
 ```
 
 ## Set up per Consul datacenter
+
+After configuring Vault, Consul datacenters on Kubernetes must be deployed with the Vault Agent injector and configured to leverage the Vault Kubernetes Auth Method to read secrets from an external Vault cluster. 
+
 ### Set Environment Variables to ensure integration consistency
-Before installing the Vault Injector and configure the Vault KubernetesAuth Method, some environment variables need to be set to better ensure consistent mapping between Vault and Consul on Kubernetes
+
+Before installing the Vault Injector and configure the Vault Kubernetes Auth Method, some environment variables need to be set to better ensure consistent mapping between Vault and Consul on Kubernetes
+
 #### DATACENTER
+
   - **Recommended value:** value of `global.datacenter` in you helm values file.
     ```shell
     $ export DATACENTER=dc1
     ```
 #### VAULT_AUTH_METHOD_NAME 
+
   - **Recommended value:** a concatentation of a `kubernetes-` prefix (to denote the auth method type) with `DATACENTER` environment variable.
     ```shell
     export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
     ```
+    
 #### VAULT_SERVER_HOST
+
   - **Recommended value:** find the external IP address of your Vault cluster. 
     - If Vault is install in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
       - On GKE or AKS, it'll be an IP:
@@ -74,13 +83,16 @@ Before installing the Vault Injector and configure the Vault KubernetesAuth Meth
         ```shell
         $ export VAULT_SERVER_HOST=<external IP for vault cluster>
         ```
+        
 #### VAULT_ADDR
+
   - **Recommended value:** Connecting to Port 8200 of 
     ```shell
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
 
 ### Install Vault Injector in your Consul k8s cluster
+
 A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes as described via the `externalvaultaddr` value in the Vault Helm Configuration.
 
 ```shell
@@ -102,7 +114,9 @@ $ helm install vault-${DATACENTER} -f vault-injector.yaml hashicorp/vault --wait
 ### Configure the Kubernetes Auth Method in Vault for the datacenter
 
 #### Enable the Auth Method
-Ensure that the Vault Kubernetes.
+
+Ensure that the Vault Kubernetes Auth method is enabled. 
+
 ```shell
 $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 ```
