@@ -46,19 +46,19 @@ Consul on ECS supports the following Consul Enterprise features.
 If you are only using features that run on Consul servers, then you can use an OSS client in your `mesh-tasks`.
 If client support is required for any of the features, then you must use a Consul Enterprise client in your `mesh-tasks`.
 
-| Feature                           | Supported     | Description                                                                                                                                                             |
-|-----------------------------------|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Automated Backups/Snapshot Agent  | Yes*          | Running the snapshot agent on ECS is not currently supported but you are able to run the snapshot agent alongside your Consul servers on VMs.                           |
-| Automated Upgrades                | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Enhanced Read Scalability         | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Single Sign-On/OIDC               | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Redundancy Zones                  | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Advanced Federation/Network Areas | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Sentinel                          | Yes (servers) | This feature runs on Consul servers.                                                                                                                                    |
-| Network Segments                  | No            | Currently there is no capability to configure the network segment Consul clients on ECS run in.                                                                         |
-| Namespaces                        | Yes           | This feature requires Consul Enterprise servers and clients.                                                                                                            |
-| Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers and clients.                                                                                                            |
-| Audit Logging                     | No*           | Audit logging can be enabled on Consul servers that run outside of ECS but is not currently supported on the Consul clients that run inside ECS.                        |
+| Feature                           | Supported     | Description                                                                                                                                                                                  |
+|-----------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Automated Backups/Snapshot Agent  | Yes*          | Running the snapshot agent on ECS is not currently supported but you are able to run the snapshot agent alongside your Consul servers on VMs.                                                |
+| Automated Upgrades                | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Enhanced Read Scalability         | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Single Sign-On/OIDC               | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Redundancy Zones                  | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Advanced Federation/Network Areas | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Sentinel                          | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
+| Network Segments                  | No            | Currently there is no capability to configure the network segment Consul clients on ECS run in.                                                                                              |
+| Namespaces                        | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` namespace. Registration into a non-default namespace requires a Consul Enterprise client.       |
+| Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` admin partition. Registration into a non-default partition requires a Consul Enterprise client. |
+| Audit Logging                     | No*           | Audit logging can be enabled on Consul servers that run outside of ECS but is not currently supported on the Consul clients that run inside ECS.                                             |
 
 ### Admin Partitions and Namespaces
 
