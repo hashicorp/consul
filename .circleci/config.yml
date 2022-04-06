@@ -845,7 +845,7 @@ jobs:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
-    parallelism: 2
+    parallelism: 1
     steps:
       - checkout
       # Get go binary from workspace
@@ -863,7 +863,9 @@ jobs:
             subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
             mkdir -p /tmp/test-results/
             docker run consul:local consul version
-            cd ./test/integration/consul-container            
+            cd ./test/integration/consul-container
+            env
+            export TESTCONTAINERS_RYUK_DISABLED=true
             gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
             ls -lrt
           environment:
