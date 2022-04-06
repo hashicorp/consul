@@ -31,7 +31,7 @@ func New(configs []consulnode.Config) (*Cluster, error) {
 
 func (c *Cluster) join() error {
 	if len(c.Nodes) < 2 {
-		return fmt.Errorf("cluster have only %d nodes", len(c.Nodes))
+		return nil
 	}
 	n0 := c.Nodes[0]
 	for _, n := range c.Nodes {
@@ -82,7 +82,7 @@ func (c *Cluster) Leader() (consulnode.Node, error) {
 		return nil, fmt.Errorf("no leader available")
 	}
 	for _, n := range c.Nodes {
-		addr, _ := n0.GetAddr()
+		addr, _ := n.GetAddr()
 		if strings.Contains(leaderAdd, addr) {
 			return n, nil
 		}

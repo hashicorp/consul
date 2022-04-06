@@ -3,7 +3,6 @@ package consul_container
 import (
 	"context"
 	"flag"
-	"fmt"
 	"testing"
 	"time"
 
@@ -19,21 +18,26 @@ import (
 var curImage = flag.String("uut-image", "local", "docker image to be used as UUT (unit under test)")
 var latestImage = flag.String("latest-image", "latest", "docker image to be used as latest")
 
+const retryTimeout = 10 * time.Second
+const retryFrequency = 500 * time.Millisecond
+
 func TestBasic(t *testing.T) {
-	node, err := consulNode.NewConsulContainer(context.Background(), consulNode.Config{Version: *latestImage})
+	t.Parallel()
+	cluster, err := consulCluster.New([]consulNode.Config{consulNode.Config{Version: *latestImage}})
+
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		err := node.Terminate()
-		require.NoError(t, err)
-	})
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
-		leader, err := node.GetClient().Status().Leader()
+
+	defer Terminate(t, cluster)
+
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
+		leader, err := cluster.Nodes[0].GetClient().Status().Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
 	})
 }
 
 func TestLatestGAServersWithCurrentClients(t *testing.T) {
+	t.Parallel()
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *latestImage)
 	require.NoError(t, err)
@@ -51,7 +55,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 		require.NoError(t, err)
 	}
 	err = Cluster.AddNodes(Clients)
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
@@ -61,6 +65,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 }
 
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
+	t.Parallel()
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *curImage)
 	require.NoError(t, err)
@@ -77,7 +82,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 			})
 	}
 	err = Cluster.AddNodes(Clients)
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
@@ -87,9 +92,9 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 }
 
 func TestMixedServersMajorityLatest(t *testing.T) {
-	Servers := make([]consulNode.Node, 3)
-	var err error
-	Servers[0], err = consulNode.NewConsulContainer(context.Background(),
+	t.Parallel()
+	var configs []consulNode.Config
+	configs = append(configs,
 		consulNode.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
@@ -99,9 +104,8 @@ func TestMixedServersMajorityLatest(t *testing.T) {
 			Version: *curImage,
 		})
 
-	require.NoError(t, err)
 	for i := 1; i < 3; i++ {
-		Servers[i], err = consulNode.NewConsulContainer(context.Background(),
+		configs = append(configs,
 			consulNode.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
@@ -111,24 +115,23 @@ func TestMixedServersMajorityLatest(t *testing.T) {
 				Version: *latestImage,
 			})
 
-		require.NoError(t, err)
+	}
 
-	}
-	for i := 1; i < 3; i++ {
-		addr, _ := Servers[0].GetAddr()
-		err = Servers[i].GetClient().Agent().Join(fmt.Sprintf("%s", addr), false)
-		require.NoError(t, err)
-	}
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
-		leader, err := Servers[0].GetClient().Status().Leader()
+	cluster, err := consulCluster.New(configs)
+	require.NoError(t, err)
+	defer Terminate(t, cluster)
+
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
+		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
-		members, err := Servers[0].GetClient().Agent().Members(false)
+		members, err := cluster.Nodes[0].GetClient().Agent().Members(false)
 		require.Len(r, members, 3)
 	})
 }
 
 func TestMixedServersMajorityCurrent(t *testing.T) {
+	t.Parallel()
 	var configs []consulNode.Config
 	configs = append(configs,
 		consulNode.Config{
@@ -156,7 +159,8 @@ func TestMixedServersMajorityCurrent(t *testing.T) {
 	cluster, err := consulCluster.New(configs)
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
+
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
@@ -180,7 +184,7 @@ func serversCluster(t *testing.T, numServers int, image string) (*consulCluster.
 	}
 	cluster, err := consulCluster.New(configs)
 	require.NoError(t, err)
-	retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}, t, func(r *retry.R) {
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
