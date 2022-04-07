@@ -46,6 +46,9 @@ func runCmd(t *testing.T, c string, env ...string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
+		cmd2 := exec.Command("docker", "info")
+		cmd2.Stdout = os.Stdout
+		cmd2.Stderr = os.Stderr
 		t.Fatalf("command failed: %v", err)
 	}
 }
