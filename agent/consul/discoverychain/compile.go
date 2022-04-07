@@ -884,6 +884,9 @@ RESOLVE_AGAIN:
 		}
 	}
 
+	// Expose a copy of this on the targets for ease of access.
+	target.ConnectTimeout = connectTimeout
+
 	// Build node.
 	node := &structs.DiscoveryGraphNode{
 		Type: structs.DiscoveryGraphNodeTypeResolver,

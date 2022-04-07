@@ -294,7 +294,10 @@ func testcase_RouterWithDefaults_NoSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+			"main.default.default.dc1": targetWithConnectTimeout(
+				newTarget("main", "", "default", "default", "dc1", nil),
+				33*time.Second,
+			),
 		},
 	}
 
@@ -495,7 +498,10 @@ func testcase_RouterWithDefaults_WithNoopSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+			"main.default.default.dc1": targetWithConnectTimeout(
+				newTarget("main", "", "default", "default", "dc1", nil),
+				33*time.Second,
+			),
 		},
 	}
 
@@ -688,7 +694,10 @@ func testcase_NoopSplit_WithResolver() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc1": newTarget("main", "", "default", "default", "dc1", nil),
+			"main.default.default.dc1": targetWithConnectTimeout(
+				newTarget("main", "", "default", "default", "dc1", nil),
+				33*time.Second,
+			),
 		},
 	}
 
@@ -1747,8 +1756,14 @@ func testcase_MultiDatacenterCanary() compileTestCase {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"main.default.default.dc2": newTarget("main", "", "default", "default", "dc2", nil),
-			"main.default.default.dc3": newTarget("main", "", "default", "default", "dc3", nil),
+			"main.default.default.dc2": targetWithConnectTimeout(
+				newTarget("main", "", "default", "default", "dc2", nil),
+				33*time.Second,
+			),
+			"main.default.default.dc3": targetWithConnectTimeout(
+				newTarget("main", "", "default", "default", "dc3", nil),
+				33*time.Second,
+			),
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -2677,8 +2692,14 @@ func newTarget(service, serviceSubset, namespace, partition, datacenter string, 
 	t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 	t.SNI = connect.TargetSNI(t, "trustdomain.consul")
 	t.Name = t.SNI
+	t.ConnectTimeout = 5 * time.Second // default
 	if modFn != nil {
 		modFn(t)
 	}
+	return t
+}
+
+func targetWithConnectTimeout(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+	t.ConnectTimeout = connectTimeout
 	return t
 }
