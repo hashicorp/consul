@@ -57,6 +57,7 @@ There are several different kinds of checks:
   fields can be set through the `header` field which is a map of lists of
   strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
   configured with a request timeout equal to 10 seconds.
+
   It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
@@ -65,6 +66,9 @@ There are several different kinds of checks:
   field to `true` in the check definition. When using TLS, the SNI will be set
   automatically from the URL if it uses a hostname (as opposed to an IP address);
   the value can be overridden by setting `tls_server_name`.
+
+  Consul follows HTTP redirects by default. Set the `disable_redirects` field to
+  `true` to disable redirects.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -185,6 +189,7 @@ check = {
      Content-Type =  ["application/json"]
   }
   body = "{\"method\":\"health\"}"
+  disable_redirects = true
   interval =  "10s"
   timeout =  "1s"
 }
