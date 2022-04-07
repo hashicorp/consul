@@ -713,6 +713,7 @@ type CheckUDP struct {
 	CheckID       structs.CheckID
 	ServiceID     structs.ServiceID
 	UDP           string
+	Message       string
 	Interval      time.Duration
 	Timeout       time.Duration
 	Logger        hclog.Logger
@@ -771,14 +772,19 @@ func (c *CheckUDP) run() {
 func (c *CheckUDP) check() {
 	conn, err := c.dialer.Dial(`udp`, c.UDP)
 	if err != nil {
-		c.Logger.Warn("Check socket connection failed",
-			"check", c.CheckID.String(),
-			"error", err,
-		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
-		return
+		if strings.Contains(err.Error(), "timeout") {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket connection failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
 	}
-	fmt.Fprintf(conn, "ping")
+	fmt.Fprintf(conn, c.Message)
 	if err != nil {
 		c.Logger.Warn("Check socket write failed",
 			"check", c.CheckID.String(),
@@ -789,17 +795,21 @@ func (c *CheckUDP) check() {
 	}
 	_, err = bufio.NewReader(conn).Read(make([]byte, 1024))
 	if err != nil {
-		c.Logger.Warn("Check socket read failed",
-			"check", c.CheckID.String(),
-			"error", err,
-		)
-		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
-		return
+		if strings.Contains(err.Error(), "i/o timeout") {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket read failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
 	} else if err == nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 	}
 	conn.Close()
-	// c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 }
 
 // CheckDocker is used to periodically invoke a script to

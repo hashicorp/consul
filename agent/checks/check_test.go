@@ -1201,6 +1201,38 @@ func expectUDPStatus(t *testing.T, udp string, status string) {
 	})
 }
 
+func expectUDPTimeout(t *testing.T, udp string, status string) {
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
+	check := &CheckUDP{
+		CheckID:       cid,
+		UDP:           udp,
+		Interval:      10 * time.Millisecond,
+		Timeout:       5 * time.Nanosecond,
+		Logger:        logger,
+		StatusHandler: statusHandler,
+	}
+	check.Start()
+	defer check.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.Updates(cid), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
+		}
+		if got, want := notif.State(cid), status; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+func TestCheckUDPTimeoutPassing(t *testing.T) {
+	t.Parallel()
+
+	go mockUDPServer(`udp`)
+	expectUDPTimeout(t, `127.0.0.1:4242`, api.HealthPassing) // Should pass since
+}
 func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
 
