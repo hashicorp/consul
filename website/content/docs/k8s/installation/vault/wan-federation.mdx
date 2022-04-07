@@ -20,6 +20,7 @@ In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which
 For demonstration purposes, we will deploy Vault server in dev mode, although for production installations, this is not recommended. 
 
 Change your Kubernetes current context to target dc1:
+
 ```shell
 $ kubectl config use-context <context for dc1>
 ```
@@ -39,7 +40,7 @@ server:
 ui:
   enabled: true
 ```
-</ CodeBlockConfig>
+</CodeBlockConfig>
 
 ```shell
 $ helm install vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
