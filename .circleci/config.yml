@@ -871,7 +871,6 @@ jobs:
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
-            TESTCONTAINERS_RYUK_DISABLED: true
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
             COMPOSE_INTERACTIVE_NO_CLI: 1

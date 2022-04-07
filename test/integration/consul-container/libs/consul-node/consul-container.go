@@ -47,13 +47,10 @@ type Node interface {
 }
 
 const bootLogLine = "Consul agent running"
+const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
-	skipReaperStr := os.Getenv("TESTCONTAINERS_RYUK_DISABLED")
-	skipReaper := true
-	if skipReaperStr == "1" || strings.ToLower(skipReaperStr) == "true" {
-		skipReaper = true
-	}
+
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("", name)
@@ -73,7 +70,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	skipReaper := isRYUKDisabled()
 	req := testcontainers.ContainerRequest{
 		Image:        "consul:" + config.Version,
 		ExposedPorts: []string{"8500/tcp"},
@@ -122,6 +119,15 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+func isRYUKDisabled() bool {
+	skipReaperStr := os.Getenv(disableRYUKEnv)
+	skipReaper := true
+	if skipReaperStr == "1" || strings.ToLower(skipReaperStr) == "true" {
+		skipReaper = true
+	}
+	return skipReaper
 }
 
 func (c *consulContainerNode) Terminate() error {
