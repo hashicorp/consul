@@ -533,7 +533,8 @@ jobs:
       # get consul binary
       - attach_workspace:
           at: bin/
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 20.10.11
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
@@ -594,7 +595,8 @@ jobs:
     shell: /usr/bin/env bash -euo pipefail -c
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 20.10.11
       - run:
           name: Build Docker Image if Necessary
           command: |
@@ -852,7 +854,8 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 20.10.11
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
