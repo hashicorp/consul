@@ -13,10 +13,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -189,18 +189,6 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 	return errors.New("not implemented")
 }
 
-func tokenFromContext(ctx context.Context) string {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ""
-	}
-	toks, ok := md["x-consul-token"]
-	if ok && len(toks) > 0 {
-		return toks[0]
-	}
-	return ""
-}
-
 // Register the XDS server handlers to the given gRPC server.
 func (s *Server) Register(srv *grpc.Server) {
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
@@ -221,7 +209,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	authz, err := s.ResolveToken(tokenFromContext(ctx))
+	authz, err := s.ResolveToken(public.TokenFromContext(ctx))
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

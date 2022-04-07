@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/duration"
-
-	"github.com/hashicorp/consul/proto/pbcommon"
-
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -27,6 +24,7 @@ import (
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/proto/prototest"
@@ -1108,7 +1106,7 @@ func newEventFromSubscription(t *testing.T, index uint64) stream.Event {
 		},
 	}
 	ep := stream.NewEventPublisher(handlers, 0)
-	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Index: index}
+	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Subject: stream.SubjectNone, Index: index}
 
 	sub, err := ep.Subscribe(req)
 	require.NoError(t, err)
