@@ -496,20 +496,49 @@
                 "path": "k8s/installation/vault"
               },
               {
-                "title": "Gossip Encryption Key",
-                "path": "k8s/installation/vault/gossip"
+                "title": "Systems Integration",
+                "path": "k8s/installation/vault/systems-integration"
               },
               {
-                "title": "Enterprise License",
-                "path": "k8s/installation/vault/enterprise-license"
-              },
-              {
-                "title": "Server TLS",
-                "path": "k8s/installation/vault/server-tls"
-              },
-              {
-                "title": "Service Mesh Certificates",
-                "path": "k8s/installation/vault/connect-ca"
+                "title": "Data Integration",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "k8s/installation/vault/data-integration"
+                  },
+                  {
+                    "title": "Bootstrap Token",
+                    "path": "k8s/installation/vault/data-integration/bootstrap-token"
+                  },
+                  {
+                    "title": "Enterprise License",
+                    "path": "k8s/installation/vault/data-integration/enterprise-license"
+                  },
+                  {
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/data-integration/gossip"
+                  },
+                  {
+                    "title": "Partition Token",
+                    "path": "k8s/installation/vault/data-integration/partition-token"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/data-integration/replication-token"
+                  },
+                  {
+                    "title": "Server TLS",
+                    "path": "k8s/installation/vault/data-integration/server-tls"
+                  },
+                  {
+                    "title": "Service Mesh Certificates",
+                    "path": "k8s/installation/vault/data-integration/connect-ca"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  }
+                ]
               }
             ]
           },
@@ -787,7 +816,6 @@
             "title": "Overview",
             "path": "nia/enterprise"
           },
-
           {
             "title": "License",
             "path": "nia/enterprise/license"
