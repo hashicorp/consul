@@ -840,11 +840,8 @@ jobs:
       - run: *notify-slack-failure
 
   upgrade-integration-test-latest:
-    executor:
-    docker:
-      # We only really need bash and docker-compose which is installed on all
-      # Circle images but pick Go since we have to pick one of them.
-      - image: *GOLANG_IMAGE
+    machine:
+      image: ubuntu-2004:202101-01
     parallelism: 1
     steps:
       - checkout
