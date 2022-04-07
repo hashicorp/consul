@@ -72,7 +72,7 @@ Before installing the Vault Injector and configure the Vault Kubernetes Auth Met
 #### VAULT_SERVER_HOST
 
   - **Recommended value:** find the external IP address of your Vault cluster. 
-    - If Vault is install in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
+    - If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
       - On GKE or AKS, it'll be an IP:
         ```shell-session
         $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
