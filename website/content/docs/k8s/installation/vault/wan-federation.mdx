@@ -8,14 +8,14 @@ description: >-
 # Wan Federation with Vault as Secrets Backend
 
 ## Overview
-This guide is an end to end tutorial on setting up WAN Federation with Vault as the secrets backend.  In this tutorial, we will create two clusters `dc1` and `dc2`. dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
+This guide is an end to end tutorial on setting up WAN Federation with Vault as the secrets backend.  In this tutorial, we will create two clusters dc1 and dc2. dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
 
 This guide will follow the outline provided in the [Systems Integration](/docs/website/content/docs/k8s/installation/vault/systems-integration) and [Data Integration](/docs/website/content/docs/k8s/installation/vault/data-integration) sections of the [Vault as a Secrets Backend](/docs/website/content/docs/k8s/installation/vault) area of the Consul on Kubernetes documentation.
 
 ## Prerequisites
 ### Pre-existing Vault installation in dc1
 
-In this setup, you will deploy Vault server in the dc1 k8s which is also the primary Consul datacenter. You will configure our Vault Helm installation in the dc2 k8s cluster to use it as an external server. This way there will be a single vault server cluster that will be use by both Consul datacenters.
+In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which is also the primary Consul datacenter. You will configure your Vault Helm installation in the dc2 Kubernetes cluster to use it as an external server. This way there will be a single vault server cluster that will be used by both Consul datacenters.
 
 For demonstration purposes, we will deploy Vault server in dev mode, although for production installations, this is not recommended. 
 
@@ -24,10 +24,11 @@ Change your Kubernetes current context to target dc1:
 $ kubectl config use-context <context for dc1>
 ```
 
-
 Now, use the above values files for you helm install:
-```shell
-$ cat <<EOF >> vault-dc1.yaml
+
+<CodeBlockConfig filename="vault-dc1.yaml">
+
+```yaml
 # vault-dc1.yaml
 server:
   dev:
@@ -37,8 +38,8 @@ server:
     type: LoadBalancer
 ui:
   enabled: true
-EOF
 ```
+</ CodeBlockConfig>
 
 ```shell
 $ helm install vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
@@ -100,22 +101,13 @@ The Vault PKI Engine must be enabled in order to leverage Vault for issuing Cons
 
 ### Set up per Consul datacenter
 #### dc1 Datacenter
-Set dc1 as you
-##### Set Environment Variables to ensure integration consistency
-```shell
-$ export DATACENTER=dc1
-```
-
-```shell
-$ export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
-```
-
 ##### Install Vault Injector in your Consul k8s cluster
 A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. 
 In dc1, we will not have to configure `injector.externalvaultaddr` value because the Vault Server is in the same dc1 cluster.
 
-```shell
-$ cat <<EOF >> vault-dc1.yaml
+<CodeBlockConfig filename="vault-dc1.yaml">
+
+```yaml
 # vault-dc1.yaml
 server:
   dev:
@@ -125,11 +117,11 @@ server:
     type: LoadBalancer
 ui:
   enabled: true
-EOF
 ``` 
+</CodeBlockConfig>
 
 ```shell
-$ helm upgrade vault-${DATACENTER} -f vault-dc1.yaml hashicorp/vault --wait
+$ helm upgrade vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
 ```
 
 ##### Configure the Kubernetes Auth Method in Vault for the datacenter
@@ -137,13 +129,15 @@ $ helm upgrade vault-${DATACENTER} -f vault-dc1.yaml hashicorp/vault --wait
 Enable the Vault Kubernetes auth method.
 
 ```shell
-$ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
+$ vault auth enable -path=kubernetes-dc1 kubernetes
 ```
 Next, we will need to get the token and CA cert from the Vault service account secret. Since it is in the same cluster and namespace as the Consul dc1 datacenter,we will be able to configure the Vault Kubernetes Auth Method to use it to authenticate secret requests from service accounts in the Consul dc1 datacenter.
 
 ```shell
 $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc1 -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
+```
 
+```shell
 $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc1 -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
 ```
 ###### Configure Auth Method with JWT token of the Vault service account
@@ -163,7 +157,7 @@ $ vault write auth/kubernetes-dc1/config \
 #####  Enable Vault as the secrets backend in the Consul datacenter
 Finally, you will configure the Consul on Kubernetes helm chart for the dc1 datacenter to enable Vault as the Secrets backend.  However, you will not yet apply the Helm chart.  A complete chart for the dc1 datacenter is applied at the end of the Data Integration section.
 
-<CodeBlockConfig filename="values-dc1.yaml">
+<CodeBlockConfig filename="consul-dc1.yaml">
 
 ```yaml
 global:
@@ -176,32 +170,32 @@ global:
 
 
 ####  dc2 Datacenter
-##### Set Environment Variables to ensure integration consistency
-
-```shell
-$ export DATACENTER=dc2
-```
-
 ##### Install Vault Injector in your Consul k8s cluster
 A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. 
 In dc2, we will have to configure `externalvaultaddr` value point to the external address of the Vault server in dc1.
 
-Now change your Kubernetes current context to target dc2.
-
+Change your Kubernetes current context to target dc2:
 ```shell
-$ cat <<EOF >> vault-dc2.yaml
+$ kubectl config use-context <context for dc2>
+```
+
+<CodeBlockConfig filename="vault-dc2.yaml">
+
+```yaml
 # vault-dc2.yaml
 server:
   enabled: false
 injector:
   enabled: true
-  externalVaultAddr: $VAULT_ADDR
-  authPath: auth/${VAULT_AUTH_METHOD_NAME}
-EOF
-``` 
+  externalVaultAddr: ${VAULT_ADDR}
+  authPath: auth/kubernetes-dc2
+```
+
+</CodeBlockConfig>
+
 
 ```shell
-$ helm install vault-${DATACENTER} -f vault-dc2.yaml hashicorp/vault --wait
+$ helm install vault-dc2 -f vault-dc2.yaml hashicorp/vault --wait
 ```
 
 ##### Configure the Kubernetes Auth Method in Vault for the datacenter
@@ -210,7 +204,7 @@ $ helm install vault-${DATACENTER} -f vault-dc2.yaml hashicorp/vault --wait
 Enable the Vault Kubernetes auth method.
 
 ```shell
-$ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
+$ vault auth enable -path=kubernetes-dc2 kubernetes
 ```
 
 ###### Create a service account with access to Kubenetes API in dc2
@@ -250,7 +244,8 @@ Next, we will need to get the token and CA cert from that service account secret
 
 ```shell
 $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
-
+```
+```shell
 $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
 ```
 ###### Configure Auth Method with JWT token of service account
@@ -345,6 +340,12 @@ EOF
 
 ### Set up per Consul datacenter
 #### dc1 datacenter
+
+Change your Kubernetes current context to target dc2:
+```shell
+$ kubectl config use-context <context for dc2>
+```
+
 ##### Create Server TLS and Service Mesh Cert Policies
 ##### Server TLS Cert policy
 ```shell
