@@ -11,14 +11,39 @@ description: >-
 Consul allows using Kubernetes auth methods to configure Connect CA.
 This allows for automatic token rotation once the renewal is no longer possible.
 
-In order to create Vault auth roles for the Consul servers for this feature, ensure that the Vault Kubernetes auth method is enabled as described in [Vault Kubernetes Auth Method](/docs/k8s/installation/vault#vault-kubernetes-auth-method).
 
-To configure [Vault as the provider](/docs/connect/ca/vault) for the Consul service certificates,
+## Prerequisites
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+
+
+## Overview
+To use an Vault as the Service Mesh Certificate Provider on Kubernetes, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+
+### One time setup in Vault
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+
+### setup per Consul datacenter
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
+
+## One time setup in Vault
+### Store the secret in Vault
+
+This step is not valid to this use case as we are not storing any secrets for Service Mesh certificate, and we instead are Leveraging Vault CA as a provider to mint certificates on an ongoing basis.  
+
+### Create a Vault policy that authorizes the desired level of access to the secret
+
+To configure [Vault as the provider](/docs/connect/ca/vault) for the Consul service mesh certificates,
 you will first need to decide on the type of policy that is suitable for you.
 To see the permissions that Consul would need in Vault, please see [Vault ACL policies](/docs/connect/ca/vault#vault-acl-policies)
 documentation.
 
-Once you have a policy, you will need to link that policy to the Consul server service account.
+## setup per Consul datacenter
+### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
+
+Next, you will create Kubernetes auth roles for the Consul servers:
 
 ```shell-session
 $ vault write auth/kubernetes/role/consul-server \
@@ -35,6 +60,7 @@ you can run:
 $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul
 ```
 
+### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 Now you can configure the Consul Helm chart to use Vault as the Connect CA provider:
 
 <CodeBlockConfig filename="values.yaml">
