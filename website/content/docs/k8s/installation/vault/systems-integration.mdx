@@ -95,7 +95,7 @@ Before installing the Vault Injector and configure the Vault Kubernetes Auth Met
 
 ### Install Vault Injector in your Consul k8s cluster
 
-A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes as described via the `externalvaultaddr` value in the Vault Helm Configuration.
+A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes with the [`injector.externalVaultAddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration.
 
 ```shell-session
 $ cat <<EOF >> vault-injector.yaml
