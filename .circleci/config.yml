@@ -850,6 +850,7 @@ jobs:
       - attach_workspace:
           at: .
       # Build the consul-dev image from the already built binary
+      - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
