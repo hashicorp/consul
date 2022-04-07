@@ -849,7 +849,6 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
