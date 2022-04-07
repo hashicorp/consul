@@ -171,11 +171,7 @@ in the datacenter `dc2`.
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
 
 * When dialing headless services the request will be proxied using a plain TCP
- proxy with a connection timeout configured with the [`ConnectTimeout`
- field](/docs/connect/config-entries/service-resolver#connecttimeout) of a
- `service-resolver` configuration entry (with a default of 5s). Currently the
- upstream's protocol and [upstream defaults](/docs/connect/config-entries/service-defaults#upstreamconfig)
- connection timeout are not considered.
+ proxy. Currently the upstream's protocol is not considered.
 
 ## Using Transparent Proxy
 
