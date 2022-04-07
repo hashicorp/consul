@@ -65,13 +65,11 @@ It includes things like terminating gateways, ingress gateways, etc.)
 |[Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
 |[Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
 
-adminPartitionsRole
-
 ### Secondary Datacenters
 The mapping for secondary data centers is similar with the following differences:
 - There is no use of bootstrap token because ACLs would have been bootstrapped in the primary datacenter.
 - ACL Partition token is mapped to both the `server-acl-init` job and the `partition-init` job service accounts.
-- ACL Replication token is mapped to both the `server-acl-init` job and Consul server service accounts.
+- ACL Replication token is mapped to both the `server-acl-init` job and Consul service accounts.
 
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
