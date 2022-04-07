@@ -511,20 +511,20 @@
                     "path": "k8s/installation/vault/data-integration/bootstrap-token"
                   },
                   {
-                    "title": "Gossip Encryption Key",
-                    "path": "k8s/installation/vault/data-integration/gossip"
-                  },
-                  {
                     "title": "Enterprise License",
                     "path": "k8s/installation/vault/data-integration/enterprise-license"
                   },
                   {
-                    "title": "Replication Token",
-                    "path": "k8s/installation/vault/data-integration/replication-token"
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/data-integration/gossip"
                   },
                   {
-                    "title": "Snapshot Agent Config",
-                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                    "title": "Partition Token",
+                    "path": "k8s/installation/vault/data-integration/partition-token"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/data-integration/replication-token"
                   },
                   {
                     "title": "Server TLS",
@@ -533,6 +533,10 @@
                   {
                     "title": "Service Mesh Certificates",
                     "path": "k8s/installation/vault/data-integration/connect-ca"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
                   }
                 ]
               }
