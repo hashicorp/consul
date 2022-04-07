@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -82,7 +83,7 @@ func (s *Server) resetSessionTimer(session *structs.Session) error {
 	return nil
 }
 
-func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *structs.EnterpriseMeta) {
+func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *acl.EnterpriseMeta) {
 	// Reset the session timer
 	// Adjust the given TTL by the TTL multiplier. This is done
 	// to give a client a grace period and to compensate for network
@@ -95,7 +96,7 @@ func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *struc
 
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
-func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
+func (s *Server) invalidateSession(id string, entMeta *acl.EnterpriseMeta) {
 	defer metrics.MeasureSince([]string{"session_ttl", "invalidate"}, time.Now())
 
 	// Clear the session timer

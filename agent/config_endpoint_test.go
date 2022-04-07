@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -119,7 +120,7 @@ func TestConfig_Get(t *testing.T) {
 		// Set indexes and EnterpriseMeta to expected values for assertions
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
-		ce.EnterpriseMeta = structs.EnterpriseMeta{}
+		ce.EnterpriseMeta = acl.EnterpriseMeta{}
 
 		out, err := a.srv.marshalJSON(req, obj)
 		require.NoError(t, err)

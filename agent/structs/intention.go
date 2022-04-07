@@ -728,9 +728,9 @@ func (q *IntentionQueryExact) Validate() error {
 }
 
 type IntentionListRequest struct {
-	Datacenter     string
-	Legacy         bool `json:"-"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Legacy             bool `json:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 

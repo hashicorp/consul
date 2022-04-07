@@ -92,7 +92,7 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	return authz, err
 }
 
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	authz, err := a.ResolveToken(secretID)
 	if err != nil {
 		return consul.ACLResolveResult{}, err
@@ -133,10 +133,10 @@ func (a *TestACLAgent) LANMembers(f consul.LANMemberFilter) ([]serf.Member, erro
 func (a *TestACLAgent) AgentLocalMember() serf.Member {
 	return serf.Member{}
 }
-func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
+func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error) {
 	return 0, fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {

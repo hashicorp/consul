@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -10,7 +11,7 @@ type UpstreamID struct {
 	Type       string
 	Name       string
 	Datacenter string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func NewUpstreamID(u *structs.Upstream) UpstreamID {
@@ -18,7 +19,7 @@ func NewUpstreamID(u *structs.Upstream) UpstreamID {
 		Type:       u.DestinationType,
 		Name:       u.DestinationName,
 		Datacenter: u.Datacenter,
-		EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 			u.DestinationPartition,
 			u.DestinationNamespace,
 		),
@@ -57,7 +58,7 @@ func NewUpstreamIDFromTargetID(tid string) UpstreamID {
 
 	id := UpstreamID{
 		Name:           split[0],
-		EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(split[2], split[1]),
+		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(split[2], split[1]),
 		Datacenter:     split[3],
 	}
 	id.normalize()
@@ -96,7 +97,7 @@ func UpstreamIDFromString(input string) UpstreamID {
 
 const upstreamTypePreparedQueryPrefix = structs.UpstreamDestTypePreparedQuery + ":"
 
-func ParseUpstreamIDString(input string) (typ, dc, name string, meta *structs.EnterpriseMeta) {
+func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.EnterpriseMeta) {
 	if strings.HasPrefix(input, upstreamTypePreparedQueryPrefix) {
 		typ = structs.UpstreamDestTypePreparedQuery
 		input = strings.TrimPrefix(input, upstreamTypePreparedQueryPrefix)

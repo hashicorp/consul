@@ -16,8 +16,8 @@ type ExportedServicesConfigEntry struct {
 	// to expose them to.
 	Services []ExportedService
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -99,7 +99,7 @@ func (e *ExportedServicesConfigEntry) Normalize() error {
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
-		e.Services[i].Namespace = NamespaceOrDefault(e.Services[i].Namespace)
+		e.Services[i].Namespace = acl.NamespaceOrDefault(e.Services[i].Namespace)
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func (e *ExportedServicesConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ExportedServicesConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ExportedServicesConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

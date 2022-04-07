@@ -100,7 +100,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 type nodeServiceTuple struct {
 	Node      string
 	ServiceID string
-	EntMeta   structs.EnterpriseMeta
+	EntMeta   acl.EnterpriseMeta
 }
 
 func newNodeServiceTupleFromServiceNode(sn *structs.ServiceNode) nodeServiceTuple {
@@ -525,7 +525,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 // given node. This mirrors some of the the logic in the oddly-named
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
-func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *structs.EnterpriseMeta) ([]stream.Event, error) {
+func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *acl.EnterpriseMeta) ([]stream.Event, error) {
 	services, err := tx.Get(tableServices, indexNode, Query{
 		Value:          node,
 		EnterpriseMeta: *entMeta,
@@ -552,7 +552,7 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta 
 
 // getNodeAndNodeChecks returns a the node structure and a function that returns
 // the full list of checks for a specific service on that node.
-func getNodeAndChecks(tx ReadTxn, node string, entMeta *structs.EnterpriseMeta) (*structs.Node, serviceChecksFunc, error) {
+func getNodeAndChecks(tx ReadTxn, node string, entMeta *acl.EnterpriseMeta) (*structs.Node, serviceChecksFunc, error) {
 	// Fetch the node
 	nodeRaw, err := tx.First(tableNodes, indexID, Query{
 		Value:          node,

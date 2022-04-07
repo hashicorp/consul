@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -32,7 +33,7 @@ func TestEventPayloadCheckServiceNode_SubjectMatchesRequests(t *testing.T) {
 			},
 			stream.SubscribeRequest{
 				Key:            "foo",
-				EnterpriseMeta: structs.EnterpriseMeta{},
+				EnterpriseMeta: acl.EnterpriseMeta{},
 			},
 		},
 		"mixed casing": {

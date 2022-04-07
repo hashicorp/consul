@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
@@ -147,7 +148,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Value:   in.KV.Value,
 						Flags:   in.KV.Flags,
 						Session: in.KV.Session,
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							in.KV.Partition,
 							in.KV.Namespace,
 						),
@@ -211,7 +212,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							svc.Partition,
 							svc.Namespace,
 						),
@@ -274,7 +275,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
-						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+						EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 							check.Partition,
 							check.Namespace,
 						),

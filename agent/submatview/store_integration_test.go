@@ -142,7 +142,7 @@ type backend struct {
 	pub *stream.EventPublisher
 }
 
-func (b backend) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (b backend) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
 	return acl.AllowAll(), nil
 }
 

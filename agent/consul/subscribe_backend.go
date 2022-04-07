@@ -18,7 +18,7 @@ type subscribeBackend struct {
 // the endpoints.
 func (s subscribeBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	return s.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func (e *ProxyConfigEntry) validateEnterpriseMeta() error {
@@ -32,7 +34,7 @@ func validateUnusedKeys(unused []string) error {
 	return err
 }
 
-func validateInnerEnterpriseMeta(_, _ *EnterpriseMeta) error {
+func validateInnerEnterpriseMeta(_, _ *acl.EnterpriseMeta) error {
 	return nil
 }
 
