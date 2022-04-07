@@ -21,7 +21,7 @@ A secure Consul cluster should include the following:
 Before deploying your service, you will need to deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller) so that it can provision the necessary tokens
 for tasks on the service mesh. To learn more about the ACL Controller, please see [Automatic ACL Token Provisioning](/docs/ecs/architecture#automatic-acl-token-provisioning).
 
-To deploy the controller, you will first need store an ACL token with `acl:write` privileges
+To deploy the controller, you will first need to store an ACL token with `acl:write` and `operator:write` privileges,
 and a CA certificate for the Consul server in AWS Secrets Manager.
 
 ```hcl
