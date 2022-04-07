@@ -62,6 +62,7 @@ message HealthCheckDefinition {
     map<string, HeaderValue> Header = 3;
     string Method = 4;
     string Body = 18;
+    bool DisableRedirects = 22;
     string TCP = 5;
     // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
     google.protobuf.Duration Interval = 6;
@@ -110,6 +111,7 @@ message CheckType {
     map<string, HeaderValue> Header = 20;
     string Method = 7;
     string Body = 26;
+    bool DisableRedirects = 31;
     string TCP = 8;
     // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
     google.protobuf.Duration Interval = 9;
