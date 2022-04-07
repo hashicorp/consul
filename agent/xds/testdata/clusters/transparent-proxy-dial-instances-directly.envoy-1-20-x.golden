@@ -210,7 +210,7 @@
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
+      "connectTimeout": "33s",
       "circuitBreakers": {
 
       },
@@ -305,7 +305,7 @@
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "passthrough~mongo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "ORIGINAL_DST",
-      "connectTimeout": "5s",
+      "connectTimeout": "33s",
       "lbPolicy": "CLUSTER_PROVIDED",
       "transportSocket": {
         "name": "tls",

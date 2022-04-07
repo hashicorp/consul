@@ -116,12 +116,12 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			continue
 		}
 
+		snap.ConnectProxy.UpstreamConfig[uid] = &u
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
 			continue
 		}
-		snap.ConnectProxy.UpstreamConfig[uid] = &u
 
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
