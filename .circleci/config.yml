@@ -853,6 +853,8 @@ jobs:
             sudo rm -rf /usr/local/go
             wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
             sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+          environment:
+            <<: *ENVIRONMENT
       - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
@@ -868,7 +870,6 @@ jobs:
             gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
             ls -lrt
           environment:
-            <<: *ENVIRONMENT
             # this is needed because of incompatibility between RYUK container and circleci
             TESTCONTAINERS_RYUK_DISABLED: true
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
