@@ -34,11 +34,11 @@ var OneTwelveRPCSummary = []prometheus.SummaryDefinition{
 
 type RequestRecorder struct {
 	Logger       hclog.Logger
-	recorderFunc func(key []string, val float32, labels []metrics.Label)
+	RecorderFunc func(key []string, val float32, labels []metrics.Label)
 }
 
 func NewRequestRecorder(logger hclog.Logger) *RequestRecorder {
-	return &RequestRecorder{Logger: logger, recorderFunc: metrics.AddSampleWithLabels}
+	return &RequestRecorder{Logger: logger, RecorderFunc: metrics.AddSampleWithLabels}
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
@@ -53,7 +53,7 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 	}
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
-	r.recorderFunc(metricRPCRequest, float32(elapsed), labels)
+	r.RecorderFunc(metricRPCRequest, float32(elapsed), labels)
 	r.Logger.Trace(requestLogName,
 		"method", requestName,
 		"errored", respErrored,

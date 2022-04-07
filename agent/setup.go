@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
@@ -150,6 +151,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
+
+	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
+	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
 
 	return d, nil
 }

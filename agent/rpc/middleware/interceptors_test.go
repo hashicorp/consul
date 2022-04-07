@@ -18,7 +18,7 @@ type obs struct {
 	labels  []metrics.Label
 }
 
-// recorderStore acts as an in-mem mock storage for all the RequestRecorder.Record() recorderFunc calls.
+// recorderStore acts as an in-mem mock storage for all the RequestRecorder.Record() RecorderFunc calls.
 type recorderStore struct {
 	lock  sync.Mutex
 	store map[string]obs
@@ -59,9 +59,11 @@ func (wr writeRequest) IsRead() bool {
 
 // TestRequestRecorder_SimpleOK tests that the RequestRecorder can record a simple request.
 func TestRequestRecorder_SimpleOK(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
@@ -82,9 +84,11 @@ func TestRequestRecorder_SimpleOK(t *testing.T) {
 
 // TestRequestRecorder_ReadRequest tests that RequestRecorder can record a read request AND a responseErrored arg.
 func TestRequestRecorder_ReadRequest(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
@@ -104,9 +108,11 @@ func TestRequestRecorder_ReadRequest(t *testing.T) {
 
 // TestRequestRecorder_WriteRequest tests that RequestRecorder can record a write request.
 func TestRequestRecorder_WriteRequest(t *testing.T) {
+	t.Parallel()
+
 	r := RequestRecorder{
 		Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
-		recorderFunc: simpleRecorderFunc,
+		RecorderFunc: simpleRecorderFunc,
 	}
 
 	start := time.Now()
