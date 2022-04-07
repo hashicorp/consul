@@ -850,6 +850,11 @@ jobs:
       - attach_workspace:
           at: .
       # Build the consul-dev image from the already built binary
+      - run:
+          command: |
+            sudo rm -rf /usr/local/go
+            wget https://golang.org/dl/go1.17.5.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzvf go1.17.5.linux-amd64.tar.gz
       - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
