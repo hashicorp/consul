@@ -842,6 +842,7 @@ jobs:
   upgrade-integration-test-latest:
     machine:
       image: ubuntu-2004:202101-01
+      docker_layer_caching: true
     parallelism: 1
     steps:
       - checkout
