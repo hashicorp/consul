@@ -1813,14 +1813,17 @@ func (a *Agent) reapServicesInternal() {
 		if timeout > 0 && cs.CriticalFor() > timeout {
 			reaped[serviceID] = true
 			if err := a.RemoveService(serviceID); err != nil {
-				a.logger.Error("unable to deregister service after check has been critical for too long",
+				a.logger.Error("failed to deregister service with critical health that exceeded health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
-					"error", err)
+					"timeout", timeout.String(),
+					"error", err,
+				)
 			} else {
-				a.logger.Info("Check for service has been critical for too long; deregistered service",
+				a.logger.Info("deregistered service with critical health due to exceeding health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
+					"timeout", timeout.String(),
 				)
 			}
 		}
