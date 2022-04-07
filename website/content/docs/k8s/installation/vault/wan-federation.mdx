@@ -21,7 +21,7 @@ For demonstration purposes, we will deploy Vault server in dev mode, although fo
 
 Change your Kubernetes current context to target dc1:
 
-```shell
+```shell-session
 $ kubectl config use-context <context for dc1>
 ```
 
@@ -42,7 +42,7 @@ ui:
 ```
 </CodeBlockConfig>
 
-```shell
+```shell-session
 $ helm install vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
 ```
 
@@ -64,19 +64,19 @@ First, still targeting your dc1 cluster, get the external IP or DNS name of the 
 
 On GKE or AKS, it'll be an IP:
 
-```shell
+```shell-session
 $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
 On EKS, it'll be a hostname:
 
-```shell
+```shell-session
 $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 ```
 
 Then set the VAULT_ADDR environment variable:
 
-```shell
+```shell-session
 $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
 ```
 
@@ -131,8 +131,9 @@ injector:
   authPath: auth/kubernetes-dc1
 ui:
   enabled: true
+```
 
-```shell
+```shell-session
 $ helm upgrade vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
 ```
 
@@ -140,7 +141,7 @@ $ helm upgrade vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
 ###### Enable the Auth Method
 Enable the Vault Kubernetes auth method.
 
-```shell
+```shell-session
 $ vault auth enable -path=kubernetes-dc1 kubernetes
 ```
 
@@ -189,7 +190,7 @@ injector:
 </CodeBlockConfig>
 
 
-```shell
+```shell-session
 $ helm install vault-dc2 -f vault-dc2.yaml hashicorp/vault --wait
 ```
 
@@ -198,7 +199,7 @@ $ helm install vault-dc2 -f vault-dc2.yaml hashicorp/vault --wait
 ###### Enable the Auth Method
 Enable the Vault Kubernetes auth method.
 
-```shell
+```shell-session
 $ vault auth enable -path=kubernetes-dc2 kubernetes
 ```
 
@@ -207,7 +208,7 @@ For the dc2 auth method, we first need to create a service account that allows V
 
 Target your dc2 cluster and apply the following:
 
-```shell
+```shell-session
 $ cat <<EOF >> auth-method-serviceaccount.yaml
 # auth-method.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -231,27 +232,28 @@ metadata:
 EOF
 ```
 
-```shell
+```shell-session
 $ kubectl apply -f auth-method-serviceaccount.yaml
 ```
 
 Next, we will need to get the token and CA cert from that service account secret.
 
-```shell
+```shell-session
 $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
 ```
-```shell
+
+```shell-seession
 $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
 ```
 ###### Configure Auth Method with JWT token of service account
 
 First, get the externally reachable address of the dc2 Consul Kubernetes cluster.
 
-```
+```shell-session
 $ export KUBE_API_URL_DC2=$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
 ```
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc2/config \
   kubernetes_host="${KUBE_API_URL_DC2}" \
   token_reviewer_jwt="${K8S_DC2_JWT_TOKEN}" \
@@ -290,22 +292,22 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, we will nee
 #### Store the secrets in Vault
 ##### Gossip encryption key secret
 
-```shell
+```shell-session
 $ vault kv put consul/secret/gossip key="$(consul keygen)"
 ```
 ##### Replication token secret
 
-```shell
+```shell-session
 $ vault kv put consul/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
 ```  
 ##### Root CA certificate
-```shell
+```shell-session
 $ vault write pki/root/generate/internal common_name="Consul CA" ttl=87600h
 ``` 
 #### Create a Vault policies that authorize the desired level of access to the secrets
 ##### Gossip encryption key policy
 
-```shell
+```shell-session
 $ vault policy write gossip - <<EOF
 path "consul/data/secret/gossip" {
   capabilities = ["read"]
@@ -315,7 +317,7 @@ EOF
 
 ##### Replication token policy
 
-```shell
+```shell-session
 $ vault policy write replication-token - <<EOF
 path "consul/data/secret/replication" {
   capabilities = ["read"]
@@ -325,7 +327,7 @@ EOF
 
 ##### CA policy
 
-```shell
+```shell-session
 $ vault policy write ca-policy - <<EOF
 path "pki/cert/ca" {
   capabilities = ["read"]
@@ -337,13 +339,14 @@ EOF
 #### dc1 datacenter
 
 Change your Kubernetes current context to target dc1:
-```shell
+```shell-session
 $ kubectl config use-context <context for dc1>
 ```
 
 ##### Create Server TLS and Service Mesh Cert Policies
 ##### Server TLS Cert policy
-```shell
+
+```shell-session
 $ vault policy write consul-cert-dc1 - <<EOF
 path "pki/issue/consul-cert-dc1"
 {
@@ -353,7 +356,8 @@ EOF
 ```
 
 ##### Service Mesh Cert policy
-```shell
+
+```shell-session
 $ vault policy write connect-ca-dc1 - <<EOF
 path "/sys/mounts" {
   capabilities = [ "read" ]
@@ -381,7 +385,7 @@ We will need to create auth roles for the consul-k8s components so that they acc
 * `server-acl-init` job
 * Role for Consul server CA
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc1/role/consul-server \
         bound_service_account_names=consul-server \
         bound_service_account_namespaces="default" \
@@ -389,14 +393,14 @@ $ vault write auth/kubernetes-dc1/role/consul-server \
         ttl=24h
 ```
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc1/role/consul-client \
         bound_service_account_names=consul-client \
         bound_service_account_namespaces="default" \
         policies="gossip" \
         ttl=24h
 ```
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc1/role/server-acl-init \
         bound_service_account_names=consul-server-acl-init \
         bound_service_account_namespaces="default" \
@@ -404,7 +408,7 @@ $ vault write auth/kubernetes-dc1/role/server-acl-init \
         ttl=24h
 ```
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc1/role/consul-ca \
         bound_service_account_names="*" \
         bound_service_account_namespaces="default" \
@@ -413,7 +417,8 @@ $ vault write auth/kubernetes-dc1/role/consul-ca \
 ```
 
 ##### Server TLS Cert role
-```shell
+
+```shell-session
 $ vault write pki/roles/consul-cert-dc1 \
   allowed_domains="dc1.consul,consul-server,consul-server.default,consul-server.default.svc" \
   allow_subdomains=true \
@@ -477,14 +482,15 @@ meshGateway:
 
 </CodeBlockConfig>
 
-```shell
+```shell-session
 $ helm install consul-dc1 -f consul-dc1.yaml hashicorp/consul
 ```
 
 #### dc2 datacenter
 ##### Create Server TLS and Service Mesh Cert Policies
 ##### Server TLS Cert policy
-```shell
+
+```shell-session
 $ vault policy write consul-cert-dc2 - <<EOF
 path "pki/issue/consul-cert-dc2"
 {
@@ -494,7 +500,8 @@ EOF
 ```
 
 ##### Service Mesh Cert policy
-```shell
+
+```shell-session
 $ vault policy write connect-ca-dc2 - <<EOF
 path "/sys/mounts" {
   capabilities = [ "read" ]
@@ -522,7 +529,7 @@ We will need to create auth roles for the consul-k8s components so that they acc
 * `server-acl-init` job
 * Role for Consul server CA
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc2/role/consul-server \
         bound_service_account_names=consul-server \
         bound_service_account_namespaces="default" \
@@ -530,14 +537,15 @@ $ vault write auth/kubernetes-dc2/role/consul-server \
         ttl=24h
 ```
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc2/role/consul-client \
         bound_service_account_names=consul-client \
         bound_service_account_namespaces="default" \
         policies="gossip" \
         ttl=24h
 ```
-```shell
+
+```shell-session
 $ vault write auth/kubernetes-dc2/role/server-acl-init \
         bound_service_account_names=consul-server-acl-init \
         bound_service_account_namespaces="default" \
@@ -545,7 +553,7 @@ $ vault write auth/kubernetes-dc2/role/server-acl-init \
         ttl=24h
 ```
 
-```shell
+```shell-session
 $ vault write auth/kubernetes-dc2/role/consul-ca \
         bound_service_account_names="*" \
         bound_service_account_namespaces="default" \
@@ -554,7 +562,8 @@ $ vault write auth/kubernetes-dc2/role/consul-ca \
 ```
 
 ##### Server TLS Cert role
-```shell
+
+```shell-session
 $ vault write pki/roles/consul-cert-dc2 \
   allowed_domains="dc2.consul,consul-server,consul-server.default,consul-server.default.svc" \
   allow_subdomains=true \
@@ -569,7 +578,7 @@ Now you can configure and install Consul in dc2 datacenter.
 ##### Set the Mesh Gateway address from DC1.
 For dc2 datacenter, we will need to get the address of the mesh gateway from the **dc1** cluster.  Change your Kubernetes current context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for dc2 datacenter.
 
-```shell
+```shell-session
 $ kubectl config use-context <context for dc1>
 ```
 
@@ -577,12 +586,13 @@ Now, get the mesh gateway address:
 
 On GKE and AKS:
 
-```
+```shell-session
 export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
 On EKS:
-```
+
+```shell-session
 export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 ```
 
@@ -647,14 +657,14 @@ meshGateway:
 </CodeBlockConfig>
 
 Change your Kubernetes current context to target dc2:
-```shell
+```shell-session
 $ kubectl config use-context <context for dc2>
 ```
 
 
 Now, use the above values files for you helm install:
 
-```shell
+```shell-session
 $ helm install consul-dc2 -f consul-dc2.yaml hashicorp/consul
 ```
 
