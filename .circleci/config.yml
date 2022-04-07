@@ -12,18 +12,8 @@ parameters:
     description: "Boolean whether to run the load test workflow"
 
 references:
-  images:
-    # When updating the Go version, remember to also update the versions in the
-    # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.5
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
-
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
-
-  cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
-
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
     EMAIL: noreply@hashicorp.com
@@ -32,6 +22,14 @@ references:
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.2.2
+    GO_VERSION: 1.17.5
+  images:
+    # When updating the Go version, remember to also update the versions in the
+    # workflows section for go-test-lib jobs.
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.5
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -254,8 +252,8 @@ jobs:
       - run:
          command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
-            sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
+            wget https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
       - run: *install-gotestsum
       - run: go mod download
       - run:
@@ -853,12 +851,12 @@ jobs:
       - run:
           command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go1.17.5.linux-amd64.tar.gz
-            sudo tar -C /usr/local -xzvf go1.17.5.linux-amd64.tar.gz
+            wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
       - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
-          name: Envoy Integration Tests
+          name: Upgrade Integration Tests
           command: |
             subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
             echo "Running $(echo $subtests | wc -w) subtests"
