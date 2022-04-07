@@ -793,11 +793,10 @@ jobs:
       - run: *notify-slack-failure
 
   envoy-integration-test-1_15_5: &ENVOY_TESTS
-    docker:
-      # We only really need bash and docker-compose which is installed on all
-      # Circle images but pick Go since we have to pick one of them.
-      - image: *GOLANG_IMAGE
-    parallelism: 2
+    machine:
+      image: ubuntu-2004:202101-01
+    parallelism: 4
+    resource_class: medium
     environment:
       ENVOY_VERSION: "1.15.5"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
@@ -805,7 +804,7 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker
+      - run: *install-gotestsum
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
