@@ -95,7 +95,9 @@ The following steps need only be performed once in any single datacenter if your
           Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
         ```
 
-1. Update the Kubernetes secrets with the latest gossip encryption key.
+1. Update the Kubernetes or Vault secrets with the latest gossip encryption key.
+    <Tabs>
+    <Tab heading="Kubernetes">
 
     Update the gossip encryption Kubernetes Secret with the value of the new gossip encryption key to ensure that subsequent `helm upgrades` commands execute successfully.
     The name of the secret that stores the value of the gossip encryption key can be found in the Helm values file:
@@ -122,6 +124,36 @@ The following steps need only be performed once in any single datacenter if your
     ```shell-session
     $ kubectl patch secret consul-federation --patch='{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
     ```
+    </Tab>
+    <Tab heading="Vault">
+
+    Update the gossip encryption Vault Secret with the value of the new gossip encryption key to ensure that subsequent `helm upgrades` commands execute successfully.
+    The name of the secret that stores the value of the gossip encryption key can be found in the Helm values file:
+    ```yaml
+    global:
+      gossipEncryption:
+         secretName: consul-gossip-encryption-key
+         secretKey: key
+    ```
+
+    ```shell-session
+    $ vault kv put secret/consul/gossip key="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
+    ```
+
+    **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
+
+    ```yaml
+    global:
+       gossipEncryption:
+         secretName: consul-federation
+         secretKey: gossipEncryptionKey
+    ```
+
+    ```shell-session
+    $ vault kv put secret/consul/consul-federation key="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
+    ```
+    </Tab>
+    </Tabs>
 
 1. Remove the old key once the new one has been installed successfully.
 
