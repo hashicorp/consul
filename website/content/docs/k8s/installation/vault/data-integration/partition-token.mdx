@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Storing the ACL Replication Token in Vault
+page_title: Storing the ACL Partition Token in Vault
 description: >-
-  Configuring the Consul Helm chart to use an ACL replication token stored in Vault.
+  Configuring the Consul Helm chart to use an ACL partition token stored in Vault.
 ---
 
-# Storing the ACL Replication Token in Vault
+# Storing the ACL Partition Token in Vault
 
 ## Pre-requisites
 Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
@@ -13,7 +13,7 @@ Prior to setting up the data integration between Vault and Consul on Kubernetes,
 2. Read the [Data Integration Overview](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ## Overview
-To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+To use an ACL partition token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
 ### One time set up in Vault
   1. Store the secret in Vault.
@@ -26,22 +26,22 @@ To use an ACL replication token stored in Vault, we will follow the steps outlin
 ## One time set up in Vault
 ### Store the Secret in Vault
 
-First, store the ACL replication token in Vault:
+First, store the ACL partition token in Vault:
 
 ```shell-session
-$ vault kv put secret/consul/replication-token token="<ACL replication Token>"
+$ vault kv put secret/consul/partition-token token="<ACL partition Token>"
 ```
 
 ### Create a Vault policy that authorizes the desired level of access to the secret
 
--> **Note:** The secret path referenced by the Vault Policy below will be your `global.acls.replicationToken.secretName` Helm value.
+-> **Note:** The secret path referenced by the Vault Policy below will be your `global.acls.partitionToken.secretName` Helm value.
 
 Next, you will need to create a policy that allows read access to this secret:
 
-<CodeBlockConfig filename="replication-token-policy.hcl">
+<CodeBlockConfig filename="partition-token-policy.hcl">
 
 ```HCL
-path "secret/data/consul/replication-token" {
+path "secret/data/consul/partition-token" {
   capabilities = ["read"]
 }
 ```
@@ -51,7 +51,7 @@ path "secret/data/consul/replication-token" {
 Apply the Vault policy by issuing the `vault policy write` CLI command:
 
 ```shell-session
-$ vault policy write replication-token-policy replication-token-policy.hcl
+$ vault policy write partition-token-policy partition-token-policy.hcl
 ```
 
 ## Set up per Consul datacenter
@@ -63,7 +63,7 @@ Next, you will create Kubernetes auth roles for the Consul `server-acl-init` job
 $ vault write auth/kubernetes/role/consul-server-acl-init \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=replication-token-policy \
+    policies=partition-token-policy \
     ttl=1h
 ```
 
@@ -77,7 +77,7 @@ $ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serv
 ### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the  ACL replication token key in Vault:
+use the  ACL partition token key in Vault:
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -88,14 +88,14 @@ global:
       enabled: true
       manageSystemACLsRole: consul-server-acl-init
   acls:
-    replicationToken:
-      secretName: secret/data/consul/replication-token
+    partitionToken:
+      secretName: secret/data/consul/partition-token
       secretKey: token
 ```
 
 </CodeBlockConfig>
 
-Note that `global.acls.replicationToken.secretName` is the path of the secret in Vault.
+Note that `global.acls.partitionToken.secretName` is the path of the secret in Vault.
 This should be the same path as the one you included in your Vault policy.
-`global.acls.replicationToken.secretKey` is the key inside the secret data. This should be the same
-as the key you passed when creating the  ACL replication token secret in Vault.
+`global.acls.partitionToken.secretKey` is the key inside the secret data. This should be the same
+as the key you passed when creating the  ACL partition token secret in Vault.

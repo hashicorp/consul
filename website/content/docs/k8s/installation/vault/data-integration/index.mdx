@@ -53,12 +53,32 @@ Below is a mapping of Vault secrets and the Consul on Kubernetes service account
 (NOTE: `Consul components` refers to all other services and jobs that are not Consul servers or clients. 
 It includes things like terminating gateways, ingress gateways, etc.)
 
+### Primary Datacenter
 | Secret | Service Account For | Configurable Role in Consul k8s Helm |
 | ------ | ------------------- | ------------------------------------ |
 |[ACL Bootstrap token](/docs/k8s/installation/vault/data-integration/bootstrap-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
 |[Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
 |[Enterprise license](/docs/k8s/installation/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[ACL Partition token](/docs/k8s/installation/vault/data-integration/parition-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
 |[ACL Replication token](/docs/k8s/installation/vault/data-integration/replication-token) | Consul server-acl-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)|
+|[Snapshot Agent config](/docs/k8s/installation/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
+|[Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
+|[Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+
+adminPartitionsRole
+
+### Secondary Datacenters
+The mapping for secondary data centers is similar with the following differences:
+- There is no use of bootstrap token because ACLs would have been bootstrapped in the primary datacenter.
+- ACL Partition token is mapped to both the `server-acl-init` job and the `partition-init` job service accounts.
+- ACL Replication token is mapped to both the `server-acl-init` job and Consul server service accounts.
+
+| Secret | Service Account For | Configurable Role in Consul k8s Helm |
+| ------ | ------------------- | ------------------------------------ |
+|[Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[Enterprise license](/docs/k8s/installation/vault/data-integration/enterprise-license) | Consul servers<br/>Consul clients | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)|
+|[ACL Partition token](/docs/k8s/installation/vault/data-integration/parition-token) | Consul server-acl-init job<br/>Consul partition-init job | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.adminPartitionsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-adminpartitionsrole)|
+|[ACL Replication token](/docs/k8s/installation/vault/data-integration/replication-token) | Consul server-acl-init job<br/>Consul servers | [`global.secretsBackend.vault.manageSystemACLsRole`](/docs/k8s/helm#v-global-secretsbackend-vault-managesystemaclsrole)<br/>[`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
 |[Snapshot Agent config](/docs/k8s/installation/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
 |[Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
 |[Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
