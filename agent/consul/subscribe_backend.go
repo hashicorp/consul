@@ -31,5 +31,5 @@ func (s subscribeBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn)
 }
 
 func (s subscribeBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return s.srv.fsm.State().EventPublisher().Subscribe(req)
+	return s.srv.publisher.Subscribe(req)
 }

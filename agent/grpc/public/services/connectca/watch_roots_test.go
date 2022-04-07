@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
@@ -22,19 +21,20 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/public/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 const testACLToken = "acl-token"
 
 func TestWatchRoots_Success(t *testing.T) {
-	store := testStateStore(t)
+	fsm, publisher := setupFSMAndPublisher(t)
 
 	// Set the initial roots and CA configuration.
 	rootA := connect.TestCA(t, nil)
-	_, err := store.CARootSetCAS(1, 0, structs.CARoots{rootA})
+	_, err := fsm.GetStore().CARootSetCAS(1, 0, structs.CARoots{rootA})
 	require.NoError(t, err)
 
-	err = store.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"})
+	err = fsm.GetStore().CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"})
 	require.NoError(t, err)
 
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
@@ -45,8 +45,9 @@ func TestWatchRoots_Success(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		GetStore:    func() StateStore { return store },
-		Logger:      hclog.NewNullLogger(),
+		Publisher:   publisher,
+		GetStore:    func() StateStore { return fsm.GetStore() },
+		Logger:      testutil.Logger(t),
 		ACLResolver: aclResolver,
 	})
 
@@ -65,7 +66,7 @@ func TestWatchRoots_Success(t *testing.T) {
 
 	// Rotate the roots.
 	rootB := connect.TestCA(t, nil)
-	_, err = store.CARootSetCAS(2, 1, structs.CARoots{rootB})
+	_, err = fsm.GetStore().CARootSetCAS(2, 1, structs.CARoots{rootB})
 	require.NoError(t, err)
 
 	// Expect another event containing the new roots.
@@ -77,10 +78,10 @@ func TestWatchRoots_Success(t *testing.T) {
 }
 
 func TestWatchRoots_InvalidACLToken(t *testing.T) {
-	store := testStateStore(t)
+	fsm, publisher := setupFSMAndPublisher(t)
 
 	// Set the initial CA configuration.
-	err := store.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"})
+	err := fsm.GetStore().CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"})
 	require.NoError(t, err)
 
 	// Mock the ACL resolver to return ErrNotFound.
@@ -91,8 +92,9 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		GetStore:    func() StateStore { return store },
-		Logger:      hclog.NewNullLogger(),
+		Publisher:   publisher,
+		GetStore:    func() StateStore { return fsm.GetStore() },
+		Logger:      testutil.Logger(t),
 		ACLResolver: aclResolver,
 	})
 
@@ -108,14 +110,14 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 }
 
 func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
-	store := testStateStore(t)
+	fsm, publisher := setupFSMAndPublisher(t)
 
 	// Set the initial roots and CA configuration.
 	rootA := connect.TestCA(t, nil)
-	_, err := store.CARootSetCAS(1, 0, structs.CARoots{rootA})
+	_, err := fsm.GetStore().CARootSetCAS(1, 0, structs.CARoots{rootA})
 	require.NoError(t, err)
 
-	err = store.CASetConfig(2, &structs.CAConfiguration{ClusterID: "cluster-id"})
+	err = fsm.GetStore().CASetConfig(2, &structs.CAConfiguration{ClusterID: "cluster-id"})
 	require.NoError(t, err)
 
 	// Mock the ACL Resolver to return an authorizer with `service:write` the
@@ -127,8 +129,9 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		GetStore:    func() StateStore { return store },
-		Logger:      hclog.NewNullLogger(),
+		Publisher:   publisher,
+		GetStore:    func() StateStore { return fsm.GetStore() },
+		Logger:      testutil.Logger(t),
 		ACLResolver: aclResolver,
 	})
 
@@ -144,7 +147,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// Update the ACL token to cause the subscription to be force-closed.
 	accessorID, err := uuid.GenerateUUID()
 	require.NoError(t, err)
-	err = store.ACLTokenSet(1, &structs.ACLToken{
+	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{
 		AccessorID: accessorID,
 		SecretID:   testACLToken,
 	})
@@ -152,7 +155,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Update the roots.
 	rootB := connect.TestCA(t, nil)
-	_, err = store.CARootSetCAS(3, 1, structs.CARoots{rootB})
+	_, err = fsm.GetStore().CARootSetCAS(3, 1, structs.CARoots{rootB})
 	require.NoError(t, err)
 
 	// Expect the stream to remain open and to receive the new roots.
@@ -163,7 +166,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 		Return(acl.DenyAll(), nil)
 
 	// Update the ACL token to cause the subscription to be force-closed.
-	err = store.ACLTokenSet(1, &structs.ACLToken{
+	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{
 		AccessorID: accessorID,
 		SecretID:   testACLToken,
 	})
@@ -175,14 +178,14 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 }
 
 func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
-	storeA := testStateStore(t)
+	fsm, publisher := setupFSMAndPublisher(t)
 
 	// Set the initial roots and CA configuration.
 	rootA := connect.TestCA(t, nil)
-	_, err := storeA.CARootSetCAS(1, 0, structs.CARoots{rootA})
+	_, err := fsm.GetStore().CARootSetCAS(1, 0, structs.CARoots{rootA})
 	require.NoError(t, err)
 
-	err = storeA.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-a"})
+	err = fsm.GetStore().CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-a"})
 	require.NoError(t, err)
 
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
@@ -193,8 +196,9 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		GetStore:    func() StateStore { return storeA },
-		Logger:      hclog.NewNullLogger(),
+		Publisher:   publisher,
+		GetStore:    func() StateStore { return fsm.GetStore() },
+		Logger:      testutil.Logger(t),
 		ACLResolver: aclResolver,
 	})
 
@@ -208,7 +212,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	mustGetRoots(t, rspCh)
 
 	// Simulate a snapshot restore.
-	storeB := testStateStore(t)
+	storeB := testStateStore(t, publisher)
 
 	rootB := connect.TestCA(t, nil)
 	_, err = storeB.CARootSetCAS(1, 0, structs.CARoots{rootB})
@@ -217,9 +221,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	err = storeB.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-b"})
 	require.NoError(t, err)
 
-	server.GetStore = func() StateStore { return storeB }
-
-	storeA.Abandon()
+	fsm.ReplaceStore(storeB)
 
 	// Expect to get the new store's roots.
 	newRoots := mustGetRoots(t, rspCh)

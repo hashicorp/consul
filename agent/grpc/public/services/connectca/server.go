@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
@@ -17,13 +17,17 @@ type Server struct {
 }
 
 type Config struct {
+	Publisher   EventPublisher
 	GetStore    func() StateStore
 	Logger      hclog.Logger
 	ACLResolver ACLResolver
 }
 
+type EventPublisher interface {
+	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
+}
+
 type StateStore interface {
-	EventPublisher() state.EventPublisher
 	CAConfig(memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	AbandonCh() <-chan struct{}
 }

@@ -43,10 +43,8 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 	}
 
 	sh := snapshotHandler{producers: producers}
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealth: sh.Snapshot,
-	}
-	pub := stream.NewEventPublisher(handlers, 10*time.Millisecond)
+	pub := stream.NewEventPublisher(10 * time.Millisecond)
+	pub.RegisterHandler(pbsubscribe.Topic_ServiceHealth, sh.Snapshot)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

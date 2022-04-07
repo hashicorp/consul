@@ -68,7 +68,7 @@ func (s *Server) serveRoots(
 	}
 
 	// Start the subscription.
-	sub, err := store.EventPublisher().Subscribe(&stream.SubscribeRequest{
+	sub, err := s.Publisher.Subscribe(&stream.SubscribeRequest{
 		Topic:   state.EventTopicCARoots,
 		Subject: stream.SubjectNone,
 		Token:   token,
