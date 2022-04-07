@@ -885,7 +885,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   ACL policy may be stale up to the TTL value.
 
 - `addresses` - This is a nested object that allows setting
-  bind addresses. In Consul 1.0 and later these can be set to a space-separated list
+  bind addresses for the client interfaces. In Consul 1.0 and later these can be set to a space-separated list
   of addresses to bind to, or a [go-sockaddr] template that can potentially resolve to multiple addresses.
 
   `http`, `https` and `grpc` all support binding to a Unix domain socket. A
