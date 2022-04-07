@@ -3,6 +3,7 @@ package checks
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -1139,6 +1140,79 @@ func TestCheckTCPPassing(t *testing.T) {
 	tcpServer = mockTCPServer(`tcp6`)
 	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
+}
+
+func sendResponse(conn *net.UDPConn, addr *net.UDPAddr) {
+	_, err := conn.WriteToUDP([]byte("healthy"), addr)
+	if err != nil {
+		fmt.Printf("Couldn't send response %v", err)
+	}
+}
+
+func mockUDPServer(network string) net.PacketConn {
+
+	b := make([]byte, 1024)
+
+	addr := `127.0.0.1:4242`
+	udpAddr, err := net.ResolveUDPAddr(network, addr)
+	if err != nil {
+		log.Fatal("Error resolving UDP address: ", err)
+	}
+
+	ser, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		log.Fatal("Error listening UDP: ", err)
+	}
+	for {
+		log.Print("Waiting for UDP message")
+		_, remoteaddr, err := ser.ReadFromUDP(b)
+		log.Printf("Read a message from %v %s \n", remoteaddr, b)
+
+		if err != nil {
+			log.Fatalf("Error reading from UDP")
+		}
+		go sendResponse(ser, remoteaddr)
+	}
+
+}
+
+func expectUDPStatus(t *testing.T, udp string, status string) {
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
+	check := &CheckUDP{
+		CheckID:       cid,
+		UDP:           udp,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		StatusHandler: statusHandler,
+	}
+	check.Start()
+	defer check.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.Updates(cid), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
+		}
+		if got, want := notif.State(cid), status; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+func TestCheckUDPCritical(t *testing.T) {
+	t.Parallel()
+
+	go mockUDPServer(`udp`)
+	expectUDPStatus(t, `127.0.0.1:4241`, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
+}
+
+func TestCheckUDPPassing(t *testing.T) {
+	t.Parallel()
+
+	go mockUDPServer(`udp`)
+	expectUDPStatus(t, "127.0.0.1:4242", api.HealthPassing)
 }
 
 func TestCheckH2PING(t *testing.T) {
