@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+
 	consulCluster "github.com/hashicorp/consul/integration/consul-container/libs/consul-cluster"
 	consulNode "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
 
@@ -55,13 +57,39 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 		require.NoError(t, err)
 	}
 	err = Cluster.AddNodes(Clients)
+	client := Cluster.Nodes[0].GetClient()
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
-		members, err := Cluster.Nodes[0].GetClient().Agent().Members(false)
+		members, err := client.Agent().Members(false)
 		require.Len(r, members, 5)
 	})
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9999})
+	require.NoError(t, err)
+	service, meta, err := client.Catalog().Service("api", "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, "api", service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+
+	ch := make(chan struct{})
+	go func() {
+		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		require.NoError(t, err)
+		require.Len(t, service, 1)
+		require.Equal(t, "api", service[0].ServiceName)
+		require.Equal(t, 9998, service[0].ServicePort)
+		close(ch)
+	}()
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case <-ch:
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
+
 }
 
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
@@ -81,14 +109,39 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 				Version: *curImage,
 			})
 	}
+	client := Cluster.Nodes[0].GetClient()
 	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
-		members, err := Cluster.Nodes[0].GetClient().Agent().Members(false)
+		members, err := client.Agent().Members(false)
 		require.Len(r, members, 5)
 	})
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9999})
+	require.NoError(t, err)
+	service, meta, err := client.Catalog().Service("api", "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, "api", service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+
+	ch := make(chan struct{})
+	go func() {
+		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		require.NoError(t, err)
+		require.Len(t, service, 1)
+		require.Equal(t, "api", service[0].ServiceName)
+		require.Equal(t, 9998, service[0].ServicePort)
+		close(ch)
+	}()
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case <-ch:
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
 }
 
 func TestMixedServersMajorityLatest(t *testing.T) {
