@@ -430,8 +430,9 @@ $ vault write pki/roles/consul-cert-dc1 \
 ##### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 Now you can configure and install Consul in dc1 datacenter.
 
-```shell
-$ cat <<EOF >> consul-dc1.yaml
+<CodeBlockConfig filename="consul-dc1.yaml">
+
+```yaml
 # consul-dc1.yaml
 global:
   datacenter: "dc1"
@@ -476,7 +477,6 @@ controller:
 meshGateway:
   enabled: true
   replicas: 1
-EOF
 ```
 
 </CodeBlockConfig>
