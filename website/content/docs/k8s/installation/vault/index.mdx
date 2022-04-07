@@ -24,17 +24,17 @@ By leveraging Vault as a secrets backend for Consul on Kubernetes, you can now m
 
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 - ACL Bootstrap token
-- Gossip encryption key
-- Enterprise license
 - ACL Partition token
 - ACL Replication token
+- Enterprise license
+- Gossip encryption key
 - Snapshot Agent config
 
 
 ### Secrets generated and managed by the Vault PKI Engine
 
 The following TLS certificates and keys can be generated and managed by the Vault PKI Engine, which is meant to handle things like certificate expiration and rotation:
-- Consul Server TLS credentials
+- Server TLS credentials
 - Service Mesh and Consul client TLS credentials
 
 ## Requirements

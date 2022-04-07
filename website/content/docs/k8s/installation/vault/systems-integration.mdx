@@ -29,10 +29,10 @@ Please read [Run Vault on Kubernetes](https://www.vaultproject.io/docs/platform/
 
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 - ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
-- Gossip encryption key ([`global.gossipEncryption`]())
-- Enterprise license ([`global.enterpriseLicense`]())
 - ACL Partition token ([`global.acls.partitionToken`](/docs/k8s/helm#v-global-acls-partitiontoken))
 - ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
+- Gossip encryption key ([`global.gossipEncryption`](/docs/k8s/helm#v-global-gossipencryption))
+- Enterprise license ([`global.enterpriseLicense`](/docs/k8s/helm#v-global-enterpriselicense))
 - Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 
 In order to store any of these secrets, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
@@ -93,7 +93,7 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
     ```shell-session
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
--> Note If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to set up the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
+-> **Note:** If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
 #### VAULT_TOKEN
 
@@ -159,8 +159,8 @@ $ vault write auth/kubernetes/config \
 #### Enable Vault as the secrets backend in the Consul datacenter
 Finally, you will configure the Consul on Kubernetes helm chart for the datacenter to expect to receive the following values (if you have configured them) to be retreived from Vault:
 - ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
-- Gossip encryption key ([`global.gossipEncryption`]())
-- Enterprise license ([`global.enterpriseLicense`]())
+- Gossip encryption key ([`global.gossipEncryption`](/docs/k8s/helm#v-global-gossipencryption))
+- Enterprise license ([`global.enterpriseLicense`](/docs/k8s/helm#v-global-enterpriselicense))
 - ACL Partition token ([`global.acls.partitionToken`](/docs/k8s/helm#v-global-acls-partitiontoken))
 - ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
 - Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
