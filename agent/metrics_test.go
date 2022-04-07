@@ -250,8 +250,8 @@ func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "NaN")
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "NaN")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "1")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "0")
 	})
 }
 

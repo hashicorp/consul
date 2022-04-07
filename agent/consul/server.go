@@ -674,6 +674,10 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		go s.listen(listener)
 	}
 
+	// start autopilot - this must happen after the RPC listeners get setup
+	// or else it may block
+	s.autopilot.Start(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
 	// Start the metrics handlers.
 	go s.updateMetrics()
 

@@ -817,7 +817,8 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.RPCMaxConnsPerClient = 2
+				// we have to set this to 3 because autopilot is going to keep a connection open
+				c.RPCMaxConnsPerClient = 3
 				if tc.tlsEnabled {
 					c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
 					c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
@@ -830,6 +831,8 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
+
+			waitForLeaderEstablishment(t, s1)
 
 			// Connect to the server with bare TCP
 			conn1 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn1")
@@ -847,7 +850,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			addr := conn1.RemoteAddr()
 			conn1.Close()
 			retry.Run(t, func(r *retry.R) {
-				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 2 {
+				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 3 {
 					r.Fatal("waiting for open conns to drop")
 				}
 			})
@@ -1736,7 +1739,7 @@ func rpcBlockingQueryTestHarness(
 				return
 			case err := <-errCh:
 				if err != nil {
-					t.Errorf("[%d] unexpected error: %w", i, err)
+					t.Errorf("[%d] unexpected error: %v", i, err)
 					return
 				}
 			}
