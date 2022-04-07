@@ -272,7 +272,8 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, newDefaultDeps(t, c), grpc.NewServer())
+	srv, err := NewServer(c, deps, grpc.NewServer())
+
 	if err != nil {
 		return nil, err
 	}
