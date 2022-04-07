@@ -868,6 +868,7 @@ jobs:
             gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
             ls -lrt
           environment:
+            <<: *ENVIRONMENT
             # this is needed because of incompatibility between RYUK container and circleci
             TESTCONTAINERS_RYUK_DISABLED: true
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
