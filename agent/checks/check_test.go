@@ -1231,7 +1231,7 @@ func TestCheckUDPTimeoutPassing(t *testing.T) {
 	t.Parallel()
 
 	go mockUDPServer(`udp`)
-	expectUDPTimeout(t, `127.0.0.1:4242`, api.HealthPassing) // Should pass since
+	expectUDPTimeout(t, `127.0.0.1:4242`, api.HealthPassing) // Should pass since timeout is handled as success, from specification
 }
 func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
