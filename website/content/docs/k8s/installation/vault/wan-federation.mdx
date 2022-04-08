@@ -241,7 +241,6 @@ Next, we will need to get the token and CA cert from that service account secret
 ```shell-session
 $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
 ```
-
 ```shell-seession
 $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
 ```
@@ -304,7 +303,7 @@ $ vault kv put consul/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lo
 ```shell-session
 $ vault write pki/root/generate/internal common_name="Consul CA" ttl=87600h
 ``` 
-#### Create a Vault policies that authorize the desired level of access to the secrets
+#### Create Vault policies that authorize the desired level of access to the secrets
 ##### Gossip encryption key policy
 
 ```shell-session
