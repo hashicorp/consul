@@ -65,14 +65,20 @@ func (r *RequestRecorder) Record(requestName string, rpcType string, start time.
 
 	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
 	r.RecorderFunc(metricRPCRequest, float32(elapsed), labels)
-	// todo -- let's enumerate the label values here; not tenable to inline anymore with optional labels
-	r.Logger.Trace(requestLogName,
-		"method", requestName,
-		"errored", respErrored,
-		"request_type", reqType,
-		"rpc_type", rpcType,
-		"elapsed", elapsed,
-		"server_role", serverRole)
+
+	labelsArr := flattenLabels(labels)
+	r.Logger.Trace(requestLogName, labelsArr...)
+
+}
+
+func flattenLabels(labels []metrics.Label) []interface{} {
+
+	var labelArr []interface{}
+	for _, label := range labels {
+		labelArr = append(labelArr, label.Name, label.Value)
+	}
+
+	return labelArr
 }
 
 func (r *RequestRecorder) addOptionalLabels(request interface{}, labels []metrics.Label) []metrics.Label {
