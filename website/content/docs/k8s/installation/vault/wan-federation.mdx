@@ -132,6 +132,7 @@ injector:
 ui:
   enabled: true
 ```
+</CodeBlockConfig>
 
 ```shell-session
 $ helm upgrade vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
@@ -171,6 +172,7 @@ A minimal valid installation of Vault Kubernetes must include the Agent Injector
 In dc2, we will have to configure `externalvaultaddr` value point to the external address of the Vault server in dc1.
 
 Change your Kubernetes current context to target dc2:
+
 ```shell-session
 $ kubectl config use-context <context for dc2>
 ```
@@ -241,6 +243,7 @@ Next, we will need to get the token and CA cert from that service account secret
 ```shell-session
 $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
 ```
+
 ```shell-seession
 $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
 ```
@@ -399,6 +402,7 @@ $ vault write auth/kubernetes-dc1/role/consul-client \
         policies="gossip" \
         ttl=24h
 ```
+
 ```shell-session
 $ vault write auth/kubernetes-dc1/role/server-acl-init \
         bound_service_account_names=consul-server-acl-init \
@@ -656,6 +660,7 @@ meshGateway:
 </CodeBlockConfig>
 
 Change your Kubernetes current context to target dc2:
+
 ```shell-session
 $ kubectl config use-context <context for dc2>
 ```
