@@ -171,7 +171,7 @@ A minimal valid installation of Vault Kubernetes must include the Agent Injector
 In dc2, we will have to configure `externalvaultaddr` value point to the external address of the Vault server in dc1.
 
 Change your Kubernetes current context to target dc2:
-```shell
+```shell-session
 $ kubectl config use-context <context for dc2>
 ```
 
