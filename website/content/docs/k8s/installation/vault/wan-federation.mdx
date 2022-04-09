@@ -62,17 +62,31 @@ $ export VAULT_ADDR=root
 #### VAULT_ADDR
 First, still targeting your dc1 cluster, get the external IP or DNS name of the Vault server load balancer.
 
-On GKE or AKS, it'll be an IP:
+<Tabs>
+  <Tab heading="EKS">
+  On EKS, you'll get the hostname of the Vault server load balancer:
 
-```shell-session
-$ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-```
+  ```shell-session
+  $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  ```
+  </Tab>
 
-On EKS, it'll be a hostname:
+  <Tab heading="GKE">
+  On GKE, you'll get the IP of the Vault server load balancer:
 
-```shell-session
-$ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-```
+  ```shell-session
+  $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  ```
+  </Tab>
+
+  <Tab heading="AKS">
+  On AKS, you'll get the IP of the Vault server load balancer:
+
+  ```shell-session
+  $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  ```
+  </Tab>
+</Tabs>
 
 Then set the VAULT_ADDR environment variable:
 
@@ -259,7 +273,7 @@ $ export KUBE_API_URL_DC2=$(kubectl config view -o jsonpath="{.clusters[?(@.name
 $ vault write auth/kubernetes-dc2/config \
   kubernetes_host="${KUBE_API_URL_DC2}" \
   token_reviewer_jwt="${K8S_DC2_JWT_TOKEN}" \
-  kubernetes_ca_cert="${K8S_DC2_CA_CERT}" \
+  kubernetes_ca_cert="${K8S_DC2_CA_CERT}"
 ```
 
 ##### Enable Vault as the secrets backend in the Consul datacenter
@@ -587,17 +601,27 @@ $ kubectl config use-context <context for dc1>
 
 Now, get the mesh gateway address:
 
-On GKE and AKS:
+<Tabs>
+  <Tab heading="EKS">
 
-```shell-session
-export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-```
+  ```shell-session
+  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  ```
 
-On EKS:
+  </Tab>
 
-```shell-session
-export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-```
+  <Tab heading="GKE">
+  ```shell-session
+  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  ```
+  </Tab>
+
+  <Tab heading="AKS">
+  ```shell-session
+  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  ```
+  </Tab>
+</Tabs>
 
 ##### Set the Mesh Gateway address from DC1.
 -> Note To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same,
@@ -620,7 +644,7 @@ global:
       consulCARole: consul-ca
       manageSystemACLsRole: server-acl-init
       connectCA:
-        address: http://${VAULT_SERVER_HOST}:8200
+        address: ${VAULT_ADDR}
         rootPKIPath: connect_root/
         intermediatePKIPath: dc2/connect_inter/
         authMethodPath: kubernetes-dc2
