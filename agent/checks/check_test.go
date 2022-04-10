@@ -1149,11 +1149,11 @@ func sendResponse(conn *net.UDPConn, addr *net.UDPAddr) {
 	}
 }
 
-func mockUDPServer(network string) net.PacketConn {
+func mockUDPServer(network string, port string) net.PacketConn {
 
 	b := make([]byte, 1024)
 
-	addr := `127.0.0.1:4242`
+	addr := `127.0.0.1:` + port
 	udpAddr, err := net.ResolveUDPAddr(network, addr)
 	if err != nil {
 		log.Fatal("Error resolving UDP address: ", err)
@@ -1230,20 +1230,20 @@ func expectUDPTimeout(t *testing.T, udp string, status string) {
 func TestCheckUDPTimeoutPassing(t *testing.T) {
 	t.Parallel()
 
-	go mockUDPServer(`udp`)
-	expectUDPTimeout(t, `127.0.0.1:4242`, api.HealthPassing) // Should pass since timeout is handled as success, from specification
+	go mockUDPServer(`udp`, `4243`)
+	expectUDPTimeout(t, `127.0.0.1:4243`, api.HealthPassing) // Should pass since timeout is handled as success, from specification
 }
 func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
 
-	go mockUDPServer(`udp`)
+	go mockUDPServer(`udp`, `4244`)
 	expectUDPStatus(t, `127.0.0.1:4241`, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
 }
 
 func TestCheckUDPPassing(t *testing.T) {
 	t.Parallel()
 
-	go mockUDPServer(`udp`)
+	go mockUDPServer(`udp`, "4242")
 	expectUDPStatus(t, "127.0.0.1:4242", api.HealthPassing)
 }
 
