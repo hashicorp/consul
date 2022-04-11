@@ -565,6 +565,26 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "terminating-gateway-sni",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+					structs.NewServiceName("web", nil): {
+						Service: structs.NewServiceName("web", nil),
+						CAFile:  "ca.cert.pem",
+						SNI:     "foo.com",
+					},
+					structs.NewServiceName("api", nil): {
+						Service:  structs.NewServiceName("api", nil),
+						CAFile:   "ca.cert.pem",
+						CertFile: "api.cert.pem",
+						KeyFile:  "api.key.pem",
+						SNI:      "bar.com",
+					},
+				}
+			},
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
