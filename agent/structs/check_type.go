@@ -37,6 +37,7 @@ type CheckType struct {
 	Header                 map[string][]string
 	Method                 string
 	Body                   string
+	DisableRedirects       bool
 	TCP                    string
 	Interval               time.Duration
 	AliasNode              string

@@ -426,6 +426,7 @@ type RuntimeConfig struct {
 	//     http = string
 	//     header = map[string][]string
 	//     method = string
+	//     disable_redirects = (true|false)
 	//     tcp = string
 	//     h2ping = string
 	//     interval = string
