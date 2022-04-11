@@ -282,7 +282,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	expectTarget_DC1 := targetWithConnectTimeout(
 		newTarget("web", "", "default", "default", "dc1"),
-		33*time.Second,
+		22*time.Second,
 	)
 	expectTarget_DC1.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
@@ -290,7 +290,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	expectTarget_DC2 := targetWithConnectTimeout(
 		newTarget("web", "", "default", "default", "dc2"),
-		33*time.Second,
+		22*time.Second,
 	)
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
