@@ -224,7 +224,6 @@ jobs:
   check-generated-protobuf:
     docker:
       - image: *GOLANG_IMAGE
-    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
