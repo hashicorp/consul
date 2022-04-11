@@ -63,9 +63,10 @@ as |route|>
         <collection.Empty>
           <EmptyState>
             <BlockSlot @name="body">
-              <p>
-                This node has no service instances{{#if (gt items.length 0)}} matching that search{{/if}}.
-              </p>
+              {{t "routes.dc.nodes.show.services.empty"
+                items=items.length
+                htmlSafe=true
+              }}
             </BlockSlot>
           </EmptyState>
         </collection.Empty>
