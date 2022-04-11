@@ -1089,7 +1089,7 @@ module.exports = [
   },
   {
     source: '/docs/compatibility',
-    destination: '/docs/upgrading/compatibility',
+    destination: '/docs/installation/compatibility',
     permanent: true,
   },
   {
