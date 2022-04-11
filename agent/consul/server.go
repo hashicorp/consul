@@ -411,21 +411,18 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
 	}
 	if recorder == nil {
-		return nil, fmt.Errorf("cannot initialize server without a non nil RPC request recorder")
+		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	var rpcServer, insecureRPCServer *rpc.Server
 	if flat.GetNetRPCInterceptorFunc == nil {
-		rpcServer = rpc.NewServer()
-		insecureRPCServer = rpc.NewServer()
+		s.rpcServer = rpc.NewServer()
+		s.insecureRPCServer = rpc.NewServer()
 	} else {
-		rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
 	}
 
 	s.rpcRecorder = recorder
-	s.rpcServer = rpcServer
-	s.insecureRPCServer = insecureRPCServer
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
 		s.gatewayLocator = NewGatewayLocator(

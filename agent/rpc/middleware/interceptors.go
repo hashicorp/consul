@@ -51,14 +51,14 @@ func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC strin
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
 	elapsed := time.Since(start).Milliseconds()
 	reqType := requestType(request)
-	serverRole := r.getServerRole()
+	isLeader := r.getServerLeadership()
 
 	labels := []metrics.Label{
 		{Name: "method", Value: requestName},
 		{Name: "errored", Value: strconv.FormatBool(respErrored)},
 		{Name: "request_type", Value: reqType},
 		{Name: "rpc_type", Value: rpcType},
-		{Name: "server_role", Value: serverRole},
+		{Name: "leader", Value: isLeader},
 	}
 
 	labels = r.addOptionalLabels(request, labels)
@@ -123,12 +123,12 @@ func requestType(req interface{}) string {
 	return "unreported"
 }
 
-func (r *RequestRecorder) getServerRole() string {
+func (r *RequestRecorder) getServerLeadership() string {
 	if r.serverIsLeader != nil {
 		if r.serverIsLeader() {
-			return "leader"
+			return "true"
 		} else {
-			return "follower"
+			return "false"
 		}
 	}
 

@@ -1274,7 +1274,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		s2, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
-		require.Equal(t, err.Error(), "cannot initialize server without a non nil RPC request recorder")
+		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
 
 		t.Cleanup(func() {
 			if s2 != nil {

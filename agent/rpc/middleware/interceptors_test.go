@@ -104,7 +104,7 @@ var testCases = []testCase{
 		description: "This is a simple happy path test case. We check for pass through and normal request processing",
 		requestName: "A.B",
 		requestI:    struct{}{},
-		rpcType:     "test",
+		rpcType:     RPCTypeInternal,
 		errored:     false,
 		dc:          "dc1",
 		expectedLabels: []metrics.Label{
@@ -112,7 +112,23 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "unreported"},
 			{Name: "rpc_type", Value: RPCTypeInternal},
-			{Name: "server_role", Value: "unreported"},
+			{Name: "leader", Value: "unreported"},
+		},
+	},
+	{
+		name:        "simple ok errored",
+		description: "Checks that the errored value is populated right.",
+		requestName: "A.C",
+		requestI:    struct{}{},
+		rpcType:     "test",
+		errored:     true,
+		dc:          "dc1",
+		expectedLabels: []metrics.Label{
+			{Name: "method", Value: "A.C"},
+			{Name: "errored", Value: "true"},
+			{Name: "request_type", Value: "unreported"},
+			{Name: "rpc_type", Value: "test"},
+			{Name: "leader", Value: "unreported"},
 		},
 	},
 	{
@@ -128,7 +144,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "read"},
 			{Name: "rpc_type", Value: RPCTypeInternal},
-			{Name: "server_role", Value: "unreported"},
+			{Name: "leader", Value: "unreported"},
 		},
 	},
 	{
@@ -144,7 +160,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "write"},
 			{Name: "rpc_type", Value: RPCTypeNetRPC},
-			{Name: "server_role", Value: "unreported"},
+			{Name: "leader", Value: "unreported"},
 		},
 	},
 	{
@@ -160,7 +176,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "read"},
 			{Name: "rpc_type", Value: RPCTypeNetRPC},
-			{Name: "server_role", Value: "unreported"},
+			{Name: "leader", Value: "unreported"},
 			{Name: "allow_stale", Value: "false"},
 			{Name: "blocking", Value: "true"},
 			{Name: "target_datacenter", Value: "dc3"},
@@ -180,7 +196,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "write"},
 			{Name: "rpc_type", Value: RPCTypeNetRPC},
-			{Name: "server_role", Value: "unreported"},
+			{Name: "leader", Value: "unreported"},
 			{Name: "target_datacenter", Value: "dc2"},
 			{Name: "locality", Value: "local"},
 		},
@@ -200,7 +216,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "unreported"},
 			{Name: "rpc_type", Value: "test"},
-			{Name: "server_role", Value: "leader"},
+			{Name: "leader", Value: "true"},
 		},
 	},
 	{
@@ -218,7 +234,7 @@ var testCases = []testCase{
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "unreported"},
 			{Name: "rpc_type", Value: "test"},
-			{Name: "server_role", Value: "follower"},
+			{Name: "leader", Value: "false"},
 		},
 	},
 }
@@ -229,7 +245,6 @@ func TestRequestRecorder(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 
 			r := RequestRecorder{
 				Logger:         hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
