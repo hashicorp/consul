@@ -207,7 +207,6 @@ jobs:
   check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
-    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
