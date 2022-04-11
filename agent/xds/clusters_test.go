@@ -683,9 +683,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 
 				// need a default chain to render kafka
-				snap.ConnectProxy.DiscoveryChain[kafka.String()] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-				snap.ConnectProxy.WatchedUpstreamEndpoints[kafka.String()] = map[string]structs.CheckServiceNodes{
-					"kafka.default.default.dc1": {
+				snap.ConnectProxy.DiscoveryChain["default/kafka"] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints["default/kafka"] = map[string]structs.CheckServiceNodes{
+					"kafka.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
 								Datacenter: "dc1",
@@ -705,12 +705,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 
 				// There should still be a cluster for non-passthrough requests
-				snap.ConnectProxy.DiscoveryChain[mongo.String()] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "dc1", connect.TestClusterID+".consul", nil, &structs.ServiceResolverConfigEntry{
+				snap.ConnectProxy.DiscoveryChain["default/mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, &structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
 					Name:           "mongo",
 					ConnectTimeout: 33 * time.Second,
 				})
-				snap.ConnectProxy.WatchedUpstreamEndpoints[mongo.String()] = map[string]structs.CheckServiceNodes{
+				snap.ConnectProxy.WatchedUpstreamEndpoints["default/mongo"] = map[string]structs.CheckServiceNodes{
 					"mongo.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
