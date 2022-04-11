@@ -13,6 +13,8 @@ DEBUG=${DEBUG:-}
 ENVOY_VERSION=${ENVOY_VERSION:-"1.16.5"}
 export ENVOY_VERSION
 
+export DOCKER_BUILDKIT=1
+
 if [ ! -z "$DEBUG" ] ; then
   set -x
 fi
