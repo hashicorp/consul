@@ -108,6 +108,7 @@ check = {
     }
     method = "Dou0nGT5"
     body = "5PBQd2OT"
+    disable_redirects = true
     tcp = "JY6fTTcw"
     h2ping = "rQ8eyCSF"
     interval = "18714s"
@@ -136,6 +137,7 @@ checks = [
         }
         method = "aldrIQ4l"
         body = "wSjTy7dg"
+        disable_redirects = true
         tcp = "RJQND605"
         h2ping = "9N1cSb5B"
         interval = "22164s"
@@ -163,6 +165,7 @@ checks = [
         }
         method = "gLrztrNw"
         body = "0jkKgGUC"
+        disable_redirects = false
         tcp = "4jG5casb"
         h2ping = "HCHU7gEb"
         interval = "28767s"
@@ -380,6 +383,7 @@ service = {
         }
         method = "9afLm3Mj"
         body = "wVVL2V6f"
+        disable_redirects = true
         tcp = "fjiLFqVd"
         h2ping = "5NbNWhan"
         interval = "23926s"
@@ -405,6 +409,7 @@ service = {
             }
             method = "T66MFBfR"
             body = "OwGjTFQi"
+            disable_redirects = true
             tcp = "bNnNfx2A"
             h2ping = "qC1pidiW"
             interval = "22224s"
@@ -430,6 +435,7 @@ service = {
             }
             method = "ciYHWors"
             body = "lUVLGYU7"
+            disable_redirects = false
             tcp = "FfvCwlqH"
             h2ping = "spI3muI3"
             interval = "12356s"
@@ -469,6 +475,7 @@ services = [
             }
             method = "X5DrovFc"
             body = "WeikigLh"
+            disable_redirects = true
             tcp = "ICbxkpSF"
             h2ping = "7s7BbMyb"
             interval = "24392s"
@@ -511,6 +518,7 @@ services = [
                 }
                 method = "5wkAxCUE"
                 body = "7CRjCJyz"
+                disable_redirects = false
                 tcp = "MN3oA9D2"
                 h2ping = "OV6Q2XEg"
                 interval = "32718s"
