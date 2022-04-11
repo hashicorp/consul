@@ -62,6 +62,7 @@ message HealthCheckDefinition {
     map<string, HeaderValue> Header = 3 [(gogoproto.nullable) = false];
     string Method = 4;
     string Body = 18;
+    bool DisableRedirects = 22;
     string TCP = 5;
     google.protobuf.Duration Interval = 6
     [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
@@ -107,6 +108,7 @@ message CheckType {
     map<string, HeaderValue> Header = 20 [(gogoproto.nullable) = false];
     string Method = 7;
     string Body = 26;
+    bool DisableRedirects = 31;
     string TCP = 8;
     google.protobuf.Duration Interval = 9
     [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];

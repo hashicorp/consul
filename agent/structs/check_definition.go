@@ -27,6 +27,7 @@ type CheckDefinition struct {
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
+	DisableRedirects               bool
 	TCP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
@@ -65,6 +66,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
+		DisableRedirectsSnake               bool        `json:"disable_redirects"`
 
 		*Alias
 	}{
@@ -95,6 +97,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
+	}
+	if aux.DisableRedirectsSnake {
+		t.DisableRedirects = aux.DisableRedirectsSnake
 	}
 
 	// Parse special values
@@ -177,6 +182,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Header:                         c.Header,
 		Method:                         c.Method,
 		Body:                           c.Body,
+		DisableRedirects:               c.DisableRedirects,
 		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
 		Interval:                       c.Interval,
