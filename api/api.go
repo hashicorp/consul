@@ -277,6 +277,9 @@ type QueryMeta struct {
 	// response is.
 	CacheAge time.Duration
 
+	// QueryBackend represent which backend served the request (1: blocking-query, 2: streaming).
+	QueryBackend int
+
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
 	// defined policy. This can be "allow" which means ACLs are used to
 	// deny-list, or "deny" which means ACLs are allow-lists.
@@ -1096,6 +1099,14 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.CacheAge = time.Duration(age) * time.Second
 	}
 
+	if queryBackendStr := header.Get("X-Consul-Query-Backend"); queryBackendStr != "" {
+		switch queryBackendStr {
+		case "blocking-query":
+			q.QueryBackend = 1
+		case "streaming":
+			q.QueryBackend = 2
+		}
+	}
 	return nil
 }
 
