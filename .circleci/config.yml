@@ -290,7 +290,6 @@ jobs:
   go-test-race:
     docker:
       - image: *GOLANG_IMAGE
-    resource_class: xlarge
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
