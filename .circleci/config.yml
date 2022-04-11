@@ -123,6 +123,7 @@ jobs:
         default: ""
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
       GOARCH: "<<parameters.go-arch>>"
@@ -202,6 +203,7 @@ jobs:
     docker:
       - image: *GOLANG_IMAGE
     parallelism: 4
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -295,6 +297,7 @@ jobs:
   go-test-32bit:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -369,6 +372,7 @@ jobs:
   build-distros: &build-distros
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment: &build-env
       <<: *ENVIRONMENT
     steps:
@@ -400,6 +404,7 @@ jobs:
   build-arm:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       CGO_ENABLED: 1
@@ -432,6 +437,7 @@ jobs:
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
