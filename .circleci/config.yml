@@ -903,7 +903,6 @@ jobs:
   test-connect-ca-providers:
     docker:
       - image: *GOLANG_IMAGE
-    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
