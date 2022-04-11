@@ -19,7 +19,7 @@ Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
--> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul Connect service mesh Certification Authority.
+-> **Tutorial**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as the Consul Connect service mesh Certification Authority.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ connect {
   ca_provider = "vault"
   ca_config {
     address = "http://localhost:8200"
-    token = "..."
+    token = "<Vault token>"
     root_pki_path = "connect-root"
     intermediate_pki_path = "connect-intermediate"
   }
@@ -68,7 +68,7 @@ connect {
   "Provider": "vault",
   "Config": {
     "Address": "http://localhost:8200",
-    "Token": "<token>",
+    "Token": "<Vault token>",
     "RootPKIPath": "connect-root",
     "IntermediatePKIPath": "connect-intermediate"
   }
@@ -81,26 +81,97 @@ connect {
 
 The configuration options are listed below.
 
--> **NOTE**: The first key is the value used in API calls, and the second key
-   (after the `/`) is used if you are adding the configuration to the agent's
-   configuration file.
+-> **Option Naming Conventions**:
+   The naming of Connect CA configuration options differs between the two configuration methods:
+   an [API endpoint](/api-docs/connect/ca#update-ca-configuration) and
+   the [agent configuration file](/docs/agent/options#connect_ca_config).
+   The sections below show both option names in the form
+   `<API Call Option Name> / <Configuration File Option Name>`.
+
+-> **Using Vault Namespaces?**
+  If a specified Vault authentication mechanism or PKI path exists in a
+  [Vault Namespace](https://www.vaultproject.io/docs/enterprise/namespaces),
+  refer to
+  [configuration with Vault Namespaces](#configuration-with-vault-namespaces).
+
+#### Vault Resource Locations
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
 
-- `Token` / `token` (`string: ""`) - A token for accessing Vault.
+- `RootPKIPath` / `root_pki_path` (`string: <required>`) -
+  The path to a PKI secrets engine that will act as the primary Connect CA in Consul.
+
+  If a PKI secrets engine already exists at this path,
+  it can be **either a root or an intermediate certificate**.
+  Using an intermediate certificate can improve security by allowing an organization's
+  trusted root CA to be stored outside of Vault.
+  To use an intermediate certificate, initialize the
+  `RootPKIPath` in Vault with a PEM bundle. The first certificate in the bundle
+  must be the intermediate certificate that Consul will use as the primary CA.
+  The last certificate in the bundle must be a root certificate. The bundle
+  must contain a valid chain, where each certificate is followed by the certificate
+  that authorized it. To learn more, refer to this tutorial on
+  [building an intermediate CA with Vault](https://learn.hashicorp.com/tutorials/vault/pki-engine).
+
+  If a PKI secrets engine **does not exist at this path**,
+  Consul will mount a new PKI secrets engine at the specified path with the
+  [`RootCertTTL`](#rootcertttl) value as the root certificate's TTL.
+  If the [`RootCertTTL`](#rootcertttl) is not set,
+  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  of 87600 hours, or 10 years, is applied by default as of Consul 1.11 and later.
+  The root certificate will expire at the end of the specified period.
+
+  **When WAN Federation is enabled**,
+  each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
+  with the primary datacenter.
+
+  **If the path exists in a Vault Namespace**,
+  refer to the [configuration with Vault Namespaces](#configuration-with-vault-namespaces).
+
+- `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
+  The path to a PKI secrets engine for the generated intermediate certificate.
+
+  This certificate will be signed by the configured root PKI path.
+
+  If a PKI secrets engine **does not exist at this path**,
+  Consul will attempt to mount and configure one automatically.
+
+  **When WAN Federation is enabled**,
+  every secondary datacenter must specify a unique `intermediate_pki_path`.
+
+  **If the path exists in a Vault Namespace**,
+  refer to the [configuration with Vault Namespaces](#configuration-with-vault-namespaces).
+
+- `Namespace` / `namespace` (`string: <optional>`) -
+  The Vault Namespace from which the specified Vault authentication mechanism
+  ([`Token`](#token) or [`AuthMethod`](#authmethod)) and PKI secrets engine paths
+  ([`RootPKIPath`](#rootpkipath) and [`IntermediatePKIPath`](#intermediatepkipath)) are accessed.
+  Refer to the [configuration with Vault Namespaces](#configuration-with-vault-namespaces)
+  for more details.
+
+#### Vault Authentication
+
+You must provide either a Vault token or auth method to authenticate with Vault
+that grants the [necessary privileges](#vault-acl-policies) for the specified
+[Root](#rootpkipath) and [Intermediate](#intermediatepkipath) PKI paths.
+
+If the authentication mechanism exists within a Vault namespace,
+refer to the [configuration with Vault Namespaces](#configuration-with-vault-namespaces).
+
+- `Token` / `token` (`string: ""`) - A Vault token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
-  This token must have [proper privileges](#vault-acl-policies) for the PKI
-  paths configured. In Consul 1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+  If the Vault token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
   duration has expired.
 
-  !> **Warning:** You must either provide a token or configure an auth method below.
+- `AuthMethod` / `auth_method` (`map: nil`) - A Vault auth method for accessing Vault.
+  Upon logging in with this Vault auth method, Consul will receive a Vault token.
+  Consul will automatically obtain a new token from Vault when the token can no longer be renewed.
 
-- `AuthMethod` / `auth_method` (`map: nil`) - Vault auth method to use for logging in to Vault.
   Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
-  on how to configure individual auth methods. If auth method is provided, Consul will obtain
-  a new token from Vault when the token can no longer be renewed.
+  on how to configure individual Vault auth methods.
+  All auth methods must include:
 
    - `Type`/ `type` (`string: ""`) - The type of Vault auth method.
 
@@ -114,36 +185,7 @@ The configuration options are listed below.
     default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter
     is not provided.
 
-
-- `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-  a PKI secrets engine for the root certificate.
-
-  If the path does not
-  exist, Consul will mount a new PKI secrets engine at the specified path with the
-  `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
-  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
-  of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11,
-  the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable.
-  The root certificate will expire at the end of the specified period.
-
-  When WAN Federation is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
-  with the primary datacenter.
-
-  To use an intermediate certificate as the primary CA in Consul initialize the
-  `RootPKIPath` in Vault with a PEM bundle. The first certificate in the bundle
-  must be the intermediate certificate that Consul will use as the primary CA.
-  The last certificate in the bundle must be a root certificate. The bundle
-  must contain a valid chain, where each certificate is followed by the certificate
-  that authorized it.
-
-- `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
-  The path to a PKI secrets engine for the generated intermediate certificate.
-  This certificate will be signed by the configured root PKI path. If this
-  path does not exist, Consul will attempt to mount and configure this
-  automatically.
-
-  When WAN Federation is enabled, every secondary
-  datacenter must specify a unique `intermediate_pki_path`.
+#### Vault TLS Communication
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
   certificate used for Vault communication. If unspecified, this will fallback
@@ -167,10 +209,6 @@ The configuration options are listed below.
 
 - `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
   validation should be enforced.
-
-- `Namespace` / `namespace` (`string: <optional>`) - The Vault Namespace that
-  the `Token` and PKI Certificates are a part of. Vault Namespaces are a Vault
-  Enterprise feature. Added in Consul 1.11.0
 
 @include 'http_api_connect_ca_common_options.mdx'
 
@@ -278,6 +316,137 @@ path "/connect_inter/*" {
 ```
 
 </CodeBlockConfig>
+
+## Configuration with Vault Namespaces
+
+[Vault Namespaces](https://www.vaultproject.io/docs/enterprise/namespaces)
+are a multi-tenancy feature of Vault Enterprise that allow
+multiple, isolated Vault environments within a single Vault infrastructure.
+
+This Connect CA provider can access Vault tokens, auth methods, and PKI secrets engines
+that exist within the same or different Vault Namespaces.
+
+The [`Namespace`](#namespace) option is used as the `X-Vault-Namespace` header
+for all API requests made by this CA provider to Vault.
+All Vault namespaces included in paths are relative to the value of this header.
+For more details on how paths to namespaced resources can be specified,
+refer to the [Vault Namespace usage documentation](https://www.vaultproject.io/docs/enterprise/namespaces#usage).
+
+The PKI path options ([`RootPKIPath`](#rootpkipath) and [`IntermediatePKIPath`](#intermediatepkipath)
+both support including a Vault Namespace in the path.
+However, the Vault authentication options ([`Token`](#token) and [`AuthMethod`](#authmethod))
+do not allow specifying a Vault Namespace in their configuration.
+
+**If using an authentication mechanism that exists within a non-root Vault Namespace**:
+- set the [`Namespace`](#namespace) option to the Vault authentication mechanism's Namespace, and
+- `RootPKIPath` and `IntermediatePath` must be in that same Namespace or a child Namespace;
+  the relative path to a child Namespace must be included in the path
+
+### Example 1: PKI Paths in Same Namespace
+
+Consider the following setup of Vault resources and their namespaces:
+
+| Vault Resource                       | Belongs to Vault Namespace | Resource Name              |
+| ------------------------------------ | -------------------------- | -------------------------- |
+| `Token`                              | root                       | N/A                        |
+| `RootPKIPath` (Primary CA)           | `ns-consul`                | `connect-root`             |
+| `IntermediatePKIPath` (Secondary CA) | `ns-consul`                | `connect-intermediate-dc1` |
+
+The correct Connect CA configuration for this setup is:
+
+<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+
+<CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="7-9">
+
+```hcl
+# ...
+connect {
+  enabled = true
+  ca_provider = "vault"
+  ca_config {
+    address = "http://localhost:8200"
+    token = "<Vault token>"
+    root_pki_path = "ns-consul/connect-root"
+    intermediate_pki_path = "ns-consul/connect-intermediate-dc1"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="5-7">
+
+```json
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "http://localhost:8200",
+    "Token": "<Vault token>",
+    "RootPKIPath": "ns-consul/connect-root",
+    "IntermediatePKIPath": "ns-consul/connect-intermediate-dc1"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+-> **Why the Namespace option isn't used**:
+  In this case, the [`Namespace`](#namespace) option cannot be set to `ns-consul/` because
+  the Vault `Token` is in the root Vault Namespace.
+
+### Example 2: Token in Vault Namespace, PKI Paths in Different Namespaces
+
+Consider the following setup of Vault resources and their namespaces:
+
+| Vault Resource                       | Belongs to Vault Namespace     | Resource Name              |
+| ------------------------------------ | ------------------------------ | -------------------------- |
+| `Token`                              | `ns-consul-root`               | N/A                        |
+| `RootPKIPath` (Primary CA)           | `ns-consul-root`               | `connect-root`             |
+| `IntermediatePKIPath` (Secondary CA) | `ns-consul-root/ns-consul-dc1` | `connect-intermediate-dc1` |
+
+The correct Connect CA configuration for this setup is:
+
+<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+
+<CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="7-10">
+
+```hcl
+# ...
+connect {
+  enabled = true
+  ca_provider = "vault"
+  ca_config {
+    address = "http://localhost:8200"
+    namespace = "ns-consul-root/"
+    token = "<Vault token>"
+    root_pki_path = "connect-root"
+    intermediate_pki_path = "ns-consul-dc1/connect-intermediate-dc1"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="5-8">
+
+```json
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "http://localhost:8200",
+    "Namespace": "ns-consul-root/"
+    "Token": "<Vault token>",
+    "RootPKIPath": "connect-root",
+    "IntermediatePKIPath": "ns-consul-dc1/connect-intermediate-dc1"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
 
 <!-- Reference style links -->
 [`ca_config`]: /docs/agent/options#connect_ca_config
