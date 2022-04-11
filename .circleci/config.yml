@@ -372,7 +372,6 @@ jobs:
         type: string
     docker:
       - image: "docker.mirror.hashicorp.services/cimg/go:<<parameters.go-version>>"
-    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
