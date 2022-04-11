@@ -13,12 +13,14 @@ as |item|}}
   {{else}}
     <EmptyState>
       <BlockSlot @name="header">
-        <h2>No namespace rules</h2>
+        <h2>
+          {{t 'routes.dc.acls.auth-methods.show.nspace-rules.index.empty.header'}}
+        </h2>
       </BlockSlot>
       <BlockSlot @name="body">
-        <p>
-          A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.
-        </p>
+        {{t 'routes.dc.acls.auth-methods.show.nspace-rules.index.empty.body'
+          htmlSafe=true
+        }}
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">
