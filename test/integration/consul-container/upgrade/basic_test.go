@@ -24,21 +24,6 @@ var latestImage = flag.String("latest-version", "latest", "docker image to be us
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
-func TestBasic(t *testing.T) {
-	t.Parallel()
-	cluster, err := consulCluster.New([]consulNode.Config{consulNode.Config{Version: *latestImage}})
-
-	require.NoError(t, err)
-
-	defer Terminate(t, cluster)
-
-	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
-		leader, err := cluster.Nodes[0].GetClient().Status().Leader()
-		require.NoError(r, err)
-		require.NotEmpty(r, leader)
-	})
-}
-
 func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
@@ -46,19 +31,9 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	require.NoError(t, err)
 	defer Terminate(t, Cluster)
 	numClients := 2
-	Clients := make([]consulNode.Node, numClients)
-	for i := 0; i < numClients; i++ {
-		Clients[i], err = consulNode.NewConsulContainer(context.Background(),
-			consulNode.Config{
-				HCL: `node_name="` + utils.RandName("consul-client") + `"
-					log_level="TRACE"`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *curImage,
-			})
-		require.NoError(t, err)
-	}
+	Clients, err := clientsCreate(numClients)
+	client := Clients[0].GetClient()
 	err = Cluster.AddNodes(Clients)
-	client := Cluster.Nodes[0].GetClient()
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
 		require.NoError(r, err)
@@ -66,18 +41,15 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 		members, err := client.Agent().Members(false)
 		require.Len(r, members, 5)
 	})
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9999})
-	require.NoError(t, err)
-	service, meta, err := client.Catalog().Service("api", "", &api.QueryOptions{})
-	require.NoError(t, err)
-	require.Len(t, service, 1)
-	require.Equal(t, "api", service[0].ServiceName)
-	require.Equal(t, 9999, service[0].ServicePort)
+
+	serviceName := "api"
+	err, index := serviceCreate(t, client, serviceName)
 
 	ch := make(chan []*api.ServiceEntry)
 	errCh := make(chan error)
+
 	go func() {
-		service, q, err := client.Health().Service("api", "", false, &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
 		if q.QueryBackend != 2 {
 			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
 		}
@@ -87,14 +59,14 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 			ch <- service
 		}
 	}()
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
 	timer := time.NewTimer(1 * time.Second)
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
 	case service := <-ch:
 		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].Service.Service)
+		require.Equal(t, serviceName, service[0].Service.Service)
 		require.Equal(t, 9998, service[0].Service.Port)
 	case <-timer.C:
 		t.Fatalf("test timeout")
@@ -108,17 +80,9 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	Cluster, err := serversCluster(t, numServers, *curImage)
 	require.NoError(t, err)
 	defer Terminate(t, Cluster)
-	numClients := 2
-	Clients := make([]consulNode.Node, numClients)
-	for i := 0; i < numClients; i++ {
-		Clients[i], err = consulNode.NewConsulContainer(context.Background(),
-			consulNode.Config{
-				HCL: `node_name="` + utils.RandName("consul-client") + `"
-					log_level="TRACE"`,
-				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *curImage,
-			})
-	}
+	numClients := 1
+
+	Clients, err := clientsCreate(numClients)
 	client := Cluster.Nodes[0].GetClient()
 	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -126,20 +90,16 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
 		members, err := client.Agent().Members(false)
-		require.Len(r, members, 5)
+		require.Len(r, members, 4)
 	})
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9999})
-	require.NoError(t, err)
-	service, meta, err := client.Catalog().Service("api", "", &api.QueryOptions{})
-	require.NoError(t, err)
-	require.Len(t, service, 1)
-	require.Equal(t, "api", service[0].ServiceName)
-	require.Equal(t, 9999, service[0].ServicePort)
+	serviceName := "api"
+	err, index := serviceCreate(t, client, serviceName)
 
 	ch := make(chan []*api.ServiceEntry)
 	errCh := make(chan error)
+
 	go func() {
-		service, q, err := client.Health().Service("api", "", false, &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
 		if q.QueryBackend != 2 {
 			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
 		}
@@ -149,21 +109,21 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 			ch <- service
 		}
 	}()
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
 	timer := time.NewTimer(1 * time.Second)
 	select {
 	case err := <-errCh:
 		require.NoError(t, err)
 	case service := <-ch:
 		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].Service.Service)
+		require.Equal(t, serviceName, service[0].Service.Service)
 		require.Equal(t, 9998, service[0].Service.Port)
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
 }
 
-func TestMixedServersMajorityLatest(t *testing.T) {
+func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []consulNode.Config
 	configs = append(configs,
@@ -193,16 +153,49 @@ func TestMixedServersMajorityLatest(t *testing.T) {
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
 
+	numClients := 1
+	Clients, err := clientsCreate(numClients)
+	client := Clients[0].GetClient()
+	err = cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
-		members, err := cluster.Nodes[0].GetClient().Agent().Members(false)
-		require.Len(r, members, 3)
+		members, err := client.Agent().Members(false)
+		require.Len(r, members, 4)
 	})
+
+	serviceName := "api"
+	err, index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if q.QueryBackend != 2 {
+			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
 }
 
-func TestMixedServersMajorityCurrent(t *testing.T) {
+func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []consulNode.Config
 	configs = append(configs,
@@ -232,13 +225,72 @@ func TestMixedServersMajorityCurrent(t *testing.T) {
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
 
+	numClients := 1
+	Clients, err := clientsCreate(numClients)
+	client := Clients[0].GetClient()
+	err = cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
-		members, err := cluster.Nodes[0].GetClient().Agent().Members(false)
-		require.Len(r, members, 3)
+		members, err := client.Agent().Members(false)
+		require.Len(r, members, 4)
 	})
+
+	serviceName := "api"
+	err, index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if q.QueryBackend != 2 {
+			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
+}
+
+func clientsCreate(numClients int) ([]consulNode.Node, error) {
+	Clients := make([]consulNode.Node, numClients)
+	var err error
+	for i := 0; i < numClients; i++ {
+		Clients[i], err = consulNode.NewConsulContainer(context.Background(),
+			consulNode.Config{
+				HCL: `node_name="` + utils.RandName("consul-client") + `"
+					log_level="TRACE"`,
+				Cmd:     []string{"agent", "-client=0.0.0.0"},
+				Version: *curImage,
+			})
+	}
+	return Clients, err
+}
+
+func serviceCreate(t *testing.T, client *api.Client, serviceName string) (error, uint64) {
+	err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9999})
+	require.NoError(t, err)
+	service, meta, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, serviceName, service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+	return err, meta.LastIndex
 }
 
 func serversCluster(t *testing.T, numServers int, image string) (*consulCluster.Cluster, error) {
