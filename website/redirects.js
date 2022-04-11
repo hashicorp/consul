@@ -1089,7 +1089,12 @@ module.exports = [
   },
   {
     source: '/docs/compatibility',
-    destination: '/docs/installation/compatibility',
+    destination: '/docs/upgrading/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/installation/compatibility',
     permanent: true,
   },
   {
