@@ -3,6 +3,7 @@ package consul_container
 import (
 	"context"
 	"flag"
+	"fmt"
 	"testing"
 	"time"
 
@@ -76,7 +77,10 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	ch := make(chan []*api.CatalogService)
 	errCh := make(chan error)
 	go func() {
-		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		if q.QueryBackend != 2 {
+			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
+		}
 		if err != nil {
 			errCh <- err
 		} else {
@@ -135,7 +139,10 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	ch := make(chan []*api.CatalogService)
 	errCh := make(chan error)
 	go func() {
-		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		if q.QueryBackend != 2 {
+			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
+		}
 		if err != nil {
 			errCh <- err
 		} else {
