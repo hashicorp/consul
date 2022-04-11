@@ -73,19 +73,25 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	require.Equal(t, "api", service[0].ServiceName)
 	require.Equal(t, 9999, service[0].ServicePort)
 
-	ch := make(chan struct{})
+	ch := make(chan []*api.CatalogService)
+	errCh := make(chan error)
 	go func() {
 		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
-		require.NoError(t, err)
-		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].ServiceName)
-		require.Equal(t, 9998, service[0].ServicePort)
-		close(ch)
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
 	}()
 	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
 	timer := time.NewTimer(1 * time.Second)
 	select {
-	case <-ch:
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, "api", service[0].ServiceName)
+		require.Equal(t, 9998, service[0].ServicePort)
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
@@ -126,19 +132,25 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	require.Equal(t, "api", service[0].ServiceName)
 	require.Equal(t, 9999, service[0].ServicePort)
 
-	ch := make(chan struct{})
+	ch := make(chan []*api.CatalogService)
+	errCh := make(chan error)
 	go func() {
 		service, _, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
-		require.NoError(t, err)
-		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].ServiceName)
-		require.Equal(t, 9998, service[0].ServicePort)
-		close(ch)
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
 	}()
 	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: "api", Port: 9998})
 	timer := time.NewTimer(1 * time.Second)
 	select {
-	case <-ch:
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, "api", service[0].ServiceName)
+		require.Equal(t, 9998, service[0].ServicePort)
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
