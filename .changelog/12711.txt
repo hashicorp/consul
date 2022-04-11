@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: ensure that all connect timeout configs can apply equally to tproxy direct dial connections
+```
