@@ -74,10 +74,10 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	require.Equal(t, "api", service[0].ServiceName)
 	require.Equal(t, 9999, service[0].ServicePort)
 
-	ch := make(chan []*api.CatalogService)
+	ch := make(chan []*api.ServiceEntry)
 	errCh := make(chan error)
 	go func() {
-		service, q, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Health().Service("api", "", false, &api.QueryOptions{WaitIndex: meta.LastIndex})
 		if q.QueryBackend != 2 {
 			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
 		}
@@ -94,8 +94,8 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 		require.NoError(t, err)
 	case service := <-ch:
 		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].ServiceName)
-		require.Equal(t, 9998, service[0].ServicePort)
+		require.Equal(t, "api", service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
@@ -136,10 +136,10 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	require.Equal(t, "api", service[0].ServiceName)
 	require.Equal(t, 9999, service[0].ServicePort)
 
-	ch := make(chan []*api.CatalogService)
+	ch := make(chan []*api.ServiceEntry)
 	errCh := make(chan error)
 	go func() {
-		service, q, err := client.Catalog().Service("api", "", &api.QueryOptions{WaitIndex: meta.LastIndex})
+		service, q, err := client.Health().Service("api", "", false, &api.QueryOptions{WaitIndex: meta.LastIndex})
 		if q.QueryBackend != 2 {
 			err = fmt.Errorf("invalid backend for this test %d", q.QueryBackend)
 		}
@@ -156,8 +156,8 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 		require.NoError(t, err)
 	case service := <-ch:
 		require.Len(t, service, 1)
-		require.Equal(t, "api", service[0].ServiceName)
-		require.Equal(t, 9998, service[0].ServicePort)
+		require.Equal(t, "api", service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
