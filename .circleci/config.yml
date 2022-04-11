@@ -849,7 +849,7 @@ jobs:
     machine:
       image: ubuntu-2004:202101-01
     parallelism: 4
-    resource_class: large
+    resource_class: medium
     environment:
       ENVOY_VERSION: "1.17.4"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
