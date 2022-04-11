@@ -192,9 +192,13 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		})
 	}
 
-	for _, target := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-		for tid := range target {
-			sn := structs.NewServiceNameFromTargetID(tid)
+	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		targetMap, ok := cfgSnap.ConnectProxy.PassthroughUpstreams[id]
+		if !ok {
+			continue
+		}
+		for targetID := range targetMap {
+			sn := structs.NewServiceNameFromTargetID(targetID)
 
 			sni := connect.ServiceSNI(
 				sn.Name, "", sn.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
@@ -209,8 +213,11 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				},
 				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 
-				// TODO(tproxy) This should use the connection timeout configured on the upstream's config entry
 				ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+			}
+
+			if discoTarget, ok := chain.Targets[targetID]; ok && discoTarget.ConnectTimeout > 0 {
+				c.ConnectTimeout = ptypes.DurationProto(discoTarget.ConnectTimeout)
 			}
 
 			spiffeID := connect.SpiffeIDService{

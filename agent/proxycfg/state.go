@@ -319,12 +319,12 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 			continue
 		}
 
+		snap.ConnectProxy.UpstreamConfig[u.Identifier()] = &u
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
 			continue
 		}
-		snap.ConnectProxy.UpstreamConfig[u.Identifier()] = &u
 
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
