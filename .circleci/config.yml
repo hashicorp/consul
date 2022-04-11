@@ -177,6 +177,7 @@ jobs:
         default: ""
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
       GOARCH: "<<parameters.go-arch>>"
@@ -206,6 +207,7 @@ jobs:
   check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
@@ -222,6 +224,7 @@ jobs:
   check-generated-protobuf:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
@@ -241,7 +244,7 @@ jobs:
   go-test-arm64:
     machine:
       image: ubuntu-2004:202101-01
-    resource_class: arm.medium
+    resource_class: arm.large
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
@@ -272,6 +275,7 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
@@ -286,6 +290,7 @@ jobs:
   go-test-race:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: xlarge
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -328,6 +333,7 @@ jobs:
   go-test-32bit:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -367,6 +373,7 @@ jobs:
         type: string
     docker:
       - image: "docker.mirror.hashicorp.services/cimg/go:<<parameters.go-version>>"
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -401,6 +408,7 @@ jobs:
   build-distros: &build-distros
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment: &build-env
       <<: *ENVIRONMENT
     steps:
@@ -438,6 +446,7 @@ jobs:
   build-arm:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       CGO_ENABLED: 1
@@ -470,6 +479,7 @@ jobs:
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
@@ -542,6 +552,7 @@ jobs:
   nomad-integration-0_8:
     docker:
       - image: docker.mirror.hashicorp.services/circleci/golang:1.10
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
@@ -582,6 +593,7 @@ jobs:
   nomad-integration-main:
     docker:
       - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
@@ -843,7 +855,7 @@ jobs:
     machine:
       image: ubuntu-2004:202101-01
     parallelism: 4
-    resource_class: medium
+    resource_class: large
     environment:
       ENVOY_VERSION: "1.17.4"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
@@ -897,6 +909,7 @@ jobs:
   test-connect-ca-providers:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
