@@ -845,13 +845,13 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_17_4: &ENVOY_TESTS
+  envoy-integration-test-1_18_6: &ENVOY_TESTS
     machine:
       image: ubuntu-2004:202101-01
     parallelism: 4
     resource_class: medium
     environment:
-      ENVOY_VERSION: "1.17.4"
+      ENVOY_VERSION: "1.18.6"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -884,11 +884,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_18_6:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.18.6"
-
   envoy-integration-test-1_19_3:
     <<: *ENVOY_TESTS
     environment:
@@ -898,6 +893,11 @@ jobs:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.20.2"
+
+  envoy-integration-test-1_21_1:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.21.1"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1140,9 +1140,6 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_17_4:
-          requires:
-            - dev-build
       - envoy-integration-test-1_18_6:
           requires:
             - dev-build
@@ -1150,6 +1147,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1_20_2:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_21_1:
           requires:
             - dev-build
 
