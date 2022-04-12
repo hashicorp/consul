@@ -237,6 +237,10 @@ A single node in the compiled discovery chain.
 
 - `External` `(bool: false)` - True if this target is outside of this consul cluster.
 
+- `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
+  [`ConnectTimeout`](/docs/connect/config-entries/service-resolver#connecttimeout)
+  field. If one is not defined the default of `5s` is returned.
+
 - `SNI` `(string)` - This value should be used as the
   [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value when
   connecting to this set of endpoints over TLS.

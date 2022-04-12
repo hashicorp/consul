@@ -32,8 +32,7 @@ import (
 )
 
 func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 
@@ -59,8 +58,7 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	ids := newCounter()
 
@@ -312,6 +310,7 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 }
 
 type testBackend struct {
+	publisher   *stream.EventPublisher
 	store       *state.Store
 	authorizer  func(token string, entMeta *acl.EnterpriseMeta) acl.Authorizer
 	forwardConn *gogrpc.ClientConn
@@ -333,19 +332,33 @@ func (b testBackend) Forward(_ structs.RPCInfo, fn func(*gogrpc.ClientConn) erro
 }
 
 func (b testBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return b.store.EventPublisher().Subscribe(req)
+	return b.publisher.Subscribe(req)
 }
 
-func newTestBackend() (*testBackend, error) {
+func newTestBackend(t *testing.T) *testBackend {
+	t.Helper()
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
-	if err != nil {
-		return nil, err
-	}
-	store := state.NewStateStoreWithEventPublisher(gc)
+	require.NoError(t, err)
+
+	publisher := stream.NewEventPublisher(10 * time.Second)
+
+	store := state.NewStateStoreWithEventPublisher(gc, publisher)
+
+	// normally the handlers are registered on the FSM as state stores may come
+	// and go during snapshot restores. For the purposes of this test backend though we
+	// just register them directly to
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go publisher.Run(ctx)
+	t.Cleanup(cancel)
+
 	allowAll := func(string, *acl.EnterpriseMeta) acl.Authorizer {
 		return acl.AllowAll()
 	}
-	return &testBackend{store: store, authorizer: allowAll}, nil
+	return &testBackend{publisher: publisher, store: store, authorizer: allowAll}
 }
 
 var _ Backend = (*testBackend)(nil)
@@ -409,12 +422,10 @@ func raftIndex(ids *counter, created, modified string) *pbcommon.RaftIndex {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
-	backendLocal, err := newTestBackend()
-	require.NoError(t, err)
+	backendLocal := newTestBackend(t)
 	addrLocal := runTestServer(t, NewServer(backendLocal, hclog.New(nil)))
 
-	backendRemoteDC, err := newTestBackend()
-	require.NoError(t, err)
+	backendRemoteDC := newTestBackend(t)
 	srvRemoteDC := NewServer(backendRemoteDC, hclog.New(nil))
 	addrRemoteDC := runTestServer(t, srvRemoteDC)
 
@@ -642,8 +653,7 @@ func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testi
 		t.Skip("too slow for -short run")
 	}
 
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
@@ -839,8 +849,7 @@ node "node1" {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ACLUpdate(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
@@ -1100,12 +1109,12 @@ func newPayloadEvents(items ...stream.Event) *stream.PayloadEvents {
 func newEventFromSubscription(t *testing.T, index uint64) stream.Event {
 	t.Helper()
 
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealthConnect: func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
-			return 1, nil
-		},
+	serviceHealthConnectHandler := func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
+		return 1, nil
 	}
-	ep := stream.NewEventPublisher(handlers, 0)
+
+	ep := stream.NewEventPublisher(0)
+	ep.RegisterHandler(pbsubscribe.Topic_ServiceHealthConnect, serviceHealthConnectHandler)
 	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Subject: stream.SubjectNone, Index: index}
 
 	sub, err := ep.Subscribe(req)

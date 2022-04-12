@@ -1,10 +1,8 @@
 package state
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -109,10 +107,6 @@ type Store struct {
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
 
-	// TODO: refactor abondonCh to use a context so that both can use the same
-	// cancel mechanism.
-	stopEventPublisher func()
-
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
 
@@ -159,11 +153,10 @@ func NewStateStore(gc *TombstoneGC) *Store {
 		panic(fmt.Sprintf("failed to create state store: %v", err))
 	}
 	s := &Store{
-		schema:             schema,
-		abandonCh:          make(chan struct{}),
-		kvsGraveyard:       NewGraveyard(gc),
-		lockDelay:          NewDelay(),
-		stopEventPublisher: func() {},
+		schema:       schema,
+		abandonCh:    make(chan struct{}),
+		kvsGraveyard: NewGraveyard(gc),
+		lockDelay:    NewDelay(),
 		db: &changeTrackerDB{
 			db:             db,
 			publisher:      stream.NoOpEventPublisher{},
@@ -173,22 +166,11 @@ func NewStateStore(gc *TombstoneGC) *Store {
 	return s
 }
 
-func NewStateStoreWithEventPublisher(gc *TombstoneGC) *Store {
+func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) *Store {
 	store := NewStateStore(gc)
-	ctx, cancel := context.WithCancel(context.TODO())
-	store.stopEventPublisher = cancel
+	store.db.publisher = publisher
 
-	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(store.db.db)), 10*time.Second)
-	store.db.publisher = pub
-
-	go pub.Run(ctx)
 	return store
-}
-
-// EventPublisher returns the stream.EventPublisher used by the Store to
-// publish events.
-func (s *Store) EventPublisher() EventPublisher {
-	return s.db.publisher
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
@@ -277,11 +259,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
-	// Note: the order of these operations matters. Subscribers may receive on
-	// abandonCh to determine whether their subscription was closed because the
-	// store was abandoned, therefore it's important abandonCh is closed first.
 	close(s.abandonCh)
-	s.stopEventPublisher()
 }
 
 // maxIndex is a helper used to retrieve the highest known index

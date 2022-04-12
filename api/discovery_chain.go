@@ -234,9 +234,46 @@ type DiscoveryTarget struct {
 	Namespace     string
 	Datacenter    string
 
-	MeshGateway MeshGatewayConfig
-	Subset      ServiceResolverSubset
-	External    bool
-	SNI         string
-	Name        string
+	MeshGateway    MeshGatewayConfig
+	Subset         ServiceResolverSubset
+	ConnectTimeout time.Duration
+	External       bool
+	SNI            string
+	Name           string
+}
+
+func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type Alias DiscoveryTarget
+	exported := &struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: t.ConnectTimeout.String(),
+		Alias:          (*Alias)(t),
+	}
+	if t.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
+	type Alias DiscoveryTarget
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if t.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }

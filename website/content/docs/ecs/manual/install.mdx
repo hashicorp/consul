@@ -72,10 +72,12 @@ during task startup.
 The `tags` list must include the following if you are using the ACL controller in a [secure configuration](/docs/manual/secure-configuration).
 Without these tags, the ACL controller will be unable to provision a service token for the task.
 
-| Tag Key                             | Tag Value           | Description                                                                                                                |
-| ----------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `consul.hashicorp.com/mesh`         | `true` (string)     | The ACL controller ignores tasks without this tag set to `true`.                                                           |
-| `consul.hashicorp.com/service-name` | Consul service name | Specifies the Consul service associated with this task. Required if the service name is different than the task `family`.  |
+| Tag Key                             | Tag Value              | Description                                                                                                                                     |
+| ----------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `consul.hashicorp.com/mesh`         | `true` (string)        | The ACL controller ignores tasks without this tag set to `true`.                                                                                |
+| `consul.hashicorp.com/service-name` | Consul service name    | Specifies the Consul service associated with this task. Required if the service name is different than the task `family`.                       |
+| `consul.hashicorp.com/partition`    | Consul admin partition | <EnterpriseAlert inline />Specifies the Consul admin partition associated with this task. Defaults to the `default` admin partition if omitted. |
+| `consul.hashicorp.com/namespace`    | Consul namespace       | <EnterpriseAlert inline />Specifies the Consul namespace associated with this task. Defaults to the `default` namespace if omitted.             |
 
 ## Application container
 

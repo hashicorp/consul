@@ -73,7 +73,13 @@ This diagram shows an example timeline of a task shutting down:
   - Updates about this task have reached the rest of the Consul cluster, so downstream proxies have been updated to stopped sending traffic to this task.
 - **T4**: At this point task shutdown should be complete. Otherwise, ECS will send a KILL signal to any containers still running. The KILL signal cannot be ignored and will forcefully stop containers. This will interrupt in-progress operations and possibly cause errors.
 
-## Automatic ACL Token Provisioning
+## ACL Controller
+
+The ACL controller performs the following operations:
+* Provisions Consul ACL tokens for Consul clients and service mesh services.
+* Manages Consul admin partitions and namespaces.
+
+### Automatic ACL Token Provisioning
 
 Consul ACL tokens secure communication between agents and services.
 The following containers in a task require an ACL token:
@@ -91,6 +97,21 @@ token does not yet exist.
 
 The ACL controller stores all ACL tokens in AWS Secrets Manager, and tasks are configured to pull these
 tokens from AWS Secrets Manager when they start.
+
+### Admin Partitions and Namespaces<EnterpriseAlert inline />
+
+When [admin partitions and namespaces](/docs/ecs/enterprise#admin-partitions-and-namespaces) are enabled,
+the ACL controller is assigned to its configured admin partition. The ACL controller provisions ACL
+tokens for tasks in a single admin partition and supports one ACL controller instance per ECS
+cluster. This results in an architecture with one admin partition per ECS cluster.
+
+The ACL controller automatically performs the following actions:
+* Creates its admin partition at startup if it does not exist.
+* Inspects ECS task tags for the task's intended partition and namespace.
+  The ACL controller ignores tasks that do not match the `partition` tag.
+* Creates namespaces when tasks start up. Namespaces are only created if they do not exist.
+* Provisions ACL tokens and ACL policies that are scoped to the applicable admin partition and namespace.
+* Provision ACL tokens that allow services to communicate with upstreams across admin partitions and namespaces.
 
 ## ECS Health Check Syncing
 

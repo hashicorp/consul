@@ -1093,6 +1093,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/installation/compatibility',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role',
     destination: '/commands/acl/role',
     permanent: true,

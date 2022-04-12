@@ -27,7 +27,8 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), 0)
+	publisher := NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, publisher)
 	go publisher.Run(ctx)
 
 	sub, err := publisher.Subscribe(req)
@@ -83,16 +84,18 @@ func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
 
 func (p simplePayload) Subject() Subject { return stringer(p.key) }
 
-func newTestSnapshotHandlers() SnapshotHandlers {
-	return SnapshotHandlers{
-		testTopic: func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
-			if req.Topic != testTopic {
-				return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
-			}
-			buf.Append([]Event{testSnapshotEvent})
-			return 1, nil
-		},
+func registerTestSnapshotHandlers(t *testing.T, publisher *EventPublisher) {
+	t.Helper()
+
+	testTopicHandler := func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		if req.Topic != testTopic {
+			return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
+		}
+		buf.Append([]Event{testSnapshotEvent})
+		return 1, nil
 	}
+
+	require.NoError(t, publisher.RegisterHandler(testTopic, testTopicHandler))
 }
 
 func runSubscription(ctx context.Context, sub *Subscription) <-chan eventOrErr {
@@ -143,14 +146,14 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	handlers := newTestSnapshotHandlers()
 	fn := func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 		return 0, nil
 	}
-	handlers[intTopic(22)] = fn
-	handlers[intTopic(33)] = fn
 
-	publisher := NewEventPublisher(handlers, time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
+	publisher.RegisterHandler(intTopic(22), fn)
+	publisher.RegisterHandler(intTopic(33), fn)
 	go publisher.Run(ctx)
 
 	sub1, err := publisher.Subscribe(&SubscribeRequest{Topic: intTopic(22), Subject: SubjectNone})
@@ -190,7 +193,8 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
 	go publisher.Run(ctx)
 
 	sub, err := publisher.Subscribe(req)
@@ -235,7 +239,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
 	go publisher.Run(ctx)
 
 	simulateExistingSubscriber(t, publisher, req)
@@ -288,7 +293,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), 0)
+	publisher := NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, publisher)
 	go publisher.Run(ctx)
 	// Include the same event in the topicBuffer
 	publisher.publishEvent([]Event{testSnapshotEvent})
@@ -344,7 +350,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
 	go publisher.Run(ctx)
 
 	simulateExistingSubscriber(t, publisher, req)
@@ -417,21 +424,20 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
-	handlers := SnapshotHandlers{
-		testTopic: func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
-			if req.Topic != testTopic {
-				return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
-			}
-			buf.Append([]Event{testSnapshotEvent})
-			buf.Append([]Event{nextEvent})
-			return 3, nil
-		},
+	testTopicHandler := func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+		if req.Topic != testTopic {
+			return 0, fmt.Errorf("unexpected topic: %v", req.Topic)
+		}
+		buf.Append([]Event{testSnapshotEvent})
+		buf.Append([]Event{nextEvent})
+		return 3, nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(handlers, time.Second)
+	publisher := NewEventPublisher(time.Second)
+	publisher.RegisterHandler(testTopic, testTopicHandler)
 	go publisher.Run(ctx)
 
 	simulateExistingSubscriber(t, publisher, req)
@@ -498,7 +504,8 @@ func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
 
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
@@ -518,7 +525,8 @@ func TestEventPublisher_Unsubscribe_FreesResourcesWhenThereAreNoSubscribers(t *t
 		Subject: stringer("sub-key"),
 	}
 
-	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+	publisher := NewEventPublisher(time.Second)
+	registerTestSnapshotHandlers(t, publisher)
 
 	sub1, err := publisher.Subscribe(req)
 	require.NoError(t, err)
