@@ -1,5 +1,5 @@
 ARG CONSUL_IMAGE_VERSION=latest
-FROM golang:1.17-alpine As builder
+FROM golang:1.17-alpine AS builder
 RUN apk update && apk add iptables make bash git go
 RUN rm -rf ./bin/consul
 WORKDIR /consul
