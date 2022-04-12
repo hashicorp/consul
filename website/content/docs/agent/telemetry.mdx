@@ -558,16 +558,11 @@ The `unreported` value for the `leader` label in the table above refers to RPC r
 
 In addition to the labels above, for read requests, the following may be populated:
 
-| Label Name                            | Description                                                                    | Possible values                                            |
-| ------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `blocking`                            | Whether the read request passed in a `MinQueryIndex`.                          | `true` if a MinQueryIndex was passed, `false` otherwise.   |
-| `target_datacenter`                   | The target datacenter for the read request.                                    | The string value of the target datacenter for the request. |
-| `locality`                            | Gives an indication of whether the RPC request is local or has been forwarded. | `local` or `forwarded`.                                    |
-
-##### Read Request Label Explanations
-
-We determine the values for the `locality` label by looking at the current server datacenter and the request target datacenter. If they match, we call that `local` RPC request.
-Otherwise, we call that RPC request `forwarded`.
+| Label Name                            | Description                                                                    | Possible values                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `blocking`                            | Whether the read request passed in a `MinQueryIndex`.                          | `true` if a MinQueryIndex was passed, `false` otherwise.                                         |
+| `target_datacenter`                   | The target datacenter for the read request.                                    | The string value of the target datacenter for the request.                                       |
+| `locality`                            | Gives an indication of whether the RPC request is local or has been forwarded. | `local` if current server data center is the same as `target_datacenter`, otherwise `forwarded`. |
 
 Here is a Prometheus style example of an RPC metric and its labels:
 
