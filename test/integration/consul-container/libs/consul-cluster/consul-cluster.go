@@ -47,6 +47,9 @@ func (c *Cluster) join() error {
 }
 
 func (c *Cluster) AddNodes(nodes []consulnode.Node) error {
+	if len(c.Nodes) < 1 {
+		return fmt.Errorf("cannot add a node to an empty cluster")
+	}
 	n0 := c.Nodes[0]
 	for _, node := range nodes {
 		addr, _ := n0.GetAddr()
