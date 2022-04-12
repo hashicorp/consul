@@ -19,7 +19,7 @@ To use a gossip encryption key stored in Vault, we will follow the steps outline
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
   
-### setup per Consul datacenter
+### Setup per Consul datacenter
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
@@ -52,7 +52,7 @@ Apply the Vault policy by issuing the `vault policy write` CLI command:
 $ vault policy write gossip-policy gossip-policy.hcl
 ```
 
-## setup per Consul datacenter
+## Setup per Consul datacenter
 ### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
 
 Next, we will create Kubernetes auth roles for the Consul server and client:

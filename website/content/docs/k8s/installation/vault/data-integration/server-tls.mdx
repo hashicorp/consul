@@ -47,7 +47,7 @@ To use an Vault as the Server TLS Certificate Provider on Kubernetes, we will ne
 ### One time setup in Vault
   1. Create a Vault policy that authorizes the desired level of access to the secret.
 
-### setup per Consul datacenter
+### Setup per Consul datacenter
   1. (Added) Create a Vault PKI role that establishes the domains that it is allowed to issue certificates for
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
@@ -108,7 +108,7 @@ $ vault policy write ca-policy ca-policy.hcl
 
 -> **Note:** The PKI secret path referenced by the above Policy will be your `global.tls.caCert.secretName` Helm value.
 
-## setup per Consul datacenter
+## Setup per Consul datacenter
 ### Create a Vault PKI role that establishes the domains that it is allowed to issue certificates for
 
 Next, a Vault role for the PKI engine will set the default certificate issuance parameters:
