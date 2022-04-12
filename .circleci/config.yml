@@ -3,7 +3,7 @@ version: 2.1
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.16.12
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.9
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
 
   paths:
