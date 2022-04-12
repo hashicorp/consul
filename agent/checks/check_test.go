@@ -1265,9 +1265,11 @@ func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	port := freeport.GetOne(t)
+	notExistentPort := freeport.GetOne(t)
+	serverUrl := "127.0.0.1:" + strconv.Itoa(notExistentPort)
 
 	go mockUDPServer(ctx, `udp`, port)
-	expectUDPStatus(t, `127.0.0.1:4241`, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
+	expectUDPStatus(t, serverUrl, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
 }
 
 func TestCheckUDPPassing(t *testing.T) {
