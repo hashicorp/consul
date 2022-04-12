@@ -438,6 +438,7 @@
         "DashboardURLTemplates": {},
         "Dir": "",
         "Enabled": false,
+        "HCPEnabled": false,
         "MetricsProvider": "",
         "MetricsProviderFiles": [],
         "MetricsProviderOptionsJSON": "",
