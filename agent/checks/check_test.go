@@ -2,6 +2,7 @@ package checks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -10,13 +11,16 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-uuid"
@@ -1149,11 +1153,11 @@ func sendResponse(conn *net.UDPConn, addr *net.UDPAddr) {
 	}
 }
 
-func mockUDPServer(network string, port string) net.PacketConn {
+func mockUDPServer(ctx context.Context, network string, port int) {
 
 	b := make([]byte, 1024)
+	addr := fmt.Sprintf(`127.0.0.1:%d`, port)
 
-	addr := `127.0.0.1:` + port
 	udpAddr, err := net.ResolveUDPAddr(network, addr)
 	if err != nil {
 		log.Fatal("Error resolving UDP address: ", err)
@@ -1163,17 +1167,38 @@ func mockUDPServer(network string, port string) net.PacketConn {
 	if err != nil {
 		log.Fatal("Error listening UDP: ", err)
 	}
-	for {
-		log.Print("Waiting for UDP message")
-		_, remoteaddr, err := ser.ReadFromUDP(b)
-		log.Printf("Read a message from %v %s \n", remoteaddr, b)
+	defer ser.Close()
 
-		if err != nil {
-			log.Fatalf("Error reading from UDP")
+	chClose := make(chan interface{})
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		for {
+			log.Print("Waiting for UDP message")
+			_, remoteaddr, err := ser.ReadFromUDP(b)
+			log.Printf("Read a message from %v %s \n", remoteaddr, b)
+			if err != nil {
+				log.Fatalf("Error reading from UDP %s", err.Error())
+			}
+			sendResponse(ser, remoteaddr)
+			select {
+			case <-chClose:
+				fmt.Println("cancelled")
+				wg.Done()
+				return
+			default:
+			}
 		}
-		go sendResponse(ser, remoteaddr)
-	}
+	}()
 
+	select {
+	case <-ctx.Done():
+		fmt.Println("cancelled")
+		close(chClose)
+	}
+	wg.Wait()
+	return
 }
 
 func expectUDPStatus(t *testing.T, udp string, status string) {
@@ -1229,22 +1254,30 @@ func expectUDPTimeout(t *testing.T, udp string, status string) {
 
 func TestCheckUDPTimeoutPassing(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	port := freeport.GetOne(t)
+	serverUrl := "127.0.0.1:" + strconv.Itoa(port)
 
-	go mockUDPServer(`udp`, `4243`)
-	expectUDPTimeout(t, `127.0.0.1:4243`, api.HealthPassing) // Should pass since timeout is handled as success, from specification
+	go mockUDPServer(ctx, `udp`, port)
+	expectUDPTimeout(t, serverUrl, api.HealthPassing) // Should pass since timeout is handled as success, from specification
 }
 func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	port := freeport.GetOne(t)
 
-	go mockUDPServer(`udp`, `4244`)
+	go mockUDPServer(ctx, `udp`, port)
 	expectUDPStatus(t, `127.0.0.1:4241`, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
 }
 
 func TestCheckUDPPassing(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
+	port := freeport.GetOne(t)
+	serverUrl := "127.0.0.1:" + strconv.Itoa(port)
 
-	go mockUDPServer(`udp`, "4242")
-	expectUDPStatus(t, "127.0.0.1:4242", api.HealthPassing)
+	go mockUDPServer(ctx, `udp`, port)
+	expectUDPStatus(t, serverUrl, api.HealthPassing)
 }
 
 func TestCheckH2PING(t *testing.T) {

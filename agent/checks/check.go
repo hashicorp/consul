@@ -704,11 +704,16 @@ func (c *CheckTCP) check() {
 	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
-// CheckUDP is used to periodically make an UDP connection to
+// CheckUDP is used to periodically send a UDP datagram to
 // determine the health of a given check.
-// The check is passing if the connection succeeds
-// The check is critical if the connection returns an error
-// Supports failures_before_critical and success_before_passing.
+// The check is passing if:
+//  - the connection succeeds
+//  - the response is bytes.Equal to the bytes passed in
+//  - the error returned is a timeout error
+// The check is critical if:
+// - the connection succeeds but the response is not equal to the bytes passed in
+// - the connection succeeds but the error returned is not a timeout error
+// - the connection fails
 type CheckUDP struct {
 	CheckID       structs.CheckID
 	ServiceID     structs.ServiceID
@@ -772,7 +777,7 @@ func (c *CheckUDP) run() {
 func (c *CheckUDP) check() {
 	conn, err := c.dialer.Dial(`udp`, c.UDP)
 	if err != nil {
-		if strings.Contains(err.Error(), "timeout") {
+		if e, ok := err.(net.Error); ok && e.Timeout() {
 			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 			return
 		} else {
@@ -784,7 +789,8 @@ func (c *CheckUDP) check() {
 			return
 		}
 	}
-	fmt.Fprintf(conn, c.Message)
+
+	n, err := fmt.Fprintf(conn, c.Message)
 	if err != nil {
 		c.Logger.Warn("Check socket write failed",
 			"check", c.CheckID.String(),
@@ -793,7 +799,25 @@ func (c *CheckUDP) check() {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
-	_, err = bufio.NewReader(conn).Read(make([]byte, 1024))
+
+	if n != len(c.Message) {
+		c.Logger.Warn("Check socket short write",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	if err != nil {
+		c.Logger.Warn("Check socket write failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+	_, err = bufio.NewReader(conn).Read(make([]byte, 1))
 	if err != nil {
 		if strings.Contains(err.Error(), "i/o timeout") {
 			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
