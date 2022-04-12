@@ -66,8 +66,8 @@ type ACLTokenExpanded struct {
 	ExpandedPolicies []ACLPolicy
 	ExpandedRoles    []ACLRole
 
-	NamespaceDefaultPolicies []string
-	NamespaceDefaultRoles    []string
+	NamespaceDefaultPolicyIDs []string
+	NamespaceDefaultRoleIDs   []string
 
 	AgentACLDefaultPolicy string
 	AgentACLDownPolicy    string

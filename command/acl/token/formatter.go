@@ -239,17 +239,17 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 
 	buffer.WriteString("=== End of Authorizer Layer 0: Token ===\n")
 
-	if len(token.NamespaceDefaultPolicies) > 0 || len(token.NamespaceDefaultRoles) > 0 {
+	if len(token.NamespaceDefaultPolicyIDs) > 0 || len(token.NamespaceDefaultRoleIDs) > 0 {
 		buffer.WriteString("=== Start of Authorizer Layer 1: Token Namespace’s Defaults (Inherited) ===\n")
 		buffer.WriteString(fmt.Sprintf("Description: ACL Roles inherited by all Tokens in Namespace %q\n\n", token.Namespace))
 
 		buffer.WriteString("Namespace Policy Defaults:\n")
-		for _, policyID := range token.NamespaceDefaultPolicies {
+		for _, policyID := range token.NamespaceDefaultPolicyIDs {
 			formatPolicy(policies[policyID], WHITESPACE_2)
 		}
 
 		buffer.WriteString("Namespace Role Defaults:\n")
-		for _, roleID := range token.NamespaceDefaultRoles {
+		for _, roleID := range token.NamespaceDefaultRoleIDs {
 			formatRole(roles[roleID], WHITESPACE_2)
 		}
 
