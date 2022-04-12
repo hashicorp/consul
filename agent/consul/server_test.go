@@ -1172,7 +1172,8 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		// note that there will be "internal" net/rpc calls made
 		// that will still show up; those don't go thru the net/rpc interceptor;
 		// see consul.agent.rpc.middleware.RPCTypeInternal for context
-		deps.NewRequestRecorderFunc = func(logger hclog.Logger) *middleware.RequestRecorder {
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+			// for the purposes of this test, we don't need isLeader or localDC
 			return &middleware.RequestRecorder{
 				Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 				RecorderFunc: simpleRecorderFunc,
@@ -1205,7 +1206,8 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		// note that there will be "internal" net/rpc calls made
 		// that will still show up; those don't go thru the net/rpc interceptor;
 		// see consul.agent.rpc.middleware.RPCTypeInternal for context
-		deps.NewRequestRecorderFunc = func(logger hclog.Logger) *middleware.RequestRecorder {
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+			// for the purposes of this test, we don't need isLeader or localDC
 			return &middleware.RequestRecorder{
 				Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 				RecorderFunc: simpleRecorderFunc,
@@ -1265,14 +1267,14 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 	t.Run("test nil RequestRecorder", func(t *testing.T) {
 		_, conf := testServerConfig(t)
 		deps := newDefaultDeps(t, conf)
-		deps.NewRequestRecorderFunc = func(logger hclog.Logger) *middleware.RequestRecorder {
+		deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
 			return nil
 		}
 
 		s2, err := NewServer(conf, deps, grpc.NewServer())
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
-		require.Equal(t, err.Error(), "cannot initialize server without a non nil RPC request recorder")
+		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
 
 		t.Cleanup(func() {
 			if s2 != nil {
@@ -1308,7 +1310,8 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
 		storage[keyMakingFunc(key, labels)] = val
 	}
-	deps.NewRequestRecorderFunc = func(logger hclog.Logger) *middleware.RequestRecorder {
+	deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
+		// for the purposes of this test, we don't need isLeader or localDC
 		return &middleware.RequestRecorder{
 			Logger:       hclog.NewInterceptLogger(&hclog.LoggerOptions{}),
 			RecorderFunc: simpleRecorderFunc,
@@ -1344,11 +1347,13 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 			{Name: "errored", Value: "false"},
 			{Name: "request_type", Value: "read"},
 			{Name: "rpc_type", Value: "test"},
+			{Name: "server_role", Value: "unreported"},
 		}
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
 
 		if _, ok := storage[key]; !ok {
+			// the compound key will look like: "rpc+server+call+Status.Ping+false+read+test+unreported"
 			t.Fatalf("Did not find key %s in the metrics log, ", key)
 		}
 	})
