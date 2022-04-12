@@ -32,7 +32,8 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, s, publisher)
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
@@ -119,7 +120,8 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, s, publisher)
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
@@ -240,7 +242,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, s, publisher)
 	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
@@ -393,27 +396,29 @@ func (t topic) String() string {
 
 var topicService topic = "test-topic-service"
 
-func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
-	return stream.SnapshotHandlers{
-		topicService: func(req stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
-			key := req.Subject.String()
+func (s *Store) topicServiceTestHandler(req stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
+	key := req.Subject.String()
 
-			idx, nodes, err := s.ServiceNodes(nil, key, nil)
-			if err != nil {
-				return idx, err
-			}
-
-			for _, node := range nodes {
-				event := stream.Event{
-					Topic:   req.Topic,
-					Index:   node.ModifyIndex,
-					Payload: nodePayload{node: node, key: key},
-				}
-				snap.Append([]stream.Event{event})
-			}
-			return idx, nil
-		},
+	idx, nodes, err := s.ServiceNodes(nil, key, nil)
+	if err != nil {
+		return idx, err
 	}
+
+	for _, node := range nodes {
+		event := stream.Event{
+			Topic:   req.Topic,
+			Index:   node.ModifyIndex,
+			Payload: nodePayload{node: node, key: key},
+		}
+		snap.Append([]stream.Event{event})
+	}
+	return idx, nil
+}
+
+func registerTestSnapshotHandlers(t *testing.T, s *Store, publisher EventPublisher) {
+	t.Helper()
+	err := publisher.RegisterHandler(topicService, s.topicServiceTestHandler)
+	require.NoError(t, err)
 }
 
 type nodePayload struct {
@@ -460,7 +465,8 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(0)
+	registerTestSnapshotHandlers(t, s, publisher)
 	go publisher.Run(ctx)
 
 	s.db.publisher = publisher

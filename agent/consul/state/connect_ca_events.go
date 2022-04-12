@@ -65,23 +65,21 @@ func caRootsChangeEvents(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 
 // caRootsSnapshot returns a stream.SnapshotFunc that provides a snapshot of
 // the current active list of CA Roots.
-func caRootsSnapshot(db ReadDB) stream.SnapshotFunc {
-	return func(_ stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		tx := db.ReadTxn()
-		defer tx.Abort()
+func (s *Store) CARootsSnapshot(_ stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
 
-		idx, roots, err := caRootsTxn(tx, nil)
-		if err != nil {
-			return 0, err
-		}
-
-		buf.Append([]stream.Event{
-			{
-				Topic:   EventTopicCARoots,
-				Index:   idx,
-				Payload: EventPayloadCARoots{CARoots: roots},
-			},
-		})
-		return idx, nil
+	idx, roots, err := caRootsTxn(tx, nil)
+	if err != nil {
+		return 0, err
 	}
+
+	buf.Append([]stream.Event{
+		{
+			Topic:   EventTopicCARoots,
+			Index:   idx,
+			Payload: EventPayloadCARoots{CARoots: roots},
+		},
+	})
+	return idx, nil
 }
