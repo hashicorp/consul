@@ -226,9 +226,9 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	Clients, err := clientsCreate(numClients)
-	client := Clients[0].GetClient()
-	err = cluster.AddNodes(Clients)
+	clients, err := clientsCreate(numClients)
+	client := clients[0].GetClient()
+	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
