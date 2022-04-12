@@ -537,12 +537,13 @@ Note that values of the `consul.rpc.server.call` may emit as `0 ms`. That means 
 
 The the server workload metrics above come with the following labels:
 
-| Label Name                            | Description                                               | Possible values                         |
-| ------------------------------------- | --------------------------------------------------------- | --------------------------------------- |
-| `method`                              | The name of the RPC method.                               | The value of any RPC request in Consul. |
-| `errored`                             | Indicates whether the RPC call errored.                   | `True` or `False`.                      |
-| `request_type`                        | Whether it is a `read` or `write` request.                | `read`, `write` or `unreported`.        |
-| `rpc_type`                            | The RPC implementation.                                   | `net/rpc` or `internal`.                |
+| Label Name                            | Description                                                          | Possible values                         |
+| ------------------------------------- | -------------------------------------------------------------------- | --------------------------------------- |
+| `method`                              | The name of the RPC method.                                          | The value of any RPC request in Consul. |
+| `errored`                             | Indicates whether the RPC call errored.                              | `true` or `false`.                      |
+| `request_type`                        | Whether it is a `read` or `write` request.                           | `read`, `write` or `unreported`.        |
+| `rpc_type`                            | The RPC implementation.                                              | `net/rpc` or `internal`.                |
+| `leader`                              | Whether the server was a `leader` or not at the time of the request. | `true`, `false` or `unreported`.        |
 
 #### Label Explanations
 
@@ -550,6 +551,18 @@ The `internal` value for the `rpc_type` in the table above refers to leader and 
 Historically, `internal` RPC operation metrics were accounted under the same metric names.
 
 The `unreported` value for the `request_type` in the table above refers to RPC requests within Consul where it is difficult to ascertain whether a request is `read` or `write` type.
+
+The `unreported` value for the `leader` label in the table above refers to RPC requests where Consul cannot determine the leadership status for a server.
+
+#### Read Request Labels
+
+In addition to the labels above, for read requests, the following may be populated:
+
+| Label Name                            | Description                                                                    | Possible values                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `blocking`                            | Whether the read request passed in a `MinQueryIndex`.                          | `true` if a MinQueryIndex was passed, `false` otherwise.                                         |
+| `target_datacenter`                   | The target datacenter for the read request.                                    | The string value of the target datacenter for the request.                                       |
+| `locality`                            | Gives an indication of whether the RPC request is local or has been forwarded. | `local` if current server data center is the same as `target_datacenter`, otherwise `forwarded`. |
 
 Here is a Prometheus style example of an RPC metric and its labels:
 
