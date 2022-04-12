@@ -386,24 +386,6 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	var recorder *middleware.RequestRecorder
-	if flat.NewRequestRecorderFunc == nil {
-		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
-	}
-	recorder = flat.NewRequestRecorderFunc(serverLogger)
-	if recorder == nil {
-		return nil, fmt.Errorf("cannot initialize server without a non nil RPC request recorder")
-	}
-
-	var rpcServer, insecureRPCServer *rpc.Server
-	if flat.GetNetRPCInterceptorFunc == nil {
-		rpcServer = rpc.NewServer()
-		insecureRPCServer = rpc.NewServer()
-	} else {
-		rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-	}
-
 	eventPublisher := stream.NewEventPublisher(10 * time.Second)
 
 	fsmDeps := fsm.Deps{
@@ -427,9 +409,6 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
-		rpcRecorder:             recorder,
-		rpcServer:               rpcServer,
-		insecureRPCServer:       insecureRPCServer,
 		tlsConfigurator:         flat.TLSConfigurator,
 		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
@@ -442,6 +421,26 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               eventPublisher,
 	}
+
+	var recorder *middleware.RequestRecorder
+	if flat.NewRequestRecorderFunc != nil {
+		recorder = flat.NewRequestRecorderFunc(serverLogger, s.IsLeader, s.config.Datacenter)
+	} else {
+		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
+	}
+	if recorder == nil {
+		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
+	}
+
+	if flat.GetNetRPCInterceptorFunc == nil {
+		s.rpcServer = rpc.NewServer()
+		s.insecureRPCServer = rpc.NewServer()
+	} else {
+		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcRecorder = recorder
 
 	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 

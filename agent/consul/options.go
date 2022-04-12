@@ -25,7 +25,7 @@ type Deps struct {
 	// the rpc server.
 	GetNetRPCInterceptorFunc func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor
 	// NewRequestRecorderFunc provides a middleware.RequestRecorder for the server to use; it cannot be nil
-	NewRequestRecorderFunc func(logger hclog.Logger) *middleware.RequestRecorder
+	NewRequestRecorderFunc func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder
 	EnterpriseDeps
 }
 
