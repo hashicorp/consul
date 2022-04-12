@@ -1262,6 +1262,10 @@ module.exports = [
   {
     source: '/api/:path*',
     destination: '/api-docs/:path*',
+  },
+  {
+    source: '/docs/agent/options',
+    destination: '/docs/agent/config',
     permanent: true,
   },
 ]

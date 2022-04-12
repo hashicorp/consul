@@ -888,7 +888,20 @@
       },
       {
         "title": "Configuration",
-        "path": "agent/options"
+        "routes": [
+          {
+            "title": "General",
+            "path": "agent/config"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "agent/config/cli-flags"
+          },
+          {
+            "title": "Configuration Reference",
+            "path": "agent/config/config-files"
+          }
+        ]
       },
       {
         "title": "Configuration Entries",

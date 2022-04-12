@@ -74,7 +74,7 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - [consul.io/commands/snapshot](/commands/snapshot)
 - <https://learn.hashicorp.com/tutorials/consul/backup-and-restore>
 
-**2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/options#_log_level)
+**2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/config/cli-flags#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to
 reload the configuration:
 
@@ -183,7 +183,7 @@ then the following options for further assistance are available:
 When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
-- [Debug level logs](/docs/agent/options#_log_level) from all servers in the cluster
+- [Debug level logs](/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
   that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
   upgrade, please include those logs as well. Also, update your config to use debug logs,
