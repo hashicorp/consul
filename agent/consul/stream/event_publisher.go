@@ -91,7 +91,7 @@ type SnapshotAppender interface {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[topicSubject]*topicBuffer),
@@ -100,10 +100,39 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
-		snapshotHandlers: handlers,
+		snapshotHandlers: make(map[Topic]SnapshotFunc),
 	}
 
 	return e
+}
+
+// RegisterHandler will register a new snapshot handler function. The expectation is
+// that all handlers get registered prior to the event publisher being Run. Handler
+// registration is therefore not concurrency safe and access to handlers is internally
+// not synchronized.
+func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc) error {
+	if topic.String() == "" {
+		return fmt.Errorf("the topic cannnot be empty")
+	}
+
+	if _, found := e.snapshotHandlers[topic]; found {
+		return fmt.Errorf("a handler is already registered for the topic: %s", topic.String())
+	}
+
+	e.snapshotHandlers[topic] = handler
+
+	return nil
+}
+
+func (e *EventPublisher) RefreshTopic(topic Topic) error {
+	if _, found := e.snapshotHandlers[topic]; !found {
+		return fmt.Errorf("topic %s is not registered", topic)
+	}
+
+	e.forceEvictByTopic(topic)
+	e.subscriptions.closeAllByTopic(topic)
+
+	return nil
 }
 
 // Publish events to all subscribers of the event Topic. The events will be shared
@@ -196,13 +225,13 @@ func (e *EventPublisher) bufferForPublishing(key topicSubject) *eventBuffer {
 // When the caller is finished with the subscription for any reason, it must
 // call Subscription.Unsubscribe to free ACL tracking resources.
 func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
 	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
-
-	e.lock.Lock()
-	defer e.lock.Unlock()
 
 	topicBuf := e.bufferForSubscription(req.topicSubject())
 	topicBuf.refs++
@@ -327,6 +356,19 @@ func (s *subscriptions) closeAll() {
 	}
 }
 
+func (s *subscriptions) closeAllByTopic(topic Topic) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, byRequest := range s.byToken {
+		for _, sub := range byRequest {
+			if sub.req.Topic == topic {
+				sub.forceClose()
+			}
+		}
+	}
+}
+
 // EventPublisher.lock must be held to call this method.
 func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSnapshot {
 	snap, ok := e.snapCache[req.topicSubject()]
@@ -349,4 +391,16 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 		defer e.lock.Unlock()
 		delete(e.snapCache, req.topicSubject())
 	})
+}
+
+// forceEvictByTopic will remove all entries from the snapshot cache for a given topic.
+// This method should be called while holding the publishers lock.
+func (e *EventPublisher) forceEvictByTopic(topic Topic) {
+	e.lock.Lock()
+	for key := range e.snapCache {
+		if key.Topic == topic.String() {
+			delete(e.snapCache, key)
+		}
+	}
+	e.lock.Unlock()
 }
