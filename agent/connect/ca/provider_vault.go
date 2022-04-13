@@ -94,6 +94,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	clientConf := &vaultapi.Config{
 		Address: config.Address,
 	}
+
 	err = clientConf.ConfigureTLS(vaultTLSConfig(config))
 	if err != nil {
 		return err
@@ -101,6 +102,10 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	client, err := vaultapi.NewClient(clientConf)
 	if err != nil {
 		return err
+	}
+
+	if config.Namespace != "" {
+		client.SetNamespace(config.Namespace)
 	}
 
 	if config.AuthMethod != nil {
