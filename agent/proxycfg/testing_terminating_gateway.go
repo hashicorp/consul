@@ -666,20 +666,41 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 	})
 }
 
-func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpdateEvents ...agentcache.UpdateEvent) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
-		{
-			CorrelationID: serviceConfigIDPrefix + web.String(),
-			Result: &structs.ServiceConfigResponse{
-				ProxyConfig: map[string]interface{}{"protocol": "http"},
-				Meta: map[string]string{
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
-					"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
-				},
+	updateEvents := append(extraUpdateEvents, agentcache.UpdateEvent{
+		CorrelationID: serviceConfigIDPrefix + web.String(),
+		Result: &structs.ServiceConfigResponse{
+			ProxyConfig: map[string]interface{}{"protocol": "http"},
+			Meta: map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
 			},
 		},
 	})
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, updateEvents)
+}
+
+func TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t testing.T) *ConfigSnapshot {
+	web := structs.NewServiceName("web", nil)
+
+	return TestConfigSnapshotTerminatingGatewayWithLambdaService(t,
+		agentcache.UpdateEvent{
+			CorrelationID: serviceResolverIDPrefix + web.String(),
+			Result: &structs.IndexedConfigEntries{
+				Kind: structs.ServiceResolver,
+				Entries: []structs.ConfigEntry{
+					&structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: web.String(),
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"canary1": {},
+							"canary2": {},
+						},
+					},
+				},
+			},
+		})
 }
