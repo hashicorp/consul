@@ -773,6 +773,9 @@ func (v *VaultProvider) unmountNamespaced(path string) error {
 		}
 
 		// namespace doesn't exist, try a different variant
+		// We match on the error string; this is more fragile in that it depends on vault behavior, but it preserves
+		// other errors. We could simply just retry on each error, which would be more robust but wouldn't necessarily
+		// return the most useful error message to the user.
 		if strings.Contains(err.Error(), "no handler for route") {
 			v.logger.Info(fmt.Sprintf("Attempted mount path %s for path %s, error %s", mountPath, path, err))
 			continue
