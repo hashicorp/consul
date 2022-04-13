@@ -854,7 +854,6 @@ func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]in
 }
 
 func TestVaultProvider_potentialMountPaths(t *testing.T) {
-
 	testcases := map[string]struct {
 		path string
 		out  []string
@@ -880,6 +879,4 @@ func TestVaultProvider_potentialMountPaths(t *testing.T) {
 			require.Equal(t, testcase.out, path)
 		})
 	}
-
-	return
 }
