@@ -719,6 +719,10 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 // This makes it a lexical split ambiguous; is /foo/bar/dc1/intermediate_key in ns /foo, /foo/bar, or /foo/bar/dc1?
 // The strategy here is to successively try each possible split, starting with the longest namespace possible.
 //
+// An alternate strategy would be to use the /sys/namespaces endpoint to find valid namespaces, and recursively explore
+// to figure out the correct split. However that potentially requires new permissions on vault, starting with the root
+// namespace on up.
+//
 func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountInput) error {
 	paths := potentialMountPaths(path)
 
@@ -755,6 +759,7 @@ func (v *VaultProvider) mountNamespacedHelper(path string, mountInfo *vaultapi.M
 	return err
 }
 
+// Same strategy as with unmountNamespaced above
 func (v *VaultProvider) unmountNamespaced(path string) error {
 	paths := potentialMountPaths(path)
 
