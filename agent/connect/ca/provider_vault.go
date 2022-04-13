@@ -104,6 +104,15 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
+	// We don't want to set the namespace if it's empty to prevent potential
+	// unknown behavior (what does Vault do with an empty namespace). The Vault
+	// client also makes sure the inputs are not empty strings so let's do the
+	// same.
+	if config.Namespace != "" {
+		v.namespace = config.Namespace
+		client.SetNamespace(config.Namespace)
+	}
+
 	if config.AuthMethod != nil {
 		loginResp, err := vaultLogin(client, config.AuthMethod)
 		if err != nil {
@@ -113,14 +122,6 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 	client.SetToken(config.Token)
 
-	// We don't want to set the namespace if it's empty to prevent potential
-	// unknown behavior (what does Vault do with an empty namespace). The Vault
-	// client also makes sure the inputs are not empty strings so let's do the
-	// same.
-	if config.Namespace != "" {
-		v.namespace = config.Namespace
-		client.SetNamespace(config.Namespace)
-	}
 	v.config = config
 	v.client = client
 	v.isPrimary = cfg.IsPrimary
