@@ -167,7 +167,7 @@ func (p lambdaPatcher) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_lis
 	if config == nil {
 		return filter, false, errors.New("error unmarshalling filter")
 	}
-	httpFilter, err := makeEnvoyHTTPFilter(
+	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
 			Arn:                p.arn,
@@ -179,10 +179,26 @@ func (p lambdaPatcher) PatchFilter(filter *envoy_listener_v3.Filter) (*envoy_lis
 		return filter, false, err
 	}
 
-	config.HttpFilters = []*envoy_http_v3.HttpFilter{
-		httpFilter,
-		{Name: "envoy.filters.http.router"},
+	var (
+		changedFilters = make([]*envoy_http_v3.HttpFilter, 0, len(config.HttpFilters)+1)
+		changed        bool
+	)
+
+	// We need to be careful about overwriting http filters completely because
+	// http filters validates intentions with the RBAC filter. This inserts the
+	// lambda filter before `envoy.filters.http.router` while keeping everything
+	// else intact.
+	for _, httpFilter := range config.HttpFilters {
+		if httpFilter.Name == "envoy.filters.http.router" {
+			changedFilters = append(changedFilters, lambdaHttpFilter)
+			changed = true
+		}
+		changedFilters = append(changedFilters, httpFilter)
 	}
+	if changed {
+		config.HttpFilters = changedFilters
+	}
+
 	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
 		StripAnyHostPort: true,
 	}
