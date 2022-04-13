@@ -1,3 +1,25 @@
+## 1.10.10 (April 13, 2022)
+
+SECURITY:
+
+* agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled. [[GH-12685](https://github.com/hashicorp/consul/issues/12685)]
+* connect: Properly set SNI when configured for services behind a terminating gateway. [[GH-12672](https://github.com/hashicorp/consul/issues/12672)]
+
+IMPROVEMENTS:
+
+* xds: ensure that all connect timeout configs can apply equally to tproxy direct dial connections [[GH-12711](https://github.com/hashicorp/consul/issues/12711)]
+
+DEPRECATIONS:
+
+* tls: With the upgrade to Go 1.17, the ordering of `tls_cipher_suites` will no longer be honored, and `tls_prefer_server_cipher_suites` is now ignored. [[GH-12766](https://github.com/hashicorp/consul/issues/12766)]
+
+BUG FIXES:
+
+* connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault. [[GH-12607](https://github.com/hashicorp/consul/issues/12607)]
+* raft: upgrade to v1.3.6 which fixes a bug where a read replica node could attempt bootstrapping raft and prevent other nodes from bootstrapping at all [[GH-12496](https://github.com/hashicorp/consul/issues/12496)]
+* replication: Fixed a bug which could prevent ACL replication from continuing successfully after a leader election. [[GH-12565](https://github.com/hashicorp/consul/issues/12565)]
+* server: fix spurious blocking query suppression for discovery chains [[GH-12512](https://github.com/hashicorp/consul/issues/12512)]
+
 ## 1.10.9 (February 28, 2022)
 
 SECURITY:
