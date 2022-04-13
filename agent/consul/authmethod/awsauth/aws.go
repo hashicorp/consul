@@ -57,9 +57,6 @@ type Config struct {
 	// STSEndpoint is the AWS STS endpoint where sts:GetCallerIdentity requests will be sent.
 	// Note that the Host header in a signed request cannot be changed.
 	STSEndpoint string `json:",omitempty"`
-	// STSRegion is the region for the AWS STS service. This should only be set if STSEndpoint
-	// is set, and must match the region of the STSEndpoint.
-	STSRegion string `json:",omitempty"`
 
 	// AllowedSTSHeaderValues is a list of additional allowed headers on the sts:GetCallerIdentity
 	// request in the bearer token. A default list of necessary headers is allowed in any case.
@@ -75,7 +72,6 @@ func (c *Config) convertForLibrary() *iamauth.Config {
 		MaxRetries:             c.MaxRetries,
 		IAMEndpoint:            c.IAMEndpoint,
 		STSEndpoint:            c.STSEndpoint,
-		STSRegion:              c.STSRegion,
 		AllowedSTSHeaderValues: c.AllowedSTSHeaderValues,
 
 		ServerIDHeaderName:     IAMServerIDHeaderName,
