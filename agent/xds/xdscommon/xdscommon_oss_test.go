@@ -13,7 +13,7 @@ import (
 )
 
 func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
-	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaService(t)
+	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t)
 
 	webService := api.CompoundServiceName{
 		Name:      "web",
@@ -59,10 +59,12 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 			},
 		},
 		SNIToServiceName: map[string]api.CompoundServiceName{
-			"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":   apiService,
-			"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": cacheService,
-			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":    dbService,
-			"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":   webService,
+			"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         apiService,
+			"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":       cacheService,
+			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":          dbService,
+			"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         webService,
+			"canary1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
+			"canary2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
 		},
 		EnvoyIDToServiceName: map[string]api.CompoundServiceName{
 			"web":   webService,
