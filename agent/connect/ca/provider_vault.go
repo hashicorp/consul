@@ -713,6 +713,12 @@ func (v *VaultProvider) Stop() {
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
+//
+// We have to do something a little special because while '/' is a namespace separator, it also is allowed in ordinary
+// names. We have practitioners using this behavior with names like dc1/intermediate_key in the wild.
+// This makes it a lexical split ambiguous; is /foo/bar/dc1/intermediate_key in ns /foo, /foo/bar, or /foo/bar/dc1?
+// The strategy here is to successively try each possible split, starting with the longest namespace possible.
+//
 func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountInput) error {
 	paths := potentialMountPaths(path)
 
@@ -725,7 +731,11 @@ func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountIn
 		}
 
 		// namespace doesn't exist, try a different variant
+		// We match on the error string; this is more fragile in that it depends on vault behavior, but it preserves
+		// other errors. We could simply just retry on each error, which would be more robust but wouldn't necessarily
+		// return the most useful error message to the user.
 		if strings.Contains(err.Error(), "no handler for route") {
+			v.logger.Info(fmt.Sprintf("Attempted mount path %s for path %s, error %s", mountPath, path, err))
 			continue
 		}
 		return err
@@ -759,6 +769,7 @@ func (v *VaultProvider) unmountNamespaced(path string) error {
 
 		// namespace doesn't exist, try a different variant
 		if strings.Contains(err.Error(), "no handler for route") {
+			v.logger.Info(fmt.Sprintf("Attempted mount path %s for path %s, error %s", mountPath, path, err))
 			continue
 		}
 		return err
@@ -780,17 +791,6 @@ func namespacedSysMountPath(namespace, base string) string {
 		return fmt.Sprintf("/v1/sys/mounts/%s", base)
 	}
 	return fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, base)
-}
-
-func potentialNamespaces(objectName string) []string {
-	parts := strings.Split(strings.TrimSuffix(objectName, "/"), "/")
-
-	var out = make([]string, 0)
-	for i := len(parts) - 1; i > 0; i-- {
-		out = append(out, strings.Join(parts[0:i], "/"))
-	}
-
-	return out
 }
 
 func potentialMountPaths(path string) []string {
