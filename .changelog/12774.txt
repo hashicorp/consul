@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: Improve handling of region-specific endpoints in the AWS IAM auth method. As part of this, the `STSRegion` was removed.
+```
