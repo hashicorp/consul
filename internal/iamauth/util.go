@@ -39,12 +39,10 @@ type LoginInput struct {
 func GenerateLoginData(in *LoginInput) (map[string]interface{}, error) {
 	cfg := aws.Config{
 		Credentials: in.Creds,
-		Region:      aws.String(in.STSRegion),
-	}
-	if in.STSEndpoint != "" {
-		cfg.Endpoint = aws.String(in.STSEndpoint)
-	} else {
-		cfg.EndpointResolver = endpoints.ResolverFunc(stsSigningResolver)
+		// These are empty strings by default (i.e. not enabled)
+		Region:              aws.String(in.STSRegion),
+		Endpoint:            aws.String(in.STSEndpoint),
+		STSRegionalEndpoint: endpoints.RegionalSTSEndpoint,
 	}
 
 	stsSession, err := session.NewSessionWithOptions(session.Options{Config: cfg})
@@ -100,19 +98,6 @@ func GenerateLoginData(in *LoginInput) (map[string]interface{}, error) {
 		"iam_request_headers":     base64.StdEncoding.EncodeToString(headersJson),
 		"iam_request_body":        base64.StdEncoding.EncodeToString(requestBody),
 	}, nil
-}
-
-// STS is a really weird service that used to only have global endpoints but now has regional endpoints as well.
-// For backwards compatibility, even if you request a region other than us-east-1, it'll still sign for us-east-1.
-// See, e.g., https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html#id_credentials_temp_enable-regions_writing_code
-// So we have to shim in this EndpointResolver to force it to sign for the right region
-func stsSigningResolver(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-	defaultEndpoint, err := endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-	if err != nil {
-		return defaultEndpoint, err
-	}
-	defaultEndpoint.SigningRegion = region
-	return defaultEndpoint, nil
 }
 
 func formatSignedEntityRequest(svc *sts.STS, in *LoginInput) (*request.Request, error) {
