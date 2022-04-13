@@ -387,7 +387,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		return err
 	}
 	if role == nil {
-		r, err := v.client.Logical().Write(rolePath, map[string]interface{}{
+		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
 			"allow_any_name":   true,
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
@@ -395,7 +395,6 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			"no_store":         true,
 			"require_cn":       false,
 		})
-		v.logger.Info("======= Role %v Error%v", r, err)
 
 		if err != nil {
 			return err
@@ -715,7 +714,27 @@ func (v *VaultProvider) Stop() {
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountInput) error {
-	r := v.client.NewRequest("POST", namespacedSysMountPath(path))
+	paths := potentialMountPaths(path)
+
+	var err error
+	for _, mountPath := range paths {
+		err = v.mountNamespacedHelper(mountPath, mountInfo)
+		// Success
+		if err == nil {
+			return nil
+		}
+
+		// namespace doesn't exist, try a different variant
+		if strings.Contains(err.Error(), "no handler for route") {
+			continue
+		}
+		return err
+	}
+	return err
+}
+
+func (v *VaultProvider) mountNamespacedHelper(path string, mountInfo *vaultapi.MountInput) error {
+	r := v.client.NewRequest("POST", path)
 	if err := r.SetJSONBody(mountInfo); err != nil {
 		return err
 	}
@@ -727,7 +746,28 @@ func (v *VaultProvider) mountNamespaced(path string, mountInfo *vaultapi.MountIn
 }
 
 func (v *VaultProvider) unmountNamespaced(path string) error {
-	r := v.client.NewRequest("DELETE", namespacedSysMountPath(path))
+	paths := potentialMountPaths(path)
+
+	var err error
+	for _, mountPath := range paths {
+		err = v.unmountNamespacedHelper(mountPath)
+
+		// Success
+		if err == nil {
+			return nil
+		}
+
+		// namespace doesn't exist, try a different variant
+		if strings.Contains(err.Error(), "no handler for route") {
+			continue
+		}
+		return err
+	}
+	return err
+}
+
+func (v *VaultProvider) unmountNamespacedHelper(path string) error {
+	r := v.client.NewRequest("DELETE", path)
 	resp, err := v.client.RawRequest(r)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -735,21 +775,36 @@ func (v *VaultProvider) unmountNamespaced(path string) error {
 	return err
 }
 
-func extractNamespaceFromObject(objectName string) (string, string) {
-	parts := strings.Split(strings.TrimSuffix(objectName, "/"), "/")
-
-	base := parts[len(parts)-1] + "/"
-
-	namespace := strings.Join(parts[0:len(parts)-1], "/")
-	return namespace, base
-}
-
-func namespacedSysMountPath(objectName string) string {
-	namespace, base := extractNamespaceFromObject(objectName)
+func namespacedSysMountPath(namespace, base string) string {
 	if namespace == "" {
 		return fmt.Sprintf("/v1/sys/mounts/%s", base)
 	}
 	return fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, base)
+}
+
+func potentialNamespaces(objectName string) []string {
+	parts := strings.Split(strings.TrimSuffix(objectName, "/"), "/")
+
+	var out = make([]string, 0)
+	for i := len(parts) - 1; i > 0; i-- {
+		out = append(out, strings.Join(parts[0:i], "/"))
+	}
+
+	return out
+}
+
+func potentialMountPaths(path string) []string {
+	parts := strings.Split(strings.TrimSuffix(path, "/"), "/")
+
+	var out = make([]string, 0)
+	for i := len(parts) - 1; i > 0; i-- {
+		namespace := strings.Join(parts[0:i], "/")
+		base := strings.Join(parts[i:], "/")
+		out = append(out, namespacedSysMountPath(namespace, base))
+	}
+	out = append(out, namespacedSysMountPath("", strings.Join(parts, "/")))
+
+	return out
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
