@@ -24,20 +24,69 @@ var latestImage = flag.String("latest-version", "latest", "docker image to be us
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
-// Test health check GRPC call using Current Servers and Latest GA Clients
+func TestLatestGAServersWithCurrentClients(t *testing.T) {
+	t.Parallel()
+	numServers := 3
+	Cluster, err := serversCluster(t, numServers, *latestImage)
+	require.NoError(t, err)
+	defer Terminate(t, Cluster)
+	numClients := 2
+	Clients, err := clientsCreate(numClients)
+	client := Clients[0].GetClient()
+	err = Cluster.AddNodes(Clients)
+	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
+		leader, err := Cluster.Leader()
+		require.NoError(r, err)
+		require.NotEmpty(r, leader)
+		members, err := client.Agent().Members(false)
+		require.Len(r, members, 5)
+	})
+
+	serviceName := "api"
+	err, index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
+
+}
+
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
-	cluster, err := serversCluster(t, numServers, *targetImage)
+	Cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
-	defer Terminate(t, cluster)
+	defer Terminate(t, Cluster)
 	numClients := 1
 
-	clients, err := clientsCreate(numClients)
-	client := cluster.Nodes[0].GetClient()
-	err = cluster.AddNodes(clients)
+	Clients, err := clientsCreate(numClients)
+	client := Cluster.Nodes[0].GetClient()
+	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
-		leader, err := cluster.Leader()
+		leader, err := Cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
 		members, err := client.Agent().Members(false)
@@ -74,7 +123,6 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	}
 }
 
-// Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []node.Config
@@ -82,6 +130,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
+					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: *targetImage,
@@ -146,11 +195,20 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	}
 }
 
-// Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
 func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []node.Config
-	for i := 0; i < 2; i++ {
+	configs = append(configs,
+		node.Config{
+			HCL: `node_name="` + utils.RandName("consul-server") + `"
+					log_level="TRACE"
+					bootstrap_expect=3
+					server=true`,
+			Cmd:     []string{"agent", "-client=0.0.0.0"},
+			Version: *latestImage,
+		})
+
+	for i := 1; i < 3; i++ {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
@@ -158,18 +216,10 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: *latestImage,
 			})
 
 	}
-	configs = append(configs,
-		node.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
-					server=true`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *latestImage,
-		})
 
 	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
