@@ -22,11 +22,7 @@ type Subject fmt.Stringer
 // SubjectNone is used when all events on a given topic are "global" and not
 // further partitioned by subject. For example: the "CA Roots" topic which is
 // used to notify subscribers when the global set CA root certificates changes.
-const SubjectNone stringer = "none"
-
-type stringer string
-
-func (s stringer) String() string { return string(s) }
+const SubjectNone StringSubject = "none"
 
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.

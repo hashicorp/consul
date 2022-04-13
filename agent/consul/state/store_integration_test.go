@@ -26,7 +26,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -73,7 +73,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	sub2, err := publisher.Subscribe(subscription2)
@@ -114,7 +114,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -165,7 +165,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
@@ -194,7 +194,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription3)
@@ -236,7 +236,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -282,7 +282,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	sub, err = publisher.Subscribe(subscription2)
@@ -431,7 +431,7 @@ func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 }
 
 func (p nodePayload) Subject() stream.Subject {
-	return stringer(p.key)
+	return stream.StringSubject(p.key)
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
@@ -459,7 +459,7 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	// continuing...
 	req := &stream.SubscribeRequest{
 		Topic:   topicService,
-		Subject: stringer("nope"),
+		Subject: stream.StringSubject("nope"),
 		Token:   token.SecretID,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
