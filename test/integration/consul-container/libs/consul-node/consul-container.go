@@ -1,4 +1,4 @@
-package node
+package consul_node
 
 import (
 	"context"
@@ -18,6 +18,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+const bootLogLine = "Consul agent running"
+const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
+
+// consulContainerNode implement a ConsulNode
+// it instantiate Consul as a container
 type consulContainerNode struct {
 	ctx       context.Context
 	client    *api.Client
@@ -26,30 +31,8 @@ type consulContainerNode struct {
 	port      int
 }
 
-func (c *consulContainerNode) GetClient() *api.Client {
-	return c.client
-}
-
-func (c *consulContainerNode) GetAddr() (string, int) {
-	return c.ip, c.port
-}
-
-type Config struct {
-	HCL     string
-	Version string
-	Cmd     []string
-}
-
-type Node interface {
-	Terminate() error
-	GetClient() *api.Client
-	GetAddr() (string, int)
-}
-
-const bootLogLine = "Consul agent running"
-const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
-
-func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
+// NewConsulContainer create a ConsulNode implemented as a consulContainerNode
+func NewConsulContainer(ctx context.Context, config Config) (ConsulNode, error) {
 
 	name := utils.RandName("consul-")
 	ctx = context.WithValue(ctx, "name", name)
@@ -121,6 +104,22 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	return c, nil
 }
 
+// GetClient return the client associated with the ConsulNode
+func (c *consulContainerNode) GetClient() *api.Client {
+	return c.client
+}
+
+// GetAddr return the network address associated with the ConsulNode
+func (c *consulContainerNode) GetAddr() (string, int) {
+	return c.ip, c.port
+}
+
+// Terminate will attempt to terminate a consulContainerNode
+// if this fail the container will be killed by RYUK if enabled
+func (c *consulContainerNode) Terminate() error {
+	return c.container.Terminate(c.ctx)
+}
+
 func isRYUKDisabled() bool {
 	skipReaperStr := os.Getenv(disableRYUKEnv)
 	skipReaper := true
@@ -128,8 +127,4 @@ func isRYUKDisabled() bool {
 		skipReaper = true
 	}
 	return skipReaper
-}
-
-func (c *consulContainerNode) Terminate() error {
-	return c.container.Terminate(c.ctx)
 }

@@ -8,10 +8,15 @@ import (
 	consulnode "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
 )
 
+// Cluster abstract a Consul Cluster by providing
+// a way to create and join a Consul Cluster
+// a way to add nodes to a cluster
+// a way to fetch the cluster leader...
 type Cluster struct {
-	Nodes []consulnode.Node
+	Nodes []consulnode.ConsulNode
 }
 
+// New Create a new cluster based on the provided configuration
 func New(configs []consulnode.Config) (*Cluster, error) {
 	cluster := Cluster{}
 
@@ -29,24 +34,8 @@ func New(configs []consulnode.Config) (*Cluster, error) {
 	return &cluster, nil
 }
 
-func (c *Cluster) join() error {
-	if len(c.Nodes) < 2 {
-		return nil
-	}
-	n0 := c.Nodes[0]
-	for _, n := range c.Nodes {
-		if n != n0 {
-			addr, _ := n0.GetAddr()
-			err := n.GetClient().Agent().Join(addr, false)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (c *Cluster) AddNodes(nodes []consulnode.Node) error {
+// AddNodes add a number of nodes to the current cluster and join them to the cluster
+func (c *Cluster) AddNodes(nodes []consulnode.ConsulNode) error {
 	if len(c.Nodes) < 1 {
 		return fmt.Errorf("cannot add a node to an empty cluster")
 	}
@@ -62,6 +51,8 @@ func (c *Cluster) AddNodes(nodes []consulnode.Node) error {
 	return nil
 }
 
+// Terminate will attempt to terminate all the nodes in the cluster
+// if a node termination fail, Terminate will abort and return and error
 func (c *Cluster) Terminate() error {
 	for _, n := range c.Nodes {
 		err := n.Terminate()
@@ -72,7 +63,10 @@ func (c *Cluster) Terminate() error {
 	return nil
 }
 
-func (c *Cluster) Leader() (consulnode.Node, error) {
+// Leader return the cluster leader node
+// if no leader is available or the leader is not part of the cluster
+// an error will be returned
+func (c *Cluster) Leader() (consulnode.ConsulNode, error) {
 	if len(c.Nodes) < 1 {
 		return nil, fmt.Errorf("no node available")
 	}
@@ -91,4 +85,21 @@ func (c *Cluster) Leader() (consulnode.Node, error) {
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
+}
+
+func (c *Cluster) join() error {
+	if len(c.Nodes) < 2 {
+		return nil
+	}
+	n0 := c.Nodes[0]
+	for _, n := range c.Nodes {
+		if n != n0 {
+			addr, _ := n0.GetAddr()
+			err := n.GetClient().Agent().Join(addr, false)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

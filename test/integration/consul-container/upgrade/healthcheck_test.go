@@ -267,8 +267,8 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(numClients int) ([]consulNode.Node, error) {
-	Clients := make([]consulNode.Node, numClients)
+func clientsCreate(numClients int) ([]consulNode.ConsulNode, error) {
+	Clients := make([]consulNode.ConsulNode, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
 		Clients[i], err = consulNode.NewConsulContainer(context.Background(),
