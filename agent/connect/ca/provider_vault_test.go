@@ -853,37 +853,6 @@ func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]in
 	return cfg
 }
 
-func TestVaultProvider_potentialNamepaces(t *testing.T) {
-
-	testcases := map[string]struct {
-		path string
-		out  []string
-	}{
-		"simple path": {
-			path: "foo/",
-			out:  []string{},
-		},
-		"simple namespace": {
-			path: "foo/bar/",
-			out:  []string{"foo"},
-		},
-		"two layer namespace": {
-			path: "foo/bar/baz/",
-			out:  []string{"foo/bar", "foo"},
-		},
-	}
-
-	for name, testcase := range testcases {
-		t.Run(name, func(t *testing.T) {
-			path := potentialNamespaces(testcase.path)
-
-			require.Equal(t, testcase.out, path)
-		})
-	}
-
-	return
-}
-
 func TestVaultProvider_potentialMountPaths(t *testing.T) {
 
 	testcases := map[string]struct {
