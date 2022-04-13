@@ -113,3 +113,31 @@ func TestAutoConfigBackend_CreateACLToken(t *testing.T) {
 		require.Equal(t, "foo", out.NodeIdentities[0].NodeName)
 	})
 }
+
+func TestAutoConfigBackend_GetPolicyByName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+
+	waitForLeaderEstablishment(t, srv)
+
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+	require.NoError(t, err)
+
+	t.Run("existing-policy", func(t *testing.T) {
+		b := autoConfigBackend{Server: srv}
+		out, err := b.GetPolicyByName(p1.Name)
+		require.NoError(t, err)
+		require.Equal(t, p1.ID, out.ID)
+		require.Equal(t, p1.Name, out.Name)
+	})
+
+	t.Run("missing-policy", func(t *testing.T) {
+		b := autoConfigBackend{Server: srv}
+		out, err := b.GetPolicyByName("test")
+		require.Nil(t, err)
+		require.Nil(t, out)
+	})
+}

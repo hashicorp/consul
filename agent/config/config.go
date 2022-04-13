@@ -794,6 +794,7 @@ type AutoConfigRaw struct {
 	Enabled         *bool                      `mapstructure:"enabled"`
 	IntroToken      *string                    `mapstructure:"intro_token"`
 	IntroTokenFile  *string                    `mapstructure:"intro_token_file"`
+	Policy          *string                    `mapstructure:"policy"`
 	ServerAddresses []string                   `mapstructure:"server_addresses"`
 	DNSSANs         []string                   `mapstructure:"dns_sans"`
 	IPSANs          []string                   `mapstructure:"ip_sans"`

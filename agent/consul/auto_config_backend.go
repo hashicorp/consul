@@ -101,3 +101,16 @@ func (b autoConfigBackend) CreateACLToken(template *structs.ACLToken) (*structs.
 	_, token, err := b.Server.fsm.State().ACLTokenGetByAccessor(nil, newToken.AccessorID, &newToken.EnterpriseMeta)
 	return token, err
 }
+
+// GetPolicyByName will lookup an ACL policy with given name
+func (b autoConfigBackend) GetPolicyByName(name string) (*structs.ACLPolicy, error) {
+	// we have to require local tokens or else it would require having these servers use a token with acl:read to
+	// lookup policies
+	if !b.Server.LocalTokensEnabled() {
+		return nil, fmt.Errorf("Agent Auto Configuration requires local token usage to be enabled in this datacenter: %s", b.Server.config.Datacenter)
+	}
+
+	// return the full token definition from the FSM
+	_, policy, err := b.Server.fsm.State().ACLPolicyGetByName(nil, name, nil)
+	return policy, err
+}

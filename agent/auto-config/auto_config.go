@@ -280,6 +280,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 		Node:       ac.config.NodeName,
 		Segment:    ac.config.SegmentName,
 		Partition:  ac.config.PartitionOrEmpty(),
+		Policy:     ac.config.AutoConfig.Policy,
 		JWT:        token,
 		CSR:        csr,
 	}
@@ -298,7 +299,7 @@ func (ac *AutoConfig) getInitialConfigurationOnce(ctx context.Context, csr strin
 				return nil, ctx.Err()
 			}
 
-			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String())
+			ac.logger.Debug("making AutoConfig.InitialConfiguration RPC", "addr", addr.String(), "policy", request.Policy)
 			if err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoConfig.InitialConfiguration", &request, &resp); err != nil {
 				ac.logger.Error("AutoConfig.InitialConfiguration RPC failed", "addr", addr.String(), "error", err)
 				continue

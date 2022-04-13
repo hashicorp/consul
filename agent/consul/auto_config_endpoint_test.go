@@ -66,6 +66,12 @@ func (m *mockAutoConfigBackend) SignCertificate(csr *x509.CertificateRequest, id
 	return cert, ret.Error(1)
 }
 
+func (m *mockAutoConfigBackend) GetPolicyByName(name string) (*structs.ACLPolicy, error) {
+	ret := m.Called(name)
+	policy, _ := ret.Get(0).(*structs.ACLPolicy)
+	return policy, ret.Error(1)
+}
+
 func testJWTStandardClaims() jwt.Claims {
 	now := time.Now()
 
@@ -699,9 +705,18 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	}
 }
 
+// Mock 'Policy' that will be returned by GetPolicyByName if 'Return' is true
+type Policy struct {
+	ID     string
+	Name   string
+	Return bool
+}
+
+// TODO: add test
 func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	type testCase struct {
 		config         Config
+		policy         Policy
 		expected       *pbautoconf.AutoConfigResponse
 		expectACLToken bool
 		err            error
@@ -746,6 +761,65 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 					},
 				},
 			},
+		},
+		"enabled-with-existing-policy": {
+			config: Config{
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       true,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
+				ACLEnableKeyListPolicy: true,
+			},
+			policy: Policy{
+				Name:   "test-policy",
+				ID:     "test-policy-id",
+				Return: true,
+			},
+			expectACLToken: true,
+			expected: &pbautoconf.AutoConfigResponse{
+				Config: &pbconfig.Config{
+					ACL: &pbconfig.ACL{
+						Enabled:             true,
+						PolicyTTL:           "7s",
+						RoleTTL:             "10s",
+						TokenTTL:            "12s",
+						DownPolicy:          "deny",
+						DefaultPolicy:       "allow",
+						EnableKeyListPolicy: true,
+						Tokens: &pbconfig.ACLTokens{
+							Agent: tokenSecret,
+						},
+					},
+				},
+			},
+		},
+		"enabled-with-missing-policy": {
+			config: Config{
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       true,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
+				ACLEnableKeyListPolicy: true,
+			},
+			policy: Policy{
+				Name:   "missing-policy",
+				ID:     "",
+				Return: false,
+			},
+			expectACLToken: false,
+			err:            fmt.Errorf("could not find acl 'missing-policy'. does it exist?"),
 		},
 		"disabled": {
 			config: Config{
@@ -815,6 +889,25 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
+			testPolicy := &structs.ACLPolicy{
+				ID:   "test-policy-id",
+				Name: "test-policy",
+			}
+
+			if tcase.policy.Name != "" {
+				if tcase.policy.Return {
+					backend.On("GetPolicyByName", tcase.policy.Name).Return(testPolicy, nil).Once()
+					expectedTemplate.Policies = []structs.ACLTokenPolicyLink{{
+						ID: tcase.policy.ID,
+					}}
+					testToken.Policies = []structs.ACLTokenPolicyLink{{
+						ID: tcase.policy.ID,
+					}}
+				} else {
+					backend.On("GetPolicyByName", tcase.policy.Name).Return(nil, nil).Once()
+				}
+			}
+
 			if tcase.expectACLToken {
 				backend.On("CreateACLToken", expectedTemplate).Return(testToken, tcase.err).Once()
 			}
@@ -822,7 +915,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 			ac := AutoConfig{config: &tcase.config, backend: backend}
 
 			actual := &pbautoconf.AutoConfigResponse{Config: &pbconfig.Config{}}
-			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something"}, actual)
+			err := ac.updateACLsInConfig(AutoConfigOptions{NodeName: "something", Policy: tcase.policy.Name}, actual)
 			if tcase.err != nil {
 				testutil.RequireErrorContains(t, err, tcase.err.Error())
 			} else {

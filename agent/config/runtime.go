@@ -1410,6 +1410,7 @@ type AutoConfig struct {
 	Enabled         bool
 	IntroToken      string
 	IntroTokenFile  string
+	Policy          string
 	ServerAddresses []string
 	DNSSANs         []string
 	IPSANs          []net.IP

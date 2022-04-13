@@ -24,6 +24,7 @@ type AutoConfigOptions struct {
 	NodeName    string
 	SegmentName string
 	Partition   string
+	Policy      string
 
 	CSR      *x509.CertificateRequest
 	SpiffeID *connect.SpiffeIDAgent
@@ -91,6 +92,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 		NodeName:    req.Node,
 		SegmentName: req.Segment,
 		Partition:   req.Partition,
+		Policy:      req.Policy,
 	}
 
 	if req.CSR != "" {
@@ -120,6 +122,7 @@ type AutoConfigBackend interface {
 	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
+	GetPolicyByName(name string) (*structs.ACLPolicy, error)
 }
 
 // AutoConfig endpoint is used for cluster auto configuration operations
@@ -218,6 +221,18 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 				},
 			},
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.PartitionOrDefault()),
+		}
+
+		if opts.Policy != "" {
+			policy, err := ac.backend.GetPolicyByName(opts.Policy)
+			if err != nil {
+				return fmt.Errorf("failed to lookup acl '%s': %w", opts.Policy, err)
+			}
+			if policy == nil {
+				return fmt.Errorf("could not find acl '%s'. does it exist?", opts.Policy)
+			}
+
+			template.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
 		}
 
 		token, err := ac.backend.CreateACLToken(&template)

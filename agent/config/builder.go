@@ -2273,6 +2273,7 @@ func (b *builder) autoConfigVal(raw AutoConfigRaw, agentPartition string) AutoCo
 		val.IntroToken = envToken
 	}
 	val.IntroTokenFile = stringVal(raw.IntroTokenFile)
+	val.Policy = stringVal(raw.Policy)
 	// These can be go-discover values and so don't have to resolve fully yet
 	val.ServerAddresses = b.expandAllOptionalAddrs("auto_config.server_addresses", raw.ServerAddresses)
 	val.DNSSANs = raw.DNSSANs
