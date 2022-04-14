@@ -12,6 +12,9 @@ section[data-route='dc.show.license'] {
   @extend %h200;
 }
 
+%license-validity p {
+  color: rgb(var(--tone-gray-700));
+}
 %license-validity dl {
   @extend %horizontal-kv-list;
   font-size: var(--typo-size-400);
@@ -21,7 +24,7 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl dt::before {
   content: '';
-  margin-right: 0.250rem; /* 4px */
+  margin-right: 0.25rem; /* 4px */
 }
 %license-validity dl .expired::before {
   --icon-name: icon-x-circle;
@@ -35,7 +38,6 @@ section[data-route='dc.show.license'] {
   --icon-name: icon-check-circle;
   --icon-color: rgb(var(--green-500));
 }
-
 
 %license-route-learn-more {
   @extend %panel;
@@ -52,11 +54,10 @@ section[data-route='dc.show.license'] {
   margin-bottom: 1rem; /* 16px */
 }
 %license-route-learn-more li {
-  margin-bottom: 0.250rem; /* 4px */
+  margin-bottom: 0.25rem; /* 4px */
 }
 %license-route-learn-more a::before {
   --icon-name: icon-docs-link;
   content: '';
   margin-right: 0.375rem; /* 6px */
 }
-

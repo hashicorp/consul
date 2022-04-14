@@ -21,9 +21,9 @@ ${typeof location.search.partition !== 'undefined' ? `
             "Partition": "${location.search.partition}",
 ` : ``}
 ${env('CONSUL_NSPACES_ENABLE', false) ? `
-            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
+            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc', 'aws-iam'])}",
 ` : `
-            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt'])}",
+            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'aws-iam'])}",
 `}
             "Description": "${fake.lorem.sentence()}",
 ${i%2 ? `
