@@ -3,8 +3,6 @@ package connect
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -109,33 +107,6 @@ func devTLSConfigFromFiles(caFile, certFile,
 	cfg.ClientCAs = roots
 
 	return cfg, nil
-}
-
-// PKIXNameFromRawSubject attempts to parse a DER encoded "Subject" as a PKIX
-// Name. It's useful for inspecting root certificates in an x509.CertPool which
-// only expose RawSubject via the Subjects method.
-func PKIXNameFromRawSubject(raw []byte) (*pkix.Name, error) {
-	var subject pkix.RDNSequence
-	if _, err := asn1.Unmarshal(raw, &subject); err != nil {
-		return nil, err
-	}
-	var name pkix.Name
-	name.FillFromRDNSequence(&subject)
-	return &name, nil
-}
-
-// CommonNamesFromCertPool returns the common names of the certificates in the
-// cert pool.
-func CommonNamesFromCertPool(p *x509.CertPool) ([]string, error) {
-	var names []string
-	for _, rawSubj := range p.Subjects() {
-		n, err := PKIXNameFromRawSubject(rawSubj)
-		if err != nil {
-			return nil, err
-		}
-		names = append(names, n.CommonName)
-	}
-	return names, nil
 }
 
 // CertURIFromConn is a helper to extract the service identifier URI from a
