@@ -133,7 +133,7 @@ func MakeFixture() Fixture {
 			f.AssumedRoleARN, f.EntityIDWithSession, f.AccountID,
 		),
 		GetRoleResponse: responsestest.MakeGetRoleResponse(
-			f.RoleARN, f.EntityID, toTags(f.RoleTags)...,
+			f.RoleARN, f.EntityID, toTags(f.RoleTags),
 		),
 	}
 
@@ -142,7 +142,7 @@ func MakeFixture() Fixture {
 			f.UserARN, f.EntityID, f.AccountID,
 		),
 		GetUserResponse: responsestest.MakeGetUserResponse(
-			f.UserARN, f.EntityID, toTags(f.UserTags)...,
+			f.UserARN, f.EntityID, toTags(f.UserTags),
 		),
 	}
 
@@ -155,15 +155,15 @@ func (f *Fixture) RoleTagValues() []string { return values(f.RoleTags) }
 func (f *Fixture) UserTagValues() []string { return values(f.UserTags) }
 
 // toTags converts the map to a slice of responses.Tag
-func toTags(tags map[string]string) []responses.Tag {
-	result := []responses.Tag{}
+func toTags(tags map[string]string) responses.Tags {
+	members := []responses.TagMember{}
 	for k, v := range tags {
-		result = append(result, responses.Tag{
+		members = append(members, responses.TagMember{
 			Key:   k,
 			Value: v,
 		})
 	}
-	return result
+	return responses.Tags{Members: members}
 
 }
 
