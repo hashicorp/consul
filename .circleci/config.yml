@@ -225,6 +225,8 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
+      # tput complains if this isn't set to something.
+      TERM: ansi
     steps:
       - checkout
       - run:
