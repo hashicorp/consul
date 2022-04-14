@@ -81,10 +81,10 @@ const (
 	// the HTTP Partition to be used by default. This can still be overridden.
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
 
-	//QueryBackendStreaming Query backend of type streaming
+	// QueryBackendStreaming Query backend of type streaming
 	QueryBackendStreaming = "streaming"
 
-	//QueryBackendBlockingQuery Query backend of type blocking query
+	// QueryBackendBlockingQuery Query backend of type blocking query
 	QueryBackendBlockingQuery = "blocking-query"
 )
 
@@ -283,7 +283,7 @@ type QueryMeta struct {
 	// response is.
 	CacheAge time.Duration
 
-	// QueryBackend represent which backend served the request (1: blocking-query, 2: streaming).
+	// QueryBackend represent which backend served the request.
 	QueryBackend string
 
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
