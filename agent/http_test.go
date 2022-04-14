@@ -21,6 +21,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
@@ -651,7 +652,10 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 
 	t.Parallel()
 	buf := &syncBuffer{b: new(bytes.Buffer)}
-	a := StartTestAgent(t, TestAgent{LogOutput: buf})
+	a := StartTestAgent(t, TestAgent{
+		LogOutput: buf,
+		LogLevel:  hclog.Debug,
+	})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -694,9 +698,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
 			bufout := buf.String()
-			if !strings.Contains(bufout, want) {
-				t.Fatalf("got %s want %s", bufout, want)
-			}
+			require.Contains(t, bufout, want)
 		})
 	}
 }

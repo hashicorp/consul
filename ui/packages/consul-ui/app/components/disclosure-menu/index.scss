@@ -1,0 +1,8 @@
+.disclosure-menu {
+  position: relative;
+}
+.disclosure-menu [aria-expanded] ~ * {
+  @extend %menu-panel;
+  overflow-y: auto !important;
+  will-change: scrollPosition;
+}

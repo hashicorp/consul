@@ -1,3 +1,11 @@
+.topology-notices {
+  display: flow-root;
+  button {
+    float: right;
+    margin-top: 16px;
+    margin-bottom: 32px;
+  }
+}
 .topology-container {
   display: grid;
   height: 100%;

@@ -53,19 +53,14 @@ as |route|>
             </h3>
           </notice.Header>
           <notice.Body>
-            <p>
-              {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
-            </p>
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"
+              htmlSafe=true
+            }}
           </notice.Body>
           <notice.Footer>
-            <p>
-              <Action
-                @href={{concat (env 'CONSUL_DOCS_URL') '/connect/transparent-proxy'}}
-                @external={{true}}
-              >
-                {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"}}
-              </Action>
-            </p>
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"
+              htmlSafe=true
+            }}
           </notice.Footer>
         </Notice>
       {{/if}}
@@ -87,9 +82,10 @@ as |route|>
         <collection.Empty>
           <EmptyState>
             <BlockSlot @name="body">
-              <p>
-                This service has no upstreams{{#if (gt items.length 0)}} matching that search{{/if}}.
-              </p>
+              {{t "routes.dc.services.instance.upstreams.empty"
+                items=items.length
+                htmlSafe=true
+              }}
             </BlockSlot>
           </EmptyState>
         </collection.Empty>

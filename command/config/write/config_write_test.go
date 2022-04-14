@@ -2737,6 +2737,24 @@ func TestParseConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -2746,6 +2764,24 @@ func TestParseConfigEntry(t *testing.T) {
 				}
 				TransparentProxy {
 					MeshDestinationsOnly = true
+				}
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
 				}
 			`,
 			snakeJSON: `
@@ -2757,6 +2793,24 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"transparent_proxy": {
 					"mesh_destinations_only": true
+				},
+				"tls": {
+					"incoming": {
+						"tls_min_version": "TLSv1_1",
+						"tls_max_version": "TLSv1_2",
+						"cipher_suites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					},
+					"outgoing": {
+						"tls_min_version": "TLSv1_1",
+						"tls_max_version": "TLSv1_2",
+						"cipher_suites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
 				}
 			}
 			`,
@@ -2769,6 +2823,24 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"TransparentProxy": {
 					"MeshDestinationsOnly": true
+				},
+				"TLS": {
+					"Incoming": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					},
+					"Outgoing": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
 				}
 			}
 			`,
@@ -2779,6 +2851,24 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: api.TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &api.MeshTLSConfig{
+					Incoming: &api.MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+					Outgoing: &api.MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
 				},
 			},
 		},

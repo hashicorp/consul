@@ -72,10 +72,12 @@ during task startup.
 The `tags` list must include the following if you are using the ACL controller in a [secure configuration](/docs/manual/secure-configuration).
 Without these tags, the ACL controller will be unable to provision a service token for the task.
 
-| Tag Key                             | Tag Value           | Description                                                                                                                |
-| ----------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `consul.hashicorp.com/mesh`         | `true` (string)     | The ACL controller ignores tasks without this tag set to `true`.                                                           |
-| `consul.hashicorp.com/service-name` | Consul service name | Specifies the Consul service associated with this task. Required if the service name is different than the task `family`.  |
+| Tag Key                             | Tag Value              | Description                                                                                                                                     |
+| ----------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `consul.hashicorp.com/mesh`         | `true` (string)        | The ACL controller ignores tasks without this tag set to `true`.                                                                                |
+| `consul.hashicorp.com/service-name` | Consul service name    | Specifies the Consul service associated with this task. Required if the service name is different than the task `family`.                       |
+| `consul.hashicorp.com/partition`    | Consul admin partition | <EnterpriseAlert inline />Specifies the Consul admin partition associated with this task. Defaults to the `default` admin partition if omitted. |
+| `consul.hashicorp.com/namespace`    | Consul namespace       | <EnterpriseAlert inline />Specifies the Consul namespace associated with this task. Defaults to the `default` namespace if omitted.             |
 
 ## Application container
 
@@ -214,7 +216,7 @@ Each task must include a Consul client container in order for the task to join y
       ...
     }
     {
-      "name": "consul-client"
+      "name": "consul-client",
       "image": "public.ecr.aws/hashicorp/consul:<CONSUL_VERSION>",
       "mountPoints": [
         {
@@ -229,7 +231,7 @@ Each task must include a Consul client container in order for the task to join y
       ],
       "entryPoint": ["/bin/sh", "-ec"],
       "command": [
-        "cp /bin/consul /bin/consul-inject/consul\n\nECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')\n\n\ncat << EOF > /consul/agent-defaults.hcl\naddresses = {\n  dns = \"127.0.0.1\"\n  grpc = \"127.0.0.1\"\n  http = \"127.0.0.1\"\n}\nadvertise_addr = \"$ECS_IPV4\"\nadvertise_reconnect_timeout = \"15m\"\nclient_addr = \"0.0.0.0\"\ndatacenter = \"dc1\"\nenable_central_service_config = true\nleave_on_terminate = true\nports {\n  grpc = 8502\n}\nretry_join = [\n  \"<Consul server location>",\n]\ntelemetry {\n  disable_compat_1.9 = true\n}\n\nEOF\n\ncat << EOF > /consul/agent-extra.hcl\naddresses = {\n  dns = \"0.0.0.0\"\n}\nlog_level = \"debug\"\n\nEOF\n\nexec consul agent \\\n    -data-dir /consul/data \\\n    -config-file /consul/agent-defaults.hcl \\\n    -config-file /consul/agent-extra.hcl\n"
+        "cp /bin/consul /bin/consul-inject/consul\n\nECS_IPV4=$(curl -s $ECS_CONTAINER_METADATA_URI_V4 | jq -r '.Networks[0].IPv4Addresses[0]')\n\n\ncat << EOF > /consul/agent-defaults.hcl\naddresses = {\n  dns = \"127.0.0.1\"\n  grpc = \"127.0.0.1\"\n  http = \"127.0.0.1\"\n}\nadvertise_addr = \"$ECS_IPV4\"\nadvertise_reconnect_timeout = \"15m\"\nclient_addr = \"0.0.0.0\"\ndatacenter = \"dc1\"\nenable_central_service_config = true\nleave_on_terminate = true\nports {\n  grpc = 8502\n}\nretry_join = [\n  \"<Consul server location>\",\n]\ntelemetry {\n  disable_compat_1.9 = true\n}\n\nEOF\n\ncat << EOF > /consul/agent-extra.hcl\naddresses = {\n  dns = \"0.0.0.0\"\n}\nlog_level = \"debug\"\n\nEOF\n\nexec consul agent \\\n    -data-dir /consul/data \\\n    -config-file /consul/agent-defaults.hcl \\\n    -config-file /consul/agent-extra.hcl\n"
       ]
     }
   ]

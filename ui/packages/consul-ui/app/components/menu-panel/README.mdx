@@ -1,0 +1,169 @@
+# MenuPanel
+
+```hbs preview-template
+
+{{#each
+  (array 'light' 'dark')
+as |theme|}}
+  <figure>
+    <figcaption>Without a header</figcaption>
+    <div
+      class={{class-map
+        'menu-panel'
+        (array (concat 'theme-' theme))
+      }}
+    >
+      <ul role="menu">
+        <li aria-current="true" role="none">
+          <Action role="menuitem">Item 1<span>Label</span><span>Label 2</span></Action>
+        </li>
+        <li role="separator">
+          Item some title text
+        </li>
+        <li role="none">
+          <Action role="menuitem">Item 2</Action>
+        </li>
+        <li role="separator"></li>
+        <li role="none">
+          <Action role="menuitem">Item 3</Action>
+        </li>
+      </ul>
+    </div>
+  </figure>
+  <figure>
+    <figcaption>With a header</figcaption>
+    <div
+      class={{class-map
+        'menu-panel'
+        (array (concat 'theme-' theme))
+      }}
+    >
+      <div>
+        <p>Some content explaining what the menu is about</p>
+      </div>
+      <ul role="menu">
+        <li aria-current="true" role="none">
+          <Action role="menuitem">Item 1<span>Label</span><span>Label 2</span></Action>
+        </li>
+        <li role="separator">
+          Item some title text
+        </li>
+        <li role="none">
+          <Action role="menuitem">Item 2</Action>
+        </li>
+        <li role="separator"></li>
+        <li role="none">
+          <Action role="menuitem">Item 3</Action>
+        </li>
+      </ul>
+    </div>
+  </figure>
+
+  <figure>
+    <StateChart
+      @src={{state-chart 'boolean'}}
+    as |State Guard StateAction dispatch state|>
+      <Action>Focus Left</Action>
+      <DisclosureMenu as |disclosure|>
+        <disclosure.Action
+          {{on 'click' disclosure.toggle}}
+        >
+          {{if disclosure.expanded 'Close' 'Open'}}
+        </disclosure.Action>
+        <disclosure.Menu
+          style={{style-map
+            (array 'max-height' (if (state-matches state 'true') (add 0 this.rect.height)) 'px')
+          }}
+          class={{class-map
+            (array 'menu-panel')
+            (array 'menu-panel-confirming' (state-matches state 'true'))
+            (array (concat 'theme-' theme))
+          }}
+
+        as |panel|>
+          <div
+            {{on-resize
+              (dom-position (set this 'header'))
+            }}
+          >
+            <p>Some text in here</p>
+          </div>
+          <panel.Menu as |menu|>
+            <menu.Item
+              aria-current="true"
+            >
+              <menu.Action>
+                Item 1
+                <span>Label</span>
+                <span>Label 2</span>
+              </menu.Action>
+            </menu.Item>
+            <menu.Separator>
+              Item some title text
+            </menu.Separator>
+            <menu.Item>
+              <menu.Action>
+                Item 2
+              </menu.Action>
+            </menu.Item>
+            <menu.Separator />
+            <menu.Item
+              class="dangerous"
+            >
+              <menu.Action
+                {{on "click" (fn dispatch 'TOGGLE')}}
+              >
+                Item 3
+              </menu.Action>
+
+              <div
+                {{on-resize
+                  (dom-position (set this 'rect'))
+                }}
+                style={{style-map
+                  (array 'top' (if (state-matches state 'true') (sub 0 this.header.height)) 'px')
+                }}
+                class={{class-map
+                  'menu-panel-confirmation'
+                  'informed-action'
+                  'confirmation-alert'
+                  'warning'
+                }}
+              >
+                <div>
+                  <header>Hi</header>
+                  <p>Body</p>
+                </div>
+                <ul>
+                  <li>
+                    <Action
+                      @tabindex="-1"
+                      {{on "click" (queue disclosure.close (fn dispatch 'TOGGLE'))}}
+                    >
+                      Confirm
+                    </Action>
+                  </li>
+                  <li>
+                    <Action
+                      @tabindex="-1"
+                      {{on "click" (fn dispatch 'TOGGLE')}}
+                    >
+                      Cancel
+                    </Action>
+                  </li>
+                </ul>
+              </div>
+
+            </menu.Item>
+          </panel.Menu>
+
+        </disclosure.Menu>
+
+      </DisclosureMenu>
+
+      <Action>Focus Right</Action>
+    </StateChart>
+  </figure>
+
+{{/each}}
+```

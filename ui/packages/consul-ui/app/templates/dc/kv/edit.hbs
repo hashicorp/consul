@@ -97,16 +97,7 @@ as |parts|}}
 
 {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
 {{#if item.Session}}
-      <Notice
-        @type="warning"
-        data-test-session-warning
-      as |notice|>
-        <notice.Body>
-          <p>
-            <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
-          </p>
-        </notice.Body>
-      </Notice>
+    <Consul::LockSession::Notifications @type="kv" />
 {{/if}}
 
       <Consul::Kv::Form

@@ -7,11 +7,12 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/mitchellh/cli"
 )
 
 func TestRTTCommand_noTabs(t *testing.T) {
@@ -167,11 +168,15 @@ func TestRTTCommand_WAN(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	node := fmt.Sprintf("%s.%s", a.Config.NodeName, a.Config.Datacenter)
+	var (
+		node      = fmt.Sprintf("%s.%s", a.Config.NodeName, a.Config.Datacenter)
+		nodeUpper = fmt.Sprintf("%s.%s", strings.ToUpper(a.Config.NodeName), a.Config.Datacenter)
+		nodeLower = fmt.Sprintf("%s.%s", strings.ToLower(a.Config.NodeName), a.Config.Datacenter)
+	)
 
 	// We can't easily inject WAN coordinates, so we will just query the
 	// node with itself.
-	{
+	t.Run("query self", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
 		args := []string{
@@ -189,10 +194,30 @@ func TestRTTCommand_WAN(t *testing.T) {
 		if !strings.Contains(ui.OutputWriter.String(), "rtt: ") {
 			t.Fatalf("bad: %#v", ui.OutputWriter.String())
 		}
-	}
+	})
 
-	// Default to the agent's node.
-	{
+	t.Run("query self with case differences", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-wan",
+			"-http-addr=" + a.HTTPAddr(),
+			nodeLower,
+			nodeUpper,
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Log(ui.OutputWriter.String())
+			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure there was some kind of RTT reported in the output.
+		if !strings.Contains(ui.OutputWriter.String(), "rtt: ") {
+			t.Fatalf("bad: %#v", ui.OutputWriter.String())
+		}
+	})
+
+	t.Run("default to the agent's node", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
 		args := []string{
@@ -209,10 +234,9 @@ func TestRTTCommand_WAN(t *testing.T) {
 		if !strings.Contains(ui.OutputWriter.String(), "rtt: ") {
 			t.Fatalf("bad: %#v", ui.OutputWriter.String())
 		}
-	}
+	})
 
-	// Try an unknown node.
-	{
+	t.Run("try an unknown node", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
 		args := []string{
@@ -225,5 +249,5 @@ func TestRTTCommand_WAN(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
 		}
-	}
+	})
 }

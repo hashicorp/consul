@@ -10,13 +10,13 @@
 }
 %visually-unhidden,
 %unvisually-hidden {
-  position: static;
-  clip: unset;
-  overflow: visible;
-  width: auto;
-  height: auto;
-  margin: 0;
-  padding: 0;
+  position: static !important;
+  clip: unset !important;
+  overflow: visible !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 %visually-hidden-text {
   text-indent: -9000px;

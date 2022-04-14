@@ -1,0 +1,16 @@
+%paged-collection-scroll {
+  overflow-y: auto !important;
+  will-change: scrollPosition;
+}
+.paged-collection-scroll {
+  @extend %paged-collection-scroll;
+}
+[style*="--paged-row-height"] {
+  @extend %paged-collection-scroll;
+}
+[style*="--paged-start"]::before {
+  content: '';
+  display: block;
+  height: var(--paged-start);
+}
+

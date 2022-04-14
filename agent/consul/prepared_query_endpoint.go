@@ -86,9 +86,9 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if authz.PreparedQueryWrite(prefix, nil) != acl.Allow {
+		if err := authz.ToAllowAuthorizer().PreparedQueryWriteAllowed(prefix, nil); err != nil {
 			p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
-			return acl.ErrPermissionDenied
+			return err
 		}
 	}
 
@@ -106,9 +106,9 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if authz.PreparedQueryWrite(prefix, nil) != acl.Allow {
+			if err := authz.ToAllowAuthorizer().PreparedQueryWriteAllowed(prefix, nil); err != nil {
 				p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
-				return acl.ErrPermissionDenied
+				return err
 			}
 		}
 	}
@@ -439,7 +439,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// position 0, provided the results are from the same datacenter.
 	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
 		for i, node := range reply.Nodes {
-			if node.Node.Node == qs.Node {
+			if strings.EqualFold(node.Node.Node, qs.Node) {
 				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
 				break
 			}

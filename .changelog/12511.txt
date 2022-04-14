@@ -1,0 +1,7 @@
+```release-note:feature
+server: ensure that service-defaults meta is incorporated into the discovery chain response
+```
+
+```release-note:feature
+server: discovery chains now include a response field named "Default" to indicate if they were not constructed from any service-resolver, service-splitter, or service-router config entries
+```

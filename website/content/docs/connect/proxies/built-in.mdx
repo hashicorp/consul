@@ -13,10 +13,6 @@ The [Envoy proxy](/docs/connect/proxies/envoy) should be used for production dep
 Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect service mesh.
 
-## Getting Started
-
-To get started with the built-in proxy and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/tutorials/consul/get-started-service-networking) tutorial.
-
 ## Proxy Config Key Reference
 
 Below is a complete example of all the configuration options available
@@ -57,8 +53,8 @@ All fields are optional with a reasonable default.
 
 - `bind_port` - The port the proxy will bind its _public_
   mTLS listener to. If not provided, the agent will assign a random port from its
-  configured proxy port range specified by [`sidecar_min_port`](/docs/agent/options#sidecar_min_port)
-  and [`sidecar_max_port`](/docs/agent/options#sidecar_max_port).
+  configured proxy port range specified by [`sidecar_min_port`](/docs/agent/config/config-files#sidecar_min_port)
+  and [`sidecar_max_port`](/docs/agent/config/config-files#sidecar_max_port).
 
 - `local_service_address`- The `[address]:port`
   that the proxy should use to connect to the local application instance. By default

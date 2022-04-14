@@ -1,10 +1,7 @@
-# Consul
-
-<p>
-  <a href="https://consul.io" title="Consul website">
-    <img src="./website/public/img/logo-hashicorp.svg" alt="HashiCorp Consul logo" width="200px">
-  </a>
-</p>
+<h1>
+  <img src="./website/public/img/logo.svg" align="left" height="46px" alt="Consul logo"/>
+  <span>Consul</span>
+</h1>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/_/consul.svg)](https://hub.docker.com/_/consul)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hashicorp/consul)](https://goreportcard.com/report/github.com/hashicorp/consul)

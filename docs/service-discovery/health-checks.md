@@ -27,6 +27,7 @@ be reviewed and tested.
 6. CLI [consul services register](https://www.consul.io/commands/services/register) - the
    `Checks` and `Check` fields on `api.AgentServiceRegistration`. The entrypoint is
    `ServicesFromFiles` in [command/services/config.go].
+7. API [/v1/txn](https://www.consul.io/api-docs/txn) - the `Transaction` API allows for registering a check.
 
 
 [agent/catalog_endpoint.go]: https://github.com/hashicorp/consul/blob/main/agent/catalog_endpoint.go

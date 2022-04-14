@@ -59,7 +59,7 @@ blank `AccessorID`.
 
 In addition, it is assumed that all clients that might _create_ ACL tokens (e.g.
 Vault's Consul secrets engine) have been updated to use the [new ACL
-APIs](/api/acl/tokens).
+APIs](/api-docs/acl/tokens).
 
 Specifically if you are using Vault's Consul secrets engine you need to be
 running Vault 1.0.0 or higher, _and_ you must update all roles defined in Vault
@@ -135,7 +135,7 @@ necessary access for existing clients; this is up to the operator to ensure.
 
 #### Update via API
 
-Use the [`PUT /v1/acl/token/:AccessorID`](/api/acl/tokens#update-a-token)
+Use the [`PUT /v1/acl/token/:AccessorID`](/api-docs/acl/tokens#update-a-token)
 endpoint. Specifically, ensure that the `Rules` field is omitted or empty. Empty
 `Rules` indicates that this is now treated as a new token.
 

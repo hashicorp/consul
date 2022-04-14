@@ -1,0 +1,52 @@
+<!-- START component-docs:@tagName -->
+# Consul::LockSession::Notifications
+<!-- END component-docs:@tagName -->
+
+<!-- START component-docs:@description-->
+A Notification component specifically for LockSessions.
+<!-- END component-docs:@description -->
+
+
+```hbs preview-template
+<figure>
+
+  <figcaption>
+    Provide a widget for to change the @type
+  </figcaption>
+
+  <select
+    onchange={{action (mut this.type) value="target.value"}}
+  >
+    <option>kv</option>
+    <option>success</option>
+    <option>error</option>
+  </select>
+</figure>
+
+<figure>
+
+  <figcaption>
+    Use the component
+  </figcaption>
+
+  <Consul::LockSession::Notifications
+    @type={{if (contains this.type (array 'success' 'error')) 'remove' 'kv'}}
+    @error={{if (eq this.type 'error') (hash
+      status="403"
+      detail=""
+    ) undefined }}
+  />
+
+</figure>
+```
+
+## Arguments
+
+<!-- START component-docs:@args -->
+| Argument | Type              | Default | Description                                        |
+| :-------- | :--------------- | :------ | :------------------------------------------------- |
+| type      | "remove" \| "kv" |         | The type of Notification to use                    |
+| error     | error            |         | Consul UI shaped error only used for `remove` type |
+
+<!-- END component-docs:@args -->
+

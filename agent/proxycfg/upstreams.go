@@ -8,9 +8,8 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/connect"
-
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -36,6 +35,23 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		upstreamsSnapshot.Leaf = leaf
+
+	case u.CorrelationID == meshConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			upstreamsSnapshot.MeshConfig = meshConf
+		} else {
+			upstreamsSnapshot.MeshConfig = nil
+		}
+		upstreamsSnapshot.MeshConfigSet = true
 
 	case strings.HasPrefix(u.CorrelationID, "discovery-chain:"):
 		resp, ok := u.Result.(*structs.DiscoveryChainResponse)
@@ -92,55 +108,53 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		}
 		upstreamsSnapshot.WatchedUpstreamEndpoints[uid][targetID] = resp.Nodes
 
-		var passthroughAddrs map[string]ServicePassthroughAddrs
+		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
+			return nil
+		}
+
+		// Clear out this target's existing passthrough upstreams and indices so that they can be repopulated below.
+		if _, ok := upstreamsSnapshot.PassthroughUpstreams[uid]; ok {
+			for addr := range upstreamsSnapshot.PassthroughUpstreams[uid][targetID] {
+				if indexed := upstreamsSnapshot.PassthroughIndices[addr]; indexed.targetID == targetID && indexed.upstreamID == uid {
+					delete(upstreamsSnapshot.PassthroughIndices, addr)
+				}
+			}
+			upstreamsSnapshot.PassthroughUpstreams[uid][targetID] = make(map[string]struct{})
+		}
+
+		passthroughs := make(map[string]struct{})
 
 		for _, node := range resp.Nodes {
-			if snap.Proxy.Mode == structs.ProxyModeTransparent && node.Service.Proxy.TransparentProxy.DialedDirectly {
-				if passthroughAddrs == nil {
-					passthroughAddrs = make(map[string]ServicePassthroughAddrs)
-				}
+			if !node.Service.Proxy.TransparentProxy.DialedDirectly {
+				continue
+			}
 
-				svc := node.Service.CompoundServiceName()
+			// Make sure to use an external address when crossing partition or DC boundaries.
+			isRemote := !snap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
+			csnIdx, addr, _ := node.BestAddress(isRemote)
 
-				// Overwrite the name if it's a connect proxy (as opposed to Connect native).
-				// We don't reference the proxy name directly for things like SNI, but rather the name
-				// of the destination. The enterprise meta of a proxy will always be the same as that of
-				// the destination service, so that remains intact.
-				if node.Service.Kind == structs.ServiceKindConnectProxy {
-					dst := node.Service.Proxy.DestinationServiceName
-					if dst == "" {
-						dst = node.Service.Proxy.DestinationServiceID
-					}
-					svc.Name = dst
-				}
+			existing := upstreamsSnapshot.PassthroughIndices[addr]
+			if existing.idx > csnIdx {
+				// The last known instance with this address had a higher index so it takes precedence.
+				continue
+			}
 
-				sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), snap.Datacenter, snap.Roots.TrustDomain)
+			// The current instance has a higher Raft index so we ensure the passthrough address is only
+			// associated with this upstream target. Older associations are cleaned up as needed.
+			delete(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID][existing.targetID], addr)
+			if len(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID][existing.targetID]) == 0 {
+				delete(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID], existing.targetID)
+			}
+			if len(upstreamsSnapshot.PassthroughUpstreams[existing.upstreamID]) == 0 {
+				delete(upstreamsSnapshot.PassthroughUpstreams, existing.upstreamID)
+			}
 
-				spiffeID := connect.SpiffeIDService{
-					Host:       snap.Roots.TrustDomain,
-					Partition:  svc.PartitionOrDefault(),
-					Namespace:  svc.NamespaceOrDefault(),
-					Datacenter: snap.Datacenter,
-					Service:    svc.Name,
-				}
-
-				svcUID := NewUpstreamIDFromServiceName(svc)
-				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svcUID]; !ok {
-					upstreamsSnapshot.PassthroughUpstreams[svcUID] = ServicePassthroughAddrs{
-						SNI:      sni,
-						SpiffeID: spiffeID,
-
-						// Stored in a set because it's possible for these to be duplicated
-						// when the upstream-target is targeted by multiple discovery chains.
-						Addrs: make(map[string]struct{}),
-					}
-				}
-
-				// Make sure to use an external address when crossing partitions.
-				isRemote := !structs.EqualPartitions(svc.PartitionOrDefault(), s.proxyID.PartitionOrDefault())
-				addr, _ := node.BestAddress(isRemote)
-
-				upstreamsSnapshot.PassthroughUpstreams[NewUpstreamIDFromServiceName(svc)].Addrs[addr] = struct{}{}
+			upstreamsSnapshot.PassthroughIndices[addr] = indexedTarget{idx: csnIdx, upstreamID: uid, targetID: targetID}
+			passthroughs[addr] = struct{}{}
+		}
+		if len(passthroughs) > 0 {
+			upstreamsSnapshot.PassthroughUpstreams[uid] = map[string]map[string]struct{}{
+				targetID: passthroughs,
 			}
 		}
 
@@ -270,7 +284,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
+		chainEntMeta := acl.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: uid,
@@ -343,7 +357,7 @@ type targetWatchOpts struct {
 	service    string
 	filter     string
 	datacenter string
-	entMeta    *structs.EnterpriseMeta
+	entMeta    *acl.EnterpriseMeta
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
@@ -353,7 +367,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 		"target", opts.chainID,
 	)
 
-	var finalMeta structs.EnterpriseMeta
+	var finalMeta acl.EnterpriseMeta
 	finalMeta.Merge(opts.entMeta)
 
 	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()

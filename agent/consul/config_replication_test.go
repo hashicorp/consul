@@ -247,3 +247,100 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		checkSame(r)
 	})
 }
+
+func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	_, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ConfigReplicationRate = 100
+		c.ConfigReplicationBurst = 100
+		c.ConfigReplicationApplyLimit = 1000000
+	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Create two entries that will replicate in the wrong order and not work.
+	entries := []structs.ConfigEntry{
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "foo",
+			Protocol: "http",
+		},
+		&structs.IngressGatewayConfigEntry{
+			Kind: structs.IngressGateway,
+			Name: "foo",
+			Listeners: []structs.IngressListener{
+				{
+					Port:     9191,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{
+							Name: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, entry := range entries {
+		arg := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Op:         structs.ConfigEntryUpsert,
+			Entry:      entry,
+		}
+
+		out := false
+		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+	}
+
+	// Try to join which should kick off replication.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+	checkSame := func(t require.TestingT) error {
+		_, remote, err := s1.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
+		require.NoError(t, err)
+		_, local, err := s2.fsm.State().ConfigEntries(nil, structs.ReplicationEnterpriseMeta())
+		require.NoError(t, err)
+
+		require.Len(t, local, len(remote))
+		for i, entry := range remote {
+			require.Equal(t, entry.GetKind(), local[i].GetKind())
+			require.Equal(t, entry.GetName(), local[i].GetName())
+
+			// more validations
+			switch entry.GetKind() {
+			case structs.IngressGateway:
+				localGw, ok := local[i].(*structs.IngressGatewayConfigEntry)
+				require.True(t, ok)
+				remoteGw, ok := entry.(*structs.IngressGatewayConfigEntry)
+				require.True(t, ok)
+				require.Len(t, remoteGw.Listeners, 1)
+				require.Len(t, localGw.Listeners, 1)
+				require.Equal(t, remoteGw.Listeners[0].Protocol, localGw.Listeners[0].Protocol)
+			case structs.ServiceDefaults:
+				localSvc, ok := local[i].(*structs.ServiceConfigEntry)
+				require.True(t, ok)
+				remoteSvc, ok := entry.(*structs.ServiceConfigEntry)
+				require.True(t, ok)
+				require.Equal(t, remoteSvc.Protocol, localSvc.Protocol)
+			}
+		}
+		return nil
+	}
+
+	// Wait for the replica to converge.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r)
+	})
+}

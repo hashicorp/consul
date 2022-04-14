@@ -2,13 +2,16 @@ package consul
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -2317,6 +2320,89 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 	})
 }
 
+func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DevMode = true // keep it in ram to make it 10x faster on macos
+	})
+
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	{ // ensure it's default deny to start
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+		}, &out))
+		require.True(t, out)
+	}
+
+	run := func(t *testing.T, dataPrefix string, expectServices int) {
+		rpcBlockingQueryTestHarness(t,
+			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
+				args := &structs.ServiceSpecificRequest{
+					Datacenter:  "dc1",
+					ServiceName: "web",
+				}
+				args.QueryOptions.MinQueryIndex = minQueryIndex
+
+				var out structs.IndexedServiceList
+				errCh := channelCallRPC(s1, "Internal.IntentionUpstreams", args, &out, func() error {
+					if len(out.Services) != expectServices {
+						return fmt.Errorf("expected %d services got %d", expectServices, len(out.Services))
+					}
+					return nil
+				})
+				return &out.QueryMeta, errCh
+			},
+			func(i int) <-chan error {
+				var out string
+				return channelCallRPC(s1, "Intention.Apply", &structs.IntentionRequest{
+					Datacenter: "dc1",
+					Op:         structs.IntentionOpCreate,
+					Intention: &structs.Intention{
+						SourceName:      fmt.Sprintf(dataPrefix+"-src-%d", i),
+						DestinationName: fmt.Sprintf(dataPrefix+"-dst-%d", i),
+						Action:          structs.IntentionActionAllow,
+					},
+				}, &out, nil)
+			},
+		)
+	}
+
+	runStep(t, "test the errNotFound path", func(t *testing.T) {
+		run(t, "other", 0)
+	})
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, "")
+
+	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+		run(t, "completely-different-other", 1)
+	})
+}
+
 func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2392,4 +2478,87 @@ service_prefix "mongo" { policy = "read" }
 			require.Empty(r, out.Services)
 		})
 	})
+}
+
+func TestInternal_CatalogOverview(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.MetricsReportingInterval = 100 * time.Millisecond
+	})
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	retry.Run(t, func(r *retry.R) {
+		var out structs.CatalogSummary
+		if err := msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		expected := structs.CatalogSummary{
+			Nodes: []structs.HealthSummary{
+				{
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			Services: []structs.HealthSummary{
+				{
+					Name:           "consul",
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			Checks: []structs.HealthSummary{
+				{
+					Name:           "Serf Health Status",
+					Total:          1,
+					Passing:        1,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		}
+		require.Equal(r, expected, out)
+	})
+}
+
+func TestInternal_CatalogOverview_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.CatalogSummary
+	err := msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out)
+	require.True(t, acl.IsErrPermissionDenied(err))
+
+	opReadToken, err := upsertTestTokenWithPolicyRules(
+		codec, TestDefaultInitialManagementToken, "dc1", `operator = "read"`)
+	require.NoError(t, err)
+
+	arg.Token = opReadToken.SecretID
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out))
 }

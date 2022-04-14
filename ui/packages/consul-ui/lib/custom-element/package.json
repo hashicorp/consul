@@ -1,0 +1,10 @@
+{
+  "name": "custom-element",
+  "dependencies": {
+    "ember-cli-htmlbars": "*",
+    "ember-cli-babel": "*"
+  },
+  "keywords": [
+    "ember-addon"
+  ]
+}

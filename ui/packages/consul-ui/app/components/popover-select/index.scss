@@ -1,6 +1,9 @@
 .popover-select {
   @extend %popover-select;
 }
+.popover-menu .menu-panel {
+  position: absolute !important;
+}
 %popover-select label {
   height: 100%;
 }

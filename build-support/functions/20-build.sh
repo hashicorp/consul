@@ -316,7 +316,7 @@ function build_consul {
       status "Ensuring Go modules are up to date"
       # ensure our go module cache is correct
       go_mod_assert || return 1
-      # setup to bind mount our hosts module cache into the container
+      # Setup to bind mount our hosts module cache into the container
       volume_mount="--mount=type=bind,source=${MAIN_GOPATH}/pkg/mod,target=/go/pkg/mod"
    fi
 
@@ -326,7 +326,7 @@ function build_consul {
       -e CGO_ENABLED=0 \
       -e GOLDFLAGS="${GOLDFLAGS}" \
       -e GOTAGS="${GOTAGS}" \
-      ${image_name} make linux
+      ${image_name} make linux)
    ret=$?
 
    if test $ret -eq 0

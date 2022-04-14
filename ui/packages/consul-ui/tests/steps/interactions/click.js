@@ -10,10 +10,11 @@ export default function(scenario, find, click) {
         'I click $property on the $component',
         'I click $property on the $component component',
       ],
-      function(property, component, next) {
+      async function(property, component, next) {
         if (typeof component === 'string') {
           property = `${component}.${property}`;
         }
+        await new Promise(resolve => setTimeout(resolve, 0));
         return find(property)();
       }
     );

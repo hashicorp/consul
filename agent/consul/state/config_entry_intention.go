@@ -6,6 +6,7 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -123,7 +124,7 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 	return []byte(arg.String() + "\x00"), nil
 }
 
-func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// unrolled part of configEntriesByKindTxn
 
 	idx := maxIndexTxn(tx, tableConfigEntries)
@@ -238,7 +239,7 @@ func configIntentionMatchOneTxn(
 	}
 }
 
-func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var (
@@ -262,7 +263,7 @@ func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, ser
 	return idx, results, nil
 }
 
-func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
 	sn := structs.NewServiceName(serviceName, entMeta)
 
 	iter, err := tx.Get(tableConfigEntries, indexSource, sn)
@@ -283,7 +284,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 	return results, nil
 }
 
-func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var results structs.Intentions

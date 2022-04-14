@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -672,7 +673,7 @@ type ConnectCALeafRequest struct {
 	MaxQueryTime   time.Duration
 	MustRevalidate bool
 
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (r *ConnectCALeafRequest) Key() string {

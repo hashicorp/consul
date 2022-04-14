@@ -29,10 +29,14 @@ export default modifier(function($element, [returns], hash) {
         if (prop.charAt(prop.length - 1) === '-') {
           prop = prop.substr(0, prop.length - 1);
         }
-        if (typeof obj[prop] === 'undefined') {
-          obj[prop] = {};
+        if(hash.group) {
+          if (typeof obj[prop] === 'undefined') {
+            obj[prop] = {};
+          }
+          obj[prop][key] = value;
+        } else {
+          obj[key] = value;
         }
-        obj[prop][key] = value;
       }
     });
     returns(obj);

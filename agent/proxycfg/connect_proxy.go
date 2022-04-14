@@ -27,7 +27,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 	snap.ConnectProxy.PreparedQueryEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
 	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
-	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]ServicePassthroughAddrs)
+	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
+	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 
 	// Watch for root changes
 	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
@@ -69,6 +70,18 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	// Get information about the entire service mesh.
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch for service check updates
 	err = s.cache.Notify(ctx, cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecksRequest{
 		ServiceID:      s.proxyCfg.DestinationServiceID,
@@ -89,17 +102,6 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if err != nil {
 			return snap, err
 		}
-
-		err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-			Kind:           structs.MeshConfig,
-			Name:           structs.MeshConfigMesh,
-			Datacenter:     s.source.Datacenter,
-			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-		}, meshConfigEntryID, s.ch)
-		if err != nil {
-			return snap, err
-		}
 	}
 
 	// Watch for updates to service endpoints for all upstreams
@@ -114,12 +116,12 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			continue
 		}
 
+		snap.ConnectProxy.UpstreamConfig[uid] = &u
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
 			continue
 		}
-		snap.ConnectProxy.UpstreamConfig[uid] = &u
 
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
@@ -326,6 +328,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, uid)
 			}
 		}
+		for uid := range snap.ConnectProxy.PassthroughUpstreams {
+			if _, ok := seenUpstreams[uid]; !ok {
+				delete(snap.ConnectProxy.PassthroughUpstreams, uid)
+			}
+		}
+		for addr, indexed := range snap.ConnectProxy.PassthroughIndices {
+			if _, ok := seenUpstreams[indexed.upstreamID]; !ok {
+				delete(snap.ConnectProxy.PassthroughIndices, addr)
+			}
+		}
+
 		// These entries are intentionally handled separately from the WatchedDiscoveryChains above.
 		// There have been situations where a discovery watch was cancelled, then fired.
 		// That update event then re-populated the DiscoveryChain map entry, which wouldn't get cleaned up
@@ -355,23 +368,6 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 		}
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
-
-	case u.CorrelationID == meshConfigEntryID:
-		resp, ok := u.Result.(*structs.ConfigEntryResponse)
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-
-		if resp.Entry != nil {
-			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
-			}
-			snap.ConnectProxy.MeshConfig = meshConf
-		} else {
-			snap.ConnectProxy.MeshConfig = nil
-		}
-		snap.ConnectProxy.MeshConfigSet = true
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)

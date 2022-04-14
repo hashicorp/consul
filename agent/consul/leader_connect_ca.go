@@ -15,6 +15,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -253,28 +254,24 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
-	id, err := connect.CalculateCertFingerprint(pemValue)
+// newCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
+	primaryCert, err := connect.ParseCert(pemValue)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+		return nil, err
 	}
-	rootCert, err := connect.ParseCert(pemValue)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing root cert: %v", err)
-	}
-	keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
+	keyType, keyBits, err := connect.KeyInfoFromCert(primaryCert)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting root key info: %v", err)
 	}
 	return &structs.CARoot{
-		ID:                  id,
-		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
-		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.EncodeSigningKeyID(rootCert.SubjectKeyId),
+		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
+		Name:                fmt.Sprintf("%s CA Primary Cert", strings.Title(provider)),
+		SerialNumber:        primaryCert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.EncodeSigningKeyID(primaryCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
-		NotBefore:           rootCert.NotBefore,
-		NotAfter:            rootCert.NotAfter,
+		NotBefore:           primaryCert.NotBefore,
+		NotAfter:            primaryCert.NotAfter,
 		RootCert:            pemValue,
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
@@ -435,7 +432,7 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 	}
 	var roots structs.IndexedCARoots
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
-		return err
+		return fmt.Errorf("failed to get CA roots from primary DC: %w", err)
 	}
 	c.secondarySetPrimaryRoots(roots)
 
@@ -487,12 +484,12 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	rootCA, err := parseCARoot(root.PEM, conf.Provider, conf.ClusterID)
+	rootCA, err := newCARoot(root.PEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
 
-	// Also create the intermediate CA, which is the one that actually signs leaf certs
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	interPEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
@@ -697,7 +694,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		return fmt.Errorf("local CA not initialized yet")
 	}
 	// Exit early if the change is a no-op.
-	if newActiveRoot == nil && config != nil && config.Provider == storedConfig.Provider && reflect.DeepEqual(config.Config, storedConfig.Config) {
+	if !shouldPersistNewRootAndConfig(newActiveRoot, storedConfig, config) {
 		return nil
 	}
 
@@ -760,6 +757,17 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 
 	c.logger.Info("updated root certificates from primary datacenter")
 	return nil
+}
+
+func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, newConfig *structs.CAConfiguration) bool {
+	if newActiveRoot != nil {
+		return true
+	}
+
+	if newConfig == nil {
+		return false
+	}
+	return newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config)
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
@@ -887,7 +895,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 
 	newRootPEM := providerRoot.PEM
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
+	newActiveRoot, err := newCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -940,7 +948,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		// get a cross-signed certificate.
 		// 3. Take the active root for the new provider and append the intermediate from step 2
 		// to its list of intermediates.
-		// TODO: this cert is already parsed once in parseCARoot, could we remove the second parse?
+		// TODO: this cert is already parsed once in newCARoot, could we remove the second parse?
 		newRoot, err := connect.ParseCert(newRootPEM)
 		if err != nil {
 			return err
@@ -980,6 +988,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		}
 	}
 
+	// TODO: https://github.com/hashicorp/consul/issues/12386
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
@@ -1367,6 +1376,48 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 	return l.csrRateLimiter
 }
 
+// AuthorizeAndSignCertificate signs a leaf certificate for the service or agent
+// identified by the SPIFFE ID in the given CSR's SAN. It performs authorization
+// using the given acl.Authorizer.
+func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
+	// Parse the SPIFFE ID from the CSR SAN.
+	if len(csr.URIs) == 0 {
+		return nil, connect.InvalidCSRError("CSR SAN does not contain a SPIFFE ID")
+	}
+	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Perform authorization.
+	var authzContext acl.AuthorizerContext
+	allow := authz.ToAllowAuthorizer()
+	switch v := spiffeID.(type) {
+	case *connect.SpiffeIDService:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.ServiceWriteAllowed(v.Service, &authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the service URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
+	case *connect.SpiffeIDAgent:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
+	}
+
+	return c.SignCertificate(csr, spiffeID)
+}
+
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
 	if provider == nil {
@@ -1385,13 +1436,13 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
-		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if isService {
 		if !signingID.CanSign(spiffeID) {
-			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())

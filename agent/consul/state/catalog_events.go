@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
@@ -10,6 +11,38 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
+
+// EventSubjectService is a stream.Subject used to route and receive events for
+// a specific service.
+type EventSubjectService struct {
+	Key            string
+	EnterpriseMeta acl.EnterpriseMeta
+
+	overrideKey       string
+	overrideNamespace string
+	overridePartition string
+}
+
+// String satisfies the stream.Subject interface.
+func (s EventSubjectService) String() string {
+	partition := s.EnterpriseMeta.PartitionOrDefault()
+	if v := s.overridePartition; v != "" {
+		partition = strings.ToLower(v)
+	}
+
+	namespace := s.EnterpriseMeta.NamespaceOrDefault()
+	if v := s.overrideNamespace; v != "" {
+		namespace = strings.ToLower(v)
+	}
+
+	key := s.Key
+	if v := s.overrideKey; v != "" {
+		key = v
+	}
+	key = strings.ToLower(key)
+
+	return partition + "/" + namespace + "/" + key
+}
 
 // EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
 // indicates changes to a CheckServiceNode for service health.
@@ -33,79 +66,72 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 }
 
 func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
-	partition := e.Value.Service.PartitionOrDefault()
-	if e.overridePartition != "" {
-		partition = e.overridePartition
-	}
-	partition = strings.ToLower(partition)
+	return EventSubjectService{
+		Key:            e.Value.Service.Service,
+		EnterpriseMeta: e.Value.Service.EnterpriseMeta,
 
-	namespace := e.Value.Service.NamespaceOrDefault()
-	if e.overrideNamespace != "" {
-		namespace = e.overrideNamespace
+		overrideKey:       e.overrideKey,
+		overrideNamespace: e.overrideNamespace,
+		overridePartition: e.overridePartition,
 	}
-	namespace = strings.ToLower(namespace)
-
-	key := e.Value.Service.Service
-	if e.overrideKey != "" {
-		key = e.overrideKey
-	}
-	key = strings.ToLower(key)
-
-	return stream.Subject(partition + "/" + namespace + "/" + key)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
 // of stream.Events that describe the current state of a service health query.
-func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
-	return func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
-		tx := db.ReadTxn()
-		defer tx.Abort()
+func (s *Store) ServiceHealthSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
 
-		connect := topic == topicServiceHealthConnect
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &req.EnterpriseMeta)
-		if err != nil {
-			return 0, err
-		}
+	connect := req.Topic == EventTopicServiceHealthConnect
 
-		for i := range nodes {
-			n := nodes[i]
-			event := stream.Event{
-				Index: idx,
-				Topic: topic,
-				Payload: EventPayloadCheckServiceNode{
-					Op:    pbsubscribe.CatalogOp_Register,
-					Value: &n,
-				},
-			}
-
-			if !connect {
-				// append each event as a separate item so that they can be serialized
-				// separately, to prevent the encoding of one massive message.
-				buf.Append([]stream.Event{event})
-				continue
-			}
-
-			events, err := connectEventsByServiceKind(tx, event)
-			if err != nil {
-				return idx, err
-			}
-			buf.Append(events)
-		}
-
-		return idx, err
+	subject, ok := req.Subject.(EventSubjectService)
+	if !ok {
+		return 0, fmt.Errorf("expected SubscribeRequest.Subject to be a: state.EventSubjectService, was a: %T", req.Subject)
 	}
+
+	idx, nodes, err := checkServiceNodesTxn(tx, nil, subject.Key, connect, &subject.EnterpriseMeta)
+	if err != nil {
+		return 0, err
+	}
+
+	for i := range nodes {
+		n := nodes[i]
+		event := stream.Event{
+			Index: idx,
+			Topic: req.Topic,
+			Payload: EventPayloadCheckServiceNode{
+				Op:    pbsubscribe.CatalogOp_Register,
+				Value: &n,
+			},
+		}
+
+		if !connect {
+			// append each event as a separate item so that they can be serialized
+			// separately, to prevent the encoding of one massive message.
+			buf.Append([]stream.Event{event})
+			continue
+		}
+
+		events, err := connectEventsByServiceKind(tx, event)
+		if err != nil {
+			return idx, err
+		}
+		buf.Append(events)
+	}
+
+	return idx, err
 }
 
 // TODO: this could use NodeServiceQuery
 type nodeServiceTuple struct {
 	Node      string
 	ServiceID string
-	EntMeta   structs.EnterpriseMeta
+	EntMeta   acl.EnterpriseMeta
 }
 
 func newNodeServiceTupleFromServiceNode(sn *structs.ServiceNode) nodeServiceTuple {
 	return nodeServiceTuple{
-		Node:      sn.Node,
+		Node:      strings.ToLower(sn.Node),
 		ServiceID: sn.ServiceID,
 		EntMeta:   sn.EnterpriseMeta,
 	}
@@ -113,7 +139,7 @@ func newNodeServiceTupleFromServiceNode(sn *structs.ServiceNode) nodeServiceTupl
 
 func newNodeServiceTupleFromServiceHealthCheck(hc *structs.HealthCheck) nodeServiceTuple {
 	return nodeServiceTuple{
-		Node:      hc.Node,
+		Node:      strings.ToLower(hc.Node),
 		ServiceID: hc.ServiceID,
 		EntMeta:   hc.EnterpriseMeta,
 	}
@@ -327,7 +353,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				for _, sn := range nodes {
 					e := newServiceHealthEventDeregister(changes.Index, sn)
 
-					e.Topic = topicServiceHealthConnect
+					e.Topic = EventTopicServiceHealthConnect
 					payload := e.Payload.(EventPayloadCheckServiceNode)
 					payload.overrideKey = serviceName.Name
 					if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
@@ -360,7 +386,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					return nil, err
 				}
 
-				e.Topic = topicServiceHealthConnect
+				e.Topic = EventTopicServiceHealthConnect
 				payload := e.Payload.(EventPayloadCheckServiceNode)
 				payload.overrideKey = serviceName.Name
 				if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
@@ -398,7 +424,7 @@ func isConnectProxyDestinationServiceChange(idx uint64, before, after *structs.S
 	}
 
 	e := newServiceHealthEventDeregister(idx, before)
-	e.Topic = topicServiceHealthConnect
+	e.Topic = EventTopicServiceHealthConnect
 	payload := e.Payload.(EventPayloadCheckServiceNode)
 	payload.overrideKey = payload.Value.Service.Proxy.DestinationServiceName
 	e.Payload = payload
@@ -439,7 +465,7 @@ func serviceHealthToConnectEvents(
 ) ([]stream.Event, error) {
 	var result []stream.Event
 	for _, event := range events {
-		if event.Topic != topicServiceHealth { // event.Topic == topicServiceHealthConnect
+		if event.Topic != EventTopicServiceHealth { // event.Topic == topicServiceHealthConnect
 			// Skip non-health or any events already emitted to Connect topic
 			continue
 		}
@@ -462,7 +488,7 @@ func connectEventsByServiceKind(tx ReadTxn, origEvent stream.Event) ([]stream.Ev
 	}
 
 	event := origEvent // shallow copy the event
-	event.Topic = topicServiceHealthConnect
+	event.Topic = EventTopicServiceHealthConnect
 
 	if node.Service.Connect.Native {
 		return []stream.Event{event}, nil
@@ -499,7 +525,7 @@ func connectEventsByServiceKind(tx ReadTxn, origEvent stream.Event) ([]stream.Ev
 }
 
 func copyEventForService(event stream.Event, service structs.ServiceName) stream.Event {
-	event.Topic = topicServiceHealthConnect
+	event.Topic = EventTopicServiceHealthConnect
 	payload := event.Payload.(EventPayloadCheckServiceNode)
 	payload.overrideKey = service.Name
 	if payload.Value.Service.EnterpriseMeta.NamespaceOrDefault() != service.EnterpriseMeta.NamespaceOrDefault() {
@@ -525,7 +551,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 // given node. This mirrors some of the the logic in the oddly-named
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
-func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *structs.EnterpriseMeta) ([]stream.Event, error) {
+func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *acl.EnterpriseMeta) ([]stream.Event, error) {
 	services, err := tx.Get(tableServices, indexNode, Query{
 		Value:          node,
 		EnterpriseMeta: *entMeta,
@@ -552,7 +578,7 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta 
 
 // getNodeAndNodeChecks returns a the node structure and a function that returns
 // the full list of checks for a specific service on that node.
-func getNodeAndChecks(tx ReadTxn, node string, entMeta *structs.EnterpriseMeta) (*structs.Node, serviceChecksFunc, error) {
+func getNodeAndChecks(tx ReadTxn, node string, entMeta *acl.EnterpriseMeta) (*structs.Node, serviceChecksFunc, error) {
 	// Fetch the node
 	nodeRaw, err := tx.First(tableNodes, indexID, Query{
 		Value:          node,
@@ -638,7 +664,7 @@ func newServiceHealthEventRegister(
 		Checks:  checks,
 	}
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: idx,
 		Payload: EventPayloadCheckServiceNode{
 			Op:    pbsubscribe.CatalogOp_Register,
@@ -669,7 +695,7 @@ func newServiceHealthEventDeregister(idx uint64, sn *structs.ServiceNode) stream
 	}
 
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: idx,
 		Payload: EventPayloadCheckServiceNode{
 			Op:    pbsubscribe.CatalogOp_Deregister,

@@ -12,4 +12,3 @@ const localConsentManagerServices: ConsentManagerService[] = [
 ]
 
 export default localConsentManagerServices
-

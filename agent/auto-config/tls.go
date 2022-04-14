@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconnect"
 )
 
 const (
@@ -140,7 +141,7 @@ func (ac *AutoConfig) updateCARoots(roots *structs.IndexedCARoots) error {
 		ac.Lock()
 		defer ac.Unlock()
 		var err error
-		ac.autoConfigResponse.CARoots, err = translateCARootsToProtobuf(roots)
+		ac.autoConfigResponse.CARoots, err = pbconnect.NewCARootsFromStructs(roots)
 		if err != nil {
 			return err
 		}
@@ -167,7 +168,7 @@ func (ac *AutoConfig) updateLeafCert(cert *structs.IssuedCert) error {
 		ac.Lock()
 		defer ac.Unlock()
 		var err error
-		ac.autoConfigResponse.Certificate, err = translateIssuedCertToProtobuf(cert)
+		ac.autoConfigResponse.Certificate, err = pbconnect.NewIssuedCertFromStructs(cert)
 		if err != nil {
 			return err
 		}

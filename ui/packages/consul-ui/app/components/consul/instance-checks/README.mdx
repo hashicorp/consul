@@ -1,0 +1,96 @@
+# Consul::InstanceChecks
+
+A presentational component to show an overview/summary of service or node
+health.
+
+```hbs preview-template
+<figure>
+  <figcaption>With no checks</figcaption>
+  <Consul::InstanceChecks
+    @type="service"
+    @items={{array}}
+  />
+</figure>
+<figure>
+  <figcaption>With all passing check</figcaption>
+  <Consul::InstanceChecks
+    @type="service"
+    @items={{array
+      (hash
+        Status="passing"
+      )
+    }}
+  />
+</figure>
+<figure>
+  <figcaption>With a warning check</figcaption>
+  <Consul::InstanceChecks
+    @type="service"
+    @items={{array
+      (hash
+        Status="passing"
+      )
+      (hash
+        Status="passing"
+      )
+      (hash
+        Status="warning"
+      )
+    }}
+  />
+</figure>
+<figure>
+  <figcaption>With a critical check</figcaption>
+  <Consul::InstanceChecks
+    @type="service"
+    @items={{array
+      (hash
+        Status="passing"
+      )
+      (hash
+        Status="warning"
+      )
+      (hash
+        Status="warning"
+      )
+      (hash
+        Status="critical"
+      )
+    }}
+  />
+</figure>
+<figure>
+  <figcaption>Nodes with a critical check</figcaption>
+  <Consul::InstanceChecks
+    @type="node"
+    @items={{array
+      (hash
+        Status="passing"
+      )
+      (hash
+        Status="warning"
+      )
+      (hash
+        Status="warning"
+      )
+      (hash
+        Status="critical"
+      )
+    }}
+  />
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `type` | `(service | node )` | | A simple string to use for labelling |
+| `items` | `Array` | | An array of Consul healthchecks |
+
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

@@ -2,19 +2,21 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/api"
+
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -412,42 +414,28 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "127.0.0.2",
 	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
 
 	// Nobody has coordinates set so this will still return them in the
 	// order they are indexed.
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertIndex(t, resp)
 	nodes := obj.(structs.Nodes)
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[2].Node != a.Config.NodeName {
-		t.Fatalf("bad: %v", nodes)
-	}
+	require.Len(t, nodes, 3)
+	require.Equal(t, "bar", nodes[0].Node)
+	require.Equal(t, "foo", nodes[1].Node)
+	require.Equal(t, a.Config.NodeName, nodes[2].Node)
 
 	// Send an update for the node and wait for it to get applied.
 	arg := structs.CoordinateUpdateRequest{
@@ -455,33 +443,21 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.RPC("Coordinate.Update", &arg, &out))
 	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CatalogNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertIndex(t, resp)
 	nodes = obj.(structs.Nodes)
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[2].Node != a.Config.NodeName {
-		t.Fatalf("bad: %v", nodes)
-	}
+	require.Len(t, nodes, 3)
+	require.Equal(t, "foo", nodes[0].Node)
+	require.Equal(t, "bar", nodes[1].Node)
+	require.Equal(t, a.Config.NodeName, nodes[2].Node)
 }
 
 func TestCatalogServices(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	fmt "fmt"
 	"reflect"
 
-	types "github.com/gogo/protobuf/types"
+	types "github.com/golang/protobuf/ptypes/struct"
 )
 
 // ProtobufTypesStructToMapStringInterface converts a protobuf/types.Struct into a

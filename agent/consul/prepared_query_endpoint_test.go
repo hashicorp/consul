@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"net/rpc"
 	"os"
 	"reflect"
 	"sort"
@@ -12,10 +11,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -3017,9 +3018,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
-			t.Fatalf("bad: %s", mock.LogBuffer.String())
-		}
+		require.Contains(t, mock.LogBuffer.String(), "Skipping unknown datacenter")
 	}
 
 	// Same setup as before but dc1 is going to return an error and should

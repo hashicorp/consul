@@ -29,6 +29,7 @@ module.exports = function(defaults, $ = process.env) {
   const apps = [
     'consul-ui',
     'consul-acls',
+    'consul-lock-sessions',
     'consul-partitions',
     'consul-nspaces'
   ].map(item => {

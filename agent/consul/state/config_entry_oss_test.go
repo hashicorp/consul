@@ -3,13 +3,17 @@
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func testIndexerTableConfigEntries() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
-				source: ConfigEntryKindName{
+				source: configentry.KindName{
 					Kind: "Proxy-Defaults",
 					Name: "NaMe",
 				},
@@ -21,7 +25,7 @@ func testIndexerTableConfigEntries() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{

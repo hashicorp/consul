@@ -119,32 +119,32 @@
             Logout
           </Action>
         </Portal>
-        <PopoverMenu @position="right" as |components api|>
-          <BlockSlot @name="trigger">
+        <DisclosureMenu as |disclosure|>
+          <disclosure.Action
+            {{on 'click' disclosure.toggle}}
+          >
             Logout
-          </BlockSlot>
-          <BlockSlot @name="menu">
-            {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-{{!TODO: It might be nice to use one of our recursive components here}}
-{{#if authDialog.token.AccessorID}}
-                <li role="none">
-                  <AuthProfile
-                    @item={{authDialog.token}}
-                  />
-                </li>
-                <MenuSeparator />
-{{/if}}
-                <MenuItem
-                  class="dangerous"
-                  @onclick={{action authDialog.logout}}
+          </disclosure.Action>
+          <disclosure.Menu as |panel|>
+      {{#if authDialog.token.AccessorID}}
+            <AuthProfile
+              @item={{authDialog.token}}
+            />
+      {{/if}}
+            <panel.Menu as |menu|>
+              <menu.Separator />
+              <menu.Item
+                class="dangerous"
+              >
+                <menu.Action
+                  {{on 'click' (optional authDialog.logout)}}
                 >
-                  <BlockSlot @name="label">
-                    Logout
-                  </BlockSlot>
-                </MenuItem>
-              {{/let}}
-          </BlockSlot>
-        </PopoverMenu>
+                  Logout
+                </menu.Action>
+              </menu.Item>
+            </panel.Menu>
+          </disclosure.Menu>
+        </DisclosureMenu>
       </:authorized>
     </AuthDialog>
 

@@ -37,16 +37,62 @@
     <section class="meta">
       <dl>
         <dt>Type</dt>
-        <dd><Consul::AuthMethod::Type @item={{@item}} /></dd>
+        <dd>
+          <Consul::AuthMethod::Type @item={{@item}} />
+        </dd>
 
-      {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
-        {{#if (get @item value)}}
+{{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+  {{#if (get @item value)}}
+
         <dt>{{t (concat "models.auth-method." value)}}</dt>
         <dd>{{get @item value}}</dd>
-        {{/if}}
-      {{/each}}
 
-      {{#if (eq @item.Type 'jwt')}}
+  {{/if}}
+{{/each}}
+
+      {{#if (eq @item.Type 'aws-iam')}}
+
+{{#let
+  @item.Config
+as |config|}}
+  {{#each (array
+    "BoundIAMPrincipalARNs"
+    "EnableIAMEntityDetails"
+    "IAMEntityTags"
+    "IAMEndpoint"
+    "MaxRetries"
+    "STSEndpoint"
+    "STSRegion"
+    "AllowedSTSHeaderValues"
+    "ServerIDHeaderValue"
+  ) as |value|}}
+    {{#if (get config value)}}
+
+        <dt>{{t (concat "models.auth-method." value)}}</dt>
+        <dd>
+{{#let
+  (get config value)
+as |item|}}
+  {{#if (array-is-array item)}}
+          <ul>
+    {{#each item as |jtem|}}
+              <li>
+                <span>{{jtem}}</span>
+              </li>
+    {{/each}}
+          </ul>
+  {{else}}
+          {{item}}
+  {{/if}}
+{{/let}}
+        </dd>
+
+    {{/if}}
+  {{/each}}
+
+{{/let}}
+
+      {{else if (eq @item.Type 'jwt')}}
         {{#if @item.Config.JWKSURL}}
         <dt>{{t 'models.auth-method.Config.JWKSURL'}}</dt>
         <dd>
@@ -164,6 +210,7 @@
       </dl>
     </section>
 
+    {{#if (not (eq @item.Type 'aws-iam'))}}
     <hr />
 
     <section class="claim-mappings">
@@ -250,4 +297,5 @@
     {{/if}}
     </section>
   {{/if}}
+{{/if}}
   </div>

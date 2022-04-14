@@ -118,7 +118,7 @@ func (s *Server) updateOurFederationState(curr *structs.FederationState) error {
 
 	if s.config.Datacenter == s.config.PrimaryDatacenter {
 		// We are the primary, so we can't do an RPC as we don't have a replication token.
-		_, err := s.raftApply(structs.FederationStateRequestType, args)
+		_, err := s.leaderRaftApply("FederationState.Apply", structs.FederationStateRequestType, args)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,8 @@ func (s *Server) pruneStaleFederationStates() error {
 				Datacenter: dc,
 			},
 		}
-		_, err := s.raftApply(structs.FederationStateRequestType, &req)
+		_, err := s.leaderRaftApply("FederationState.Delete", structs.FederationStateRequestType, &req)
+
 		if err != nil {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, err)
 		}

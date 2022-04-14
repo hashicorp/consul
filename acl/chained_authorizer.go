@@ -235,6 +235,13 @@ func (c *ChainedAuthorizer) ServiceWrite(name string, entCtx *AuthorizerContext)
 	})
 }
 
+// ServiceWriteAny checks for write permission on any service
+func (c *ChainedAuthorizer) ServiceWriteAny(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.ServiceWriteAny(entCtx)
+	})
+}
+
 // SessionRead checks for permission to read sessions for a given node.
 func (c *ChainedAuthorizer) SessionRead(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
@@ -255,4 +262,8 @@ func (c *ChainedAuthorizer) Snapshot(entCtx *AuthorizerContext) EnforcementDecis
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.Snapshot(entCtx)
 	})
+}
+
+func (c *ChainedAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
+	return AllowAuthorizer{Authorizer: c}
 }

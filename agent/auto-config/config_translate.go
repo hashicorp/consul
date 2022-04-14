@@ -1,16 +1,12 @@
 package autoconf
 
 import (
-	"fmt"
-
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/types"
 )
 
 // translateAgentConfig is meant to take in a proto/pbconfig.Config type
@@ -86,11 +82,22 @@ func translateConfig(c *pbconfig.Config) config.Config {
 	}
 
 	if t := c.TLS; t != nil {
-		result.VerifyOutgoing = &t.VerifyOutgoing
-		result.VerifyServerHostname = &t.VerifyServerHostname
-		result.TLSMinVersion = stringPtrOrNil(t.MinVersion)
-		result.TLSCipherSuites = stringPtrOrNil(t.CipherSuites)
-		result.TLSPreferServerCipherSuites = &t.PreferServerCipherSuites
+		result.TLS.Defaults = config.TLSProtocolConfig{
+			VerifyOutgoing:  &t.VerifyOutgoing,
+			TLSCipherSuites: stringPtrOrNil(t.CipherSuites),
+		}
+
+		// NOTE: This inner check for deprecated values should eventually be
+		// removed, and possibly replaced with a versioning scheme for autoconfig
+		// or a proper integration with the deprecated config handling in
+		// agent/config/deprecated.go
+		if v, ok := types.DeprecatedConsulAgentTLSVersions[t.MinVersion]; ok {
+			result.TLS.Defaults.TLSMinVersion = stringPtrOrNil(v.String())
+		} else {
+			result.TLS.Defaults.TLSMinVersion = stringPtrOrNil(t.MinVersion)
+		}
+
+		result.TLS.InternalRPC.VerifyServerHostname = &t.VerifyServerHostname
 	}
 
 	return result
@@ -104,12 +111,12 @@ func stringPtrOrNil(v string) *string {
 }
 
 func extractSignedResponse(resp *pbautoconf.AutoConfigResponse) (*structs.SignedResponse, error) {
-	roots, err := translateCARootsToStructs(resp.CARoots)
+	roots, err := pbconnect.CARootsToStructs(resp.CARoots)
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := translateIssuedCertToStructs(resp.Certificate)
+	cert, err := pbconnect.IssuedCertToStructs(resp.Certificate)
 	if err != nil {
 		return nil, err
 	}
@@ -125,72 +132,4 @@ func extractSignedResponse(resp *pbautoconf.AutoConfigResponse) (*structs.Signed
 	}
 
 	return out, err
-}
-
-// translateCARootsToStructs will create a structs.IndexedCARoots object from the corresponding
-// protobuf struct. Those structs are intended to be identical so the conversion just uses
-// mapstructure to go from one to the other.
-func translateCARootsToStructs(in *pbconnect.CARoots) (*structs.IndexedCARoots, error) {
-	var out structs.IndexedCARoots
-	if err := mapstructureTranslateToStructs(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-// translateIssuedCertToStructs will create a structs.IssuedCert object from the corresponding
-// protobuf struct. Those structs are intended to be identical so the conversion just uses
-// mapstructure to go from one to the other.
-func translateIssuedCertToStructs(in *pbconnect.IssuedCert) (*structs.IssuedCert, error) {
-	var out structs.IssuedCert
-	if err := mapstructureTranslateToStructs(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToStructs(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookPBTimestampToTime,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
-}
-
-func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
-	var out pbconnect.CARoots
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
-	var out pbconnect.IssuedCert
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookTimeToPBTimestamp,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
 }

@@ -7,14 +7,14 @@ description: >-
 
 # Install Consul-Terraform-Sync
 
-Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial for details about installing, configuring, and running Consul-Terraform-Sync on your local machine with the Terraform driver.
+Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial for details about installing, configuring, and running Consul-Terraform-Sync (CTS) on your local machine with the Terraform driver.
 
 ## Install Consul-Terraform-Sync
 
 <Tabs>
 <Tab heading="Pre-compiled binary">
 
-To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/docs/nia/enterprise/license) to run.
+To install CTS, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/docs/nia/enterprise/license) to run.
 
 Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
@@ -35,7 +35,7 @@ $ consul-terraform-sync -version
 </Tab>
 <Tab heading="Docker">
 
-Install and run Consul-Terraform-Sync as a [Docker container](https://hub.docker.com/r/hashicorp/consul-terraform-sync).
+Install and run CTS as a [Docker container](https://hub.docker.com/r/hashicorp/consul-terraform-sync).
 
 For the CTS Enterprise, use the Docker image [`hashicorp/consul-terraform-sync-enterprise`](https://hub.docker.com/r/hashicorp/consul-terraform-sync-enterprise).
 
@@ -94,7 +94,7 @@ $ consul-terraform-sync -version
 
 ## Connect your Consul Cluster
 
-Consul-Terraform-Sync connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in Consul-Terraform-Sync with the [Consul block](/docs/nia/configuration#consul). Below is an example:
+CTS connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in CTS with the [Consul block](/docs/nia/configuration#consul). Below is an example:
 
 ```hcl
 consul {
@@ -105,9 +105,9 @@ consul {
 
 ## Connect your Network Device
 
-Consul-Terraform-Sync interacts with your network device through a network driver. For the Terraform network driver, Consul-Terraform-Sync uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
+CTS interacts with your network device through a network driver. For the Terraform network driver, CTS uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
 
-Once you have identified a Terraform provider for all of your network devices, you can configure them in Consul-Terraform-Sync with a [`terraform_provider` block](/docs/nia/configuration#terraform-provider) for each network device. Below is an example:
+Once you have identified a Terraform provider for all of your network devices, you can configure them in CTS with a [`terraform_provider` block](/docs/nia/configuration#terraform-provider) for each network device. Below is an example:
 
 ```hcl
 terraform_provider "fake-firewall" {

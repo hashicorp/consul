@@ -21,17 +21,18 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-msgpack/codec"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
-	agent_grpc "github.com/hashicorp/consul/agent/grpc"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -227,11 +228,9 @@ func (m *MockSink) Close() error {
 	return nil
 }
 
-func TestRPC_blockingQuery(t *testing.T) {
+func TestServer_blockingQuery(t *testing.T) {
 	t.Parallel()
-	dir, s := testServer(t)
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
+	_, s := testServerWithConfig(t)
 
 	// Perform a non-blocking query. Note that it's significant that the meta has
 	// a zero index in response - the implied opts.MinQueryIndex is also zero but
@@ -391,6 +390,93 @@ func TestRPC_blockingQuery(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
 	})
+
+	t.Run("non-blocking query for item that does not exist", func(t *testing.T) {
+		opts := structs.QueryOptions{}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
+			calls++
+			return errNotFound
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+	})
+
+	t.Run("blocking query for item that does not exist", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return errNotFound
+			}
+			meta.Index = 5
+			return errNotFound
+		}
+
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
+
+	t.Run("blocking query for item that existed and is removed", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return nil
+			}
+			meta.Index = 5
+			return errNotFound
+		}
+
+		start := time.Now()
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
+
+	t.Run("blocking query for non-existent item that is created", func(t *testing.T) {
+		opts := structs.QueryOptions{MinQueryIndex: 3, MaxQueryTime: 100 * time.Millisecond}
+		meta := structs.QueryMeta{}
+		calls := 0
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
+			calls++
+			if calls == 1 {
+				meta.Index = 3
+
+				ch := make(chan struct{})
+				close(ch)
+				ws.Add(ch)
+				return errNotFound
+			}
+			meta.Index = 5
+			return nil
+		}
+
+		start := time.Now()
+		err := s.blockingQuery(&opts, &meta, fn)
+		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.NoError(t, err)
+		require.Equal(t, 2, calls)
+	})
 }
 
 func TestRPC_ReadyForConsistentReads(t *testing.T) {
@@ -480,12 +566,12 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -576,12 +662,12 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-				c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-				c.TLSConfig.VerifyServerHostname = true
-				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+				c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+				c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+				c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+				c.TLSConfig.InternalRPC.VerifyServerHostname = true
+				c.TLSConfig.InternalRPC.VerifyOutgoing = true
+				c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 				c.TLSConfig.Domain = "consul"
 			})
 			defer os.RemoveAll(dir1)
@@ -731,19 +817,22 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.RPCMaxConnsPerClient = 2
+				// we have to set this to 3 because autopilot is going to keep a connection open
+				c.RPCMaxConnsPerClient = 3
 				if tc.tlsEnabled {
-					c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-					c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-					c.TLSConfig.VerifyServerHostname = true
-					c.TLSConfig.VerifyOutgoing = true
-					c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+					c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+					c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+					c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+					c.TLSConfig.InternalRPC.VerifyServerHostname = true
+					c.TLSConfig.InternalRPC.VerifyOutgoing = true
+					c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 					c.TLSConfig.Domain = "consul"
 				}
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
+
+			waitForLeaderEstablishment(t, s1)
 
 			// Connect to the server with bare TCP
 			conn1 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn1")
@@ -761,7 +850,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			addr := conn1.RemoteAddr()
 			conn1.Close()
 			retry.Run(t, func(r *retry.R) {
-				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 2 {
+				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 3 {
 					r.Fatal("waiting for open conns to drop")
 				}
 			})
@@ -909,7 +998,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1042,7 +1131,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1281,8 +1370,8 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return false
+func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return false, nil
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
@@ -1331,11 +1420,11 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	_, srv := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul." // consul. is the default value in agent/config
-		c.TLSConfig.CAFile = filepath.Join(dir, "ca.pem")
-		c.TLSConfig.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
-		c.TLSConfig.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = filepath.Join(dir, "ca.pem")
+		c.TLSConfig.InternalRPC.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
+		c.TLSConfig.InternalRPC.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// Enable Auto-Encrypt so that Connect CA roots are added to the
 		// tlsutil.Configurator.
 		c.AutoEncryptAllowTLS = true
@@ -1424,12 +1513,14 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		certPath := tc.setupCert(t)
 
 		cfg := tlsutil.Config{
-			VerifyOutgoing:       true,
-			VerifyServerHostname: true,
-			CAFile:               filepath.Join(dir, "ca.pem"),
-			CertFile:             certPath + ".pem",
-			KeyFile:              certPath + ".key",
-			Domain:               "consul",
+			InternalRPC: tlsutil.ProtocolConfig{
+				VerifyOutgoing:       true,
+				VerifyServerHostname: true,
+				CAFile:               filepath.Join(dir, "ca.pem"),
+				CertFile:             certPath + ".pem",
+				KeyFile:              certPath + ".key",
+			},
+			Domain: "consul",
 		}
 		c, err := tlsutil.NewConfigurator(cfg, hclog.New(nil))
 		require.NoError(t, err)
@@ -1595,4 +1686,105 @@ func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.Subsc
 		return nil, err
 	}
 	return event, nil
+}
+
+// channelCallRPC lets you execute an RPC async. Helpful in some
+// tests.
+func channelCallRPC(
+	srv *Server,
+	method string,
+	args interface{},
+	resp interface{},
+	responseInterceptor func() error,
+) <-chan error {
+	errCh := make(chan error, 1)
+	go func() {
+		codec, err := rpcClientNoClose(srv)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer codec.Close()
+
+		err = msgpackrpc.CallWithCodec(codec, method, args, resp)
+		if err == nil && responseInterceptor != nil {
+			err = responseInterceptor()
+		}
+		errCh <- err
+	}()
+	return errCh
+}
+
+// rpcBlockingQueryTestHarness is specifically meant to test the
+// errNotFound and errNotChanged mechanisms in blockingQuery()
+func rpcBlockingQueryTestHarness(
+	t *testing.T,
+	readQueryFn func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error),
+	noisyWriteFn func(i int) <-chan error,
+) {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	launchWriters := func() {
+		defer cancel()
+
+		for i := 0; i < 200; i++ {
+			time.Sleep(5 * time.Millisecond)
+
+			errCh := noisyWriteFn(i)
+			select {
+			case <-ctx.Done():
+				return
+			case err := <-errCh:
+				if err != nil {
+					t.Errorf("[%d] unexpected error: %v", i, err)
+					return
+				}
+			}
+		}
+	}
+
+	var (
+		count         int
+		minQueryIndex uint64
+	)
+
+	for ctx.Err() == nil {
+		// The first iteration is an orientation iteration, as we don't pass an
+		// index value so there is no actual blocking that will happen.
+		//
+		// Since the data is not changing, we don't expect the second iteration
+		// to return soon, so we wait a bit after kicking it off before
+		// launching the write-storm.
+		var timerCh <-chan time.Time
+		if count == 1 {
+			timerCh = time.After(50 * time.Millisecond)
+		}
+
+		qm, errCh := readQueryFn(minQueryIndex)
+
+	RESUME:
+		select {
+		case err := <-errCh:
+			if err != nil {
+				require.NoError(t, err)
+			}
+
+			t.Log("blocking query index", qm.Index)
+			count++
+			minQueryIndex = qm.Index
+
+		case <-timerCh:
+			timerCh = nil
+			go launchWriters()
+			goto RESUME
+
+		case <-ctx.Done():
+			break
+		}
+	}
+
+	require.Equal(t, 1, count, "if this fails, then the timer likely needs to be increased above")
 }

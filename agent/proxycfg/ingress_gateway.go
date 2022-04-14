@@ -25,6 +25,18 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 		return snap, err
 	}
 
+	// Get information about the entire service mesh.
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch this ingress gateway's config entry
 	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
 		Kind:           structs.IngressGateway,

@@ -237,6 +237,10 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 }
 
 func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (policies []*ACLPolicy) {
+	datacenters := []string{"dc1", "dc2"}
+	if partition != "" && partition != "default" {
+		datacenters = []string{"dc1"}
+	}
 	var wqPart *WriteOptions
 	if partition != "" {
 		wqPart = &WriteOptions{Partition: partition}
@@ -245,7 +249,7 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 		Name:        "one",
 		Description: "one description",
 		Rules:       `acl = "read"`,
-		Datacenters: []string{"dc1", "dc2"},
+		Datacenters: datacenters,
 	}, wqPart)
 
 	require.NoError(t, err)
@@ -256,7 +260,7 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 		Name:        "two",
 		Description: "two description",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Datacenters: []string{"dc1", "dc2"},
+		Datacenters: datacenters,
 	}, wqPart)
 
 	require.NoError(t, err)

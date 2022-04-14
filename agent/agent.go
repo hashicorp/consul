@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -36,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
+	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
@@ -162,16 +164,16 @@ type delegate interface {
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
 	// should be another node inside the DC listening on the Serf LAN address
-	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error)
+	JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error)
 
 	// RemoveFailedNode is used to remove a failed node from the cluster.
-	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
+	RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error
 
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -205,6 +207,10 @@ type Agent struct {
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
+
+	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// opposed to the multiplexed "server" port).
+	publicGRPCServer *grpc.Server
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -335,10 +341,6 @@ type Agent struct {
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
 
-	// grpcServer is the server instance used currently to serve xDS API for
-	// Envoy.
-	grpcServer *grpc.Server
-
 	// tlsConfigurator is the central instance to provide a *tls.Config
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
@@ -358,6 +360,13 @@ type Agent struct {
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
+
+	// configFileWatcher is the watcher responsible to report events when a config file
+	// changed
+	configFileWatcher config.Watcher
+
+	// xdsServer serves the XDS protocol for configuring Envoy proxies.
+	xdsServer *xds.Server
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -439,6 +448,28 @@ func New(bd BaseDeps) (*Agent, error) {
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
 
+	for _, f := range []struct {
+		Cfg tlsutil.ProtocolConfig
+	}{
+		{a.baseDeps.RuntimeConfig.TLS.InternalRPC},
+		{a.baseDeps.RuntimeConfig.TLS.GRPC},
+		{a.baseDeps.RuntimeConfig.TLS.HTTPS},
+	} {
+		if f.Cfg.KeyFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.KeyFile)
+		}
+		if f.Cfg.CertFile != "" {
+			a.baseDeps.WatchedFiles = append(a.baseDeps.WatchedFiles, f.Cfg.CertFile)
+		}
+	}
+	if a.baseDeps.RuntimeConfig.AutoReloadConfig && len(a.baseDeps.WatchedFiles) > 0 {
+		w, err := config.NewRateLimitedFileWatcher(a.baseDeps.WatchedFiles, a.baseDeps.Logger, a.baseDeps.RuntimeConfig.AutoReloadConfigCoalesceInterval)
+		if err != nil {
+			return nil, err
+		}
+		a.configFileWatcher = w
+	}
+
 	return &a, nil
 }
 
@@ -489,9 +520,13 @@ func (a *Agent) Start(ctx context.Context) error {
 	c.NodeID = a.config.NodeID
 	a.config = c
 
-	if err := a.tlsConfigurator.Update(a.config.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
+
+	// This needs to happen after the initial auto-config is loaded, because TLS
+	// can only be configured on the gRPC server at the point of creation.
+	a.buildPublicGRPCServer()
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -530,7 +565,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.publicGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -670,7 +705,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
 	// future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
@@ -683,6 +718,21 @@ func (a *Agent) Start(ctx context.Context) error {
 		{Name: "version", Value: a.config.Version},
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
+
+	// start a go routine to reload config based on file watcher events
+	if a.configFileWatcher != nil {
+		a.baseDeps.Logger.Debug("starting file watcher")
+		a.configFileWatcher.Start(context.Background())
+		go func() {
+			for event := range a.configFileWatcher.EventsCh() {
+				a.baseDeps.Logger.Debug("auto-reload config triggered", "num-events", len(event.Filenames))
+				err := a.AutoReloadConfig()
+				if err != nil {
+					a.baseDeps.Logger.Error("error loading config", "error", err)
+				}
+			}
+		}()
+	}
 
 	return nil
 }
@@ -700,13 +750,23 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
+func (a *Agent) buildPublicGRPCServer() {
+	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
+	var tls *tlsutil.Configurator
+	if a.config.HTTPSPort > 0 {
+		tls = a.tlsConfigurator
+	}
+	a.publicGRPCServer = publicgrpc.NewServer(a.logger.Named("grpc.public"), tls)
+}
+
 func (a *Agent) listenAndServeGRPC() error {
 	if len(a.config.GRPCAddrs) < 1 {
 		return nil
 	}
 
-	xdsServer := xds.NewServer(
+	a.xdsServer = xds.NewServer(
 		a.logger.Named(logging.Envoy),
+		a.config.ConnectServerlessPluginEnabled,
 		a.proxyConfig,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
@@ -714,15 +774,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		a,
 		a,
 	)
-
-	tlsConfig := a.tlsConfigurator
-	// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is not enabled
-	// then gRPC should not use TLS.
-	if a.config.HTTPSPort <= 0 {
-		tlsConfig = nil
-	}
-	var err error
-	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
+	a.xdsServer.Register(a.publicGRPCServer)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
@@ -735,7 +787,7 @@ func (a *Agent) listenAndServeGRPC() error {
 				"address", innerL.Addr().String(),
 				"network", innerL.Addr().Network(),
 			)
-			err := a.grpcServer.Serve(innerL)
+			err := a.publicGRPCServer.Serve(innerL)
 			if err != nil {
 				a.logger.Error("gRPC server failed", "error", err)
 			}
@@ -1074,8 +1126,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
 	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
 	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
-	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
 	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
@@ -1091,8 +1143,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
 		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
 		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
-		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.StaticRuntimeConfig.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.StaticRuntimeConfig.EncryptVerifyOutgoing
 		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
 		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
 		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
@@ -1217,7 +1269,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
-	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+	cfg.TLSConfig = runtimeCfg.TLS
 
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
@@ -1284,11 +1336,11 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
 		}
-		if config.EncryptVerifyIncoming {
-			serfConf.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+		if config.StaticRuntimeConfig.EncryptVerifyIncoming {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = config.StaticRuntimeConfig.EncryptVerifyIncoming
 		}
-		if config.EncryptVerifyOutgoing {
-			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+		if config.StaticRuntimeConfig.EncryptVerifyOutgoing {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.StaticRuntimeConfig.EncryptVerifyOutgoing
 		}
 
 		var rpcAddr *net.TCPAddr
@@ -1362,20 +1414,25 @@ func (a *Agent) ShutdownAgent() error {
 	// Stop the watches to avoid any notification/state change during shutdown
 	a.stopAllWatches()
 
+	// Stop config file watcher
+	if a.configFileWatcher != nil {
+		a.configFileWatcher.Stop()
+	}
+
 	a.stopLicenseManager()
 
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
 	a.baseDeps.AutoConfig.Stop()
 
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
 		a.serviceManager.Stop()
 	}
 
 	// Stop all the checks
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
 	for _, chk := range a.checkMonitors {
 		chk.Stop()
 	}
@@ -1402,9 +1459,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	if a.grpcServer != nil {
-		a.grpcServer.Stop()
-	}
+	a.publicGRPCServer.Stop()
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {
@@ -1481,7 +1536,7 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 }
 
 // JoinLAN is used to have the agent join a LAN cluster
-func (a *Agent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
+func (a *Agent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error) {
 	a.logger.Info("(LAN) joining", "lan_addresses", addrs)
 	n, err = a.delegate.JoinLAN(addrs, entMeta)
 	if err == nil {
@@ -1548,7 +1603,7 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	a.logger.Info("Force leaving node", "node", node)
 
 	err := a.delegate.RemoveFailedNode(node, prune, entMeta)
@@ -1562,7 +1617,7 @@ func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseM
 }
 
 // ForceLeaveWAN is used to remove a failed node from the WAN cluster
-func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	a.logger.Info("(WAN) Force leaving node", "node", node)
 
 	srv, ok := a.delegate.(*consul.Server)
@@ -1758,14 +1813,17 @@ func (a *Agent) reapServicesInternal() {
 		if timeout > 0 && cs.CriticalFor() > timeout {
 			reaped[serviceID] = true
 			if err := a.RemoveService(serviceID); err != nil {
-				a.logger.Error("unable to deregister service after check has been critical for too long",
+				a.logger.Error("failed to deregister service with critical health that exceeded health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
-					"error", err)
+					"timeout", timeout.String(),
+					"error", err,
+				)
 			} else {
-				a.logger.Info("Check for service has been critical for too long; deregistered service",
+				a.logger.Info("deregistered service with critical health due to exceeding health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
+					"timeout", timeout.String(),
 				)
 			}
 		}
@@ -1868,7 +1926,7 @@ func (a *Agent) purgeCheck(checkID structs.CheckID) error {
 type persistedServiceConfig struct {
 	ServiceID string
 	Defaults  *structs.ServiceConfigResponse
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (a *Agent) makeServiceConfigFilePath(serviceID structs.ServiceID) string {
@@ -1962,7 +2020,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -2120,10 +2178,22 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		if name == "" {
 			name = fmt.Sprintf("Service '%s' check", service.Service)
 		}
+
+		var intervalStr string
+		var timeoutStr string
+		if chkType.Interval != 0 {
+			intervalStr = chkType.Interval.String()
+		}
+		if chkType.Timeout != 0 {
+			timeoutStr = chkType.Interval.String()
+		}
+
 		check := &structs.HealthCheck{
 			Node:           a.config.NodeName,
 			CheckID:        types.CheckID(checkID),
 			Name:           name,
+			Interval:       intervalStr,
+			Timeout:        timeoutStr,
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,
@@ -2618,18 +2688,19 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 
 			http := &checks.CheckHTTP{
-				CheckID:         cid,
-				ServiceID:       sid,
-				HTTP:            chkType.HTTP,
-				Header:          chkType.Header,
-				Method:          chkType.Method,
-				Body:            chkType.Body,
-				Interval:        chkType.Interval,
-				Timeout:         chkType.Timeout,
-				Logger:          a.logger,
-				OutputMaxSize:   maxOutputSize,
-				TLSClientConfig: tlsClientConfig,
-				StatusHandler:   statusHandler,
+				CheckID:          cid,
+				ServiceID:        sid,
+				HTTP:             chkType.HTTP,
+				Header:           chkType.Header,
+				Method:           chkType.Method,
+				Body:             chkType.Body,
+				DisableRedirects: chkType.DisableRedirects,
+				Interval:         chkType.Interval,
+				Timeout:          chkType.Timeout,
+				Logger:           a.logger,
+				OutputMaxSize:    maxOutputSize,
+				TLSClientConfig:  tlsClientConfig,
+				StatusHandler:    statusHandler,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
@@ -3323,7 +3394,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
@@ -3479,7 +3550,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
 			a.logger.Info("Purging check file in wrong partition",
 				"file", file,
 				"partition", p.Check.PartitionOrDefault(),
@@ -3674,10 +3745,18 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Info("Node left maintenance mode")
 }
 
+func (a *Agent) AutoReloadConfig() error {
+	return a.reloadConfig(true)
+}
+
+func (a *Agent) ReloadConfig() error {
+	return a.reloadConfig(false)
+}
+
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
-func (a *Agent) ReloadConfig() error {
+func (a *Agent) reloadConfig(autoReload bool) error {
 	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
@@ -3688,13 +3767,59 @@ func (a *Agent) ReloadConfig() error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	//if auto reload is enabled, make sure we have the right certs file watched.
+	if autoReload {
+		for _, f := range []struct {
+			oldCfg tlsutil.ProtocolConfig
+			newCfg tlsutil.ProtocolConfig
+		}{
+			{a.config.TLS.InternalRPC, newCfg.TLS.InternalRPC},
+			{a.config.TLS.GRPC, newCfg.TLS.GRPC},
+			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
+		} {
+			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
+				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				if err != nil {
+					return err
+				}
+			}
+			if f.oldCfg.CertFile != f.newCfg.CertFile {
+				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				if err != nil {
+					return err
+				}
+			}
+			if revertStaticConfig(f.oldCfg, f.newCfg) {
+				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
+			}
+		}
+		if !reflect.DeepEqual(newCfg.StaticRuntimeConfig, a.config.StaticRuntimeConfig) {
+			a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", a.config.StaticRuntimeConfig, "StaticRuntimeConfig From file", newCfg.StaticRuntimeConfig)
+			// reset not reloadable fields
+			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
+		}
+	}
+
 	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
 	// metrics in a future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	return a.reloadConfigInternal(newCfg)
+}
+
+func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolConfig) bool {
+	newNewCfg := oldCfg
+	newNewCfg.CertFile = newCfg.CertFile
+	newNewCfg.KeyFile = newCfg.KeyFile
+	newOldcfg := newCfg
+	newOldcfg.CertFile = oldCfg.CertFile
+	newOldcfg.KeyFile = oldCfg.KeyFile
+	if !reflect.DeepEqual(newOldcfg, oldCfg) {
+		return true
+	}
+	return false
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing
@@ -3735,7 +3860,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// the checks and service registrations.
 	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
-	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
+	if err := a.tlsConfigurator.Update(newCfg.TLS); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
 

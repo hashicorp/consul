@@ -126,7 +126,10 @@ connect {
 }
 ```
 
-Any references to [`start_join_wan`](/docs/agent/options#start_join_wan) or [`retry_join_wan`](/docs/agent/options#retry_join_wan) should be omitted.
+The [`start_join_wan`](/docs/agent/config/config-files#start_join_wan) or
+[`retry_join_wan`](/docs/agent/config/config-files#retry_join_wan) are
+only used for the [traditional federation process](/docs/k8s/installation/multi-cluster#traditional-wan-federation).
+They must be omitted when federating Consul servers via gateways.
 
 -> The `primary_gateways` configuration can also use `go-discover` syntax just
 like `retry_join_wan`.
@@ -179,5 +182,5 @@ expected result:
   their _local_ ip addresses and are listed as `alive`.
 
 - Ensure any API request that activates datacenter request forwarding. such as
-  [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api/catalog#dc-1)
+  [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api-docs/catalog#dc-1)
   succeeds.

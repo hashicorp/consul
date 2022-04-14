@@ -724,6 +724,17 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, expected, token)
 		})
+		t.Run("Read-expanded", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root&expanded=true", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tokenResp, ok := obj.(*structs.ACLTokenExpanded)
+			require.True(t, ok)
+			require.Equal(t, expected, tokenResp.ACLToken)
+			require.Len(t, tokenResp.ExpandedPolicies, 3)
+		})
 		t.Run("Self", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
 			req, _ := http.NewRequest("GET", "/v1/acl/token/self?token="+expected.SecretID, nil)
@@ -1222,6 +1233,26 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			methodMap[method.Name] = method
 		})
 
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			methodInput := &structs.ACLAuthMethod{
+				Name:        "other",
+				Type:        "testing",
+				Description: "test",
+				Config: map[string]interface{}{
+					"SessionID": testSessionID,
+				},
+				TokenLocality: "global",
+				MaxTokenTTL:   500_000_000_000,
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=remote", jsonBody(methodInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
+			require.Error(t, err)
+			_, ok := err.(BadRequestError)
+			require.True(t, ok)
+		})
+
 		t.Run("Update Name URL Mismatch", func(t *testing.T) {
 			methodInput := &structs.ACLAuthMethod{
 				Name:        "test",
@@ -1392,6 +1423,21 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 			idMap["rule-other"] = rule.ID
 			ruleMap[rule.ID] = rule
+		})
+
+		t.Run("Create in remote datacenter", func(t *testing.T) {
+			ruleInput := &structs.ACLBindingRule{
+				Description: "other",
+				AuthMethod:  "test",
+				Selector:    "serviceaccount.namespace==default",
+				BindType:    structs.BindingRuleBindTypeRole,
+				BindName:    "fancy-role",
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=remote", jsonBody(ruleInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
+			require.EqualError(t, err, "No path to datacenter")
 		})
 
 		t.Run("BindingRule CRUD Missing ID in URL", func(t *testing.T) {

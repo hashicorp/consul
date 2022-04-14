@@ -64,7 +64,6 @@
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
     "@lit/reactive-element": "^1.2.1",
-    "@mapbox/rehype-prism": "^0.6.0",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
     "babel-eslint": "^10.0.3",
@@ -80,6 +79,7 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.4",
     "consul-acls": "*",
+    "consul-lock-sessions": "*",
     "consul-nspaces": "*",
     "consul-partitions": "*",
     "css.escape": "^1.5.1",
@@ -90,9 +90,10 @@
     "d3-shape": "^2.0.0",
     "dayjs": "^1.9.3",
     "deepmerge": "^4.2.2",
+    "ember-array-fns": "^1.4.0",
     "ember-assign-helper": "^0.3.0",
     "ember-auto-import": "^1.5.3",
-    "ember-can": "^3.0.0",
+    "ember-can": "^4.1.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "~3.9.0",
     "ember-cli": "~3.20.2",
@@ -149,6 +150,7 @@
     "eslint-plugin-node": "^11.0.0",
     "faker": "^5.5.3",
     "flat": "^5.0.0",
+    "hast-util-to-string": "^1.0.4",
     "husky": "^4.2.5",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^4.0.0",
@@ -163,7 +165,7 @@
     "pretty-ms": "^7.0.1",
     "qunit-dom": "^1.0.0",
     "react-is": "^17.0.1",
-    "refractor": "^3.3.1",
+    "refractor": "^3.5.0",
     "remark-autolink-headings": "^6.0.1",
     "remark-hbs": "^0.4.0",
     "sass": "^1.28.0",
@@ -171,12 +173,8 @@
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
+    "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1"
-  },
-  "resolutions": {
-    "ember-basic-dropdown": "^3.0.10",
-    "ember-changeset": "3.10.1",
-    "validated-changeset": "0.10.0"
   },
   "engines": {
     "node": ">=10 <=14"
@@ -189,6 +187,7 @@
       "lib/block-slots",
       "lib/colocated-components",
       "lib/commands",
+      "lib/custom-element",
       "lib/startup"
     ]
   }
