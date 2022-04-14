@@ -32,7 +32,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	require.NoError(t, err)
 	defer Terminate(t, Cluster)
 	numClients := 2
-	Clients, err := clientsCreate(numClients)
+	Clients, err := clientsCreate(numClients, *targetImage)
 	client := Clients[0].GetClient()
 	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -84,7 +84,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	defer Terminate(t, Cluster)
 	numClients := 1
 
-	Clients, err := clientsCreate(numClients)
+	Clients, err := clientsCreate(numClients, *latestImage)
 	client := Cluster.Nodes[0].GetClient()
 	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -157,7 +157,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients,*latestImage)
 	client := clients[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -230,7 +230,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients, *latestImage)
 	client := clients[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -271,7 +271,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(numClients int) ([]node.Node, error) {
+func clientsCreate(numClients int, version string) ([]node.Node, error) {
 	clients := make([]node.Node, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
@@ -280,7 +280,7 @@ func clientsCreate(numClients int) ([]node.Node, error) {
 				HCL: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: version,
 			})
 	}
 	return clients, err
