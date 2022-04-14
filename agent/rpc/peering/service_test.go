@@ -11,14 +11,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/prototest"
 
 	"github.com/hashicorp/consul/acl"
@@ -305,6 +309,359 @@ func TestPeeringService_List(t *testing.T) {
 		Peerings: []*pbpeering.Peering{bar, foo},
 	}
 	prototest.AssertDeepEqual(t, expect, resp)
+}
+
+func Test_StreamHandler_UpsertServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	type testCase struct {
+		name   string
+		msg    *pbpeering.ReplicationMessage_Response
+		input  structs.CheckServiceNodes
+		expect structs.CheckServiceNodes
+	}
+
+	s := newTestServer(t, nil)
+	testrpc.WaitForLeader(t, s.Server.RPC, "dc1")
+
+	srv := peering.NewService(testutil.Logger(t), consul.NewPeeringBackend(s.Server, nil))
+
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(0, &pbpeering.Peering{
+		Name: "my-peer",
+	}))
+
+	_, p, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "my-peer"})
+	require.NoError(t, err)
+
+	client := peering.NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	sub := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				PeerID:      p.ID,
+				ResourceURL: pbpeering.TypeURLService,
+			},
+		},
+	}
+	require.NoError(t, client.Send(sub))
+
+	// Receive subscription request from peer for our services
+	_, err = client.Recv()
+	require.NoError(t, err)
+
+	remoteEntMeta := structs.DefaultEnterpriseMetaInPartition("remote-partition")
+	localEntMeta := acl.DefaultEnterpriseMeta()
+	localPeerName := "my-peer"
+
+	// Scrub data we don't need for the assertions below.
+	scrubCheckServiceNodes := func(instances structs.CheckServiceNodes) {
+		for _, csn := range instances {
+			csn.Node.RaftIndex = structs.RaftIndex{}
+
+			csn.Service.TaggedAddresses = nil
+			csn.Service.Weights = nil
+			csn.Service.RaftIndex = structs.RaftIndex{}
+			csn.Service.Proxy = structs.ConnectProxyConfig{}
+
+			for _, c := range csn.Checks {
+				c.RaftIndex = structs.RaftIndex{}
+				c.Definition = structs.HealthCheckDefinition{}
+			}
+		}
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		pbCSN := &pbservice.IndexedCheckServiceNodes{}
+		for _, csn := range tc.input {
+			pbCSN.Nodes = append(pbCSN.Nodes, pbservice.NewCheckServiceNodeFromStructs(&csn))
+		}
+
+		any, err := ptypes.MarshalAny(pbCSN)
+		require.NoError(t, err)
+		tc.msg.Resource = any
+
+		resp := &pbpeering.ReplicationMessage{
+			Payload: &pbpeering.ReplicationMessage_Response_{
+				Response: tc.msg,
+			},
+		}
+		require.NoError(t, client.Send(resp))
+
+		msg, err := client.RecvWithTimeout(1 * time.Second)
+		require.NoError(t, err)
+
+		req := msg.GetRequest()
+		require.NotNil(t, req)
+		require.Equal(t, tc.msg.Nonce, req.Nonce)
+		require.Nil(t, req.Error)
+
+		_, got, err := s.Server.FSM().State().CombinedCheckServiceNodes(nil, structs.NewServiceName("api", nil), localPeerName)
+		require.NoError(t, err)
+
+		scrubCheckServiceNodes(got)
+		require.Equal(t, tc.expect, got)
+	}
+
+	// NOTE: These test cases do not run against independent state stores, they show sequential updates for a given service.
+	//       Every new upsert must replace the data from the previous case.
+	tt := []testCase{
+		{
+			name: "upsert an instance on a node",
+			msg: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLService,
+				ResourceID:  "api",
+				Nonce:       "1",
+				Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+			},
+			input: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+			},
+			expect: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upsert two instances on the same node",
+			msg: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLService,
+				ResourceID:  "api",
+				Nonce:       "2",
+				Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+			},
+			input: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-2",
+						Service:        "api",
+						Port:           9090,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-2-check",
+							ServiceID:      "api-2",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthWarning,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+			},
+			expect: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-2",
+						Service:        "api",
+						Port:           9090,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-2-check",
+							ServiceID:      "api-2",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthWarning,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tt {
+		runStep(t, tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
 
 // newTestServer is copied from partition/service_test.go, with the addition of certs/cas.

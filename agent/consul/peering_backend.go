@@ -123,4 +123,9 @@ func (a *peeringApply) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDR
 	return err
 }
 
+func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Register", structs.RegisterRequestType, req)
+	return err
+}
+
 var _ peering.Apply = (*peeringApply)(nil)
