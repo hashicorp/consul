@@ -12,8 +12,13 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
+
+func noopForwardRPC(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error) {
+	return false, nil
+}
 
 func testStateStore(t *testing.T, publisher state.EventPublisher) *state.Store {
 	t.Helper()

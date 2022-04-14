@@ -26,8 +26,11 @@ import (
 // Connect CA roots. Current roots are sent immediately at the start of the
 // stream, and new lists will be sent whenever the roots are rotated.
 func (s *Server) WatchRoots(_ *emptypb.Empty, serverStream pbconnectca.ConnectCAService_WatchRootsServer) error {
-	logger := s.Logger.Named("watch-roots").With("stream_id", streamID())
+	if err := s.requireConnect(); err != nil {
+		return err
+	}
 
+	logger := s.Logger.Named("watch-roots").With("stream_id", traceID())
 	logger.Trace("starting stream")
 	defer logger.Trace("stream closed")
 
@@ -179,8 +182,8 @@ func (s *Server) authorize(token string) error {
 }
 
 // We tag logs with a unique identifier to ease debugging. In the future this
-// should probably be an Open Telemetry trace ID.
-func streamID() string {
+// should probably be a real Open Telemetry trace ID.
+func traceID() string {
 	id, err := uuid.GenerateUUID()
 	if err != nil {
 		return ""

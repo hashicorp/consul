@@ -26,3 +26,23 @@ func (msg *CARoot) MarshalBinary() ([]byte, error) {
 func (msg *CARoot) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SignRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SignRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SignResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SignResponse) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

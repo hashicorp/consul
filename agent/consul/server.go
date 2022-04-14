@@ -238,6 +238,11 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
+	// publicConnectCAServer serves the Connect CA service exposed on the public
+	// gRPC port. It is also exposed on the private multiplexed "server" port to
+	// enable RPC forwarding.
+	publicConnectCAServer *connectca.Server
+
 	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	publicGRPCServer *grpc.Server
@@ -657,6 +662,29 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	// Initialize public gRPC server - register services on public gRPC server.
+	s.publicConnectCAServer = connectca.NewServer(connectca.Config{
+		Publisher:   s.publisher,
+		GetStore:    func() connectca.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.connect-ca"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		CAManager:   s.caManager,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		ConnectEnabled: s.config.ConnectEnabled,
+	})
+	s.publicConnectCAServer.Register(s.publicGRPCServer)
+
+	dataplane.NewServer(dataplane.Config{
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+	}).Register(s.publicGRPCServer)
+
+	// Initialize private gRPC server.
+	//
+	// Note: some "public" gRPC services are also exposed on the private gRPC server
+	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
@@ -668,18 +696,6 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
-
-	// Initialize public gRPC server - register services on public gRPC server.
-	connectca.NewServer(connectca.Config{
-		Publisher:   s.publisher,
-		GetStore:    func() connectca.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
-	}).Register(s.publicGRPCServer)
-	dataplane.NewServer(dataplane.Config{
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
-	}).Register(s.publicGRPCServer)
 
 	// Start listening for RPC requests.
 	go func() {
@@ -712,6 +728,10 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 				deps.Logger.Named("grpc-api.subscription")))
 		}
 		s.registerEnterpriseGRPCServices(deps, srv)
+
+		// Note: this public gRPC service is also exposed on the private server to
+		// enable RPC forwarding.
+		s.publicConnectCAServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)

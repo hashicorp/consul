@@ -26,6 +26,20 @@ import (
 
 const testACLToken = "acl-token"
 
+func TestWatchRoots_ConnectDisabled(t *testing.T) {
+	server := NewServer(Config{ConnectEnabled: false})
+
+	// Begin the stream.
+	client := testClient(t, server)
+	stream, err := client.WatchRoots(context.Background(), &emptypb.Empty{})
+	require.NoError(t, err)
+	rspCh := handleRootsStream(t, stream)
+
+	err = mustGetError(t, rspCh)
+	require.Equal(t, codes.FailedPrecondition.String(), status.Code(err).String())
+	require.Contains(t, status.Convert(err).Message(), "Connect")
+}
+
 func TestWatchRoots_Success(t *testing.T) {
 	fsm, publisher := setupFSMAndPublisher(t)
 
@@ -45,10 +59,11 @@ func TestWatchRoots_Success(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		Publisher:   publisher,
-		GetStore:    func() StateStore { return fsm.GetStore() },
-		Logger:      testutil.Logger(t),
-		ACLResolver: aclResolver,
+		Publisher:      publisher,
+		GetStore:       func() StateStore { return fsm.GetStore() },
+		Logger:         testutil.Logger(t),
+		ACLResolver:    aclResolver,
+		ConnectEnabled: true,
 	})
 
 	// Begin the stream.
@@ -92,10 +107,11 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		Publisher:   publisher,
-		GetStore:    func() StateStore { return fsm.GetStore() },
-		Logger:      testutil.Logger(t),
-		ACLResolver: aclResolver,
+		Publisher:      publisher,
+		GetStore:       func() StateStore { return fsm.GetStore() },
+		Logger:         testutil.Logger(t),
+		ACLResolver:    aclResolver,
+		ConnectEnabled: true,
 	})
 
 	// Start the stream.
@@ -129,10 +145,11 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		Publisher:   publisher,
-		GetStore:    func() StateStore { return fsm.GetStore() },
-		Logger:      testutil.Logger(t),
-		ACLResolver: aclResolver,
+		Publisher:      publisher,
+		GetStore:       func() StateStore { return fsm.GetStore() },
+		Logger:         testutil.Logger(t),
+		ACLResolver:    aclResolver,
+		ConnectEnabled: true,
 	})
 
 	// Start the stream.
@@ -196,10 +213,11 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
 	server := NewServer(Config{
-		Publisher:   publisher,
-		GetStore:    func() StateStore { return fsm.GetStore() },
-		Logger:      testutil.Logger(t),
-		ACLResolver: aclResolver,
+		Publisher:      publisher,
+		GetStore:       func() StateStore { return fsm.GetStore() },
+		Logger:         testutil.Logger(t),
+		ACLResolver:    aclResolver,
+		ConnectEnabled: true,
 	})
 
 	// Begin the stream.
