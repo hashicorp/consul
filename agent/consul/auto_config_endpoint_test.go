@@ -712,7 +712,6 @@ type Policy struct {
 	Return bool
 }
 
-// TODO: add test
 func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	type testCase struct {
 		config         Config
