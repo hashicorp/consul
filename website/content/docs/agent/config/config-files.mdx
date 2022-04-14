@@ -207,6 +207,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     from this file is only loaded if the `intro_token` configuration is unset as
     well as the `CONSUL_INTRO_TOKEN` environment variable
 
+  - `policy` (Defaults to `""`) If the consul ACL system is enabled, this
+    specifies an additional policy to append to the ACL token generated for the
+    agent. Auto config will error if this policy does not already exist
+
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
     [Cloud Auto-Joining](/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
