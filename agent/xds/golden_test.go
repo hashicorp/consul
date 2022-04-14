@@ -35,14 +35,12 @@ func goldenEnvoy(t *testing.T, name, envoyVersion, latestEnvoyVersion, got strin
 	// coalescing works below when there is no xDS generated skew across envoy
 	// versions.
 	subname := goldenEnvoyVersionName(t, envoyVersion)
-	latestSubname := goldenEnvoyVersionName(t, latestEnvoyVersion)
 
 	if envoyVersion == latestEnvoyVersion {
 		subname = "latest"
 	}
-	latestSubname = "latest"
 
-	return golden(t, name, subname, latestSubname, got)
+	return golden(t, name, subname, "latest", got)
 }
 
 func goldenEnvoyVersionName(t *testing.T, envoyVersion string) string {
