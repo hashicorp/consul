@@ -473,9 +473,9 @@ definition](/docs/connect/registration/service-registration) or
 - `envoy_extra_static_clusters_json` - Specifies one or more [Envoy clusters][pb-cluster]
   that will be appended to the array of [static
   clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters)
-  in the bootstrap config. This allows adding custom clusters for tracing sinks
+  in the bootstrap config. This enables you to add custom clusters for tracing sinks,
   for example. For a single cluster just, encode a single object. For multiple
-  clusters, the objects should be comma separated with no trailing comma. The
+  clusters, specify objects in a comma-separated list with no trailing comma. The
   cluster objects will be interpolated directly into a JSON array.
 
   <CodeBlockConfig heading="Example envoy_extra_static_clusters_json">
