@@ -424,6 +424,7 @@ type RuntimeConfig struct {
 	//     http = string
 	//     header = map[string][]string
 	//     method = string
+	//     disable_redirects = (true|false)
 	//     tcp = string
 	//     h2ping = string
 	//     interval = string
@@ -821,7 +822,7 @@ type RuntimeConfig struct {
 
 	// PrimaryGateways is a list of addresses and/or go-discover expressions to
 	// discovery the mesh gateways in the primary datacenter. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: primary_gateways = []string
@@ -977,7 +978,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
 	// join with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join = []string
@@ -1002,7 +1003,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinWAN is a list of addresses and/or go-discover expressions to
 	// join -wan with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join_wan = []string

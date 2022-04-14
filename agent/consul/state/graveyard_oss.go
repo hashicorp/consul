@@ -6,6 +6,7 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -28,7 +29,7 @@ func (g *Graveyard) insertTombstoneWithTxn(tx WriteTxn, _ string, stone *Tombsto
 
 // GetMaxIndexTxn returns the highest index tombstone whose key matches the
 // given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, _ *structs.EnterpriseMeta) (uint64, error) {
+func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, _ *acl.EnterpriseMeta) (uint64, error) {
 	var lindex uint64
 	q := Query{Value: prefix, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}
 	stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)

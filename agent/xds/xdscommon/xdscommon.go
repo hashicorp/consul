@@ -109,6 +109,14 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
 			envoyIDMappings[envoyID.EnvoyID()] = compoundServiceName
+
+			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+			if hasResolver {
+				for subsetName := range resolver.Subsets {
+					sni := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+					sniMappings[sni] = compoundServiceName
+				}
+			}
 		}
 	}
 

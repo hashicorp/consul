@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -148,7 +149,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Parse enterprise meta.
-	var meta structs.EnterpriseMeta
+	var meta acl.EnterpriseMeta
 	if err := s.parseEntMetaForConfigEntryKind(args.Entry.GetKind(), req, &meta); err != nil {
 		return nil, err
 	}
@@ -172,7 +173,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	return reply, nil
 }
 
-func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if kind == structs.ServiceIntentions {
 		return s.parseEntMeta(req, entMeta)
 	}

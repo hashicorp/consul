@@ -1,0 +1,3 @@
+```release-note:feature
+rpc: (beta): add a new metric `consul.rpc.server.call` with labels
+for `method`, `errored`, `rpc_type`, `request_type`.

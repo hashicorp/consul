@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -56,7 +57,7 @@ func (s *Server) revokeEnterpriseLeadership() error {
 	return nil
 }
 
-func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, write bool) error {
+func (s *Server) validateEnterpriseRequest(entMeta *acl.EnterpriseMeta, write bool) error {
 	return nil
 }
 
@@ -109,6 +110,6 @@ func (s *Server) shutdownSerfLAN() {
 	}
 }
 
-func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
+func addEnterpriseSerfTags(_ map[string]string, _ *acl.EnterpriseMeta) {
 	// do nothing
 }

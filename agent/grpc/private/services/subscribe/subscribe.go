@@ -36,7 +36,7 @@ type Logger interface {
 var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
@@ -51,7 +51,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
 	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	}
 }
 
-func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs.EnterpriseMeta) *stream.SubscribeRequest {
+func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.EnterpriseMeta) *stream.SubscribeRequest {
 	return &stream.SubscribeRequest{
 		Topic: req.Topic,
 		Subject: state.EventSubjectService{

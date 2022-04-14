@@ -106,28 +106,23 @@ as |route|>
                 >
                   <BlockSlot @name="header">
                     <h2>
-                      {{#if (gt items.length 0)}}
-                        No intentions found
-                      {{else}}
-                        Welcome to Intentions
-                      {{/if}}
+                      {{t 'routes.dc.intentions.index.empty.header'
+                        items=items.length
+                      }}
                     </h2>
                   </BlockSlot>
                   <BlockSlot @name="body">
-                    <p>
-                      {{#if (gt items.length 0)}}
-                        No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
-                      {{else}}
-                        There don't seem to be any intentions, or you may not have access to view intentions yet.
-                      {{/if}}
-                    </p>
+                    {{t 'routes.dc.intentions.index.empty.body'
+                      items=items.length
+                      htmlSafe=true
+                    }}
                   </BlockSlot>
                   <BlockSlot @name="actions">
                     <li class="docs-link">
                       <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
                     </li>
                     <li class="learn-link">
-                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Take the tutorial</a>
                     </li>
                   </BlockSlot>
                 </EmptyState>

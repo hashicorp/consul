@@ -4,10 +4,11 @@
 package proxycfg
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func UpstreamIDString(typ, dc, name string, _ *structs.EnterpriseMeta) string {
+func UpstreamIDString(typ, dc, name string, _ *acl.EnterpriseMeta) string {
 	ret := name
 
 	if dc != "" {
@@ -21,7 +22,7 @@ func UpstreamIDString(typ, dc, name string, _ *structs.EnterpriseMeta) string {
 	return typ + ":" + ret
 }
 
-func parseInnerUpstreamIDString(input string) (string, *structs.EnterpriseMeta) {
+func parseInnerUpstreamIDString(input string) (string, *acl.EnterpriseMeta) {
 	return input, structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 

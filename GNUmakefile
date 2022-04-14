@@ -5,8 +5,6 @@ SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	golang.org/x/tools/cmd/cover@master \
-	golang.org/x/tools/cmd/stringer@master \
 	github.com/vektra/mockery/cmd/mockery@master \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
 	github.com/hashicorp/lint-consul-retry@master
@@ -160,7 +158,7 @@ dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 # In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.

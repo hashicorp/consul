@@ -37,7 +37,7 @@ type ServiceSummary struct {
 	transparentProxySet bool
 	ConnectNative       bool
 
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
@@ -582,7 +582,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -642,7 +642,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Clear the token from the headers so we don't end up proxying it.
 	s.clearTokenFromHeaders(req)
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
 		return nil, err
 	}

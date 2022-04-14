@@ -199,7 +199,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		// make sure the labels exist for this metric
-		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type"})
+		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
 	})
@@ -250,8 +250,8 @@ func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "NaN")
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "NaN")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "1")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "0")
 	})
 }
 

@@ -228,6 +228,106 @@ func (x *CARoot) GetRotatedOutAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type SignRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// csr is the PEM-encoded Certificate Signing Request (CSR).
+	//
+	// The CSR's SAN must include a SPIFFE ID that identifies a service or agent
+	// to which the ACL token provided in the `x-consul-token` metadata has write
+	// access.
+	Csr string `protobuf:"bytes,1,opt,name=csr,proto3" json:"csr,omitempty"`
+}
+
+func (x *SignRequest) Reset() {
+	*x = SignRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_public_pbconnectca_ca_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SignRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignRequest) ProtoMessage() {}
+
+func (x *SignRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_public_pbconnectca_ca_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignRequest.ProtoReflect.Descriptor instead.
+func (*SignRequest) Descriptor() ([]byte, []int) {
+	return file_proto_public_pbconnectca_ca_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SignRequest) GetCsr() string {
+	if x != nil {
+		return x.Csr
+	}
+	return ""
+}
+
+type SignResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// cert_pem is the PEM-encoded leaf certificate.
+	CertPem string `protobuf:"bytes,2,opt,name=cert_pem,json=certPem,proto3" json:"cert_pem,omitempty"`
+}
+
+func (x *SignResponse) Reset() {
+	*x = SignResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_public_pbconnectca_ca_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SignResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignResponse) ProtoMessage() {}
+
+func (x *SignResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_public_pbconnectca_ca_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignResponse.ProtoReflect.Descriptor instead.
+func (*SignResponse) Descriptor() ([]byte, []int) {
+	return file_proto_public_pbconnectca_ca_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SignResponse) GetCertPem() string {
+	if x != nil {
+		return x.CertPem
+	}
+	return ""
+}
+
 var File_proto_public_pbconnectca_ca_proto protoreflect.FileDescriptor
 
 var file_proto_public_pbconnectca_ca_proto_rawDesc = []byte{
@@ -264,17 +364,25 @@ var file_proto_public_pbconnectca_ca_proto_rawDesc = []byte{
 	0x75, 0x74, 0x5f, 0x61, 0x74, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f,
 	0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69,
 	0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x0c, 0x72, 0x6f, 0x74, 0x61, 0x74, 0x65, 0x64,
-	0x4f, 0x75, 0x74, 0x41, 0x74, 0x32, 0x5b, 0x0a, 0x10, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74,
-	0x43, 0x41, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x47, 0x0a, 0x0a, 0x57, 0x61, 0x74,
-	0x63, 0x68, 0x52, 0x6f, 0x6f, 0x74, 0x73, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a,
-	0x1d, 0x2e, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x63, 0x61, 0x2e, 0x57, 0x61, 0x74, 0x63,
-	0x68, 0x52, 0x6f, 0x6f, 0x74, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00,
-	0x30, 0x01, 0x42, 0x36, 0x5a, 0x34, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
-	0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f, 0x63, 0x6f, 0x6e, 0x73, 0x75,
-	0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2d, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x2f, 0x70,
-	0x62, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x63, 0x61, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x4f, 0x75, 0x74, 0x41, 0x74, 0x22, 0x1f, 0x0a, 0x0b, 0x53, 0x69, 0x67, 0x6e, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x73, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x03, 0x63, 0x73, 0x72, 0x22, 0x29, 0x0a, 0x0c, 0x53, 0x69, 0x67, 0x6e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x19, 0x0a, 0x08, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x70,
+	0x65, 0x6d, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x65, 0x72, 0x74, 0x50, 0x65,
+	0x6d, 0x32, 0x96, 0x01, 0x0a, 0x10, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x43, 0x41, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x47, 0x0a, 0x0a, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52,
+	0x6f, 0x6f, 0x74, 0x73, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x1d, 0x2e, 0x63,
+	0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x63, 0x61, 0x2e, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x6f,
+	0x6f, 0x74, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12,
+	0x39, 0x0a, 0x04, 0x53, 0x69, 0x67, 0x6e, 0x12, 0x16, 0x2e, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63,
+	0x74, 0x63, 0x61, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x17, 0x2e, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x63, 0x61, 0x2e, 0x53, 0x69, 0x67, 0x6e,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x36, 0x5a, 0x34, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f,
+	0x72, 0x70, 0x2f, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2d,
+	0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x2f, 0x70, 0x62, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74,
+	0x63, 0x61, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -289,20 +397,24 @@ func file_proto_public_pbconnectca_ca_proto_rawDescGZIP() []byte {
 	return file_proto_public_pbconnectca_ca_proto_rawDescData
 }
 
-var file_proto_public_pbconnectca_ca_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_public_pbconnectca_ca_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_public_pbconnectca_ca_proto_goTypes = []interface{}{
 	(*WatchRootsResponse)(nil),    // 0: connectca.WatchRootsResponse
 	(*CARoot)(nil),                // 1: connectca.CARoot
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 3: google.protobuf.Empty
+	(*SignRequest)(nil),           // 2: connectca.SignRequest
+	(*SignResponse)(nil),          // 3: connectca.SignResponse
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),         // 5: google.protobuf.Empty
 }
 var file_proto_public_pbconnectca_ca_proto_depIdxs = []int32{
 	1, // 0: connectca.WatchRootsResponse.roots:type_name -> connectca.CARoot
-	2, // 1: connectca.CARoot.rotated_out_at:type_name -> google.protobuf.Timestamp
-	3, // 2: connectca.ConnectCAService.WatchRoots:input_type -> google.protobuf.Empty
-	0, // 3: connectca.ConnectCAService.WatchRoots:output_type -> connectca.WatchRootsResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
+	4, // 1: connectca.CARoot.rotated_out_at:type_name -> google.protobuf.Timestamp
+	5, // 2: connectca.ConnectCAService.WatchRoots:input_type -> google.protobuf.Empty
+	2, // 3: connectca.ConnectCAService.Sign:input_type -> connectca.SignRequest
+	0, // 4: connectca.ConnectCAService.WatchRoots:output_type -> connectca.WatchRootsResponse
+	3, // 5: connectca.ConnectCAService.Sign:output_type -> connectca.SignResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -338,6 +450,30 @@ func file_proto_public_pbconnectca_ca_proto_init() {
 				return nil
 			}
 		}
+		file_proto_public_pbconnectca_ca_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SignRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_public_pbconnectca_ca_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SignResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -345,7 +481,7 @@ func file_proto_public_pbconnectca_ca_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_public_pbconnectca_ca_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -375,6 +511,9 @@ type ConnectCAServiceClient interface {
 	// Connect CA roots. Current roots are sent immediately at the start of the
 	// stream, and new lists will be sent whenever the roots are rotated.
 	WatchRoots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (ConnectCAService_WatchRootsClient, error)
+	// Sign a leaf certificate for the service or agent identified by the SPIFFE
+	// ID in the given CSR's SAN.
+	Sign(ctx context.Context, in *SignRequest, opts ...grpc.CallOption) (*SignResponse, error)
 }
 
 type connectCAServiceClient struct {
@@ -417,12 +556,24 @@ func (x *connectCAServiceWatchRootsClient) Recv() (*WatchRootsResponse, error) {
 	return m, nil
 }
 
+func (c *connectCAServiceClient) Sign(ctx context.Context, in *SignRequest, opts ...grpc.CallOption) (*SignResponse, error) {
+	out := new(SignResponse)
+	err := c.cc.Invoke(ctx, "/connectca.ConnectCAService/Sign", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ConnectCAServiceServer is the server API for ConnectCAService service.
 type ConnectCAServiceServer interface {
 	// WatchRoots provides a stream on which you can receive the list of active
 	// Connect CA roots. Current roots are sent immediately at the start of the
 	// stream, and new lists will be sent whenever the roots are rotated.
 	WatchRoots(*emptypb.Empty, ConnectCAService_WatchRootsServer) error
+	// Sign a leaf certificate for the service or agent identified by the SPIFFE
+	// ID in the given CSR's SAN.
+	Sign(context.Context, *SignRequest) (*SignResponse, error)
 }
 
 // UnimplementedConnectCAServiceServer can be embedded to have forward compatible implementations.
@@ -431,6 +582,9 @@ type UnimplementedConnectCAServiceServer struct {
 
 func (*UnimplementedConnectCAServiceServer) WatchRoots(*emptypb.Empty, ConnectCAService_WatchRootsServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchRoots not implemented")
+}
+func (*UnimplementedConnectCAServiceServer) Sign(context.Context, *SignRequest) (*SignResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Sign not implemented")
 }
 
 func RegisterConnectCAServiceServer(s *grpc.Server, srv ConnectCAServiceServer) {
@@ -458,10 +612,33 @@ func (x *connectCAServiceWatchRootsServer) Send(m *WatchRootsResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ConnectCAService_Sign_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConnectCAServiceServer).Sign(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/connectca.ConnectCAService/Sign",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConnectCAServiceServer).Sign(ctx, req.(*SignRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _ConnectCAService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "connectca.ConnectCAService",
 	HandlerType: (*ConnectCAServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Sign",
+			Handler:    _ConnectCAService_Sign_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "WatchRoots",

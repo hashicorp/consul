@@ -133,10 +133,10 @@
             "ModifyIndex": 0
         }
     ],
-    "NamespaceDefaultPolicies": [
+    "NamespaceDefaultPolicyIDs": [
         "2b582ff1-4a43-457f-8a2b-30a8265e29a5"
     ],
-    "NamespaceDefaultRoles": [
+    "NamespaceDefaultRoleIDs": [
         "56033f2b-e1a6-4905-b71d-e011c862bc65"
     ],
     "AgentACLDefaultPolicy": "deny",

@@ -459,6 +459,46 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 	})
 }
 
+func TestCheckHTTP_DisableRedirects(t *testing.T) {
+	t.Parallel()
+
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "server1")
+	}))
+	defer server1.Close()
+
+	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, 301))
+	defer server2.Close()
+
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
+	check := &CheckHTTP{
+		CheckID:          cid,
+		HTTP:             server2.URL,
+		Method:           "GET",
+		OutputMaxSize:    DefaultBufSize,
+		Interval:         10 * time.Millisecond,
+		DisableRedirects: true,
+		Logger:           logger,
+		StatusHandler:    statusHandler,
+	}
+	check.Start()
+	defer check.Stop()
+
+	retry.Run(t, func(r *retry.R) {
+		output := notif.Output(cid)
+		if !strings.Contains(output, "Moved Permanently") {
+			r.Fatalf("should have returned 301 body instead of redirecting")
+		}
+		if strings.Contains(output, "server1") {
+			r.Fatalf("followed redirect")
+		}
+	})
+}
+
 func TestCheckHTTPTCP_BigTimeout(t *testing.T) {
 	testCases := []struct {
 		timeoutIn, intervalIn, timeoutWant time.Duration

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -283,7 +284,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
+		chainEntMeta := acl.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: uid,
@@ -356,7 +357,7 @@ type targetWatchOpts struct {
 	service    string
 	filter     string
 	datacenter string
-	entMeta    *structs.EnterpriseMeta
+	entMeta    *acl.EnterpriseMeta
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
@@ -366,7 +367,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 		"target", opts.chainID,
 	)
 
-	var finalMeta structs.EnterpriseMeta
+	var finalMeta acl.EnterpriseMeta
 	finalMeta.Merge(opts.entMeta)
 
 	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()

@@ -6,8 +6,8 @@ package pbservice
 import (
 	fuzz "github.com/google/gofuzz"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
-func randEnterpriseMeta(_ *structs.EnterpriseMeta, _ fuzz.Continue) {
+func randEnterpriseMeta(_ *acl.EnterpriseMeta, _ fuzz.Continue) {
 }

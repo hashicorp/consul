@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -26,7 +27,7 @@ func (s *Server) enterpriseValidateJoinWAN() error {
 
 // JoinLAN is used to have Consul join the inner-DC pool The target address
 // should be another node inside the DC listening on the Serf LAN address
-func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+func (s *Server) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (int, error) {
 	return s.serfLAN.Join(addrs, true)
 }
 
@@ -36,7 +37,7 @@ func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, 
 func (s *Server) removeFailedNode(
 	removeFn func(*serf.Serf, string) error,
 	node, wanNode string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 ) error {
 	maybeRemove := func(s *serf.Serf, node string) (bool, error) {
 		if !isSerfMember(s, node) {
@@ -155,6 +156,6 @@ func (s *Server) addEnterpriseStats(stats map[string]map[string]string) {
 	// no-op
 }
 
-func getSerfMemberEnterpriseMeta(member serf.Member) *structs.EnterpriseMeta {
+func getSerfMemberEnterpriseMeta(member serf.Member) *acl.EnterpriseMeta {
 	return structs.NodeEnterpriseMetaInDefaultPartition()
 }

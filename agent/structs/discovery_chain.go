@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -77,7 +79,7 @@ func (c *CompiledDiscoveryChain) ID() string {
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
-	entMeta := NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
+	entMeta := acl.NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
 	return NewServiceName(c.ServiceName, &entMeta)
 }
 
@@ -206,6 +208,8 @@ type DiscoveryTarget struct {
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`
 	Subset      ServiceResolverSubset `json:",omitempty"`
 
+	ConnectTimeout time.Duration `json:",omitempty"`
+
 	// External is true if this target is outside of this consul cluster.
 	External bool `json:",omitempty"`
 
@@ -217,6 +221,42 @@ type DiscoveryTarget struct {
 	// balancer objects.  This has a structure similar to SNI, but will not be
 	// affected by SNI customizations.
 	Name string `json:",omitempty"`
+}
+
+func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type Alias DiscoveryTarget
+	exported := struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: t.ConnectTimeout.String(),
+		Alias:          (*Alias)(t),
+	}
+	if t.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
+	type Alias DiscoveryTarget
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if t.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter string) *DiscoveryTarget {
