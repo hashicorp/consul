@@ -381,6 +381,9 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		if err != nil {
 			return tokenInfo, err
 		}
+		if role == nil {
+			continue
+		}
 
 		for _, policy := range role.Policies {
 			policyIDs[policy.ID] = struct{}{}
@@ -403,6 +406,9 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		_, policy, err := state.ACLPolicyGetByID(ws, id, &token.EnterpriseMeta)
 		if err != nil {
 			return tokenInfo, err
+		}
+		if policy == nil {
+			continue
 		}
 		policies = append(policies, policy)
 	}
