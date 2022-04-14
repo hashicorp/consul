@@ -20,7 +20,7 @@ Here is some documentation that may prove useful for reference during this upgra
 
 - [ACL System in Legacy Mode](/docs/security/acl/acl-legacy) - You can find
   information about legacy configuration options and differences between modes here.
-- [Configuration](/docs/agent/options) - You can find more details
+- [Configuration](/docs/agent/config) - You can find more details
   around legacy ACL and new ACL configuration options here. Legacy ACL config options
   will be listed as deprecates as of 1.4.0.
 
@@ -51,7 +51,7 @@ Looking through these changes prior to upgrading is highly recommended.
 Two very notable items are:
 
 - 1.6.2 introduced more strict JSON decoding. Invalid JSON that was previously ignored might result in errors now (e.g., `Connect: null` in service definitions). See [[GH#6680](https://github.com/hashicorp/consul/pull/6680)].
-- 1.6.3 introduced the [http_max_conns_per_client](/docs/agent/options#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
+- 1.6.3 introduced the [http_max_conns_per_client](/docs/agent/config/config-files#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
 
 ## Procedure
 
@@ -202,8 +202,8 @@ update those now to avoid issues when moving to newer versions.
 
 These are the changes you will need to make:
 
-- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/docs/agent/options#primary_datacenter) for more info)
-- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/docs/agent/options#acl) for more info):
+- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/docs/agent/config/config-files#primary_datacenter) for more info)
+- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/docs/agent/config/config-files#acl) for more info):
   ```hcl
   acl {
     enabled                  = true/false

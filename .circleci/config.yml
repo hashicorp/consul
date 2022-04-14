@@ -31,7 +31,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    VAULT_BINARY_VERSION: 1.2.2
+    VAULT_BINARY_VERSION: 1.9.4
 
 steps:
   install-gotestsum: &install-gotestsum

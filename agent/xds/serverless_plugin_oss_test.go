@@ -10,6 +10,7 @@ import (
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/proto"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -27,8 +28,14 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 		create func(t testinf.T) *proxycfg.ConfigSnapshot
 	}{
 		{
-			name:   "lambda-terminating-gateway",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaService,
+			name: "lambda-terminating-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaService(t)
+			},
+		},
+		{
+			name:   "lambda-terminating-gateway-with-service-resolvers",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers,
 		},
 	}
 
@@ -85,7 +92,7 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 							key:  xdscommon.RouteType,
 							sorter: func(msgs []proto.Message) func(int, int) bool {
 								return func(i, j int) bool {
-									return msgs[i].(*envoy_listener_v3.Listener).Name < msgs[j].(*envoy_listener_v3.Listener).Name
+									return msgs[i].(*envoy_route_v3.RouteConfiguration).Name < msgs[j].(*envoy_route_v3.RouteConfiguration).Name
 								}
 							},
 						},

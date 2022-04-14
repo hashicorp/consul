@@ -27,6 +27,7 @@ func TestNewBearerToken(t *testing.T) {
 				GetEntityURLHeader:     "X-Consul-IAM-GetEntity-URL",
 				GetEntityHeadersHeader: "X-Consul-IAM-GetEntity-Headers",
 				GetEntityBodyHeader:    "X-Consul-IAM-GetEntity-Body",
+				STSEndpoint:            validBearerTokenParsed.getCallerIdentityURL,
 			},
 			expToken: validBearerTokenWithRoleParsed,
 		},
@@ -263,6 +264,124 @@ func TestValidateIAMEntityBody(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, c.expReqType, reqType)
+			}
+		})
+	}
+}
+
+func TestValidateSTSHostname(t *testing.T) {
+	cases := []struct {
+		url string
+		ok  bool
+	}{
+		// https://docs.aws.amazon.com/general/latest/gr/sts.html
+		{"sts.us-east-2.amazonaws.com", true},
+		{"sts-fips.us-east-2.amazonaws.com", true},
+		{"sts.us-east-1.amazonaws.com", true},
+		{"sts-fips.us-east-1.amazonaws.com", true},
+		{"sts.us-west-1.amazonaws.com", true},
+		{"sts-fips.us-west-1.amazonaws.com", true},
+		{"sts.us-west-2.amazonaws.com", true},
+		{"sts-fips.us-west-2.amazonaws.com", true},
+		{"sts.af-south-1.amazonaws.com", true},
+		{"sts.ap-east-1.amazonaws.com", true},
+		{"sts.ap-southeast-3.amazonaws.com", true},
+		{"sts.ap-south-1.amazonaws.com", true},
+		{"sts.ap-northeast-3.amazonaws.com", true},
+		{"sts.ap-northeast-2.amazonaws.com", true},
+		{"sts.ap-southeast-1.amazonaws.com", true},
+		{"sts.ap-southeast-2.amazonaws.com", true},
+		{"sts.ap-northeast-1.amazonaws.com", true},
+		{"sts.ca-central-1.amazonaws.com", true},
+		{"sts.eu-central-1.amazonaws.com", true},
+		{"sts.eu-west-1.amazonaws.com", true},
+		{"sts.eu-west-2.amazonaws.com", true},
+		{"sts.eu-south-1.amazonaws.com", true},
+		{"sts.eu-west-3.amazonaws.com", true},
+		{"sts.eu-north-1.amazonaws.com", true},
+		{"sts.me-south-1.amazonaws.com", true},
+		{"sts.sa-east-1.amazonaws.com", true},
+		{"sts.us-gov-east-1.amazonaws.com", true},
+		{"sts.us-gov-west-1.amazonaws.com", true},
+
+		// prefix must be either 'sts.' or 'sts-fips.'
+		{".amazonaws.com", false},
+		{"iam.amazonaws.com", false},
+		{"other.amazonaws.com", false},
+		// suffix must be '.amazonaws.com' and not some other domain
+		{"stsamazonaws.com", false},
+		{"sts-fipsamazonaws.com", false},
+		{"sts.stsamazonaws.com", false},
+		{"sts.notamazonaws.com", false},
+		{"sts-fips.stsamazonaws.com", false},
+		{"sts-fips.notamazonaws.com", false},
+		{"sts.amazonaws.com.spoof", false},
+		{"sts.amazonaws.spoof.com", false},
+		{"xyz.sts.amazonaws.com", false},
+	}
+	for _, c := range cases {
+		t.Run(c.url, func(t *testing.T) {
+			url := "https://" + c.url
+			parsedUrl, err := parseUrl(url)
+			require.NoError(t, err)
+
+			token := &BearerToken{
+				config:                  &Config{},
+				getCallerIdentityURL:    url,
+				parsedCallerIdentityURL: parsedUrl,
+			}
+			err = token.validateSTSHostname()
+			if c.ok {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateIAMHostname(t *testing.T) {
+	cases := []struct {
+		url string
+		ok  bool
+	}{
+		// https://docs.aws.amazon.com/general/latest/gr/iam-service.html
+		{"iam.amazonaws.com", true},
+		{"iam-fips.amazonaws.com", true},
+		{"iam.us-gov.amazonaws.com", true},
+		{"iam-fips.us-gov.amazonaws.com", true},
+
+		// prefix must be either 'iam.' or 'aim-fips.'
+		{".amazonaws.com", false},
+		{"sts.amazonaws.com", false},
+		{"other.amazonaws.com", false},
+		// suffix must be '.amazonaws.com' and not some other domain
+		{"iamamazonaws.com", false},
+		{"iam-fipsamazonaws.com", false},
+		{"iam.iamamazonaws.com", false},
+		{"iam.notamazonaws.com", false},
+		{"iam-fips.iamamazonaws.com", false},
+		{"iam-fips.notamazonaws.com", false},
+		{"iam.amazonaws.com.spoof", false},
+		{"iam.amazonaws.spoof.com", false},
+		{"xyz.iam.amazonaws.com", false},
+	}
+	for _, c := range cases {
+		t.Run(c.url, func(t *testing.T) {
+			url := "https://" + c.url
+			parsedUrl, err := parseUrl(url)
+			require.NoError(t, err)
+
+			token := &BearerToken{
+				config:               &Config{},
+				getCallerIdentityURL: url,
+				parsedIAMEntityURL:   parsedUrl,
+			}
+			err = token.validateIAMHostname()
+			if c.ok {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
