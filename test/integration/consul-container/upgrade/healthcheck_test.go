@@ -24,6 +24,7 @@ var latestImage = flag.String("latest-version", "latest", "docker image to be us
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
+// Test health check GRPC call using Current Clients and Latest GA Servers
 func TestLatestGAServersWithCurrentClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
@@ -74,6 +75,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 }
 
+// Test health check GRPC call using Current Servers and Latest GA Clients
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
@@ -123,6 +125,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	}
 }
 
+// Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []consulNode.Config
@@ -195,6 +198,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	}
 }
 
+// Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
 func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	t.Parallel()
 	var configs []consulNode.Config
