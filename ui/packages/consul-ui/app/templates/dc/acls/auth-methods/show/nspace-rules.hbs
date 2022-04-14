@@ -1,5 +1,5 @@
 <Route
-  @routeName={{routeName}}
+  @name={{routeName}}
 as |route|>
 {{#let
   route.model.item
@@ -14,13 +14,13 @@ as |item|}}
     <EmptyState>
       <BlockSlot @name="header">
         <h2>
-          {{t 'routes.dc.acls.auth-methods.show.nspace-rules.index.empty.header'}}
+          {{compute (fn route.t 'empty.header')}}
         </h2>
       </BlockSlot>
       <BlockSlot @name="body">
-        {{t 'routes.dc.acls.auth-methods.show.nspace-rules.index.empty.body'
+        {{compute (fn route.t 'empty.body' (hash
           htmlSafe=true
-        }}
+        ))}}
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">
