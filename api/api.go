@@ -80,6 +80,12 @@ const (
 	// HTTPPartitionEnvName defines an environment variable name which sets
 	// the HTTP Partition to be used by default. This can still be overridden.
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
+
+	// QueryBackendStreaming Query backend of type streaming
+	QueryBackendStreaming = "streaming"
+
+	// QueryBackendBlockingQuery Query backend of type blocking query
+	QueryBackendBlockingQuery = "blocking-query"
 )
 
 type StatusError struct {
@@ -276,6 +282,9 @@ type QueryMeta struct {
 	// CacheAge is set if request was ?cached and indicates how stale the cached
 	// response is.
 	CacheAge time.Duration
+
+	// QueryBackend represent which backend served the request.
+	QueryBackend string
 
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
 	// defined policy. This can be "allow" which means ACLs are used to
@@ -1096,6 +1105,10 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.CacheAge = time.Duration(age) * time.Second
 	}
 
+	switch v := header.Get("X-Consul-Query-Backend"); v {
+	case QueryBackendStreaming, QueryBackendBlockingQuery:
+		q.QueryBackend = v
+	}
 	return nil
 }
 
