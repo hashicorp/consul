@@ -6,7 +6,7 @@ GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
 	github.com/vektra/mockery/cmd/mockery@master \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.15.8
@@ -15,7 +15,7 @@ PROTOC_VERSION=3.15.8
 # MOG_VERSION can be either a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use whatever is currently installed locally.
 ###
-MOG_VERSION='v0.2.0'
+MOG_VERSION='v0.3.0'
 ###
 # PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use whatever is currently installed locally.
