@@ -1,6 +1,7 @@
 package responses
 
 import (
+	"encoding/xml"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -155,3 +156,138 @@ func TestCanonicalArn(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalXML(t *testing.T) {
+	t.Run("user xml", func(t *testing.T) {
+		var resp GetUserResponse
+		err := xml.Unmarshal([]byte(rawUserXML), &resp)
+		require.NoError(t, err)
+		require.Equal(t, expectedParsedUserXML, resp)
+	})
+	t.Run("role xml", func(t *testing.T) {
+		var resp GetRoleResponse
+		err := xml.Unmarshal([]byte(rawRoleXML), &resp)
+		require.NoError(t, err)
+		require.Equal(t, expectedParsedRoleXML, resp)
+	})
+}
+
+var (
+	rawUserXML = `<GetUserResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetUserResult>
+	<User>
+	  <Path>/</Path>
+	  <Arn>arn:aws:iam::000000000000:user/my-user</Arn>
+	  <UserName>my-user</UserName>
+	  <UserId>AIDAexampleuserid</UserId>
+	  <CreateDate>2021-01-01T00:01:02Z</CreateDate>
+	  <Tags>
+		<member>
+		  <Value>some-value</Value>
+		  <Key>some-tag</Key>
+		</member>
+		<member>
+		  <Value>another-value</Value>
+		  <Key>another-tag</Key>
+		</member>
+		<member>
+		  <Value>third-value</Value>
+		  <Key>third-tag</Key>
+		</member>
+	  </Tags>
+	</User>
+  </GetUserResult>
+  <ResponseMetadata>
+	<RequestId>11815b96-cb16-4d33-b2cf-0042fa4db4cd</RequestId>
+  </ResponseMetadata>
+</GetUserResponse>`
+
+	expectedParsedUserXML = GetUserResponse{
+		XMLName: xml.Name{
+			Space: "https://iam.amazonaws.com/doc/2010-05-08/",
+			Local: "GetUserResponse",
+		},
+		GetUserResult: []GetUserResult{
+			{
+				User: User{
+					Arn:      "arn:aws:iam::000000000000:user/my-user",
+					Path:     "/",
+					UserId:   "AIDAexampleuserid",
+					UserName: "my-user",
+					Tags: Tags{
+						Members: []TagMember{
+							{Key: "some-tag", Value: "some-value"},
+							{Key: "another-tag", Value: "another-value"},
+							{Key: "third-tag", Value: "third-value"},
+						},
+					},
+				},
+			},
+		},
+		ResponseMetadata: []ResponseMetadata{
+			{RequestId: "11815b96-cb16-4d33-b2cf-0042fa4db4cd"},
+		},
+	}
+
+	rawRoleXML = `<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetRoleResult>
+    <Role>
+      <Path>/</Path>
+      <AssumeRolePolicyDocument>some-json-document-that-we-ignore</AssumeRolePolicyDocument>
+      <MaxSessionDuration>43200</MaxSessionDuration>
+      <RoleId>AROAsomeuniqueid</RoleId>
+      <RoleLastUsed>
+        <LastUsedDate>2022-01-01T01:02:03Z</LastUsedDate>
+        <Region>us-east-1</Region>
+      </RoleLastUsed>
+      <RoleName>my-role</RoleName>
+      <Arn>arn:aws:iam::000000000000:role/my-role</Arn>
+      <CreateDate>2020-01-01T00:00:01Z</CreateDate>
+      <Tags>
+        <member>
+          <Value>some-value</Value>
+          <Key>some-key</Key>
+        </member>
+        <member>
+          <Value>another-value</Value>
+          <Key>another-key</Key>
+        </member>
+        <member>
+          <Value>a-third-value</Value>
+          <Key>third-key</Key>
+        </member>
+      </Tags>
+    </Role>
+  </GetRoleResult>
+  <ResponseMetadata>
+    <RequestId>a9866067-c0e5-4b5e-86ba-429c1151e2fb</RequestId>
+  </ResponseMetadata>
+</GetRoleResponse>`
+
+	expectedParsedRoleXML = GetRoleResponse{
+		XMLName: xml.Name{
+			Space: "https://iam.amazonaws.com/doc/2010-05-08/",
+			Local: "GetRoleResponse",
+		},
+		GetRoleResult: []GetRoleResult{
+			{
+				Role: Role{
+					Arn:      "arn:aws:iam::000000000000:role/my-role",
+					Path:     "/",
+					RoleId:   "AROAsomeuniqueid",
+					RoleName: "my-role",
+					Tags: Tags{
+						Members: []TagMember{
+							{Key: "some-key", Value: "some-value"},
+							{Key: "another-key", Value: "another-value"},
+							{Key: "third-key", Value: "a-third-value"},
+						},
+					},
+				},
+			},
+		},
+		ResponseMetadata: []ResponseMetadata{
+			{RequestId: "a9866067-c0e5-4b5e-86ba-429c1151e2fb"},
+		},
+	}
+)

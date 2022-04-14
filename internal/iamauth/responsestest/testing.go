@@ -31,7 +31,7 @@ func MakeGetCallerIdentityResponse(arn, userId, accountId string) responses.GetC
 	}
 }
 
-func MakeGetRoleResponse(arn, id string, tags ...responses.Tag) responses.GetRoleResponse {
+func MakeGetRoleResponse(arn, id string, tags responses.Tags) responses.GetRoleResponse {
 	if strings.Contains(id, ":") {
 		panic("RoleId in GetRole response must not contain ':'")
 	}
@@ -51,7 +51,7 @@ func MakeGetRoleResponse(arn, id string, tags ...responses.Tag) responses.GetRol
 	}
 }
 
-func MakeGetUserResponse(arn, id string, tags ...responses.Tag) responses.GetUserResponse {
+func MakeGetUserResponse(arn, id string, tags responses.Tags) responses.GetUserResponse {
 	if strings.Contains(id, ":") {
 		panic("UserId in GetUser resposne must not contain ':'")
 	}

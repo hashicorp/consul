@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/hashicorp/consul/internal/iamauth/iamauthtest"
+	"github.com/hashicorp/consul/internal/iamauth/responses"
 	"github.com/hashicorp/consul/internal/iamauth/responsestest"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
@@ -18,11 +19,11 @@ func TestValidateLogin(t *testing.T) {
 	var (
 		serverForRoleMismatchedIds = &iamauthtest.Server{
 			GetCallerIdentityResponse: f.ServerForRole.GetCallerIdentityResponse,
-			GetRoleResponse:           responsestest.MakeGetRoleResponse(f.RoleARN, "AAAAsomenonmatchingid"),
+			GetRoleResponse:           responsestest.MakeGetRoleResponse(f.RoleARN, "AAAAsomenonmatchingid", responses.Tags{}),
 		}
 		serverForUserMismatchedIds = &iamauthtest.Server{
 			GetCallerIdentityResponse: f.ServerForUser.GetCallerIdentityResponse,
-			GetUserResponse:           responsestest.MakeGetUserResponse(f.UserARN, "AAAAsomenonmatchingid"),
+			GetUserResponse:           responsestest.MakeGetUserResponse(f.UserARN, "AAAAsomenonmatchingid", responses.Tags{}),
 		}
 	)
 
