@@ -24,7 +24,7 @@ var (
 	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
 	// RPC mechanism it's hard to know how to make that much better though.
 	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
-	ErrRateLimited          = errors.New("Rate limit reached, try again later")
+	ErrRateLimited          = errors.New("Rate limit reached, try again later") // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
 	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
 	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
 )
