@@ -45,7 +45,7 @@ type Role struct {
 	Path     string `xml:"Path"`
 	RoleId   string `xml:"RoleId"`
 	RoleName string `xml:"RoleName"`
-	Tags     []Tag  `xml:"Tags"`
+	Tags     Tags   `xml:"Tags"`
 }
 
 func (r *Role) EntityPath() string            { return r.Path }
@@ -69,7 +69,7 @@ type User struct {
 	Path     string `xml:"Path"`
 	UserId   string `xml:"UserId"`
 	UserName string `xml:"UserName"`
-	Tags     []Tag  `xml:"Tags"`
+	Tags     Tags   `xml:"Tags"`
 }
 
 func (u *User) EntityPath() string            { return u.Path }
@@ -78,14 +78,18 @@ func (u *User) EntityName() string            { return u.UserName }
 func (u *User) EntityId() string              { return u.UserId }
 func (u *User) EntityTags() map[string]string { return tagsToMap(u.Tags) }
 
-type Tag struct {
+type Tags struct {
+	Members []TagMember `xml:"member"`
+}
+
+type TagMember struct {
 	Key   string `xml:"Key"`
 	Value string `xml:"Value"`
 }
 
-func tagsToMap(tags []Tag) map[string]string {
+func tagsToMap(tags Tags) map[string]string {
 	result := map[string]string{}
-	for _, tag := range tags {
+	for _, tag := range tags.Members {
 		result[tag.Key] = tag.Value
 	}
 	return result
