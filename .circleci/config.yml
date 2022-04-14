@@ -1198,7 +1198,8 @@ workflows:
           requires:
             - dev-build
       - upgrade-integration-test-latest:
-
+          requires:
+            - dev-build
   website:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
