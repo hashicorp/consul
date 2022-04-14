@@ -87,6 +87,9 @@ as |item|}}
           >
 
             <header>
+              {{compute (fn route.t 'tolerance.link' (hash
+                htmlSafe=true
+              ))}}
               <h2>
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
