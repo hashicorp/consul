@@ -36,10 +36,10 @@ func goldenEnvoy(t *testing.T, name, envoyVersion, latestEnvoyVersion, got strin
 	// versions.
 	subname := goldenEnvoyVersionName(t, envoyVersion)
 
+	latestSubname := "latest"
 	if envoyVersion == latestEnvoyVersion {
 		subname = "latest"
 	}
-	latestSubname = "latest"
 
 	return golden(t, name, subname, latestSubname, got)
 }
