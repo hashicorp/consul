@@ -447,15 +447,19 @@ func (c *Configurator) Base() Config {
 // find bugs. By accepting a varargs of slices we remove the need for the
 // caller to append the groups, which should prevent any such bugs.
 func newX509CertPool(groups ...[]string) (*x509.CertPool, error) {
+	var haveCerts bool
 	pool := x509.NewCertPool()
 	for _, group := range groups {
 		for _, pem := range group {
 			if !pool.AppendCertsFromPEM([]byte(pem)) {
 				return nil, fmt.Errorf("failed to parse PEM %s", pem)
 			}
+			if len(pem) > 0 {
+				haveCerts = true
+			}
 		}
 	}
-	if len(pool.Subjects()) == 0 {
+	if !haveCerts {
 		return nil, nil
 	}
 	return pool, nil
