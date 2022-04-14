@@ -1,3 +1,26 @@
+## 1.11.5 (April 13, 2022)
+
+SECURITY:
+
+* agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled. [[GH-12685](https://github.com/hashicorp/consul/issues/12685)]
+* connect: Properly set SNI when configured for services behind a terminating gateway. [[GH-12672](https://github.com/hashicorp/consul/issues/12672)]
+
+IMPROVEMENTS:
+
+* agent: improve log messages when a service with a critical health check is deregistered due to exceeding the deregister_critical_service_after timeout [[GH-12725](https://github.com/hashicorp/consul/issues/12725)]
+* xds: ensure that all connect timeout configs can apply equally to tproxy direct dial connections [[GH-12711](https://github.com/hashicorp/consul/issues/12711)]
+
+BUG FIXES:
+
+* acl: **(Enterprise Only)** fixes a bug preventing ACL policies configured with datacenter restrictions from being created if the cluster had been upgraded to Consul 1.11+ from an earlier version.
+* connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault. [[GH-12607](https://github.com/hashicorp/consul/issues/12607)]
+* namespace: **(Enterprise Only)** Unreserve `consul` namespace to allow K8s namespace mirroring when deploying in `consul` K8s namespace .
+* raft: upgrade to v1.3.6 which fixes a bug where a read replica node could attempt bootstrapping raft and prevent other nodes from bootstrapping at all [[GH-12496](https://github.com/hashicorp/consul/issues/12496)]
+* replication: Fixed a bug which could prevent ACL replication from continuing successfully after a leader election. [[GH-12565](https://github.com/hashicorp/consul/issues/12565)]
+* server: fix spurious blocking query suppression for discovery chains [[GH-12512](https://github.com/hashicorp/consul/issues/12512)]
+* ui: Fixes a visual bug where our loading icon can look cut off [[GH-12479](https://github.com/hashicorp/consul/issues/12479)]
+* usagemetrics: **(Enterprise only)** Fix a bug where Consul usage metrics stopped being reported when upgrading servers from 1.10 to 1.11 or later.
+
 ## 1.11.4 (February 28, 2022)
 
 FEATURES:
