@@ -1,4 +1,4 @@
-```release-note:breaking-change
+```release-note:bugfix
 The Connect CA Vault system now sets the Namespace (if present) prior
 to attempting to login to Vault. This means the AuthMethod needs to
 be in the specified namespace. Previously the AuthMethod needed to be
