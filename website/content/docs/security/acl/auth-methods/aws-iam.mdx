@@ -8,7 +8,6 @@ description: >-
 
 # AWS IAM Auth Method
 
--> **1.12.0+:** This feature is available in Consul versions 1.12.0 and newer.
 
 The AWS Identity and Access Management (IAM) auth method type allows for AWS
 IAM Roles and Users to be used to authenticate to Consul in order to obtain
@@ -124,7 +123,7 @@ When `EnableIAMEntityDetails=true`, an authenticating client must provide either
 the client must have permission to fetch the role or user, respectively.
 
 - If the authenticating client is an IAM role, the client must have an `iam:GetRole` permission to
-  fetch its own role. The following shows an example of an IAM Policy document which grants this
+  fetch its own role. The following shows an example of an AWS IAM Policy document which grants this
   permission:
 
   ```json
@@ -141,7 +140,7 @@ the client must have permission to fetch the role or user, respectively.
   ```
 
 - If the authenticating client is an IAM user, the client must have an `iam:GetUser` permission to
-  fetch its own role. The following shows an example of an IAM Policy document which grants this
+  fetch its own role. The following shows an example of an AWS IAM Policy document which grants this
   permission:
 
   ```json
@@ -159,8 +158,10 @@ the client must have permission to fetch the role or user, respectively.
 
 ## Authentication Procedure
 
-If `EnableIAMEntityDetails=false`, a client must log in with `consul login -type aws-iam
--aws-auto-bearer-token ...`. This command does the following:
+If `EnableIAMEntityDetails=false`, a client must log in with the `consul login` command. 
+
+```shell-session
+$ consul login -type aws-iam -aws-auto-bearer-token
 
 - Format and sign an `sts:GetCallerIdentity` request
 - Format these request details as JSON to form a bearer token
