@@ -1827,6 +1827,7 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 		MetricsProviderOptionsJSON: stringVal(v.MetricsProviderOptionsJSON),
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
+		HCPEnabled:                 os.Getenv("CONSUL_HCP_ENABLED") == "true",
 	}
 }
 
