@@ -1433,6 +1433,7 @@ type UIConfig struct {
 	MetricsProviderOptionsJSON string
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
+	HCPEnabled                 bool
 }
 
 type UIMetricsProxy struct {
