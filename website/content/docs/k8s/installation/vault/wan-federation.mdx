@@ -9,19 +9,16 @@ description: >-
 
 ~> This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters), [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
-## Overview
-
-This page describes how to federate multiple Kubernetes clusters using Vault as the secrets backend.  
+This page describes how to federate multiple Kubernetes clusters using Vault as the secrets backend.  See [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster) for more information on use cases and how it works.
 
 ## Differences Between Using Kubernetes Secrets vs. Vault
-The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using   
-Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there will be different systems and data integration configuration that will beexplained the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no [Federation Secret](docs/k8s/installation/multi-cluster/kubernetes#federation-secret).
+The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for a [Federation Secret](docs/k8s/installation/multi-cluster/kubernetes#federation-secret).
 
-When federating Consul Kubernetes clusters with Kubernetes secrets, the Federation Secret is used in the following manner:
+When federating Consul Kubernetes clusters with Kubernetes secrets, the Federation Secret is used in the following workflow:
 - `global.federation.createFederationSecret` in primary data center is set to true
-- A Kubernetes secret called `<RELEASE-NAME>-federation` will be created in the primary datacenter. The federation secret's contents are outline in [Federation Secret Contents](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#federation-secret-contents).
-- The federation secret will need to be exportedto a yaml file.
-- The federation secret will be imported as a Kubernetes secret into all secondary datacenters and the Consul configuration will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
+- A Kubernetes secret called `<RELEASE-NAME>-federation` will be created in the primary datacenter. The federation secret's contents are outlined in [Federation Secret Contents](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#federation-secret-contents).
+- The federation secret is exported to a yaml file.
+- The federation secret is imported as a Kubernetes secret into all secondary datacenters and the Consul configuration will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
 
 ## Usage
 
