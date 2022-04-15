@@ -20,6 +20,8 @@ When federating Consul Kubernetes clusters with Kubernetes secrets, the Federati
 - The federation secret is exported to a yaml file.
 - The federation secret is imported as a Kubernetes secret into all secondary datacenters and the Consul configuration will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
 
+When federating Consul Kubernetes clusters with Vault secrets, each datacenter is configured to request the secrets from Vault directly.  So, there is no need for this process of exporting and importing a Federation Secret in each datacenter.
+
 ## Usage
 
 The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend configuration between two clusters, dc1 and dc2. dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
@@ -193,7 +195,6 @@ In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which
     ```
 
     <CodeBlockConfig filename="vault-dc2.yaml" linenumbers lineNumbers highlight="6,7">
-
     ```yaml
     # vault-dc2.yaml
     server:
@@ -203,9 +204,7 @@ In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which
       externalVaultAddr: ${VAULT_ADDR}
       authPath: auth/kubernetes-dc2
     ```
-
     </CodeBlockConfig>
-
 
     ```shell-session
     $ helm install vault-dc2 -f vault-dc2.yaml hashicorp/vault --wait
