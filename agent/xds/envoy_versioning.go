@@ -13,8 +13,6 @@ var (
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
 	minSupportedVersion = version.Must(version.NewVersion("1.19.0"))
 
-	minVersionToForceLDSandCDSToAlwaysUseWildcardsOnReconnect = version.Must(version.NewVersion("1.19.0"))
-
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
 
