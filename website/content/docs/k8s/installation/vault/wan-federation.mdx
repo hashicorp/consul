@@ -195,6 +195,7 @@ In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which
     ```
 
     <CodeBlockConfig filename="vault-dc2.yaml" linenumbers lineNumbers highlight="6,7">
+    
     ```yaml
     # vault-dc2.yaml
     server:
@@ -204,6 +205,7 @@ In this setup, you will deploy Vault server in the dc1 Kubernetes cluster, which
       externalVaultAddr: ${VAULT_ADDR}
       authPath: auth/kubernetes-dc2
     ```
+    
     </CodeBlockConfig>
 
     ```shell-session
@@ -294,400 +296,381 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 ### One time setup in Vault
-#### Store the secrets in Vault
-##### Gossip encryption key secret
+1. Store the ACL Replication Token, Gossip Encryption Key, and Root CA certificate secrets in Vault.
 
-```shell-session
-$ vault kv put consul/secret/gossip key="$(consul keygen)"
-```
-##### Replication token secret
+    ```shell-session
+    $ vault kv put consul/secret/gossip key="$(consul keygen)"
+    ```
 
-```shell-session
-$ vault kv put consul/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
-```  
-##### Root CA certificate
-```shell-session
-$ vault write pki/root/generate/internal common_name="Consul CA" ttl=87600h
-``` 
-#### Create Vault policies that authorize the desired level of access to the secrets
-##### Gossip encryption key policy
+    ```shell-session
+    $ vault kv put consul/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+    ```  
+    ```shell-session
+    $ vault write pki/root/generate/internal common_name="Consul CA" ttl=87600h
+    ``` 
 
-```shell-session
-$ vault policy write gossip - <<EOF
-path "consul/data/secret/gossip" {
-  capabilities = ["read"]
-}
-EOF
-```
+1. Create Vault policies that authorize the desired level of access to the secrets.
 
-##### Replication token policy
+    ```shell-session
+    $ vault policy write gossip - <<EOF
+    path "consul/data/secret/gossip" {
+      capabilities = ["read"]
+    }
+    EOF
+    ```
 
-```shell-session
-$ vault policy write replication-token - <<EOF
-path "consul/data/secret/replication" {
-  capabilities = ["read"]
-}
-EOF
-```
+    ```shell-session
+    $ vault policy write replication-token - <<EOF
+    path "consul/data/secret/replication" {
+      capabilities = ["read"]
+    }
+    EOF
+    ```
 
-##### CA policy
-
-```shell-session
-$ vault policy write ca-policy - <<EOF
-path "pki/cert/ca" {
-  capabilities = ["read"]
-}
-EOF
-```
+    ```shell-session
+    $ vault policy write ca-policy - <<EOF
+    path "pki/cert/ca" {
+      capabilities = ["read"]
+    }
+    EOF
+    ```
 
 ### Setup per Consul datacenter
 #### dc1 datacenter
 
-Change your Kubernetes current context to target dc1:
-```shell-session
-$ kubectl config use-context <context for dc1>
-```
+1. Change your Kubernetes current context to target dc1:
+    ```shell-session
+    $ kubectl config use-context <context for dc1>
+    ```
 
-##### Create Server TLS and Service Mesh Cert Policies
-##### Server TLS Cert policy
+1. Create Server TLS and Service Mesh Cert Policies
 
-```shell-session
-$ vault policy write consul-cert-dc1 - <<EOF
-path "pki/issue/consul-cert-dc1"
-{
-  capabilities = ["create","update"]
-}
-EOF
-```
+    ```shell-session
+    $ vault policy write consul-cert-dc1 - <<EOF
+    path "pki/issue/consul-cert-dc1"
+    {
+      capabilities = ["create","update"]
+    }
+    EOF
+    ```
 
-##### Service Mesh Cert policy
+    ```shell-session
+    $ vault policy write connect-ca-dc1 - <<EOF
+    path "/sys/mounts" {
+      capabilities = [ "read" ]
+    }
+    path "/sys/mounts/connect_root" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/sys/mounts/dc1/connect_inter" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/connect_root/*" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/dc1/connect_inter/*" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    EOF
+    ```
 
-```shell-session
-$ vault policy write connect-ca-dc1 - <<EOF
-path "/sys/mounts" {
-  capabilities = [ "read" ]
-}
-path "/sys/mounts/connect_root" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/sys/mounts/dc1/connect_inter" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/connect_root/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/dc1/connect_inter/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-EOF
-```
+1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for:
 
-##### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
-You will need to create auth roles for the consul-k8s components so that they access secrets that they will need. For each auth method in Vault, you will need roles for:
+    * Consul server
+    * Consul client
+    * `server-acl-init` job
+    * Role for Consul server CA
 
-* Consul server
-* Consul client
-* `server-acl-init` job
-* Role for Consul server CA
+    ```shell-session
+    $ vault write auth/kubernetes-dc1/role/consul-server \
+            bound_service_account_names=consul-server \
+            bound_service_account_namespaces="default" \
+            policies="gossip,connect-ca-dc1,consul-cert-dc1" \
+            ttl=24h
+    ```
 
-```shell-session
-$ vault write auth/kubernetes-dc1/role/consul-server \
-        bound_service_account_names=consul-server \
-        bound_service_account_namespaces="default" \
-        policies="gossip,connect-ca-dc1,consul-cert-dc1" \
-        ttl=24h
-```
+    ```shell-session
+    $ vault write auth/kubernetes-dc1/role/consul-client \
+            bound_service_account_names=consul-client \
+            bound_service_account_namespaces="default" \
+            policies="gossip" \
+            ttl=24h
+    ```
 
-```shell-session
-$ vault write auth/kubernetes-dc1/role/consul-client \
-        bound_service_account_names=consul-client \
-        bound_service_account_namespaces="default" \
-        policies="gossip" \
-        ttl=24h
-```
+    ```shell-session
+    $ vault write auth/kubernetes-dc1/role/server-acl-init \
+            bound_service_account_names=consul-server-acl-init \
+            bound_service_account_namespaces="default" \
+            policies="replication-token" \
+            ttl=24h
+    ```
 
-```shell-session
-$ vault write auth/kubernetes-dc1/role/server-acl-init \
-        bound_service_account_names=consul-server-acl-init \
-        bound_service_account_namespaces="default" \
-        policies="replication-token" \
-        ttl=24h
-```
+    ```shell-session
+    $ vault write auth/kubernetes-dc1/role/consul-ca \
+            bound_service_account_names="*" \
+            bound_service_account_namespaces="default" \
+            policies=ca-policy \
+            ttl=1h
+    ```
 
-```shell-session
-$ vault write auth/kubernetes-dc1/role/consul-ca \
-        bound_service_account_names="*" \
-        bound_service_account_namespaces="default" \
-        policies=ca-policy \
-        ttl=1h
-```
+1. Create the server TLS Cert role.
 
-##### Server TLS Cert role
+    ```shell-session
+    $ vault write pki/roles/consul-cert-dc1 \
+      allowed_domains="dc1.consul,consul-server,consul-server.default,consul-server.default.svc" \
+      allow_subdomains=true \
+      allow_bare_domains=true \
+      allow_localhost=true \
+      generate_lease=true \
+      max_ttl="720h"
+    ```
 
-```shell-session
-$ vault write pki/roles/consul-cert-dc1 \
-  allowed_domains="dc1.consul,consul-server,consul-server.default,consul-server.default.svc" \
-  allow_subdomains=true \
-  allow_bare_domains=true \
-  allow_localhost=true \
-  generate_lease=true \
-  max_ttl="720h"
-```
+1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart. Now you can configure and install Consul in dc1 datacenter.
 
-##### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
-Now you can configure and install Consul in dc1 datacenter.
+    <CodeBlockConfig filename="consul-dc1.yaml" linenumbers>
 
-<CodeBlockConfig filename="consul-dc1.yaml" linenumbers>
-
-```yaml
-# consul-dc1.yaml
-global:
-  datacenter: "dc1"
-  name: consul
-  secretsBackend:
-    vault:
+    ```yaml
+    # consul-dc1.yaml
+    global:
+      datacenter: "dc1"
+      name: consul
+      secretsBackend:
+        vault:
+          enabled: true
+          consulServerRole: consul-server
+          consulClientRole: consul-client
+          consulCARole: consul-ca
+          manageSystemACLsRole: server-acl-init
+          connectCA:
+            address: http://vault-dc1.default:8200
+            rootPKIPath: connect_root/
+            intermediatePKIPath: dc1/connect_inter/
+            authMethodPath: kubernetes-dc1
+      tls:
+        enabled: true
+        enableAutoEncrypt: true
+        caCert:
+          secretName: "pki/cert/ca"
+      federation:
+        enabled: true
+      acls:
+        manageSystemACLs: true
+        createReplicationToken: true
+        replicationToken:
+          secretName: consul/data/secret/replication
+          secretKey: token
+      gossipEncryption:
+        secretName: consul/data/secret/gossip
+        secretKey: key
+    server:
+      replicas: 1
+      serverCert:
+        secretName: "pki/issue/consul-cert-dc1"
+    connectInject:
+      replicas: 1
       enabled: true
-      consulServerRole: consul-server
-      consulClientRole: consul-client
-      consulCARole: consul-ca
-      manageSystemACLsRole: server-acl-init
-      connectCA:
-        address: http://vault-dc1.default:8200
-        rootPKIPath: connect_root/
-        intermediatePKIPath: dc1/connect_inter/
-        authMethodPath: kubernetes-dc1
-  tls:
-    enabled: true
-    enableAutoEncrypt: true
-    caCert:
-      secretName: "pki/cert/ca"
-  federation:
-    enabled: true
-  acls:
-    manageSystemACLs: true
-    createReplicationToken: true
-    replicationToken:
-      secretName: consul/data/secret/replication
-      secretKey: token
-  gossipEncryption:
-    secretName: consul/data/secret/gossip
-    secretKey: key
-server:
-  replicas: 1
-  serverCert:
-    secretName: "pki/issue/consul-cert-dc1"
-connectInject:
-  replicas: 1
-  enabled: true
-controller:
-  enabled: true
-meshGateway:
-  enabled: true
-  replicas: 1
-```
+    controller:
+      enabled: true
+    meshGateway:
+      enabled: true
+      replicas: 1
+    ```
 
-</CodeBlockConfig>
+    </CodeBlockConfig>
 
-```shell-session
-$ helm install consul-dc1 -f consul-dc1.yaml hashicorp/consul
-```
+    ```shell-session
+    $ helm install consul-dc1 -f consul-dc1.yaml hashicorp/consul
+    ```
 
 #### dc2 datacenter
-##### Create Server TLS and Service Mesh Cert Policies
-##### Server TLS Cert policy
-
-```shell-session
-$ vault policy write consul-cert-dc2 - <<EOF
-path "pki/issue/consul-cert-dc2"
-{
-  capabilities = ["create","update"]
-}
-EOF
-```
-
-##### Service Mesh Cert policy
-
-```shell-session
-$ vault policy write connect-ca-dc2 - <<EOF
-path "/sys/mounts" {
-  capabilities = [ "read" ]
-}
-path "/sys/mounts/connect_root" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/sys/mounts/dc2/connect_inter" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/connect_root/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-path "/dc2/connect_inter/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-EOF
-```
-
-##### Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access
-You will need to create auth roles for the consul-k8s components so that they access secrets that they will need. For each auth method in Vault, you will need roles for:
-
-* Consul server
-* Consul client
-* `server-acl-init` job
-* Role for Consul server CA
-
-```shell-session
-$ vault write auth/kubernetes-dc2/role/consul-server \
-        bound_service_account_names=consul-server \
-        bound_service_account_namespaces="default" \
-        policies="gossip,connect-ca-dc2,consul-cert-dc2,replication-token" \
-        ttl=24h
-```
-
-```shell-session
-$ vault write auth/kubernetes-dc2/role/consul-client \
-        bound_service_account_names=consul-client \
-        bound_service_account_namespaces="default" \
-        policies="gossip" \
-        ttl=24h
-```
-
-```shell-session
-$ vault write auth/kubernetes-dc2/role/server-acl-init \
-        bound_service_account_names=consul-server-acl-init \
-        bound_service_account_namespaces="default" \
-        policies="replication-token" \
-        ttl=24h
-```
-
-```shell-session
-$ vault write auth/kubernetes-dc2/role/consul-ca \
-        bound_service_account_names="*" \
-        bound_service_account_namespaces="default" \
-        policies=ca-policy \
-        ttl=1h
-```
-
-##### Server TLS Cert role
-
-```shell-session
-$ vault write pki/roles/consul-cert-dc2 \
-  allowed_domains="dc2.consul,consul-server,consul-server.default,consul-server.default.svc" \
-  allow_subdomains=true \
-  allow_bare_domains=true \
-  allow_localhost=true \
-  generate_lease=true \
-  max_ttl="720h"
-```
-
-##### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
-Now you can configure and install Consul in dc2 datacenter. 
-##### Set the Mesh Gateway address from DC1.
-For dc2 datacenter, you will need to get the address of the mesh gateway from the **dc1** cluster.  Change your Kubernetes current context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for dc2 datacenter.
-
-```shell-session
-$ kubectl config use-context <context for dc1>
-```
-
-Now, get the mesh gateway address:
-
-<Tabs>
-  <Tab heading="EKS">
+1. Create Server TLS and Service Mesh Cert Policies
 
   ```shell-session
-  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  $ vault policy write consul-cert-dc2 - <<EOF
+  path "pki/issue/consul-cert-dc2"
+  {
+    capabilities = ["create","update"]
+  }
+  EOF
   ```
-
-  </Tab>
-
-  <Tab heading="GKE">
 
   ```shell-session
-  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  $ vault policy write connect-ca-dc2 - <<EOF
+  path "/sys/mounts" {
+    capabilities = [ "read" ]
+  }
+  path "/sys/mounts/connect_root" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  path "/sys/mounts/dc2/connect_inter" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  path "/connect_root/*" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  path "/dc2/connect_inter/*" {
+    capabilities = [ "create", "read", "update", "delete", "list" ]
+  }
+  EOF
   ```
 
-  </Tab>
+1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for:
 
-  <Tab heading="AKS">
+    * Consul server
+    * Consul client
+    * `server-acl-init` job
+    * Role for Consul server CA
 
-  ```shell-session
-  export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  ```
+    ```shell-session
+    $ vault write auth/kubernetes-dc2/role/consul-server \
+            bound_service_account_names=consul-server \
+            bound_service_account_namespaces="default" \
+            policies="gossip,connect-ca-dc2,consul-cert-dc2,replication-token" \
+            ttl=24h
+    ```
 
-  </Tab>
-</Tabs>
+    ```shell-session
+    $ vault write auth/kubernetes-dc2/role/consul-client \
+            bound_service_account_names=consul-client \
+            bound_service_account_namespaces="default" \
+            policies="gossip" \
+            ttl=24h
+    ```
 
-##### Set the Mesh Gateway address from DC1.
--> Note To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same,
-but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter,
-you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter
-for which this configuration is intended (e.g. `dc2/connect-intermediate`).
+    ```shell-session
+    $ vault write auth/kubernetes-dc2/role/server-acl-init \
+            bound_service_account_names=consul-server-acl-init \
+            bound_service_account_namespaces="default" \
+            policies="replication-token" \
+            ttl=24h
+    ```
 
-<CodeBlockConfig filename="consul-dc2.yaml" linenumbers>
+    ```shell-session
+    $ vault write auth/kubernetes-dc2/role/consul-ca \
+            bound_service_account_names="*" \
+            bound_service_account_namespaces="default" \
+            policies=ca-policy \
+            ttl=1h
+    ```
 
-```yaml
-# consul-dc2.yaml
-global:
-  datacenter: "dc2"
-  name: consul
-  secretsBackend:
-    vault:
+1. Create the Server TLS Cert role.
+
+    ```shell-session
+    $ vault write pki/roles/consul-cert-dc2 \
+      allowed_domains="dc2.consul,consul-server,consul-server.default,consul-server.default.svc" \
+      allow_subdomains=true \
+      allow_bare_domains=true \
+      allow_localhost=true \
+      generate_lease=true \
+      max_ttl="720h"
+    ```
+
+1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart. For dc2 datacenter, you will need to get the address of the mesh gateway from the **dc1** cluster.  
+
+    Change your Kubernetes current context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for dc2 datacenter.
+
+    ```shell-session
+    $ kubectl config use-context <context for dc1>
+    ```
+
+    Now, get the mesh gateway address:
+
+    <Tabs>
+      <Tab heading="EKS">
+
+      ```shell-session
+      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      ```
+
+      </Tab>
+
+      <Tab heading="GKE">
+
+      ```shell-session
+      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+
+      <Tab heading="AKS">
+
+      ```shell-session
+      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+    </Tabs>
+
+1. Set the Mesh Gateway address from DC1.
+    -> Note To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same, but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter, you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter
+    for which this configuration is intended (e.g. `dc2/connect-intermediate`).
+
+    <CodeBlockConfig filename="consul-dc2.yaml" linenumbers>
+
+    ```yaml
+    # consul-dc2.yaml
+    global:
+      datacenter: "dc2"
+      name: consul
+      secretsBackend:
+        vault:
+          enabled: true
+          consulServerRole: consul-server
+          consulClientRole: consul-client
+          consulCARole: consul-ca
+          manageSystemACLsRole: server-acl-init
+          connectCA:
+            address: ${VAULT_ADDR}
+            rootPKIPath: connect_root/
+            intermediatePKIPath: dc2/connect_inter/
+            authMethodPath: kubernetes-dc2
+      tls:
+        enabled: true
+        enableAutoEncrypt: true
+        caCert:
+          secretName: "pki/cert/ca"
+      federation:
+        enabled: true
+        primaryDatacenter: dc1
+        k8sAuthMethodHost: ${KUBE_API_URL_DC2}
+        primaryGateways:
+        - ${MESH_GW_HOST}:443
+      acls:
+        manageSystemACLs: true
+        replicationToken:
+          secretName: consul/data/secret/replication
+          secretKey: token
+      gossipEncryption:
+        secretName: consul/data/secret/gossip
+        secretKey: key
+    server:
+      replicas: 1
+      serverCert:
+        secretName: "pki/issue/consul-cert-dc2"
+    connectInject:
+      replicas: 1
       enabled: true
-      consulServerRole: consul-server
-      consulClientRole: consul-client
-      consulCARole: consul-ca
-      manageSystemACLsRole: server-acl-init
-      connectCA:
-        address: ${VAULT_ADDR}
-        rootPKIPath: connect_root/
-        intermediatePKIPath: dc2/connect_inter/
-        authMethodPath: kubernetes-dc2
-  tls:
-    enabled: true
-    enableAutoEncrypt: true
-    caCert:
-      secretName: "pki/cert/ca"
-  federation:
-    enabled: true
-    primaryDatacenter: dc1
-    k8sAuthMethodHost: ${KUBE_API_URL_DC2}
-    primaryGateways:
-    - ${MESH_GW_HOST}:443
-  acls:
-    manageSystemACLs: true
-    replicationToken:
-      secretName: consul/data/secret/replication
-      secretKey: token
-  gossipEncryption:
-    secretName: consul/data/secret/gossip
-    secretKey: key
-server:
-  replicas: 1
-  serverCert:
-    secretName: "pki/issue/consul-cert-dc2"
-connectInject:
-  replicas: 1
-  enabled: true
-controller:
-  enabled: true
-meshGateway:
-  enabled: true
-  replicas: 1
-```
+    controller:
+      enabled: true
+    meshGateway:
+      enabled: true
+      replicas: 1
+    ```
 
-</CodeBlockConfig>
+    </CodeBlockConfig>
 
-Change your Kubernetes current context to target dc2:
+    Change your Kubernetes current context to target dc2:
 
-```shell-session
-$ kubectl config use-context <context for dc2>
-```
+    ```shell-session
+    $ kubectl config use-context <context for dc2>
+    ```
 
 
-Now, use the above values files for you helm install:
+    Now, use the above values files for you helm install:
 
-```shell-session
-$ helm install consul-dc2 -f consul-dc2.yaml hashicorp/consul
-```
+    ```shell-session
+    $ helm install consul-dc2 -f consul-dc2.yaml hashicorp/consul
+    ```
 
 ## Next steps
 For further detail on specific Consul secrets that are available to be stored in Vault, please checkout the detailed information in the [Data Integration](/docs/website/content/docs/k8s/installation/vault/data-integration) section of the [Vault as a Secrets Backend](/docs/website/content/docs/k8s/installation/vault) area of the Consul on Kubernetes documentation.
