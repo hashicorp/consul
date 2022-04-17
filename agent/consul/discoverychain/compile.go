@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -37,7 +38,7 @@ type CompileRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
-	Entries *structs.DiscoveryChainConfigEntries
+	Entries *configentry.DiscoveryChainSet
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -131,7 +132,7 @@ type compiler struct {
 	// config entries that are being compiled (will be mutated during compilation)
 	//
 	// This is an INPUT field.
-	entries *structs.DiscoveryChainConfigEntries
+	entries *configentry.DiscoveryChainSet
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -159,6 +160,12 @@ type compiler struct {
 	//
 	// This is an OUTPUT field.
 	protocol string
+
+	// serviceMeta is the Meta field from the service-defaults entry that
+	// shares a name with this discovery chain.
+	//
+	// This is an OUTPUT field.
+	serviceMeta map[string]string
 
 	// startNode is computed inside of assembleChain()
 	//
@@ -326,12 +333,45 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		Namespace:         c.evaluateInNamespace,
 		Partition:         c.evaluateInPartition,
 		Datacenter:        c.evaluateInDatacenter,
+		Default:           c.determineIfDefaultChain(),
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
+		ServiceMeta:       c.serviceMeta,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
 	}, nil
+}
+
+//	determineIfDefaultChain returns true if the compiled chain represents no
+//	routing, no splitting, and only the default resolution.  We have to be
+//	careful here to avoid returning "yep this is default" when the only
+//	resolver action being applied is redirection to another resolver that is
+//	default, so we double check the resolver matches the requested resolver.
+//
+// NOTE: "default chain" mostly means that this is compatible with how things
+// worked (roughly) in consul 1.5 pre-discovery chain, not that there are zero
+// config entries in play (like service-defaults).
+func (c *compiler) determineIfDefaultChain() bool {
+	if c.startNode == "" || len(c.nodes) == 0 {
+		return true
+	}
+
+	node := c.nodes[c.startNode]
+	if node == nil {
+		panic("not possible: missing node named '" + c.startNode + "' in chain '" + c.serviceName + "'")
+	}
+
+	if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+		return false
+	}
+	if !node.Resolver.Default {
+		return false
+	}
+
+	target := c.loadedTargets[node.Resolver.Target]
+
+	return target.Service == c.serviceName && target.Namespace == c.evaluateInNamespace && target.Partition == c.evaluateInPartition
 }
 
 func (c *compiler) detectCircularReferences() error {
@@ -513,6 +553,11 @@ func (c *compiler) assembleChain() error {
 	}
 
 	sid := structs.NewServiceID(c.serviceName, c.GetEnterpriseMeta())
+
+	// Extract the service meta for the service named by this discovery chain.
+	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
+		c.serviceMeta = serviceDefault.GetMeta()
+	}
 
 	// Check for short circuit path.
 	if len(c.resolvers) == 0 && c.entries.IsChainEmpty() {
@@ -882,6 +927,9 @@ RESOLVE_AGAIN:
 			c.customizedBy.ConnectTimeout = true
 		}
 	}
+
+	// Expose a copy of this on the targets for ease of access.
+	target.ConnectTimeout = connectTimeout
 
 	// Build node.
 	node := &structs.DiscoveryGraphNode{

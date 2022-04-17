@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -51,11 +52,11 @@ func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request
 func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
-	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
+	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
 		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
 	}
 
@@ -114,7 +115,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -275,7 +276,7 @@ func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Reques
 
 // GET /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -323,9 +324,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -351,7 +350,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 
 // PUT /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -393,7 +392,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 
 // DELETE /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -429,7 +428,7 @@ func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.
 // intentionCreateResponse is the response structure for creating an intention.
 type intentionCreateResponse struct{ ID string }
 
-func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta) (*structs.IntentionQueryExact, error) {
+func parseIntentionQueryExact(req *http.Request, entMeta *acl.EnterpriseMeta) (*structs.IntentionQueryExact, error) {
 	q := req.URL.Query()
 
 	// Extract the source/destination
@@ -466,7 +465,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 	return &exact, nil
 }
 
-func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, string, error) {
+func parseIntentionStringComponent(input string, entMeta *acl.EnterpriseMeta) (string, string, string, error) {
 	ss := strings.Split(input, "/")
 	switch len(ss) {
 	case 1: // Name only
@@ -521,9 +520,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+			return nil, NotFoundError{Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -551,11 +548,11 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
-	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
+	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
 		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
 	}
 

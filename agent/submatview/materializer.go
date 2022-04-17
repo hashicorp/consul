@@ -63,7 +63,7 @@ type Deps struct {
 	Client  StreamClient
 	Logger  hclog.Logger
 	Waiter  *retry.Waiter
-	Request func(index uint64) pbsubscribe.SubscribeRequest
+	Request func(index uint64) *pbsubscribe.SubscribeRequest
 }
 
 // StreamClient provides a subscription to state change events.
@@ -136,13 +136,13 @@ func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
 
 // runSubscription opens a new subscribe streaming call to the servers and runs
 // for it's lifetime or until the view is closed.
-func (m *Materializer) runSubscription(ctx context.Context, req pbsubscribe.SubscribeRequest) error {
+func (m *Materializer) runSubscription(ctx context.Context, req *pbsubscribe.SubscribeRequest) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	m.handler = initialHandler(req.Index)
 
-	s, err := m.deps.Client.Subscribe(ctx, &req)
+	s, err := m.deps.Client.Subscribe(ctx, req)
 	if err != nil {
 		return err
 	}

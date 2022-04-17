@@ -34,10 +34,6 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
-	{
-		Name: []string{"acl", "ResolveTokenToIdentity"},
-		Help: "This measures the time it takes to resolve an ACL token to an Identity.",
-	},
 }
 
 // These must be kept in sync with the constants in command/agent/acl.go.
@@ -112,7 +108,7 @@ func (id *missingIdentity) IsLocal() bool {
 	return false
 }
 
-func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
+func (id *missingIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
@@ -186,7 +182,7 @@ type ACLResolverSettings struct {
 	ACLsEnabled    bool
 	Datacenter     string
 	NodeName       string
-	EnterpriseMeta structs.EnterpriseMeta
+	EnterpriseMeta acl.EnterpriseMeta
 
 	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
@@ -268,7 +264,7 @@ type ACLResolver struct {
 	agentRecoveryAuthz acl.Authorizer
 }
 
-func agentRecoveryAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
+func agentRecoveryAuthorizer(nodeName string, entMeta *acl.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
 	var conf acl.Config
 	if aclConf != nil {
 		conf = *aclConf
@@ -642,7 +638,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	return filtered, nil
 }
 
-func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(serviceIdentities) == 0 {
 		return nil
 	}
@@ -655,7 +651,7 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
-func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(nodeIdentities) == 0 {
 		return nil
 	}
@@ -666,6 +662,26 @@ func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*stru
 	}
 
 	return syntheticPolicies
+}
+
+// plainACLResolver wraps ACLResolver so that it can be used in other packages
+// that cannot import agent/consul wholesale (e.g. because of import cycles).
+//
+// TODO(agentless): this pattern was copied from subscribeBackend for expediency
+// but we should really refactor ACLResolver so it can be passed as a dependency
+// to other packages.
+type plainACLResolver struct {
+	resolver *ACLResolver
+}
+
+func (r plainACLResolver) ResolveTokenAndDefaultMeta(
+	token string,
+	entMeta *acl.EnterpriseMeta,
+	authzContext *acl.AuthorizerContext,
+) (acl.Authorizer, error) {
+	// ACLResolver.ResolveTokenAndDefaultMeta returns a ACLResolveResult which
+	// can't be used in other packages, but it embeds acl.Authorizer which can.
+	return r.resolver.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
 }
 
 func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLServiceIdentity {
@@ -1057,13 +1073,16 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 	return r.resolveLocallyManagedEnterpriseToken(token)
 }
 
-func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+// ResolveToken to an acl.Authorizer and structs.ACLIdentity. The acl.Authorizer
+// can be used to check permissions granted to the token, and the ACLIdentity
+// describes the token and any defaults applied to it.
+func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 	if !r.ACLsEnabled() {
-		return nil, acl.ManageAll(), nil
+		return ACLResolveResult{Authorizer: acl.ManageAll()}, nil
 	}
 
 	if acl.RootAuthorizer(token) != nil {
-		return nil, nil, acl.ErrRootDenied
+		return ACLResolveResult{}, acl.ErrRootDenied
 	}
 
 	// handle the anonymous token
@@ -1072,7 +1091,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	}
 
 	if ident, authz, ok := r.resolveLocallyManagedToken(token); ok {
-		return ident, authz, nil
+		return ACLResolveResult{Authorizer: authz, ACLIdentity: ident}, nil
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
@@ -1082,10 +1101,11 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 		r.handleACLDisabledError(err)
 		if IsACLRemoteError(err) {
 			r.logger.Error("Error resolving token", "error", err)
-			return &missingIdentity{reason: "primary-dc-down", token: token}, r.down, nil
+			ident := &missingIdentity{reason: "primary-dc-down", token: token}
+			return ACLResolveResult{Authorizer: r.down, ACLIdentity: ident}, nil
 		}
 
-		return nil, nil, err
+		return ACLResolveResult{}, err
 	}
 
 	// Build the Authorizer
@@ -1098,7 +1118,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
-		return nil, nil, err
+		return ACLResolveResult{}, err
 	}
 	chain = append(chain, authz)
 
@@ -1106,42 +1126,36 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	if err != nil {
 		if IsACLRemoteError(err) {
 			r.logger.Error("Error resolving identity defaults", "error", err)
-			return identity, r.down, nil
+			return ACLResolveResult{Authorizer: r.down, ACLIdentity: identity}, nil
 		}
-		return nil, nil, err
+		return ACLResolveResult{}, err
 	} else if authz != nil {
 		chain = append(chain, authz)
 	}
 
 	chain = append(chain, acl.RootAuthorizer(r.config.ACLDefaultPolicy))
-	return identity, acl.NewChainedAuthorizer(chain), nil
+	return ACLResolveResult{Authorizer: acl.NewChainedAuthorizer(chain), ACLIdentity: identity}, nil
 }
 
-// TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
-// ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
-// return a much smaller type (instad of just a string) to allow for changes
-// in the future.
-func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	if !r.ACLsEnabled() {
-		return nil, nil
+type ACLResolveResult struct {
+	acl.Authorizer
+	// TODO: likely we can reduce this interface
+	ACLIdentity structs.ACLIdentity
+}
+
+func (a ACLResolveResult) AccessorID() string {
+	if a.ACLIdentity == nil {
+		return ""
 	}
+	return a.ACLIdentity.ID()
+}
 
-	if acl.RootAuthorizer(token) != nil {
-		return nil, acl.ErrRootDenied
-	}
+func (a ACLResolveResult) Identity() structs.ACLIdentity {
+	return a.ACLIdentity
+}
 
-	// handle the anonymous token
-	if token == "" {
-		token = anonymousToken
-	}
-
-	if ident, _, ok := r.resolveLocallyManagedToken(token); ok {
-		return ident, nil
-	}
-
-	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
-
-	return r.resolveIdentityFromToken(token)
+func (a ACLResolveResult) ToAllowAuthorizer() acl.AllowAuthorizer {
+	return acl.AllowAuthorizer{Authorizer: a, AccessorID: a.AccessorID()}
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {
@@ -1158,6 +1172,30 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	}
 
 	return true
+}
+
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
+	result, err := r.ResolveToken(token)
+	if err != nil {
+		return ACLResolveResult{}, err
+	}
+
+	if entMeta == nil {
+		entMeta = &acl.EnterpriseMeta{}
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if result.ACLIdentity != nil {
+		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return result, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
@@ -1241,7 +1279,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 
 // filterServices is used to filter a set of services based on ACLs. Returns
 // true if any elements were removed.
-func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) bool {
+func (f *aclFilter) filterServices(services structs.Services, entMeta *acl.EnterpriseMeta) bool {
 	var authzContext acl.AuthorizerContext
 	entMeta.FillAuthzContext(&authzContext)
 
@@ -1967,7 +2005,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 // not authorized for read access will be removed from subj.
 func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	// Get the ACL from the token
-	_, authorizer, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	authorizer, err := r.ResolveToken(token)
 	if err != nil {
 		return err
 	}

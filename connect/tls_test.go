@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -265,7 +266,7 @@ func TestServerSideVerifier(t *testing.T) {
 // allows expecting a leaf cert different from the one in expect
 func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 	require.Equal(t, expect.RootCAs, got.RootCAs)
-	assertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
+	prototest.AssertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
 	require.Equal(t, expect.InsecureSkipVerify, got.InsecureSkipVerify)
 	require.Equal(t, expect.MinVersion, got.MinVersion)
 	require.Equal(t, expect.CipherSuites, got.CipherSuites)
@@ -297,13 +298,6 @@ func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 var cmpCertPool = cmp.Comparer(func(x, y *x509.CertPool) bool {
 	return cmp.Equal(x.Subjects(), y.Subjects())
 })
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
-}
 
 // requireCorrectVerifier invokes got.VerifyPeerCertificate and expects the
 // tls.Config arg to be returned on the provided channel. This ensures the

@@ -61,14 +61,17 @@ export default Component.extend({
     delete this._guards[name];
   },
   dispatch: function(eventName, payload) {
-    this.machine.send(eventName, payload);
+    this.machine.state.context = payload;
+    this.machine.send({ type: eventName });
   },
   actions: {
     dispatch: function(eventName, e) {
       if (e && e.preventDefault) {
-        e.preventDefault();
+        if (typeof e.target.nodeName === 'undefined' || e.target.nodeName.toLowerCase() !== 'a') {
+          e.preventDefault();
+        }
       }
-      this.dispatch(eventName);
+      this.dispatch(eventName, e);
     },
   },
 });

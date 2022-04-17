@@ -1,0 +1,360 @@
+---
+layout: docs
+page_title: CTS v0.5.0
+description: >-
+  Consul-Terraform-Sync release notes for v0.5.0
+---
+
+-> The release notes for v0.5.0 focus on a subset of configuration deprecations
+
+# Configuration Deprecations in v0.5
+
+We introduced a number of configuration deprecations in Consul-Terraform-Sync (CTS) v0.5. Many of these deprecations are part of an effort to streamline CTS task configuration and reduce the inconsistencies. As CTS support for more use-cases increased,  inconsistencies arose and required a lot of documentation to explain.
+
+This documentation outlines the deprecations and examples on how to upgrade your configuration for v0.5. The deprecated configurations will not be removed until v0.8 and later. We plan to also release a tool to automate upgrading your configurations to make the upgrade quicker and smoother.
+
+## Overview of Deprecations
+
+The deprecations address two major inconsistencies. First is the use of the terminology "source" in various configuration blocks and fields. The second is the exception to configuring a task condition or a task module input by using the `services` field and its related `service` block.
+
+### Address "source" terminology
+
+The word "source" is used in the name of a number of task configurations. "Source" in the configuration name commonly refers to the Terraform module though it is not immediately clear and requires additional documentation to explain.
+
+We deprecated all configuration with the term "source" and replaced it with "module" in the task configuration:
+
+| Deprecated Config | Replacement Config | Description |
+| --- | --- | --- |
+| `source` field | `module` field | The path to the Terraform module |
+| `source_input` block | `module_input` block | The configuration block to define the values for additional Terraform input variables for the Terraform module |
+| `source_includes_var` field | `use_as_module_input` field | The field on the `condition` block to indicate whether the values of the condition object should also be used as module input |
+
+Removal date:
+- `source`: future major release after v0.8
+- `source_input`: v0.8
+- `source_includes_var`: v0.8
+
+The documentation below will refer to the deprecated configurations by their new name.
+
+### Address `services` field and `service` block
+
+The `services` field and its associated `service` block are frequently an exception to task configuration use-cases and add complexity and restrictions.
+
+The `services` field is the only task condition that is not configured through the `condition` block. It is also the only additional module input that is not configured through a `module_input` block. This leads to a lot of inconsistent relationships with other `condition` and `module_input` blocks.
+
+We deprecated the `services` field and its associated `service` filter to remove these exceptions and complicated relationship with other `condition` and `module_input` blocks:
+
+| Deprecated Config | Replacement Config | Description |
+| --- | --- | --- |
+| `services` field | `condition "services"` or `module_input "services"` block | The services to provide module input and occasionally act as the task condition |
+| `service` block | fields moved into the `condition "services"` and `module_input "services"` block | The configuration block to provide additional filtering on the services in the `services` field |
+
+The `services` field and its associated `service` block will be removed in a future major release after v0.8.
+
+## Further Details on Deprecations
+
+### Deprecate `source` field
+
+The `source` field in the task configuration is deprecated and can be directly renamed to `module`.
+
+Example:
+
+<CodeTabs heading="Deprecate source field" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="4">
+
+```hcl
+task {
+  name     = "services_task"
+  services = ["api", "web"]
+  source   = "path/to/module"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="4">
+
+```hcl
+task {
+  name     = "services_task"
+  services = ["api", "web"]
+  module   = "path/to/module"
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+### Deprecate `source_input` block
+
+The `source_input` block in the task configuration is deprecated and can be directly renamed to `module_input`.
+
+Example:
+<CodeTabs heading="Deprecate source_input block" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="7">
+
+```hcl
+task {
+  name   = "scheduled_task"
+  module = "path/to/module"
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+  source_input "consul-kv" {
+    path = "my_key"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="7">
+
+```hcl
+task {
+  name   = "scheduled_task"
+  module = "path/to/module"
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+  module_input "consul-kv" {
+    path = "my_key"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+
+### Deprecate `source_includes_var` field
+
+The `condition` block's `source_includes_var` field is deprecated for all types of conditions and can be directly renamed to `use_as_module_input`.
+
+Example:
+<CodeTabs heading="Deprecate source_includes_var field" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="6">
+
+```hcl
+task {
+  name   = "catalog_services_task"
+  module = "path/to/module"
+  condition "catalog-services" {
+    regexp              = "api"
+    source_includes_var = true
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="6">
+
+```hcl
+task {
+  name   = "catalog_services_task"
+  module = "path/to/module"
+  condition "catalog-services" {
+    regexp              = "api"
+    use_as_module_input = true
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+### Deprecate `services` field
+
+The `services` field can play different roles in a task depending on other task configurations:
+- When no `condition` block is configured, then the `services` field is the task's condition and module input
+- When there is a `condition` block configured, then the `services field is only module input for the task
+
+The `services` field can be replaced depending on the role it has for the task.
+
+**Deprecate `services` field as a condition**
+
+When the `services` field behaves as a condition, it can be replaced with a `condition "services"` block with the `names` field set to the list of the services.
+
+Example:
+<CodeTabs heading="Deprecate services field as a condition" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="4">
+
+```hcl
+task {
+  name     = "services_condition_task"
+  module   = "path/to/module"
+  services = ["api", "web"]
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="4,5,6">
+
+```hcl
+task {
+  name     = "services_condition_task"
+  module   = "path/to/module"
+  condition "services" {
+    names = ["api", "web"]
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+**Deprecate `services` field as module input only**
+
+When the `services` field only provides module input, it can be replaced with a `module_input "services"` block with the `names` field set to the list of the services.
+
+Example:
+<CodeTabs heading="Deprecate services field as a module input" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="8">
+
+```hcl
+task {
+  name   = "services_module_input_task"
+  module = "path/to/module"
+  condition "consul-kv" {
+    path                = "my_key"
+    source_includes_var = true
+  }
+  services = ["api", "web"]
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="8,9,10">
+
+```hcl
+task {
+  name   = "services_module_input_task"
+  module = "path/to/module"
+  condition "consul-kv" {
+    path                = "my_key"
+    use_as_module_input = true
+  }
+  module_input "services" {
+    names = ["api", "web"]
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+-> Note: `use_as_module_input` was updated in v0.5 so that it will default to `true` when unconfigured. In the new configuration, the line to set `use_as_module_input = true` is no longer necessary
+
+### Deprecate service block
+
+The `service` block is a configuration block outside of the task block. The fields of the `service` block provides additional filtering to any task that has that service set in the `services` field.
+
+Once the `services` field is upgraded to a `condition` or `module_input` block, as described in the section above, the deprecated `service` block's fields can be moved to the new `condition` or `module_input` block.
+
+Example:
+<CodeTabs heading="Deprecate service block" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="9,10,11,12,13">
+
+```hcl
+task {
+  name   = "services_filter_task"
+  module = "path/to/module"
+  condition "services" {
+    names = ["api"]
+  }
+}
+
+service {
+ name       = "api"
+ datacenter = "dc2"
+ namespace  = "ns"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="6,7">
+
+```hcl
+task {
+  name   = "services_filter_task"
+  module = "path/to/module"
+  condition "services" {
+    names = ["api"]
+    datacenter = "dc2"
+    namespace  = "ns"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+There is an edge-case that requires a more complicated deprecation upgrade. Some tasks may have multiple services in the `services` field and a `service` block configured for each of those services. When the fields are different across the `service` blocks, it is necessary to split the task and create new, separate tasks for each service.
+
+Example:
+
+<CodeTabs heading="Deprecate service block edge-case" tabs={["Deprecated", "New"]}>
+
+<CodeBlockConfig highlight="2,4,7,8,9,10,11,12,13,14,15">
+
+```hcl
+task {
+  name     = "services_task"
+  module   = "path/to/module"
+  services = ["api", "web"]
+}
+
+service {
+  name       = "api"
+  datacenter = "api_dc"
+}
+
+service {
+  name       = "web"
+  datacenter = "web_dc"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="2,4,5,6,7,11,13,14,15,16">
+
+```hcl
+task {
+  name     = "api_services_task"
+  module   = "path/to/module"
+  condition "services" {
+    names      = ["api"]
+    datacenter = "api_dc"
+  }
+}
+
+task {
+  name     = "web_services_task"
+  module   = "path/to/module"
+  condition "services" {
+    names      = ["web"]
+    datacenter = "web_dc"
+   }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>

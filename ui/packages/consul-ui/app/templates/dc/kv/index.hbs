@@ -178,28 +178,23 @@ as |sort filters parent items|}}
                 >
                   <BlockSlot @name="header">
                     <h2>
-                      {{#if (gt items.length 0)}}
-                        No K/V pairs found
-                      {{else}}
-                        Welcome to Key/Value
-                      {{/if}}
+                      {{t 'routes.dc.kv.index.empty.header'
+                        items=items.length
+                      }}
                     </h2>
                   </BlockSlot>
                   <BlockSlot @name="body">
-                    <p>
-                      {{#if (gt items.length 0)}}
-                        No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
-                      {{else}}
-                        You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
-                      {{/if}}
-                    </p>
+                    {{t 'routes.dc.kv.index.empty.body'
+                      items=items.length
+                      htmlSafe=true
+                    }}
                   </BlockSlot>
                   <BlockSlot @name="actions">
                     <li class="docs-link">
                       <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
                     </li>
                     <li class="learn-link">
-                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Take the tutorial</a>
                     </li>
                   </BlockSlot>
                 </EmptyState>

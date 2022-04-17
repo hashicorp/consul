@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -90,16 +91,12 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	if len(pathArgs) != 2 {
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Must provide both a kind and name to delete")
-		return nil, nil
+		return nil, NotFoundError{Reason: "Must provide both a kind and name to delete"}
 	}
 
 	entry, err := structs.MakeConfigEntry(pathArgs[0], pathArgs[1])
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "%v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: err.Error()}
 	}
 	args.Entry = entry
 	// Parse enterprise meta.
@@ -152,7 +149,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Parse enterprise meta.
-	var meta structs.EnterpriseMeta
+	var meta acl.EnterpriseMeta
 	if err := s.parseEntMetaForConfigEntryKind(args.Entry.GetKind(), req, &meta); err != nil {
 		return nil, err
 	}
@@ -176,7 +173,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	return reply, nil
 }
 
-func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if kind == structs.ServiceIntentions {
 		return s.parseEntMeta(req, entMeta)
 	}

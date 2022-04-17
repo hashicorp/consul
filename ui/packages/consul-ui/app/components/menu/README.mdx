@@ -1,0 +1,52 @@
+# Menu
+
+A component use for menu systems with the correct aria attributes applied.
+Internally uses our `{{aria-menu}}` modifier for aria keyboarding.
+
+Additionally it is made to work in tandem with the `<Disclosure />` component if
+required (a relatively common usecase)
+
+This component should not be used for top site navigation, but it should be used
+for menus within the top site navigation for choosing options, for example
+choosing a namespace or partition etc.
+
+```hbs preview-template
+<Menu as |menu|>
+  <menu.Item>
+    <menu.Action>Item 1</menu.Action>
+  </menu.Item>
+  <menu.Separator />
+  <menu.Item>
+    <menu.Action>Item 2</menu.Action>
+  </menu.Item>
+  <menu.Separator>
+    Title
+  </menu.Separator>
+  <menu.Item>
+    <menu.Action>Item 3</menu.Action>
+  </menu.Item>
+</Menu>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `disclosure` | `DisclosureInterface` | | An object with following the `<Disclosure />` components API. When used no other arguments are necessary |
+| `onclose` | `function` | | A function to call when a menu close is requested |
+| `event` | `Event` | | A potential event used to open the menu |
+
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `Item` | `GlimmerComponent` | A component for adding a menu item with aria attributes correctly applied |
+| `Separator` | `GlimmerComponent` | A component to be used for separating sections in the menu with aria attributes correctly applied. When used as block component you can add some sort of testual title to the separator |
+| `Action` | `GlimmerComponent` | A contextual '<Action />' component with aria attributes correctly applied |
+
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

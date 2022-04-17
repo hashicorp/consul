@@ -9,11 +9,14 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -265,13 +268,14 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	clone := func(ns *structs.NodeService) *structs.NodeService {
+		raw, err := copystructure.Copy(ns)
+		require.NoError(t, err)
+		return raw.(*structs.NodeService)
+	}
+
 	// Register node info
 	var out struct{}
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       a.Config.NodeName,
-		Address:    "127.0.0.1",
-	}
 
 	// Exists both same (noop)
 	srv1 := &structs.NodeService{
@@ -287,8 +291,12 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, "")
-	args.Service = srv1
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC("Catalog.Register", &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		Service:    srv1,
+	}, &out))
 
 	// Exists both, different (update)
 	srv2 := &structs.NodeService{
@@ -305,11 +313,14 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	}
 	a.State.AddService(srv2, "")
 
-	srv2_mod := new(structs.NodeService)
-	*srv2_mod = *srv2
+	srv2_mod := clone(srv2)
 	srv2_mod.Port = 9000
-	args.Service = srv2_mod
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC("Catalog.Register", &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		Service:    srv2_mod,
+	}, &out))
 
 	// Exists local (create)
 	srv3 := &structs.NodeService{
@@ -339,8 +350,12 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
-	args.Service = srv4
-	assert.Nil(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC("Catalog.Register", &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		Service:    srv4,
+	}, &out))
 
 	// Exists local, in sync, remote missing (create)
 	srv5 := &structs.NodeService{
@@ -360,28 +375,56 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		InSync:  true,
 	})
 
-	assert.Nil(t, a.State.SyncFull())
+	require.NoError(t, a.State.SyncFull())
 
 	var services structs.IndexedNodeServices
 	req := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       a.Config.NodeName,
 	}
-	assert.Nil(t, a.RPC("Catalog.NodeServices", &req, &services))
+	require.NoError(t, a.RPC("Catalog.NodeServices", &req, &services))
 
 	// We should have 5 services (consul included)
-	assert.Len(t, services.NodeServices.Services, 5)
+	require.Len(t, services.NodeServices.Services, 5)
 
-	// Check that virtual IPs have been set
+	// check that virtual ips have been set
 	vips := make(map[string]struct{})
+	serviceToVIP := make(map[string]string)
 	for _, serv := range services.NodeServices.Services {
 		if serv.TaggedAddresses != nil {
 			serviceVIP := serv.TaggedAddresses[structs.TaggedAddressVirtualIP].Address
-			assert.NotEmpty(t, serviceVIP)
+			require.NotEmpty(t, serviceVIP)
 			vips[serviceVIP] = struct{}{}
+			serviceToVIP[serv.ID] = serviceVIP
 		}
 	}
-	assert.Len(t, vips, 4)
+	require.Len(t, vips, 4)
+
+	// Update our assertions for the tagged addresses.
+	srv1.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: serviceToVIP["mysql-proxy"],
+			Port:    srv1.Port,
+		},
+	}
+	srv2.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: serviceToVIP["redis-proxy"],
+			Port:    srv2.Port,
+		},
+	}
+	srv3.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: serviceToVIP["web-proxy"],
+			Port:    srv3.Port,
+		},
+	}
+	srv5.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: serviceToVIP["cache-proxy"],
+			Port:    srv5.Port,
+		},
+	}
 
 	// All the services should match
 	// Retry to mitigate data races between local and remote state
@@ -406,26 +449,26 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	})
 
-	assert.NoError(t, servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
+	require.NoError(t, servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services
 	a.State.RemoveService(structs.NewServiceID("cache-proxy", nil))
-	assert.Nil(t, a.State.SyncFull())
-	assert.Nil(t, a.RPC("Catalog.NodeServices", &req, &services))
+	require.NoError(t, a.State.SyncFull())
+	require.NoError(t, a.RPC("Catalog.NodeServices", &req, &services))
 
 	// We should have 4 services (consul included)
-	assert.Len(t, services.NodeServices.Services, 4)
+	require.Len(t, services.NodeServices.Services, 4)
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql-proxy":
-			assert.Equal(t, srv1, serv)
+			require.Equal(t, srv1, serv)
 		case "redis-proxy":
-			assert.Equal(t, srv2, serv)
+			require.Equal(t, srv2, serv)
 		case "web-proxy":
-			assert.Equal(t, srv3, serv)
+			require.Equal(t, srv3, serv)
 		case structs.ConsulServiceID:
 			// ignore
 		default:
@@ -433,7 +476,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(t, servicesInSync(a.State, 3, structs.DefaultEnterpriseMetaInDefaultPartition()))
+	require.NoError(t, servicesInSync(a.State, 3, structs.DefaultEnterpriseMetaInDefaultPartition()))
 }
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
@@ -550,6 +593,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, "")
 
@@ -564,6 +608,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -585,6 +630,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -600,6 +646,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -824,6 +871,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, token)
 
@@ -837,6 +885,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, token)
 
@@ -2107,7 +2156,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	})
 }
 
-func servicesInSync(state *local.State, wantServices int, entMeta *structs.EnterpriseMeta) error {
+func servicesInSync(state *local.State, wantServices int, entMeta *acl.EnterpriseMeta) error {
 	services := state.ServiceStates(entMeta)
 	if got, want := len(services), wantServices; got != want {
 		return fmt.Errorf("got %d services want %d", got, want)
@@ -2120,7 +2169,7 @@ func servicesInSync(state *local.State, wantServices int, entMeta *structs.Enter
 	return nil
 }
 
-func checksInSync(state *local.State, wantChecks int, entMeta *structs.EnterpriseMeta) error {
+func checksInSync(state *local.State, wantChecks int, entMeta *acl.EnterpriseMeta) error {
 	checks := state.CheckStates(entMeta)
 	if got, want := len(checks), wantChecks; got != want {
 		return fmt.Errorf("got %d checks want %d", got, want)
@@ -2372,6 +2421,6 @@ func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error 
 	return nil
 }
 
-func (f *fakeRPC) ResolveTokenToIdentity(_ string) (structs.ACLIdentity, error) {
-	return nil, nil
+func (f *fakeRPC) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	return consul.ACLResolveResult{}, nil
 }

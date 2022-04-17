@@ -7,6 +7,7 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -999,11 +1000,11 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		entries        []structs.ConfigEntry
-		expectBefore   []ConfigEntryKindName
-		overrides      map[ConfigEntryKindName]structs.ConfigEntry
-		expectAfter    []ConfigEntryKindName
+		expectBefore   []configentry.KindName
+		overrides      map[configentry.KindName]structs.ConfigEntry
+		expectAfter    []configentry.KindName
 		expectAfterErr string
-		checkAfter     func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries)
+		checkAfter     func(t *testing.T, entrySet *configentry.DiscoveryChainSet)
 	}{
 		{
 			name: "mask service-defaults",
@@ -1014,13 +1015,13 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					Protocol: "tcp",
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil): nil,
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil): nil,
 			},
-			expectAfter: []ConfigEntryKindName{
+			expectAfter: []configentry.KindName{
 				// nothing
 			},
 		},
@@ -1033,20 +1034,20 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					Protocol: "tcp",
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil): &structs.ServiceConfigEntry{
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil): &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "grpc",
 				},
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			},
-			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
+			checkAfter: func(t *testing.T, entrySet *configentry.DiscoveryChainSet) {
 				defaults := entrySet.GetService(structs.NewServiceID("main", nil))
 				require.NotNil(t, defaults)
 				require.Equal(t, "grpc", defaults.Protocol)
@@ -1066,15 +1067,15 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					Name: "main",
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceRouter, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceRouter, "main", nil): nil,
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceRouter, "main", nil): nil,
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			},
 		},
 		{
@@ -1111,13 +1112,13 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					},
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
-				NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceResolver, "main", nil),
+				configentry.NewKindName(structs.ServiceRouter, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceRouter, "main", nil): &structs.ServiceRouterConfigEntry{
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceRouter, "main", nil): &structs.ServiceRouterConfigEntry{
 					Kind: structs.ServiceRouter,
 					Name: "main",
 					Routes: []structs.ServiceRoute{
@@ -1134,12 +1135,12 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					},
 				},
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
-				NewConfigEntryKindName(structs.ServiceRouter, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceResolver, "main", nil),
+				configentry.NewKindName(structs.ServiceRouter, "main", nil),
 			},
-			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
+			checkAfter: func(t *testing.T, entrySet *configentry.DiscoveryChainSet) {
 				router := entrySet.GetRouter(structs.NewServiceID("main", nil))
 				require.NotNil(t, router)
 				require.Len(t, router.Routes, 1)
@@ -1174,15 +1175,15 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					},
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceSplitter, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceSplitter, "main", nil): nil,
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceSplitter, "main", nil): nil,
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			},
 		},
 		{
@@ -1201,12 +1202,12 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					},
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceSplitter, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceSplitter, "main", nil): &structs.ServiceSplitterConfigEntry{
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceSplitter, "main", nil): &structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
@@ -1215,11 +1216,11 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					},
 				},
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceDefaults, "main", nil),
-				NewConfigEntryKindName(structs.ServiceSplitter, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceDefaults, "main", nil),
+				configentry.NewKindName(structs.ServiceSplitter, "main", nil),
 			},
-			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
+			checkAfter: func(t *testing.T, entrySet *configentry.DiscoveryChainSet) {
 				splitter := entrySet.GetSplitter(structs.NewServiceID("main", nil))
 				require.NotNil(t, splitter)
 				require.Len(t, splitter.Splits, 2)
@@ -1240,13 +1241,13 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					Name: "main",
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceResolver, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil): nil,
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceResolver, "main", nil): nil,
 			},
-			expectAfter: []ConfigEntryKindName{
+			expectAfter: []configentry.KindName{
 				// nothing
 			},
 		},
@@ -1258,20 +1259,20 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 					Name: "main",
 				},
 			},
-			expectBefore: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
+			expectBefore: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceResolver, "main", nil),
 			},
-			overrides: map[ConfigEntryKindName]structs.ConfigEntry{
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil): &structs.ServiceResolverConfigEntry{
+			overrides: map[configentry.KindName]structs.ConfigEntry{
+				configentry.NewKindName(structs.ServiceResolver, "main", nil): &structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
 					Name:           "main",
 					ConnectTimeout: 33 * time.Second,
 				},
 			},
-			expectAfter: []ConfigEntryKindName{
-				NewConfigEntryKindName(structs.ServiceResolver, "main", nil),
+			expectAfter: []configentry.KindName{
+				configentry.NewKindName(structs.ServiceResolver, "main", nil),
 			},
-			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
+			checkAfter: func(t *testing.T, entrySet *configentry.DiscoveryChainSet) {
 				resolver := entrySet.GetResolver(structs.NewServiceID("main", nil))
 				require.NotNil(t, resolver)
 				require.Equal(t, 33*time.Second, resolver.ConnectTimeout)
@@ -1313,38 +1314,38 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 	}
 }
 
-func entrySetToKindNames(entrySet *structs.DiscoveryChainConfigEntries) []ConfigEntryKindName {
-	var out []ConfigEntryKindName
+func entrySetToKindNames(entrySet *configentry.DiscoveryChainSet) []configentry.KindName {
+	var out []configentry.KindName
 	for _, entry := range entrySet.Routers {
-		out = append(out, NewConfigEntryKindName(
+		out = append(out, configentry.NewKindName(
 			entry.Kind,
 			entry.Name,
 			&entry.EnterpriseMeta,
 		))
 	}
 	for _, entry := range entrySet.Splitters {
-		out = append(out, NewConfigEntryKindName(
+		out = append(out, configentry.NewKindName(
 			entry.Kind,
 			entry.Name,
 			&entry.EnterpriseMeta,
 		))
 	}
 	for _, entry := range entrySet.Resolvers {
-		out = append(out, NewConfigEntryKindName(
+		out = append(out, configentry.NewKindName(
 			entry.Kind,
 			entry.Name,
 			&entry.EnterpriseMeta,
 		))
 	}
 	for _, entry := range entrySet.Services {
-		out = append(out, NewConfigEntryKindName(
+		out = append(out, configentry.NewKindName(
 			entry.Kind,
 			entry.Name,
 			&entry.EnterpriseMeta,
 		))
 	}
 	for _, entry := range entrySet.ProxyDefaults {
-		out = append(out, NewConfigEntryKindName(
+		out = append(out, configentry.NewKindName(
 			entry.Kind,
 			entry.Name,
 			&entry.EnterpriseMeta,

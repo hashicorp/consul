@@ -22,7 +22,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v6-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
 
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
@@ -31,7 +31,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    VAULT_BINARY_VERSION: 1.2.2
+    VAULT_BINARY_VERSION: 1.9.4
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -39,8 +39,14 @@ steps:
     environment:
       GOTESTSUM_RELEASE: 1.6.4
     command: |
+      ARCH=`uname -m`
+      if [[ "$ARCH" == "aarch64" ]]; then
+         ARCH="arm64"
+      else
+         ARCH="amd64"
+      fi
       url=https://github.com/gotestyourself/gotestsum/releases/download
-      curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
+      curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_${ARCH}.tar.gz" | \
       sudo tar -xz --overwrite -C /usr/local/bin gotestsum
 
   get-aws-cli: &get-aws-cli
@@ -105,6 +111,54 @@ commands:
           echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
           echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
 
+  run-go-test-full:
+    parameters:
+      go_test_flags:
+        type: string
+        default: ""
+    steps:
+      - attach_workspace:
+          at: /home/circleci/go/bin
+      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
+      - run: sudo service rsyslog start
+      - run: go mod download
+      - run:
+          name: go test
+          command: |
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
+            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
+            echo $PACKAGE_NAMES
+            # some tests expect this umask, and arm images have a different default
+            umask 0022
+
+            << parameters.go_test_flags >>
+
+            gotestsum \
+              --format=short-verbose \
+              --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+              --debug \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
+              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
+              -tags="$GOTAGS" -p 2 \
+              ${GO_TEST_FLAGS-} \
+              -cover -coverprofile=coverage.txt
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: /tmp/jsonfile
+      - run: &rerun-fails-report
+          name: "Re-run fails report"
+          command: |
+            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
+      - run: *notify-slack-failure
+
 jobs:
   # lint consul tests
   lint-consul-retry:
@@ -123,6 +177,7 @@ jobs:
         default: ""
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
       GOARCH: "<<parameters.go-arch>>"
@@ -170,21 +225,13 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
+      # tput complains if this isn't set to something.
+      TERM: ansi
     steps:
       - checkout
       - run:
           name: Install protobuf
-          command: |
-            wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
-            sudo unzip -d /usr/local protoc-*.zip
-            sudo chmod +x /usr/local/bin/protoc
-            rm protoc-*.zip
-      - run:
-          name: Install gogo/protobuf
-          command: |
-            gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            go install -v github.com/hashicorp/protoc-gen-go-binary@master
-            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
+          command: make proto-tools
 
       - run:
           command: make --always-make proto
@@ -194,9 +241,10 @@ jobs:
             exit 1
           fi
 
-  go-test:
-    docker:
-      - image: *GOLANG_IMAGE
+  go-test-arm64:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
@@ -204,46 +252,40 @@ jobs:
       # GOMAXPROCS defaults to number of cores on underlying hardware, set
       # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
       GOMAXPROCS: 4
-      # The medium resource class (default) boxes are 2 vCPUs, 4GB RAM
-      # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
-      # but we can run a little over that limit.
     steps:
       - checkout
-      - attach_workspace:
-          at: /home/circleci/go/bin
-      - run: sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y rsyslog
-      - run: sudo service rsyslog start
+      - run:
+         command: |
+            sudo rm -rf /usr/local/go
+            wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
+      - run: *install-gotestsum
       - run: go mod download
       - run:
-          name: go test
+          name: make dev
           command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
-            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
-            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
-            echo $PACKAGE_NAMES
-            gotestsum \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -p 2 \
-              -cover -coverprofile=coverage.txt
+            if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then
+              make dev
+              mkdir -p /home/circleci/bin
+              cp ./bin/consul /home/circleci/bin/consul
+            fi
+      - run-go-test-full:
+          go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
 
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: /tmp/jsonfile
-      - run: &rerun-fails-report
-          name: "Re-run fails report"
-          command: |
-            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
-      - run: *notify-slack-failure
+  go-test:
+    docker:
+      - image: *GOLANG_IMAGE
+    resource_class: large
+    parallelism: 4
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set
+      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 4
+    steps:
+      - checkout
+      - run-go-test-full
 
   go-test-race:
     docker:
@@ -282,14 +324,15 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned 
+  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned
   # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
-  # Running tests with GOARCH=386 seems to be the best way to detect this 
+  # Running tests with GOARCH=386 seems to be the best way to detect this
   # problem. Only runs tests that are -short to limit the time we spend checking
   # for these bugs.
   go-test-32bit:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -359,15 +402,22 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # build all distros
+  # build is a templated job for build-x
   build-distros: &build-distros
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment: &build-env
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - run: ./build-support/scripts/build-local.sh
+      - run:
+          name: Build
+          command: |
+            for os in $XC_OS; do
+              target="./pkg/bin/${GOOS}_${GOARCH}/"
+              GOOS="$os" CGO_ENABLED=0 go build -o "$target" -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+            done
 
       # save dev build to CircleCI
       - store_artifacts:
@@ -380,7 +430,7 @@ jobs:
     environment:
       <<: *build-env
       XC_OS: "freebsd linux windows"
-      XC_ARCH: "386"
+      GOARCH: "386"
 
   # build all amd64 architecture supported OS binaries
   build-amd64:
@@ -388,12 +438,13 @@ jobs:
     environment:
       <<: *build-env
       XC_OS: "darwin freebsd linux solaris windows"
-      XC_ARCH: "amd64"
+      GOARCH: "amd64"
 
   # build all arm/arm64 architecture supported OS binaries
   build-arm:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       CGO_ENABLED: 1
@@ -426,6 +477,7 @@ jobs:
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
@@ -433,7 +485,11 @@ jobs:
       - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
       - run:
-          command: make dev
+          name: Build
+          command: |
+            make dev
+            mkdir -p /home/circleci/go/bin
+            cp ./bin/consul /home/circleci/go/bin/consul
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
@@ -689,20 +745,15 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-              
-              # stash newly built bindata_assetfs.go
-              git stash push
-              
-              # checkout the CI branch and merge latest from main
-              git checkout ci/main-assetfs-build
-              git merge --no-edit main
-            
-              git stash pop
-            
+
+              # -B resets the CI branch to main which may diverge history
+              # but we will force push anyways.
+              git checkout -B ci/main-assetfs-build main
+
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin ci/main-assetfs-build
+              git push --force origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
             fi
@@ -796,20 +847,19 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_17_4: &ENVOY_TESTS
-    docker:
-      # We only really need bash and docker-compose which is installed on all
-      # Circle images but pick Go since we have to pick one of them.
-      - image: *GOLANG_IMAGE
-    parallelism: 2
+  envoy-integration-test-1_18_6: &ENVOY_TESTS
+    machine:
+      image: ubuntu-2004:202101-01
+    parallelism: 4
+    resource_class: medium
     environment:
-      ENVOY_VERSION: "1.17.4"
+      ENVOY_VERSION: "1.18.6"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker
+      - run: *install-gotestsum
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
@@ -836,20 +886,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_18_4:
+  envoy-integration-test-1_19_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.18.4"
+      ENVOY_VERSION: "1.19.3"
 
-  envoy-integration-test-1_19_1:
+  envoy-integration-test-1_20_2:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.19.1"
+      ENVOY_VERSION: "1.20.2"
 
-  envoy-integration-test-1_20_1:
+  envoy-integration-test-1_21_1:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.1"
+      ENVOY_VERSION: "1.21.1"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -986,7 +1036,7 @@ workflows:
   # verify-ci is a no-op workflow that must run on every PR. It is used in a
   # branch protection rule to detect when CI workflows are not running.
   verify-ci:
-    jobs: [noop]
+    jobs: [ noop ]
 
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
@@ -1006,19 +1056,20 @@ workflows:
           go-arch: "386"
           <<: *filter-ignore-non-go-branches
       - test-connect-ca-providers: *filter-ignore-non-go-branches
+      - go-test-arm64: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
-          requires: [dev-build]
+          requires: [ dev-build ]
       - go-test-lib:
           name: "go-test-api go1.16"
           path: api
           go-version: "1.16"
-          requires: [dev-build]
+          requires: [ dev-build ]
       - go-test-lib:
           name: "go-test-api go1.17"
           path: api
           go-version: "1.17"
-          requires: [dev-build]
+          requires: [ dev-build ]
       - go-test-lib:
           name: "go-test-sdk go1.16"
           path: sdk
@@ -1091,16 +1142,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_17_4:
+      - envoy-integration-test-1_18_6:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_4:
+      - envoy-integration-test-1_19_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_1:
+      - envoy-integration-test-1_20_2:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_1:
+      - envoy-integration-test-1_21_1:
           requires:
             - dev-build
 

@@ -29,6 +29,7 @@ module.exports = function(defaults, $ = process.env) {
   const apps = [
     'consul-ui',
     'consul-acls',
+    'consul-lock-sessions',
     'consul-partitions',
     'consul-nspaces'
   ].map(item => {
@@ -97,14 +98,8 @@ module.exports = function(defaults, $ = process.env) {
       // exclude docfy
       '@docfy/ember'
     ];
-  } else {
-    // add debug css is we are not in test or production environments
-    outputPaths.app = {
-      css: {
-        'debug': '/assets/debug.css'
-      }
-    }
   }
+
   if(['production'].includes(env)) {
     // everything apart from production is 'debug', including test
     // which means this and everything it affects is never tested

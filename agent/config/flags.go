@@ -76,6 +76,7 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.FlagValues.DNSRecursors, "recursor", "Address of an upstream DNS server. Can be specified multiple times.")
 	add(&f.FlagValues.PrimaryGateways, "primary-gateway", "Address of a mesh gateway in the primary datacenter to use to bootstrap WAN federation at start time with retries enabled. Can be specified multiple times.")
 	add(&f.FlagValues.RejoinAfterLeave, "rejoin", "Ignores a previous leave and attempts to rejoin the cluster.")
+	add(&f.FlagValues.AutoReloadConfig, "auto-reload-config", "Watches config files for changes and auto reloads the files when modified.")
 	add(&f.FlagValues.RetryJoinIntervalLAN, "retry-interval", "Time to wait between join attempts.")
 	add(&f.FlagValues.RetryJoinIntervalWAN, "retry-interval-wan", "Time to wait between join -wan attempts.")
 	add(&f.FlagValues.RetryJoinLAN, "retry-join", "Address of an agent to join at start time with retries enabled. Can be specified multiple times.")

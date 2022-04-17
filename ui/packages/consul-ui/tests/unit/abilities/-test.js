@@ -52,6 +52,9 @@ module('Unit | Ability | *', function(hooks) {
               // TODO: We currently hardcode KVs to always be true
               assert.equal(true, ability[`can${perm}`], `Expected ${item}.can${perm} to be true`);
               return;
+            case 'zone':
+              // Zone permissions depend on NSPACES_ENABLED
+              return;
           }
           assert.equal(
             bool,

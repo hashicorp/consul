@@ -6,14 +6,15 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func coordinatesMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+func coordinatesMaxIndex(tx ReadTxn, entMeta *acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, tableCoordinates)
 }
 
-func updateCoordinatesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
+func updateCoordinatesIndexes(tx WriteTxn, idx uint64, entMeta *acl.EnterpriseMeta) error {
 	// Update the index.
 	if err := indexUpdateMaxTxn(tx, idx, tableCoordinates); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)

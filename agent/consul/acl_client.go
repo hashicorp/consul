@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -47,36 +46,4 @@ func (c *clientACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *
 func (c *clientACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
 	// clients do no local role resolution at the moment
 	return false, nil, nil
-}
-
-func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
-	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
-	// need to resolve the roles, policies and namespace but just want the identity
-	// information such as accessor id.
-	return c.acls.ResolveTokenToIdentity(token)
-}
-
-// TODO: Server has an identical implementation, remove duplication
-func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
-	if err != nil {
-		return nil, err
-	}
-
-	if entMeta == nil {
-		entMeta = &structs.EnterpriseMeta{}
-	}
-
-	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
-	// in the case of unknown identity
-	if identity != nil {
-		entMeta.Merge(identity.EnterpriseMetadata())
-	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
-	}
-
-	// Use the meta to fill in the ACL authorization context
-	entMeta.FillAuthzContext(authzContext)
-
-	return authz, err
 }

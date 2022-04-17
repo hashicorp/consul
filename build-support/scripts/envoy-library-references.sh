@@ -66,5 +66,5 @@ goimports -w "${OUTFILE}"
 mv -f "${OUTFILE}" ../../agent/xds
 )
 
-echo "updating vendored code..."
-make update-vendor
+echo "tidying dependencies..."
+make go-mod-tidy

@@ -1,0 +1,6 @@
+/* allows easy application of animation-name based composition */
+*, *::before, *::after {
+  animation-play-state: paused;
+  animation-fill-mode: forwards;
+}
+

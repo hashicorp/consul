@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"io/ioutil"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,9 +10,11 @@ import (
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
@@ -203,6 +204,181 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		err := acl.TokenRead(&req, &resp)
 		require.Nil(t, resp.Token)
 		require.EqualError(t, err, "failed acl token lookup: index error: UUID must be 36 characters")
+	})
+
+	t.Run("expanded output with role/policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p2.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID: p1.ID,
+					},
+				},
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1, p2}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with multiple roles that share a policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		r2, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+					{
+						ID: r2.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1, r2}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with node/service identities", func(t *testing.T) {
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "web",
+						Datacenters: []string{"dc1"},
+					},
+					{
+						ServiceName: "db",
+						Datacenters: []string{"dc2"},
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "dc1",
+					},
+					{
+						NodeName:   "bar",
+						Datacenter: "dc1",
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		var expectedPolicies []*structs.ACLPolicy
+		entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+		for _, serviceIdentity := range setReq.ACLToken.ServiceIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+		for _, serviceIdentity := range setReq.ACLToken.NodeIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+
+		setResp := structs.ACLToken{}
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, expectedPolicies, resp.ExpandedPolicies)
 	})
 }
 
@@ -5240,7 +5416,7 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 
 // upsertTestToken creates a token for testing purposes
 func upsertTestTokenInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken), entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	tokenModificationFn func(token *structs.ACLToken), entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
@@ -5280,7 +5456,7 @@ func upsertTestToken(codec rpc.ClientCodec, initialManagementToken string, datac
 		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
@@ -5410,7 +5586,7 @@ func upsertTestPolicyWithRules(codec rpc.ClientCodec, initialManagementToken str
 	return upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	return upsertTestCustomizedPolicy(codec, initialManagementToken, datacenter, func(policy *structs.ACLPolicy) {
 		if entMeta == nil {
 			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()

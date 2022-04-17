@@ -109,7 +109,11 @@ See [./docs/index.mdx](./docs/index.mdx#environment-variables)
 
 ### Branching
 
-Follow a `ui/**/**` branch naming pattern. This branch naming pattern allows front-end focused builds, such as FE tests, to run automatically in Pull Requests. It also adds the `theme/ui` label to Pull Requests.
+We follow a `ui/**/**` branch naming pattern. This branch naming pattern allows
+front-end focused builds, such as FE tests, to run automatically in Pull
+Requests. Please note this only works if you are a member of the HashiCorp
+GitHub Org. If you are an external contributor these tests won't run and will
+instead be run by a member of our team during review.
 
 Examples:
 - `ui/feature/add...`

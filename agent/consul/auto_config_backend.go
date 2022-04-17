@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -40,7 +41,7 @@ func (b autoConfigBackend) DatacenterJoinAddresses(partition, segment string) ([
 		if segment != "" {
 			return nil, fmt.Errorf("Failed to retrieve members for segment %s: %w", segment, err)
 		}
-		return nil, fmt.Errorf("Failed to retrieve members for partition %s: %w", structs.PartitionOrDefault(partition), err)
+		return nil, fmt.Errorf("Failed to retrieve members for partition %s: %w", acl.PartitionOrDefault(partition), err)
 	}
 
 	var joinAddrs []string

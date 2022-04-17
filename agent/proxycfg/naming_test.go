@@ -8,6 +8,43 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// TODO(freddy): Needs enterprise test
+func TestUpstreamIDFromTargetID(t *testing.T) {
+	type testcase struct {
+		tid    string
+		expect UpstreamID
+	}
+	run := func(t *testing.T, tc testcase) {
+		tc.expect.EnterpriseMeta.Normalize()
+
+		got := NewUpstreamIDFromTargetID(tc.tid)
+		require.Equal(t, tc.expect, got)
+	}
+
+	cases := map[string]testcase{
+		"with subset": {
+			tid: "v1.foo.default.default.dc2",
+			expect: UpstreamID{
+				Name:       "foo",
+				Datacenter: "dc2",
+			},
+		},
+		"without subset": {
+			tid: "foo.default.default.dc2",
+			expect: UpstreamID{
+				Name:       "foo",
+				Datacenter: "dc2",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestUpstreamIDFromString(t *testing.T) {
 	type testcase struct {
 		id     string

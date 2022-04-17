@@ -152,10 +152,26 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 		return nil, err
 	}
 
+	handler, err := newKindHandler(config, s, ch)
+	if err != nil {
+		return nil, err
+	}
+
+	return &state{
+		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
+		serviceInstance: s,
+		handler:         handler,
+		ch:              ch,
+		snapCh:          make(chan ConfigSnapshot, 1),
+		reqCh:           make(chan chan *ConfigSnapshot, 1),
+	}, nil
+}
+
+func newKindHandler(config stateConfig, s serviceInstance, ch chan cache.UpdateEvent) (kindHandler, error) {
 	var handler kindHandler
 	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
 
-	switch ns.Kind {
+	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		handler = &handlerConnectProxy{handlerState: h}
 	case structs.ServiceKindTerminatingGateway:
@@ -170,14 +186,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
 
-	return &state{
-		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
-		serviceInstance: s,
-		handler:         handler,
-		ch:              ch,
-		snapCh:          make(chan ConfigSnapshot, 1),
-		reqCh:           make(chan chan *ConfigSnapshot, 1),
-	}, nil
+	return handler, nil
 }
 
 func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (serviceInstance, error) {
@@ -412,7 +421,7 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 	)
 
 	for _, n := range nodes {
-		addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
+		_, addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
 		if net.ParseIP(addr) != nil {
 			hasIP = true
 			continue

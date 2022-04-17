@@ -51,27 +51,32 @@ type Subscription struct {
 }
 
 // SubscribeRequest identifies the types of events the subscriber would like to
-// receiver. Topic and Token are required.
+// receive. Topic, Subject, and Token are required.
 type SubscribeRequest struct {
-	// Topic to subscribe to
+	// Topic to subscribe to (e.g. service health).
 	Topic Topic
-	// Key used to filter events in the topic. Only events matching the key will
-	// be returned by the subscription. A blank key will return all events. Key
-	// is generally the name of the resource.
-	Key string
-	// Namespace used to filter events in the topic. Only events matching the
-	// namespace will be returned by the subscription.
-	Namespace string
-	// Partition used to filter events in the topic. Only events matching the
-	// partition will be returned by the subscription.
-	Partition string // TODO(partitions): make this work
+
+	// Subject identifies the subset of Topic events the subscriber wishes to
+	// receive (e.g. events for a specific service). SubjectNone may be provided
+	// if all events on the given topic are "global" and not further partitioned
+	// by subject.
+	Subject Subject
+
 	// Token that was used to authenticate the request. If any ACL policy
 	// changes impact the token the subscription will be forcefully closed.
 	Token string
+
 	// Index is the last index the client received. If non-zero the
 	// subscription will be resumed from this index. If the index is out-of-date
 	// a NewSnapshotToFollow event will be sent.
 	Index uint64
+}
+
+func (req SubscribeRequest) topicSubject() topicSubject {
+	return topicSubject{
+		Topic:   req.Topic.String(),
+		Subject: req.Subject.String(),
+	}
 }
 
 // newSubscription return a new subscription. The caller is responsible for
@@ -104,11 +109,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace, s.req.Partition) {
-			continue
-		}
-		return event, nil
+		return newEventFromBatch(s.req, next.Events), nil
 	}
 }
 

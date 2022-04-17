@@ -14,10 +14,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
+
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
+	ptypes "github.com/golang/protobuf/ptypes"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -209,7 +216,7 @@ type RPCInfo interface {
 	AllowStaleRead() bool
 	TokenSecret() string
 	SetTokenSecret(string)
-	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool
+	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error)
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -308,7 +315,7 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
@@ -317,9 +324,9 @@ func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 		}
 		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
 
-		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout)
+		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout), nil
 	}
-	return time.Since(start) > rpcHoldTimeout
+	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 type WriteRequest struct {
@@ -345,8 +352,8 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 	w.Token = s
 }
 
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > rpcHoldTimeout
+func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 type QueryBackend int
@@ -425,7 +432,7 @@ type RegisterRequest struct {
 	SkipNodeUpdate bool
 
 	// EnterpriseMeta is the embedded enterprise metadata
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
 	RaftIndex `bexpr:"-"`
@@ -452,7 +459,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 
 	// Check if any of the node-level fields are being changed.
 	if r.ID != node.ID ||
-		r.Node != node.Node ||
+		!strings.EqualFold(r.Node, node.Node) ||
 		r.PartitionOrDefault() != node.PartitionOrDefault() ||
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
@@ -470,11 +477,11 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // If a ServiceID is provided, any associated Checks with that service
 // are also deregistered.
 type DeregisterRequest struct {
-	Datacenter     string
-	Node           string
-	ServiceID      string
-	CheckID        types.CheckID
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	ServiceID          string
+	CheckID            types.CheckID
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
@@ -508,12 +515,12 @@ type QuerySource struct {
 	Ip            string
 }
 
-func (s QuerySource) NodeEnterpriseMeta() *EnterpriseMeta {
+func (s QuerySource) NodeEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(s.NodePartition)
 }
 
 func (s QuerySource) NodePartitionOrDefault() string {
-	return PartitionOrDefault(s.NodePartition)
+	return acl.PartitionOrDefault(s.NodePartition)
 }
 
 type DatacentersRequest struct {
@@ -534,10 +541,10 @@ func (r *DatacentersRequest) CacheInfo() cache.RequestInfo {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter      string
-	NodeMetaFilters map[string]string
-	Source          QuerySource
-	EnterpriseMeta  `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	NodeMetaFilters    map[string]string
+	Source             QuerySource
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -578,11 +585,11 @@ func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 }
 
 type ServiceDumpRequest struct {
-	Datacenter     string
-	ServiceKind    ServiceKind
-	UseServiceKind bool
-	Source         QuerySource
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	ServiceKind        ServiceKind
+	UseServiceKind     bool
+	Source             QuerySource
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -648,7 +655,7 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -710,9 +717,9 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter     string
-	Node           string
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -752,7 +759,7 @@ type ChecksInStateRequest struct {
 	State           string
 	Source          QuerySource
 
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -773,12 +780,12 @@ type Node struct {
 	RaftIndex `bexpr:"-"`
 }
 
-func (n *Node) GetEnterpriseMeta() *EnterpriseMeta {
+func (n *Node) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(n.Partition)
 }
 
 func (n *Node) PartitionOrDefault() string {
-	return PartitionOrDefault(n.Partition)
+	return acl.PartitionOrDefault(n.Partition)
 }
 
 func (n *Node) BestAddress(wan bool) string {
@@ -796,7 +803,7 @@ type Nodes []*Node
 // RaftIndex fields.
 func (n *Node) IsSame(other *Node) bool {
 	return n.ID == other.ID &&
-		n.Node == other.Node &&
+		strings.EqualFold(n.Node, other.Node) &&
 		n.PartitionOrDefault() == other.PartitionOrDefault() &&
 		n.Address == other.Address &&
 		n.Datacenter == other.Datacenter &&
@@ -916,7 +923,7 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1124,7 +1131,7 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1431,7 +1438,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 	// TaggedAddresses          map[string]string
 	// NodeMeta                 map[string]string
 	if s.ID != other.ID ||
-		s.Node != other.Node ||
+		!strings.EqualFold(s.Node, other.Node) ||
 		s.ServiceKind != other.ServiceKind ||
 		s.ServiceID != other.ServiceID ||
 		s.ServiceName != other.ServiceName ||
@@ -1524,7 +1531,7 @@ type HealthCheck struct {
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1568,6 +1575,7 @@ type HealthCheckDefinition struct {
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
 	Body                           string              `json:",omitempty"`
+	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
@@ -1675,7 +1683,7 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 // useful for seeing if an update would be idempotent for all the functional
 // parts of the structure.
 func (c *HealthCheck) IsSame(other *HealthCheck) bool {
-	if c.Node != other.Node ||
+	if !strings.EqualFold(c.Node, other.Node) ||
 		c.CheckID != other.CheckID ||
 		c.Name != other.Name ||
 		c.Status != other.Status ||
@@ -1716,6 +1724,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Header:                         c.Definition.Header,
 		Method:                         c.Definition.Method,
 		Body:                           c.Definition.Body,
+		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
@@ -1741,7 +1750,7 @@ type CheckServiceNode struct {
 	Checks  HealthChecks
 }
 
-func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
+func (csn *CheckServiceNode) BestAddress(wan bool) (uint64, string, int) {
 	// TODO (mesh-gateway) needs a test
 	// best address
 	// wan
@@ -1754,12 +1763,14 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	//   node addr
 
 	addr, port := csn.Service.BestAddress(wan)
+	idx := csn.Service.ModifyIndex
 
 	if addr == "" {
 		addr = csn.Node.BestAddress(wan)
+		idx = csn.Node.ModifyIndex
 	}
 
-	return addr, port
+	return idx, addr, port
 }
 
 func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {
@@ -1863,12 +1874,12 @@ type NodeInfo struct {
 	Checks          HealthChecks
 }
 
-func (n *NodeInfo) GetEnterpriseMeta() *EnterpriseMeta {
+func (n *NodeInfo) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(n.Partition)
 }
 
 func (n *NodeInfo) PartitionOrDefault() string {
-	return PartitionOrDefault(n.Partition)
+	return acl.PartitionOrDefault(n.Partition)
 }
 
 // NodeDump is used to dump all the nodes with all their
@@ -1887,22 +1898,22 @@ type ServiceDump []*ServiceInfo
 
 type CheckID struct {
 	ID types.CheckID
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// NamespaceOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) NamespaceOrDefault() string {
 	return c.EnterpriseMeta.NamespaceOrDefault()
 }
 
-// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// PartitionOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) PartitionOrDefault() string {
 	return c.EnterpriseMeta.PartitionOrDefault()
 }
 
-func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
+func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
 	if entMeta == nil {
@@ -1920,7 +1931,7 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.addToHash(hasher, true)
+	cid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -1929,16 +1940,16 @@ func (cid CheckID) StringHashMD5() string {
 func (cid CheckID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.addToHash(hasher, true)
+	cid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
 type ServiceID struct {
 	ID string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
+func NewServiceID(id string, entMeta *acl.EnterpriseMeta) ServiceID {
 	var sid ServiceID
 	sid.ID = id
 	if entMeta == nil {
@@ -1959,7 +1970,7 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 func (sid ServiceID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
-	sid.EnterpriseMeta.addToHash(hasher, true)
+	sid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -1972,16 +1983,16 @@ type IndexedServices struct {
 	Services Services
 	// In various situations we need to know the meta that the services are for - in particular
 	// this is needed to be able to properly filter the list based on ACLs
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryMeta
 }
 
 type ServiceName struct {
 	Name string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
+func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
 	if entMeta == nil {
@@ -2246,7 +2257,7 @@ type DirEntry struct {
 	Value     []byte
 	Session   string `json:",omitempty"`
 
-	EnterpriseMeta `bexpr:"-"`
+	acl.EnterpriseMeta `bexpr:"-"`
 	RaftIndex
 }
 
@@ -2297,7 +2308,7 @@ func (r *KVSRequest) RequestDatacenter() string {
 type KeyRequest struct {
 	Datacenter string
 	Key        string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -2311,7 +2322,7 @@ type KeyListRequest struct {
 	Prefix     string
 	Seperator  string
 	QueryOptions
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (r *KeyListRequest) RequestDatacenter() string {
@@ -2357,7 +2368,7 @@ type Session struct {
 	// Deprecated v1.7.0.
 	Checks []types.CheckID `json:",omitempty"`
 
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	RaftIndex
 }
 
@@ -2426,7 +2437,7 @@ type SessionSpecificRequest struct {
 	SessionID  string
 	// DEPRECATED in 1.7.0
 	Session string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -2447,12 +2458,12 @@ type Coordinate struct {
 	Coord     *coordinate.Coordinate
 }
 
-func (c *Coordinate) GetEnterpriseMeta() *EnterpriseMeta {
+func (c *Coordinate) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(c.Partition)
 }
 
 func (c *Coordinate) PartitionOrDefault() string {
-	return PartitionOrDefault(c.Partition)
+	return acl.PartitionOrDefault(c.Partition)
 }
 
 type Coordinates []*Coordinate
@@ -2483,11 +2494,11 @@ type DatacenterMap struct {
 // CoordinateUpdateRequest is used to update the network coordinate of a given
 // node.
 type CoordinateUpdateRequest struct {
-	Datacenter     string
-	Node           string
-	Segment        string
-	Coord          *coordinate.Coordinate
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	Segment            string
+	Coord              *coordinate.Coordinate
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
@@ -2560,33 +2571,29 @@ func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-type ProtoMarshaller interface {
-	Size() int
-	MarshalTo([]byte) (int, error)
-	Unmarshal([]byte) error
-	ProtoMessage()
-}
-
 func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
-	if marshaller, ok := message.(ProtoMarshaller); ok {
+	if marshaller, ok := message.(proto.Message); ok {
 		return EncodeProto(t, marshaller)
 	}
 
-	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
+	return nil, fmt.Errorf("message does not implement proto.Message: %T", message)
 }
 
-func EncodeProto(t MessageType, message ProtoMarshaller) ([]byte, error) {
-	data := make([]byte, message.Size()+1)
+func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
+	data := make([]byte, proto.Size(pb)+1)
 	data[0] = uint8(t)
-	if _, err := message.MarshalTo(data[1:]); err != nil {
+
+	buf := proto.NewBuffer(data[1:1])
+	if err := buf.Marshal(pb); err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 
-func DecodeProto(buf []byte, out ProtoMarshaller) error {
+func DecodeProto(buf []byte, pb proto.Message) error {
 	// Note that this assumes the leading byte indicating the type as already been stripped off.
-	return out.Unmarshal(buf)
+	return proto.Unmarshal(buf, pb)
 }
 
 // CompoundResponse is an interface for gathering multiple responses. It is
@@ -2641,7 +2648,7 @@ type KeyringResponse struct {
 }
 
 func (r *KeyringResponse) PartitionOrDefault() string {
-	return PartitionOrDefault(r.Partition)
+	return acl.PartitionOrDefault(r.Partition)
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each
@@ -2674,4 +2681,30 @@ func (m MessageType) String() string {
 	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
 
+}
+
+func DurationToProto(d time.Duration) *duration.Duration {
+	return ptypes.DurationProto(d)
+}
+
+func DurationFromProto(d *duration.Duration) time.Duration {
+	ret, _ := ptypes.Duration(d)
+	return ret
+
+}
+
+func TimeFromProto(s *timestamp.Timestamp) time.Time {
+	ret, _ := ptypes.Timestamp(s)
+	return ret
+}
+
+func TimeToProto(s time.Time) *timestamp.Timestamp {
+	ret, _ := ptypes.TimestampProto(s)
+	return ret
+}
+
+// IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
+// (the Unix epoch).
+func IsZeroProtoTime(t *timestamp.Timestamp) bool {
+	return t.Seconds == 0 && t.Nanos == 0
 }

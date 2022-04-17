@@ -1,10 +1,24 @@
 [
   {
-    "title": "Intro to Consul",
+    "title": "What is Consul?",
     "routes": [
       {
         "title": "Overview",
         "path": "intro"
+      },
+      {
+        "title": "Use Cases",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "intro/usecases",
+            "hidden": true
+          },
+          {
+            "title": "What is a Service Mesh?",
+            "path": "intro/usecases/what-is-a-service-mesh"
+          }
+        ]
       },
       {
         "title": "Consul vs. Other Software",
@@ -361,8 +375,25 @@
     ]
   },
   {
-    "title": "Consul API Gateway <sup>BETA</sup>",
-    "path": "api-gateway"
+    "title": "Consul API Gateway",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "api-gateway"
+      },
+      {
+        "title": "Usage",
+        "path": "api-gateway/api-gateway-usage"
+      },
+      {
+        "title": "Technical Specifications",
+        "path": "api-gateway/tech-specs"
+      },
+      {
+        "title": "Common Errors",
+        "path": "api-gateway/common-errors"
+      }
+    ]
   },
   {
     "title": "Kubernetes",
@@ -370,6 +401,10 @@
       {
         "title": "Overview",
         "path": "k8s"
+      },
+      {
+        "title": "Architecture",
+        "path": "k8s/architecture"
       },
       {
         "title": "Get Started",
@@ -461,16 +496,49 @@
                 "path": "k8s/installation/vault"
               },
               {
-                "title": "Gossip Encryption Key",
-                "path": "k8s/installation/vault/gossip"
+                "title": "Systems Integration",
+                "path": "k8s/installation/vault/systems-integration"
               },
               {
-                "title": "Server TLS",
-                "path": "k8s/installation/vault/server-tls"
-              },
-              {
-                "title": "Service Mesh Certificates",
-                "path": "k8s/installation/vault/connect-ca"
+                "title": "Data Integration",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "k8s/installation/vault/data-integration"
+                  },
+                  {
+                    "title": "Bootstrap Token",
+                    "path": "k8s/installation/vault/data-integration/bootstrap-token"
+                  },
+                  {
+                    "title": "Enterprise License",
+                    "path": "k8s/installation/vault/data-integration/enterprise-license"
+                  },
+                  {
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/data-integration/gossip"
+                  },
+                  {
+                    "title": "Partition Token",
+                    "path": "k8s/installation/vault/data-integration/partition-token"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/data-integration/replication-token"
+                  },
+                  {
+                    "title": "Server TLS",
+                    "path": "k8s/installation/vault/data-integration/server-tls"
+                  },
+                  {
+                    "title": "Service Mesh Certificates",
+                    "path": "k8s/installation/vault/data-integration/connect-ca"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  }
+                ]
               }
             ]
           },
@@ -508,10 +576,6 @@
             "path": "k8s/connect/connect-ca-provider"
           },
           {
-            "title": "Ambassador Edge Stack Integration",
-            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
-          },
-          {
             "title": "Health Checks",
             "path": "k8s/connect/health"
           },
@@ -542,6 +606,10 @@
             "path": "k8s/crds/upgrade-to-crds"
           }
         ]
+      },
+      {
+        "title": "Annotations and Labels",
+        "path": "k8s/annotations-and-labels"
       },
       {
         "title": "Consul DNS",
@@ -614,6 +682,10 @@
       {
         "title": "Requirements",
         "path": "ecs/requirements"
+      },
+      {
+        "title": "Task Resource Usage",
+        "path": "ecs/task-resource-usage"
       },
       {
         "title": "Install with Terraform",
@@ -744,7 +816,6 @@
             "title": "Overview",
             "path": "nia/enterprise"
           },
-
           {
             "title": "License",
             "path": "nia/enterprise/license"
@@ -775,6 +846,19 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
+      },
+      {
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/release-notes"
+          },
+          {
+            "title": "v0.5.0",
+            "path": "nia/release-notes/0-5-0"
+          }
+        ]
       }
     ]
   },
@@ -804,7 +888,20 @@
       },
       {
         "title": "Configuration",
-        "path": "agent/options"
+        "routes": [
+          {
+            "title": "General",
+            "path": "agent/config"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "agent/config/cli-flags"
+          },
+          {
+            "title": "Configuration Reference",
+            "path": "agent/config/config-files"
+          }
+        ]
       },
       {
         "title": "Configuration Entries",
@@ -836,15 +933,23 @@
         "title": "Access Control (ACLs)",
         "routes": [
           {
-            "title": "Overview",
+            "title": "ACL System Overview",
             "path": "security/acl"
           },
           {
-            "title": "ACL System",
-            "path": "security/acl/acl-system"
+            "title": "Tokens",
+            "path": "security/acl/acl-tokens"
           },
           {
-            "title": "ACL Rules",
+            "title": "Policies",
+            "path": "security/acl/acl-policies"
+          },
+          {
+            "title": "Roles",
+            "path": "security/acl/acl-roles"
+          },
+          {
+            "title": "Rules Reference",
             "path": "security/acl/acl-rules"
           },
           {
@@ -1089,19 +1194,32 @@
     ]
   },
   {
-    "title": "Release Notes",
+    "title": "Releases",
     "routes": [
       {
-        "title": "1.11.0",
-        "path": "release-notes/1-11-0"
+        "title": "Overview",
+        "path": "releases"
       },
       {
-        "title": "1.10.0",
-        "path": "release-notes/1-10-0"
-      },
-      {
-        "title": "1.9.0",
-        "path": "release-notes/1-9-0"
+        "title": "Release Notes",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "releases/release-notes"
+          },
+          {
+            "title": "v1.11.0",
+            "path": "releases/release-notes/v1_11_0"
+          },
+          {
+            "title": "v1.10.0",
+            "path": "releases/release-notes/v1_10_0"
+          },
+          {
+            "title": "v1.9.0",
+            "path": "releases/release-notes/v1_9_0"
+          }
+        ]
       }
     ]
   },

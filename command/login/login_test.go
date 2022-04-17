@@ -1,6 +1,7 @@
 package login
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/iamauth/iamauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -39,18 +41,7 @@ func TestLoginCommand(t *testing.T) {
 
 	testDir := testutil.TempDir(t, "acl")
 
-	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
-
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
+	a := newTestAgent(t)
 	client := a.Client()
 
 	t.Run("method is required", func(t *testing.T) {
@@ -100,6 +91,81 @@ func TestLoginCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bearer-token-file' flag")
+	})
+
+	t.Run("bearer-token-file disallowed with aws-auto-bearer-token", func(t *testing.T) {
+		defer os.Remove(tokenSinkFile)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-method=test",
+			"-token-sink-file", tokenSinkFile,
+			"-bearer-token-file", "none.txt",
+			"-aws-auto-bearer-token",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Contains(t, ui.ErrorWriter.String(), "Cannot use '-bearer-token-file' flag with '-aws-auto-bearer-token'")
+	})
+
+	t.Run("aws flags require aws-auto-bearer-token", func(t *testing.T) {
+		defer os.Remove(tokenSinkFile)
+
+		baseArgs := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-method=test",
+			"-token-sink-file", tokenSinkFile,
+		}
+
+		for _, extraArgs := range [][]string{
+			{"-aws-include-entity"},
+			{"-aws-sts-endpoint", "some-endpoint"},
+			{"-aws-region", "some-region"},
+			{"-aws-server-id-header-value", "some-value"},
+			{"-aws-access-key-id", "some-key"},
+			{"-aws-secret-access-key", "some-secret"},
+			{"-aws-session-token", "some-token"},
+		} {
+			ui := cli.NewMockUi()
+			code := New(ui).Run(append(baseArgs, extraArgs...))
+			require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+			require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-auto-bearer-token' flag")
+		}
+	})
+
+	t.Run("aws-access-key-id and aws-secret-access-key require each other", func(t *testing.T) {
+		defer os.Remove(tokenSinkFile)
+
+		baseArgs := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-method=test",
+			"-token-sink-file", tokenSinkFile,
+			"-aws-auto-bearer-token",
+		}
+
+		ui := cli.NewMockUi()
+		code := New(ui).Run(append(baseArgs, "-aws-access-key-id", "some-key"))
+		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-secret-access-key' flag")
+
+		ui = cli.NewMockUi()
+		code = New(ui).Run(append(baseArgs, "-aws-secret-access-key", "some-key"))
+		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-access-key-id' flag")
+
+		ui = cli.NewMockUi()
+		code = New(ui).Run(append(baseArgs, "-aws-session-token", "some-token"))
+		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Contains(t, ui.ErrorWriter.String(),
+			"Missing '-aws-access-key-id' and '-aws-secret-access-key' flags")
+
 	})
 
 	bearerTokenFile := filepath.Join(testDir, "bearer.token")
@@ -236,18 +302,7 @@ func TestLoginCommand_k8s(t *testing.T) {
 
 	testDir := testutil.TempDir(t, "acl")
 
-	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
-
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
+	a := newTestAgent(t)
 	client := a.Client()
 
 	tokenSinkFile := filepath.Join(testDir, "test.token")
@@ -334,18 +389,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 
 	testDir := testutil.TempDir(t, "acl")
 
-	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
-
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
+	a := newTestAgent(t)
 	client := a.Client()
 
 	tokenSinkFile := filepath.Join(testDir, "test.token")
@@ -469,4 +513,179 @@ func TestLoginCommand_jwt(t *testing.T) {
 			require.Len(t, token, 36, "must be a valid uid: %s", token)
 		})
 	}
+}
+
+func TestLoginCommand_aws_iam(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Formats an HIL template for a BindName, and the expected value for entity tags.
+	// Input:   string{"a", "b"}, []string{"1", "2"}
+	// Return: "${entity_tags.a}-${entity_tags.b}",  "1-2"
+	entityTagsBind := func(keys, values []string) (string, string) {
+		parts := []string{}
+		for _, k := range keys {
+			parts = append(parts, fmt.Sprintf("${entity_tags.%s}", k))
+		}
+		return strings.Join(parts, "-"), strings.Join(values, "-")
+	}
+
+	f := iamauthtest.MakeFixture()
+	roleTagsBindName, roleTagsBindValue := entityTagsBind(f.RoleTagKeys(), f.RoleTagValues())
+	userTagsBindName, userTagsBindValue := entityTagsBind(f.UserTagKeys(), f.UserTagValues())
+
+	cases := map[string]struct {
+		awsServer          *iamauthtest.Server
+		cmdArgs            []string
+		config             map[string]interface{}
+		bindingRule        *api.ACLBindingRule
+		expServiceIdentity *api.ACLServiceIdentity
+	}{
+		"success - login with role": {
+			awsServer: f.ServerForRole,
+			cmdArgs:   []string{"-aws-auto-bearer-token"},
+			config: map[string]interface{}{
+				// Test that an assumed-role arn is translated to the canonical role arn.
+				"BoundIAMPrincipalARNs": []string{f.CanonicalRoleARN},
+			},
+			bindingRule: &api.ACLBindingRule{
+				BindType: api.BindingRuleBindTypeService,
+				BindName: "${entity_name}-${entity_id}-${account_id}",
+				Selector: fmt.Sprintf(`entity_name==%q and entity_id==%q and account_id==%q`,
+					f.RoleName, f.EntityID, f.AccountID),
+			},
+			expServiceIdentity: &api.ACLServiceIdentity{
+				ServiceName: fmt.Sprintf("%s-%s-%s", f.RoleName, strings.ToLower(f.EntityID), f.AccountID),
+			},
+		},
+		"success - login with role and entity details enabled": {
+			awsServer: f.ServerForRole,
+			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
+			config: map[string]interface{}{
+				// Test that we can login with full user path.
+				"BoundIAMPrincipalARNs":  []string{f.RoleARN},
+				"EnableIAMEntityDetails": true,
+			},
+			bindingRule: &api.ACLBindingRule{
+				BindType: api.BindingRuleBindTypeService,
+				// TODO: Path cannot be used as service name if it contains a '/'
+				BindName: "${entity_name}",
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.RoleName, f.RolePath),
+			},
+			expServiceIdentity: &api.ACLServiceIdentity{ServiceName: f.RoleName},
+		},
+		"success - login with role and role tags": {
+			awsServer: f.ServerForRole,
+			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
+			config: map[string]interface{}{
+				// Test that we can login with a wildcard.
+				"BoundIAMPrincipalARNs":  []string{f.RoleARNWildcard},
+				"EnableIAMEntityDetails": true,
+				"IAMEntityTags":          f.RoleTagKeys(),
+			},
+			bindingRule: &api.ACLBindingRule{
+				BindType: api.BindingRuleBindTypeService,
+				BindName: roleTagsBindName,
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.RoleName, f.RolePath),
+			},
+			expServiceIdentity: &api.ACLServiceIdentity{ServiceName: roleTagsBindValue},
+		},
+		"success - login with user and user tags": {
+			awsServer: f.ServerForUser,
+			cmdArgs:   []string{"-aws-auto-bearer-token", "-aws-include-entity"},
+			config: map[string]interface{}{
+				// Test that we can login with a wildcard.
+				"BoundIAMPrincipalARNs":  []string{f.UserARNWildcard},
+				"EnableIAMEntityDetails": true,
+				"IAMEntityTags":          f.UserTagKeys(),
+			},
+			bindingRule: &api.ACLBindingRule{
+				BindType: api.BindingRuleBindTypeService,
+				BindName: "${entity_name}-" + userTagsBindName,
+				Selector: fmt.Sprintf(`entity_name==%q and entity_path==%q`, f.UserName, f.UserPath),
+			},
+			expServiceIdentity: &api.ACLServiceIdentity{
+				ServiceName: fmt.Sprintf("%s-%s", f.UserName, userTagsBindValue),
+			},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			a := newTestAgent(t)
+			client := a.Client()
+
+			fakeAws := iamauthtest.NewTestServer(t, c.awsServer)
+
+			c.config["STSEndpoint"] = fakeAws.URL + "/sts"
+			c.config["IAMEndpoint"] = fakeAws.URL + "/iam"
+
+			_, _, err := client.ACL().AuthMethodCreate(
+				&api.ACLAuthMethod{
+					Name:   "iam-test",
+					Type:   "aws-iam",
+					Config: c.config,
+				},
+				&api.WriteOptions{Token: "root"},
+			)
+			require.NoError(t, err)
+
+			c.bindingRule.AuthMethod = "iam-test"
+			_, _, err = client.ACL().BindingRuleCreate(
+				c.bindingRule,
+				&api.WriteOptions{Token: "root"},
+			)
+			require.NoError(t, err)
+
+			testDir := testutil.TempDir(t, "acl")
+			tokenSinkFile := filepath.Join(testDir, "test.token")
+			t.Cleanup(func() { _ = os.Remove(tokenSinkFile) })
+
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-token=root",
+				"-method=iam-test",
+				"-token-sink-file", tokenSinkFile,
+				"-aws-sts-endpoint", fakeAws.URL + "/sts",
+				"-aws-region", "fake-region",
+				"-aws-access-key-id", "fake-key-id",
+				"-aws-secret-access-key", "fake-secret-key",
+			}
+			args = append(args, c.cmdArgs...)
+			code := cmd.Run(args)
+			require.Equal(t, 0, code, ui.ErrorWriter.String())
+
+			raw, err := ioutil.ReadFile(tokenSinkFile)
+			require.NoError(t, err)
+
+			token := strings.TrimSpace(string(raw))
+			require.Len(t, token, 36, "must be a valid uid: %s", token)
+
+			// Validate correct BindName was interpolated.
+			tokenRead, _, err := client.ACL().TokenReadSelf(&api.QueryOptions{Token: token})
+			require.NoError(t, err)
+			require.Len(t, tokenRead.ServiceIdentities, 1)
+			require.Equal(t, c.expServiceIdentity, tokenRead.ServiceIdentities[0])
+
+		})
+	}
+}
+
+func newTestAgent(t *testing.T) *agent.TestAgent {
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			initial_management = "root"
+		}
+	}`)
+	t.Cleanup(func() { _ = a.Shutdown() })
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	return a
 }

@@ -10,8 +10,7 @@ Feature: page-navigation
     ---
       dc: dc1
     ---
-    Then the url should be /dc1/services
-    Then a GET request was made to "/v1/internal/ui/services?dc=dc1&ns=@namespace"
+    Then the url should be /dc1/overview/server-status
   Scenario: Clicking [Link] in the navigation takes me to [URL]
     When I visit the services page for yaml
     ---

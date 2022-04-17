@@ -43,7 +43,8 @@ type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
 
-	HCL string
+	configFiles []string
+	HCL         string
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -56,6 +57,7 @@ type TestAgent struct {
 	// The io.Writer must allow concurrent reads and writes. Note that
 	// bytes.Buffer is not safe for concurrent reads and writes.
 	LogOutput io.Writer
+	LogLevel  hclog.Level
 
 	// DataDir may be set to a directory which exists. If is it not set,
 	// TestAgent.Start will create one and set DataDir to the directory path.
@@ -89,6 +91,16 @@ type TestAgent struct {
 // temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
+}
+
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) *TestAgent {
+	a := StartTestAgent(t, TestAgent{configFiles: configFiles, HCL: hcl})
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -158,8 +170,12 @@ func (a *TestAgent) Start(t *testing.T) error {
 		logOutput = testutil.NewLogBuffer(t)
 	}
 
+	if a.LogLevel == 0 {
+		a.LogLevel = testutil.TestLogLevel
+	}
+
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      hclog.Debug,
+		Level:      a.LogLevel,
 		Output:     logOutput,
 		TimeFormat: "04:05.000",
 		Name:       name,
@@ -181,6 +197,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 				config.DefaultConsulSource(),
 				config.DevConsulSource(),
 			},
+			ConfigFiles: a.configFiles,
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
@@ -204,6 +221,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 	}
 
+	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {
+		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
+	}
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)

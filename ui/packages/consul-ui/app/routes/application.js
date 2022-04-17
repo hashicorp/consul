@@ -1,9 +1,32 @@
 import Route from 'consul-ui/routing/route';
 import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
 export default class ApplicationRoute extends Route.extend(WithBlockingActions) {
+  @service('client/http') client;
+
+  data;
+
+  @action
+  onClientChanged(e) {
+    let data = e.data;
+    if(data === '') {
+      data = { blocking: true };
+    }
+    // this.data is always undefined first time round and its the 'first read'
+    // of the value so we don't need to abort anything
+    if(typeof this.data === 'undefined') {
+      this.data = Object.assign({}, data);
+      return;
+    }
+    if(this.data.blocking === true && data.blocking === false) {
+      this.client.abort();
+    }
+    this.data = Object.assign({}, data);
+  }
+
   @action
   error(e, transition) {
     // TODO: Normalize all this better

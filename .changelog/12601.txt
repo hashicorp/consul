@@ -1,0 +1,3 @@
+```release-note:feature
+xds: adding control of the mesh-wide min/max TLS versions and cipher suites from the mesh config entry
+```

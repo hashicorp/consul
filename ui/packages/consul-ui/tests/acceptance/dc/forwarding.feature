@@ -2,7 +2,7 @@
 Feature: dc / forwarding
   In order to arrive at a useful page when only specifying a dc in the url
   As a user
-  I should be redirected to the services page for the dc
+  I should be redirected to the overview page for the dc
   @notNamespaceable
   Scenario: Arriving at the datacenter index page with no other url info
     Given 1 datacenter model with the value "datacenter"
@@ -10,4 +10,4 @@ Feature: dc / forwarding
     ---
     dc: datacenter
     ---
-    Then the url should be /datacenter/services
+    Then the url should be /datacenter/overview/server-status

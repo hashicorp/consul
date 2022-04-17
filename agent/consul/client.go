@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -56,7 +57,7 @@ type Client struct {
 	config *Config
 
 	// acls is used to resolve tokens to effective policies
-	acls *ACLResolver
+	*ACLResolver
 
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
@@ -127,7 +128,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		Tokens:          deps.Tokens,
 	}
 	var err error
-	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
+	if c.ACLResolver, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
@@ -172,7 +173,7 @@ func (c *Client) Shutdown() error {
 	// Close the connection pool
 	c.connPool.Shutdown()
 
-	c.acls.Close()
+	c.ACLResolver.Close()
 
 	return nil
 }
@@ -192,7 +193,7 @@ func (c *Client) Leave() error {
 
 // JoinLAN is used to have Consul join the inner-DC pool The target address
 // should be another node inside the DC listening on the Serf LAN address
-func (c *Client) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+func (c *Client) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (int, error) {
 	// Partitions definitely have to match.
 	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
 		return 0, fmt.Errorf("target partition %q must match client agent partition %q",
@@ -240,7 +241,7 @@ func (c *Client) LANMembers(filter LANMemberFilter) ([]serf.Member, error) {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster.
-func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	// Partitions definitely have to match.
 	if c.config.AgentEnterpriseMeta().PartitionOrDefault() != entMeta.PartitionOrDefault() {
 		return fmt.Errorf("client agent in partition %q cannot remove node in different partition %q",
@@ -418,7 +419,7 @@ func (c *Client) ReloadConfig(config ReloadableConfig) error {
 	return nil
 }
 
-func (c *Client) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 	return c.config.AgentEnterpriseMeta()
 }
 

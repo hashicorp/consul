@@ -1,6 +1,6 @@
 import * as React from 'react'
 import Head from 'next/head'
-import rivetQuery from '@hashicorp/nextjs-scripts/dato/client'
+import rivetQuery from '@hashicorp/platform-cms'
 import useCasesQuery from './query.graphql'
 import { renderMetaTags } from 'react-datocms'
 import IoUsecaseHero from 'components/io-usecase-hero'

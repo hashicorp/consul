@@ -1,0 +1,19 @@
+# License
+
+```hbs preview-template
+<figure>
+  <figcaption>URI: <code>/:partition/:nspace/:dc/license</code></figcaption>
+  <DataSource
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/license'
+      (hash
+        partition='partition'
+        nspace='ns'
+        dc='dc-1'
+      )
+    }}
+    @onchange={{action (mut data) value="data"}}
+  />
+  <pre><code>{{json-stringify data null 4}}</code></pre>
+</figure>
+```

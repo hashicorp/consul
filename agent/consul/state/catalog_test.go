@@ -471,8 +471,11 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	}
 
 	// Add in a top-level check.
+	//
+	// Verify that node name references in checks are case-insensitive during
+	// restore.
 	req.Check = &structs.HealthCheck{
-		Node:    nodeName,
+		Node:    strings.ToUpper(nodeName),
 		CheckID: "check1",
 		Name:    "check",
 		RaftIndex: structs.RaftIndex{
@@ -499,7 +502,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c := out[0]
-		if c.Node != nodeName || c.CheckID != "check1" || c.Name != "check" ||
+		if c.Node != strings.ToUpper(nodeName) || c.CheckID != "check1" || c.Name != "check" ||
 			c.CreateIndex != 3 || c.ModifyIndex != 3 {
 			t.Fatalf("bad check returned: %#v", c)
 		}
@@ -545,7 +548,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c1 := out[0]
-		if c1.Node != nodeName || c1.CheckID != "check1" || c1.Name != "check" ||
+		if c1.Node != strings.ToUpper(nodeName) || c1.CheckID != "check1" || c1.Name != "check" ||
 			c1.CreateIndex != 3 || c1.ModifyIndex != 3 {
 			t.Fatalf("bad check returned, should not be modified: %#v", c1)
 		}
@@ -5975,6 +5978,40 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	assert.True(t, watchFired(ws))
 
 	return ws
+}
+
+func TestStore_EnsureService_DoesNotPanicOnIngressGateway(t *testing.T) {
+	store := NewStateStore(nil)
+
+	err := store.EnsureConfigEntry(1, &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "the-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     12345,
+				Protocol: "tcp",
+				Services: []structs.IngressService{{Name: "the-service"}},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	err = store.EnsureRegistration(2, &structs.RegisterRequest{
+		Node: "the-node",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			Service: "the-proxy",
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "the-ingress",
+				Upstreams: []structs.Upstream{
+					{
+						DestinationName: "the-service",
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
 }
 
 func TestStateStore_DumpGatewayServices(t *testing.T) {

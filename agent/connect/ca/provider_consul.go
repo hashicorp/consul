@@ -253,12 +253,10 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	err = validateSetIntermediate(
-		intermediatePEM, rootPEM,
-		providerState.PrivateKey,
-		c.spiffeID,
-	)
-	if err != nil {
+	if err = validateSetIntermediate(intermediatePEM, rootPEM, c.spiffeID); err != nil {
+		return err
+	}
+	if err := validateIntermediateSignedByPrivateKey(intermediatePEM, providerState.PrivateKey); err != nil {
 		return err
 	}
 

@@ -22,10 +22,11 @@ FEATURES:
 {{ end -}}
 {{- end -}}
 
-{{- if .NotesByType.improvement }}
+{{- $improvements := combineTypes .NotesByType.improvement .NotesByType.enhancement -}}
+{{- if $improvements }}
 IMPROVEMENTS:
 
-{{range .NotesByType.improvement -}}
+{{range $improvements | sort -}}
 * {{ template "note" . }}
 {{ end -}}
 {{- end -}}

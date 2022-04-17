@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -17,6 +16,9 @@ import (
 // A shared data structure that contains information about discovered upstreams
 type ConfigSnapshotUpstreams struct {
 	Leaf *structs.IssuedCert
+
+	MeshConfig    *structs.MeshConfigEntry
+	MeshConfigSet bool
 
 	// DiscoveryChain is a map of UpstreamID -> CompiledDiscoveryChain's, and
 	// is used to determine what services could be targeted by this upstream.
@@ -52,13 +54,29 @@ type ConfigSnapshotUpstreams struct {
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
-	// PassthroughEndpoints is a map of: UpstreamID -> ServicePassthroughAddrs.
-	PassthroughUpstreams map[UpstreamID]ServicePassthroughAddrs
+	// PassthroughEndpoints is a map of: UpstreamID -> (map of TargetID ->
+	// (set of IP addresses)). It contains the upstream endpoints that
+	// can be dialed directly by a transparent proxy.
+	PassthroughUpstreams map[UpstreamID]map[string]map[string]struct{}
+
+	// PassthroughIndices is a map of: address -> indexedTarget.
+	// It is used to track the modify index associated with a passthrough address.
+	// Tracking this index helps break ties when a single address is shared by
+	// more than one upstream due to a race.
+	PassthroughIndices map[string]indexedTarget
 
 	// IntentionUpstreams is a set of upstreams inferred from intentions.
 	//
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
+}
+
+// indexedTarget is used to associate the Raft modify index of a resource
+// with the corresponding upstream target.
+type indexedTarget struct {
+	upstreamID UpstreamID
+	targetID   string
+	idx        uint64
 }
 
 type GatewayKey struct {
@@ -68,7 +86,7 @@ type GatewayKey struct {
 
 func (k GatewayKey) String() string {
 	resp := k.Datacenter
-	if !structs.IsDefaultPartition(k.Partition) {
+	if !acl.IsDefaultPartition(k.Partition) {
 		resp = k.Partition + "." + resp
 	}
 	return resp
@@ -79,7 +97,7 @@ func (k GatewayKey) IsEmpty() bool {
 }
 
 func (k GatewayKey) Matches(dc, partition string) bool {
-	return structs.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
+	return acl.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
 }
 
 func gatewayKeyFromString(s string) GatewayKey {
@@ -89,18 +107,6 @@ func gatewayKeyFromString(s string) GatewayKey {
 		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
 	}
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
-}
-
-// ServicePassthroughAddrs contains the LAN addrs
-type ServicePassthroughAddrs struct {
-	// SNI is the Service SNI of the upstream.
-	SNI string
-
-	// SpiffeID is the SPIFFE ID to use for upstream SAN validation.
-	SpiffeID connect.SpiffeIDService
-
-	// Addrs is a set of the best LAN addresses for the instances of the upstream.
-	Addrs map[string]struct{}
 }
 
 type configSnapshotConnectProxy struct {
@@ -114,12 +120,10 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
-
-	MeshConfig    *structs.MeshConfigEntry
-	MeshConfigSet bool
 }
 
-func (c *configSnapshotConnectProxy) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotConnectProxy) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -140,6 +144,9 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 }
 
 type configSnapshotTerminatingGateway struct {
+	MeshConfig    *structs.MeshConfigEntry
+	MeshConfigSet bool
+
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of linked service instances for the given
 	// id. If the linked services watch would indicate the removal of
@@ -238,7 +245,8 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
-func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -254,7 +262,8 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.ServiceConfigs) == 0 &&
 		len(c.WatchedConfigs) == 0 &&
 		len(c.GatewayServices) == 0 &&
-		len(c.HostnameServices) == 0
+		len(c.HostnameServices) == 0 &&
+		!c.MeshConfigSet
 }
 
 type configSnapshotMeshGateway struct {
@@ -332,7 +341,8 @@ func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	return keys
 }
 
-func (c *configSnapshotMeshGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotMeshGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -379,7 +389,8 @@ type configSnapshotIngressGateway struct {
 	Listeners map[IngressListenerKey]structs.IngressListener
 }
 
-func (c *configSnapshotIngressGateway) IsEmpty() bool {
+// isEmpty is a test helper
+func (c *configSnapshotIngressGateway) isEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -387,7 +398,8 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		len(c.UpstreamsSet) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
-		len(c.WatchedUpstreamEndpoints) == 0
+		len(c.WatchedUpstreamEndpoints) == 0 &&
+		!c.MeshConfigSet
 }
 
 type IngressListenerKey struct {
@@ -448,10 +460,12 @@ func (s *ConfigSnapshot) Valid() bool {
 		}
 		return s.Roots != nil &&
 			s.ConnectProxy.Leaf != nil &&
-			s.ConnectProxy.IntentionsSet
+			s.ConnectProxy.IntentionsSet &&
+			s.ConnectProxy.MeshConfigSet
 
 	case structs.ServiceKindTerminatingGateway:
-		return s.Roots != nil
+		return s.Roots != nil &&
+			s.TerminatingGateway.MeshConfigSet
 
 	case structs.ServiceKindMeshGateway:
 		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
@@ -466,7 +480,8 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.IngressGateway.Leaf != nil &&
 			s.IngressGateway.GatewayConfigLoaded &&
-			s.IngressGateway.HostsSet
+			s.IngressGateway.HostsSet &&
+			s.IngressGateway.MeshConfigSet
 	default:
 		return false
 	}
@@ -515,4 +530,33 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 	default:
 		return nil
 	}
+}
+
+func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.MeshConfig
+	case structs.ServiceKindIngressGateway:
+		return s.IngressGateway.MeshConfig
+	case structs.ServiceKindTerminatingGateway:
+		return s.TerminatingGateway.MeshConfig
+	default:
+		return nil
+	}
+}
+
+func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionalTLSConfig {
+	mesh := s.MeshConfig()
+	if mesh == nil || mesh.TLS == nil {
+		return nil
+	}
+	return mesh.TLS.Incoming
+}
+
+func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConfig {
+	mesh := s.MeshConfig()
+	if mesh == nil || mesh.TLS == nil {
+		return nil
+	}
+	return mesh.TLS.Outgoing
 }

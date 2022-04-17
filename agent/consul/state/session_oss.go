@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -121,7 +122,7 @@ func allNodeSessionsTxn(tx ReadTxn, node string, _ string) (structs.Sessions, er
 }
 
 func nodeSessionsTxn(tx ReadTxn,
-	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
+	ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (structs.Sessions, error) {
 
 	sessions, err := tx.Get(tableSessions, indexNode, Query{Value: node})
 	if err != nil {
@@ -136,7 +137,7 @@ func nodeSessionsTxn(tx ReadTxn,
 	return result, nil
 }
 
-func sessionMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+func sessionMaxIndex(tx ReadTxn, entMeta *acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "sessions")
 }
 
@@ -161,7 +162,7 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -184,7 +185,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	return idx, result, nil
 }
 
-func maxIndexTxnSessions(tx *memdb.Txn, _ *structs.EnterpriseMeta) uint64 {
+func maxIndexTxnSessions(tx *memdb.Txn, _ *acl.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, tableSessions)
 }
 
