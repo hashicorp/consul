@@ -1179,6 +1179,13 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 
 	// Try to get an unknown Name.
 	{
+		rules := `
+			query_prefix "non-existent-name" {
+				policy = "read"
+			}
+		`
+		token := createTokenWithPolicyNameFull(t, codec, "non-existent-name-policy", rules, "root").SecretID
+
 		req := &structs.PreparedQuerySpecificRequest{
 			Datacenter:   "dc1",
 			QueryName:    "non-existent-name",

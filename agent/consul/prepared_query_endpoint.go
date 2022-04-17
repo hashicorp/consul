@@ -274,6 +274,13 @@ func (p *PreparedQuery) GetByExactName(args *structs.PreparedQuerySpecificReques
 		return err
 	}
 
+	var authzContext acl.AuthorizerContext
+	if authz, err := p.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if err := authz.ToAllowAuthorizer().PreparedQueryReadAllowed(args.QueryName, &authzContext); err != nil {
+		return err
+	}
+
 	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -288,17 +295,6 @@ func (p *PreparedQuery) GetByExactName(args *structs.PreparedQuerySpecificReques
 
 			reply.Index = index
 			reply.Queries = structs.PreparedQueries{query}
-			if err := p.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
-			// Since this is a GET of a specific query, if ACLs have
-			// prevented us from returning something that exists,
-			// then alert the user with a permission denied error.
-			if len(reply.Queries) == 0 {
-				p.logger.Warn("Request to get prepared query denied due to ACLs", "query", args.QueryName)
-				return acl.ErrPermissionDenied
-			}
 
 			return nil
 		})

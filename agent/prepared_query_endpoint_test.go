@@ -866,7 +866,7 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 	}
 
 	t.Parallel()
-	t.Run("", func(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
@@ -914,7 +914,7 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 		}
 	})
 
-	t.Run("", func(t *testing.T) {
+	t.Run("query not found", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
 
