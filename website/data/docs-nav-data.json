@@ -1194,30 +1194,35 @@
     ]
   },
   {
-    "title": "Releases",
+    "title": "Release Notes",
     "routes": [
       {
         "title": "Overview",
-        "path": "releases"
+        "path": "release-notes"
       },
       {
-        "title": "Release Notes",
+        "title": "Consul",
         "routes": [
           {
-            "title": "Overview",
-            "path": "releases/release-notes"
+            "title": "v1.11.x",
+            "path": "release-notes/consul/v1_11_x"
           },
           {
-            "title": "v1.11.0",
-            "path": "releases/release-notes/v1_11_0"
+            "title": "v1.10.x",
+            "path": "release-notes/consul/v1_10_x"
           },
           {
-            "title": "v1.10.0",
-            "path": "releases/release-notes/v1_10_0"
-          },
+            "title": "v1.9.x",
+            "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul API Gateway",
+        "routes": [
           {
-            "title": "v1.9.0",
-            "path": "releases/release-notes/v1_9_0"
+            "title": "v0.1.0",
+            "path": "release-notes/consul-api-gateway/v0_1_0"
           }
         ]
       }

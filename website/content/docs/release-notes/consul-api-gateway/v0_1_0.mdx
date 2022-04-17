@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: 0.1.0
+description: >-
+  Consul API Gateway release notes for version 0.1.0
+---
+
+
+# Consul API Gateway 0.1.0
+
+## Release Highlights
+
+This is the first Generally Available (GA) release of Consul API Gateway.
+
+1. **Supported Runtimes:** Kubernetes - self managed, AWS EKS, Google GKE and Azure AKS.
+1. Install via the  HashiCorp Consul Helm chart.
+1. Works with self-managed Consul servers and HCP Consul servers
+1. Configure via Kubernetes Gateway API - v1alpha2
+1. Deploy 1 or more logical API Gateways per Kubernetes cluster
+1. Deploy 1 or more instances (a.k.a. pods) per logical API Gateway
+1. Supported protocols: HTTP, HTTPS, TCP
+1. Supported HTTP versions: 1.1 & 2
+1. Load balance across a service’s instances
+1. HTTPS Listeners load TLS certificates, signed by an CA, from Kubernetes Secret Storage
+1. Route HTTP/S traffic to Services based on matching:
+   - Hostname
+   - URI Path
+   - HTTP Header
+   - HTTP Method
+   - HTTP Query parameters
+   - HTTP Header manipulation:
+1. Set header value
+   - Add header and/or value
+   - Remove header and/or value
+1. TLS settings configurable per Listener:
+   - Set minimum allowed TLS version
+   - Enabled cipher-suites (a.k.a. Cipher string)
+1. Route to services in different Name Spaces
+1. Split traffic across multiple services, based on weight
+1. Support multi-runtime service mesh deployments
+   - The Consul API Gateway must be running on Kubernetes but it can route traffic to services running outside of K8s as long the service is connected to the Consul service mesh.
+
+For more detailed information, please refer to the [product documentation](/docs/api-gateway).
