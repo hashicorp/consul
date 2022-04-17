@@ -1070,10 +1070,11 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 	}
 
 	t.Parallel()
+	const initialManagementToken = "root"
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = "root"
+		c.ACLInitialManagementToken = initialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1081,7 +1082,7 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(initialManagementToken))
 
 	rules := `
 		query_prefix "redis" {
@@ -1156,7 +1157,7 @@ func TestPreparedQuery_GetByExactName(t *testing.T) {
 		req := &structs.PreparedQuerySpecificRequest{
 			Datacenter:   "dc1",
 			QueryName:    query.Query.Name,
-			QueryOptions: structs.QueryOptions{Token: "root"},
+			QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.GetByExactName", req, &resp); err != nil {
