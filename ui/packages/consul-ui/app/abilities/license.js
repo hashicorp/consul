@@ -8,6 +8,6 @@ export default class LicenseAbility extends BaseAbility {
   @service('env') env;
 
   get canRead() {
-    return this.env.var('CONSUL_NSPACES_ENABLED');
+    return this.env.var('CONSUL_NSPACES_ENABLED') && super.canRead;
   }
 }
