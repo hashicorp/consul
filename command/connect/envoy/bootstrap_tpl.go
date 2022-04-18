@@ -240,6 +240,16 @@ const bootstrapTemplate = `{
         }
       }
     }
+  },
+  "layered_runtime": {
+    "layers": [
+      {
+        "name": "static_layer",
+        "static_layer": {
+			"envoy.reloadable_features.no_extension_lookup_by_name": false
+        }
+      }
+    ]
   }
 }
 `
