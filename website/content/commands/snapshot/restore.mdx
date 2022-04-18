@@ -19,6 +19,8 @@ designed to handle server failures during a restore. This command is primarily
 intended to be used when recovering from a disaster, restoring into a fresh
 cluster of Consul servers.
 
+->**Note:** If ACLs were enabled in your environment, you will need to bootstrap the ACL system before restoring.
+
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
