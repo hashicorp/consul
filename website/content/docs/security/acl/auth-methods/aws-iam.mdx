@@ -1,0 +1,210 @@
+---
+layout: docs
+page_title: AWS IAM Auth Method
+description: >-
+  The AWS IAM auth method type allows for AWS IAM Roles and Users
+  to be used to authenticate to Consul.
+---
+
+# AWS IAM Auth Method
+
+
+The AWS Identity and Access Management (IAM) auth method type allows for AWS
+IAM Roles and Users to be used to authenticate to Consul in order to obtain
+a Consul token.
+
+This page assumes general knowledge of [AWS
+IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html)
+and the concepts described in the main [auth method
+documentation](/docs/security/acl/auth-methods).
+
+## Overview
+
+The AWS IAM auth method for Consul uses a variation on the approach used by the [IAM auth method for
+Vault](https://www.vaultproject.io/docs/auth/aws#iam-auth-method). Specifically, the IAM auth method
+for Consul avoids the need to configure Consul servers with AWS credentials by requiring clients to
+provided pre-signed AWS API requests.
+
+An IAM role or user authenticates by presenting certain signed AWS API requests in a specific JSON
+format. The client signs the necessary AWS API requests with its AWS credentials using the [AWS
+Signature v4 algorithm](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html). When the
+auth method receives the signed AWS API requests, it forwards the requests to AWS. AWS validates the
+client's signature and, if the signature is valid, responds with the client's identity details. The
+signature validation performed by AWS on the `sts:GetCallerIdentity` request provides the auth
+method with a strong guarantee of the client's identity. The auth method compares the Amazon
+Resource Name (ARN) of the client with the `BoundIAMPrincipalARNs` list to determine if the client
+is permitted to login.
+
+## Config Parameters
+
+The following are the auth method [`Config`](/api-docs/acl/auth-methods#config)
+parameters for an auth method of type `aws-iam`:
+
+- `BoundIAMPrincipalARNs` `(array<string>: <required>)` - The list of IAM role or IAM user ARNs
+  which are permitted to login. A client authenticating to Consul must have an ARN that matches one
+  of the ARNs in this list.
+   - If `EnableIAMEntityDetails=false`, then bound ARNs must not contain the full path of the role
+     or user, and wildcards are not supported. For example,
+     `arn:aws:iam::123456789012:user/MyUserName` will permit the IAM user named "MyUserName" to log
+     in, and `arn:aws:iam::123456789012:role/MyRoleName` will permit the IAM role named "MyRoleName"
+     to log in.
+   - If `EnableIAMEntityDetails=true`, then bound ARNs with the full path must be used, such as,
+     `arn:aws:iam::123456789012:role/path/to/MyRoleName`. Additionally, ARNs may contain a single
+     trailing wildcard. For example, `arn:aws:iam::123456789012:*` will permit any role or user in
+     the account `123456789012` to login, while `arn:aws:iam::123456789012:role/path/to/roles/*`
+     will permit only roles at the path `/path/to/roles/`.
+- `EnableIAMEntityDetails` `(bool: <false>)` - This enables the auth method to fetch the IAM role or
+  IAM user details, including tags and the full role or user path. If enabled, clients must pass the
+  `-aws-include-entity` option to `consul login`. Additionally, an IAM role or user attempting to
+  login must have an `iam:GetRole` or `iam:GetUser` permission, respectively, to retrieve itself.
+  This setting is required in order to fetch the full path and tags of the IAM user or role and in
+  order to use wildcards in the `BoundIAMPrincipalARNs`.
+- `IAMEntityTags` `(array<string>: [])` - The list of tag keys retrieved from the IAM role or user
+  and made available to binding rules. Tags are only supported when `EnableIAMEntityDetails=true`.
+  By default, no tags are made available to binding rules. Each tag in the `IAMEntityTags` list can
+  be referenced in binding rules using `entity_tags.<tag>`. For example, if `IAMEntityTags` contains
+  `service-name` and if a `service-name` tag exists on the IAM role or user, then you can reference
+  the tag value using `entity_tags.service-name` in binding rules. If the tag is not present on the
+  IAM role or user, then `entity_tags.service-name` evalutes to the empty string in binding rules.
+- `ServerIDHeaderValue` `(string: "")` - The value to require in the `X-Consul-IAM-ServerID` header
+  in login requests. If set, clients must include the `X-Consul-IAM-ServerID` header in the AWS API
+  requests used to login to the auth method, and the client-provided value for the header must match
+  this setting in order to successfully log in. If not set, no header is required or validated. This
+  can be used to protect against different types of replay attacks - for example, a signed request
+  sent to a dev server being resent to a production server. Consider setting this to the Consul
+  server's DNS name. When this is set, clients must set pass the `-aws-server-id-header-value`
+  option to the `consul login` command.
+- `MaxRetries` `(integer: 0)` - The maximum number of retries to use for recoverable errors when
+  making AWS API requests.
+- `IAMEndpoint` `(string: "")` - The URL where `iam:GetRole` and `iam:GetUser` requests are sent.
+  This can be used to send requests to a private endpoint or through a network proxy.
+- `STSEndpoint` `(string: "")` - The URL where `sts:GetCallerIdentity` requests are sent. This can
+  be used to send requests to a private endpoint or through a network proxy.
+- `AllowedSTSHeaderValues` `(array<string>: [])` - A list of additional allowed headers on
+  `sts:GetCallerIdentity` requests. In any case, a default list of headers AWS STS expects are
+  allowed.
+
+### Sample
+
+```json
+{
+    ...other fields...
+    "Config": {
+      "BoundIAMPrincipalARNs": ["arn:aws:iam::123456789012:role/MyRoleName"],
+      "EnableIAMEntityDetails": true,
+      "IAMEntityTags": ["consul-namespace"],
+      "ServerIDHeaderValue": "my.consul.server.example.com",
+      "MaxRetries": 3,
+      "IAMEndpoint": "https://iam.amazonaws.com/",
+      "STSEndpoint": "https://sts.us-east-1.amazonaws.com/",
+      "AllowedSTSHeaderValues": ["X-Extra-Header"]
+    }
+}
+```
+
+## Trusted Identity Attributes
+
+The authentication step returns the following trusted identity attributes for use in binding rule
+selectors and bind name interpolation. All of these attributes are strings that can be interpolated
+and support the following selector operations: `Equal, Not Equal, In, Not In, Matches, Not Matches`
+
+| Attribute            | Description                         | Requirement                                                      |
+| -------------------- | ----------------------------------- | ---------------------------------------------------------------- |
+| `entity_name`        | Name of IAM role or user            |                                                                  |
+| `entity_id`          | Unique ID of IAM role or user       |                                                                  |
+| `account_id`         | AWS account id of IAM role or user  |                                                                  |
+| `entity_path`        | The path of the IAM role or user    | `EnableIAMEntityDetails=true`                                    |
+| `entity_tags.<key>`  | AWS account id of IAM role or user  | `EnableIAMEntityDetails=true` and `IAMEntityTags` contains `<key>` |
+
+## IAM Policies
+
+When `EnableIAMEntityDetails=false`, no specific IAM policies are needed.
+
+When `EnableIAMEntityDetails=true`, an authenticating client must provide either a signed
+`iam:GetRole` or `iam:GetUser` request. This request is signed with the client's AWS credentials, so
+the client must have permission to fetch the role or user, respectively.
+
+- If the authenticating client is an IAM role, the client must have an `iam:GetRole` permission to
+  fetch its own role. The following shows an example of an AWS IAM Policy document which grants this
+  permission:
+
+  ```json
+  {
+    "Statement": [
+        {
+            "Action": ["iam:GetRole"],
+            "Effect": "Allow",
+            "Resource": ["arn:aws:iam::123456789012:role/MyRoleName"]
+        }
+    ],
+    "Version": "2012-10-17"
+  }
+  ```
+
+- If the authenticating client is an IAM user, the client must have an `iam:GetUser` permission to
+  fetch its own role. The following shows an example of an AWS IAM Policy document which grants this
+  permission:
+
+  ```json
+  {
+    "Statement": [
+        {
+            "Action": ["iam:GetUser"],
+            "Effect": "Allow",
+            "Resource": ["arn:aws:iam::123456789012:user/MyUserName"]
+        }
+    ],
+    "Version": "2012-10-17"
+  }
+  ```
+
+## Authentication Procedure
+
+If `EnableIAMEntityDetails=false`, a client must log in with the following `consul login` command.
+
+```shell-session
+$ consul login -type aws-iam -aws-auto-bearer-token ...
+```
+
+- Format and sign an `sts:GetCallerIdentity` request
+- Format these request details as JSON to form a bearer token
+- Send the bearer token to the IAM auth method to authenticate
+
+Otherwise, if `EnableIAMEntityDetails=true`, the client must log in with the following `consul login` command,
+in order to include a signed `iam:GetRole` or `iam:GetUser` request in the bearer token.
+
+```shell-session
+$ consul login -type aws-iam -aws-auto-bearer-token -aws-include-entity ...
+```
+
+This command does the following:
+
+- Make an `sts:GetCallerIdentity` request to determine its own role or user name
+- Format a new `sts:GetCallerIdentity` request
+- Embed a signed `iam:GetRole` or `iam:GetUser` request in the headers of the
+  `sts:GetCallerIdentity` request
+- Sign the `sts:GetCallerIdentity` request
+- Format the request details as JSON to form a bearer token
+- Send the bearer token to the IAM auth method to authenticate
+
+On the Consul servers, the IAM auth method validates a client's identity during the [Login to Auth
+Method](/api-docs/acl#login-to-auth-method) API request, using the following steps:
+
+- Decode the `sts:GetCallerIdentity` request from the bearer token
+- Optionally, decode the `iam:GetRole` or `iam:GetUser` request from the bearer token,
+  if `EnableIAMEntityDetails=true` in the auth method configuration
+- Send the `sts:GetCallerIdentity` request to AWS. This request is pre-signed by the client, so no
+  other credentials or permissions are needed to make this request. AWS validates the client's
+  signature when it receives the request. If the signature is valid, AWS returns the client's
+  identity in the response. This is a strong guarantee of the client's identity.
+- Optionally, the auth method sends the `iam:GetRole` or `iam:GetUser` request to AWS,
+  if `EnableIAMEntityDetails=true` in the auth method configuration. This request is pre-signed
+  by the client, so no other credentials or permisssions are required to make the request. Only the
+  client needs the `iam:GetRole` or `iam:GetUser` permission. AWS validates the client's signature
+  when it receives the request. If the signature is valid, AWS returns the IAM role or user details.
+  This response is not a guarantee of the client's identity - any role or user name may have been
+  included in the request - so the auth method requires the IAM role or user to have a [unique
+  id](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-unique-ids)
+  match with the `sts:GetCallerIdentity` response.
+- Finally, the auth method makes an authentication decision. If the client's IAM role or user ARN
+  matches one of the configured `BoundIAMPrincipalARNs`, then the client is permitted to login.
