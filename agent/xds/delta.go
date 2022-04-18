@@ -470,16 +470,6 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 		t.wildcard = len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
-
-		if sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect {
-			switch t.typeURL {
-			case xdscommon.ListenerType, xdscommon.ClusterType:
-				if !t.wildcard {
-					t.wildcard = true
-					logger.Trace("fixing Envoy bug fixed in 1.19.0 by inferring wildcard mode for type")
-				}
-			}
-		}
 	}
 
 	/*
