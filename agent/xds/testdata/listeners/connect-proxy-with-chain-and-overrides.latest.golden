@@ -36,10 +36,16 @@
                     }
                   },
                   {
-                    "name": "envoy.filters.http.grpc_http1_bridge"
+                    "name": "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
+                    }
                   },
                   {
-                    "name": "envoy.filters.http.router"
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
                   }
                 ],
                 "tracing": {

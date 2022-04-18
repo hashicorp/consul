@@ -118,10 +118,13 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.16.4": {expectErr: "Envoy 1.16.4 " + errTooOld},
 		"1.16.5": {expectErr: "Envoy 1.16.5 " + errTooOld},
 		"1.16.6": {expectErr: "Envoy 1.16.6 " + errTooOld},
+		"1.17.4": {expectErr: "Envoy 1.17.4 " + errTooOld},
+		"1.18.6": {expectErr: "Envoy 1.18.6 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
 	// Populate feature flags here when appropriate. See consul 1.10.x for reference.
+	/* Example from 1.18
 	for _, v := range []string{
 		"1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4", "1.18.5", "1.18.6",
 	} {
@@ -129,10 +132,12 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect: true,
 		}}
 	}
+	*/
 	for _, v := range []string{
 		"1.19.0", "1.19.1", "1.19.2", "1.19.3",
 		"1.20.0", "1.20.1", "1.20.2",
 		"1.21.1",
+		"1.22.0",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}

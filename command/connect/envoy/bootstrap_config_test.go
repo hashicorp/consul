@@ -136,10 +136,13 @@ const (
 					]
 				  }
 				]
-			  },
-			  "http_filters": [
+			},
+			"http_filters": [
 				{
-				  "name": "envoy.filters.http.router"
+					"name": "envoy.filters.http.router",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+					}
 				}
 			  ]
 			}
@@ -194,10 +197,13 @@ const (
 					]
 				  }
 				]
-			  },
-			  "http_filters": [
+			},
+			"http_filters": [
 				{
-				  "name": "envoy.filters.http.router"
+					"name": "envoy.filters.http.router",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+					}
 				}
 			  ]
 			}
@@ -252,10 +258,13 @@ const (
 					]
 				  }
 				]
-			  },
-			  "http_filters": [
+			},
+			"http_filters": [
 				{
-				  "name": "envoy.filters.http.router"
+					"name": "envoy.filters.http.router",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+					}
 				}
 			  ]
 			}
@@ -313,7 +322,10 @@ const (
             },
             "http_filters": [
               {
-                "name": "envoy.filters.http.router"
+                "name": "envoy.filters.http.router",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                }
               }
             ]
           }
@@ -371,7 +383,10 @@ const (
             },
             "http_filters": [
               {
-                "name": "envoy.filters.http.router"
+                "name": "envoy.filters.http.router",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                }
               }
             ]
           }
