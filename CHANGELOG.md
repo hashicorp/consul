@@ -1,3 +1,106 @@
+## 1.12.0 (April 20, 2022)
+
+BREAKING CHANGES:
+
+* sdk: several changes to the testutil configuration structs (removed `ACLMasterToken`, renamed `Master` to `InitialManagement`, and `AgentMaster` to `AgentRecovery`) [[GH-11827](https://github.com/hashicorp/consul/issues/11827)]
+* telemetry: the disable_compat_1.9 option now defaults to true. 1.9 style `consul.http...` metrics can still be enabled by setting `disable_compat_1.9 = false`. However, we will remove these metrics in 1.13. [[GH-12675](https://github.com/hashicorp/consul/issues/12675)]
+
+FEATURES:
+
+* acl: Add token information to PermissionDeniedErrors [[GH-12567](https://github.com/hashicorp/consul/issues/12567)]
+* acl: Added an AWS IAM auth method that allows authenticating to Consul using AWS IAM identities [[GH-12583](https://github.com/hashicorp/consul/issues/12583)]
+* ca: Root certificates can now be consumed from a gRPC streaming endpoint: `WatchRoots` [[GH-12678](https://github.com/hashicorp/consul/issues/12678)]
+* cli: The `token read` command now supports the `-expanded` flag to display detailed role and policy information for the token. [[GH-12670](https://github.com/hashicorp/consul/issues/12670)]
+* config: automatically reload config when a file changes using the `auto-reload-config` CLI flag or `auto_reload_config` config option. [[GH-12329](https://github.com/hashicorp/consul/issues/12329)]
+* server: Ensure that service-defaults `Meta` is returned with the response to the `ConfigEntry.ResolveServiceConfig` RPC. [[GH-12529](https://github.com/hashicorp/consul/issues/12529)]
+* server: discovery chains now include a response field named "Default" to indicate if they were not constructed from any service-resolver, service-splitter, or service-router config entries [[GH-12511](https://github.com/hashicorp/consul/issues/12511)]
+* server: ensure that service-defaults meta is incorporated into the discovery chain response [[GH-12511](https://github.com/hashicorp/consul/issues/12511)]
+* tls: it is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the `tls` stanza [[GH-12504](https://github.com/hashicorp/consul/issues/12504)]
+* ui: Added support for AWS IAM Auth Methods [[GH-12786](https://github.com/hashicorp/consul/issues/12786)]
+* ui: Support connect-native services in the Topology view. [[GH-12098](https://github.com/hashicorp/consul/issues/12098)]
+* xds: Add the ability to invoke AWS Lambdas through terminating gateways. [[GH-12681](https://github.com/hashicorp/consul/issues/12681)]
+* xds: adding control of the mesh-wide min/max TLS versions and cipher suites from the mesh config entry [[GH-12601](https://github.com/hashicorp/consul/issues/12601)]
+
+IMPROVEMENTS:
+
+* Refactor ACL denied error code and start improving error details [[GH-12308](https://github.com/hashicorp/consul/issues/12308)]
+* acl: Provide fuller detail in the error messsage when an ACL denies access. [[GH-12470](https://github.com/hashicorp/consul/issues/12470)]
+* agent: Allow client agents to perform keyring operations [[GH-12442](https://github.com/hashicorp/consul/issues/12442)]
+* agent: add additional validation to TLS config [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
+* agent: add support for specifying TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 and TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 cipher suites [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
+* agent: bump default min version for connections to TLS 1.2 [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
+* api: add QueryBackend to QueryMeta so an api user can determine if a query was served using which backend (streaming or blocking query). [[GH-12791](https://github.com/hashicorp/consul/issues/12791)]
+* ci: include 'enhancement' entry type in IMPROVEMENTS section of changelog. [[GH-12376](https://github.com/hashicorp/consul/issues/12376)]
+* ui: Exclude Service Instance Health from Health Check reporting on the Node listing page. The health icons on each individual row now only reflect Node health. [[GH-12248](https://github.com/hashicorp/consul/issues/12248)]
+* ui: Improve usability of Topology warning/information panels [[GH-12305](https://github.com/hashicorp/consul/issues/12305)]
+* ui: Slightly improve usability of main navigation [[GH-12334](https://github.com/hashicorp/consul/issues/12334)]
+* ui: Use @hashicorp/flight icons for all our icons. [[GH-12209](https://github.com/hashicorp/consul/issues/12209)]
+* Removed impediments to using a namespace prefixed IntermediatePKIPath
+in a CA definition. [[GH-12655](https://github.com/hashicorp/consul/issues/12655)]
+* acl: Improve handling of region-specific endpoints in the AWS IAM auth method. As part of this, the `STSRegion` field was removed from the auth method config. [[GH-12774](https://github.com/hashicorp/consul/issues/12774)]
+* api: Improve error message if service or health check not found by stating that the entity must be referred to by ID, not name [[GH-10894](https://github.com/hashicorp/consul/issues/10894)]
+* autopilot: Autopilot state is now tracked on Raft followers in addition to the leader.
+Stale queries may be used to query for the non-leaders state. [[GH-12617](https://github.com/hashicorp/consul/issues/12617)]
+* autopilot: The `autopilot.healthy` and `autopilot.failure_tolerance` metrics are now
+regularly emitted by all servers. [[GH-12617](https://github.com/hashicorp/consul/issues/12617)]
+* ci: Enable security scanning for CRT [[GH-11956](https://github.com/hashicorp/consul/issues/11956)]
+* connect: Add Envoy 1.21.1 to support matrix, remove 1.17.4 [[GH-12777](https://github.com/hashicorp/consul/issues/12777)]
+* connect: Add Envoy 1.22.0 to support matrix, remove 1.18.6 [[GH-12805](https://github.com/hashicorp/consul/issues/12805)]
+* connect: reduce raft apply on CA configuration when no change is performed [[GH-12298](https://github.com/hashicorp/consul/issues/12298)]
+* deps: update to latest go-discover to fix vulnerable transitive jwt-go dependency [[GH-12739](https://github.com/hashicorp/consul/issues/12739)]
+* grpc, xds: improved reliability of grpc and xds servers by adding recovery-middleware to return and log error in case of panic. [[GH-10895](https://github.com/hashicorp/consul/issues/10895)]
+* http: if a GET request has a non-empty body, log a warning that suggests a possible problem (parameters were meant for the query string, but accidentally placed in the body) [[GH-11821](https://github.com/hashicorp/consul/issues/11821)]
+* metrics: The `consul.raft.boltdb.writeCapacity` metric was added and indicates a theoretical number of writes/second that can be performed to Consul. [[GH-12646](https://github.com/hashicorp/consul/issues/12646)]
+* sdk: Add support for `Partition` and `RetryJoin` to the TestServerConfig struct. [[GH-12126](https://github.com/hashicorp/consul/issues/12126)]
+* telemetry: Add new `leader` label to `consul.rpc.server.call` and optional `target_datacenter`, `locality`,
+`allow_stale`, and `blocking` optional labels. [[GH-12727](https://github.com/hashicorp/consul/issues/12727)]
+* ui: In the datacenter selector order Datacenters by Primary, Local then alpanumerically [[GH-12478](https://github.com/hashicorp/consul/issues/12478)]
+* ui: Include details on ACL policy dispositions required for unauthorized views [[GH-12354](https://github.com/hashicorp/consul/issues/12354)]
+* ui: Move icons away from depending on a CSS preprocessor [[GH-12461](https://github.com/hashicorp/consul/issues/12461)]
+* version: Improved performance of the version.GetHumanVersion function by 50% on memory allocation. [[GH-11507](https://github.com/hashicorp/consul/issues/11507)]
+
+DEPRECATIONS:
+
+* acl: The `consul.acl.ResolveTokenToIdentity` metric is no longer reported. The values that were previous reported as part of this metric will now be part of the `consul.acl.ResolveToken` metric. [[GH-12166](https://github.com/hashicorp/consul/issues/12166)]
+* agent: deprecate older syntax for specifying TLS min version values [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
+* agent: remove support for specifying insecure TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 and TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 cipher suites [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
+* config: setting `cert_file`, `key_file`, `ca_file`, `ca_path`, `tls_min_version`, `tls_cipher_suites`, `verify_incoming`, `verify_incoming_rpc`, `verify_incoming_https`, `verify_outgoing` and `verify_server_hostname` at the top-level is now deprecated, use the `tls` stanza instead [[GH-12504](https://github.com/hashicorp/consul/issues/12504)]
+
+BUG FIXES:
+
+* acl: Fix parsing of IAM user and role tags in IAM auth method [[GH-12797](https://github.com/hashicorp/consul/issues/12797)]
+* dns: allow max of 63 character DNS labels instead of 64 per RFC 1123 [[GH-12535](https://github.com/hashicorp/consul/issues/12535)]
+* logging: fix a bug with incorrect severity syslog messages (all messages were sent with NOTICE severity). [[GH-12079](https://github.com/hashicorp/consul/issues/12079)]
+* ui: Added Tags tab to gateways(just like exists for non-gateway services) [[GH-12400](https://github.com/hashicorp/consul/issues/12400)]
+
+NOTES:
+
+* Forked net/rpc to add middleware support: https://github.com/hashicorp/consul-net-rpc/ . [[GH-12311](https://github.com/hashicorp/consul/issues/12311)]
+* dependency: Upgrade to use Go 1.18.1 [[GH-12808](https://github.com/hashicorp/consul/issues/12808)]
+
+## 1.11.5 (April 13, 2022)
+
+SECURITY:
+
+* agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled. [[GH-12685](https://github.com/hashicorp/consul/issues/12685)]
+* connect: Properly set SNI when configured for services behind a terminating gateway. [[GH-12672](https://github.com/hashicorp/consul/issues/12672)]
+
+IMPROVEMENTS:
+
+* agent: improve log messages when a service with a critical health check is deregistered due to exceeding the deregister_critical_service_after timeout [[GH-12725](https://github.com/hashicorp/consul/issues/12725)]
+* xds: ensure that all connect timeout configs can apply equally to tproxy direct dial connections [[GH-12711](https://github.com/hashicorp/consul/issues/12711)]
+
+BUG FIXES:
+
+* acl: **(Enterprise Only)** fixes a bug preventing ACL policies configured with datacenter restrictions from being created if the cluster had been upgraded to Consul 1.11+ from an earlier version.
+* connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault. [[GH-12607](https://github.com/hashicorp/consul/issues/12607)]
+* namespace: **(Enterprise Only)** Unreserve `consul` namespace to allow K8s namespace mirroring when deploying in `consul` K8s namespace .
+* raft: upgrade to v1.3.6 which fixes a bug where a read replica node could attempt bootstrapping raft and prevent other nodes from bootstrapping at all [[GH-12496](https://github.com/hashicorp/consul/issues/12496)]
+* replication: Fixed a bug which could prevent ACL replication from continuing successfully after a leader election. [[GH-12565](https://github.com/hashicorp/consul/issues/12565)]
+* server: fix spurious blocking query suppression for discovery chains [[GH-12512](https://github.com/hashicorp/consul/issues/12512)]
+* ui: Fixes a visual bug where our loading icon can look cut off [[GH-12479](https://github.com/hashicorp/consul/issues/12479)]
+* usagemetrics: **(Enterprise only)** Fix a bug where Consul usage metrics stopped being reported when upgrading servers from 1.10 to 1.11 or later.
+
 ## 1.11.4 (February 28, 2022)
 
 FEATURES:
