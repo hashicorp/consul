@@ -78,7 +78,10 @@
                 },
                 "httpFilters": [
                   {
-                    "name": "envoy.filters.http.router"
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
                   }
                 ],
                 "tracing": {
@@ -105,7 +108,10 @@
       ],
       "listenerFilters": [
         {
-          "name": "envoy.filters.listener.original_dst"
+          "name": "envoy.filters.listener.original_dst",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+          }
         }
       ],
       "trafficDirection": "OUTBOUND"

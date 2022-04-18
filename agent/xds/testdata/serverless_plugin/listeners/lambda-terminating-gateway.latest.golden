@@ -212,7 +212,10 @@
                     }
                   },
                   {
-                    "name": "envoy.filters.http.router"
+                    "name": "envoy.filters.http.router",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
                   }
                 ],
                 "tracing": {
@@ -255,7 +258,10 @@
         {
           "filters": [
             {
-              "name": "envoy.filters.network.sni_cluster"
+              "name": "envoy.filters.network.sni_cluster",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.sni_cluster.v3.SniCluster"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
@@ -270,7 +276,10 @@
       ],
       "listenerFilters": [
         {
-          "name": "envoy.filters.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
+          }
         }
       ],
       "trafficDirection": "INBOUND"
