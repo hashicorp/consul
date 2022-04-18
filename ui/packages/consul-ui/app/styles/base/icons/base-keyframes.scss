@@ -8,12 +8,12 @@
 *::before {
   animation-name: var(--icon-name-start, var(--icon-name)),
                   var(--icon-size-start, var(--icon-size, icon-000));
-  background-color: var(--icon-color-start, var(--icon-color));
+  background-color: var(--icon-color-start, var(--icon-color, currentColor));
 }
 *::after {
   animation-name: var(--icon-name-end, var(--icon-name)),
                   var(--icon-size-end, var(--icon-size, icon-000));
-  background-color: var(--icon-color-end, var(--icon-color));
+  background-color: var(--icon-color-end, var(--icon-color, currentColor));
 }
 
 [style*='--icon-color-start']::before {
