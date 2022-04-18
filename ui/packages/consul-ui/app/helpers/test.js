@@ -1,7 +1,7 @@
-import Helper from 'ember-can/helpers/can';
-import { is } from 'consul-ui/helpers/is';
+import Helper from './can';
+import { is } from './is';
 
-export default Helper.extend({
+export default class extends Helper {
   compute([abilityString, model], properties) {
     switch(true) {
       case abilityString.startsWith('can '):
@@ -10,5 +10,5 @@ export default Helper.extend({
         return is(this, [abilityString.substr(3), model], properties);
     }
     throw new Error(`${abilityString} is not supported by the 'test' helper.`);
-  },
-});
+  }
+}

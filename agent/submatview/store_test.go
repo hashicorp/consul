@@ -225,8 +225,8 @@ func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
 		View:   &fakeView{srvs: make(map[string]*pbservice.CheckServiceNode)},
 		Client: r.client,
 		Logger: hclog.New(nil),
-		Request: func(index uint64) pbsubscribe.SubscribeRequest {
-			req := pbsubscribe.SubscribeRequest{
+		Request: func(index uint64) *pbsubscribe.SubscribeRequest {
+			req := &pbsubscribe.SubscribeRequest{
 				Topic:      pbsubscribe.Topic_ServiceHealth,
 				Key:        "key",
 				Token:      "abcd",

@@ -85,6 +85,25 @@ To build Consul, run `make dev`. In a few moments, you'll have a working
 Go provides [tooling to apply consistent code formatting](https://golang.org/doc/effective_go#formatting).
 If you make any changes to the code, run `gofmt -s -w` to automatically format the code according to Go standards.
 
+##### Organizing Imports
+
+Group imports using `goimports -local github.com/hashicorp/consul/` to keep [local packages](https://github.com/golang/tools/commit/ed69e84b1518b5857a9f4e01d1f9cefdcc45246e) in their own section.
+
+Example: 
+```
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
+)
+```
+
 #### Updating Go Module Dependencies
 
 If a dependency is added or change, run `go mod tidy` to update `go.mod` and `go.sum`.

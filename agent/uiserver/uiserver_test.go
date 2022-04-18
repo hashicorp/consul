@@ -43,6 +43,7 @@ func TestUIServerIndex(t *testing.T) {
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -76,6 +77,7 @@ func TestUIServerIndex(t *testing.T) {
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "foo",
 					"metrics_provider_options": {
 						"a-very-unlikely-string":1
@@ -97,6 +99,26 @@ func TestUIServerIndex(t *testing.T) {
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
+					"hcp_enabled": false,
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
+			}`,
+		},
+		{
+			name:         "hcp enabled",
+			cfg:          basicUIEnabledConfig(withHCPEnabled()),
+			path:         "/",
+			wantStatus:   http.StatusOK,
+			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantUICfgJSON: `{
+				"ACLsEnabled": false,
+				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"UIConfig": {
+					"hcp_enabled": true,
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -126,6 +148,7 @@ func TestUIServerIndex(t *testing.T) {
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
+					"hcp_enabled": false,
 					"metrics_provider": "bar",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
@@ -252,6 +275,12 @@ func withMetricsProviderFiles(names ...string) cfgFunc {
 func withMetricsProviderOptions(jsonStr string) cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.UIConfig.MetricsProviderOptionsJSON = jsonStr
+	}
+}
+
+func withHCPEnabled() cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.UIConfig.HCPEnabled = true
 	}
 }
 
@@ -388,6 +417,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		"PrimaryDatacenter": "dc1",
 		"ContentPath": "/ui/",
 		"UIConfig": {
+			"hcp_enabled": false,
 			"metrics_provider": "",
 			"metrics_proxy_enabled": false,
 			"dashboard_url_templates": null
@@ -411,6 +441,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 			"PrimaryDatacenter": "dc1",
 			"ContentPath": "/ui/",
 			"UIConfig": {
+				"hcp_enabled": false,
 				"metrics_provider": "",
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null

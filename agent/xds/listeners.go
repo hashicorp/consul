@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/types"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -115,7 +117,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
-		useRDS := chain.Protocol != "tcp" && !chain.IsDefault()
+		useRDS := chain.Protocol != "tcp" && !chain.Default
 
 		var clusterName string
 		if !useRDS {
@@ -191,7 +193,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
 			// We only match on this virtual IP if the upstream is in the proxy's partition.
 			// This is because the IP is not guaranteed to be unique across k8s clusters.
-			if structs.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
 				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
 					uniqueAddrs[vip.Address] = struct{}{}
 				}
@@ -250,8 +252,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to destinations outside the mesh
-		if cfgSnap.ConnectProxy.MeshConfig == nil ||
-			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
+		if meshConf := cfgSnap.MeshConfig(); meshConf == nil ||
+			!meshConf.TransparentProxy.MeshDestinationsOnly {
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				clusterName: OriginalDestinationClusterName,
@@ -749,7 +751,11 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext: makeCommonTLSContextFromLeaf(
+				cfgSnap,
+				cfgSnap.Leaf(),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+			),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1071,7 +1077,11 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	protocol string,
 ) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext:         makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+		CommonTlsContext: makeCommonTLSContextFromLeaf(
+			cfgSnap,
+			cfgSnap.TerminatingGateway.ServiceLeaves[service],
+			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+		),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -1303,7 +1313,7 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 	if u != nil {
 		configMap = u.Config
 	}
-	if chain == nil || chain.IsDefault() {
+	if chain == nil || chain.Default {
 		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
@@ -1549,11 +1559,11 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
-func makeCommonTLSContextFromLeafWithoutParams(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
-	return makeCommonTLSContextFromLeaf(cfgSnap, leaf, nil)
-}
-
-func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert, tlsParams *envoy_tls_v3.TlsParameters) *envoy_tls_v3.CommonTlsContext {
+func makeCommonTLSContextFromLeaf(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	leaf *structs.IssuedCert,
+	tlsParams *envoy_tls_v3.TlsParameters,
+) *envoy_tls_v3.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	if cfgSnap.Roots == nil {
 		return nil
@@ -1661,4 +1671,67 @@ func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_
 	}
 
 	return &ctx
+}
+
+func validateListenerTLSConfig(tlsMinVersion types.TLSVersion, cipherSuites []types.TLSCipherSuite) error {
+	// Validate. Configuring cipher suites is only applicable to connections negotiated
+	// via TLS 1.2 or earlier. Other cases shouldn't be possible as we validate them at
+	// input but be resilient to bugs later.
+	if len(cipherSuites) != 0 {
+		if _, ok := tlsVersionsWithConfigurableCipherSuites[tlsMinVersion]; !ok {
+			return fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in config", tlsMinVersion)
+		}
+	}
+
+	return nil
+}
+
+var tlsVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
+	// Remove these two if Envoy ever sets TLS 1.3 as default minimum
+	types.TLSVersionUnspecified: {},
+	types.TLSVersionAuto:        {},
+
+	types.TLSv1_0: {},
+	types.TLSv1_1: {},
+	types.TLSv1_2: {},
+}
+
+func makeTLSParametersFromProxyTLSConfig(tlsConf *structs.MeshDirectionalTLSConfig) *envoy_tls_v3.TlsParameters {
+	if tlsConf == nil {
+		return &envoy_tls_v3.TlsParameters{}
+	}
+
+	return makeTLSParametersFromTLSConfig(tlsConf.TLSMinVersion, tlsConf.TLSMaxVersion, tlsConf.CipherSuites)
+}
+
+func makeTLSParametersFromTLSConfig(
+	tlsMinVersion types.TLSVersion,
+	tlsMaxVersion types.TLSVersion,
+	cipherSuites []types.TLSCipherSuite,
+) *envoy_tls_v3.TlsParameters {
+	tlsParams := envoy_tls_v3.TlsParameters{}
+
+	if tlsMinVersion != types.TLSVersionUnspecified {
+		if minVersion, ok := envoyTLSVersions[tlsMinVersion]; ok {
+			tlsParams.TlsMinimumProtocolVersion = minVersion
+		}
+	}
+	if tlsMaxVersion != types.TLSVersionUnspecified {
+		if maxVersion, ok := envoyTLSVersions[tlsMaxVersion]; ok {
+			tlsParams.TlsMaximumProtocolVersion = maxVersion
+		}
+	}
+	if len(cipherSuites) != 0 {
+		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(cipherSuites)
+	}
+
+	return &tlsParams
+}
+
+var envoyTLSVersions = map[types.TLSVersion]envoy_tls_v3.TlsParameters_TlsProtocol{
+	types.TLSVersionAuto: envoy_tls_v3.TlsParameters_TLS_AUTO,
+	types.TLSv1_0:        envoy_tls_v3.TlsParameters_TLSv1_0,
+	types.TLSv1_1:        envoy_tls_v3.TlsParameters_TLSv1_1,
+	types.TLSv1_2:        envoy_tls_v3.TlsParameters_TLSv1_2,
+	types.TLSv1_3:        envoy_tls_v3.TlsParameters_TLSv1_3,
 }

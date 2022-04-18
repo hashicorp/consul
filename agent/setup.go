@@ -20,11 +20,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
@@ -45,6 +46,7 @@ type BaseDeps struct {
 	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
 	Cache          *cache.Cache
 	ViewStore      *submatview.Store
+	WatchedFiles   []string
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -61,7 +63,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-
+	d.WatchedFiles = result.WatchedFiles
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
@@ -93,7 +95,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
-	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Logger)
+	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
 		return d, err
 	}
@@ -149,6 +151,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
+
+	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
+	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
 
 	return d, nil
 }

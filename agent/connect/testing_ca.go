@@ -118,6 +118,7 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 	result.NotAfter = template.NotAfter.UTC()
 	result.PrivateKeyType = keyType
 	result.PrivateKeyBits = keyBits
+	result.IntermediateCerts = []string{}
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.

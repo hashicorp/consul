@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 func prefixIndexFromQuery(arg interface{}) ([]byte, error) {
 	var b indexBuilder
 	switch v := arg.(type) {
-	case *structs.EnterpriseMeta:
+	case *acl.EnterpriseMeta:
 		return nil, nil
-	case structs.EnterpriseMeta:
+	case acl.EnterpriseMeta:
 		return nil, nil
 	case Query:
 		if v.Value == "" {

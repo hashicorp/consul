@@ -7,23 +7,23 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
-func (ixn *Intention) SourceEnterpriseMeta() *EnterpriseMeta {
+func (ixn *Intention) SourceEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func (ixn *Intention) DestinationEnterpriseMeta() *EnterpriseMeta {
+func (ixn *Intention) DestinationEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func (e *IntentionMatchEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *IntentionMatchEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func (e *IntentionQueryExact) SourceEnterpriseMeta() *EnterpriseMeta {
+func (e *IntentionQueryExact) SourceEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func (e *IntentionQueryExact) DestinationEnterpriseMeta() *EnterpriseMeta {
+func (e *IntentionQueryExact) DestinationEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
@@ -55,7 +55,7 @@ func (_ *IntentionQueryCheck) FillAuthzContext(_ *acl.AuthorizerContext) {
 // fillDefault MUST be true on servers to ensure that all fields are populated on writes.
 // fillDefault MUST be false on clients so that servers can correctly fill in the
 // namespace/partition of the ACL token.
-func (ixn *Intention) FillPartitionAndNamespace(entMeta *EnterpriseMeta, fillDefault bool) {
+func (ixn *Intention) FillPartitionAndNamespace(entMeta *acl.EnterpriseMeta, fillDefault bool) {
 	if ixn == nil {
 		return
 	}

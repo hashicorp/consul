@@ -1,0 +1,6 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  {{did-insert (route-action 'replaceWith' (if (can 'access overview') 'dc.show.serverstatus' 'dc.services.index'))}}
+</Route>
+

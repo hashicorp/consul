@@ -10,6 +10,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -158,8 +160,8 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 	// This size is an upper bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.PassthroughUpstreams)+1)
 
-	if cfgSnap.ConnectProxy.MeshConfig == nil ||
-		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
+	if meshConf := cfgSnap.MeshConfig(); meshConf == nil ||
+		!meshConf.TransparentProxy.MeshDestinationsOnly {
 
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,
@@ -171,9 +173,15 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		})
 	}
 
-	for _, target := range cfgSnap.ConnectProxy.PassthroughUpstreams {
-		for tid := range target {
-			uid := proxycfg.NewUpstreamIDFromTargetID(tid)
+	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		targetMap, ok := cfgSnap.ConnectProxy.PassthroughUpstreams[uid]
+		if !ok {
+			continue
+		}
+
+		for targetID := range targetMap {
+
+			uid := proxycfg.NewUpstreamIDFromTargetID(targetID)
 
 			sni := connect.ServiceSNI(
 				uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
@@ -188,8 +196,11 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				},
 				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 
-				// TODO(tproxy) This should use the connection timeout configured on the upstream's config entry
 				ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+			}
+
+			if discoTarget, ok := chain.Targets[targetID]; ok && discoTarget.ConnectTimeout > 0 {
+				c.ConnectTimeout = ptypes.DurationProto(discoTarget.ConnectTimeout)
 			}
 
 			spiffeID := connect.SpiffeIDService{
@@ -200,7 +211,11 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Service:    uid.Name,
 			}
 
-			commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+			commonTLSContext := makeCommonTLSContextFromLeaf(
+				cfgSnap,
+				cfgSnap.Leaf(),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+			)
 			err := injectSANMatcher(commonTLSContext, spiffeID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -384,6 +399,9 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
+				if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
+					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
+				}
 			}
 
 			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
@@ -486,7 +504,9 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+		if err := s.setHttp2ProtocolOptions(c); err != nil {
+			return c, err
+		}
 	}
 
 	return c, err
@@ -537,7 +557,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
 		}
 	}
 
@@ -567,7 +589,11 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+	commonTLSContext := makeCommonTLSContextFromLeaf(
+		cfgSnap,
+		cfgSnap.Leaf(),
+		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+	)
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -612,7 +638,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if cfg.EnvoyClusterJSON != "" {
-		if chain.IsDefault() {
+		if chain.Default {
 			// If you haven't done anything to setup the discovery chain, then
 			// you can use the envoy_cluster_json escape hatch.
 			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
@@ -742,10 +768,17 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if proto == "http2" || proto == "grpc" {
-			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return nil, err
+			}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeafWithoutParams(cfgSnap, cfgSnap.Leaf())
+		commonTLSContext := makeCommonTLSContextFromLeaf(
+			cfgSnap,
+			cfgSnap.Leaf(),
+			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+		)
+
 		err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
@@ -782,6 +815,15 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...connect.SpiffeIDService) error {
+	var matchStrings []string
+	for _, id := range spiffeIDs {
+		matchStrings = append(matchStrings, id.URI().String())
+	}
+
+	return injectRawSANMatcher(tlsContext, matchStrings)
+}
+
+func injectRawSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings []string) error {
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
@@ -789,10 +831,10 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...co
 	}
 
 	var matchers []*envoy_matcher_v3.StringMatcher
-	for _, id := range spiffeIDs {
+	for _, m := range matchStrings {
 		matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
 			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-				Exact: id.URI().String(),
+				Exact: m,
 			},
 		})
 	}
@@ -1035,5 +1077,26 @@ func injectLBToCluster(ec *structs.LoadBalancer, c *envoy_cluster_v3.Cluster) er
 	default:
 		return fmt.Errorf("unsupported load balancer policy %q for cluster %q", ec.Policy, c.Name)
 	}
+	return nil
+}
+
+func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster) error {
+	cfg := &envoy_upstreams_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+					Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+				},
+			},
+		},
+	}
+	any, err := ptypes.MarshalAny(cfg)
+	if err != nil {
+		return err
+	}
+	c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": any,
+	}
+
 	return nil
 }

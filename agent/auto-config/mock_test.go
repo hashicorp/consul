@@ -276,6 +276,11 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 	for _, root := range indexedRoots.Roots {
 		pems = append(pems, root.RootCert)
 	}
+	for _, root := range indexedRoots.Roots {
+		if len(root.IntermediateCerts) == 0 {
+			root.IntermediateCerts = nil
+		}
+	}
 
 	// we should update the TLS configurator with the proper certs
 	m.tlsCfg.On("UpdateAutoTLS",

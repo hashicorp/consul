@@ -4,7 +4,11 @@
 package consul
 
 import (
+	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -34,6 +38,10 @@ func enterpriseAuthMethodValidation(method *structs.ACLAuthMethod, validator aut
 func computeTargetEnterpriseMeta(
 	method *structs.ACLAuthMethod,
 	verifiedIdentity *authmethod.Identity,
-) (*structs.EnterpriseMeta, error) {
-	return &structs.EnterpriseMeta{}, nil
+) (*acl.EnterpriseMeta, error) {
+	return &acl.EnterpriseMeta{}, nil
+}
+
+func getTokenNamespaceDefaults(ws memdb.WatchSet, state *state.Store, entMeta *acl.EnterpriseMeta) ([]string, []string, error) {
+	return nil, nil, nil
 }

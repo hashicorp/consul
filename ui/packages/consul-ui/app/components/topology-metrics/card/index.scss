@@ -56,23 +56,23 @@
     .partition dt::before,
     .nspace dt::before,
     .health dt::before {
-      background-color: rgb(var(--tone-gray-500));
+      --icon-color: rgb(var(--tone-gray-500));
     }
     .passing::before {
       @extend %with-check-circle-fill-mask, %as-pseudo;
-      background-color: rgb(var(--tone-green-500));
+      --icon-color: rgb(var(--tone-green-500));
     }
     .warning::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: rgb(var(--tone-orange-500));
+      --icon-color: rgb(var(--tone-orange-500));
     }
     .critical::before {
       @extend %with-cancel-square-fill-mask, %as-pseudo;
-      background-color: rgb(var(--tone-red-500));
+      --icon-color: rgb(var(--tone-red-500));
     }
     .empty::before {
       @extend %with-minus-square-fill-mask, %as-pseudo;
-      color: rgb(var(--tone-gray-500));
+      --icon-color: rgb(var(--tone-gray-500));
     }
   }
   .details {
@@ -96,7 +96,7 @@
       span::before {
         margin-right: 0px;
         @extend %with-union-mask, %as-pseudo;
-        background-color: rgb(var(--tone-gray-500));
+        --icon-color: rgb(var(--tone-gray-500));
       }
       dl:first-child {
         grid-area: partition;

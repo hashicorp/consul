@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -19,7 +21,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -44,6 +45,10 @@ const (
 	VaultAuthMethodTypeUserpass     = "userpass"
 
 	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	retryMin    = 1 * time.Second
+	retryMax    = 5 * time.Second
+	retryJitter = 20
 )
 
 var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
@@ -54,7 +59,7 @@ type VaultProvider struct {
 	client *vaultapi.Client
 
 	vaultAuthHelper *VaultAuthHelper
-	shutdown        func()
+	stopWatcher func()
 
 	isPrimary                    bool
 	clusterID                    string
@@ -68,7 +73,7 @@ func NewVaultProvider(logger hclog.Logger) *VaultProvider {
 	vaultAuthHelper := NewVaultAuthHelper(logger)
 
 	return &VaultProvider{
-		shutdown:        func() {},
+		stopWatcher:     func() {},
 		vaultAuthHelper: vaultAuthHelper,
 		logger:          logger,
 	}
@@ -87,7 +92,6 @@ func NewVaultAuthHelper(logger hclog.Logger) *VaultAuthHelper {
 			}
 			return awsutil.GenerateLoginData(creds, headerValue, configuredRegion, logger)
 		},
-	}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -120,6 +124,14 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
+	// We don't want to set the namespace if it's empty to prevent potential
+	// unknown behavior (what does Vault do with an empty namespace). The Vault
+	// client also makes sure the inputs are not empty strings so let's do the
+	// same.
+	if config.Namespace != "" {
+		client.SetNamespace(config.Namespace)
+	}
+
 	if config.AuthMethod != nil {
 		loginResp, err := vaultLogin(client, config.AuthMethod, v.vaultAuthHelper)
 		if err != nil {
@@ -129,13 +141,6 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 	client.SetToken(config.Token)
 
-	// We don't want to set the namespace if it's empty to prevent potential
-	// unknown behavior (what does Vault do with an empty namespace). The Vault
-	// client also makes sure the inputs are not empty strings so let's do the
-	// same.
-	if config.Namespace != "" {
-		client.SetNamespace(config.Namespace)
-	}
 	v.config = config
 	v.client = client
 	v.isPrimary = cfg.IsPrimary
@@ -175,7 +180,10 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
-		v.shutdown = cancel
+		if v.stopWatcher != nil {
+			v.stopWatcher()
+		}
+		v.stopWatcher = cancel
 		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
@@ -217,15 +225,32 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	// TODO: Once we've upgraded to a later version of protobuf we can upgrade to github.com/hashicorp/vault/api@1.1.1
+	// or later and rip this out.
+	retrier := retry.Waiter{
+		MinFailures: 5,
+		MinWait:     retryMin,
+		MaxWait:     retryMax,
+		Jitter:      retry.NewJitter(retryJitter),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
 		case err := <-watcher.DoneCh():
+			// In the event we fail to login to Vault or our token is no longer valid we can overwhelm a Vault instance
+			// with rate limit configured. We would make these requests to Vault as fast as we possibly could and start
+			// causing all client's to receive 429 response codes. To mitigate that we're sleeping 1 second or less
+			// before moving on to login again and restart the lifetime watcher. Once we can upgrade to
+			// github.com/hashicorp/vault/api@v1.1.1 or later the LifetimeWatcher _should_ perform that backoff for us.
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
+
+			// wait at least 1 second after returning from the lifetime watcher
+			retrier.Wait(ctx)
 
 			// If the watcher has exited and auth method is enabled,
 			// re-authenticate using the auth method and set up a new watcher.
@@ -234,7 +259,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 				loginResp, err := vaultLogin(v.client, v.config.AuthMethod, v.vaultAuthHelper)
 				if err != nil {
 					v.logger.Error("Error login in to Vault with %q auth method", v.config.AuthMethod.Type)
-					// Restart the watcher.
+					// Restart the watcher
 					go watcher.Start()
 					continue
 				}
@@ -254,11 +279,12 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 					continue
 				}
 			}
-
 			// Restart the watcher.
+
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
+			retrier.Reset()
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
@@ -352,22 +378,22 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 	if v.setupIntermediatePKIPathDone {
 		return nil
 	}
-	mounts, err := v.client.Sys().ListMounts()
+
+	_, err := v.getCA(v.config.IntermediatePKIPath)
 	if err != nil {
-		return err
-	}
+		if err == ErrBackendNotMounted {
+			err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
+				Type:        "pki",
+				Description: "intermediate CA backend for Consul Connect",
+				Config: vaultapi.MountConfigInput{
+					MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
+				},
+			})
 
-	// Mount the backend if it isn't mounted already.
-	if _, ok := mounts[v.config.IntermediatePKIPath]; !ok {
-		err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
-			Type:        "pki",
-			Description: "intermediate CA backend for Consul Connect",
-			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
-			},
-		})
-
-		if err != nil {
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
@@ -699,7 +725,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 
 // Stop shuts down the token renew goroutine.
 func (v *VaultProvider) Stop() {
-	v.shutdown()
+	v.stopWatcher()
 }
 
 func (v *VaultProvider) PrimaryUsesIntermediate() {}

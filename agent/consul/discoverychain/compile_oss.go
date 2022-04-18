@@ -3,8 +3,11 @@
 
 package discoverychain
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
-func (c *compiler) GetEnterpriseMeta() *structs.EnterpriseMeta {
+func (c *compiler) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }

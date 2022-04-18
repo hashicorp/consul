@@ -28,7 +28,7 @@ Learn.
 ## Accessing the KV store
 
 The KV store can be accessed by the [consul kv CLI
-subcommands](/commands/kv), [HTTP API](/api/kv), and Consul UI.
+subcommands](/commands/kv), [HTTP API](/api-docs/kv), and Consul UI.
 To restrict access, enable and configure
 [ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 Once the ACL system has been bootstrapped, users and services, will need a
@@ -39,7 +39,7 @@ privileges on one key for developers to update the value related to their
 application.
 
 The datastore itself is located on the Consul servers in the [data
-directory](/docs/agent/options#_data_dir). To ensure data is not lost in
+directory](/docs/agent/config/cli-flags#_data_dir). To ensure data is not lost in
 the event of a complete outage, use the [`consul snapshot`](/commands/snapshot/restore) feature to backup the data.
 
 ## Using Consul KV
@@ -48,7 +48,7 @@ Objects are opaque to Consul, meaning there are no restrictions on the type of
 object stored in a key/value entry. The main restriction on an object is size -
 the maximum is 512 KB. Due to the maximum object size and main use cases, you
 should not need extra storage; the general [sizing
-recommendations](/docs/agent/options#kv_max_value_size)
+recommendations](/docs/agent/config/config-files#kv_max_value_size)
 are usually sufficient.
 
 Keys, like objects are not restricted by type and can include any character.

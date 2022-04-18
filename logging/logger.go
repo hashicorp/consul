@@ -77,7 +77,7 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 		for i := 0; i <= retries; i++ {
 			syslog, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
 			if err == nil {
-				writers = append(writers, syslog)
+				writers = append(writers, &SyslogWrapper{l: syslog})
 				break
 			}
 

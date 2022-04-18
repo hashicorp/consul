@@ -20,7 +20,7 @@ intended to be used when recovering from a disaster, restoring into a fresh
 cluster of Consul servers.
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -46,5 +46,5 @@ $ consul snapshot restore backup.snap
 Restored snapshot
 ```
 
-Please see the [HTTP API](/api/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.

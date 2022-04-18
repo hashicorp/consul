@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
@@ -36,7 +37,7 @@ func newResourceGenerator(
 
 func (g *ResourceGenerator) allResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
-	for _, typeUrl := range []string{ListenerType, RouteType, ClusterType, EndpointType} {
+	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)
@@ -48,13 +49,13 @@ func (g *ResourceGenerator) allResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSna
 
 func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	switch typeUrl {
-	case ListenerType:
+	case xdscommon.ListenerType:
 		return g.listenersFromSnapshot(cfgSnap)
-	case RouteType:
+	case xdscommon.RouteType:
 		return g.routesFromSnapshot(cfgSnap)
-	case ClusterType:
+	case xdscommon.ClusterType:
 		return g.clustersFromSnapshot(cfgSnap)
-	case EndpointType:
+	case xdscommon.EndpointType:
 		return g.endpointsFromSnapshot(cfgSnap)
 	default:
 		return nil, fmt.Errorf("unknown typeUrl: %s", typeUrl)

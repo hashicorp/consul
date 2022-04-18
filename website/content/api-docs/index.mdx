@@ -83,7 +83,7 @@ $ curl \
 
 Consul 0.7 added the ability to translate addresses in HTTP response based on
 the configuration setting for
-[`translate_wan_addrs`](/docs/agent/options#translate_wan_addrs). In order
+[`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs). In order
 to allow clients to know if address translation is in effect, the
 `X-Consul-Translate-Addresses` header will be added if translation is enabled,
 and will have a value of `true`. If translation is not enabled then this header
@@ -94,7 +94,7 @@ will not be present.
 All API responses for Consul versions after 1.9 will include an HTTP response
 header `X-Consul-Default-ACL-Policy` set to either "allow" or "deny" which
 mirrors the current value of the agent's
-[`acl.default_policy`](/docs/agent/options#acl_default_policy) option.
+[`acl.default_policy`](/docs/agent/config/config-files#acl_default_policy) option.
 
 This is also the default [intention](/docs/connect/intentions) enforcement
 action if no intention matches.
@@ -109,6 +109,27 @@ of results, because some have been filtered out by ACL policies.
 
 In order to limit information leakage, this header is only present for requests
 authenticated by a valid ACL token.
+
+The following example uses `curl` to view the
+`X-Consul-Results-Filtered-By-ACLs` response header.
+
+```shell-session
+$ curl \
+    --header "X-Consul-Token: <non-anonymous consul token>" \
+    --include \
+    http://127.0.0.1:8500/v1/catalog/services
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+...
+X-Consul-Default-Acl-Policy: deny
+X-Consul-Results-Filtered-By-Acls: true
+
+{
+  "redis": [],
+  "postgresql": ["primary", "secondary"]
+}
+```
 
 ## UUID Format
 

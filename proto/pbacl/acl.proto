@@ -4,21 +4,8 @@ package acl;
 
 option go_package = "github.com/hashicorp/consul/proto/pbacl";
 
-
-// Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
-// Therefore unless we want to hardcode a version here like
-// github.com/gogo/protobuf@v1.3.0/gogoproto/gogo.proto then the only other choice is to
-// have a more relative import and pass the right import path to protoc. I don't like it
-// but its necessary.
-import "gogoproto/gogo.proto";
-
-option (gogoproto.goproto_unkeyed_all) = false;
-option (gogoproto.goproto_unrecognized_all) = false;
-option (gogoproto.goproto_getters_all) = false;
-option (gogoproto.goproto_sizecache_all) = false;
-
 message ACLLink {
    string ID = 1;
-   string Name = 2
-      [(gogoproto.moretags) = "hash:\"ignore\""];
+	// @gotags: hash:ignore-"
+   string Name = 2;
 }

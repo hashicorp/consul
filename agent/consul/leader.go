@@ -297,7 +297,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	}
 
 	s.getOrCreateAutopilotConfig()
-	s.autopilot.Start(ctx)
+	s.autopilot.EnableReconciliation()
 
 	s.startConfigReplication(ctx)
 
@@ -350,9 +350,7 @@ func (s *Server) revokeLeadership() {
 
 	s.resetConsistentReadReady()
 
-	// Stop returns a chan and we want to block until it is closed
-	// which indicates that autopilot is actually stopped.
-	<-s.autopilot.Stop()
+	s.autopilot.DisableReconciliation()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
@@ -796,7 +794,7 @@ func (s *Server) getOrCreateAutopilotConfig() *structs.AutopilotConfig {
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
-	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
+	if _, err = s.leaderRaftApply("AutopilotRequest.Apply", structs.AutopilotRequestType, req); err != nil {
 		logger.Error("failed to initialize config", "error", err)
 		return nil
 	}
@@ -871,7 +869,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}
@@ -883,7 +881,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
-func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1016,7 +1014,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1122,7 +1120,7 @@ AFTER_CHECK:
 
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}
@@ -1184,18 +1182,18 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.Ent
 
 // handleLeftMember is used to handle members that gracefully
 // left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("left", member, nodeEntMeta)
 }
 
 // handleReapMember is used to handle members that have been
 // reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
 }
 
 // handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
 	if nodeEntMeta == nil {
 		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
 	}

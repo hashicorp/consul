@@ -22,6 +22,6 @@ func (req *AutoConfigRequest) SetTokenSecret(token string) {
 	req.ConsulToken = token
 }
 
-func (req *AutoConfigRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > rpcHoldTimeout
+func (req *AutoConfigRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > rpcHoldTimeout, nil
 }

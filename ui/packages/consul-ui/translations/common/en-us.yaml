@@ -5,6 +5,7 @@ brand:
   nomad: Nomad
   vault: Vault
   aws: AWS
+  aws-iam: AWS IAM
   kubernetes: Kubernetes
   jwt: JWT
   oidc: OIDC
@@ -14,6 +15,7 @@ ui:
   name: Name
   creation: Creation
   maxttl: Max TTL
+  enterprisefeature: Enterprise feature
 consul:
   name: Name
   passing: Passing
@@ -41,6 +43,9 @@ consul:
   destinationname: Destination Name
   sourcename: Source Name
   displayname: Display Name
+  failuretolerance: Fault tolerance
+  readreplica: Read replica
+  redundancyzone: Redundancy zone
 search:
   search: Search
   searchproperty: Search Across

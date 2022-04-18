@@ -19,8 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
@@ -28,10 +26,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
-	agent_grpc "github.com/hashicorp/consul/agent/grpc"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -565,12 +566,12 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
-		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-		c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-		c.TLSConfig.VerifyServerHostname = true
-		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+		c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.VerifyOutgoing = true
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -661,12 +662,12 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-				c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-				c.TLSConfig.VerifyServerHostname = true
-				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+				c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+				c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+				c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+				c.TLSConfig.InternalRPC.VerifyServerHostname = true
+				c.TLSConfig.InternalRPC.VerifyOutgoing = true
+				c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 				c.TLSConfig.Domain = "consul"
 			})
 			defer os.RemoveAll(dir1)
@@ -816,19 +817,22 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.RPCMaxConnsPerClient = 2
+				// we have to set this to 3 because autopilot is going to keep a connection open
+				c.RPCMaxConnsPerClient = 3
 				if tc.tlsEnabled {
-					c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
-					c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
-					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
-					c.TLSConfig.VerifyServerHostname = true
-					c.TLSConfig.VerifyOutgoing = true
-					c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+					c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
+					c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
+					c.TLSConfig.InternalRPC.KeyFile = "../../test/hostname/Alice.key"
+					c.TLSConfig.InternalRPC.VerifyServerHostname = true
+					c.TLSConfig.InternalRPC.VerifyOutgoing = true
+					c.TLSConfig.InternalRPC.VerifyIncoming = false // saves us getting client cert setup
 					c.TLSConfig.Domain = "consul"
 				}
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
+
+			waitForLeaderEstablishment(t, s1)
 
 			// Connect to the server with bare TCP
 			conn1 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn1")
@@ -846,7 +850,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			addr := conn1.RemoteAddr()
 			conn1.Close()
 			retry.Run(t, func(r *retry.R) {
-				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 2 {
+				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 3 {
 					r.Fatal("waiting for open conns to drop")
 				}
 			})
@@ -994,7 +998,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1127,7 +1131,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1366,8 +1370,8 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return false
+func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return false, nil
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
@@ -1416,11 +1420,11 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	_, srv := testServerWithConfig(t, func(c *Config) {
 		c.TLSConfig.Domain = "consul." // consul. is the default value in agent/config
-		c.TLSConfig.CAFile = filepath.Join(dir, "ca.pem")
-		c.TLSConfig.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
-		c.TLSConfig.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
-		c.TLSConfig.VerifyIncoming = true
-		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.InternalRPC.CAFile = filepath.Join(dir, "ca.pem")
+		c.TLSConfig.InternalRPC.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
+		c.TLSConfig.InternalRPC.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
+		c.TLSConfig.InternalRPC.VerifyIncoming = true
+		c.TLSConfig.InternalRPC.VerifyServerHostname = true
 		// Enable Auto-Encrypt so that Connect CA roots are added to the
 		// tlsutil.Configurator.
 		c.AutoEncryptAllowTLS = true
@@ -1509,12 +1513,14 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		certPath := tc.setupCert(t)
 
 		cfg := tlsutil.Config{
-			VerifyOutgoing:       true,
-			VerifyServerHostname: true,
-			CAFile:               filepath.Join(dir, "ca.pem"),
-			CertFile:             certPath + ".pem",
-			KeyFile:              certPath + ".key",
-			Domain:               "consul",
+			InternalRPC: tlsutil.ProtocolConfig{
+				VerifyOutgoing:       true,
+				VerifyServerHostname: true,
+				CAFile:               filepath.Join(dir, "ca.pem"),
+				CertFile:             certPath + ".pem",
+				KeyFile:              certPath + ".key",
+			},
+			Domain: "consul",
 		}
 		c, err := tlsutil.NewConfigurator(cfg, hclog.New(nil))
 		require.NoError(t, err)
@@ -1733,7 +1739,7 @@ func rpcBlockingQueryTestHarness(
 				return
 			case err := <-errCh:
 				if err != nil {
-					t.Errorf("[%d] unexpected error: %w", i, err)
+					t.Errorf("[%d] unexpected error: %v", i, err)
 					return
 				}
 			}

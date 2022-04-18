@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -58,6 +59,12 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
+		t.ConnectTimeout = 5 * time.Second // default
+		return t
+	}
+
+	targetWithConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+		t.ConnectTimeout = connectTimeout
 		return t
 	}
 
@@ -98,6 +105,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Datacenter:  "dc1",
 			Protocol:    "tcp",
 			StartNode:   "resolver:web.default.default.dc1",
+			Default:     true,
 			Nodes: map[string]*structs.DiscoveryGraphNode{
 				"resolver:web.default.default.dc1": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
@@ -235,7 +243,10 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
+					"web.default.default.dc1": targetWithConnectTimeout(
+						newTarget("web", "", "default", "default", "dc1"),
+						33*time.Second,
+					),
 				},
 			},
 		}
@@ -286,12 +297,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 				args.QueryOptions.MinQueryIndex = minQueryIndex
 
 				var out structs.DiscoveryChainResponse
-				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, func() error {
-					if !out.Chain.IsDefault() {
-						return fmt.Errorf("expected default chain")
-					}
-					return nil
-				})
+				errCh := channelCallRPC(s1, "DiscoveryChain.Get", &args, &out, nil)
 				return &out.QueryMeta, errCh
 			},
 			func(i int) <-chan error {

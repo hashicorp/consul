@@ -6,8 +6,8 @@ package agent
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 type enterpriseDNSConfig struct{}
@@ -16,7 +16,7 @@ func getEnterpriseDNSConfig(conf *config.RuntimeConfig) enterpriseDNSConfig {
 	return enterpriseDNSConfig{}
 }
 
-func (d *DNSServer) parseDatacenterAndEnterpriseMeta(labels []string, _ *dnsConfig, datacenter *string, _ *structs.EnterpriseMeta) bool {
+func (d *DNSServer) parseDatacenterAndEnterpriseMeta(labels []string, _ *dnsConfig, datacenter *string, _ *acl.EnterpriseMeta) bool {
 	switch len(labels) {
 	case 1:
 		*datacenter = labels[0]
@@ -27,6 +27,6 @@ func (d *DNSServer) parseDatacenterAndEnterpriseMeta(labels []string, _ *dnsConf
 	return false
 }
 
-func serviceCanonicalDNSName(name, kind, datacenter, domain string, _ *structs.EnterpriseMeta) string {
+func serviceCanonicalDNSName(name, kind, datacenter, domain string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf("%s.%s.%s.%s", name, kind, datacenter, domain)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -685,10 +686,10 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 		quxChain = discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 	)
 
-	require.False(t, fooChain.IsDefault())
-	require.False(t, barChain.IsDefault())
-	require.True(t, bazChain.IsDefault())
-	require.True(t, quxChain.IsDefault())
+	require.False(t, fooChain.Default)
+	require.False(t, barChain.Default)
+	require.True(t, bazChain.Default)
+	require.True(t, quxChain.Default)
 
 	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
 		entry.Listeners = []structs.IngressListener{
@@ -882,13 +883,13 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 func TestConfigSnapshotIngressGatewayWithChain(
 	t testing.T,
 	variant string,
-	webEntMeta, fooEntMeta *structs.EnterpriseMeta,
+	webEntMeta, fooEntMeta *acl.EnterpriseMeta,
 ) *ConfigSnapshot {
 	if webEntMeta == nil {
-		webEntMeta = &structs.EnterpriseMeta{}
+		webEntMeta = &acl.EnterpriseMeta{}
 	}
 	if fooEntMeta == nil {
-		fooEntMeta = &structs.EnterpriseMeta{}
+		fooEntMeta = &acl.EnterpriseMeta{}
 	}
 
 	var (

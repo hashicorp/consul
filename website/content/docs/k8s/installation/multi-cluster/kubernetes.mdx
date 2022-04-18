@@ -271,8 +271,8 @@ The automatically generated federation secret contains:
 - **Consul server config** - This is a JSON snippet that must be used as part of the server config for secondary datacenters.
   It sets:
 
-  - [`primary_datacenter`](/docs/agent/options#primary_datacenter) to the name of the primary datacenter.
-  - [`primary_gateways`](/docs/agent/options#primary_gateways) to an array of IPs or hostnames
+  - [`primary_datacenter`](/docs/agent/config/config-files#primary_datacenter) to the name of the primary datacenter.
+  - [`primary_gateways`](/docs/agent/config/config-files#primary_gateways) to an array of IPs or hostnames
     for the mesh gateways in the primary datacenter. These are the addresses that
     Consul servers in secondary clusters will use to communicate with the primary
     datacenter.

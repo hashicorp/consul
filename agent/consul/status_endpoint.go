@@ -13,7 +13,7 @@ type Status struct {
 }
 
 // Ping is used to just check for connectivity
-func (s *Status) Ping(args struct{}, reply *struct{}) error {
+func (s *Status) Ping(args EmptyReadRequest, reply *struct{}) error {
 	return nil
 }
 
@@ -55,8 +55,16 @@ func (s *Status) Peers(args *structs.DCSpecificRequest, reply *[]string) error {
 	return nil
 }
 
-// Used by Autopilot to query the raft stats of the local server.
-func (s *Status) RaftStats(args struct{}, reply *structs.RaftStats) error {
+// EmptyReadRequest implements the interface used by middleware.RequestRecorder
+// to communicate properties of requests.
+type EmptyReadRequest struct{}
+
+func (e EmptyReadRequest) IsRead() bool {
+	return true
+}
+
+// RaftStats is used by Autopilot to query the raft stats of the local server.
+func (s *Status) RaftStats(args EmptyReadRequest, reply *structs.RaftStats) error {
 	stats := s.server.raft.Stats()
 
 	var err error

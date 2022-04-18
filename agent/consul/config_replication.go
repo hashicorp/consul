@@ -92,6 +92,11 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ConfigReplicationApplyLimit))
 	defer ticker.Stop()
 
+	rpcServiceMethod := "ConfigEntry.Apply"
+	if op == structs.ConfigEntryDelete || op == structs.ConfigEntryDeleteCAS {
+		rpcServiceMethod = "ConfigEntry.Delete"
+	}
+
 	var merr error
 	for i, entry := range configs {
 		// Exported services only apply to the primary datacenter.
@@ -104,7 +109,7 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 			Entry:      entry,
 		}
 
-		_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+		_, err := s.leaderRaftApply(rpcServiceMethod, structs.ConfigEntryRequestType, &req)
 		if err != nil {
 			merr = multierror.Append(merr, fmt.Errorf("Failed to apply config entry %s: %w", op, err))
 		}

@@ -3,6 +3,7 @@
   --decor-radius-000: 0;
   --decor-radius-100: 2px;
   --decor-radius-200: 4px;
+  --decor-radius-250: 6px;
   --decor-radius-300: 7px;
   --decor-radius-999: 9999px;
   --decor-radius-full: 100%;
@@ -14,6 +15,7 @@
   --decor-border-400: 4px solid;
 
   /* box-shadowing*/
+  --decor-elevation-000: none;
   --decor-elevation-100: 0 3px 2px rgb(var(--black) / 6%);
   --decor-elevation-200: 0 2px 4px rgb(var(--black) / 10%);
   --decor-elevation-300: 0 5px 1px -2px rgb(var(--black) / 12%);

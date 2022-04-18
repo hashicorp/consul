@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -198,57 +197,6 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
-}
-
-// MergeDefaults copies any non-zero field from defaults into the current
-// config.
-// TODO(kit): We no longer use this function and can probably delete it
-func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
-	if defaults == nil {
-		return
-	}
-	cfgPtrVal := reflect.ValueOf(c)
-	cfgVal := cfgPtrVal.Elem()
-	otherVal := reflect.ValueOf(*defaults)
-	for i := 0; i < cfgVal.NumField(); i++ {
-		f := cfgVal.Field(i)
-		if !f.IsValid() || !f.CanSet() {
-			continue
-		}
-		// See if the current value is a zero-value, if _not_ skip it
-		//
-		// No built in way to check for zero-values for all types so only
-		// implementing this for the types we actually have for now. Test failure
-		// should catch the case where we add new types later.
-		switch f.Kind() {
-		case reflect.Struct:
-			if f.Type() == reflect.TypeOf(prometheus.PrometheusOpts{}) {
-				continue
-			}
-		case reflect.Slice:
-			if !f.IsNil() {
-				continue
-			}
-		case reflect.Int, reflect.Int64: // time.Duration == int64
-			if f.Int() != 0 {
-				continue
-			}
-		case reflect.String:
-			if f.String() != "" {
-				continue
-			}
-		case reflect.Bool:
-			if f.Bool() {
-				continue
-			}
-		default:
-			// Needs implementing, should be caught by tests.
-			continue
-		}
-
-		// It's zero, copy it from defaults
-		f.Set(otherVal.Field(i))
-	}
 }
 
 func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {

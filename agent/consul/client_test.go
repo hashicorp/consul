@@ -10,16 +10,18 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/grpc/resolver"
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+
+	grpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -447,8 +449,8 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -457,7 +459,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 
@@ -541,8 +543,10 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
 		}),
-		LeaderForwarder: builder,
-		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
+		LeaderForwarder:          builder,
+		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
+		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
+		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 	}
 }
 
@@ -660,8 +664,8 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
-	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.InternalRPC.VerifyIncoming = true
+	conf1.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -670,7 +674,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.TLSConfig.VerifyOutgoing = true
+	conf2.TLSConfig.InternalRPC.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 
