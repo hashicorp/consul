@@ -382,8 +382,8 @@
         "path": "api-gateway"
       },
       {
-        "title": "Usage",
-        "path": "api-gateway/api-gateway-usage"
+        "title": "Installation",
+        "path": "api-gateway/consul-api-gateway-install"
       },
       {
         "title": "Technical Specifications",
