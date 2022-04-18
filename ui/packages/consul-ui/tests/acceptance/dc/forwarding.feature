@@ -10,4 +10,4 @@ Feature: dc / forwarding
     ---
     dc: datacenter
     ---
-    Then the url should be /datacenter/overview/server-status
+    Then the url should be /datacenter/services
