@@ -596,50 +596,6 @@ jobs:
       NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
-  build-website-docker-image:
-    docker:
-      - image: docker.mirror.hashicorp.services/circleci/buildpack-deps
-    shell: /usr/bin/env bash -euo pipefail -c
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build Docker Image if Necessary
-          command: |
-            # Ignore job if running an enterprise build
-            IMAGE_TAG=$(cat website/Dockerfile website/package-lock.json | sha256sum | awk '{print $1;}')
-            echo "Using $IMAGE_TAG"
-            if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/consul.git" ]; then
-              echo "Not Consul OSS Repo, not building website docker image"
-            elif curl https://hub.docker.com/v2/repositories/hashicorp/consul-website/tags/$IMAGE_TAG -fsL > /dev/null; then
-                echo "Dependencies have not changed, not building a new website docker image."
-            else
-                cd website/
-                docker build -t hashicorp/consul-website:$IMAGE_TAG .
-                docker tag hashicorp/consul-website:$IMAGE_TAG hashicorp/consul-website:latest
-                docker login -u $WEBSITE_DOCKER_USER -p $WEBSITE_DOCKER_PASS
-                docker push hashicorp/consul-website
-            fi
-      - run: *notify-slack-failure
-
-  algolia-index:
-    docker:
-      - image: docker.mirror.hashicorp.services/node:14
-    steps:
-      - checkout
-      - run:
-          name: Push content to Algolia Index
-          command: |
-            if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/consul.git" ]; then
-              echo "Not Consul OSS Repo, not indexing Algolia"
-              exit 0
-            fi
-            cd website/
-            npm install -g npm@latest
-            npm install
-            node scripts/index_search_content.js
-      - run: *notify-slack-failure
-
   # build frontend yarn cache
   frontend-cache:
     docker:
@@ -1155,20 +1111,6 @@ workflows:
           requires:
             - dev-build
 
-  website:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - build-website-docker-image:
-          context: website-docker-image
-          filters:
-            branches:
-              only:
-                - main
-      - algolia-index:
-          filters:
-            branches:
-              only:
-                - stable-website
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
