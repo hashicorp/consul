@@ -83,7 +83,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 // Test health check GRPC call using Current Servers and Latest GA Clients
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
-	
+
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
