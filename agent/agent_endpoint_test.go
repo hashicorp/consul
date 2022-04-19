@@ -6273,6 +6273,11 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 	// the next step, so do a little sleep.
 	time.Sleep(50 * time.Millisecond)
 
+	// The initial non-blocking query populated the leaf cert cache entry
+	// implicitly. The agent cache doesn't prune entries very often at all, so
+	// in between both of these steps the data should still be there, causing
+	// this to be a HIT that completes in less than 10m (the default inner leaf
+	// cert blocking query timeout).
 	runStep(t, "do a non-blocking query that should not block", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 		resp := httptest.NewRecorder()
