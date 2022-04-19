@@ -257,8 +257,8 @@ jobs:
       - run:
          command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
-            sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
+            wget https://dl.google.com/go/go1.18.1.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go1.18.1.linux-arm64.tar.gz
       - run: *install-gotestsum
       - run: go mod download
       - run:
