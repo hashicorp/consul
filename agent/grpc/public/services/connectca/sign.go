@@ -48,6 +48,7 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 	var rsp *pbconnectca.SignResponse
 	handled, err := s.ForwardRPC(&rpcInfo, func(conn *grpc.ClientConn) error {
 		logger.Trace("forwarding RPC")
+		ctx := public.ForwardMetadataContext(ctx)
 		var err error
 		rsp, err = pbconnectca.NewConnectCAServiceClient(conn).Sign(ctx, req)
 		return err

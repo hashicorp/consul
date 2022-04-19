@@ -52,8 +52,13 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 		Service:    "foo",
 	})
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	ctx = public.ContextWithToken(ctx, TestDefaultInitialManagementToken)
+
 	// This would fail if it wasn't forwarded to the leader.
-	rsp, err := client.Sign(context.Background(), &pbconnectca.SignRequest{
+	rsp, err := client.Sign(ctx, &pbconnectca.SignRequest{
 		Csr: csr,
 	})
 	require.NoError(t, err)
