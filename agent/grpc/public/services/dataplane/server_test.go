@@ -4,11 +4,22 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
+
+func testStateStore(t *testing.T) *state.Store {
+	t.Helper()
+
+	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
+	require.NoError(t, err)
+
+	return state.NewStateStore(gc)
+}
 
 func testClient(t *testing.T, server *Server) pbdataplane.DataplaneServiceClient {
 	t.Helper()
