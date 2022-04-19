@@ -681,6 +681,11 @@ func NewClient(config *Config) (*Client, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		err := SetClientTransportWithTLSConfig(config.HttpClient, config.Transport, config.TLSConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if config.Namespace == "" {
@@ -734,13 +739,10 @@ func NewClient(config *Config) (*Client, error) {
 	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
-// NewHttpClient returns an http client configured with the given Transport and TLS
-// config.
-func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, error) {
-	client := &http.Client{
-		Transport: transport,
-	}
-
+// SetClientTransportWithTLSConfig configure Transport with TLS config on
+// the http client.
+func SetClientTransportWithTLSConfig(client *http.Client, transport *http.Transport, tlsConf TLSConfig) error {
+	client.Transport = transport
 	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
 	// should turn it on by default if TLS is enabled. We would basically
 	// just need to call http2.ConfigureTransport(transport) here. We also
@@ -753,10 +755,24 @@ func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, 
 		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
 
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		transport.TLSClientConfig = tlsClientConfig
+	}
+
+	return nil
+}
+
+// NewHttpClient returns an http client configured with the given Transport and TLS
+// config.
+func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, error) {
+	client := &http.Client{}
+
+	err := SetClientTransportWithTLSConfig(client, transport, tlsConf)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return client, nil
