@@ -673,3 +673,43 @@ $ curl \
   }
 }
 ```
+
+## Fetch Prepared Query By Name
+
+This endpoint fetches an existing prepared query given its name. If no query exists by the
+given name, an error is returned.
+
+| Method | Path           | Produces           |
+| ------ | -------------- | ------------------ |
+| `GET`  | `/query/:name` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `all`             | `none`        | `query:read` |
+
+### Parameters
+
+- `uuid` `(string: <required>)` - Specifies the name of the query to read.
+  This is required and is specified as part of the URL path.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+### Sample Request
+
+```shell-session
+$ curl \
+  http://127.0.0.1:8500/v1/query/my-query-name
+```
+
+### Sample Response
+
+The returned response is the same as the list of prepared queries above, only
+with a single item present.
