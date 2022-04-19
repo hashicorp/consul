@@ -704,16 +704,11 @@ func (c *CheckTCP) check() {
 	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
-// CheckUDP is used to periodically send a UDP datagram to
-// determine the health of a given check.
-// The check is passing if:
-//  - the connection succeeds
-//  - the response is bytes.Equal to the bytes passed in
-//  - the error returned is a timeout error
-// The check is critical if:
-// - the connection succeeds but the response is not equal to the bytes passed in
-// - the connection succeeds but the error returned is not a timeout error
-// - the connection fails
+// CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
+// The check is passing if the connection succeeds, the response is bytes.Equal to the bytes passed
+// in or if the error returned is a timeout error
+// The check is critical if: the connection succeeds but the response is not equal to the bytes passed in,
+// the connection succeeds but the error returned is not a timeout error or the connection fails
 type CheckUDP struct {
 	CheckID       structs.CheckID
 	ServiceID     structs.ServiceID
