@@ -6233,8 +6233,7 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 				TTL: 15 * time.Second,
 			},
 		}
-		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-		require.NoError(t, err)
+		req := httptest.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		if !assert.Equal(t, 200, resp.Code) {
@@ -6248,8 +6247,7 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 		issued       structs.IssuedCert
 	)
 	runStep(t, "do initial non-blocking query", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-		require.NoError(t, err)
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -6266,12 +6264,8 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 	defer cancel()
 	go func() {
 		// launch goroutine for blocking query
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil).Clone(ctx)
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequestWithContext(ctx, "GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
-		if err != nil {
-			t.Errorf("error: %v", err)
-			return
-		}
 		a.srv.h.ServeHTTP(resp, req)
 	}()
 
@@ -6280,8 +6274,7 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 	time.Sleep(50 * time.Millisecond)
 
 	runStep(t, "do a non-blocking query that should not block", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
-		require.NoError(t, err)
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
