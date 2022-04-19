@@ -2,7 +2,6 @@ package consul_container
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"testing"
 	"time"
@@ -18,21 +17,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var targetImage = flag.String("target-version", "local", "docker image to be used as UUT (unit under test)")
-var latestImage = flag.String("latest-version", "latest", "docker image to be used as latest")
-
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
 // Test health check GRPC call using Current Clients and Latest GA Servers
 func TestLatestGAServersWithCurrentClients(t *testing.T) {
-	t.Parallel()
+
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *latestImage)
 	require.NoError(t, err)
 	defer Terminate(t, Cluster)
 	numClients := 2
 	Clients, err := clientsCreate(numClients, *targetImage)
+	require.NoError(t, err)
+	require.Len(t, Clients, numClients)
 	client := Clients[0].GetClient()
 	err = Cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -77,7 +75,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 // Test health check GRPC call using Current Servers and Latest GA Clients
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
-	t.Parallel()
+
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
@@ -127,7 +125,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	t.Parallel()
+
 	var configs []node.Config
 	configs = append(configs,
 		node.Config{
@@ -200,7 +198,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
 func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
-	t.Parallel()
+
 	var configs []node.Config
 	configs = append(configs,
 		node.Config{
