@@ -3,11 +3,11 @@ package submatview
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"sync"
 
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/proto/pbcommongogo"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
@@ -116,11 +116,11 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 				Op: pbsubscribe.CatalogOp_Register,
 				CheckServiceNode: &pbservice.CheckServiceNode{
 					Node: &pbservice.Node{
-						ID:         nodeID,
+						ID:         string(nodeID),
 						Node:       node,
 						Address:    addr,
 						Datacenter: "dc1",
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -129,7 +129,7 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 						ID:      svc,
 						Service: svc,
 						Port:    8080,
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -160,7 +160,7 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 							Passing: 1,
 							Warning: 1,
 						},
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							// The original insertion index since a delete doesn't update
 							// this. This magic value came from state store tests where we
 							// setup at index 10 and then mutate at index 100. It can be

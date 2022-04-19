@@ -13,7 +13,7 @@ import (
 )
 
 func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
-	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithServiceDefaultsMeta(t)
+	snap := proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t)
 
 	webService := api.CompoundServiceName{
 		Name:      "web",
@@ -41,7 +41,12 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 		ServiceConfigs: map[api.CompoundServiceName]ServiceConfig{
 			webService: {
 				Kind: api.ServiceKindTerminatingGateway,
-				Meta: map[string]string{"a": "b"},
+				Meta: map[string]string{
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+					"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+				},
 			},
 			apiService: {
 				Kind: api.ServiceKindTerminatingGateway,
@@ -54,10 +59,12 @@ func TestMakePluginConfiguration_TerminatingGateway(t *testing.T) {
 			},
 		},
 		SNIToServiceName: map[string]api.CompoundServiceName{
-			"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":   apiService,
-			"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": cacheService,
-			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":    dbService,
-			"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":   webService,
+			"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         apiService,
+			"cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":       cacheService,
+			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":          dbService,
+			"web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":         webService,
+			"canary1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
+			"canary2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": webService,
 		},
 		EnvoyIDToServiceName: map[string]api.CompoundServiceName{
 			"web":   webService,

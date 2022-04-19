@@ -17,9 +17,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -74,7 +75,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	namespace := getNamespace(pbcommongogo.DefaultEnterpriseMeta.Namespace)
+	namespace := getNamespace(pbcommon.DefaultEnterpriseMeta.Namespace)
 	streamClient := newStreamClient(validateNamespace(namespace))
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -291,7 +292,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		require.Equal(t, uint64(5), result.Index)
 		expected := newExpectedNodes("node1", "node2", "node3")
 		expected.Index = 5
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -319,7 +320,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		require.Equal(t, uint64(20), result.Index)
 		expected := newExpectedNodes("node2", "node3")
 		expected.Index = 20
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -349,7 +350,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		require.Equal(t, uint64(50), result.Index)
 		expected := newExpectedNodes("node3", "node4", "node5")
 		expected.Index = 50
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -376,7 +377,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		require.Equal(t, uint64(50), result.Index)
 		expected := newExpectedNodes("node3", "node4", "node5")
 		expected.Index = 50
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 	})
 }
 
@@ -397,13 +398,6 @@ var cmpCheckServiceNodeNames = cmp.Options{
 	cmp.Comparer(func(x, y structs.CheckServiceNode) bool {
 		return x.Node.Node == y.Node.Node
 	}),
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
 }
 
 func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
@@ -444,7 +438,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 
 		expected := newExpectedNodes("node1", "node2", "node3")
 		expected.Index = 5
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
@@ -465,7 +459,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 		require.Equal(t, uint64(20), result.Index)
 		expected := newExpectedNodes("node2", "node3", "node4")
 		expected.Index = 20
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -512,7 +506,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		require.Equal(t, uint64(5), result.Index)
 		expected := newExpectedNodes("node2")
 		expected.Index = 5
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -532,7 +526,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		require.Equal(t, uint64(20), result.Index)
 		expected := newExpectedNodes("node2")
 		expected.Index = 20
-		assertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
+		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 	})
 }
 
@@ -568,11 +562,11 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 				Op: pbsubscribe.CatalogOp_Register,
 				CheckServiceNode: &pbservice.CheckServiceNode{
 					Node: &pbservice.Node{
-						ID:         nodeID,
+						ID:         string(nodeID),
 						Node:       node,
 						Address:    addr,
 						Datacenter: "dc1",
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -581,7 +575,7 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 						ID:      svc,
 						Service: svc,
 						Port:    8080,
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
@@ -612,7 +606,7 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 							Passing: 1,
 							Warning: 1,
 						},
-						RaftIndex: pbcommongogo.RaftIndex{
+						RaftIndex: &pbcommon.RaftIndex{
 							// The original insertion index since a delete doesn't update
 							// this. This magic value came from state store tests where we
 							// setup at index 10 and then mutate at index 100. It can be

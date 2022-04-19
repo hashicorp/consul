@@ -188,7 +188,7 @@ $ helm install cluster2 --values cluster2-config.yaml hashicorp/consul
 
 ## Verifying the Consul Service Mesh works
 
-~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation.
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 
 Now that we have our Consul cluster in multiple k8s clusters up and running, we will
 deploy two services and verify that they can connect to each other.

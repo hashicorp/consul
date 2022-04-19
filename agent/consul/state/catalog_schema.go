@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -589,7 +590,7 @@ type upstreamDownstream struct {
 type NodeCheckQuery struct {
 	Node    string
 	CheckID string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -709,7 +710,7 @@ func kindServiceNameTableSchema() *memdb.TableSchema {
 type KindServiceNameQuery struct {
 	Kind structs.ServiceKind
 	Name string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

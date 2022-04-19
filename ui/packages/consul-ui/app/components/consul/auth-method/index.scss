@@ -42,6 +42,12 @@
   section dl {
     @extend %tabular-dl;
   }
+  section dt {
+    width: 30%;
+  }
+  section dd {
+    width: 70%;
+  }
 }
 
 // Binding List

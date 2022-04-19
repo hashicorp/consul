@@ -215,9 +215,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if s.serverlessPluginEnabled {
 				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-
 				if err != nil {
-					generator.Logger.Warn("failed to patch xDS resources in the serverless plugin", "err", err)
+					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
 				}
 			}
 
@@ -471,16 +470,6 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 		t.wildcard = len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
-
-		if sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect {
-			switch t.typeURL {
-			case xdscommon.ListenerType, xdscommon.ClusterType:
-				if !t.wildcard {
-					t.wildcard = true
-					logger.Trace("fixing Envoy bug fixed in 1.19.0 by inferring wildcard mode for type")
-				}
-			}
-		}
 	}
 
 	/*

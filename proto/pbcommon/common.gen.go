@@ -54,3 +54,29 @@ func QueryOptionsFromStructs(t *structs.QueryOptions, s *QueryOptions) {
 	s.MustRevalidate = t.MustRevalidate
 	s.Filter = t.Filter
 }
+func RaftIndexToStructs(s *RaftIndex, t *structs.RaftIndex) {
+	if s == nil {
+		return
+	}
+	t.CreateIndex = s.CreateIndex
+	t.ModifyIndex = s.ModifyIndex
+}
+func RaftIndexFromStructs(t *structs.RaftIndex, s *RaftIndex) {
+	if s == nil {
+		return
+	}
+	s.CreateIndex = t.CreateIndex
+	s.ModifyIndex = t.ModifyIndex
+}
+func WriteRequestToStructs(s *WriteRequest, t *structs.WriteRequest) {
+	if s == nil {
+		return
+	}
+	t.Token = s.Token
+}
+func WriteRequestFromStructs(t *structs.WriteRequest, s *WriteRequest) {
+	if s == nil {
+		return
+	}
+	s.Token = t.Token
+}

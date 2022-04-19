@@ -767,7 +767,7 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) Enfor
 	return Default
 }
 
-func (p *policyAuthorizer) serviceWriteAny(_ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceWriteAny(_ *AuthorizerContext) EnforcementDecision {
 	return p.anyAllowed(p.serviceRules, AccessWrite)
 }
 

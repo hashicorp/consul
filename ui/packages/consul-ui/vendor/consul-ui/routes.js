@@ -7,33 +7,32 @@
       index: {
         _options: {
           path: '/',
-          redirect: '../show/serverstatus',
+          redirect: '../services',
         },
       },
       show: {
         _options: {
           path: '/overview',
-          redirect: './serverstatus',
-          abilities: ['access overview']
+          abilities: ['access overview'],
         },
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['access overview', 'read raft']
+            abilities: ['access overview', 'read zones'],
           },
         },
-        health: {
+        cataloghealth: {
           _options: {
-            path: '/health',
-            abilities: ['access overview']
+            path: '/catalog-health',
+            abilities: ['access overview'],
           },
         },
         license: {
           _options: {
             path: '/license',
-            abilities: ['access overview', 'read licence']
+            abilities: ['access overview', 'read licence'],
           },
-        }
+        },
       },
       services: {
         _options: { path: '/services' },
@@ -417,6 +416,7 @@
     },
     index: {
       _options: { path: '/' },
+      // root index redirects are currently dealt with in application.hbs
     },
     settings: {
       _options: {

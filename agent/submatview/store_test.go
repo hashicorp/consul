@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/ttlcache"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -25,7 +25,7 @@ func TestStore_Get(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
 		newEndOfSnapshotEvent(2),
@@ -225,14 +225,14 @@ func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
 		View:   &fakeView{srvs: make(map[string]*pbservice.CheckServiceNode)},
 		Client: r.client,
 		Logger: hclog.New(nil),
-		Request: func(index uint64) pbsubscribe.SubscribeRequest {
-			req := pbsubscribe.SubscribeRequest{
+		Request: func(index uint64) *pbsubscribe.SubscribeRequest {
+			req := &pbsubscribe.SubscribeRequest{
 				Topic:      pbsubscribe.Topic_ServiceHealth,
 				Key:        "key",
 				Token:      "abcd",
 				Datacenter: "dc1",
 				Index:      index,
-				Namespace:  pbcommongogo.DefaultEnterpriseMeta.Namespace,
+				Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 			}
 			return req
 		},
@@ -292,7 +292,7 @@ func TestStore_Notify(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
 		newEndOfSnapshotEvent(2),
@@ -361,7 +361,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
 
@@ -473,7 +473,7 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	go store.Run(ctx)
 
 	req := &fakeRequest{
-		client: NewTestStreamingClient(pbcommongogo.DefaultEnterpriseMeta.Namespace),
+		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
 

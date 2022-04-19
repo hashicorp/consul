@@ -29,6 +29,22 @@ type RuntimeSOAConfig struct {
 	Minttl  uint32 // 0,
 }
 
+// StaticRuntimeConfig specifies the subset of configuration the consul agent actually
+// uses and that are not reloadable by configuration auto reload.
+type StaticRuntimeConfig struct {
+	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_incoming = (true|false)
+	EncryptVerifyIncoming bool
+
+	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_outgoing = (true|false)
+	EncryptVerifyOutgoing bool
+}
+
 // RuntimeConfig specifies the configuration the consul agent actually
 // uses. Is is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
@@ -408,6 +424,7 @@ type RuntimeConfig struct {
 	//     http = string
 	//     header = map[string][]string
 	//     method = string
+	//     disable_redirects = (true|false)
 	//     tcp = string
 	//     h2ping = string
 	//     interval = string
@@ -651,18 +668,6 @@ type RuntimeConfig struct {
 	// flag: -encrypt string
 	EncryptKey string
 
-	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
-	// used to upshift to encrypted gossip on a running cluster.
-	//
-	// hcl: encrypt_verify_incoming = (true|false)
-	EncryptVerifyIncoming bool
-
-	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
-	// used to upshift to encrypted gossip on a running cluster.
-	//
-	// hcl: encrypt_verify_outgoing = (true|false)
-	EncryptVerifyOutgoing bool
-
 	// GRPCPort is the port the gRPC server listens on. Currently this only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
@@ -817,7 +822,7 @@ type RuntimeConfig struct {
 
 	// PrimaryGateways is a list of addresses and/or go-discover expressions to
 	// discovery the mesh gateways in the primary datacenter. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: primary_gateways = []string
@@ -973,7 +978,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
 	// join with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join = []string
@@ -998,7 +1003,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinWAN is a list of addresses and/or go-discover expressions to
 	// join -wan with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
+	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join_wan = []string
@@ -1298,6 +1303,11 @@ type RuntimeConfig struct {
 	// hcl: skip_leave_on_interrupt = (true|false)
 	SkipLeaveOnInt bool
 
+	// AutoReloadConfig indicate if the config will be
+	//auto reloaded bases on config file modification
+	// hcl: auto_reload_config = (true|false)
+	AutoReloadConfig bool
+
 	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.
@@ -1374,6 +1384,8 @@ type RuntimeConfig struct {
 	// hcl: unix_sockets { user = string }
 	UnixSocketUser string
 
+	StaticRuntimeConfig StaticRuntimeConfig
+
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
@@ -1387,6 +1399,9 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
+
+	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
+	AutoReloadConfigCoalesceInterval time.Duration
 
 	EnterpriseRuntimeConfig
 }
@@ -1418,6 +1433,7 @@ type UIConfig struct {
 	MetricsProviderOptionsJSON string
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
+	HCPEnabled                 bool
 }
 
 type UIMetricsProxy struct {

@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -875,12 +876,11 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	state.EnsureCheck(4, &check)
 
 	token := createTokenFull(t, codec, testTxnRules)
-	id := token.AccessorID
 
 	t.Run("simple read operations (results get filtered out)", func(t *testing.T) {
 		arg := structs.TxnReadRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: id},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 			Ops: structs.TxnOps{
 				{
 					KV: &structs.TxnKVOp{
@@ -912,7 +912,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	t.Run("complex operations (return permission denied errors)", func(t *testing.T) {
 		arg := structs.TxnReadRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: id},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 			Ops: structs.TxnOps{
 				{
 					KV: &structs.TxnKVOp{

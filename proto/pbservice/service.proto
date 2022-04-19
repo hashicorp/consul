@@ -5,16 +5,8 @@ package pbservice;
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
 import "google/protobuf/struct.proto";
-import "proto/pbcommongogo/common.proto";
+import "proto/pbcommon/common.proto";
 import "proto/pbservice/healthcheck.proto";
-
-// This fake import path is replaced by the build script with a versioned path
-import "gogoproto/gogo.proto";
-
-option (gogoproto.goproto_unkeyed_all) = false;
-option (gogoproto.goproto_unrecognized_all) = false;
-option (gogoproto.goproto_getters_all) = false;
-option (gogoproto.goproto_sizecache_all) = false;
 
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -57,25 +49,26 @@ message ConnectProxyConfig {
     // Config is the arbitrary configuration data provided with the proxy
     // registration.
     // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
-    google.protobuf.Struct Config = 5 [(gogoproto.nullable) = true];
+    google.protobuf.Struct Config = 5;
 
     // Upstreams describes any upstream dependencies the proxy instance should
     // setup.
     // mog: func-to=UpstreamsToStructs func-from=NewUpstreamsFromStructs
-    repeated Upstream Upstreams = 6 [(gogoproto.nullable) = false];
+    repeated Upstream Upstreams = 6;
 
     // MeshGateway defines the mesh gateway configuration for upstreams
-    MeshGatewayConfig MeshGateway = 7 [(gogoproto.nullable) = false];
+    MeshGatewayConfig MeshGateway = 7;
 
     // Expose defines whether checks or paths are exposed through the proxy
-    ExposeConfig Expose = 8 [(gogoproto.nullable) = false];
+    ExposeConfig Expose = 8;
 
     // Mode represents how the proxy's inbound and upstream listeners are dialed.
-    string Mode = 9 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.ProxyMode"];
+    // mog: func-to=structs.ProxyMode func-from=string
+    string Mode = 9;
 
     // TransparentProxy defines configuration for when the proxy is in
     // transparent mode.
-    TransparentProxyConfig TransparentProxy = 10 [(gogoproto.nullable) = false];
+    TransparentProxyConfig TransparentProxy = 10;
 
       // LocalServiceSocketPath is the path to the unix domain socket for the local service instance
     string LocalServiceSocketPath = 11;
@@ -122,10 +115,10 @@ message Upstream {
     // It can be used to pass arbitrary configuration for this specific upstream
     // to the proxy.
     // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
-    google.protobuf.Struct Config = 7 [(gogoproto.nullable) = true];
+    google.protobuf.Struct Config = 7;
 
     // MeshGateway is the configuration for mesh gateway usage of this upstream
-    MeshGatewayConfig MeshGateway = 8  [(gogoproto.nullable) = false];
+    MeshGatewayConfig MeshGateway = 8;
 
     // CentrallyConfigured indicates whether the upstream was defined in a proxy
     // instance registration or whether it was generated from a config entry.
@@ -174,7 +167,7 @@ message ExposeConfig {
 
     // Paths is the list of paths exposed through the proxy.
     // mog: func-to=ExposePathSliceToStructs func-from=NewExposePathSliceFromStructs
-    repeated ExposePath Paths = 2 [(gogoproto.nullable) = false];
+    repeated ExposePath Paths = 2;
 }
 
 // mog annotation:
@@ -208,7 +201,8 @@ message ExposePath {
 // output=service.gen.go
 // name=Structs
 message MeshGatewayConfig {
-    string Mode = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.MeshGatewayMode"];
+    // mog: func-to=structs.MeshGatewayMode func-from=string
+    string Mode = 1;
 }
 
 // mog annotation:
@@ -235,19 +229,20 @@ message TransparentProxyConfig {
 // output=service.gen.go
 // name=Structs
 message ServiceDefinition {
-    string Kind = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.ServiceKind"];
+    // mog: func-to=structs.ServiceKind func-from=string
+    string Kind = 1;
     string ID = 2;
     string Name = 3;
     repeated string Tags = 4;
     string Address = 5;
     // mog: func-to=MapStringServiceAddressToStructs func-from=NewMapStringServiceAddressFromStructs
-    map<string, ServiceAddress> TaggedAddresses = 16 [(gogoproto.nullable) = false];
+    map<string, ServiceAddress> TaggedAddresses = 16;
     map<string, string> Meta = 6;
     // mog: func-to=int func-from=int32
     int32 Port = 7;
     // Path for socket
     string SocketPath = 18;
-    CheckType Check = 8 [(gogoproto.nullable) = false];
+    CheckType Check = 8;
     // mog: func-to=CheckTypesToStructs func-from=NewCheckTypesFromStructs
     repeated CheckType Checks = 9;
     // mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
@@ -269,7 +264,7 @@ message ServiceDefinition {
     ConnectProxyConfig Proxy = 14;
 
     // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
-    commongogo.EnterpriseMeta EnterpriseMeta = 17 [(gogoproto.nullable) = false];
+    common.EnterpriseMeta EnterpriseMeta = 17;
 
     // mog: func-to=ServiceConnectPtrToStructs func-from=NewServiceConnectPtrFromStructs
     ServiceConnect Connect = 15;

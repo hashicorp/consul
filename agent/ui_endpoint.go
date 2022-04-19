@@ -37,7 +37,7 @@ type ServiceSummary struct {
 	transparentProxySet bool
 	ConnectNative       bool
 
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
@@ -170,6 +170,24 @@ RPC:
 
 	resp.WriteHeader(http.StatusNotFound)
 	return nil, nil
+}
+
+// UICatalogOverview is used to get a high-level overview of the health of nodes, services,
+// and checks in the datacenter.
+func (s *HTTPHandlers) UICatalogOverview(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.CatalogSummary
+	if err := s.agent.RPC("Internal.CatalogOverview", &args, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // UIServices is used to list the services in a given datacenter. We return a
@@ -564,7 +582,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -624,7 +642,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Clear the token from the headers so we don't end up proxying it.
 	s.clearTokenFromHeaders(req)
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
 		return nil, err
 	}

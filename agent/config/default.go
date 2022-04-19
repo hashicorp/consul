@@ -58,7 +58,7 @@ func DefaultSource() Source {
 
 		tls = {
 			defaults = {
-				tls_min_version = "tls12"
+				tls_min_version = "TLSv1_2"
 			}
 		}
 

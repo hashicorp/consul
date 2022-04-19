@@ -149,6 +149,9 @@ type Authorizer interface {
 	// service
 	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
 
+	// ServiceWriteAny checks for write permission on any service
+	ServiceWriteAny(*AuthorizerContext) EnforcementDecision
+
 	// SessionRead checks for permission to read sessions for a given node.
 	SessionRead(string, *AuthorizerContext) EnforcementDecision
 
@@ -407,6 +410,14 @@ func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
 func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.ServiceWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, name)
+	}
+	return nil
+}
+
+// ServiceWriteAnyAllowed checks for write permission on any service
+func (a AllowAuthorizer) ServiceWriteAnyAllowed(ctx *AuthorizerContext) error {
+	if a.Authorizer.ServiceWriteAny(ctx) != Allow {
+		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, "any service")
 	}
 	return nil
 }

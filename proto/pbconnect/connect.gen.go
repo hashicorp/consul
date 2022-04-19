@@ -13,14 +13,14 @@ func CARootToStructsCARoot(s *CARoot, t *structs.CARoot) {
 	t.SerialNumber = s.SerialNumber
 	t.SigningKeyID = s.SigningKeyID
 	t.ExternalTrustDomain = s.ExternalTrustDomain
-	t.NotBefore = structs.TimeFromProtoGogo(s.NotBefore)
-	t.NotAfter = structs.TimeFromProtoGogo(s.NotAfter)
+	t.NotBefore = structs.TimeFromProto(s.NotBefore)
+	t.NotAfter = structs.TimeFromProto(s.NotAfter)
 	t.RootCert = s.RootCert
 	t.IntermediateCerts = s.IntermediateCerts
 	t.SigningCert = s.SigningCert
 	t.SigningKey = s.SigningKey
 	t.Active = s.Active
-	t.RotatedOutAt = structs.TimeFromProtoGogo(s.RotatedOutAt)
+	t.RotatedOutAt = structs.TimeFromProto(s.RotatedOutAt)
 	t.PrivateKeyType = s.PrivateKeyType
 	t.PrivateKeyBits = int(s.PrivateKeyBits)
 	t.RaftIndex = RaftIndexTo(s.RaftIndex)
@@ -34,14 +34,14 @@ func CARootFromStructsCARoot(t *structs.CARoot, s *CARoot) {
 	s.SerialNumber = t.SerialNumber
 	s.SigningKeyID = t.SigningKeyID
 	s.ExternalTrustDomain = t.ExternalTrustDomain
-	s.NotBefore = structs.TimeToProtoGogo(t.NotBefore)
-	s.NotAfter = structs.TimeToProtoGogo(t.NotAfter)
+	s.NotBefore = structs.TimeToProto(t.NotBefore)
+	s.NotAfter = structs.TimeToProto(t.NotAfter)
 	s.RootCert = t.RootCert
 	s.IntermediateCerts = t.IntermediateCerts
 	s.SigningCert = t.SigningCert
 	s.SigningKey = t.SigningKey
 	s.Active = t.Active
-	s.RotatedOutAt = structs.TimeToProtoGogo(t.RotatedOutAt)
+	s.RotatedOutAt = structs.TimeToProto(t.RotatedOutAt)
 	s.PrivateKeyType = t.PrivateKeyType
 	s.PrivateKeyBits = int32(t.PrivateKeyBits)
 	s.RaftIndex = RaftIndexFrom(t.RaftIndex)
@@ -93,8 +93,8 @@ func IssuedCertToStructsIssuedCert(s *IssuedCert, t *structs.IssuedCert) {
 	t.ServiceURI = s.ServiceURI
 	t.Agent = s.Agent
 	t.AgentURI = s.AgentURI
-	t.ValidAfter = structs.TimeFromProtoGogo(s.ValidAfter)
-	t.ValidBefore = structs.TimeFromProtoGogo(s.ValidBefore)
+	t.ValidAfter = structs.TimeFromProto(s.ValidAfter)
+	t.ValidBefore = structs.TimeFromProto(s.ValidBefore)
 	t.EnterpriseMeta = EnterpriseMetaTo(s.EnterpriseMeta)
 	t.RaftIndex = RaftIndexTo(s.RaftIndex)
 }
@@ -109,8 +109,8 @@ func IssuedCertFromStructsIssuedCert(t *structs.IssuedCert, s *IssuedCert) {
 	s.ServiceURI = t.ServiceURI
 	s.Agent = t.Agent
 	s.AgentURI = t.AgentURI
-	s.ValidAfter = structs.TimeToProtoGogo(t.ValidAfter)
-	s.ValidBefore = structs.TimeToProtoGogo(t.ValidBefore)
+	s.ValidAfter = structs.TimeToProto(t.ValidAfter)
+	s.ValidBefore = structs.TimeToProto(t.ValidBefore)
 	s.EnterpriseMeta = EnterpriseMetaFrom(t.EnterpriseMeta)
 	s.RaftIndex = RaftIndexFrom(t.RaftIndex)
 }

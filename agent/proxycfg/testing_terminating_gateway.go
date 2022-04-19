@@ -526,6 +526,30 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 	})
 }
 
+func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+		{
+			CorrelationID: "gateway-services",
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service: structs.NewServiceName("web", nil),
+						CAFile:  "ca.cert.pem",
+						SNI:     "foo.com",
+					},
+					{
+						Service:  structs.NewServiceName("api", nil),
+						CAFile:   "ca.cert.pem",
+						CertFile: "api.cert.pem",
+						KeyFile:  "api.key.pem",
+						SNI:      "bar.com",
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestConfigSnapshotTerminatingGatewayHostnameSubsets(t testing.T) *ConfigSnapshot {
 	var (
 		api   = structs.NewServiceName("api", nil)
@@ -642,14 +666,41 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 	})
 }
 
-func TestConfigSnapshotTerminatingGatewayWithServiceDefaultsMeta(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpdateEvents ...agentcache.UpdateEvent) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
-		{
-			CorrelationID: serviceConfigIDPrefix + web.String(),
-			Result: &structs.ServiceConfigResponse{
-				Meta: map[string]string{"a": "b"},
+	updateEvents := append(extraUpdateEvents, agentcache.UpdateEvent{
+		CorrelationID: serviceConfigIDPrefix + web.String(),
+		Result: &structs.ServiceConfigResponse{
+			ProxyConfig: map[string]interface{}{"protocol": "http"},
+			Meta: map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
 			},
 		},
 	})
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, updateEvents)
+}
+
+func TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t testing.T) *ConfigSnapshot {
+	web := structs.NewServiceName("web", nil)
+
+	return TestConfigSnapshotTerminatingGatewayWithLambdaService(t,
+		agentcache.UpdateEvent{
+			CorrelationID: serviceResolverIDPrefix + web.String(),
+			Result: &structs.IndexedConfigEntries{
+				Kind: structs.ServiceResolver,
+				Entries: []structs.ConfigEntry{
+					&structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: web.String(),
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"canary1": {},
+							"canary2": {},
+						},
+					},
+				},
+			},
+		})
 }

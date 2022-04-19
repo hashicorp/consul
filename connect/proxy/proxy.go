@@ -75,12 +75,7 @@ func (p *Proxy) Serve() error {
 					tcfg := service.ServerTLSConfig()
 					cert, _ := tcfg.GetCertificate(nil)
 					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
-					roots, err := connect.CommonNamesFromCertPool(tcfg.RootCAs)
-					if err != nil {
-						p.logger.Error("Failed to parse root subjects", "error", err)
-					} else {
-						p.logger.Info("Parsed TLS identity", "uri", leaf.URIs[0], "roots", roots)
-					}
+					p.logger.Info("Parsed TLS identity", "uri", leaf.URIs[0])
 
 					// Only start a listener if we have a port set. This allows
 					// the configuration to disable our public listener.

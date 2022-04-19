@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/consul/types"
 )
 
 type DeprecatedConfig struct {
@@ -219,7 +221,16 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 
 	if v := dep.TLSMinVersion; v != nil {
 		if defaults.TLSMinVersion == nil {
-			defaults.TLSMinVersion = v
+			// NOTE: This inner check for deprecated values should eventually be
+			// removed
+			if version, ok := types.DeprecatedConsulAgentTLSVersions[*v]; ok {
+				// Log warning about deprecated config values
+				warns = append(warns, fmt.Sprintf("'tls_min_version' value '%s' is deprecated, please specify '%s' instead", *v, version))
+				versionString := version.String()
+				defaults.TLSMinVersion = &versionString
+			} else {
+				defaults.TLSMinVersion = v
+			}
 		}
 		warns = append(warns, deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"))
 	}

@@ -2,24 +2,31 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
-GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	golang.org/x/tools/cmd/cover@master \
-	golang.org/x/tools/cmd/stringer@master \
-	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary@master \
 	github.com/vektra/mockery/cmd/mockery@master \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
-	github.com/hashicorp/lint-consul-retry@master \
-	github.com/favadi/protoc-go-inject-tag@v1.3.0
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 \
+	github.com/hashicorp/lint-consul-retry@master
+
+PROTOC_VERSION=3.15.8
+
+###
+# MOG_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use whatever is currently installed locally.
+###
+MOG_VERSION='v0.3.0'
+###
+# PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use whatever is currently installed locally.
+###
+PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-export PATH := $(PWD)/bin:$(PATH)
+export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
@@ -28,10 +35,6 @@ GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
-
-PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
-PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
-PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -155,7 +158,7 @@ dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 # In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
@@ -286,12 +289,17 @@ static-assets:
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-docker static-assets-docker
 
-tools:
+tools: proto-tools
 	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
 	@for TOOL in $(GOTOOLS); do \
 		echo "=== TOOL: $$TOOL" ; \
 		go install -v $$TOOL ; \
 	done
+
+proto-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
+		--protoc-version "$(PROTOC_VERSION)" \
+		--tools-only
 
 version:
 	@echo -n "Version:                    "
@@ -342,12 +350,13 @@ else
 	@go test -v ./agent -run Vault
 endif
 
-proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
-	@echo "Generated all protobuf Go files"
+.PHONY: proto
+proto:
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
+		--protoc-version "$(PROTOC_VERSION)"
 
-
-%.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen-entry.sh --grpc --import-replace "$<"
+# utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
+print-%  : ; @echo $($*)
 
 .PHONY: module-versions
 # Print a list of modules which can be updated.
@@ -371,6 +380,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: version test-envoy-integ

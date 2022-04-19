@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if headerNS := req.Header.Get("X-Consul-Namespace"); headerNS != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,
@@ -58,7 +59,7 @@ func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, 
 	}
 }
 
-func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaNoWildcard(req *http.Request, _ *acl.EnterpriseMeta) error {
 	return s.parseEntMeta(req, nil)
 }
 
@@ -103,7 +104,7 @@ func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) erro
 	return nil
 }
 
-func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *acl.EnterpriseMeta) error {
 	if headerAP := req.Header.Get("X-Consul-Partition"); headerAP != "" {
 		return HTTPError{
 			StatusCode: http.StatusBadRequest,

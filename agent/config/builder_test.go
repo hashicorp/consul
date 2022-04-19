@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/types"
 )
 
 func TestLoad(t *testing.T) {
@@ -326,4 +328,110 @@ func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 
 func intPtr(v int) *int {
 	return &v
+}
+
+func TestBuilder_tlsVersion(t *testing.T) {
+	b := builder{}
+
+	validTLSVersion := "TLSv1_3"
+	b.tlsVersion("tls.defaults.tls_min_version", &validTLSVersion)
+
+	deprecatedTLSVersion := "tls11"
+	b.tlsVersion("tls.defaults.tls_min_version", &deprecatedTLSVersion)
+
+	invalidTLSVersion := "tls9"
+	b.tlsVersion("tls.defaults.tls_min_version", &invalidTLSVersion)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "2 errors")
+	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
+	require.Contains(t, b.err.Error(), invalidTLSVersion)
+}
+
+func TestBuilder_tlsCipherSuites(t *testing.T) {
+	b := builder{}
+
+	validCipherSuites := strings.Join([]string{
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &validCipherSuites, types.TLSv1_2)
+	require.NoError(t, b.err)
+
+	unsupportedCipherSuites := strings.Join([]string{
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &unsupportedCipherSuites, types.TLSv1_2)
+
+	invalidCipherSuites := strings.Join([]string{
+		"cipherX",
+	}, ",")
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &invalidCipherSuites, types.TLSv1_2)
+
+	b.tlsCipherSuites("tls.defaults.tls_cipher_suites", &validCipherSuites, types.TLSv1_3)
+
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "3 errors")
+	require.Contains(t, b.err.Error(), unsupportedCipherSuites)
+	require.Contains(t, b.err.Error(), invalidCipherSuites)
+	require.Contains(t, b.err.Error(), "cipher suites are not configurable")
+}
+
+func TestBuilder_parsePrefixFilter(t *testing.T) {
+	t.Run("Check that 1.12 rpc metrics are parsed correctly.", func(t *testing.T) {
+		type testCase struct {
+			name                  string
+			metricsPrefix         string
+			prefixFilter          []string
+			expectedAllowedPrefix []string
+			expectedBlockedPrefix []string
+		}
+
+		var testCases = []testCase{
+			{
+				name:                  "no prefix filter",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{},
+				expectedAllowedPrefix: nil,
+				expectedBlockedPrefix: []string{"somePrefix.rpc.server.call"},
+			},
+			{
+				name:                  "operator enables 1.12 rpc metrics",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{"+somePrefix.rpc.server.call"},
+				expectedAllowedPrefix: []string{"somePrefix.rpc.server.call"},
+				expectedBlockedPrefix: nil,
+			},
+			{
+				name:                  "operator enables 1.12 rpc metrics",
+				metricsPrefix:         "somePrefix",
+				prefixFilter:          []string{"-somePrefix.rpc.server.call"},
+				expectedAllowedPrefix: nil,
+				expectedBlockedPrefix: []string{"somePrefix.rpc.server.call"},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				b := builder{}
+				telemetry := &Telemetry{
+					MetricsPrefix: &tc.metricsPrefix,
+					PrefixFilter:  tc.prefixFilter,
+				}
+
+				allowedPrefix, blockedPrefix := b.parsePrefixFilter(telemetry)
+
+				require.Equal(t, tc.expectedAllowedPrefix, allowedPrefix)
+				require.Equal(t, tc.expectedBlockedPrefix, blockedPrefix)
+			})
+		}
+	})
 }

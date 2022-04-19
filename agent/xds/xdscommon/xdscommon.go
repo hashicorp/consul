@@ -78,7 +78,8 @@ type PluginConfiguration struct {
 	// associated service's CompoundServiceName
 	EnvoyIDToServiceName map[string]api.CompoundServiceName
 
-	// Kind is mode the local Envoy proxy is running in
+	// Kind is mode the local Envoy proxy is running in. For now, only
+	// terminating gateways are supported.
 	Kind api.ServiceKind
 }
 
@@ -108,6 +109,14 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
 			envoyIDMappings[envoyID.EnvoyID()] = compoundServiceName
+
+			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+			if hasResolver {
+				for subsetName := range resolver.Subsets {
+					sni := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+					sniMappings[sni] = compoundServiceName
+				}
+			}
 		}
 	}
 

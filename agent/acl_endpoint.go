@@ -378,6 +378,9 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
+	if _, ok := req.URL.Query()["expanded"]; ok {
+		args.Expanded = true
+	}
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -391,6 +394,14 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 
 	if out.Token == nil {
 		return nil, acl.ErrNotFound
+	}
+
+	if args.Expanded {
+		expanded := &structs.ACLTokenExpanded{
+			ACLToken:          out.Token,
+			ExpandedTokenInfo: out.ExpandedTokenInfo,
+		}
+		return expanded, nil
 	}
 
 	return out.Token, nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -210,6 +211,52 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 		require.NoError(r, err)
 		require.Greater(r, lastRenewal, firstRenewal)
 	})
+}
+
+func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
+
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	require.NoError(t, err)
+	testVault.WaitUntilReady(t)
+
+	// Create a token with a short TTL to be renewed by the provider.
+	ttl := 1 * time.Second
+	tcr := &vaultapi.TokenCreateRequest{
+		TTL: ttl.String(),
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	provider, err := createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+
+	var gotStopped = uint32(0)
+	provider.stopWatcher = func() {
+		atomic.StoreUint32(&gotStopped, 1)
+	}
+
+	// Check the last renewal time.
+	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+	require.NoError(t, err)
+	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+	require.NoError(t, err)
+
+	// Wait past the TTL and make sure the token has been renewed.
+	retry.Run(t, func(r *retry.R) {
+		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+		require.NoError(r, err)
+		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+		require.NoError(r, err)
+		require.Greater(r, lastRenewal, firstRenewal)
+	})
+
+	providerConfig := vaultProviderConfig(t, testVault.Addr, providerToken, nil)
+
+	require.NoError(t, provider.Configure(providerConfig))
+	require.Equal(t, uint32(1), atomic.LoadUint32(&gotStopped))
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
@@ -762,26 +809,9 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 }
 
 func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]interface{}) (*VaultProvider, error) {
-	conf := map[string]interface{}{
-		"Address":             addr,
-		"Token":               token,
-		"RootPKIPath":         "pki-root/",
-		"IntermediatePKIPath": "pki-intermediate/",
-		// Tests duration parsing after msgpack type mangling during raft apply.
-		"LeafCertTTL": []uint8("72h"),
-	}
-	for k, v := range rawConf {
-		conf[k] = v
-	}
+	cfg := vaultProviderConfig(t, addr, token, rawConf)
 
 	provider := NewVaultProvider(hclog.New(nil))
-
-	cfg := ProviderConfig{
-		ClusterID:  connect.TestClusterID,
-		Datacenter: "dc1",
-		IsPrimary:  true,
-		RawConfig:  conf,
-	}
 
 	if !isPrimary {
 		cfg.IsPrimary = false
@@ -798,4 +828,27 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	}
 
 	return provider, nil
+}
+
+func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]interface{}) ProviderConfig {
+	conf := map[string]interface{}{
+		"Address":             addr,
+		"Token":               token,
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+		// Tests duration parsing after msgpack type mangling during raft apply.
+		"LeafCertTTL": []uint8("72h"),
+	}
+	for k, v := range rawConf {
+		conf[k] = v
+	}
+
+	cfg := ProviderConfig{
+		ClusterID:  connect.TestClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  conf,
+	}
+
+	return cfg
 }

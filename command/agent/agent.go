@@ -172,7 +172,6 @@ func (c *cmd) run(args []string) int {
 		ui.Error(err.Error())
 		return 1
 	}
-
 	c.logger = bd.Logger
 	agent, err := agent.New(bd)
 	if err != nil {

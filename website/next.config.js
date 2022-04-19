@@ -1,5 +1,5 @@
 const withHashicorp = require('@hashicorp/platform-nextjs-plugin')
-const redirects = require('./redirects.next')
+const redirects = require('./redirects')
 
 module.exports = withHashicorp({
   dato: {
@@ -10,12 +10,6 @@ module.exports = withHashicorp({
   transpileModules: ['@hashicorp/flight-icons'],
 })({
   svgo: { plugins: [{ removeViewBox: false }] },
-  rewrites: () => [
-    {
-      source: '/api/:path*',
-      destination: '/api-docs/:path*',
-    },
-  ],
   redirects: () => redirects,
   // Note: These are meant to be public, it's not a mistake that they are here
   env: {

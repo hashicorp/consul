@@ -1640,7 +1640,7 @@ type fakeResolveTokenDelegate struct {
 	authorizer acl.Authorizer
 }
 
-func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
 	return consul.ACLResolveResult{Authorizer: f.authorizer}, nil
 }
 

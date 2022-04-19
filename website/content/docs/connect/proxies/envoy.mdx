@@ -30,12 +30,13 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 ## Supported Versions
 
-The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatability please view the respective versioned docs for this page. 
+The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatability please view the respective versioned docs for this page.
 
 Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
+| 1.12.x              | 1.22.0, 1.21.1, 1.20.2, 1.19.3                                                     |
 | 1.11.x              | 1.20.2, 1.19.3, 1.18.6, 1.17.4<sup>1</sup>                                         |
 | 1.10.x              | 1.18.6, 1.17.4<sup>1</sup>, 1.16.5<sup>1</sup> , 1.15.5<sup>1</sup>                |
 | 1.9.x               | 1.16.5<sup>1</sup>, 1.15.5<sup>1</sup>, 1.14.7<sup>1,2</sup>, 1.13.7<sup>1,2</sup> |
@@ -184,7 +185,7 @@ the upstream listeners of any downstream service.
 
 One example is how users can define a service's protocol in a [`service-defaults` configuration
 entry](/docs/connect/config-entries/service-defaults). Agents with
-[`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
+[`enable_central_service_config`](/docs/agent/config/config-files#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
 represents and use this to configure its main public listener. It will also

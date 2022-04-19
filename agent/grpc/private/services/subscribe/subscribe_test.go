@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -24,15 +24,15 @@ import (
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommongogo"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
 
 func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 
@@ -58,8 +58,7 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	ids := newCounter()
 
@@ -122,7 +121,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "redis",
-			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -154,12 +153,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
+								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -185,12 +186,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
+								Connect:        &pbservice.ServiceConnect{},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -201,7 +204,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
 		}
-		assertDeepEqual(t, expected, snapshotEvents)
+		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
 	runStep(t, "update the registration by adding a check", func(t *testing.T) {
@@ -235,12 +238,14 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 							Port:    8080,
 							Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 							// Sad empty state
-							Proxy: pbservice.ConnectProxyConfig{
-								MeshGateway: pbservice.MeshGatewayConfig{},
-								Expose:      pbservice.ExposeConfig{},
+							Proxy: &pbservice.ConnectProxyConfig{
+								MeshGateway:      &pbservice.MeshGatewayConfig{},
+								Expose:           &pbservice.ExposeConfig{},
+								TransparentProxy: &pbservice.TransparentProxyConfig{},
 							},
+							Connect:        &pbservice.ServiceConnect{},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -251,14 +256,20 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								Definition: &pbservice.HealthCheckDefinition{
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
+								},
 							},
 						},
 					},
 				},
 			},
 		}
-		assertDeepEqual(t, expectedEvent, event)
+		prototest.AssertDeepEqual(t, expectedEvent, event)
 	})
 }
 
@@ -298,22 +309,16 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 	return nil
 }
 
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
-}
-
 type testBackend struct {
+	publisher   *stream.EventPublisher
 	store       *state.Store
-	authorizer  func(token string, entMeta *structs.EnterpriseMeta) acl.Authorizer
+	authorizer  func(token string, entMeta *acl.EnterpriseMeta) acl.Authorizer
 	forwardConn *gogrpc.ClientConn
 }
 
 func (b testBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	_ *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	return b.authorizer(token, entMeta), nil
@@ -327,19 +332,33 @@ func (b testBackend) Forward(_ structs.RPCInfo, fn func(*gogrpc.ClientConn) erro
 }
 
 func (b testBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return b.store.EventPublisher().Subscribe(req)
+	return b.publisher.Subscribe(req)
 }
 
-func newTestBackend() (*testBackend, error) {
+func newTestBackend(t *testing.T) *testBackend {
+	t.Helper()
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
-	if err != nil {
-		return nil, err
-	}
-	store := state.NewStateStoreWithEventPublisher(gc)
-	allowAll := func(string, *structs.EnterpriseMeta) acl.Authorizer {
+	require.NoError(t, err)
+
+	publisher := stream.NewEventPublisher(10 * time.Second)
+
+	store := state.NewStateStoreWithEventPublisher(gc, publisher)
+
+	// normally the handlers are registered on the FSM as state stores may come
+	// and go during snapshot restores. For the purposes of this test backend though we
+	// just register them directly to
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go publisher.Run(ctx)
+	t.Cleanup(cancel)
+
+	allowAll := func(string, *acl.EnterpriseMeta) acl.Authorizer {
 		return acl.AllowAll()
 	}
-	return &testBackend{store: store, authorizer: allowAll}, nil
+	return &testBackend{publisher: publisher, store: store, authorizer: allowAll}
 }
 
 var _ Backend = (*testBackend)(nil)
@@ -395,20 +414,18 @@ func newCounter() *counter {
 	return &counter{labels: make(map[string]uint64)}
 }
 
-func raftIndex(ids *counter, created, modified string) pbcommongogo.RaftIndex {
-	return pbcommongogo.RaftIndex{
+func raftIndex(ids *counter, created, modified string) *pbcommon.RaftIndex {
+	return &pbcommon.RaftIndex{
 		CreateIndex: ids.For(created),
 		ModifyIndex: ids.For(modified),
 	}
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
-	backendLocal, err := newTestBackend()
-	require.NoError(t, err)
+	backendLocal := newTestBackend(t)
 	addrLocal := runTestServer(t, NewServer(backendLocal, hclog.New(nil)))
 
-	backendRemoteDC, err := newTestBackend()
-	require.NoError(t, err)
+	backendRemoteDC := newTestBackend(t)
 	srvRemoteDC := NewServer(backendRemoteDC, hclog.New(nil))
 	addrRemoteDC := runTestServer(t, srvRemoteDC)
 
@@ -475,7 +492,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
 			Datacenter: "dc2",
-			Namespace:  pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 		go recvEvents(chEvents, streamHandle)
@@ -507,11 +524,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
 							},
 						},
@@ -538,11 +557,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								Port:    8080,
 								Weights: &pbservice.Weights{Passing: 1, Warning: 1},
 								// Sad empty state
-								Proxy: pbservice.ConnectProxyConfig{
-									MeshGateway: pbservice.MeshGatewayConfig{},
-									Expose:      pbservice.ExposeConfig{},
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
 								},
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
 							},
 						},
@@ -554,7 +575,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
 		}
-		assertDeepEqual(t, expected, snapshotEvents)
+		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
 	runStep(t, "update the registration by adding a check", func(t *testing.T) {
@@ -589,11 +610,13 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 							RaftIndex: raftIndex(ids, "reg3", "reg3"),
 							Weights:   &pbservice.Weights{Passing: 1, Warning: 1},
 							// Sad empty state
-							Proxy: pbservice.ConnectProxyConfig{
-								MeshGateway: pbservice.MeshGatewayConfig{},
-								Expose:      pbservice.ExposeConfig{},
+							Proxy: &pbservice.ConnectProxyConfig{
+								MeshGateway:      &pbservice.MeshGatewayConfig{},
+								Expose:           &pbservice.ExposeConfig{},
+								TransparentProxy: &pbservice.TransparentProxyConfig{},
 							},
-							EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+							Connect:        &pbservice.ServiceConnect{},
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -604,14 +627,20 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommongogo.DefaultEnterpriseMeta,
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+								Definition: &pbservice.HealthCheckDefinition{
+									Interval:                       &duration.Duration{},
+									Timeout:                        &duration.Duration{},
+									DeregisterCriticalServiceAfter: &duration.Duration{},
+									TTL:                            &duration.Duration{},
+								},
 							},
 						},
 					},
 				},
 			},
 		}
-		assertDeepEqual(t, expectedEvent, event)
+		prototest.AssertDeepEqual(t, expectedEvent, event)
 	})
 }
 
@@ -624,8 +653,7 @@ func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testi
 		t.Skip("too slow for -short run")
 	}
 
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
@@ -645,7 +673,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *acl.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -720,7 +748,7 @@ node "node1" {
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "foo",
 			Token:     token,
-			Namespace: pbcommongogo.DefaultEnterpriseMeta.Namespace,
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -821,8 +849,7 @@ node "node1" {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ACLUpdate(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
@@ -841,7 +868,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *acl.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -924,20 +951,20 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 	type testCase struct {
 		name     string
 		event    stream.Event
-		expected pbsubscribe.Event
+		expected *pbsubscribe.Event
 	}
 
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
 		actual := newEventFromStreamEvent(tc.event)
-		assertDeepEqual(t, &expected, actual, cmpopts.EquateEmpty())
+		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 
 	var testCases = []testCase{
 		{
 			name:  "end of snapshot",
 			event: newEventFromSubscription(t, 0),
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index:   1,
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -945,7 +972,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name:  "new snapshot to follow",
 			event: newEventFromSubscription(t, 22),
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
 			},
 		},
@@ -975,7 +1002,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 						},
 					}),
 			},
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index: 2002,
 				Payload: &pbsubscribe.Event_EventBatch{
 					EventBatch: &pbsubscribe.EventBatch{
@@ -986,8 +1013,18 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 										Op: pbsubscribe.CatalogOp_Register,
 										CheckServiceNode: &pbservice.CheckServiceNode{
-											Node:    &pbservice.Node{Node: "node1"},
-											Service: &pbservice.NodeService{Service: "web1"},
+											Node: &pbservice.Node{Node: "node1", RaftIndex: &pbcommon.RaftIndex{}},
+											Service: &pbservice.NodeService{
+												Service: "web1",
+												Proxy: &pbservice.ConnectProxyConfig{
+													MeshGateway:      &pbservice.MeshGatewayConfig{},
+													Expose:           &pbservice.ExposeConfig{},
+													TransparentProxy: &pbservice.TransparentProxyConfig{},
+												},
+												Connect:        &pbservice.ServiceConnect{},
+												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+												RaftIndex:      &pbcommon.RaftIndex{},
+											},
 										},
 									},
 								},
@@ -998,8 +1035,18 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 										Op: pbsubscribe.CatalogOp_Deregister,
 										CheckServiceNode: &pbservice.CheckServiceNode{
-											Node:    &pbservice.Node{Node: "node2"},
-											Service: &pbservice.NodeService{Service: "web1"},
+											Node: &pbservice.Node{Node: "node2", RaftIndex: &pbcommon.RaftIndex{}},
+											Service: &pbservice.NodeService{
+												Service: "web1",
+												Proxy: &pbservice.ConnectProxyConfig{
+													MeshGateway:      &pbservice.MeshGatewayConfig{},
+													Expose:           &pbservice.ExposeConfig{},
+													TransparentProxy: &pbservice.TransparentProxyConfig{},
+												},
+												Connect:        &pbservice.ServiceConnect{},
+												EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+												RaftIndex:      &pbcommon.RaftIndex{},
+											},
 										},
 									},
 								},
@@ -1021,14 +1068,24 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 					},
 				},
 			},
-			expected: pbsubscribe.Event{
+			expected: &pbsubscribe.Event{
 				Index: 2002,
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 						Op: pbsubscribe.CatalogOp_Register,
 						CheckServiceNode: &pbservice.CheckServiceNode{
-							Node:    &pbservice.Node{Node: "node1"},
-							Service: &pbservice.NodeService{Service: "web1"},
+							Node: &pbservice.Node{Node: "node1", RaftIndex: &pbcommon.RaftIndex{}},
+							Service: &pbservice.NodeService{
+								Service: "web1",
+								Proxy: &pbservice.ConnectProxyConfig{
+									MeshGateway:      &pbservice.MeshGatewayConfig{},
+									Expose:           &pbservice.ExposeConfig{},
+									TransparentProxy: &pbservice.TransparentProxyConfig{},
+								},
+								Connect:        &pbservice.ServiceConnect{},
+								EnterpriseMeta: &pbcommon.EnterpriseMeta{},
+								RaftIndex:      &pbcommon.RaftIndex{},
+							},
 						},
 					},
 				},
@@ -1052,13 +1109,13 @@ func newPayloadEvents(items ...stream.Event) *stream.PayloadEvents {
 func newEventFromSubscription(t *testing.T, index uint64) stream.Event {
 	t.Helper()
 
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealthConnect: func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
-			return 1, nil
-		},
+	serviceHealthConnectHandler := func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
+		return 1, nil
 	}
-	ep := stream.NewEventPublisher(handlers, 0)
-	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Index: index}
+
+	ep := stream.NewEventPublisher(0)
+	ep.RegisterHandler(pbsubscribe.Topic_ServiceHealthConnect, serviceHealthConnectHandler)
+	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Subject: stream.SubjectNone, Index: index}
 
 	sub, err := ep.Subscribe(req)
 	require.NoError(t, err)

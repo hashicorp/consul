@@ -3,6 +3,7 @@ package middleware
 import (
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -22,52 +23,128 @@ const RPCTypeInternal = "internal"
 const RPCTypeNetRPC = "net/rpc"
 
 var metricRPCRequest = []string{"rpc", "server", "call"}
-var requestLogName = "rpc.server.request"
+var requestLogName = strings.Join(metricRPCRequest, "_")
 
-var NewRPCCounters = []prometheus.CounterDefinition{
+var OneTwelveRPCSummary = []prometheus.SummaryDefinition{
 	{
 		Name: metricRPCRequest,
-		Help: "Increments when a server makes an RPC service call. The labels on the metric have more information",
+		Help: "Measures the time an RPC service call takes to make in milliseconds. Labels mark which RPC method was called and metadata about the call.",
 	},
 }
 
 type RequestRecorder struct {
-	Logger       hclog.Logger
-	recorderFunc func(key []string, start time.Time, labels []metrics.Label)
+	Logger         hclog.Logger
+	RecorderFunc   func(key []string, val float32, labels []metrics.Label)
+	serverIsLeader func() bool
+	localDC        string
 }
 
-func NewRequestRecorder(logger hclog.Logger) *RequestRecorder {
-	return &RequestRecorder{Logger: logger, recorderFunc: metrics.MeasureSinceWithLabels}
+func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC string) *RequestRecorder {
+	return &RequestRecorder{
+		Logger:         logger,
+		RecorderFunc:   metrics.AddSampleWithLabels,
+		serverIsLeader: isLeader,
+		localDC:        localDC,
+	}
 }
 
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start)
-
+	elapsed := time.Since(start).Milliseconds()
 	reqType := requestType(request)
+	isLeader := r.getServerLeadership()
 
 	labels := []metrics.Label{
 		{Name: "method", Value: requestName},
 		{Name: "errored", Value: strconv.FormatBool(respErrored)},
 		{Name: "request_type", Value: reqType},
 		{Name: "rpc_type", Value: rpcType},
+		{Name: "leader", Value: isLeader},
 	}
 
-	// TODO(FFMMM): it'd be neat if we could actually pass the elapsed observed above
-	r.recorderFunc(metricRPCRequest, start, labels)
+	labels = r.addOptionalLabels(request, labels)
 
-	r.Logger.Debug(requestLogName,
-		"method", requestName,
-		"errored", respErrored,
-		"request_type", reqType,
-		"rpc_type", rpcType,
-		"elapsed", elapsed)
+	// math.MaxInt64 < math.MaxFloat32 is true so we should be good!
+	r.RecorderFunc(metricRPCRequest, float32(elapsed), labels)
+
+	labelsArr := flattenLabels(labels)
+	r.Logger.Trace(requestLogName, labelsArr...)
+
+}
+
+func flattenLabels(labels []metrics.Label) []interface{} {
+
+	var labelArr []interface{}
+	for _, label := range labels {
+		labelArr = append(labelArr, label.Name, label.Value)
+	}
+
+	return labelArr
+}
+
+func (r *RequestRecorder) addOptionalLabels(request interface{}, labels []metrics.Label) []metrics.Label {
+	if rq, ok := request.(readQuery); ok {
+		labels = append(labels,
+			metrics.Label{
+				Name:  "allow_stale",
+				Value: strconv.FormatBool(rq.AllowStaleRead()),
+			},
+			metrics.Label{
+				Name:  "blocking",
+				Value: strconv.FormatBool(rq.GetMinQueryIndex() > 0),
+			})
+	}
+
+	if td, ok := request.(targetDC); ok {
+		requestDC := td.RequestDatacenter()
+		labels = append(labels, metrics.Label{Name: "target_datacenter", Value: requestDC})
+
+		if r.localDC == requestDC {
+			labels = append(labels, metrics.Label{Name: "locality", Value: "local"})
+		} else {
+			labels = append(labels, metrics.Label{Name: "locality", Value: "forwarded"})
+		}
+	}
+
+	return labels
 }
 
 func requestType(req interface{}) string {
-	if r, ok := req.(interface{ IsRead() bool }); ok && r.IsRead() {
-		return "read"
+	if r, ok := req.(interface{ IsRead() bool }); ok {
+		if r.IsRead() {
+			return "read"
+		} else {
+			return "write"
+		}
 	}
-	return "write"
+
+	// This logical branch should not happen. If it happens
+	// it means an underlying request is not implementing the interface.
+	// Rather than swallowing it up in a "read" or "write", let's be aware of it.
+	return "unreported"
+}
+
+func (r *RequestRecorder) getServerLeadership() string {
+	if r.serverIsLeader != nil {
+		if r.serverIsLeader() {
+			return "true"
+		} else {
+			return "false"
+		}
+	}
+
+	// This logical branch should not happen. If it happens
+	// it means that we have not plumbed down a way to verify
+	// whether the server handling the request was a leader or not
+	return "unreported"
+}
+
+type readQuery interface {
+	GetMinQueryIndex() uint64
+	AllowStaleRead() bool
+}
+
+type targetDC interface {
+	RequestDatacenter() string
 }
 
 func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterceptor {
