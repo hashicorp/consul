@@ -91,6 +91,15 @@ func TestAPI_PreparedQuery(t *testing.T) {
 		t.Fatalf("bad: %v", defs)
 	}
 
+	// Find the query using its name.
+	defs, _, err = query.GetByExactName(def.Name, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(defs) != 1 || !reflect.DeepEqual(defs[0], def) {
+		t.Fatalf("bad: %v", defs)
+	}
+
 	// Execute by ID.
 	results, _, err := query.Execute(def.ID, nil)
 	if err != nil {

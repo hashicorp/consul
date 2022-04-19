@@ -227,3 +227,13 @@ func (c *PreparedQuery) Execute(queryIDOrName string, q *QueryOptions) (*Prepare
 	}
 	return out, qm, nil
 }
+
+// GetByExactName fetches a prepared query using its exact name.
+func (c *PreparedQuery) GetByExactName(queryName string, q *QueryOptions) ([]*PreparedQueryDefinition, *QueryMeta, error) {
+	var out []*PreparedQueryDefinition
+	qm, err := c.c.query("/v1/query/exact-name/"+queryName, &out, q)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
