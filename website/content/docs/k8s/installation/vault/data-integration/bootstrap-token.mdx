@@ -25,9 +25,9 @@ To use an ACL bootstrap token stored in Vault, we will follow the steps outlined
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 ## One time setup in Vault
-### Store the Secret in Vault
+### Generate and Store the Secret in Vault
 
-First, store the ACL bootstrap token in Vault:
+First, generate and store the ACL bootstrap token in Vault:
 
 ```shell-session
 $ vault kv put secret/consul/bootstrap-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"

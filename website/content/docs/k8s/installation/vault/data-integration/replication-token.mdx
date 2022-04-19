@@ -24,9 +24,9 @@ To use an ACL replication token stored in Vault, we will follow the steps outlin
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
 ## One time setup in Vault
-### Store the Secret in Vault
+### Generate and Store the Secret in Vault
 
-First, store the ACL replication token in Vault:
+First, generate and store the ACL replication token in Vault:
 
 ```shell-session
 $ vault kv put secret/consul/replication-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
