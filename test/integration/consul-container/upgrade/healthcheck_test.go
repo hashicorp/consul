@@ -49,6 +49,14 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 	go func() {
 		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if err != nil {
+			errCh <- err
+			return
+		}
+		if q == nil {
+			err = fmt.Errorf("query is nil")
+			errCh <- err
+		}
 		if q.QueryBackend != api.QueryBackendStreaming {
 			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
 		}
@@ -75,7 +83,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 
 // Test health check GRPC call using Current Servers and Latest GA Clients
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
-
+	
 	numServers := 3
 	Cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
