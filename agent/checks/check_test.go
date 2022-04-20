@@ -1275,6 +1275,7 @@ func TestCheckUDPCritical(t *testing.T) {
 	serverUrl := "127.0.0.1:" + strconv.Itoa(notExistentPort)
 
 	go mockUDPServer(ctx, `udp`, port)
+
 	expectUDPStatus(t, serverUrl, api.HealthCritical) // Should be unhealthy since we never connect to mocked udp server.
 }
 
