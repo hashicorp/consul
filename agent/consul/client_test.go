@@ -73,7 +73,7 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	}
 
 	// Apply config to copied fields because many tests only set the old
-	//values.
+	// values.
 	config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 	config.ACLResolverSettings.NodeName = config.NodeName
 	config.ACLResolverSettings.Datacenter = config.Datacenter
@@ -876,17 +876,13 @@ func TestClient_RPC_Timeout(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServerWithConfig(t)
 
-	dir2, c1 := testClientWithConfig(t, func(c *Config) {
+	_, c1 := testClientWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.NodeName = uniqueNodeName(t.Name())
 		c.RPCHoldTimeout = timeout
 	})
-	defer os.RemoveAll(dir2)
-	defer c1.Shutdown()
 
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
@@ -896,25 +892,20 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		}
 	})
 
-	if err := s1.RegisterEndpoint("Wait", &waiter{duration: timeout}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, s1.RegisterEndpoint("Wait", &waiter{duration: timeout}))
 
-	// Requests with QueryOptions have a default timeout of RPCHoldTimeout.
+	// Requests with QueryOptions have a default timeout of RPCHoldTimeout
+	// so we expect the RPC call to timeout.
 	var out struct{}
 	err := c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{}, &out)
-	if err == nil || err.Error() != "rpc error making call: i/o deadline reached" {
-		t.Fatalf("err: %v", err)
-	}
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "rpc error making call: i/o deadline reached")
 
-	// Blocking requests have a longer timeout.
+	// Blocking requests have a longer timeout so we expect no error.
 	out = struct{}{}
-	err = c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
+	require.NoError(t, c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
 		QueryOptions: structs.QueryOptions{
 			MinQueryIndex: 1,
 		},
-	}, &out)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	}, &out))
 }
