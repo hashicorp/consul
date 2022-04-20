@@ -629,14 +629,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
-	timeout := time.Duration(0)
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	if info, ok := args.(structs.RPCInfo); ok {
-		timeout = info.Timeout(p.Timeout, p.MaxQueryTime, p.DefaultQueryTime)
-	}
-
-	if timeout > 0 {
-		sc.stream.FirstReadTimeout = timeout
+		sc.stream.FirstReadTimeout = info.Timeout(p.Timeout, p.MaxQueryTime, p.DefaultQueryTime)
 	}
 
 	// Make the RPC call
