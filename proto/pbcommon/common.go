@@ -121,7 +121,8 @@ func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime
 	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
-func (w WriteRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
+// Timeout implements structs.RPCInfo
+func (w *WriteRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
 	return rpcHoldTimeout
 }
 
@@ -151,7 +152,8 @@ func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 	return time.Since(start) > r.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
-func (r *ReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+// Timeout implements structs.RPCInfo
+func (r *ReadRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
 	return rpcHoldTimeout
 }
 

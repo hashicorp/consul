@@ -323,7 +323,7 @@ func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime tim
 			q.MaxQueryTime = defaultQueryTime
 		}
 		// Timeout after maximum jitter has elapsed.
-		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
+		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}

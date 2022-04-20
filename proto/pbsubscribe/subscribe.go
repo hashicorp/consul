@@ -32,6 +32,7 @@ func (req *SubscribeRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQue
 	return time.Since(start) > req.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
+// Timeout implements structs.RPCInfo
 func (req *SubscribeRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	return rpcHoldTimeout
 }
