@@ -7,45 +7,44 @@ description: >-
 
 # Federation Between Kubernetes Clusters with Vault as Secrets Backend
 
-~> This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters), [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+~> **Note**: This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters), [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
-This page describes how to federate multiple Kubernetes clusters using Vault as the secrets backend.  See [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster) for more information on use cases and how it works.
+This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster) for more information on use cases and how it works.
 
 ## Differences Between Using Kubernetes Secrets vs. Vault
-The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for a [Federation Secret](docs/k8s/installation/multi-cluster/kubernetes#federation-secret).
+The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for a [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret).
 
 When federating Consul Kubernetes clusters with Kubernetes secrets, the Federation Secret is used in the following workflow:
 - [`global.federation.createFederationSecret`](/docs/k8s/helm#v-global-federation-createfederationsecret) in primary data center is set to true
-- A Kubernetes secret called `<RELEASE-NAME>-federation` will be created in the primary datacenter. The federation secret's contents are outlined in [Federation Secret Contents](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#federation-secret-contents).
+- A Kubernetes secret called `<RELEASE-NAME>-federation` is created in the primary datacenter. The federation secret's contents are outlined in the [Federation Secret Contents](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#federation-secret-contents) page.
 - The federation secret is exported to a yaml file.
-- The federation secret is imported as a Kubernetes secret into all secondary datacenters and the Consul configuration will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
+- The federation secret must be imported as a Kubernetes secret into all secondary datacenters and Consul configurations will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
 
-When federating Consul Kubernetes clusters with Vault secrets, each datacenter is configured to request the secrets from Vault directly.  So, there is no need for this process of exporting and importing a Federation Secret in each datacenter.
+Unlike traditional federation, when you federate Consul Kubernetes clusters with Vault secrets, each datacenter is configured to request the secrets from Vault directly.  There is no need for you to export and import a Federation Secret in each datacenter.
 
 ## Usage
 
-The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend configuration between two clusters, dc1 and dc2. dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
+The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend between two clusters, dc1 and dc2.  dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
 
 Please refer to the outline provided in the [Systems Integration](/docs/website/content/docs/k8s/installation/vault/systems-integration) and [Data Integration](/docs/website/content/docs/k8s/installation/vault/data-integration) sections of the [Vault as a Secrets Backend](/docs/website/content/docs/k8s/installation/vault) area of the Consul on Kubernetes documentation.
 
-### Pre-existing Vault installation in the primary datacenter (dc1)
+### Install Vault
 
 In this setup, you will deploy Vault server in the primary datacenter (dc1) Kubernetes cluster, which is also the primary Consul datacenter. You will configure your Vault Helm installation in the secondary datacenter (dc2) Kubernetes cluster to use it as an external server. This way there will be a single vault server cluster that will be used by both Consul datacenters.
 
--> For demonstration purposes, you will deploy Vault server in dev mode, although for production installations, this is not recommended. 
+~> **Note**: For demonstration purposes, you will deploy a Vault server in dev mode. For production installations, this is not recommended. Please visit the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide?in=vault/day-one-raft) for guidance on how to install Vault in a production setting. 
 
-1. Change your Kubernetes current context to target the primary datacenter (dc1).
+1. Change your currrent Kubernetes context to target the primary datacenter (dc1).
 
     ```shell-session
     $ kubectl config use-context <context for dc1>
     ```
 
-1. Now, use the above values files for you helm install.
+1. Now, use the values files below for your Helm install.
 
     <CodeBlockConfig filename="vault-dc1.yaml" linenumbers>
 
     ```yaml
-    # vault-dc1.yaml
     server:
       dev:
         enabled: true
@@ -58,22 +57,22 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
     </CodeBlockConfig>
 
     ```shell-session
-    $ helm install vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
+    $ helm install vault-dc1 --values vault-dc1.yaml hashicorp/vault --wait
     ```
 
 ### Configuring your local environment
 
-1. Set the VAULT_TOKEN can be set to to `root`.
+1. Set the VAULT_TOKEN with a default value.
 
     ```shell-session
     $ export VAULT_ADDR=root
     ```
 
-1. Get the external IP or DNS name of the Vault server load balancer.
+1. Get the external IP or DNS name of the Vault server's load balancer.
 
     <Tabs>
       <Tab heading="EKS">
-      On EKS, you'll get the hostname of the Vault server load balancer:
+      On EKS, you can get the IP address of the Vault server's load balancer with the following command:
 
       ```shell-session
       $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
@@ -83,7 +82,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
       <Tab heading="GKE">
 
-      On GKE, you'll get the IP of the Vault server load balancer:
+      On GKE, you can get the IP address of the Vault server's load balancer with the following command:
 
       ```shell-session
       $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -93,10 +92,10 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
       <Tab heading="AKS">
 
-      On AKS, you'll get the IP of the Vault server load balancer:
+      On AKS, you can get the IP address of the Vault server' load balancer with the following command:
 
       ```shell-session
-      $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
       ```
 
       </Tab>
@@ -110,7 +109,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
 ## Systems Integation
 ### Overview
-To use Vault as the Service Mesh Certificate Provider on Kubernetes, please follow the process guidelines in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section:
+To use Vault as the Service Mesh Certificate Provider in Kubernetes, please follow the process guidelines in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) page. You must complete following actions:
 
 - One time setup in Vault
   1. Enabling Vault KV Secrets Engine - Version 2.
@@ -137,15 +136,14 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     ```
 
 ### Setup per Consul datacenter
-#### dc1 Datacenter
-1. Install Vault Injector in your Consul k8s cluster, which is used for accessing secrets from Vault. 
+#### Primary Datacenter (dc1)
+1. Install the Vault Injector in your Consul Kubernetes cluster (dc1), which is used for accessing secrets from Vault. 
     
-    -> In the primary datacenter (dc1), you will not have to configure `injector.externalvaultaddr` value because the Vault Server is in the same primary datacenter (dc1) cluster.
+    -> **Note**: In the primary datacenter (dc1), you will not have to configure `injector.externalvaultaddr` value because the Vault server is in the same primary datacenter (dc1) cluster.
 
     <CodeBlockConfig filename="vault-dc1.yaml" linenumbers lineNumbers highlight="8,9,10">
 
     ```yaml
-    # vault-dc1.yaml
     server:
       dev:
         enabled: true
@@ -161,7 +159,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     </CodeBlockConfig>
 
     ```shell-session
-    $ helm upgrade vault-dc1 -f vault-dc1.yaml hashicorp/vault --wait
+    $ helm upgrade vault-dc1 --values vault-dc1.yaml hashicorp/vault --wait
     ```
 
 1. Configure the Kubernetes Auth Method in Vault for the primary datacenter (dc1).
@@ -170,15 +168,15 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     $ vault auth enable -path=kubernetes-dc1 kubernetes
     ```
 
-    Since Consul is in the same datacenter cluster as Vault, the Vault Auth Method can use its own CA Cert and JWT to call authenticate Consul dc1 service account requests.  Therefore, you do not need to set `token_reviewer` and `kubernetes_ca_cert` on the dc1 Kubernetes Auth Method.
+ Because Consul is in the same datacenter cluster as Vault, the Vault Auth Method can use its own CA Cert and JWT to authenticate Consul dc1 service account requests.  Therefore, you do not need to set `token_reviewer` and `kubernetes_ca_cert` on the dc1 Kubernetes Auth Method.
 
 1. Configure Auth Method with Kubernetes API host
 
-    ```shell
+    ```shell-session
     $ vault write auth/kubernetes-dc1/config kubernetes_host=https://kubernetes.default.svc
     ```
 
-1. Enable Vault as the secrets backend in the primary datacenter (dc1) to enable Vault as the Secrets backend.  However, you will not yet apply the Helm chart.  A complete chart for the primary datacenter (dc1) is applied at the end of the Data Integration section.
+1. Enable Vault as the secrets backend in the primary datacenter (dc1).  However, you will not yet apply the Helm upgrade command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="consul-dc1.yaml" linenumbers>
 
@@ -193,11 +191,10 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
 
 
 ####  Secondary Datacenter (dc2)
-1. Install Vault Injector in the secondary datacenter (dc2).
+1. Install the Vault Injector in the secondary datacenter (dc2).
 
-    -> In the secondary datacenter (dc2), you will have to configure `externalvaultaddr` value point to the external address of the Vault server in the primary datacenter (dc1).
-
-    Change your Kubernetes current context to target the secondary datacenter (dc2):
+In the secondary datacenter (dc2), you will configure the `externalvaultaddr` value point to the external address of the Vault server in the primary datacenter (dc1).
+    Change your Kubernetes context to target the secondary datacenter (dc2):
 
     ```shell-session
     $ kubectl config use-context <context for dc2>
@@ -206,7 +203,6 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     <CodeBlockConfig filename="vault-dc2.yaml" linenumbers highlight="6,7">
     
     ```yaml
-    # vault-dc2.yaml
     server:
       enabled: false
     injector:
@@ -216,9 +212,9 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     ```
     
     </CodeBlockConfig>
-
+Next, install Vault in the Kubernetes cluster.
     ```shell-session
-    $ helm install vault-dc2 -f vault-dc2.yaml hashicorp/vault --wait
+    $ helm install vault-dc2 --values vault-dc2.yaml hashicorp/vault --wait
     ```
 
 1. Configure the Kubernetes Auth Method in Vault for the datacenter
@@ -227,7 +223,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     $ vault auth enable -path=kubernetes-dc2 kubernetes
     ```
 
-1. Create a service account with access to Kubenetes API in the secondary datacenter (dc2).  For the secondary datacenter (dc2) auth method, you first need to create a service account that allows Vault server in the primary datacenter (dc1) cluster to talk to the Kubernetes API in the secondary datacenter (dc2) cluster.
+1. Create a service account with access to the Kubenetes API in the secondary datacenter (dc2).  For the secondary datacenter (dc2) auth method, you first need to create a service account that allows the Vault server in the primary datacenter (dc1) cluster to talk to the Kubernetes API in the secondary datacenter (dc2) cluster.
 
     ```shell-session
     $ cat <<EOF >> auth-method-serviceaccount.yaml
@@ -254,23 +250,23 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     ```
 
     ```shell-session
-    $ kubectl apply -f auth-method-serviceaccount.yaml
+    $ kubectl apply --values auth-method-serviceaccount.yaml
     ```
 
 1. Next, you will need to get the token and CA cert from that service account secret.
 
     ```shell-session
-    $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.ca\.crt}' | base64 -d)"
+    $ export K8S_DC2_CA_CERT="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method --output jsonpath='{.secrets[0].name}'` --output jsonpath='{.data.ca\.crt}' | base64 --decode)"
     ```
 
     ```shell-session
-    $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method -o jsonpath='{.secrets[0].name}'` -o jsonpath='{.data.token}' | base64 -d)"
+    $ export K8S_DC2_JWT_TOKEN="$(kubectl get secret `kubectl get serviceaccounts vault-dc2-auth-method --output jsonpath='{.secrets[0].name}'` --output jsonpath='{.data.token}' | base64 --decode)"
     ```
 
-1. Configure Auth Method with JWT token of service account.  You will have to get the externally reachable address of the secondary datacenter (dc2) Consul Kubernetes cluster and set `kubernetes_host` within the Auth Method configuration. 
+1. Configure Auth Method with the JWT token of service account.  You will have to get the externally reachable address of the secondary Consul datacenter (dc2)  in the secondary Kubernetes cluster and set `kubernetes_host` within the Auth Method configuration. 
 
     ```shell-session
-    $ export KUBE_API_URL_DC2=$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
+    $ export KUBE_API_URL_DC2=$(kubectl config view --output jsonpath="{.clusters[?(@.name == \"$(kubectl config current-context)\")].cluster.server}")
     ```
 
     ```shell-session
@@ -280,7 +276,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
       kubernetes_ca_cert="${K8S_DC2_CA_CERT}"
     ```
 
-1. Enable Vault as the secrets backend in the secondary datacenter (dc2) to enable Vault as the Secrets backend.  However, you will not yet apply the Helm chart.  A complete chart for the primary datacenter (dc1) is applied at the end of the Data Integration section.
+1. Enable Vault as the secrets backend in the secondary Consul datacenter (dc2).  However, you will not yet apply the Helm upgrade command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="values-dc2.yaml" linenumbers>
 
@@ -295,7 +291,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
 
 ## Data Integration
 ### Overview
-To use Vault as the Service Mesh Certificate Provider on Kubernetes, please follow the process guidelines in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+To use Vault as the Service Mesh Certificate Provider in Kubernetes, please follow the process guidelines in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
 - One time setup in Vault
   1. Store the secrets in Vault.
@@ -347,7 +343,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
 ### Setup per Consul datacenter
 #### Primary Datacenter (dc1)
 
-1. Change your Kubernetes current context to target the primary datacenter (dc1):
+1. Change your Kubernetes context to target the primary datacenter (dc1):
     ```shell-session
     $ kubectl config use-context <context for dc1>
     ```
@@ -383,7 +379,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     EOF
     ```
 
-1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for Consul server, Consul client, the `server-acl-init` job, and Consul server CA.
+1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for the Consul server, Consul client, the `server-acl-init` job, and Consul server CA.
 
     ```shell-session
     $ vault write auth/kubernetes-dc1/role/consul-server \
@@ -434,7 +430,6 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     <CodeBlockConfig filename="consul-dc1.yaml" linenumbers highlight="5,6,7,8,9,10,11,12,13,14,15,16,20,21,22,23,26,27,28,29,30,31,34,35">
 
     ```yaml
-    # consul-dc1.yaml
     global:
       datacenter: "dc1"
       name: consul
@@ -480,9 +475,9 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
     ```
 
     </CodeBlockConfig>
-
+Next, install Consul in the primary Kubernetes cluster (dc1).
     ```shell-session
-    $ helm install consul-dc1 -f consul-dc1.yaml hashicorp/consul
+    $ helm install consul-dc1 --values consul-dc1.yaml hashicorp/consul
     ```
 
 #### Secondary datacenter (dc2)
@@ -568,21 +563,21 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
       max_ttl="720h"
     ```
 
-1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
+1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes Helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
 
-    Change your Kubernetes current context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
+    Change your current Kubernetes context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
 
     ```shell-session
     $ kubectl config use-context <context for dc1>
     ```
 
-    Now, get the mesh gateway address:
+    Next, get mesh gateway address:
 
     <Tabs>
       <Tab heading="EKS">
 
       ```shell-session
-      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
       ```
 
       </Tab>
@@ -590,7 +585,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
       <Tab heading="GKE">
 
       ```shell-session
-      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
       ```
 
       </Tab>
@@ -598,7 +593,7 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
       <Tab heading="AKS">
 
       ```shell-session
-      export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
       ```
 
       </Tab>
@@ -606,12 +601,11 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
 
 1. Configure and install Consul in the secondary datacenter (dc2).
     
-    -> Note To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same, but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter, you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter for which this configuration is intended (e.g. `dc2/connect-intermediate`).
+    -> **Note**:  To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same. The intermediate path is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter, you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter for which this configuration is intended (e.g. `dc2/connect-intermediate`).
 
     <CodeBlockConfig filename="consul-dc2.yaml" linenumbers highlight="5,6,7,8,9,10,11,12,13,14,15,16,20,21,22,23,24,25,26,27,30,31,32,33,34,35,38,39">
 
     ```yaml
-    # consul-dc2.yaml
     global:
       datacenter: "dc2"
       name: consul
@@ -662,13 +656,13 @@ To use Vault as the Service Mesh Certificate Provider on Kubernetes, please foll
 
     </CodeBlockConfig>
 
-    Change your Kubernetes current context to target the secondary datacenter (dc2):
+    Change your current Kubernete context to target the secondary datacenter (dc2):
 
     ```shell-session
     $ kubectl config use-context <context for dc2>
     ```
 
-    Now, use the above values files for you helm install:
+    Now, use the values files for dc2, `consul-dc2.yaml`,  for you Helm install:
 
     ```shell-session
     $ helm install consul-dc2 -f consul-dc2.yaml hashicorp/consul
