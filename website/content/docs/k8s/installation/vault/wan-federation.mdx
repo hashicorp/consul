@@ -92,7 +92,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
       <Tab heading="AKS">
 
-      On AKS, you can get the IP address of the Vault server' load balancer with the following command:
+      On AKS, you can get the IP address of the Vault server's load balancer with the following command:
 
       ```shell-session
       $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -158,6 +158,8 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
     ```
     </CodeBlockConfig>
 
+    Next, install Vault in the Kubernetes cluster.
+    
     ```shell-session
     $ helm upgrade vault-dc1 --values vault-dc1.yaml hashicorp/vault --wait
     ```
@@ -176,7 +178,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
     $ vault write auth/kubernetes-dc1/config kubernetes_host=https://kubernetes.default.svc
     ```
 
-1. Enable Vault as the secrets backend in the primary datacenter (dc1).  However, you will not yet apply the Helm upgrade command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
+1. Enable Vault as the secrets backend in the primary datacenter (dc1).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="consul-dc1.yaml" linenumbers>
 
@@ -278,7 +280,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
       kubernetes_ca_cert="${K8S_DC2_CA_CERT}"
     ```
 
-1. Enable Vault as the secrets backend in the secondary Consul datacenter (dc2).  However, you will not yet apply the Helm upgrade command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
+1. Enable Vault as the secrets backend in the secondary Consul datacenter (dc2).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/installation/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="values-dc2.yaml" linenumbers>
 
