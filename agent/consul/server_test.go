@@ -257,6 +257,26 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
+func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn) {
+	_, srv, _ := testACLServerWithConfig(t, cb, false)
+
+	// Normally the gRPC server listener is created at the agent level and passed down into
+	// the Server creation. For our tests, we need to ensure
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	go func() {
+		_ = srv.publicGRPCServer.Serve(ln)
+	}()
+	t.Cleanup(srv.publicGRPCServer.Stop)
+
+	conn, err := grpc.Dial(ln.Addr().String(), grpc.WithInsecure())
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = conn.Close() })
+
+	return srv, conn
+}
+
 func newServer(t *testing.T, c *Config) (*Server, error) {
 	return newServerWithDeps(t, c, newDefaultDeps(t, c))
 }

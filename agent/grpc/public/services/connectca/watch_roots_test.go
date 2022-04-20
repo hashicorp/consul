@@ -230,7 +230,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	mustGetRoots(t, rspCh)
 
 	// Simulate a snapshot restore.
-	storeB := testStateStore(t, publisher)
+	storeB := testutils.TestStateStore(t, publisher)
 
 	rootB := connect.TestCA(t, nil)
 	_, err = storeB.CARootSetCAS(1, 0, structs.CARoots{rootB})
