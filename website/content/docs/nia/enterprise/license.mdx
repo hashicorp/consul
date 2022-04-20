@@ -61,7 +61,7 @@ The previous section describes options for [setting the license](#setting-the-li
 
 Once CTS Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
 
-## Notification and Termination Behavior
+## License Expiry Handling
 
 Licenses have an expiration date and a termination date. The termination date is a time at or after the license expires. CTS Enterprise will cease to function once the termination date has passed.
 
@@ -71,11 +71,11 @@ When approaching expiration and termination, by default, CTS Enterprise will att
 
 | Time period                                 | Behavior - auto-retrieval enabled (default) |Behavior - auto-retrieval disabled |
 | ------------------------------------------- |-------------------------------------------- |---------------------------------- |
-| 30 days before expiration                   | License retrieval attempt every 24-hours    |Warning-level log every 24-hours   |
-| 7 days before expiration                    | License retrieval attempt every 1 hour      |Warning-level log every 1 hour     |
-| 1 hour before expiration                    | License retrieval attempt every 1 minute    |Warning-level log every 1 minute   |
-| 1 day before expiration                     | License retrieval attempt every 5 minute    |Warning-level log every 5 minutes  |
-| At or after expiration (before termination) | License retrieval attempt every 1 minute    |Error-level log every 1 minute     |
-| At or after termination                     | Error-level log and exit                    |Error-level log and exit           |
+| 30 days before expiration                   | License retrieval attempt every 24-hours    | Warning-level log every 24-hours  |
+| 7 days before expiration                    | License retrieval attempt every 1 hour      | Warning-level log every 1 hour    |
+| 1 day before expiration                     | License retrieval attempt every 5 minutes   | Warning-level log every 5 minutes |
+| 1 hour before expiration                    | License retrieval attempt every 1 minute    | Warning-level log every 1 minute  |
+| At or after expiration (before termination) | License retrieval attempt every 1 minute    | Error-level log every 1 minute    |
+| At or after termination                     | Error-level log and exit                    | Error-level log and exit          |
 
 ~> **Note**: Notification frequency and [grace period](/docs/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire) behavior is the same as Consul Enterprise.
