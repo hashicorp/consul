@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
+const AllowedACLPolciyClaimMapping = "allowed_acl_policy"
+
 type AutoConfigOptions struct {
 	NodeName    string
 	SegmentName string
@@ -55,6 +57,7 @@ type jwtAuthorizer struct {
 func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
 	identity, err := a.validator.ValidateLogin(context.Background(), req.JWT)
+
 	if err != nil {
 		// TODO (autoconf) maybe we should add a more generic permission denied error not tied to the ACL package?
 		return AutoConfigOptions{}, acl.PermissionDenied("Failed JWT authorization: %v", err)
@@ -64,6 +67,23 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 		"node":      req.Node,
 		"segment":   req.Segment,
 		"partition": req.PartitionOrDefault(),
+	}
+
+	// The user must specify the AllowedACLPolciyClaimMapping in the auto config
+	// claim_mapping configuration To prevent any consul agent using auto-config
+	// from applying abitrary policy. The value extracted from the mapping will
+	// be used to authorize if they can have the requested ACL policy minted into
+	// the token.
+	allowedPolicy := identity.ProjectedVars["value."+AllowedACLPolciyClaimMapping]
+	if req.Policy != "" {
+		// If the user has not provided the claim_mapping and the agent has
+		// requested a policy, reject.
+		if allowedPolicy == "" {
+			return AutoConfigOptions{}, fmt.Errorf("Failed to authorize requested policy %q: no allowed policy is specified. Did you create the '%s' claim_mapping in the server configuration?", req.Policy, AllowedACLPolciyClaimMapping)
+		}
+		if req.Policy != allowedPolicy {
+			return AutoConfigOptions{}, fmt.Errorf("Failed to authorize requested policy %q: the policy allowed by the provided JWT does not match (%s != %q)", req.Policy, allowedPolicy, req.Policy)
+		}
 	}
 
 	for _, raw := range a.claimAssertions {
