@@ -1159,22 +1159,7 @@ workflows:
       - upgrade-integration-test-latest:
           requires:
             - dev-build
-            
-  website:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - build-website-docker-image:
-          context: website-docker-image
-          filters:
-            branches:
-              only:
-                - main
-      - algolia-index:
-          filters:
-            branches:
-              only:
-                - stable-website
-                
+
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
