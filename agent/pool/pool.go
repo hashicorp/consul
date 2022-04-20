@@ -57,20 +57,20 @@ type Conn struct {
 }
 
 // TimeoutConn wraps net.Conn with a read timeout.
-// When set, Timeout only applies to the very next Read.
+// When set, FirstReadTimeout only applies to the very next Read.
 // DefaultTimeout is used for any other Read.
 type TimeoutConn struct {
 	net.Conn
-	DefaultTimeout time.Duration
-	Timeout        time.Duration
+	DefaultTimeout   time.Duration
+	FirstReadTimeout time.Duration
 }
 
 func (c *TimeoutConn) Read(b []byte) (int, error) {
 	timeout := c.DefaultTimeout
 	// Apply timeout to first read then zero it out
-	if c.Timeout > 0 {
-		timeout = c.Timeout
-		c.Timeout = 0
+	if c.FirstReadTimeout > 0 {
+		timeout = c.FirstReadTimeout
+		c.FirstReadTimeout = 0
 	}
 	var deadline time.Time
 	if timeout > 0 {
@@ -631,13 +631,12 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 
 	timeout := time.Duration(0)
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
-	info, _ := args.(structs.RPCInfo)
-	if info != nil {
+	if info, ok := args.(structs.RPCInfo); ok {
 		timeout = info.Timeout(p.Timeout, p.MaxQueryTime, p.DefaultQueryTime)
 	}
 
 	if timeout > 0 {
-		sc.stream.Timeout = timeout
+		sc.stream.FirstReadTimeout = timeout
 	}
 
 	// Make the RPC call
