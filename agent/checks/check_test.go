@@ -1254,7 +1254,10 @@ func expectUDPTimeout(t *testing.T, udp string, status string) {
 
 func TestCheckUDPTimeoutPassing(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	port := freeport.GetOne(t)
 	serverUrl := "127.0.0.1:" + strconv.Itoa(port)
 
@@ -1263,7 +1266,10 @@ func TestCheckUDPTimeoutPassing(t *testing.T) {
 }
 func TestCheckUDPCritical(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	port := freeport.GetOne(t)
 	notExistentPort := freeport.GetOne(t)
 	serverUrl := "127.0.0.1:" + strconv.Itoa(notExistentPort)
@@ -1274,7 +1280,10 @@ func TestCheckUDPCritical(t *testing.T) {
 
 func TestCheckUDPPassing(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	port := freeport.GetOne(t)
 	serverUrl := "127.0.0.1:" + strconv.Itoa(port)
 

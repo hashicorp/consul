@@ -770,7 +770,9 @@ func (c *CheckUDP) run() {
 }
 
 func (c *CheckUDP) check() {
+
 	conn, err := c.dialer.Dial(`udp`, c.UDP)
+	defer conn.Close()
 	if err != nil {
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
@@ -828,7 +830,6 @@ func (c *CheckUDP) check() {
 	} else if err == nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 	}
-	conn.Close()
 }
 
 // CheckDocker is used to periodically invoke a script to
