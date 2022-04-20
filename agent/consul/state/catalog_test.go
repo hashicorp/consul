@@ -265,6 +265,37 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
 		require.Equal(t, svcmap["redis1"], r)
+
+		// look service by node name
+		idx, sn, err := s.ServiceNode("", "node1", "redis1", nil)
+		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
+		}
+		require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+
+		// lookup service by node ID
+		idx, sn, err = s.ServiceNode(string(nodeID), "", "redis1", nil)
+		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
+		}
+		require.Equal(t, svcmap["redis1"].ToServiceNode("node1"), sn)
+
+		// lookup service by invalid node
+		_, _, err = s.ServiceNode("", "invalid-node", "redis1", nil)
+		if err != nil {
+			require.Equal(t, "node not found", err.Error())
+		}
+		if err == nil {
+			t.Fatalf("Expected error on lookup of \"invalid-node\"")
+		}
+		// lookup service without node name or ID
+		_, _, err = s.ServiceNode("", "", "redis1", nil)
+		if err != nil {
+			require.Equal(t, "Node ID or name required to lookup the service", err.Error())
+		}
+		if err == nil {
+			t.Fatalf("Expected error on lookup of service without node name or ID")
+		}
 	}
 	verifyNode()
 	verifyService()
