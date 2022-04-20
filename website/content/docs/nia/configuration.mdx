@@ -55,7 +55,38 @@ tls {
   - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
-- `license_path` <EnterpriseAlert inline /> - (string) Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
+- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license-1) instead.**  Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
+- `license` <EnterpriseAlert inline /> - (obj) The `license` block is used to configure how CTS attains a license, for more information see the [license block](/docs/nia/configuration#license) section
+
+## License <EnterpriseAlert inline />
+
+The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. To use the license block for CTS Enterprise, a license path must be provided or automatic license retrieval enabled. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
+
+```hcl
+license {
+  path = "path/to/license.lic"
+  auto_retrieval {
+    enabled = true
+  }
+}
+```
+
+### License Config
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured this license will be use until, if enabled, a new license is automatically retrieved by CTS. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details. | none |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. See [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for details. | See [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for defaults. |
+
+
+### Auto-Retrieval Config
+
+The `auto_retrieval` block is used to configure the license auto-retrieval used by CTS. If enabled, CTS will attempt to retrieve a new license from its configured Consul Enterprise backend each day. In the case where a license was not able to be retrieved on the daily cadence, and the license is reaching expiry, CTS will attempt to retrieve a license at each period defined by the [License Expiry Handling](/docs/nia/enterprise/license#license-expiry-handling).
+
+~> `auto_retrieval` is an important feature to have enabled when connecting to HCP-Consul. HCP-Consul has a relatively short license expiry, and in order to ensure that CTS can continue to work without restart, it is important that CTS be able to dynamically attain fresh licenses from HCP-Consul.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` |  Optional | string | If set to true, enables license auto-retrieval | true |
 
 ## Consul
 
