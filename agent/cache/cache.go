@@ -376,6 +376,13 @@ func (c *Cache) getEntryLocked(
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
+		if entry.Fetching {
+			// There is an active blocking query for this data, which has not
+			// returned. We can logically deduce that the contents of the cache
+			// are actually current, and we can simply return this while
+			// leaving the blocking query alone.
+			return true, true, entry
+		}
 		return true, false, entry
 	}
 
