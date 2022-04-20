@@ -343,13 +343,12 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
     ```
 
 ### Setup per Consul datacenter
-#### Primary Datacenter (dc1)
-
-1. Change your Kubernetes context to target the primary datacenter (dc1):
+#### Pre-installation for Primary Datacenter (dc1)
+1.  Change your Kubernetes context to target the primary datacenter (dc1):
     ```shell-session
     $ kubectl config use-context <context for dc1>
     ```
-
+#### Primary Datacenter (dc1)
 1. Create Server TLS and Service Mesh Cert Policies
 
     ```shell-session
@@ -483,44 +482,81 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
     $ helm install consul-dc1 --values consul-dc1.yaml hashicorp/consul
     ```
 
-#### Secondary datacenter (dc2)
+#### Pre-installation for Secondary Datacenter (dc2)
+1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes Helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
+
+    Keep your Kubernetes context targeting dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
+
+    ```shell-session
+    $ kubectl config use-context <context for dc1>
+    ```
+
+    Next, get mesh gateway address:
+
+    <Tabs>
+      <Tab heading="EKS">
+
+      ```shell-session
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      ```
+
+      </Tab>
+
+      <Tab heading="GKE">
+
+      ```shell-session
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+
+      <Tab heading="AKS">
+
+      ```shell-session
+      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+    </Tabs>
+
+1.  Change your Kubernetes context to target the primary datacenter (dc2):
+    ```shell-session
+    $ kubectl config use-context <context for dc2>
+    ```
+#### Secondary Datacenter (dc2)
+
 1. Create Server TLS and Service Mesh Cert Policies
 
-  ```shell-session
-  $ vault policy write consul-cert-dc2 - <<EOF
-  path "pki/issue/consul-cert-dc2"
-  {
-    capabilities = ["create","update"]
-  }
-  EOF
-  ```
+    ```shell-session
+    $ vault policy write consul-cert-dc2 - <<EOF
+    path "pki/issue/consul-cert-dc2"
+    {
+      capabilities = ["create","update"]
+    }
+    EOF
+    ```
 
-  ```shell-session
-  $ vault policy write connect-ca-dc2 - <<EOF
-  path "/sys/mounts" {
-    capabilities = [ "read" ]
-  }
-  path "/sys/mounts/connect_root" {
-    capabilities = [ "create", "read", "update", "delete", "list" ]
-  }
-  path "/sys/mounts/dc2/connect_inter" {
-    capabilities = [ "create", "read", "update", "delete", "list" ]
-  }
-  path "/connect_root/*" {
-    capabilities = [ "create", "read", "update", "delete", "list" ]
-  }
-  path "/dc2/connect_inter/*" {
-    capabilities = [ "create", "read", "update", "delete", "list" ]
-  }
-  EOF
-  ```
+    ```shell-session
+    $ vault policy write connect-ca-dc2 - <<EOF
+    path "/sys/mounts" {
+      capabilities = [ "read" ]
+    }
+    path "/sys/mounts/connect_root" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/sys/mounts/dc2/connect_inter" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/connect_root/*" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    path "/dc2/connect_inter/*" {
+      capabilities = [ "create", "read", "update", "delete", "list" ]
+    }
+    EOF
+    ```
 
-1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for:
-
-    * Consul server
-    * Consul client
-    * `server-acl-init` job
-    * Role for Consul server CA
+1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.  For each auth method in Vault, you will need roles for the Consul server, Consul client, the server-acl-init job, and Consul server CA.
 
     ```shell-session
     $ vault write auth/kubernetes-dc2/role/consul-server \
@@ -565,42 +601,6 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
       generate_lease=true \
       max_ttl="720h"
     ```
-
-1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes Helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
-
-    Change your current Kubernetes context to target dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
-
-    ```shell-session
-    $ kubectl config use-context <context for dc1>
-    ```
-
-    Next, get mesh gateway address:
-
-    <Tabs>
-      <Tab heading="EKS">
-
-      ```shell-session
-      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      ```
-
-      </Tab>
-
-      <Tab heading="GKE">
-
-      ```shell-session
-      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      ```
-
-      </Tab>
-
-      <Tab heading="AKS">
-
-      ```shell-session
-      $ export MESH_GW_HOST=$(kubectl get svc consul-mesh-gateway --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      ```
-
-      </Tab>
-    </Tabs>
 
 1. Configure and install Consul in the secondary datacenter (dc2).
     
@@ -659,13 +659,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, please foll
 
     </CodeBlockConfig>
 
-    Change your current Kubernetes context to target the secondary datacenter (dc2):
-
-    ```shell-session
-    $ kubectl config use-context <context for dc2>
-    ```
-
-    Now, use the values files for dc2, `consul-dc2.yaml`,  for you Helm install:
+    Next, install Consul in the consul Kubernetes cluster (dc2).
 
     ```shell-session
     $ helm install consul-dc2 -f consul-dc2.yaml hashicorp/consul
