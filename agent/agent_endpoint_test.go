@@ -6202,6 +6202,101 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	}
 }
 
+func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBlock(t *testing.T) {
+	// see: https://github.com/hashicorp/consul/issues/12048
+
+	runStep := func(t *testing.T, name string, fn func(t *testing.T)) {
+		t.Helper()
+		if !t.Run(name, fn) {
+			t.FailNow()
+		}
+	}
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+	{
+		// Register a local service
+		args := &structs.ServiceDefinition{
+			ID:      "foo",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+		}
+		req := httptest.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		if !assert.Equal(t, 200, resp.Code) {
+			t.Log("Body: ", resp.Body.String())
+		}
+	}
+
+	var (
+		serialNumber string
+		index        string
+		issued       structs.IssuedCert
+	)
+	runStep(t, "do initial non-blocking query", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		dec := json.NewDecoder(resp.Body)
+		require.NoError(t, dec.Decode(&issued))
+		serialNumber = issued.SerialNumber
+
+		require.Equal(t, "MISS", resp.Header().Get("X-Cache"),
+			"for the leaf cert cache type these are always MISS")
+		index = resp.Header().Get("X-Consul-Index")
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		// launch goroutine for blocking query
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil).Clone(ctx)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+	}()
+
+	// We just need to ensure that the above blocking query is in-flight before
+	// the next step, so do a little sleep.
+	time.Sleep(50 * time.Millisecond)
+
+	// The initial non-blocking query populated the leaf cert cache entry
+	// implicitly. The agent cache doesn't prune entries very often at all, so
+	// in between both of these steps the data should still be there, causing
+	// this to be a HIT that completes in less than 10m (the default inner leaf
+	// cert blocking query timeout).
+	runStep(t, "do a non-blocking query that should not block", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		var issued2 structs.IssuedCert
+		dec := json.NewDecoder(resp.Body)
+		require.NoError(t, dec.Decode(&issued2))
+
+		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+
+		// If this is actually returning a cached result, the serial number
+		// should be unchanged.
+		require.Equal(t, serialNumber, issued2.SerialNumber)
+
+		require.Equal(t, issued, issued2)
+	})
+}
+
 func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) {
 	ca.SkipIfVaultNotPresent(t)
 
