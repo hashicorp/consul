@@ -1,0 +1,3 @@
+```release-note:feature
+grpc: New gRPC endpoint to return envoy bootstrap parameters.
+``` 

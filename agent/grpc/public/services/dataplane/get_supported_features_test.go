@@ -22,15 +22,14 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizer(t), nil)
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),
 		ACLResolver: aclResolver,
 	})
-
 	client := testClient(t, server)
-	resp, err := client.SupportedDataplaneFeatures(ctx, &pbdataplane.SupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(resp.SupportedDataplaneFeatures))
 
@@ -59,14 +58,14 @@ func TestSupportedDataplaneFeatures_Unauthenticated(t *testing.T) {
 		ACLResolver: aclResolver,
 	})
 	client := testClient(t, server)
-	resp, err := client.SupportedDataplaneFeatures(ctx, &pbdataplane.SupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.Error(t, err)
 	require.Equal(t, codes.Unauthenticated.String(), status.Code(err).String())
 	require.Nil(t, resp)
 }
 
 func TestSupportedDataplaneFeatures_PermissionDenied(t *testing.T) {
-	// Mock the ACL resolver to return ErrNotFound.
+	// Mock the ACL resolver to return a deny all authorizer
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
 		Return(acl.DenyAll(), nil)
@@ -76,7 +75,7 @@ func TestSupportedDataplaneFeatures_PermissionDenied(t *testing.T) {
 		ACLResolver: aclResolver,
 	})
 	client := testClient(t, server)
-	resp, err := client.SupportedDataplaneFeatures(ctx, &pbdataplane.SupportedDataplaneFeaturesRequest{})
+	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.Error(t, err)
 	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
 	require.Nil(t, resp)

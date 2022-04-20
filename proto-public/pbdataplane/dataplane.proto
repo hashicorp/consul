@@ -4,29 +4,78 @@ syntax = "proto3";
 
 package dataplane;
 
+import "google/protobuf/struct.proto";
+
 option go_package = "github.com/hashicorp/consul/proto-public/pbdataplane";
 
-
-message SupportedDataplaneFeaturesRequest {}
+message GetSupportedDataplaneFeaturesRequest {}
 
 enum DataplaneFeatures {
-    UNKNOWN = 0;
-    WATCH_SERVERS = 1;
-    EDGE_CERTIFICATE_MANAGEMENT = 2;
-    ENVOY_BOOTSTRAP_CONFIGURATION = 3;
+  UNKNOWN = 0;
+  WATCH_SERVERS = 1;
+  EDGE_CERTIFICATE_MANAGEMENT = 2;
+  ENVOY_BOOTSTRAP_CONFIGURATION = 3;
 }
-
 
 message DataplaneFeatureSupport {
-    DataplaneFeatures feature_name = 1;
-    bool supported = 2;
+  DataplaneFeatures feature_name = 1;
+  bool supported = 2;
 }
 
-message SupportedDataplaneFeaturesResponse {
-    repeated DataplaneFeatureSupport supported_dataplane_features = 1;
+message GetSupportedDataplaneFeaturesResponse {
+  repeated DataplaneFeatureSupport supported_dataplane_features = 1;
 }
 
+message GetEnvoyBootstrapParamsRequest {
+  oneof node_spec {
+    string node_id = 1;
+    string node_name = 2;
+  }
+  // The proxy service ID
+  string service_id = 3;
+  string partition = 4;
+  string namespace = 5;
+}
+
+enum ServiceKind {
+  // ServiceKind Typical is a typical, classic Consul service. This is
+  // represented by the absence of a value. This was chosen for ease of
+  // backwards compatibility: existing services in the catalog would
+  // default to the typical service.
+  TYPICAL = 0;
+
+  // ServiceKind Connect Proxy is a proxy for the Connect feature. This
+  // service proxies another service within Consul and speaks the connect
+  // protocol.
+  CONNECT_PROXY = 1;
+
+  // ServiceKind Mesh Gateway is a Mesh Gateway for the Connect feature. This
+  // service will proxy connections based off the SNI header set by other
+  // connect proxies.
+  MESH_GATEWAY = 2;
+
+  // ServiceKind Terminating Gateway is a Terminating Gateway for the Connect
+  // feature. This service will proxy connections to services outside the mesh.
+  TERMINATING_GATEWAY = 3;
+
+  // ServiceKind Ingress Gateway is an Ingress Gateway for the Connect feature.
+  // This service will ingress connections into the service mesh.
+  INGRESS_GATEWAY = 4;
+}
+
+message GetEnvoyBootstrapParamsResponse {
+  ServiceKind service_kind = 1;
+  // The destination service name
+  string service = 2;
+  string namespace = 3;
+  string partition = 4;
+  string datacenter = 5;
+  google.protobuf.Struct config = 6;
+}
 
 service DataplaneService {
-    rpc SupportedDataplaneFeatures(SupportedDataplaneFeaturesRequest) returns (SupportedDataplaneFeaturesResponse) {};
+  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
+
+  rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {}
+
 }
