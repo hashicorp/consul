@@ -634,8 +634,7 @@ func (c *Client) SetHeaders(headers http.Header) {
 	c.headers = headers
 }
 
-// NewClient returns a new client
-func NewClient(config *Config) (*Client, error) {
+func SetClientConfig(config *Config) error {
 	// bootstrap the config
 	defConfig := DefaultConfig()
 
@@ -679,12 +678,7 @@ func NewClient(config *Config) (*Client, error) {
 		var err error
 		config.HttpClient, err = NewHttpClient(config.Transport, config.TLSConfig)
 		if err != nil {
-			return nil, err
-		}
-	} else {
-		err := SetClientTransportWithTLSConfig(config.HttpClient, config.Transport, config.TLSConfig)
-		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -710,11 +704,11 @@ func NewClient(config *Config) (*Client, error) {
 			}
 			httpClient, err := NewHttpClient(trans, config.TLSConfig)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			config.HttpClient = httpClient
 		default:
-			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
+			return fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
 	}
@@ -725,7 +719,7 @@ func NewClient(config *Config) (*Client, error) {
 	if config.TokenFile != "" {
 		data, err := ioutil.ReadFile(config.TokenFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading token file: %s", err)
+			return fmt.Errorf("Error loading token file: %s", err)
 		}
 
 		if token := strings.TrimSpace(string(data)); token != "" {
@@ -736,13 +730,21 @@ func NewClient(config *Config) (*Client, error) {
 		config.Token = defConfig.Token
 	}
 
+	return nil
+}
+
+// NewClient returns a new client
+func NewClient(config *Config) (*Client, error) {
+	err := SetClientConfig(config)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
 // SetClientTransportWithTLSConfig configure Transport with TLS config on
 // the http client.
 func SetClientTransportWithTLSConfig(client *http.Client, transport *http.Transport, tlsConf TLSConfig) error {
-	client.Transport = transport
 	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
 	// should turn it on by default if TLS is enabled. We would basically
 	// just need to call http2.ConfigureTransport(transport) here. We also
@@ -760,6 +762,8 @@ func SetClientTransportWithTLSConfig(client *http.Client, transport *http.Transp
 
 		transport.TLSClientConfig = tlsClientConfig
 	}
+
+	client.Transport = transport
 
 	return nil
 }
