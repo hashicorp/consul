@@ -74,12 +74,12 @@ func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
 	q.StaleIfError = structs.DurationToProto(staleIfError)
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
 	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
-func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	maxTime := structs.DurationFromProto(maxQueryTime)
+func (q *QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	maxTime := structs.DurationFromProto(q.MaxQueryTime)
 	o := structs.QueryOptions{
 		MaxQueryTime:  maxTime,
 		MinQueryIndex: q.MinQueryIndex,
