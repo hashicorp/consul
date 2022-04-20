@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"net/rpc"
 	"os"
 	"reflect"
 	"sort"
@@ -12,10 +11,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -200,7 +201,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -222,7 +223,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "redis-master",
+			Name: "redis-primary",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
 			},
@@ -503,7 +504,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "redis",
-				Tags:    []string{"master"},
+				Tags:    []string{"primary"},
 				Port:    8000,
 			},
 		}
@@ -629,7 +630,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -831,7 +832,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -853,7 +854,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "redis-master",
+			Name: "redis-primary",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
 			},
@@ -1072,7 +1073,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1110,7 +1111,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name:  "redis-master",
+			Name:  "redis-primary",
 			Token: "le-token",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
@@ -1164,6 +1165,31 @@ func TestPreparedQuery_List(t *testing.T) {
 
 		if len(resp.Queries) != 0 {
 			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Same for a token without access to the query.
+	{
+		token := createTokenWithPolicyName(t, codec, "deny-queries", `
+			query_prefix "" {
+				policy = "deny"
+			}
+		`, "root")
+
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+		if !resp.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	}
 
@@ -1268,7 +1294,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1392,7 +1418,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1430,13 +1456,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 
-	execNoNodesToken := createTokenWithPolicyName(t, "no-nodes", codec1, `service_prefix "foo" { policy = "read" }`)
+	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
 	rules := `
 		service_prefix "foo" { policy = "read" }
 		node_prefix "" { policy = "read" }
 	`
-	execToken := createTokenWithPolicyName(t, "with-read", codec1, rules)
-	denyToken := createTokenWithPolicyName(t, "with-deny", codec1, `service_prefix "foo" { policy = "deny" }`)
+	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
+	denyToken := createTokenWithPolicyName(t, codec1, "with-deny", `service_prefix "foo" { policy = "deny" }`, "root")
 
 	newSessionDC1 := func(t *testing.T) string {
 		t.Helper()
@@ -2124,6 +2150,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("normal operation again with exec token", func(t *testing.T) {
@@ -2246,6 +2273,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		expectFailoverNodes(t, &query, &reply, 0)
 	})
 
+	t.Run("nodes in response from dc2 are filtered by ACL token", func(t *testing.T) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execNoNodesToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+
+		expectFailoverNodes(t, &query, &reply, 0)
+		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
 	// Bake the exec token into the query.
 	query.Query.Token = execToken
 	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
@@ -2308,7 +2349,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "redis",
-				Tags:    []string{"master"},
+				Tags:    []string{"primary"},
 				Port:    8000,
 			},
 		}
@@ -2408,7 +2449,6 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2444,7 +2484,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply struct{}
-		require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply))
 	}
 
 	// The query, start with connect disabled
@@ -2461,7 +2501,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// In the future we'll run updates
@@ -2475,15 +2515,15 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because it omits the proxy whose name
 		// doesn't match the query.
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 	}
 
 	// Run with the Connect setting specified on the request
@@ -2495,31 +2535,31 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because we should get the native AND
 		// the proxy (since the destination matches our service name).
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
 			reply.Nodes[0], reply.Nodes[1] = reply.Nodes[1], reply.Nodes[0]
 		}
 
-		require.True(reply.Nodes[0].Service.Connect.Native, "native")
-		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
+		require.True(t, reply.Nodes[0].Service.Connect.Native, "native")
+		require.Equal(t, reply.Service, reply.Nodes[0].Service.Service)
 
-		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
+		require.Equal(t, structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
+		require.Equal(t, reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Update the query
 	query.Query.Service.Connect = true
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 
 	// Run the registered query.
@@ -2530,31 +2570,31 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		require.NoError(msgpackrpc.CallWithCodec(
+		require.NoError(t, msgpackrpc.CallWithCodec(
 			codec, "PreparedQuery.Execute", &req, &reply))
 
 		// Result should have two because we should get the native AND
 		// the proxy (since the destination matches our service name).
-		require.Len(reply.Nodes, 2)
-		require.Equal(query.Query.Service.Service, reply.Service)
-		require.Equal(query.Query.DNS, reply.DNS)
-		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+		require.Len(t, reply.Nodes, 2)
+		require.Equal(t, query.Query.Service.Service, reply.Service)
+		require.Equal(t, query.Query.DNS, reply.DNS)
+		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
 			reply.Nodes[0], reply.Nodes[1] = reply.Nodes[1], reply.Nodes[0]
 		}
 
-		require.True(reply.Nodes[0].Service.Connect.Native, "native")
-		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
+		require.True(t, reply.Nodes[0].Service.Connect.Native, "native")
+		require.Equal(t, reply.Service, reply.Nodes[0].Service.Service)
 
-		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
+		require.Equal(t, structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
+		require.Equal(t, reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Unset the query
 	query.Query.Service.Connect = false
-	require.NoError(msgpackrpc.CallWithCodec(
+	require.NoError(t, msgpackrpc.CallWithCodec(
 		codec, "PreparedQuery.Apply", &query, &query.Query.ID))
 }
 
@@ -2659,7 +2699,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2669,7 +2709,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
@@ -2978,9 +3018,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
 			t.Fatalf("bad: %s", queries)
 		}
-		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
-			t.Fatalf("bad: %s", mock.LogBuffer.String())
-		}
+		require.Contains(t, mock.LogBuffer.String(), "Skipping unknown datacenter")
 	}
 
 	// Same setup as before but dc1 is going to return an error and should

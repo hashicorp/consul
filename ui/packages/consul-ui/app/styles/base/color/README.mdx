@@ -1,0 +1,81 @@
+# Colors
+
+All colors for the immediate future should _mostly_ use the following `tone`
+CSS properties, unless:
+
+1. We get around to eventually adding semantic colors names (or adding something else) in which case these docs should be updated.
+2. You are absolutely sure the color you want should never be changed by a theme. These should be very very few and far between so even if we get that wrong it should be easy to update.
+
+`tones` should always using the following form:
+
+```css
+property: rgb(var(--tone-gray-500));
+```
+
+In other words always use `rgb` this gives us the flexibility to easily use these variables with alpha if we ever need to.
+
+```css
+property: rgb(var(--tone-gray-500) / 50);
+```
+
+Currently, alphas are mainly used for shadows. Please avoid the use of alphas for adjusting hues as they can produce unpredictable results. We should be utilizing our pre-defined color palette or adding new colors to it with proper RGB values. If you do need to add a color with alpha, please include a code comment or a self-comment explaining the use case.
+
+Lastly, there is currently one non-color alias group which is `--tone-brand` which is a group of our current brand colors.
+
+
+## %theme-light (default)
+
+```hbs preview-template
+<ul
+  {{css-props (set this 'tones')
+    prefix='tone-'
+    group='[a-z\-]'
+  }}
+>
+{{#each-in this.tones as |prop value|}}
+  <li>
+    {{#each-in value as |prop value|}}
+    <figure
+      {{with-copyable (concat "rgb(var(" prop "));")}}
+      style={{concat "background-color: rgb(var(" prop "))"}}
+    >
+      <figcaption>{{prop}}</figcaption>
+    </figure>
+    {{/each-in}}
+  </li>
+{{/each-in}}
+</ul>
+```
+
+## %theme-dark
+
+If you need to build something (like a component or view) which begins in 'dark mode', you will need to switch your coloring and use
+
+```css
+%component-name {
+  @extend %theme-dark;
+}
+```
+
+```hbs preview-template
+<ul
+  {{css-props (set this 'tones')
+    prefix='tone-'
+    group='[a-z\-]'
+  }}
+>
+{{#each-in this.tones as |prop value|}}
+  <li>
+    {{#each-in value as |prop value|}}
+    <figure
+      {{with-copyable (concat "rgb(var(" prop "));")}}
+      style={{concat "background-color: rgb(var(" prop "))"}}
+    >
+      <figcaption>{{prop}}</figcaption>
+    </figure>
+    {{/each-in}}
+  </li>
+{{/each-in}}
+</ul>
+```
+

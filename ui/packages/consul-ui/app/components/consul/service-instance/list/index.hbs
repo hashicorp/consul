@@ -1,3 +1,8 @@
+{{#let
+
+  (to-hash @proxies "Service.Proxy.DestinationServiceID")
+
+as |proxies|}}
 <ListCollection
   class="consul-service-instance-list"
   ...attributes
@@ -15,15 +20,45 @@ as |item index|>
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
+
+{{#let
+  (get proxies item.Service.ID)
+as |proxy|}}
+  {{#let
+    (merge-checks
+      (array
+        item.Checks
+        (or
+          proxy.Checks
+          (array)
+        )
+      )
+    )
+  as |checks|}}
+
   {{#if @node}}
-    <Consul::ExternalSource @item={{item.Service}} />
-    <Consul::InstanceChecks @type="service" @items={{item.Checks}} />
+    <Consul::ExternalSource
+      @item={{item.Service}}
+    />
+    <Consul::InstanceChecks
+      @type="service"
+      @items={{filter-by 'ServiceID' '' checks}}
+    />
   {{else}}
-    <Consul::ExternalSource @item={{item.Service}} />
-    <Consul::InstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
-    <Consul::InstanceChecks @type="node" @items={{reject-by 'ServiceID' '' item.Checks}} />
+    <Consul::ExternalSource
+      @item={{item.Service}}
+    />
+
+    <Consul::InstanceChecks
+      @type="service"
+      @items={{filter-by 'ServiceID' '' checks}}
+    />
+    <Consul::InstanceChecks
+      @type="node"
+      @items={{reject-by 'ServiceID' '' checks}}
+    />
   {{/if}}
-{{#if item.ProxyInstance}}
+{{#if proxy}}
     <dl class="mesh">
       <dt>
         <Tooltip>
@@ -73,5 +108,10 @@ as |item index|>
     </dl>
 {{/if}}
     <TagList @item={{item.Service}} />
+
+  {{/let}}
+{{/let}}
+
   </BlockSlot>
 </ListCollection>
+{{/let}}

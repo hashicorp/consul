@@ -195,7 +195,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 	}()
 
 	// Verify the index was set correctly.
-	if idx := s.maxIndex("tombstones"); idx != 9 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableTombstones, "default")); idx != 9 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -250,7 +250,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		}()
 
 		// Verify that the restore works.
-		if idx := s.maxIndex("tombstones"); idx != 9 {
+		if idx := s.maxIndex(partitionedIndexEntryName(tableTombstones, "default")); idx != 9 {
 			t.Fatalf("bad index: %d", idx)
 		}
 

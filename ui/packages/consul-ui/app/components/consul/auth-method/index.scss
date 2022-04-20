@@ -27,7 +27,7 @@
       tbody {
         td {
           font-size: var(--typo-size-600);
-          color: var(--black);
+          color: rgb(var(--tone-gray-999));
         }
         tr {
           cursor: default;
@@ -41,6 +41,12 @@
   dl,
   section dl {
     @extend %tabular-dl;
+  }
+  section dt {
+    width: 30%;
+  }
+  section dd {
+    width: 70%;
   }
 }
 
@@ -74,7 +80,7 @@
   tbody {
     td {
       font-size: var(--typo-size-600);
-      color: var(--black);
+      color: rgb(var(--tone-gray-999));
     }
     tr {
       cursor: default;

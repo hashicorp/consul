@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -77,7 +79,6 @@ func TestService_Dial(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
 
 			s := TestService(t, "web", ca)
 
@@ -91,7 +92,7 @@ func TestService_Dial(t *testing.T) {
 			if tt.accept {
 				go func() {
 					err := testSvr.Serve()
-					require.NoError(err)
+					require.NoError(t, err)
 				}()
 				<-testSvr.Listening
 				defer testSvr.Close()
@@ -114,11 +115,11 @@ func TestService_Dial(t *testing.T) {
 			testTimer.Stop()
 
 			if tt.wantErr == "" {
-				require.NoError(err)
-				require.IsType(&tls.Conn{}, conn)
+				require.NoError(t, err)
+				require.IsType(t, &tls.Conn{}, conn)
 			} else {
-				require.Error(err)
-				require.Contains(err.Error(), tt.wantErr)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
 			}
 
 			if err == nil {
@@ -132,8 +133,6 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	require := require.New(t)
 
 	a := agent.StartTestAgent(t, agent.TestAgent{Name: "007", Overrides: `
 		connect {
@@ -153,12 +152,12 @@ func TestService_ServerTLSConfig(t *testing.T) {
 		Port: 8080,
 	}
 	err := agent.ServiceRegister(reg)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Now we should be able to create a service that will eventually get it's TLS
 	// all by itself!
 	service, err := NewService("web", client)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Wait for it to be ready
 	select {
@@ -172,17 +171,17 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	// Sanity check it has a leaf with the right ServiceID and that validates with
 	// the given roots.
-	require.NotNil(tlsCfg.GetCertificate)
+	require.NotNil(t, tlsCfg.GetCertificate)
 	leaf, err := tlsCfg.GetCertificate(&tls.ClientHelloInfo{})
-	require.NoError(err)
+	require.NoError(t, err)
 	cert, err := x509.ParseCertificate(leaf.Certificate[0])
-	require.NoError(err)
-	require.Len(cert.URIs, 1)
-	require.True(strings.HasSuffix(cert.URIs[0].String(), "/svc/web"))
+	require.NoError(t, err)
+	require.Len(t, cert.URIs, 1)
+	require.True(t, strings.HasSuffix(cert.URIs[0].String(), "/svc/web"))
 
 	// Verify it as a client would
 	err = clientSideVerifier(tlsCfg, leaf.Certificate)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Now test that rotating the root updates
 	{
@@ -192,15 +191,15 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	// After some time, both root and leaves should be different but both should
 	// still be correct.
-	oldRootSubjects := bytes.Join(tlsCfg.RootCAs.Subjects(), []byte(", "))
+	oldRootSubjects := getSubjects(tlsCfg.RootCAs)
 	oldLeafSerial := cert.SerialNumber
 	oldLeafKeyID := cert.SubjectKeyId
 	retry.Run(t, func(r *retry.R) {
 		updatedCfg := service.ServerTLSConfig()
 
 		// Wait until roots are different
-		rootSubjects := bytes.Join(updatedCfg.RootCAs.Subjects(), []byte(", "))
-		if bytes.Equal(oldRootSubjects, rootSubjects) {
+		rootSubjects := getSubjects(updatedCfg.RootCAs)
+		if oldRootSubjects == rootSubjects {
 			r.Fatalf("root certificates should have changed, got %s",
 				rootSubjects)
 		}
@@ -242,7 +241,7 @@ func TestService_HTTPClient(t *testing.T) {
 		// Hook the service resolver to avoid needing full agent setup.
 		s.httpResolverFromAddr = func(addr string) (Resolver, error) {
 			// Require in this goroutine seems to block causing a timeout on the Get.
-			//require.Equal("https://backend.service.consul:443", addr)
+			//require.Equal(t,"https://backend.service.consul:443", addr)
 			return &StaticResolver{
 				Addr:    testSvr.Addr,
 				CertURI: connect.TestSpiffeIDService(t, "backend"),
@@ -290,4 +289,16 @@ func TestService_HasDefaultHTTPResolverFromAddr(t *testing.T) {
 	got, err := fn("foo.service.consul")
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
+}
+
+func getSubjects(cp *x509.CertPool) string {
+	subjectsIter := reflect.ValueOf(cp).Elem().FieldByName("byName").MapRange()
+	subjects := []string{}
+	for subjectsIter.Next() {
+		k := subjectsIter.Key()
+		subjects = append(subjects, k.String())
+	}
+	sort.Strings(subjects)
+	subjectList := strings.Join(subjects, ",")
+	return subjectList
 }

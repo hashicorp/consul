@@ -25,7 +25,7 @@ module('Integration | Adapter | intention', function(hooks) {
         filter: '*',
         index: 1,
         ns: '*',
-        partition: '*',
+        partition: 'partition-1',
       },
       {
         filter: '*',

@@ -3,11 +3,11 @@ package agent
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
@@ -19,13 +19,17 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
+	var err error
+	args.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/discovery-chain/")
+	if err != nil {
+		return nil, err
+	}
 	if args.Name == "" {
 		return nil, BadRequestError{Reason: "Missing chain name"}
 	}
 
 	args.EvaluateInDatacenter = req.URL.Query().Get("compile-dc")
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -48,9 +52,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		if apiReq.OverrideMeshGateway.Mode != "" {
 			_, err := structs.ValidateMeshGatewayMode(string(apiReq.OverrideMeshGateway.Mode))
 			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Invalid OverrideMeshGateway.Mode parameter")
-				return nil, nil
+				return nil, BadRequestError{Reason: "Invalid OverrideMeshGateway.Mode parameter"}
 			}
 			args.OverrideMeshGateway = apiReq.OverrideMeshGateway
 		}

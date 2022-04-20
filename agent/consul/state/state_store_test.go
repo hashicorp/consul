@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -170,14 +171,20 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 		t.Fatalf("bad service: %#v", result)
 	}
 }
-
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
+	testRegisterCheckWithPartition(t, s, idx,
+		nodeID, serviceID, checkID, state, "")
+}
+
+func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
+	nodeID string, serviceID string, checkID types.CheckID, state string, partition string) {
 	chk := &structs.HealthCheck{
-		Node:      nodeID,
-		CheckID:   checkID,
-		ServiceID: serviceID,
-		Status:    state,
+		Node:           nodeID,
+		CheckID:        checkID,
+		ServiceID:      serviceID,
+		Status:         state,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition),
 	}
 	if err := s.EnsureCheck(idx, chk); err != nil {
 		t.Fatalf("err: %s", err)
@@ -185,7 +192,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID)})
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID), EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -223,7 +230,7 @@ func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
-func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *structs.EnterpriseMeta) {
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *acl.EnterpriseMeta) {
 	entry := &structs.DirEntry{
 		Key:   key,
 		Value: []byte(value),
@@ -238,7 +245,8 @@ func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+
+	e, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

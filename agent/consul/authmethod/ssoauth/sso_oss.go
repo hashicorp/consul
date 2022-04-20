@@ -1,11 +1,12 @@
-//+build !consulent
+//go:build !consulent
+// +build !consulent
 
 package ssoauth
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth"
 )
 
@@ -16,7 +17,7 @@ func validateType(typ string) error {
 	return nil
 }
 
-func (v *Validator) ssoEntMetaFromClaims(_ *oidcauth.Claims) *structs.EnterpriseMeta {
+func (v *Validator) ssoEntMetaFromClaims(_ *oidcauth.Claims) *acl.EnterpriseMeta {
 	return nil
 }
 

@@ -11,6 +11,9 @@ export default Component.extend(Slotted, {
       this.dialog = new A11yDialog($el);
       this.dialog.on('hide', () => this.onclose({ target: $el }));
       this.dialog.on('show', () => this.onopen({ target: $el }));
+      if (this.open) {
+        this.dialog.show();
+      }
     },
     disconnect: function($el) {
       this.dialog.destroy();

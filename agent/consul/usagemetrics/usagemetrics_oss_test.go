@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package usagemetrics
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -177,12 +179,12 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},
@@ -362,12 +364,12 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},
@@ -575,12 +577,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},
@@ -802,12 +804,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},
@@ -1006,12 +1008,12 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},
@@ -1027,8 +1029,8 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 				require.NoError(t, s.KVSSet(5, &structs.DirEntry{Key: "b", Value: []byte{1}}))
 				require.NoError(t, s.KVSSet(6, &structs.DirEntry{Key: "c", Value: []byte{1}}))
 				require.NoError(t, s.KVSSet(7, &structs.DirEntry{Key: "d", Value: []byte{1}}))
-				require.NoError(t, s.KVSDelete(8, "d", &structs.EnterpriseMeta{}))
-				require.NoError(t, s.KVSDelete(9, "c", &structs.EnterpriseMeta{}))
+				require.NoError(t, s.KVSDelete(8, "d", &acl.EnterpriseMeta{}))
+				require.NoError(t, s.KVSDelete(9, "c", &acl.EnterpriseMeta{}))
 				require.NoError(t, s.KVSSet(10, &structs.DirEntry{Key: "e", Value: []byte{1}}))
 				require.NoError(t, s.KVSSet(11, &structs.DirEntry{Key: "f", Value: []byte{1}}))
 			},
@@ -1200,12 +1202,12 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
-				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=exported-services": {
 					Name:  "consul.usage.test.consul.state.config_entries",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
-						{Name: "kind", Value: "partition-exports"},
+						{Name: "kind", Value: "exported-services"},
 					},
 				},
 			},

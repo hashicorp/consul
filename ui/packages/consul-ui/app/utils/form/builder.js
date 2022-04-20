@@ -6,7 +6,7 @@ import lookupValidator from 'ember-changeset-validations';
 // Keep these here for now so forms are easy to make
 // TODO: Probably move this to utils/form/parse-element-name
 import parseElementName from 'consul-ui/utils/get-form-name-property';
-const defaultChangeset = function(data, validators) {
+export const defaultChangeset = function(data, validators) {
   return createChangeset(data, lookupValidator(validators), validators, { changeset: Changeset });
 };
 /**

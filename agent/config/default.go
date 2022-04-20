@@ -49,9 +49,18 @@ func DefaultSource() Source {
 		protocol = ` + strconv.Itoa(consul.DefaultRPCProtocol) + `
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
+
+		# segment_limit is the maximum number of network segments that may be declared. Default 64 is highly encouraged
+		segment_limit = 64
+
 		server = false
 		syslog_facility = "LOCAL0"
-		tls_min_version = "tls12"
+
+		tls = {
+			defaults = {
+				tls_min_version = "TLSv1_2"
+			}
+		}
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/consul/config.go.
@@ -184,9 +193,6 @@ func NonUserSource() Source {
 		ae_interval = "1m"
 		sync_coordinate_rate_target = 64
 		sync_coordinate_interval_min = "15s"
-
-		# segment_limit is the maximum number of network segments that may be declared.
-		segment_limit = 64
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64

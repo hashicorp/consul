@@ -1,7 +1,7 @@
 %notice {
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
-  color: var(--black);
+  color: rgb(var(--tone-gray-999));
 }
 %notice::before {
   @extend %as-pseudo;
@@ -24,9 +24,12 @@
   background-color: rgb(var(--tone-green-050));
   border-color: rgb(var(--tone-green-500));
 }
+%notice-success header * {
+  color: rgb(var(--tone-green-800));
+}
 %notice-info {
   border-color: rgb(var(--tone-blue-100));
-  background-color: rgb(var(--tone-gray-010));
+  background-color: rgb(var(--tone-blue-010));
 }
 %notice-info header * {
   color: rgb(var(--tone-blue-700));
@@ -36,7 +39,7 @@
   border-color: rgb(var(--tone-gray-300));
 }
 %notice-info header * {
-  color: rgb(var(--tone-gray-700));
+  color: rgb(var(--tone-blue-700));
 }
 %notice-warning {
   border-color: rgb(var(--tone-yellow-100));
@@ -48,6 +51,9 @@
 %notice-error {
   background-color: rgb(var(--tone-red-050));
   border-color: rgb(var(--tone-red-500));
+}
+%notice-error header * {
+  color: rgb(var(--tone-red-500));
 }
 %notice-success::before {
   @extend %with-check-circle-fill-mask;

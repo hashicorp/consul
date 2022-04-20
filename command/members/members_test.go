@@ -1,6 +1,7 @@
 package members
 
 import (
+	"encoding/csv"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -173,6 +174,35 @@ func TestMembersCommand_verticalBar(t *testing.T) {
 	if !strings.Contains(ui.OutputWriter.String(), nodeName) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
+}
+
+func decodeOutput(t *testing.T, data string) []map[string]string {
+	r := csv.NewReader(strings.NewReader(data))
+	r.Comma = ' '
+	r.TrimLeadingSpace = true
+
+	lines, err := r.ReadAll()
+	require.NoError(t, err)
+	if len(lines) < 2 {
+		return nil
+	}
+
+	var out []map[string]string
+	for i := 1; i < len(lines); i++ {
+		m := zip(t, lines[0], lines[i])
+		out = append(out, m)
+	}
+	return out
+}
+
+func zip(t *testing.T, k, v []string) map[string]string {
+	require.Equal(t, len(k), len(v))
+
+	m := make(map[string]string)
+	for i := 0; i < len(k); i++ {
+		m[k[i]] = v[i]
+	}
+	return m
 }
 
 func TestSortByMemberNamePartitionAndSegment(t *testing.T) {

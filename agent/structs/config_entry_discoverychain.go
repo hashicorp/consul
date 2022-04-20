@@ -73,8 +73,8 @@ type ServiceRouterConfigEntry struct {
 	// the default service.
 	Routes []ServiceRoute
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -118,6 +118,9 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 
 		if route.Destination != nil && route.Destination.Namespace == "" {
 			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
+		}
+		if route.Destination != nil && route.Destination.Partition == "" {
+			route.Destination.Partition = e.EnterpriseMeta.PartitionOrEmpty()
 		}
 	}
 
@@ -248,11 +251,11 @@ func isValidHTTPMethod(method string) bool {
 	}
 }
 
-func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -295,7 +298,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	return out
 }
 
-func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -380,6 +383,13 @@ type ServiceRouteDestination struct {
 	// If this field is specified then this route is ineligible for further
 	// splitting.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed.
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
 
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
@@ -475,8 +485,8 @@ type ServiceSplitterConfigEntry struct {
 	// to the FIRST split.
 	Splits []ServiceSplit
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -557,8 +567,8 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 		}
 		if _, ok := found[splitKey]; ok {
 			return fmt.Errorf(
-				"split destination occurs more than once: service=%q, subset=%q, namespace=%q",
-				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace,
+				"split destination occurs more than once: service=%q, subset=%q, namespace=%q, partition=%q",
+				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace, splitKey.Partition,
 			)
 		}
 		found[splitKey] = struct{}{}
@@ -584,11 +594,11 @@ func scaleWeight(v float32) int {
 	return int(math.Round(float64(v * 100.0)))
 }
 
-func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -600,7 +610,7 @@ func (e *ServiceSplitterConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -665,7 +675,12 @@ type ServiceSplit struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed (optional).
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
 
 	// NOTE: Any configuration added to Splits that needs to be passed to the
 	// proxy needs special handling MergeParent below.
@@ -800,8 +815,8 @@ type ServiceResolverConfigEntry struct {
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -930,9 +945,13 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if e.Redirect != nil {
-		if e.PartitionOrEmpty() != acl.DefaultPartitionName && e.Redirect.Datacenter != "" {
-			return fmt.Errorf("Cross datacenters redirect is not allowed for non default partition")
+		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
 		}
+		if acl.PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
+		}
+
 		r := e.Redirect
 
 		if len(e.Failover) > 0 {
@@ -941,7 +960,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		// TODO(rb): prevent subsets and default subsets from being defined?
 
-		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Datacenter == "" {
+		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" {
 			return fmt.Errorf("Redirect is empty")
 		}
 
@@ -951,6 +970,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 			if r.Namespace != "" {
 				return fmt.Errorf("Redirect.Namespace defined without Redirect.Service")
+			}
+			if r.Partition != "" {
+				return fmt.Errorf("Redirect.Partition defined without Redirect.Service")
 			}
 		} else if r.Service == e.Name {
 			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
@@ -962,9 +984,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	if len(e.Failover) > 0 {
 
 		for subset, f := range e.Failover {
-			if e.PartitionOrEmpty() != acl.DefaultPartitionName && len(f.Datacenters) != 0 {
-				return fmt.Errorf("Cross datacenters failover is not allowed for non default partition")
+			if !e.InDefaultPartition() && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross-datacenter failover is only supported in the default partition")
 			}
+
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
@@ -1046,11 +1069,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1062,7 +1085,7 @@ func (e *ServiceResolverConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -1140,6 +1163,10 @@ type ServiceResolverRedirect struct {
 	// Namespace is the namespace to resolve the service from instead of the
 	// current one (optional).
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition to resolve the service from instead of the
+	// current one (optional).
+	Partition string `json:",omitempty"`
 
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
@@ -1273,13 +1300,13 @@ type discoveryChainConfigEntry interface {
 	ListRelatedServices() []ServiceID
 }
 
-func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	entry.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-	return authz.ServiceRead(entry.GetName(), &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(entry.GetName(), &authzContext)
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) error {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1287,8 +1314,8 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 
 	name := entry.GetName()
 
-	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
-		return false
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(name, &authzContext); err != nil {
+		return err
 	}
 
 	for _, svc := range entry.ListRelatedServices() {
@@ -1299,130 +1326,11 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
-			return false
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(svc.ID, &authzContext); err != nil {
+			return err
 		}
 	}
-	return true
-}
-
-// DiscoveryChainConfigEntries wraps just the raw cross-referenced config
-// entries. None of these are defaulted.
-type DiscoveryChainConfigEntries struct {
-	Routers     map[ServiceID]*ServiceRouterConfigEntry
-	Splitters   map[ServiceID]*ServiceSplitterConfigEntry
-	Resolvers   map[ServiceID]*ServiceResolverConfigEntry
-	Services    map[ServiceID]*ServiceConfigEntry
-	GlobalProxy *ProxyConfigEntry
-}
-
-func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
-	return &DiscoveryChainConfigEntries{
-		Routers:   make(map[ServiceID]*ServiceRouterConfigEntry),
-		Splitters: make(map[ServiceID]*ServiceSplitterConfigEntry),
-		Resolvers: make(map[ServiceID]*ServiceResolverConfigEntry),
-		Services:  make(map[ServiceID]*ServiceConfigEntry),
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) GetRouter(sid ServiceID) *ServiceRouterConfigEntry {
-	if e.Routers != nil {
-		return e.Routers[sid]
-	}
 	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetSplitter(sid ServiceID) *ServiceSplitterConfigEntry {
-	if e.Splitters != nil {
-		return e.Splitters[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetResolver(sid ServiceID) *ServiceResolverConfigEntry {
-	if e.Resolvers != nil {
-		return e.Resolvers[sid]
-	}
-	return nil
-}
-
-func (e *DiscoveryChainConfigEntries) GetService(sid ServiceID) *ServiceConfigEntry {
-	if e.Services != nil {
-		return e.Services[sid]
-	}
-	return nil
-}
-
-// AddRouters adds router configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddRouters(entries ...*ServiceRouterConfigEntry) {
-	if e.Routers == nil {
-		e.Routers = make(map[ServiceID]*ServiceRouterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Routers[NewServiceID(entry.Name, &entry.EnterpriseMeta)] = entry
-	}
-}
-
-// AddSplitters adds splitter configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddSplitters(entries ...*ServiceSplitterConfigEntry) {
-	if e.Splitters == nil {
-		e.Splitters = make(map[ServiceID]*ServiceSplitterConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Splitters[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddResolvers adds resolver configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddResolvers(entries ...*ServiceResolverConfigEntry) {
-	if e.Resolvers == nil {
-		e.Resolvers = make(map[ServiceID]*ServiceResolverConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Resolvers[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddServices adds service configs. Convenience function for testing.
-func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry) {
-	if e.Services == nil {
-		e.Services = make(map[ServiceID]*ServiceConfigEntry)
-	}
-	for _, entry := range entries {
-		e.Services[NewServiceID(entry.Name, entry.GetEnterpriseMeta())] = entry
-	}
-}
-
-// AddEntries adds generic configs. Convenience function for testing. Panics on
-// operator error.
-func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
-	for _, entry := range entries {
-		switch entry.GetKind() {
-		case ServiceRouter:
-			e.AddRouters(entry.(*ServiceRouterConfigEntry))
-		case ServiceSplitter:
-			e.AddSplitters(entry.(*ServiceSplitterConfigEntry))
-		case ServiceResolver:
-			e.AddResolvers(entry.(*ServiceResolverConfigEntry))
-		case ServiceDefaults:
-			e.AddServices(entry.(*ServiceConfigEntry))
-		case ProxyDefaults:
-			if entry.GetName() != ProxyConfigGlobal {
-				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
-			}
-			e.GlobalProxy = entry.(*ProxyConfigEntry)
-		default:
-			panic("unhandled config entry kind: " + entry.GetKind())
-		}
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0 && e.GlobalProxy == nil
-}
-
-func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
-	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
 }
 
 // DiscoveryChainRequest is used when requesting the discovery chain for a

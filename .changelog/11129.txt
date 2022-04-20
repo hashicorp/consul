@@ -1,4 +1,0 @@
-```release-note:improvement
-ui: Add initial support for partitions to intentions
-```
-

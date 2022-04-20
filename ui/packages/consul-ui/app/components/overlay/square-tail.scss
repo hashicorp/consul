@@ -4,7 +4,7 @@
     left: calc(0px - (var(--size) / 2)) !important;
   }
   .tippy-arrow::before {
-    background-color: rgb(var(--white));
+    background-color: rgb(var(--tone-gray-000));
     width: calc(1px + var(--size));
     height: calc(1px + var(--size));
     border: var(--decor-border-100);

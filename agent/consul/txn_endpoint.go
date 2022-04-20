@@ -32,7 +32,7 @@ type Txn struct {
 
 // preCheck is used to verify the incoming operations before any further
 // processing takes place. This checks things like ACLs.
-func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.TxnErrors {
+func (t *Txn) preCheck(authorizer ACLResolveResult, ops structs.TxnOps) structs.TxnErrors {
 	var errors structs.TxnErrors
 
 	// Perform the pre-apply checks for any KV operations.
@@ -109,30 +109,30 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 }
 
 // vetNodeTxnOp applies the given ACL policy to a node transaction operation.
-func vetNodeTxnOp(op *structs.TxnNodeOp, authz acl.Authorizer) error {
+func vetNodeTxnOp(op *structs.TxnNodeOp, authz ACLResolveResult) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
-	if authz.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &authzContext); err != nil {
+		return err
 	}
 	return nil
 }
 
 // vetCheckTxnOp applies the given ACL policy to a check transaction operation.
-func vetCheckTxnOp(op *structs.TxnCheckOp, authz acl.Authorizer) error {
+func vetCheckTxnOp(op *structs.TxnCheckOp, authz ACLResolveResult) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
 	if op.Check.ServiceID == "" {
 		// Node-level check.
-		if authz.NodeWrite(op.Check.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Check.Node, &authzContext); err != nil {
+			return err
 		}
 	} else {
 		// Service-level check.
-		if authz.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(op.Check.ServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -183,7 +183,6 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	defer metrics.MeasureSince([]string{"txn", "read"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	t.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := t.srv.consistentRead(); err != nil {
 			return err
@@ -195,6 +194,14 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	if err != nil {
 		return err
 	}
+
+	// There are currently two different ways we handle permission issues.
+	//
+	// For simple reads such as KVGet and KVGetTree, the txn succeeds but the
+	// offending results are omitted. For more involved operations such as
+	// KVCheckIndex, the txn fails and permission denied errors are returned.
+	//
+	// TODO: Maybe we should unify these, or at least cover it in the docs?
 	reply.Errors = t.preCheck(authz, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
@@ -203,6 +210,13 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	// Run the read transaction.
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
+
+	total := len(reply.Results)
 	reply.Results = FilterTxnResults(authz, reply.Results)
+	reply.QueryMeta.ResultsFilteredByACLs = total != len(reply.Results)
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	t.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+
 	return nil
 }

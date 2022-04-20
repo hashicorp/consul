@@ -11,14 +11,14 @@ Feature: dc / services / instances / navigation
     And 3 instance models from yaml
     ---
     - Service:
-        Name: service-0
+        Service: service-0
         ID: service-a
       Node:
         Node: node-0
       Checks:
       - Status: critical
     - Service:
-        Name: service-0
+        Service: service-0
         ID: service-b
       Node:
         Node: node-0
@@ -29,7 +29,7 @@ Feature: dc / services / instances / navigation
     # proxy on request.0 from yaml', 'And 1 proxy on request.1 from yaml' or
     # similar
     - Service:
-        Name: service-0-proxy
+        Service: service-0-proxy
         ID: service-a-proxy
       Node:
         Node: node-0

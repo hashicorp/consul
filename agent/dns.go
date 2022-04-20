@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
@@ -103,7 +104,7 @@ type serviceLookup struct {
 	MaxRecursionLevel int
 	Connect           bool
 	Ingress           bool
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -123,7 +124,7 @@ type DNSServer struct {
 	// the recursor handler is only enabled if recursors are configured. This flag is used during config hot-reloading
 	recursorEnabled uint32
 
-	defaultEnterpriseMeta structs.EnterpriseMeta
+	defaultEnterpriseMeta acl.EnterpriseMeta
 }
 
 func NewDNSServer(a *Agent) (*DNSServer, error) {
@@ -344,7 +345,7 @@ func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string 
 	return serviceCanonicalDNSName(sn.ServiceName, "service", sn.Datacenter, domain, &sn.EnterpriseMeta)
 }
 
-func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.EnterpriseMeta) string {
+func serviceIngressDNSName(service, datacenter, domain string, entMeta *acl.EnterpriseMeta) string {
 	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
@@ -695,7 +696,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 	done := false
 	for i := len(labels) - 1; i >= 0 && !done; i-- {
 		switch labels[i] {
-		case "service", "connect", "ingress", "node", "query", "addr":
+		case "service", "connect", "virtual", "ingress", "node", "query", "addr":
 			queryParts = labels[:i]
 			querySuffixes = labels[i+1:]
 			queryKind = labels[i]
@@ -784,6 +785,41 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		}
 		// name.connect.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
+
+	case "virtual":
+		if len(queryParts) < 1 {
+			return invalid()
+		}
+
+		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+			return invalid()
+		}
+
+		args := structs.ServiceSpecificRequest{
+			Datacenter:     datacenter,
+			ServiceName:    queryParts[len(queryParts)-1],
+			EnterpriseMeta: entMeta,
+			QueryOptions: structs.QueryOptions{
+				Token: d.agent.tokens.UserToken(),
+			},
+		}
+		var out string
+		if err := d.agent.RPC("Catalog.VirtualIPForService", &args, &out); err != nil {
+			return err
+		}
+		if out != "" {
+			resp.Answer = append(resp.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   qName + respDomain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(cfg.NodeTTL / time.Second),
+				},
+				A: net.ParseIP(out),
+			})
+		}
+
+		return nil
 
 	case "ingress":
 		if len(queryParts) < 1 {

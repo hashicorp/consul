@@ -1,7 +1,6 @@
 package autoconf
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,34 +19,26 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func translateCARootToProtobuf(in *structs.CARoot) (*pbconnect.CARoot, error) {
-	var out pbconnect.CARoot
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-	return &out, nil
-}
-
 func mustTranslateCARootToProtobuf(t *testing.T, in *structs.CARoot) *pbconnect.CARoot {
-	out, err := translateCARootToProtobuf(in)
+	out, err := pbconnect.NewCARootFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateCARootsToStructs(t *testing.T, in *pbconnect.CARoots) *structs.IndexedCARoots {
-	out, err := translateCARootsToStructs(in)
+	out, err := pbconnect.CARootsToStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateCARootsToProtobuf(t *testing.T, in *structs.IndexedCARoots) *pbconnect.CARoots {
-	out, err := translateCARootsToProtobuf(in)
+	out, err := pbconnect.NewCARootsFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
 
 func mustTranslateIssuedCertToProtobuf(t *testing.T, in *structs.IssuedCert) *pbconnect.IssuedCert {
-	out, err := translateIssuedCertToProtobuf(in)
+	var out, err = pbconnect.NewIssuedCertFromStructs(in)
 	require.NoError(t, err)
 	return out
 }
@@ -69,11 +60,11 @@ func TestTranslateConfig(t *testing.T) {
 			EnableTokenPersistence: true,
 			MSPDisableBootstrap:    false,
 			Tokens: &pbconfig.ACLTokens{
-				Master:      "99e7e490-6baf-43fc-9010-78b6aa9a6813",
-				Replication: "51308d40-465c-4ac6-a636-7c0747edec89",
-				AgentMaster: "e012e1ea-78a2-41cc-bc8b-231a44196f39",
-				Default:     "8781a3f5-de46-4b45-83e1-c92f4cfd0332",
-				Agent:       "ddb8f1b0-8a99-4032-b601-87926bce244e",
+				InitialManagement: "99e7e490-6baf-43fc-9010-78b6aa9a6813",
+				Replication:       "51308d40-465c-4ac6-a636-7c0747edec89",
+				AgentRecovery:     "e012e1ea-78a2-41cc-bc8b-231a44196f39",
+				Default:           "8781a3f5-de46-4b45-83e1-c92f4cfd0332",
+				Agent:             "ddb8f1b0-8a99-4032-b601-87926bce244e",
 				ManagedServiceProvider: []*pbconfig.ACLServiceProviderToken{
 					{
 						AccessorID: "23f37987-7b9e-4e5b-acae-dbc9bc137bae",
@@ -97,28 +88,32 @@ func TestTranslateConfig(t *testing.T) {
 			},
 		},
 		TLS: &pbconfig.TLS{
-			VerifyOutgoing:           true,
-			VerifyServerHostname:     true,
-			CipherSuites:             "stuff",
-			MinVersion:               "tls13",
-			PreferServerCipherSuites: true,
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true,
+			CipherSuites:         "stuff",
+			MinVersion:           "tls13",
 		},
 	}
 
 	expected := config.Config{
-		Datacenter:                  stringPointer("abc"),
-		PrimaryDatacenter:           stringPointer("def"),
-		NodeName:                    stringPointer("ghi"),
-		SegmentName:                 stringPointer("jkl"),
-		RetryJoinLAN:                []string{"10.0.0.1"},
-		EncryptKey:                  stringPointer("blarg"),
-		EncryptVerifyIncoming:       boolPointer(true),
-		EncryptVerifyOutgoing:       boolPointer(true),
-		VerifyOutgoing:              boolPointer(true),
-		VerifyServerHostname:        boolPointer(true),
-		TLSCipherSuites:             stringPointer("stuff"),
-		TLSMinVersion:               stringPointer("tls13"),
-		TLSPreferServerCipherSuites: boolPointer(true),
+		Datacenter:            stringPointer("abc"),
+		PrimaryDatacenter:     stringPointer("def"),
+		NodeName:              stringPointer("ghi"),
+		SegmentName:           stringPointer("jkl"),
+		RetryJoinLAN:          []string{"10.0.0.1"},
+		EncryptKey:            stringPointer("blarg"),
+		EncryptVerifyIncoming: boolPointer(true),
+		EncryptVerifyOutgoing: boolPointer(true),
+		TLS: config.TLS{
+			Defaults: config.TLSProtocolConfig{
+				VerifyOutgoing:  boolPointer(true),
+				TLSCipherSuites: stringPointer("stuff"),
+				TLSMinVersion:   stringPointer("TLSv1_3"),
+			},
+			InternalRPC: config.TLSProtocolConfig{
+				VerifyServerHostname: boolPointer(true),
+			},
+		},
 		ACL: config.ACL{
 			Enabled:                boolPointer(true),
 			PolicyTTL:              stringPointer("1s"),
@@ -129,11 +124,11 @@ func TestTranslateConfig(t *testing.T) {
 			EnableKeyListPolicy:    boolPointer(true),
 			EnableTokenPersistence: boolPointer(true),
 			Tokens: config.Tokens{
-				Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
-				Replication: stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
-				AgentMaster: stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
-				Default:     stringPointer("8781a3f5-de46-4b45-83e1-c92f4cfd0332"),
-				Agent:       stringPointer("ddb8f1b0-8a99-4032-b601-87926bce244e"),
+				InitialManagement: stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
+				AgentRecovery:     stringPointer("e012e1ea-78a2-41cc-bc8b-231a44196f39"),
+				Replication:       stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
+				Default:           stringPointer("8781a3f5-de46-4b45-83e1-c92f4cfd0332"),
+				Agent:             stringPointer("ddb8f1b0-8a99-4032-b601-87926bce244e"),
 				ManagedServiceProvider: []config.ServiceProviderToken{
 					{
 						AccessorID: stringPointer("23f37987-7b9e-4e5b-acae-dbc9bc137bae"),
@@ -158,4 +153,27 @@ func TestCArootsTranslation(t *testing.T) {
 	_, indexedRoots, _ := testCerts(t, "autoconf", "dc1")
 	protoRoots := mustTranslateCARootsToProtobuf(t, indexedRoots)
 	require.Equal(t, indexedRoots, mustTranslateCARootsToStructs(t, protoRoots))
+}
+
+func caRootRoundtrip(t *testing.T, s *structs.CARoot) *structs.CARoot {
+	pbRoot, err := pbconnect.NewCARootFromStructs(s)
+	require.NoError(t, err)
+	root, err := pbconnect.CARootToStructs(pbRoot)
+	require.NoError(t, err)
+	return root
+}
+func caRootsRoundtrip(t *testing.T, s *structs.IndexedCARoots) *structs.IndexedCARoots {
+	pbRoot, err := pbconnect.NewCARootsFromStructs(s)
+	require.NoError(t, err)
+	root, err := pbconnect.CARootsToStructs(pbRoot)
+	require.NoError(t, err)
+	return root
+}
+
+func issuedCertRoundtrip(t *testing.T, s *structs.IssuedCert) *structs.IssuedCert {
+	pbCert, err := pbconnect.NewIssuedCertFromStructs(s)
+	require.NoError(t, err)
+	cert, err := pbconnect.IssuedCertToStructs(pbCert)
+	require.NoError(t, err)
+	return cert
 }

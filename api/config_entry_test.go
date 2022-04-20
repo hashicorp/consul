@@ -250,7 +250,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 	})
 
 	t.Run("CAS deletion", func(t *testing.T) {
-		require := require.New(t)
 
 		entry := &ProxyConfigEntry{
 			Kind: ProxyDefaults,
@@ -262,23 +261,23 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 		// Create a config entry.
 		created, _, err := config_entries.Set(entry, nil)
-		require.NoError(err)
-		require.True(created, "entry should have been created")
+		require.NoError(t, err)
+		require.True(t, created, "entry should have been created")
 
 		// Read it back to get the ModifyIndex.
 		result, _, err := config_entries.Get(entry.Kind, entry.Name, nil)
-		require.NoError(err)
-		require.NotNil(entry)
+		require.NoError(t, err)
+		require.NotNil(t, entry)
 
 		// Attempt a deletion with an invalid index.
 		deleted, _, err := config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex()-1, nil)
-		require.NoError(err)
-		require.False(deleted, "entry should not have been deleted")
+		require.NoError(t, err)
+		require.False(t, deleted, "entry should not have been deleted")
 
 		// Attempt a deletion with a valid index.
 		deleted, _, err = config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex(), nil)
-		require.NoError(err)
-		require.True(deleted, "entry should have been deleted")
+		require.NoError(t, err)
+		require.True(t, deleted, "entry should have been deleted")
 	})
 }
 
@@ -945,6 +944,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway",
 			body: `
 			{
@@ -955,7 +955,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"Tls": {
-					"Enabled": true
+					"Enabled": true,
+					"TLSMinVersion": "TLSv1_1",
+					"TLSMaxVersion": "TLSv1_2",
+					"CipherSuites": [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				},
 				"Listeners": [
 					{
@@ -964,7 +970,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						"Services": [
 							{
 								"Name": "web",
-								"Namespace": "foo"
+								"Namespace": "foo",
+								"Partition": "bar"
 							},
 							{
 								"Name": "db"
@@ -991,7 +998,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: "TLSv1_1",
+					TLSMaxVersion: "TLSv1_2",
+					CipherSuites: []string{
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+					},
 				},
 				Listeners: []IngressListener{
 					{
@@ -1001,6 +1014,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							{
 								Name:      "web",
 								Namespace: "foo",
+								Partition: "bar",
 							},
 							{
 								Name: "db",
@@ -1246,6 +1260,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"TransparentProxy": {
 					"MeshDestinationsOnly": true
+				},
+				"TLS": {
+					"Incoming": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					},
+					"Outgoing": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
 				}
 			}
 			`,
@@ -1256,6 +1288,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
 				},
 			},
 		},

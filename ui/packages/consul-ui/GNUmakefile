@@ -5,8 +5,8 @@ all: build
 
 deps: ../../node_modules clean
 
+# incase we ever need to clean anything again
 clean:
-	rm -rf ./tmp
 
 build-staging: deps
 	yarn run build:staging
@@ -16,6 +16,9 @@ build-ci: deps
 
 build: deps
 	yarn run build
+
+build-debug:
+	BROCCOLI_DEBUG=* $(MAKE) build
 
 start: deps
 	yarn run start

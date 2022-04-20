@@ -4,15 +4,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLogout_noTabs(t *testing.T) {
@@ -35,7 +36,7 @@ func TestLogoutCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -165,7 +166,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 

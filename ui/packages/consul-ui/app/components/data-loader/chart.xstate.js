@@ -17,9 +17,15 @@ export default {
         target: 'loading',
       },
     ],
+    INVALIDATE: [
+      {
+        target: 'invalidating',
+      },
+    ],
   },
   states: {
     load: {},
+    invalidating: {},
     loading: {
       on: {
         SUCCESS: {

@@ -6,44 +6,28 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
-		var tlsContext *envoy_tls_v3.DownstreamTlsContext
-
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
-			return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+			return nil, fmt.Errorf("no listener config found for listener on proto/port %s/%d", listenerKey.Protocol, listenerKey.Port)
 		}
-		// Enable connect TLS if it is enabled at the Gateway or specific listener
-		// level.
-		connectTLSEnabled := cfgSnap.IngressGateway.TLSConfig.Enabled ||
-			(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
 
-		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerCfg)
+		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
 			return nil, err
-		}
-
-		if sdsCfg != nil {
-			// Set up listener TLS from SDS
-			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromSDS(*sdsCfg),
-				RequireClientCertificate: &wrappers.BoolValue{Value: false},
-			}
-		} else if connectTLSEnabled {
-			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
-				RequireClientCertificate: &wrappers.BoolValue{Value: false},
-			}
 		}
 
 		if listenerKey.Protocol == "tcp" {
@@ -51,22 +35,51 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			// member, because this key/value pair is created only when a
 			// GatewayService is returned in the RPC
 			u := upstreams[0]
-			id := u.Identifier()
 
-			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			uid := proxycfg.NewUpstreamID(&u)
 
-			var upstreamListener proto.Message
-			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
-				&u,
-				address,
-				chain,
-				cfgSnap,
-				tlsContext,
-			)
+			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
+			if chain == nil {
+				// Wait until a chain is present in the snapshot.
+				continue
+			}
+
+			cfg := s.getAndModifyUpstreamConfigForListener(uid, &u, chain)
+
+			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
+			// TODO(freddy): Why can the protocol of the listener be overridden here?
+			useRDS := cfg.Protocol != "tcp" && !chain.Default
+
+			var clusterName string
+			if !useRDS {
+				// When not using RDS we must generate a cluster name to attach to the filter chain.
+				// With RDS, cluster names get attached to the dynamic routes instead.
+				target, err := simpleChainTarget(chain)
+				if err != nil {
+					return nil, err
+				}
+				clusterName = CustomizeClusterName(target.Name, chain)
+			}
+
+			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				routeName:   uid.EnvoyID(),
+				useRDS:      useRDS,
+				clusterName: clusterName,
+				filterName:  filterName,
+				protocol:    cfg.Protocol,
+				tlsContext:  tlsContext,
+			})
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, upstreamListener)
+			l.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, l)
+
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
@@ -127,21 +140,101 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	return resources, nil
 }
 
-func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*structs.GatewayTLSSDSConfig, error) {
-	var mergedCfg structs.GatewayTLSSDSConfig
+func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*envoy_tls_v3.DownstreamTlsContext, error) {
+	var downstreamContext *envoy_tls_v3.DownstreamTlsContext
 
-	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
-	if gwSDS != nil {
-		mergedCfg.ClusterName = gwSDS.ClusterName
-		mergedCfg.CertResource = gwSDS.CertResource
+	tlsContext, err := makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
+	if err != nil {
+		return nil, err
 	}
 
-	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
-		if listenerCfg.TLS.SDS.ClusterName != "" {
-			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
+	if tlsContext != nil {
+		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
+			CommonTlsContext:         tlsContext,
+			RequireClientCertificate: &wrappers.BoolValue{Value: false},
 		}
-		if listenerCfg.TLS.SDS.CertResource != "" {
-			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
+	}
+
+	return downstreamContext, nil
+}
+
+func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*envoy_tls_v3.CommonTlsContext, error) {
+	var tlsContext *envoy_tls_v3.CommonTlsContext
+
+	// Enable connect TLS if it is enabled at the Gateway or specific listener
+	// level.
+	gatewayTLSCfg := cfgSnap.IngressGateway.TLSConfig
+
+	// It is not possible to explicitly _disable_ TLS on a listener if it's
+	// enabled on the gateway, because false is the zero-value of the struct field
+	// and therefore indistinguishable from it being unspecified.
+	connectTLSEnabled := gatewayTLSCfg.Enabled ||
+		(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
+
+	tlsCfg, err := resolveListenerTLSConfig(&gatewayTLSCfg, listenerCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if tlsCfg.SDS != nil {
+		// Set up listener TLS from SDS
+		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
+	} else if connectTLSEnabled {
+		tlsContext = makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
+	}
+
+	return tlsContext, nil
+}
+
+func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerCfg structs.IngressListener) (*structs.GatewayTLSConfig, error) {
+	var mergedCfg structs.GatewayTLSConfig
+
+	resolvedSDSCfg, err := resolveListenerSDSConfig(gatewayTLSCfg.SDS, listenerCfg.TLS, listenerCfg.Port)
+	if err != nil {
+		return nil, err
+	}
+
+	mergedCfg.SDS = resolvedSDSCfg
+
+	if gatewayTLSCfg != nil {
+		mergedCfg.TLSMinVersion = gatewayTLSCfg.TLSMinVersion
+		mergedCfg.TLSMaxVersion = gatewayTLSCfg.TLSMaxVersion
+		mergedCfg.CipherSuites = gatewayTLSCfg.CipherSuites
+	}
+
+	if listenerCfg.TLS != nil {
+		if listenerCfg.TLS.TLSMinVersion != types.TLSVersionUnspecified {
+			mergedCfg.TLSMinVersion = listenerCfg.TLS.TLSMinVersion
+		}
+		if listenerCfg.TLS.TLSMaxVersion != types.TLSVersionUnspecified {
+			mergedCfg.TLSMaxVersion = listenerCfg.TLS.TLSMaxVersion
+		}
+		if len(listenerCfg.TLS.CipherSuites) != 0 {
+			mergedCfg.CipherSuites = listenerCfg.TLS.CipherSuites
+		}
+	}
+
+	if err := validateListenerTLSConfig(mergedCfg.TLSMinVersion, mergedCfg.CipherSuites); err != nil {
+		return nil, err
+	}
+
+	return &mergedCfg, nil
+}
+
+func resolveListenerSDSConfig(gatewaySDSCfg *structs.GatewayTLSSDSConfig, listenerTLSCfg *structs.GatewayTLSConfig, listenerPort int) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
+
+	if gatewaySDSCfg != nil {
+		mergedCfg.ClusterName = gatewaySDSCfg.ClusterName
+		mergedCfg.CertResource = gatewaySDSCfg.CertResource
+	}
+
+	if listenerTLSCfg != nil && listenerTLSCfg.SDS != nil {
+		if listenerTLSCfg.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerTLSCfg.SDS.ClusterName
+		}
+		if listenerTLSCfg.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerTLSCfg.SDS.CertResource
 		}
 	}
 
@@ -156,10 +249,10 @@ func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg stru
 		return &mergedCfg, nil
 
 	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
-		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerCfg.Port)
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerPort)
 
 	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
-		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerCfg.Port)
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerPort)
 	}
 
 	return &mergedCfg, nil
@@ -233,7 +326,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 		}
 
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromSDS(*svc.TLS.SDS),
+			CommonTlsContext:         makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS),
 			RequireClientCertificate: &wrappers.BoolValue{Value: false},
 		}
 
@@ -257,33 +350,47 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	return chains, nil
 }
 
-func makeCommonTLSContextFromSDS(sdsCfg structs.GatewayTLSSDSConfig) *envoy_tls_v3.CommonTlsContext {
+func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
+	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+}
+
+func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: &envoy_tls_v3.TlsParameters{},
-		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-			{
-				Name: sdsCfg.CertResource,
-				SdsConfig: &envoy_core_v3.ConfigSource{
-					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_ApiConfigSource{
-						ApiConfigSource: &envoy_core_v3.ApiConfigSource{
-							ApiType:             envoy_core_v3.ApiConfigSource_GRPC,
-							TransportApiVersion: envoy_core_v3.ApiVersion_V3,
-							// Note ClusterNames can't be set here - that's only for REST type
-							// we need a full GRPC config instead.
-							GrpcServices: []*envoy_core_v3.GrpcService{
-								{
-									TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
-										EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
-											ClusterName: sdsCfg.ClusterName,
-										},
+		TlsParams:                      makeTLSParametersFromGatewayTLSConfig(tlsCfg),
+		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
+	}
+}
+
+func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServiceTLSConfig) *envoy_tls_v3.CommonTlsContext {
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams:                      &envoy_tls_v3.TlsParameters{},
+		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
+	}
+}
+func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
+	return []*envoy_tls_v3.SdsSecretConfig{
+		{
+			Name: sdsCfg.CertResource,
+			SdsConfig: &envoy_core_v3.ConfigSource{
+				ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_ApiConfigSource{
+					ApiConfigSource: &envoy_core_v3.ApiConfigSource{
+						ApiType:             envoy_core_v3.ApiConfigSource_GRPC,
+						TransportApiVersion: envoy_core_v3.ApiVersion_V3,
+						// Note ClusterNames can't be set here - that's only for REST type
+						// we need a full GRPC config instead.
+						GrpcServices: []*envoy_core_v3.GrpcService{
+							{
+								TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
+									EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
+										ClusterName: sdsCfg.ClusterName,
 									},
-									Timeout: &duration.Duration{Seconds: 5},
 								},
+								Timeout: &duration.Duration{Seconds: 5},
 							},
 						},
 					},
-					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 				},
+				ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 			},
 		},
 	}

@@ -175,7 +175,7 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 			continue
 		}
 
-		if err := r.addServer(area, parts); err != nil {
+		if err := r.addServer(areaID, area, parts); err != nil {
 			return fmt.Errorf("failed to add server %q to area %q: %v", m.Name, areaID, err)
 		}
 	}
@@ -276,7 +276,7 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 }
 
 // addServer does the work of AddServer once the write lock is held.
-func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
+func (r *Router) addServer(areaID types.AreaID, area *areaInfo, s *metadata.Server) error {
 	// Make the manager on the fly if this is the first we've seen of it,
 	// and add it to the index.
 	manager := r.maybeInitializeManager(area, s.Datacenter)
@@ -288,7 +288,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	}
 
 	manager.AddServer(s)
-	r.grpcServerTracker.AddServer(s)
+	r.grpcServerTracker.AddServer(areaID, s)
 	return nil
 }
 
@@ -302,7 +302,7 @@ func (r *Router) AddServer(areaID types.AreaID, s *metadata.Server) error {
 	if !ok {
 		return fmt.Errorf("area ID %q does not exist", areaID)
 	}
-	return r.addServer(area, s)
+	return r.addServer(areaID, area, s)
 }
 
 // RemoveServer should be called whenever a server is removed from an area. This
@@ -324,7 +324,7 @@ func (r *Router) RemoveServer(areaID types.AreaID, s *metadata.Server) error {
 		return nil
 	}
 	info.manager.RemoveServer(s)
-	r.grpcServerTracker.RemoveServer(s)
+	r.grpcServerTracker.RemoveServer(areaID, s)
 
 	// If this manager is empty then remove it so we don't accumulate cruft
 	// and waste time during request routing.

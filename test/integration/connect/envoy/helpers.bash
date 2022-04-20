@@ -115,14 +115,19 @@ function assert_proxy_presents_cert_uri {
   local SERVICENAME=$2
   local DC=${3:-primary}
   local NS=${4:-default}
+  local PARTITION=${5:default}
 
   CERT=$(retry_default get_cert $HOSTPORT)
 
-  echo "WANT SERVICE: ${NS}/${SERVICENAME}"
+  echo "WANT SERVICE: ${PARTITION}/${NS}/${SERVICENAME}"
   echo "GOT CERT:"
   echo "$CERT"
 
-  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  if [[ -z $PARTITION ]] || [[ $PARTITION = "default" ]]; then
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  else
+    echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ap/${PARTITION}/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+  fi
 }
 
 function assert_dnssan_in_cert {
@@ -173,6 +178,17 @@ function assert_envoy_version {
   echo "---"
   echo "Got version=$VERSION"
   echo "Want version=$ENVOY_VERSION"
+
+  # 1.20.2, 1.19.3 and 1.18.6 are special snowflakes in that the version for
+  # the release is reported with a '-dev' suffix (eg 1.20.2-dev).
+  if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
+    ENVOY_VERSION="1.20.2-dev"
+  elif [ "$ENVOY_VERSION" = "1.19.3" ] ; then
+    ENVOY_VERSION="1.19.3-dev"
+  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+    ENVOY_VERSION="1.18.6-dev"
+  fi
+
   echo $VERSION | grep "/$ENVOY_VERSION/"
 }
 

@@ -64,7 +64,7 @@ To get help for any specific command, pass the `-h` flag to the relevant
 subcommand. For example, to see help about the `join` subcommand:
 
 ```shell-session
-$ consul join -h
+$ consul join --help
 Usage: consul join [options] address ...
 
   Tells a running Consul agent (with "consul agent") to join the cluster
@@ -90,6 +90,15 @@ Command Options
   -wan
      Joins a server to another server in the WAN pool.
 ```
+
+## Authentication
+
+When the [ACL system is enabled](/docs/agent/options#acl_enabled) the Consul CLI will
+require an [ACL token](/docs/security/acl/acl-system#tokens) to perform API requests.
+
+The ACL token can be provided directly on the command line using the `-token` command line flag,
+from a file using the `-token-file` command line flag, or from the
+[`CONSUL_HTTP_TOKEN`](#consul_http_token_file) environment variable.
 
 ## Autocompletion
 
@@ -226,7 +235,7 @@ CONSUL_TLS_SERVER_NAME=consulserver.domain
 Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
 local agent is listening for gRPC requests. Currently gRPC is only used for
 integrating [Envoy proxy](/docs/connect/proxies/envoy) and must be [enabled
-explicitly](/docs/agent/options#grpc_port) in agent configuration.
+explicitly](/docs/agent/config/config-files#grpc_port) in agent configuration.
 
 ```
 CONSUL_GRPC_ADDR=127.0.0.1:8502
@@ -239,7 +248,7 @@ CONSUL_GRPC_ADDR=unix://var/run/consul_grpc.sock
 ```
 
 If the agent is [configured with TLS
-certificates](/docs/agent/encryption#rpc-encryption-with-tls), then the
+certificates](/docs/security/encryption#rpc-encryption-with-tls), then the
 gRPC listener will require TLS and present the same certificate as the https
 listener. As with `CONSUL_HTTP_ADDR`, if TLS is enabled either the `https://`
 scheme should be used, or `CONSUL_HTTP_SSL` set.

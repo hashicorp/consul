@@ -237,6 +237,10 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 }
 
 func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (policies []*ACLPolicy) {
+	datacenters := []string{"dc1", "dc2"}
+	if partition != "" && partition != "default" {
+		datacenters = []string{"dc1"}
+	}
 	var wqPart *WriteOptions
 	if partition != "" {
 		wqPart = &WriteOptions{Partition: partition}
@@ -245,7 +249,7 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 		Name:        "one",
 		Description: "one description",
 		Rules:       `acl = "read"`,
-		Datacenters: []string{"dc1", "dc2"},
+		Datacenters: datacenters,
 	}, wqPart)
 
 	require.NoError(t, err)
@@ -256,7 +260,7 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 		Name:        "two",
 		Description: "two description",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Datacenters: []string{"dc1", "dc2"},
+		Datacenters: datacenters,
 	}, wqPart)
 
 	require.NoError(t, err)
@@ -455,7 +459,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 
 	tokens, qm, err := acl.TokenList(nil)
 	require.NoError(t, err)
-	// 3 + anon + master
+	// 3 + anon + initial management
 	require.Len(t, tokens, 5)
 	require.NotEqual(t, 0, qm.LastIndex)
 	require.True(t, qm.KnownLeader)
@@ -500,7 +504,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, token4)
 
-	// ensure the 5th token is the root master token
+	// ensure the 5th token is the initial management token
 	root, _, err := acl.TokenReadSelf(nil)
 	require.NoError(t, err)
 	require.NotNil(t, root)
@@ -516,17 +520,17 @@ func TestAPI_ACLToken_Clone(t *testing.T) {
 
 	acl := c.ACL()
 
-	master, _, err := acl.TokenReadSelf(nil)
+	initialManagement, _, err := acl.TokenReadSelf(nil)
 	require.NoError(t, err)
-	require.NotNil(t, master)
+	require.NotNil(t, initialManagement)
 
-	cloned, _, err := acl.TokenClone(master.AccessorID, "cloned", nil)
+	cloned, _, err := acl.TokenClone(initialManagement.AccessorID, "cloned", nil)
 	require.NoError(t, err)
 	require.NotNil(t, cloned)
-	require.NotEqual(t, master.AccessorID, cloned.AccessorID)
-	require.NotEqual(t, master.SecretID, cloned.SecretID)
+	require.NotEqual(t, initialManagement.AccessorID, cloned.AccessorID)
+	require.NotEqual(t, initialManagement.SecretID, cloned.SecretID)
 	require.Equal(t, "cloned", cloned.Description)
-	require.ElementsMatch(t, master.Policies, cloned.Policies)
+	require.ElementsMatch(t, initialManagement.Policies, cloned.Policies)
 
 	read, _, err := acl.TokenRead(cloned.AccessorID, nil)
 	require.NoError(t, err)

@@ -16,6 +16,8 @@ export function initialize(application) {
           return fs.get(['codemirror', 'mode', 'ruby', 'ruby.js'].join('/'));
         case 'yaml':
           return fs.get(['codemirror', 'mode', 'yaml', 'yaml.js'].join('/'));
+        case 'xml':
+          return fs.get(['codemirror', 'mode', 'xml', 'xml.js'].join('/'));
       }
     },
   };

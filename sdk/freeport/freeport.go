@@ -1,5 +1,16 @@
-// Package freeport provides a helper for allocating free ports across multiple
-// processes on the same machine.
+// Package freeport provides a helper for reserving free TCP ports across multiple
+// processes on the same machine. Each process reserves a block of ports outside
+// the ephemeral port range. Tests can request one of these reserved ports
+// and freeport will ensure that no other test uses that port until it is returned
+// to freeport.
+//
+// Freeport is particularly useful when the code being tested does not accept
+// a net.Listener. Any code that accepts a net.Listener (or uses net/http/httptest.Server)
+// can use port 0 (ex: 127.0.0.1:0) to find an unused ephemeral port that will
+// not conflict.
+//
+// Any code that does not accept a net.Listener or can not bind directly to port
+// zero should use freeport to find an unused port.
 package freeport
 
 import (
@@ -11,8 +22,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/mitchellh/go-testing-interface"
 )
 
 const (
@@ -251,6 +260,8 @@ func alloc() (int, net.Listener) {
 }
 
 // MustTake is the same as Take except it panics on error.
+//
+// Deprecated: Use GetN or GetOne instead.
 func MustTake(n int) (ports []int) {
 	ports, err := Take(n)
 	if err != nil {
@@ -259,10 +270,12 @@ func MustTake(n int) (ports []int) {
 	return ports
 }
 
-// Take returns a list of free ports from the allocated port block. It is safe
+// Take returns a list of free ports from the reserved port block. It is safe
 // to call this method concurrently. Ports have been tested to be available on
 // 127.0.0.1 TCP but there is no guarantee that they will remain free in the
 // future.
+//
+// Most callers should prefer GetN or GetOne.
 func Take(n int) (ports []int, err error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("freeport: cannot take %d ports", n)
@@ -381,11 +394,44 @@ func logf(severity string, format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, "["+severity+"] freeport: "+format+"\n", a...)
 }
 
+// TestingT is the minimal set of methods implemented by *testing.T that are
+// used by functions in freelist.
+//
+// In the future new methods may be added to this interface, but those methods
+// should always be implemented by *testing.T
+type TestingT interface {
+	Helper()
+	Fatalf(format string, args ...interface{})
+	Cleanup(func())
+}
+
+// GetN returns n free ports from the reserved port block, and returns the
+// ports to the pool when the test ends. See Take for more details.
+func GetN(t TestingT, n int) []int {
+	t.Helper()
+	ports, err := Take(n)
+	if err != nil {
+		t.Fatalf("failed to take %v ports: %w", n, err)
+	}
+	t.Cleanup(func() {
+		Return(ports)
+	})
+	return ports
+}
+
+// GetOne returns a single free port from the reserved port block, and returns the
+// port to the pool when the test ends. See Take for more details.
+// Use GetN if more than a single port is required.
+func GetOne(t TestingT) int {
+	t.Helper()
+	return GetN(t, 1)[0]
+}
+
 // Deprecated: Please use Take/Return calls instead.
 func Get(n int) (ports []int) { return MustTake(n) }
 
 // Deprecated: Please use Take/Return calls instead.
-func GetT(t testing.T, n int) (ports []int) { return MustTake(n) }
+func GetT(t TestingT, n int) (ports []int) { return MustTake(n) }
 
 // Deprecated: Please use Take/Return calls instead.
 func Free(n int) (ports []int, err error) { return MustTake(n), nil }

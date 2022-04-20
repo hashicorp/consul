@@ -23,7 +23,7 @@ load helpers
 }
 
 @test "primary should be able to rpc to the secondary" {
-  retry_default curl -sL -f -XPUT localhost:8500/v1/kv/foo?dc=secondary -d'{"Value":"bar"}'
+  retry_long curl -sL -f -XPUT localhost:8500/v1/kv/foo?dc=secondary -d'{"Value":"bar"}'
 }
 
 @test "wan pool should show 2 healthy nodes" {

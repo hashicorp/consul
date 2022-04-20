@@ -9,7 +9,7 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [Mesh Gateways](/docs/connect/mesh-gateway) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
+~> This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
 be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
@@ -63,7 +63,7 @@ The following sections detail how to export this data.
    ==> Saved vm-dc-server-consul-0-key.pem
    ```
 
-   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](https://www.consul.io/docs/agent#running-an-agent). This is a [requirement](https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/docs/agent#running-an-agent). This is a [requirement](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
    Not satisfying this requirement would result in the following error in the Consul Server logs:
    `[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
@@ -75,9 +75,13 @@ The following sections detail how to export this data.
    <CodeBlockConfig filename="server.hcl">
 
    ```hcl
-   cert_file = "vm-dc-server-consul-0.pem"
-   key_file = "vm-dc-server-consul-0-key.pem"
-   ca_file = "consul-agent-ca.pem"
+   tls {
+     defaults {
+       cert_file = "vm-dc-server-consul-0.pem"
+       key_file = "vm-dc-server-consul-0-key.pem"
+       ca_file = "consul-agent-ca.pem"
+     }
+   }
    ```
 
    </CodeBlockConfig>
@@ -91,7 +95,7 @@ The following sections detail how to export this data.
    ==> Saved dc1-client-consul-0-key.pem
    ```
 
-   Or use the [auto_encrypt](/docs/agent/options#auto_encrypt) feature.
+   Or use the [auto_encrypt](/docs/agent/config/config-files#auto_encrypt) feature.
 
 ### Mesh Gateway Addresses
 
@@ -99,7 +103,7 @@ Retrieve the WAN addresses of the mesh gateways:
 
 ```shell-session
 $ kubectl exec statefulset/consul-server -- sh -c \
-  'curl -sk https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
+  'curl --silent --insecure https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
 {
   "Address": "1.2.3.4",
   "Port": 443
@@ -125,7 +129,7 @@ primary_gateways = ["1.2.3.4:443"]
 If ACLs are enabled, you'll also need the replication ACL token:
 
 ```shell-session
-$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token}}'
+$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token | base64decode}}'
 e7924dd1-dc3f-f644-da54-81a73ba0a178
 ```
 
@@ -160,9 +164,19 @@ A final example server config file might look like:
 
 ```hcl
 # From above
-cert_file = "vm-dc-server-consul-0.pem"
-key_file = "vm-dc-server-consul-0-key.pem"
-ca_file = "consul-agent-ca.pem"
+tls {
+  defaults {
+    cert_file = "vm-dc-server-consul-0.pem"
+    key_file = "vm-dc-server-consul-0-key.pem"
+    ca_file = "consul-agent-ca.pem"
+  }
+
+  internal_rpc {
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+  }
+}
 primary_gateways = ["1.2.3.4:443"]
 acl {
   enabled = true
@@ -185,9 +199,6 @@ connect {
   enabled = true
   enable_mesh_gateway_wan_federation = true
 }
-verify_incoming_rpc = true
-verify_outgoing = true
-verify_server_hostname = true
 ports {
   https = 8501
   http = -1
@@ -202,7 +213,7 @@ construct the [Federation Secret](/docs/k8s/installation/multi-cluster/kubernete
 Kubernetes clusters as secondaries.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
-federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
+federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 You'll need:
 

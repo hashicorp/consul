@@ -1,0 +1,6 @@
+```release-note:improvement
+connect/ca: Return an error when querying roots from uninitialized CA.
+```
+```release-note:bug
+connect/ca: Allow secondary initialization to resume after being deferred due to unreachable or incompatible primary DC servers.
+```

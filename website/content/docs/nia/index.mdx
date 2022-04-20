@@ -7,51 +7,65 @@ description: >-
 
 # Network Infrastructure Automation
 
-Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
+Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync (CTS) utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
 
-Consul-Terraform-Sync executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a Consul-Terraform-Sync compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
+CTS executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a CTS compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
+
+CTS is available as an open source and enterprise distribution. Follow the [Network Infrastructure Automation introduction tutorial](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) to get started with CTS OSS or read more about [CTS Enterprise](/docs/nia/enterprise).
 
 ## Use Cases
 
-**Application teams must wait for manual changes in the network to release, scale up/down and re-deploy their applications.** This creates a bottleneck, especially in frequent workflows related to scaling up/down the application, breaking the DevOps goal of self-service enablement. Consul-Terraform-Sync automates this process, thus decreasing the possibility of human error in manually editing configuration files, as well as decreasing the overall time taken to push out configuration changes.
+**Application teams must wait for manual changes in the network to release, scale up/down and re-deploy their applications.** This creates a bottleneck, especially in frequent workflows related to scaling up/down the application, breaking the DevOps goal of self-service enablement. CTS automates this process, thus decreasing the possibility of human error in manually editing configuration files, as well as decreasing the overall time taken to push out configuration changes.
 
-**Networking and security teams cannot scale processes to the speed and changes needed.** Manual approaches don't scale well, causing backlogs in network and security teams. Even in organizations that have some amount of automation (such as scripting), there is a need for an accurate, real-time source of data to trigger and drive their network automation workflows. Consul-Terraform-Sync runs in near real-time to keep up with the rate of change.
+**Networking and security teams cannot scale processes to the speed and changes needed.** Manual approaches don't scale well, causing backlogs in network and security teams. Even in organizations that have some amount of automation (such as scripting), there is a need for an accurate, real-time source of data to trigger and drive their network automation workflows. CTS runs in near real-time to keep up with the rate of change.
 
 ## Glossary
 
-**Condition** - A task-level defined environmental requirement. When a task’s condition is met, Consul-Terraform-Sync executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform Module.
+- `Condition` - A task-level defined environmental requirement. When a task's condition is met, CTS executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the module input that the task provides to the configured Terraform Module.
 
-**Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
+- `Consul objects` - Consul objects are the response request objects returned from the Consul API that CTS monitor for changes. Examples of Consul objects can be service instance information, Consul key-value pairs, and service registration. The Consul objects are used to inform a task's condition and/or module input.
 
-**Dynamic Tasks** - A dynamic task is a type of task that is dynamically triggered on a change to any relevant Consul catalog values e.g. service instances, Consul KV, catalog-services. See scheduled tasks for a type of non-dynamic task.
+- `Consul-Terraform-Sync (CTS)` - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
--> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+- `Dynamic Tasks` - A dynamic task is a type of task that is dynamically triggered on a change to any relevant Consul catalog values e.g. service instances, Consul KV, catalog-services. See scheduled tasks for a type of non-dynamic task.
 
-**Network Drivers** - Consul-Terraform-Sync uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+  -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-**Scheduled Tasks** - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
+- `Network Drivers` - CTS uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
--> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+- `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
-**Source Input** - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
+- `Scheduled Tasks` - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
 
-**Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
+- `Services` - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by their service names. There may be more than one instance of a particular service, each with its own unique ID. CTS monitors services based on service names and can provide service instance details to a Terraform module for network automation.
 
-**Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
+- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/docs/nia/terraform-modules#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
 
-**Terraform Cloud** - Per the [Terraform documentation](https://www.terraform.io/docs/cloud/index.html), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
+  The module input can be configured in a couple of ways:
+  - Setting the `condition` block's `use_as_module_input` field to true
+    - Field was previously named `source_includes_var` (deprecated)
+  - Configuring `module_input` block(s)
+    - Block was previously named `source_input` (deprecated)
 
-**Terraform Module** - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
+  ~> "Module input" was renamed from "source input" in CTS 0.5.0 due to updates to the configuration names seen above.
 
-**Terraform Provider** - A [Terraform provider](https://www.terraform.io/docs/providers/index.html) is responsible for understanding API interactions and exposing resources for an infrastructure type.
+  -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+
+- `Tasks` - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
+
+- `Terraform Cloud` - Per the [Terraform documentation](https://www.terraform.io/docs/cloud/index.html), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
+
+- `Terraform Module` - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
+
+- `Terraform Provider` - A [Terraform provider](https://www.terraform.io/docs/providers/index.html) is responsible for understanding API interactions and exposing resources for an infrastructure type.
 
 ## Getting Started With Network Infrastructure Automation
 
 The [Network Infrastructure Automation (NIA)](https://learn.hashicorp.com/collections/consul/network-infrastructure-automation?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
-collection contains examples on how to configure Consul-Terraform-Sync to
+collection contains examples on how to configure CTS to
 perform Network Infrastructure Automation. The collection contains also a
-tutorial to secure your Consul-Terraform-Sync configuration for a production
-environment and one to help you build you own Consul-Terraform-Sync compatible
+tutorial to secure your CTS configuration for a production
+environment and one to help you build you own CTS compatible
 module.
 
 ## Community
@@ -59,4 +73,4 @@ module.
 - [Contribute](https://github.com/hashicorp/consul-terraform-sync) to the open source project
 - [Report](https://github.com/hashicorp/consul-terraform-sync/issues) bugs or request enhancements
 - [Discuss](https://discuss.hashicorp.com/tags/c/consul/29/consul-terraform-sync) with the community or ask questions
-- [Build integrations](/docs/nia/terraform-modules) for Consul-Terraform-Sync
+- [Build integrations](/docs/nia/terraform-modules) for CTS

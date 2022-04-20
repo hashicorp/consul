@@ -6,8 +6,8 @@ import (
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -73,18 +73,21 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			if err != nil {
 				return err
 			}
-
 			reply.Index, reply.Dump = index, dump
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
-
 			reply.Dump = raw.(structs.NodeDump)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
 }
@@ -115,10 +118,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Nodes = nodes
 
-			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
-				return err
-			}
-
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
 			if err != nil {
@@ -131,18 +130,43 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Index = maxIdx
 
-			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
-
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			return nil
 		})
+}
+
+func (m *Internal) CatalogOverview(args *structs.DCSpecificRequest, reply *structs.CatalogSummary) error {
+	if done, err := m.srv.ForwardRPC("Internal.CatalogOverview", args, reply); done {
+		return err
+	}
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if authz.OperatorRead(nil) != acl.Allow {
+		return acl.PermissionDeniedByACLUnnamed(authz, nil, acl.ResourceOperator, acl.AccessRead)
+	}
+
+	summary := m.srv.overviewManager.GetCurrentSummary()
+	if summary != nil {
+		*reply = *summary
+	}
+
+	return nil
 }
 
 func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceTopology) error {
@@ -161,8 +185,8 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	return m.srv.blockingQuery(
@@ -209,6 +233,10 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		return err
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -223,6 +251,23 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 
 			reply.Index, reply.Services = index, services
 			m.srv.filterACLWithAuthorizer(authz, reply)
+
+			// Generate a hash of the intentions content driving this response.
+			// Use it to determine if the response is identical to a prior
+			// wakeup.
+			newHash, err := hashstructure_v2.Hash(services, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				return errNotChanged
+			} else {
+				priorHash = newHash
+				ranOnce = true
+			}
+
 			return nil
 		})
 }
@@ -249,8 +294,8 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
 	}
 
 	err = m.srv.blockingQuery(
@@ -317,7 +362,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	var authzContext acl.AuthorizerContext
 
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, &authzContext)
@@ -333,8 +378,8 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.Match.Entries[0].Name, &authzContext); err != nil {
+		return err
 	}
 
 	return m.srv.blockingQuery(
@@ -400,34 +445,25 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	if authz.EventWrite(args.Name, nil) != acl.Allow {
-		accessorID := m.aclAccessorID(args.Token)
+	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
+		accessorID := authz.AccessorID()
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
+		return err
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta)
+	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
 
 	// Fire the event on all LAN segments
-	segments := m.srv.LANSegments()
-	var errs error
-	for name, segment := range segments {
-		err := segment.UserEvent(eventName, args.Payload, false)
-		if err != nil {
-			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
-			errs = multierror.Append(errs, err)
-		}
-	}
-	return errs
+	return m.srv.LANSendUserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -441,25 +477,25 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, authz, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := m.srv.validateEnterpriseToken(identity); err != nil {
+	if err := m.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
 	switch args.Operation {
 	case structs.KeyringList:
-		if authz.KeyringRead(nil) != acl.Allow {
-			return fmt.Errorf("Reading keyring denied by ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringReadAllowed(nil); err != nil {
+			return err
 		}
 	case structs.KeyringInstall:
 		fallthrough
 	case structs.KeyringUse:
 		fallthrough
 	case structs.KeyringRemove:
-		if authz.KeyringWrite(nil) != acl.Allow {
-			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		if err := authz.ToAllowAuthorizer().KeyringWriteAllowed(nil); err != nil {
+			return err
 		}
 	default:
 		panic("Invalid keyring operation")
@@ -492,14 +528,18 @@ func (m *Internal) KeyringOperation(
 
 func (m *Internal) executeKeyringOpLAN(args *structs.KeyringRequest) []*structs.KeyringResponse {
 	responses := []*structs.KeyringResponse{}
-	segments := m.srv.LANSegments()
-	for name, segment := range segments {
-		mgr := segment.KeyManager()
+	_ = m.srv.DoWithLANSerfs(func(poolName, poolKind string, pool *serf.Serf) error {
+		mgr := pool.KeyManager()
 		serfResp, err := m.executeKeyringOpMgr(mgr, args)
 		resp := translateKeyResponseToKeyringResponse(serfResp, m.srv.config.Datacenter, err)
-		resp.Segment = name
+		if poolKind == PoolKindSegment {
+			resp.Segment = poolName
+		} else {
+			resp.Partition = poolName
+		}
 		responses = append(responses, &resp)
-	}
+		return nil
+	}, nil)
 	return responses
 }
 
@@ -548,22 +588,4 @@ func (m *Internal) executeKeyringOpMgr(
 	}
 
 	return serfResp, err
-}
-
-// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
-// critical purposes, such as logging. Therefore we interpret all errors as empty-string
-// so we can safely log it without handling non-critical errors at the usage site.
-func (m *Internal) aclAccessorID(secretID string) string {
-	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
-	if acl.IsErrNotFound(err) {
-		return ""
-	}
-	if err != nil {
-		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
-		return ""
-	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
 }

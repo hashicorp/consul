@@ -36,6 +36,7 @@ type cmd struct {
 	client *api.Client
 
 	// Flags.
+	consulDNSIP          string
 	proxyUID             string
 	proxyID              string
 	proxyInboundPort     int
@@ -50,6 +51,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
+	c.flags.StringVar(&c.consulDNSIP, "consul-dns-ip", "", "IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.")
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
 	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
 	c.flags.IntVar(&c.proxyInboundPort, "proxy-inbound-port", 0, "The inbound port that the proxy is listening on.")
@@ -130,6 +132,7 @@ type trafficRedirectProxyConfig struct {
 // generateConfigFromFlags generates iptables.Config based on command flags.
 func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 	cfg := iptables.Config{
+		ConsulDNSIP:       c.consulDNSIP,
 		ProxyUserID:       c.proxyUID,
 		ProxyInboundPort:  c.proxyInboundPort,
 		ProxyOutboundPort: c.proxyOutboundPort,

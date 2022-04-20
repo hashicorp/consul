@@ -850,14 +850,13 @@ func TestGenerateConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
 
 			testDir := testutil.TempDir(t, "envoytest")
 
 			if len(tc.Files) > 0 {
 				for fn, fv := range tc.Files {
 					fullname := filepath.Join(testDir, fn)
-					require.NoError(ioutil.WriteFile(fullname, []byte(fv), 0600))
+					require.NoError(t, ioutil.WriteFile(fullname, []byte(fv), 0600))
 				}
 			}
 
@@ -876,7 +875,7 @@ func TestGenerateConfig(t *testing.T) {
 			defer testSetAndResetEnv(t, myEnv)()
 
 			client, err := api.NewClient(&api.Config{Address: srv.URL, TLSConfig: api.TLSConfig{InsecureSkipVerify: true}})
-			require.NoError(err)
+			require.NoError(t, err)
 
 			ui := cli.NewMockUi()
 			c := New(ui)
@@ -887,21 +886,21 @@ func TestGenerateConfig(t *testing.T) {
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
 
-			require.NoError(c.flags.Parse(args))
+			require.NoError(t, c.flags.Parse(args))
 			code := c.run(c.flags.Args())
 			if tc.WantErr == "" {
-				require.Equal(0, code, ui.ErrorWriter.String())
+				require.Equal(t, 0, code, ui.ErrorWriter.String())
 			} else {
-				require.Equal(1, code, ui.ErrorWriter.String())
-				require.Contains(ui.ErrorWriter.String(), tc.WantErr)
+				require.Equal(t, 1, code, ui.ErrorWriter.String())
+				require.Contains(t, ui.ErrorWriter.String(), tc.WantErr)
 				return
 			}
 
 			// Verify we handled the env and flags right first to get correct template
 			// args.
 			got, err := c.templateArgs()
-			require.NoError(err) // Error cases should have returned above
-			require.Equal(&tc.WantArgs, got)
+			require.NoError(t, err) // Error cases should have returned above
+			require.Equal(t, &tc.WantArgs, got)
 
 			actual := ui.OutputWriter.Bytes()
 
@@ -912,8 +911,8 @@ func TestGenerateConfig(t *testing.T) {
 			}
 
 			expected, err := ioutil.ReadFile(golden)
-			require.NoError(err)
-			require.Equal(string(expected), string(actual))
+			require.NoError(t, err)
+			require.Equal(t, string(expected), string(actual))
 		})
 	}
 }

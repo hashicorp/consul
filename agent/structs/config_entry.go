@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -27,7 +28,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
-	PartitionExports   string = "partition-exports"
+	ExportedServices   string = "exported-services"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -45,7 +46,7 @@ var AllConfigEntryKinds = []string{
 	TerminatingGateway,
 	ServiceIntentions,
 	MeshConfig,
-	PartitionExports,
+	ExportedServices,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -60,11 +61,12 @@ type ConfigEntry interface {
 
 	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
-	CanRead(acl.Authorizer) bool
-	CanWrite(acl.Authorizer) bool
+	// TODO(acl-error-enhancements) This should be ACLResolveResult or similar but we have to wait until we move things to the acl package
+	CanRead(acl.Authorizer) error
+	CanWrite(acl.Authorizer) error
 
 	GetMeta() map[string]string
-	GetEnterpriseMeta() *EnterpriseMeta
+	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
 }
 
@@ -81,6 +83,14 @@ type UpdatableConfigEntry interface {
 	ConfigEntry
 }
 
+// WarningConfigEntry is an optional interface implemented by a ConfigEntry
+// if it wants to be able to emit warnings when it is being upserted.
+type WarningConfigEntry interface {
+	Warnings() []string
+
+	ConfigEntry
+}
+
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
@@ -94,8 +104,8 @@ type ServiceConfigEntry struct {
 	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -183,16 +193,16 @@ func (e *ServiceConfigEntry) Validate() error {
 	return validationErr
 }
 
-func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceWrite(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -203,7 +213,7 @@ func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -253,8 +263,8 @@ type ProxyConfigEntry struct {
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -306,14 +316,14 @@ func (e *ProxyConfigEntry) Validate() error {
 	return e.validateEnterpriseMeta()
 }
 
-func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
-	return true
+func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) error {
+	return nil
 }
 
-func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -324,7 +334,7 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ProxyConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ProxyConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -533,8 +543,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
-	case PartitionExports:
-		return &PartitionExportsConfigEntry{Name: name}, nil
+	case ExportedServices:
+		return &ExportedServicesConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -546,7 +556,7 @@ type ConfigEntryQuery struct {
 	Name       string
 	Datacenter string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -592,7 +602,7 @@ type ConfigEntryListAllRequest struct {
 	Kinds      []string
 	Datacenter string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -620,7 +630,7 @@ type ServiceConfigRequest struct {
 	// uniquely identify a service.
 	Upstreams []string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -645,7 +655,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// and change it.
 	v, err := hashstructure.Hash(struct {
 		Name              string
-		EnterpriseMeta    EnterpriseMeta
+		EnterpriseMeta    acl.EnterpriseMeta
 		Upstreams         []string    `hash:"set"`
 		UpstreamIDs       []ServiceID `hash:"set"`
 		MeshGatewayConfig MeshGatewayConfig
@@ -674,7 +684,7 @@ type UpstreamConfig struct {
 	// Name is only accepted within a service-defaults config entry.
 	Name string `json:",omitempty"`
 	// EnterpriseMeta is only accepted within a service-defaults config entry.
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
@@ -764,10 +774,10 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 func (cfg *UpstreamConfig) NormalizeWithoutName() error {
 	return cfg.normalize(false, nil)
 }
-func (cfg *UpstreamConfig) NormalizeWithName(entMeta *EnterpriseMeta) error {
+func (cfg *UpstreamConfig) NormalizeWithName(entMeta *acl.EnterpriseMeta) error {
 	return cfg.normalize(true, entMeta)
 }
-func (cfg *UpstreamConfig) normalize(named bool, entMeta *EnterpriseMeta) error {
+func (cfg *UpstreamConfig) normalize(named bool, entMeta *acl.EnterpriseMeta) error {
 	if named {
 		// If the upstream namespace is omitted it inherits that of the enclosing
 		// config entry.
@@ -985,6 +995,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
 

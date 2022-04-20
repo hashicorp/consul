@@ -1,0 +1,196 @@
+{
+  "Chain": {
+    "ServiceName": "virtual-admin-6",
+    "Partition": "default",
+    "Namespace": "default",
+    "Datacenter": "dc-gcp",
+    "Protocol": "http",
+    "StartNode": "router:virtual-admin-6",
+    "Nodes": {
+      "resolver:virtual-admin-6.default.default.dc-gcp": {
+        "Type": "resolver",
+        "Name": "virtual-admin-6.default.default.dc-gcp",
+        "Resolver": {
+          "ConnectTimeout": "5s",
+          "Default": true,
+          "Target": "virtual-admin-6.default.default.dc-gcp"
+        }
+      },
+      "resolver:web.default.default.dc-aws": {
+        "Type": "resolver",
+        "Name": "web.default.default.dc-aws",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "web.default.default.dc-aws",
+          "Failover": {
+            "Targets": [
+              "web.default.default.dc-gcp"
+            ]
+          }
+        }
+      },
+      "resolver:db.default.partition.dc-gcp": {
+        "Type": "resolver",
+        "Name": "db.default.partition.dc-gcp",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "db.default.partition.dc-gcp",
+          "Failover": {
+            "Targets": [
+              "db.default.default.dc-gcp"
+            ]
+          }
+        }
+      },
+      "resolver:web.default.default.dc-gcp": {
+        "Type": "resolver",
+        "Name": "web.default.default.dc-gcp",
+        "Resolver": {
+          "ConnectTimeout": "15s",
+          "Target": "web.default.default.dc-gcp",
+          "Failover": {
+            "Targets": [
+              "web.default.default.dc-aws"
+            ]
+          }
+        }
+      },
+      "router:virtual-admin-6": {
+        "Type": "router",
+        "Name": "virtual-admin-6",
+        "Routes": [
+          {
+            "Definition": {
+              "Match": {
+                "HTTP": {
+                  "PathPrefix": "/login"
+                }
+              },
+              "Destination": {
+                "Service": "login",
+                "PrefixRewrite": "/"
+              }
+            },
+            "NextNode": "splitter:login.default.default"
+          },
+          {
+            "Definition": {
+              "Destination": {
+                "Service": "global-admin"
+              }
+            },
+            "NextNode": "splitter:global-admin.default.default"
+          },
+          {
+            "Definition": {
+              "Match": {
+                "HTTP": {
+                  "PathPrefix": "/"
+                }
+              },
+              "Destination": {
+                "Service": "virtual-admin-6"
+              }
+            },
+            "NextNode": "resolver:virtual-admin-6.default.default.dc-gcp"
+          }
+        ]
+      },
+      "splitter:global-admin.default.default": {
+        "Type": "splitter",
+        "Name": "global-admin.default.default",
+        "Splits": [
+          {
+            "Weight": 50,
+            "NextNode": "resolver:web.default.default.dc-aws"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:web.default.default.dc-gcp"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:db.default.default.dc-gcp"
+          }
+        ]
+      },
+      "splitter:login.default.default": {
+        "Type": "splitter",
+        "Name": "login.default.default",
+        "Splits": [
+          {
+            "Weight": 50,
+            "NextNode": "resolver:web.default.default.dc-gcp"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:web.default.default.dc-aws"
+          },
+          {
+            "Weight": 25,
+            "NextNode": "resolver:db.default.partition.dc-gcp"
+          }
+        ]
+      }
+    },
+    "Targets": {
+      "virtual-admin-6.default.default.dc-gcp": {
+        "ID": "virtual-admin-6.default.default.dc-gcp",
+        "Service": "virtual-admin-6",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "virtual-admin-6.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "virtual-admin-6.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "web.default.default.dc-aws": {
+        "ID": "web.default.default.dc-aws",
+        "Service": "web",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-aws",
+        "MeshGateway": {
+          "Mode": "local"
+        },
+        "Subset": {},
+        "SNI": "web.default.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "web.default.default.dc-aws.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "web.default.default.dc-gcp": {
+        "ID": "web.default.default.dc-gcp",
+        "Service": "web",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "web.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "db.default.partition.dc-gcp": {
+        "ID": "db.default.partition.dc-gcp",
+        "Service": "db",
+        "Partition": "partition",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "db.default.partition.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "db.default.partition.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      },
+      "db.default.default.dc-gcp": {
+        "ID": "db.default.default.dc-gcp",
+        "Service": "db",
+        "Partition": "default",
+        "Namespace": "default",
+        "Datacenter": "dc-gcp",
+        "MeshGateway": {},
+        "Subset": {},
+        "SNI": "db.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul",
+        "Name": "db.default.default.dc-gcp.internal.ede9daf4-b641-3954-5a52-15f4fd666f6e.consul"
+      }
+    }
+  }
+}

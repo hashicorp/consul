@@ -7,10 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto"
 
 	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -25,9 +23,14 @@ import (
 type AutoConfigOptions struct {
 	NodeName    string
 	SegmentName string
+	Partition   string
 
 	CSR      *x509.CertificateRequest
 	SpiffeID *connect.SpiffeIDAgent
+}
+
+func (opts AutoConfigOptions) PartitionOrDefault() string {
+	return acl.PartitionOrDefault(opts.Partition)
 }
 
 type AutoConfigAuthorizer interface {
@@ -57,8 +60,9 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	}
 
 	varMap := map[string]string{
-		"node":    req.Node,
-		"segment": req.Segment,
+		"node":      req.Node,
+		"segment":   req.Segment,
+		"partition": req.PartitionOrDefault(),
 	}
 
 	for _, raw := range a.claimAssertions {
@@ -86,6 +90,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	opts := AutoConfigOptions{
 		NodeName:    req.Node,
 		SegmentName: req.Segment,
+		Partition:   req.Partition,
 	}
 
 	if req.CSR != "" {
@@ -94,8 +99,12 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 			return AutoConfigOptions{}, err
 		}
 
-		if id.Agent != req.Node {
-			return AutoConfigOptions{}, fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)", id.Agent, req.Node)
+		if id.Agent != req.Node || !acl.EqualPartitions(id.Partition, req.Partition) {
+			return AutoConfigOptions{},
+				fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)",
+					printNodeName(id.Agent, id.Partition),
+					printNodeName(req.Node, req.Partition),
+				)
 		}
 
 		opts.CSR = csr
@@ -107,7 +116,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 
 type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
-	DatacenterJoinAddresses(segment string) ([]string, error)
+	DatacenterJoinAddresses(partition, segment string) ([]string, error)
 	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
@@ -155,7 +164,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 		}
 
 		// convert to the protobuf form of the issued certificate
-		pbcert, err := translateIssuedCertToProtobuf(cert)
+		pbcert, err := pbconnect.NewIssuedCertFromStructs(cert)
 		if err != nil {
 			return err
 		}
@@ -168,7 +177,7 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 	}
 
 	// convert to the protobuf form of the issued certificate
-	pbroots, err := translateCARootsToProtobuf(connectRoots)
+	pbroots, err := pbconnect.NewCARootsFromStructs(connectRoots)
 	if err != nil {
 		return err
 	}
@@ -200,7 +209,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 	if ac.config.ACLsEnabled {
 		// set up the token template - the ids and create
 		template := structs.ACLToken{
-			Description: fmt.Sprintf("Auto Config Token for Node %q", opts.NodeName),
+			Description: fmt.Sprintf("Auto Config Token for Node %q", printNodeName(opts.NodeName, opts.Partition)),
 			Local:       true,
 			NodeIdentities: []*structs.ACLNodeIdentity{
 				{
@@ -208,13 +217,12 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 					Datacenter: ac.config.Datacenter,
 				},
 			},
-			// TODO(partitions): support auto-config in different partitions
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.PartitionOrDefault()),
 		}
 
 		token, err := ac.backend.CreateACLToken(&template)
 		if err != nil {
-			return fmt.Errorf("Failed to generate an ACL token for node %q - %w", opts.NodeName, err)
+			return fmt.Errorf("Failed to generate an ACL token for node %q: %w", printNodeName(opts.NodeName, opts.Partition), err)
 		}
 
 		acl.Tokens = &pbconfig.ACLTokens{Agent: token.SecretID}
@@ -227,7 +235,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 // updateJoinAddressesInConfig determines the correct gossip endpoints that clients should
 // be connecting to for joining the cluster based on the segment given in the opts parameter.
 func (ac *AutoConfig) updateJoinAddressesInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
-	joinAddrs, err := ac.backend.DatacenterJoinAddresses(opts.SegmentName)
+	joinAddrs, err := ac.backend.DatacenterJoinAddresses(opts.Partition, opts.SegmentName)
 	if err != nil {
 		return err
 	}
@@ -272,19 +280,9 @@ func (ac *AutoConfig) updateTLSSettingsInConfig(_ AutoConfigOptions, resp *pbaut
 		return nil
 	}
 
-	// add in TLS configuration
-	if resp.Config.TLS == nil {
-		resp.Config.TLS = &pbconfig.TLS{}
-	}
-
-	resp.Config.TLS.VerifyServerHostname = ac.tlsConfigurator.VerifyServerHostname()
-	base := ac.tlsConfigurator.Base()
-	resp.Config.TLS.VerifyOutgoing = base.VerifyOutgoing
-	resp.Config.TLS.MinVersion = base.TLSMinVersion
-	resp.Config.TLS.PreferServerCipherSuites = base.PreferServerCipherSuites
-
 	var err error
-	resp.Config.TLS.CipherSuites, err = tlsutil.CipherString(base.CipherSuites)
+
+	resp.Config.TLS, err = ac.tlsConfigurator.AutoConfigTLSSettings()
 	return err
 }
 
@@ -299,6 +297,7 @@ func (ac *AutoConfig) baseConfig(opts AutoConfigOptions, resp *pbautoconf.AutoCo
 	resp.Config.PrimaryDatacenter = ac.config.PrimaryDatacenter
 	resp.Config.NodeName = opts.NodeName
 	resp.Config.SegmentName = opts.SegmentName
+	resp.Config.Partition = opts.Partition
 
 	return nil
 }
@@ -392,33 +391,9 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 	return x509CSR, agentID, nil
 }
 
-func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
-	var out pbconnect.CARoots
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+func printNodeName(nodeName, partition string) string {
+	if acl.IsDefaultPartition(partition) {
+		return nodeName
 	}
-
-	return &out, nil
-}
-
-func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
-	var out pbconnect.IssuedCert
-	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
-		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
-	}
-
-	return &out, nil
-}
-
-func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: proto.HookTimeToPBTimestamp,
-		Result:     out,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return decoder.Decode(in)
+	return partition + "/" + nodeName
 }

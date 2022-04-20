@@ -330,30 +330,29 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				`
 			}
 
-			require := require.New(t)
 			a := StartTestAgent(t, TestAgent{Name: "jones", HCL: hcl})
 			defer a.Shutdown()
 
 			if tt.preRegister != nil {
 				err := a.addServiceFromSource(tt.preRegister.NodeService(), nil, false, "", ConfigSourceLocal)
-				require.NoError(err)
+				require.NoError(t, err)
 			}
 
 			ns := tt.sd.NodeService()
 			err := ns.Validate()
-			require.NoError(err, "Invalid test case - NodeService must validate")
+			require.NoError(t, err, "Invalid test case - NodeService must validate")
 
 			gotNS, gotChecks, gotToken, err := a.sidecarServiceFromNodeService(ns, tt.token)
 			if tt.wantErr != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tt.wantErr)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
 				return
 			}
 
-			require.NoError(err)
-			require.Equal(tt.wantNS, gotNS)
-			require.Equal(tt.wantChecks, gotChecks)
-			require.Equal(tt.wantToken, gotToken)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNS, gotNS)
+			require.Equal(t, tt.wantChecks, gotChecks)
+			require.Equal(t, tt.wantToken, gotToken)
 		})
 	}
 }

@@ -18,7 +18,6 @@ func TestForceLeaveCommand_noTabs(t *testing.T) {
 	}
 }
 
-// TODO(partitions): split this test and verify it works in partitions
 func TestForceLeaveCommand(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -62,7 +61,6 @@ func TestForceLeaveCommand(t *testing.T) {
 	})
 }
 
-// TODO(partitions): split this test and verify it works in partitions
 func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

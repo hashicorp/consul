@@ -8,15 +8,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -42,7 +43,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -179,7 +180,7 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -270,7 +271,7 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -374,7 +375,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -612,7 +613,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -802,7 +803,7 @@ func TestAuthMethodUpdateCommand_config(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			initial_management = "root"
 		}
 	}`)
 
@@ -940,6 +941,9 @@ func getTestMethod(t *testing.T, client *api.Client, methodName string) *api.ACL
 
 	if method.Namespace == "default" {
 		method.Namespace = ""
+	}
+	if method.Partition == "default" {
+		method.Partition = ""
 	}
 
 	return method

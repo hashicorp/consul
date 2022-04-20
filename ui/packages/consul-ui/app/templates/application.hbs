@@ -17,6 +17,12 @@ as |route|>
   {{document-attrs class="has-partitions"}}
 {{/if}}
 
+{{! Listen out for blocking query/client setting changes }}
+<DataSource
+  @src={{uri 'settings://consul:client'}}
+  @onchange={{route-action "onClientChanged"}}
+/>
+
 {{! Tell CSS about our theme }}
 <DataSource
   @src={{uri 'settings://consul:theme'}}
@@ -36,10 +42,16 @@ as |source|>
 />
 {{/if}}
 
+
 {{#if (not-eq route.currentName 'oauth-provider-debug')}}
 
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
+{{! until we get to the dc route we don't know any permissions }}
+{{! as we don't know the dc, any inital permission based }}
+{{! redirects are in the dc.show route}}
+
+{{! 2022-04-15: Temporarily reverting the services page to the default }}
   {{did-insert (route-action 'replaceWith' 'dc.services.index'
     (hash
       dc=(env 'CONSUL_DATACENTER_LOCAL')
@@ -60,8 +72,8 @@ as |source|>
 
 {{! Make sure we guess and default to the right params when not found }}
 {{#let
-  (if (can "use partitions") (or route.params.partition notfound.partition token.Partition 'default') 'default')
-  (if (can "use nspaces") (or route.params.nspace notfound.nspace token.Namespace 'default') 'default')
+  (if (can "use partitions") (or route.params.partition notfound.partition token.Partition '') '')
+  (if (can "use nspaces") (or route.params.nspace notfound.nspace token.Namespace '') '')
 as |partition nspace|}}
 
 {{! Make sure we have enough to show the app chrome}}
@@ -69,7 +81,6 @@ as |partition nspace|}}
 <DataSource
   @src={{uri '/*/*/*/datacenters'}}
 as |dcs|>
-
 {{! Once we have a list of DCs make sure the DC we are asking for exists }}
 {{! If not use the DC that the UI is running in }}
 {{#let
@@ -103,11 +114,11 @@ as |dcs|>
   dcs.data
 
 as |dc dcs|}}
-  {{#if (and (gt dc.Name.length 0) dcs nspace partition)}}
+  {{#if (and (gt dc.Name.length 0) dcs)}}
 
     {{! figure out our current DC and convert it to a model }}
     <DataSource
-      @src={{uri '/${partition}/*/${dc}/datacenter/${name}'
+      @src={{uri '/${partition}/*/${dc}/datacenter-cache/${name}'
         (hash
           dc=dc.Name
           partition=partition

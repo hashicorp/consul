@@ -1,19 +1,47 @@
----
-class: ember
----
 # AuthForm
 
+AuthForm is a mostly template only form component specifically for user
+authentication for the UI. The component uses `TokenSource` which performs the
+necessary functionality all composed together using a StateChart to
+orchestrate the flow.
+
+Errors are contained/rendered within the form itself.
+
 ```hbs preview-template
-<AuthForm as |api|></AuthForm>
+<AuthForm
+  @dc={{'dc-1'}}
+  @partition={{'default'}}
+  @nspace={{'default'}}
+  @onsubmit={{noop}}
+as |api|></AuthForm>
 ```
 
-### Methods/Actions/api
+## Arguments
 
-| Method/Action |  Description |
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `String` | | The name of the current datacenter |
+| `nspace` | `String` | | The name of the current namespace |
+| `partition` | `String` | | The name of the current partition |
+| `onsubmit` | `Function` |  | The action to fire when the form is submitted |
+
+## Exported API
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `submit` | `Function` | Submit the form with a `{Name: 'oidc', Value: 'provider-name'}` which will eventually be passed as the `value` to the TokenSource |
+| `focus` | `Function` | Focus the input field |
+| `error` | `Function` | Fire an error to be displayed in the form |
+| `reset` | `Function` | Reset the form back to its original empty/non-error state |
+| `disabled` | `Boolean` | Whether the form is currently disabled or not |
+
+## Slots
+
+| Name | Description |
 | --- | --- |
-| `reset` | Reset the form back to its original empty/non-error state |
+| `content` | Provides a configurable slot underneath the form for addition of other login widgets, in our case SSO |
 
-### See
+## See
 
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)

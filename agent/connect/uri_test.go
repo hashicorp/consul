@@ -5,10 +5,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestParseCertURIFromString(t *testing.T) {
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
 	var cases = []struct {
 		Name       string
 		URI        string
@@ -26,6 +29,7 @@ func TestParseCertURIFromString(t *testing.T) {
 			"spiffe://1234.consul/ns/default/dc/dc01/svc/web",
 			&SpiffeIDService{
 				Host:       "1234.consul",
+				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Namespace:  "default",
 				Datacenter: "dc01",
 				Service:    "web",
@@ -49,6 +53,7 @@ func TestParseCertURIFromString(t *testing.T) {
 			"spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
 			&SpiffeIDAgent{
 				Host:       "1234.consul",
+				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Datacenter: "dc1",
 				Agent:      "uuid",
 			},
@@ -70,6 +75,7 @@ func TestParseCertURIFromString(t *testing.T) {
 			"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
 			&SpiffeIDService{
 				Host:       "1234.consul",
+				Partition:  defaultEntMeta.PartitionOrDefault(),
 				Namespace:  "foo/bar",
 				Datacenter: "bar/baz",
 				Service:    "baz/qux",

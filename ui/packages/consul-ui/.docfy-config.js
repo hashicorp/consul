@@ -1,9 +1,11 @@
 const path = require('path');
 
 const autolinkHeadings = require('remark-autolink-headings');
+const prism = require('./lib/rehype-prism/index');
 const refractor = require('refractor');
 const gherkin = require('refractor/lang/gherkin');
-const prism = require('@mapbox/rehype-prism');
+const mermaid = require('refractor/lang/mermaid');
+const handlebars = require('refractor/lang/handlebars');
 
 const fs = require('fs');
 const read = fs.readFileSync;
@@ -26,8 +28,14 @@ if($CONSUL_DOCFY_CONFIG.length > 0) {
 }
 
 refractor.register(gherkin);
-refractor.alias('handlebars', 'hbs');
-refractor.alias('shell', 'sh');
+refractor.register(mermaid);
+refractor.register(handlebars);
+
+refractor.alias({
+  handlebars: ['hbs'],
+  shell: ['sh']
+});
+
 
 
 module.exports = {
@@ -49,6 +57,18 @@ module.exports = {
       pattern: '**/*.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs',
+    },
+    {
+      root: path.resolve(__dirname, 'app/styles'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/styles',
+    },
+    {
+      root: path.resolve(__dirname, 'app/services/repository'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/repositories',
     },
     {
       root: path.resolve(__dirname, 'app/modifiers'),
@@ -81,10 +101,28 @@ module.exports = {
       urlPrefix: 'docs/consul',
     },
     {
+      root: `${path.dirname(require.resolve('consul-acls/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-acls',
+    },
+    {
+      root: `${path.dirname(require.resolve('consul-lock-sessions/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-lock-sessions',
+    },
+    {
       root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
       pattern: '**/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/consul-partitions',
+    },
+    {
+      root: `${path.dirname(require.resolve('consul-nspaces/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-nspaces',
     }
   ].concat(user.sources),
   labels: {

@@ -180,8 +180,6 @@ func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfig
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
 		config.CreateIndex = existing.CreateIndex
-		// Allow the ClusterID to change if it's provided by an internal operation, such
-		// as a primary datacenter being switched to secondary mode.
 		if config.ClusterID == "" {
 			config.ClusterID = existing.ClusterID
 		}
@@ -254,18 +252,8 @@ func caRootsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, structs.CARoots, error) 
 func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error) {
 	// Get all the roots since there should never be that many and just
 	// do the filtering in this method.
-	var result *structs.CARoot
 	idx, roots, err := s.CARoots(ws)
-	if err == nil {
-		for _, r := range roots {
-			if r.Active {
-				result = r
-				break
-			}
-		}
-	}
-
-	return idx, result, err
+	return idx, roots.Active(), err
 }
 
 // CARootSetCAS sets the current CA root state using a check-and-set operation.
@@ -277,6 +265,15 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
+	if err := caRootSetCASTxn(tx, idx, cidx, rs); err != nil {
+		return false, err
+	}
+
+	err := tx.Commit()
+	return err == nil, err
+}
+
+func caRootSetCASTxn(tx WriteTxn, idx, cidx uint64, rs []*structs.CARoot) error {
 	// There must be exactly one active CA root.
 	activeCount := 0
 	for _, r := range rs {
@@ -285,24 +282,24 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 		}
 	}
 	if activeCount != 1 {
-		return false, fmt.Errorf("there must be exactly one active CA")
+		return fmt.Errorf("there must be exactly one active CA")
 	}
 
 	// Get the current max index
 	if midx := maxIndexTxn(tx, tableConnectCARoots); midx != cidx {
-		return false, nil
+		return nil
 	}
 
 	// Go through and find any existing matching CAs so we can preserve and
 	// update their Create/ModifyIndex values.
 	for _, r := range rs {
 		if r.ID == "" {
-			return false, ErrMissingCARootID
+			return ErrMissingCARootID
 		}
 
 		existing, err := tx.First(tableConnectCARoots, "id", r.ID)
 		if err != nil {
-			return false, fmt.Errorf("failed CA root lookup: %s", err)
+			return fmt.Errorf("failed CA root lookup: %s", err)
 		}
 
 		if existing != nil {
@@ -316,23 +313,22 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	// Delete all
 	_, err := tx.DeleteAll(tableConnectCARoots, "id")
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Insert all
 	for _, r := range rs {
 		if err := tx.Insert(tableConnectCARoots, r); err != nil {
-			return false, err
+			return err
 		}
 	}
 
 	// Update the index
 	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCARoots, idx}); err != nil {
-		return false, fmt.Errorf("failed updating index: %s", err)
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	err = tx.Commit()
-	return err == nil, err
+	return nil
 }
 
 // CAProviderState is used to pull the built-in provider states from the snapshot.

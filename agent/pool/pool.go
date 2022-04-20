@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -451,7 +452,7 @@ func DialRPCViaMeshGateway(
 	}
 
 	if nextProto != ALPN_RPCGRPC {
-		// agent/grpc/client.go:dial() handles this in another way for gRPC
+		// agent/grpc/private/client.go:dial() handles this in another way for gRPC
 		if tcp, ok := rawConn.(*net.TCPConn); ok {
 			_ = tcp.SetKeepAlive(true)
 			_ = tcp.SetNoDelay(true)

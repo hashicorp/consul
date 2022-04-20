@@ -302,10 +302,17 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	dataDir := testutil.TempDir(t, "keyfile")
 	writeKeyRings(t, key1, dataDir)
 
-	a := StartTestAgent(t, TestAgent{HCL: TestACLConfig() + `
-		acl_datacenter = "dc1"
-		acl_master_token = "root"
-		acl_default_policy = "deny"
+	a := StartTestAgent(t, TestAgent{HCL: `
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+
+			tokens {
+				initial_management = "root"
+			}
+		}
 	`, DataDir: dataDir})
 	defer a.Shutdown()
 

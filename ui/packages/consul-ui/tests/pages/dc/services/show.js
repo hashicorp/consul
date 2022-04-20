@@ -48,6 +48,12 @@ export default function(
     notDefinedIntention: {
       see: isPresent('[data-test-notice="not-defined-intention"]'),
     },
+    noDependencies: {
+      see: isPresent('[data-test-notice="no-dependencies"]'),
+    },
+    aclsDisabled: {
+      see: isPresent('[data-test-notice="acls-disabled"]'),
+    },
   };
   page.tabs.upstreamsTab = {
     services: collection('.consul-upstream-list > ul > li:not(:first-child)', {

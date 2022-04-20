@@ -11,10 +11,53 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/types"
 )
+
+func TestEventPayloadCheckServiceNode_Subject(t *testing.T) {
+	for desc, tc := range map[string]struct {
+		evt EventPayloadCheckServiceNode
+		sub string
+	}{
+		"default partition and namespace": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+			},
+			"default/default/foo",
+		},
+		"mixed casing": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "FoO",
+					},
+				},
+			},
+			"default/default/foo",
+		},
+		"override key": {
+			EventPayloadCheckServiceNode{
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						Service: "foo",
+					},
+				},
+				overrideKey: "bar",
+			},
+			"default/default/bar",
+		},
+	} {
+		t.Run(desc, func(t *testing.T) {
+			require.Equal(t, tc.sub, tc.evt.Subject().String())
+		})
+	}
+}
 
 func TestServiceHealthSnapshot(t *testing.T) {
 	store := NewStateStore(nil)
@@ -27,11 +70,10 @@ func TestServiceHealthSnapshot(t *testing.T) {
 	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2))
 	require.NoError(t, err)
 
-	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealth)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web"}
+	req := stream.SubscribeRequest{Topic: EventTopicServiceHealth, Subject: EventSubjectService{Key: "web"}}
 
-	idx, err := fn(req, buf)
+	idx, err := store.ServiceHealthSnapshot(req, buf)
 	require.NoError(t, err)
 	require.Equal(t, counter.Last(), idx)
 
@@ -67,11 +109,13 @@ func TestServiceHealthSnapshot(t *testing.T) {
 			}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	store := NewStateStore(nil)
+
+	setVirtualIPFlags(t, store)
 
 	counter := newIndexCounter()
 	err := store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "db"))
@@ -102,11 +146,10 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "tgate1", regTerminatingGateway))
 	require.NoError(t, err)
 
-	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealthConnect)
 	buf := &snapshotAppender{}
-	req := stream.SubscribeRequest{Key: "web", Topic: topicServiceHealthConnect}
+	req := stream.SubscribeRequest{Subject: EventSubjectService{Key: "web"}, Topic: EventTopicServiceHealthConnect}
 
-	idx, err := fn(req, buf)
+	idx, err := store.ServiceHealthSnapshot(req, buf)
 	require.NoError(t, err)
 	require.Equal(t, counter.Last(), idx)
 
@@ -166,7 +209,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 				}),
 		},
 	}
-	assertDeepEqual(t, expected, buf.events, cmpEvents)
+	prototest.AssertDeepEqual(t, expected, buf.events, cmpEvents)
 }
 
 type snapshotAppender struct {
@@ -1028,8 +1071,8 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 			testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
-			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
+			testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
+			testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged, evVirtualIPChanged("240.0.0.2")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1096,28 +1139,34 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
 				"tgate1",
-				evServiceTermingGateway("tgate1")),
+				evServiceTermingGateway("tgate1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
-				evServiceTermingGateway("srv1")),
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
-				evServiceTermingGateway("srv2")),
+				evServiceTermingGateway("srv2"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway("tgate1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNode2),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNode2),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNode2),
 		},
 	})
@@ -1156,6 +1205,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway("tgate1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1164,6 +1214,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1172,6 +1223,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1205,14 +1257,24 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
 				"tgate1",
+				evServiceTermingGateway(""),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
+			testServiceHealthEvent(t,
+				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evServiceIndex(setupIndex)),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evServiceIndex(setupIndex)),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1257,9 +1319,24 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
 				"tgate1",
+				evServiceTermingGateway(""),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
+			testServiceHealthEvent(t,
+				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evServiceIndex(setupIndex)),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1302,10 +1379,25 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
 		WantEvents: []stream.Event{
+			testServiceHealthEvent(t,
+				"tgate1",
+				evServiceTermingGateway(""),
+				evTerminatingGatewayVirtualIP("srv2", "240.0.0.2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
-				evServiceTermingGateway("srv1")),
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIP("srv2", "240.0.0.2"),
+				evServiceMutatedModifyIndex),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv2"),
+				evTerminatingGatewayVirtualIP("srv2", "240.0.0.2"),
+				evServiceIndex(setupIndex),
+				evServiceMutatedModifyIndex),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1322,12 +1414,12 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 			if err != nil {
 				return err
 			}
-			return s.ensureRegistrationTxn(tx, tx.Index, false,
-				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			configEntry := &structs.TerminatingGatewayConfigEntry{
@@ -1461,6 +1553,12 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 	run(t, eventsTestCase{
 		Name: "rename a terminating gateway instance",
 		Setup: func(s *Store, tx *txn) error {
+			err := s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			if err != nil {
+				return err
+			}
+
 			configEntry := &structs.TerminatingGatewayConfigEntry{
 				Kind: structs.TerminatingGateway,
 				Name: "tgate1",
@@ -1472,7 +1570,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1487,12 +1585,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
-			if err != nil {
-				return err
-			}
-			return s.ensureRegistrationTxn(tx, tx.Index, false,
-				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			rename := func(req *structs.RegisterRequest) error {
@@ -1506,14 +1599,16 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
-				evServiceTermingGateway("tgate1")),
+				evServiceTermingGateway(""),
+				evTerminatingGatewayVirtualIPs("srv1")),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
 				evNodeUnchanged,
 				evServiceMutated,
 				evServiceChecksMutated,
-				evTerminatingGatewayRenamed("tgate2")),
+				evTerminatingGatewayRenamed("tgate2"),
+				evTerminatingGatewayVirtualIPs("srv1")),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
@@ -1559,21 +1654,32 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
-				evServiceTermingGateway("")),
+				evServiceTermingGateway(""),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
-				evServiceTermingGateway("srv1")),
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
-				evServiceTermingGateway("srv2")),
+				evServiceTermingGateway("srv2"),
+				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 		},
 	})
 }
 
 func (tc eventsTestCase) run(t *testing.T) {
 	s := NewStateStore(nil)
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}))
+	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataTermGatewayVirtualIPsEnabled,
+		Value: "true",
+	}))
 
 	setupIndex := uint64(10)
 	mutateIndex := uint64(100)
@@ -1602,7 +1708,7 @@ func (tc eventsTestCase) run(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
+	prototest.AssertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 }
 
 func runCase(t *testing.T, name string, fn func(t *testing.T)) bool {
@@ -1627,11 +1733,53 @@ func evServiceTermingGateway(name string) func(e *stream.Event) error {
 		csn.Service.Kind = structs.ServiceKindTerminatingGateway
 		csn.Service.Port = 22000
 
-		if e.Topic == topicServiceHealthConnect {
+		sn := structs.NewServiceName(name, &csn.Service.EnterpriseMeta)
+		key := structs.ServiceGatewayVirtualIPTag(sn)
+		if name != "" && name != csn.Service.Service {
+			csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+				key: {Address: "240.0.0.1"},
+			}
+		}
+
+		if e.Topic == EventTopicServiceHealthConnect {
 			payload := e.Payload.(EventPayloadCheckServiceNode)
 			payload.overrideKey = name
 			e.Payload = payload
 		}
+		return nil
+	}
+}
+
+func evTerminatingGatewayVirtualIP(name, addr string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+
+		sn := structs.NewServiceName(name, &csn.Service.EnterpriseMeta)
+		key := structs.ServiceGatewayVirtualIPTag(sn)
+		csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+			key: {Address: addr},
+		}
+
+		return nil
+	}
+}
+
+func evTerminatingGatewayVirtualIPs(names ...string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+
+		if len(names) > 0 {
+			csn.Service.TaggedAddresses = make(map[string]structs.ServiceAddress)
+		}
+		for i, name := range names {
+			sn := structs.NewServiceName(name, &csn.Service.EnterpriseMeta)
+			key := structs.ServiceGatewayVirtualIPTag(sn)
+
+			csn.Service.TaggedAddresses[key] = structs.ServiceAddress{
+				Address: fmt.Sprintf("240.0.0.%d", i+1),
+			}
+		}
+
 		return nil
 	}
 }
@@ -1653,18 +1801,11 @@ func evServiceIndex(idx uint64) func(e *stream.Event) error {
 	}
 }
 
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
-}
-
 // cmpPartialOrderEvents returns a compare option which sorts events so that
 // all events for a particular topic are grouped together. The sort is
 // stable so events with the same key retain their relative order.
 //
-// This sort should match the logic in EventPayloadCheckServiceNode.MatchesKey
+// This sort should match the logic in EventPayloadCheckServiceNode.Subject
 // to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
@@ -1936,7 +2077,14 @@ func evServiceUnchanged(e *stream.Event) error {
 // evConnectNative option converts the base event to represent a connect-native
 // service instance.
 func evConnectNative(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Connect.Native = true
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Connect.Native = true
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
 	return nil
 }
 
@@ -1946,7 +2094,7 @@ func evConnectNative(e *stream.Event) error {
 // depending on which topic they are published to and they determine this from
 // the event.
 func evConnectTopic(e *stream.Event) error {
-	e.Topic = topicServiceHealthConnect
+	e.Topic = EventTopicServiceHealthConnect
 	return nil
 }
 
@@ -1969,6 +2117,13 @@ func evSidecar(e *stream.Event) error {
 	csn.Service.Proxy.DestinationServiceName = svc
 	csn.Service.Proxy.DestinationServiceID = svc
 
+	csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+		structs.TaggedAddressVirtualIP: {
+			Address: "240.0.0.1",
+			Port:    csn.Service.Port,
+		},
+	}
+
 	// Convert the check to point to the right ID now. This isn't totally
 	// realistic - sidecars should have alias checks etc but this is good enough
 	// to test this code path.
@@ -1978,7 +2133,7 @@ func evSidecar(e *stream.Event) error {
 		csn.Checks[1].ServiceName = svc + "_sidecar_proxy"
 	}
 
-	if e.Topic == topicServiceHealthConnect {
+	if e.Topic == EventTopicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
 		payload.overrideKey = svc
 		e.Payload = payload
@@ -1990,7 +2145,12 @@ func evSidecar(e *stream.Event) error {
 // amount to simulate a service change. Can be used with evSidecar since it's a
 // relative change (+10).
 func evMutatePort(e *stream.Event) error {
-	getPayloadCheckServiceNode(e.Payload).Service.Port += 10
+	csn := getPayloadCheckServiceNode(e.Payload)
+	csn.Service.Port += 10
+	if addr, ok := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; ok {
+		addr.Port = csn.Service.Port
+		csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = addr
+	}
 	return nil
 }
 
@@ -2009,6 +2169,11 @@ func evNodeMutated(e *stream.Event) error {
 // update.
 func evServiceMutated(e *stream.Event) error {
 	getPayloadCheckServiceNode(e.Payload).Service.CreateIndex = 10
+	return nil
+}
+
+func evServiceMutatedModifyIndex(e *stream.Event) error {
+	getPayloadCheckServiceNode(e.Payload).Service.ModifyIndex = 100
 	return nil
 }
 
@@ -2067,7 +2232,11 @@ func evRenameService(e *stream.Event) error {
 	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
-	if e.Topic == topicServiceHealthConnect {
+	taggedAddr := csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]
+	taggedAddr.Address = "240.0.0.2"
+	csn.Service.TaggedAddresses[structs.TaggedAddressVirtualIP] = taggedAddr
+
+	if e.Topic == EventTopicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
 		payload.overrideKey = csn.Service.Proxy.DestinationServiceName
 		e.Payload = payload
@@ -2080,6 +2249,19 @@ func evTerminatingGatewayRenamed(newName string) func(e *stream.Event) error {
 		csn := getPayloadCheckServiceNode(e.Payload)
 		csn.Service.Service = newName
 		csn.Checks[1].ServiceName = newName
+		return nil
+	}
+}
+
+func evVirtualIPChanged(newIP string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+		csn.Service.TaggedAddresses = map[string]structs.ServiceAddress{
+			structs.TaggedAddressVirtualIP: {
+				Address: newIP,
+				Port:    csn.Service.Port,
+			},
+		}
 		return nil
 	}
 }
@@ -2166,7 +2348,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Register,
@@ -2237,7 +2419,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 // adding too many options to callers.
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
-		Topic: topicServiceHealth,
+		Topic: EventTopicServiceHealth,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Deregister,
@@ -2267,107 +2449,6 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 				},
 			},
 		},
-	}
-}
-
-func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
-	type testCase struct {
-		name      string
-		payload   EventPayloadCheckServiceNode
-		key       string
-		namespace string
-		partition string // TODO(partitions): create test cases for this being set
-		expected  bool
-	}
-
-	fn := func(t *testing.T, tc testCase) {
-		if tc.namespace != "" && pbcommon.DefaultEnterpriseMeta.Namespace == "" {
-			t.Skip("cant test namespace matching without namespace support")
-		}
-
-		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace, tc.partition))
-	}
-
-	var testCases = []testCase{
-		{
-			name:     "no key or namespace",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			expected: true,
-		},
-		{
-			name:      "no key, with namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:     "no namespace, with key match",
-			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
-			key:      "srv1",
-			expected: true,
-		},
-		{
-			name:      "key match, namespace mismatch",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  false,
-		},
-		{
-			name:      "key mismatch, namespace match",
-			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
-			key:       "srv2",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", ""),
-			key:       "srv1",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "override key mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", ""),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns2"),
-			key:       "proxy",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override namespace mismatch",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "override both key and namespace match",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", "ns2"),
-			key:       "srv1",
-			namespace: "ns2",
-			expected:  true,
-		},
-		{
-			name:      "override both key and namespace mismatch namespace",
-			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", "ns3"),
-			key:       "proxy",
-			namespace: "ns1",
-			expected:  false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			fn(t, tc)
-		})
 	}
 }
 

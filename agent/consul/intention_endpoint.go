@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -100,20 +101,13 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	}
 
 	// Get the ACL token for the request for the checks below.
-	identity, authz, err := s.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	var entMeta acl.EnterpriseMeta
+	authz, err := s.srv.ACLResolver.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
-	var accessorID string
-	var entMeta structs.EnterpriseMeta
-	if identity != nil {
-		entMeta.Merge(identity.EnterpriseMetadata())
-		accessorID = identity.ID()
-	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
-	}
-
+	accessorID := authz.AccessorID()
 	var (
 		mut         *structs.IntentionMutation
 		legacyWrite bool
@@ -168,7 +162,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 func (s *Intention) computeApplyChangesLegacyCreate(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	// This variant is just for legacy UUID-based intentions.
@@ -238,7 +232,7 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 func (s *Intention) computeApplyChangesLegacyUpdate(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	// This variant is just for legacy UUID-based intentions.
@@ -298,7 +292,7 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 func (s *Intention) computeApplyChangesUpsert(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	// This variant is just for config-entry based intentions.
@@ -361,7 +355,7 @@ func (s *Intention) computeApplyChangesUpsert(
 func (s *Intention) computeApplyChangesLegacyDelete(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	_, _, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
@@ -386,7 +380,7 @@ func (s *Intention) computeApplyChangesLegacyDelete(
 func (s *Intention) computeApplyChangesDelete(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	args.Intention.FillPartitionAndNamespace(entMeta, true)
@@ -431,8 +425,9 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
-	if _, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil); err != nil {
+	var entMeta acl.EnterpriseMeta
+	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
+	if err != nil {
 		return err
 	}
 
@@ -479,13 +474,11 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 			reply.Intentions = structs.Intentions{ixn}
 
 			// Filter
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
-				accessorID := s.aclAccessorID(args.Token)
+				accessorID := authz.AccessorID()
 				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID, "accessorID", accessorID)
 				return acl.ErrPermissionDenied
@@ -550,16 +543,18 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 			} else {
 				reply.DataOrigin = structs.IntentionDataOriginLegacy
 			}
-
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-
 			raw, err := filter.Execute(reply.Intentions)
 			if err != nil {
 				return err
 			}
 			reply.Intentions = raw.(structs.Intentions)
+
+			// Note: we filter the results with ACLs *after* applying the user-supplied
+			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
+			// results that would be filtered out even if the user did have permission.
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 
 			return nil
 		},
@@ -579,7 +574,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
@@ -605,24 +600,30 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	var authzContext acl.AuthorizerContext
-	// Go through each entry to ensure we have intention:read for the resource.
+	// Go through each entry to ensure we have intentions:read for the resource.
 
 	// TODO - should we do this instead of filtering the result set? This will only allow
-	// queries for which the token has intention:read permissions on the requested side
+	// queries for which the token has intentions:read permissions on the requested side
 	// of the service. Should it instead return all matches that it would be able to list.
 	// if so we should remove this and call filterACL instead. Based on how this is used
 	// its probably fine. If you have intention read on the source just do a source type
 	// matching, if you have it on the dest then perform a dest type match.
 	for _, entry := range args.Match.Entries {
 		entry.FillAuthzContext(&authzContext)
-		if prefix := entry.Name; prefix != "" && authz.IntentionRead(prefix, &authzContext) != acl.Allow {
-			accessorID := s.aclAccessorID(args.Token)
-			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-			s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
-			return acl.ErrPermissionDenied
+		if prefix := entry.Name; prefix != "" {
+			if err := authz.ToAllowAuthorizer().IntentionReadAllowed(prefix, &authzContext); err != nil {
+				accessorID := authz.AccessorID()
+				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
+				return err
+			}
 		}
 	}
 
+	var (
+		priorHash uint64
+		ranOnce   bool
+	)
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -634,6 +635,35 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 
 			reply.Index = index
 			reply.Matches = matches
+
+			// Generate a hash of the intentions content driving this response.
+			// Use it to determine if the response is identical to a prior
+			// wakeup.
+			newHash, err := hashstructure_v2.Hash(matches, hashstructure_v2.FormatV2, nil)
+			if err != nil {
+				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if ranOnce && priorHash == newHash {
+				priorHash = newHash
+				return errNotChanged
+			} else {
+				priorHash = newHash
+				ranOnce = true
+			}
+
+			hasData := false
+			for _, match := range matches {
+				if len(match) > 0 {
+					hasData = true
+					break
+				}
+			}
+
+			if !hasData {
+				return errNotFound
+			}
+
 			return nil
 		},
 	)
@@ -665,7 +695,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
@@ -705,11 +735,11 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	if prefix, ok := query.GetACLPrefix(); ok {
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
-		if authz.ServiceRead(prefix, &authzContext) != acl.Allow {
-			accessorID := s.aclAccessorID(args.Token)
+		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(prefix, &authzContext); err != nil {
+			accessorID := authz.AccessorID()
 			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
-			return acl.ErrPermissionDenied
+			return err
 		}
 	}
 
@@ -756,24 +786,6 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	reply.Allowed = decision.Allowed
 
 	return nil
-}
-
-// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
-// critical purposes, such as logging. Therefore we interpret all errors as empty-string
-// so we can safely log it without handling non-critical errors at the usage site.
-func (s *Intention) aclAccessorID(secretID string) string {
-	_, ident, err := s.srv.ResolveIdentityFromToken(secretID)
-	if acl.IsErrNotFound(err) {
-		return ""
-	}
-	if err != nil {
-		s.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
-		return ""
-	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
 }
 
 func (s *Intention) validateEnterpriseIntention(ixn *structs.Intention) error {

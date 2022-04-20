@@ -134,12 +134,19 @@ func (a *AWSProvider) State() (map[string]string, error) {
 }
 
 // GenerateRoot implements Provider
-func (a *AWSProvider) GenerateRoot() error {
+func (a *AWSProvider) GenerateRoot() (RootResult, error) {
 	if !a.isPrimary {
-		return fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
-	return a.ensureCA()
+	if err := a.ensureCA(); err != nil {
+		return RootResult{}, err
+	}
+
+	if a.rootPEM == "" {
+		return RootResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
+	}
+	return RootResult{PEM: a.rootPEM}, nil
 }
 
 // ensureCA loads the CA resource to check it exists if configured by User or in
@@ -489,19 +496,6 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 		})
 }
 
-// ActiveRoot implements Provider
-func (a *AWSProvider) ActiveRoot() (string, error) {
-	err := a.ensureCA()
-	if err != nil {
-		return "", err
-	}
-
-	if a.rootPEM == "" {
-		return "", fmt.Errorf("Secondary AWS CA provider not fully Initialized")
-	}
-	return a.rootPEM, nil
-}
-
 // GenerateIntermediateCSR implements Provider
 func (a *AWSProvider) GenerateIntermediateCSR() (string, error) {
 	if a.isPrimary {
@@ -603,7 +597,7 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 // SignIntermediate implements Provider
 func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	err := validateSignIntermediate(csr, &connect.SpiffeIDSigning{ClusterID: a.clusterID, Domain: "consul"})
+	err := validateSignIntermediate(csr, connect.SpiffeIDSigningForCluster(a.clusterID))
 	if err != nil {
 		return "", err
 	}

@@ -50,7 +50,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => s
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );
-  page.navigation.dcs = collection('[data-test-datacenter-picker]', {
+  page.navigation.dcs = collection('[data-test-datacenter-menu] li', {
     name: clickable('a'),
   });
   return page;

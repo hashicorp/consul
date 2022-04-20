@@ -5,8 +5,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -137,13 +139,65 @@ func (b *indexBuilder) Bytes() []byte {
 	return (*bytes.Buffer)(b).Bytes()
 }
 
+// singleValueID is an interface that may be implemented by any type that should
+// be indexed by a single ID and a structs.EnterpriseMeta to scope the ID.
+type singleValueID interface {
+	IDValue() string
+	PartitionOrDefault() string
+	NamespaceOrDefault() string
+}
+
+type multiValueID interface {
+	IDValue() []string
+	PartitionOrDefault() string
+	NamespaceOrDefault() string
+}
+
+var _ singleValueID = (*structs.DirEntry)(nil)
+var _ singleValueID = (*Tombstone)(nil)
+var _ singleValueID = (*Query)(nil)
+var _ singleValueID = (*structs.Session)(nil)
+
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromIDValueLowerCase(raw interface{}) ([]byte, error) {
+	e, ok := raw.(singleValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	v := strings.ToLower(e.IDValue())
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(v)
+	return b.Bytes(), nil
+}
+
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromMultiValueID(raw interface{}) ([]byte, error) {
+	e, ok := raw.(multiValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement multiValueID", raw)
+	}
+	var b indexBuilder
+	for _, v := range e.IDValue() {
+		if v == "" {
+			return nil, errMissingValueForIndex
+		}
+		b.String(strings.ToLower(v))
+	}
+	return b.Bytes(), nil
+}
+
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})
 }
 
 type TimeQuery struct {
 	Value time.Time
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

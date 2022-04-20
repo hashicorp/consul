@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/types"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -30,8 +31,8 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -89,8 +90,8 @@ type IngressService struct {
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 type GatewayTLSConfig struct {
@@ -99,6 +100,13 @@ type GatewayTLSConfig struct {
 
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+
+	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
+	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
+
+	// Define a subset of cipher suites to restrict
+	// Only applicable to connections negotiated via TLS 1.2 or earlier
+	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
 }
 
 type GatewayServiceTLSConfig struct {
@@ -231,8 +239,16 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	return nil
 }
 
+func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
+	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+}
+
 func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := validateGatewayTLSConfig(e.TLS); err != nil {
 		return err
 	}
 
@@ -264,12 +280,15 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 				listener.Port)
 		}
 
+		if listener.TLS != nil {
+			if err := validateGatewayTLSConfig(*listener.TLS); err != nil {
+				return err
+			}
+		}
+
 		declaredHosts := make(map[string]bool)
 		serviceNames := make(map[ServiceID]struct{})
-		for i, s := range listener.Services {
-			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
-				return fmt.Errorf("services[%d]: %w", i, err)
-			}
+		for _, s := range listener.Services {
 			sn := NewServiceName(s.Name, &s.EnterpriseMeta)
 			if err := s.RequestHeaders.Validate(listener.Protocol); err != nil {
 				return fmt.Errorf("request headers %s (service %q on listener on port %d)", err, sn.String(), listener.Port)
@@ -381,16 +400,16 @@ func (e *IngressGatewayConfigEntry) ListRelatedServices() []ServiceID {
 	return out
 }
 
-func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *IngressGatewayConfigEntry) GetRaftIndex() *RaftIndex {
@@ -401,7 +420,7 @@ func (e *IngressGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -420,8 +439,8 @@ type TerminatingGatewayConfigEntry struct {
 	Name     string
 	Services []LinkedService
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -445,7 +464,7 @@ type LinkedService struct {
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (e *TerminatingGatewayConfigEntry) GetKind() string {
@@ -523,16 +542,16 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.MeshWrite(&authzContext) == acl.Allow
+	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
 func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {
@@ -543,12 +562,28 @@ func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
 
 	return &e.EnterpriseMeta
+}
+
+func (e *TerminatingGatewayConfigEntry) Warnings() []string {
+	if e == nil {
+		return nil
+	}
+
+	warnings := make([]string, 0)
+	for _, svc := range e.Services {
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") && svc.SNI == "" {
+			warning := fmt.Sprintf("TLS is configured but SNI is not set for service %q. Enabling SNI is strongly recommended when using TLS.", svc.Name)
+			warnings = append(warnings, warning)
+		}
+	}
+
+	return warnings
 }
 
 // GatewayService is used to associate gateways with their linked services.

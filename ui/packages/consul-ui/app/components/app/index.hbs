@@ -1,5 +1,6 @@
 {{#let (hash
   main=(concat guid '-main')
+  Notification=(component 'app/notification')
 ) as |exported|}}
 
 <div
@@ -13,7 +14,7 @@
   >
     <PortalTarget
       @name="app-before-skip-links"
-      @mutiple={{true}}
+      @multiple={{true}}
     ></PortalTarget>
     <a href={{concat '#' exported.main}}>{{t 'components.app.skip_to_content'}}</a>
     {{!--
@@ -25,7 +26,7 @@
     --}}
     <PortalTarget
       @name="app-after-skip-links"
-      @mutiple={{true}}
+      @multiple={{true}}
     ></PortalTarget>
   </div>
 
@@ -78,6 +79,13 @@
       </div>
   </header>
   <main id={{concat guid '-main'}}>
+    <div class="notifications">
+      {{yield exported to="notifications"}}
+      <PortalTarget
+        @name="app-notifications"
+        @multiple={{true}}
+      ></PortalTarget>
+    </div>
     {{yield exported to="main"}}
   </main>
   <footer

@@ -82,13 +82,13 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		if existing == nil {
 			return nil
 		}
-		if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().SessionWriteAllowed(existing.Node, &authzContext); err != nil {
+			return err
 		}
 
 	case structs.SessionCreate:
-		if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+		if err := authz.ToAllowAuthorizer().SessionWriteAllowed(args.Session.Node, &authzContext); err != nil {
+			return err
 		}
 
 	default:
@@ -151,7 +151,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 
 	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
 		// If we created a session with a TTL, reset the expiration timer
-		s.srv.resetSessionTimer(args.Session.ID, &args.Session)
+		s.srv.resetSessionTimer(&args.Session)
 	} else if args.Op == structs.SessionDestroy {
 		// If we destroyed a session, it might potentially have a TTL,
 		// and we need to clear the timer
@@ -198,6 +198,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 				reply.Sessions = structs.Sessions{session}
 			} else {
 				reply.Sessions = nil
+				return errNotFound
 			}
 			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
@@ -302,13 +303,13 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+	if err := authz.ToAllowAuthorizer().SessionWriteAllowed(session.Node, &authzContext); err != nil {
+		return err
 	}
 
 	// Reset the session TTL timer.
 	reply.Sessions = structs.Sessions{session}
-	if err := s.srv.resetSessionTimer(args.SessionID, session); err != nil {
+	if err := s.srv.resetSessionTimer(session); err != nil {
 		s.logger.Error("Session renew failed", "error", err)
 		return err
 	}

@@ -172,7 +172,6 @@ func (c *cmd) run(args []string) int {
 		ui.Error(err.Error())
 		return 1
 	}
-
 	c.logger = bd.Logger
 	agent, err := agent.New(bd)
 	if err != nil {
@@ -207,7 +206,7 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
-		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+		config.EncryptKey != "", config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	// Enable log streaming
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")

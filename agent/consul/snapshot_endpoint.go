@@ -16,9 +16,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/snapshot"
@@ -62,8 +61,8 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// all the ACLs and you could escalate from there.
 	if authz, err := s.ResolveToken(args.Token); err != nil {
 		return nil, err
-	} else if authz.Snapshot(nil) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
+	} else if err := authz.ToAllowAuthorizer().SnapshotAllowed(nil); err != nil {
+		return nil, err
 	}
 
 	// Dispatch the operation.
@@ -77,7 +76,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 		// Set the metadata here before we do anything; this should always be
 		// pessimistic if we get more data while the snapshot is being taken.
-		s.setQueryMeta(&reply.QueryMeta)
+		s.setQueryMeta(&reply.QueryMeta, args.Token)
 
 		// Take the snapshot and capture the index.
 		snap, err := snapshot.New(s.logger, s.raft)

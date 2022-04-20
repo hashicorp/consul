@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -227,9 +228,9 @@ func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
 
 func prefixIndexFromUUIDQuery(arg interface{}) ([]byte, error) {
 	switch v := arg.(type) {
-	case *structs.EnterpriseMeta:
+	case *acl.EnterpriseMeta:
 		return nil, nil
-	case structs.EnterpriseMeta:
+	case acl.EnterpriseMeta:
 		return nil, nil
 	case Query:
 		return variableLengthUUIDStringToBytes(v.Value)

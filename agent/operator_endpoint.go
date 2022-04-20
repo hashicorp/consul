@@ -6,11 +6,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -171,6 +173,11 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 			pool := response.Datacenter + " (LAN)"
 			if response.WAN {
 				pool = "WAN"
+			}
+			if response.Segment != "" {
+				pool += " [segment: " + response.Segment + "]"
+			} else if !acl.IsDefaultPartition(response.Partition) {
+				pool += " [partition: " + response.Partition + "]"
 			}
 			errs = multierror.Append(errs, fmt.Errorf("%s error: %s", pool, response.Error))
 			for key, message := range response.Messages {

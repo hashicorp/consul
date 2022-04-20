@@ -8,7 +8,7 @@ description: Configuring Terminating Gateways on Kubernetes
 
 -> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
-~> This topic requires familiarity with [Terminating Gateways](/docs/connect/terminating-gateway).
+~> This topic requires familiarity with [Terminating Gateways](/docs/connect/gateways/terminating-gateway).
 
 Adding a terminating gateway is a multi-step process:
 
@@ -127,27 +127,24 @@ Create a sample external service and register it with Consul.
 Register the external service with Consul:
 
 ```shell-session
-$ curl --request PUT --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
 If ACLs and TLS are enabled :
 
 ```shell-session
-$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
 true
 ```
 
-### Update terminating gateway ACL token if ACLs are enabled
+### Update terminating gateway ACL role if ACLs are enabled
 
-If ACLs are enabled, update the terminating gateway acl token to have `service: write` permissions on all of the services
+If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
 being represented by the gateway:
 
 - Create a new policy that includes these permissions
-- Update the existing token to include the new policy
-
-~> The CLI command should be run with the `-merge-policies`, `-merge-roles` and `-merge-service-identities` so
-nothing is removed from the terminating gateway token
+- Update the existing rolc to include the new policy
 
 <CodeBlockConfig filename="write-policy.hcl">
 
@@ -174,28 +171,28 @@ service "example-https" {
 Now fetch the ID of the terminating gateway token
 
 ```shell-session
-consul acl token list | grep -B 6 -- "- terminating-gateway-terminating-gateway-token" | grep AccessorID
+consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
 
-AccessorID:       <token id>
+ID:       <role id>
 ```
 
 Update the terminating gateway acl token with the new policy
 
 ```shell-session
-$ consul acl token update -id <token-id> -policy-name example-https-write-policy -merge-policies -merge-roles -merge-service-identities
-AccessorID:       <token id>
+$ consul acl role update -id <role id> -policy-name example-https-write-policy
+AccessorID:       <role id>
 SecretID:         <secret id>
-Description:      terminating-gateway-terminating-gateway-token Token
+Description:      RELEASE_NAME-terminating-gateway-acl-role
 Local:            true
 Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
 Policies:
-   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - terminating-gateway-terminating-gateway-token
+   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-policy
    f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
 ```
 
 ### Create the configuration entry for the terminating gateway
 
-Once the tokens have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
+Once the roles have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
 resource to configure the terminating gateway:
 
 <CodeBlockConfig filename="terminating-gateway.yaml">
@@ -219,7 +216,7 @@ container (`/etc/ssl/cert.pem`).
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f terminating-gateway.yaml
+$ kubectl apply --filename terminating-gateway.yaml
 ```
 
 If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
@@ -244,7 +241,7 @@ spec:
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f service-intentions.yaml
+$ kubectl apply --filename service-intentions.yaml
 ```
 
 ### Define the external services as upstreams for services in the mesh
@@ -301,7 +298,7 @@ spec:
 Run the service via `kubectl apply`:
 
 ```shell-session
-$ kubectl apply -f static-client.yaml
+$ kubectl apply --filename static-client.yaml
 ```
 
 Wait for the service to be ready:
@@ -314,5 +311,5 @@ deployment "static-client" successfully rolled out
 You can verify connectivity of the static-client and terminating gateway via a curl command:
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs -H "Host: example-https.com" http://localhost:1234/
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
 ```

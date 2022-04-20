@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -979,11 +980,10 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1020,7 +1020,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.ID,
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
@@ -1032,7 +1032,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
@@ -1044,7 +1044,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 	}
 
 	// List w/ token. This should disallow because we don't have permission
@@ -1056,8 +1056,8 @@ node "foo" {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	var resp structs.IndexedCheckServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
-	assert.Len(resp.Nodes, 0)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.Nodes, 0)
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -1067,8 +1067,8 @@ node "foo" {
 		ServiceName:  "foo",
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
-	assert.Len(resp.Nodes, 1)
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+	assert.Len(t, resp.Nodes, 1)
 }
 
 func TestHealth_ServiceNodes_Gateway(t *testing.T) {
@@ -1289,7 +1289,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1431,6 +1431,7 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1442,9 +1443,9 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply)
+	require.NoError(t, err)
+
 	found := false
 	for _, chk := range reply.HealthChecks {
 		switch chk.ServiceName {
@@ -1454,9 +1455,8 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.HealthChecks)
 		}
 	}
-	if !found {
-		t.Fatalf("bad: %#v", reply.HealthChecks)
-	}
+	require.True(t, found, "bad: %#v", reply.HealthChecks)
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
@@ -1471,6 +1471,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1482,9 +1483,9 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply)
+	require.NoError(t, err)
+
 	found := false
 	for _, chk := range reply.HealthChecks {
 		if chk.ServiceName == "foo" {
@@ -1492,18 +1493,14 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 			break
 		}
 	}
-	if !found {
-		t.Fatalf("bad: %#v", reply.HealthChecks)
-	}
+	require.True(t, found, "bad: %#v", reply.HealthChecks)
 
 	opt.ServiceName = "bar"
 	reply = structs.IndexedHealthChecks{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(reply.HealthChecks) != 0 {
-		t.Fatalf("bad: %#v", reply.HealthChecks)
-	}
+	err = msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply)
+	require.NoError(t, err)
+	require.Empty(t, reply.HealthChecks)
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
@@ -1518,6 +1515,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1529,21 +1527,16 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedCheckServiceNodes{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(reply.Nodes) != 1 {
-		t.Fatalf("bad: %#v", reply.Nodes)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply)
+	require.NoError(t, err)
+	require.Len(t, reply.Nodes, 1)
 
 	opt.ServiceName = "bar"
 	reply = structs.IndexedCheckServiceNodes{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(reply.Nodes) != 0 {
-		t.Fatalf("bad: %#v", reply.Nodes)
-	}
+	err = msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply)
+	require.NoError(t, err)
+	require.Empty(t, reply.Nodes)
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves
@@ -1558,6 +1551,7 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1569,9 +1563,8 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &opt, &reply); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &opt, &reply)
+	require.NoError(t, err)
 
 	found := false
 	for _, chk := range reply.HealthChecks {
@@ -1582,9 +1575,8 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 			t.Fatalf("bad service 'bar': %#v", reply.HealthChecks)
 		}
 	}
-	if !found {
-		t.Fatalf("missing service 'foo': %#v", reply.HealthChecks)
-	}
+	require.True(t, found, "missing service 'foo': %#v", reply.HealthChecks)
+	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// We've already proven that we call the ACL filtering function so we
 	// test node filtering down in acl.go for node cases. This also proves

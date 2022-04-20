@@ -16,8 +16,7 @@ func TestJoinCommand_noTabs(t *testing.T) {
 	}
 }
 
-// TODO(partitions): split this test and verify it works in partitions
-func TestJoinCommandJoin_lan(t *testing.T) {
+func TestJoinCommandJoin_LAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

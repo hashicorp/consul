@@ -25,7 +25,36 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001",
+				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
+				"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
+				"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
+			},
+		},
+		{
+			"Consul DNS IP provided",
+			Config{
+				ProxyUserID:      "123",
+				ProxyInboundPort: 20000,
+				ConsulDNSIP:      "10.0.34.16",
+				IptablesProvider: &fakeIptablesProvider{},
+			},
+			[]string{
+				"iptables -t nat -N CONSUL_PROXY_INBOUND",
+				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
+				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001",
+				"iptables -t nat -A CONSUL_DNS_REDIRECT -p udp --dport 53 -j DNAT --to-destination 10.0.34.16",
+				"iptables -t nat -A CONSUL_DNS_REDIRECT -p tcp --dport 53 -j DNAT --to-destination 10.0.34.16",
+				"iptables -t nat -A OUTPUT -p udp --dport 53 -j CONSUL_DNS_REDIRECT",
+				"iptables -t nat -A OUTPUT -p tcp --dport 53 -j CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
@@ -48,6 +77,7 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
@@ -72,6 +102,7 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
@@ -98,6 +129,7 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
@@ -124,6 +156,7 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
@@ -150,6 +183,7 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
 				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -N CONSUL_DNS_REDIRECT",
 				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
 				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
@@ -171,7 +205,6 @@ func TestSetup(t *testing.T) {
 			require.Equal(t, c.expectedRules, c.cfg.IptablesProvider.Rules())
 		})
 	}
-
 }
 
 func TestSetup_errors(t *testing.T) {

@@ -30,6 +30,11 @@ type Intention struct {
 	SourceNS, SourceName           string
 	DestinationNS, DestinationName string
 
+	// SourcePartition and DestinationPartition cannot be wildcards "*" and
+	// are not compatible with legacy intentions.
+	SourcePartition      string `json:",omitempty"`
+	DestinationPartition string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
@@ -363,8 +368,8 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, error) {
 	r := c.c.newRequest("PUT", "/v1/connect/intentions/exact")
 	r.setWriteOptions(q)
-	r.params.Set("source", maybePrefixNamespace(ixn.SourceNS, ixn.SourceName))
-	r.params.Set("destination", maybePrefixNamespace(ixn.DestinationNS, ixn.DestinationName))
+	r.params.Set("source", maybePrefixNamespaceAndPartition(ixn.SourcePartition, ixn.SourceNS, ixn.SourceName))
+	r.params.Set("destination", maybePrefixNamespaceAndPartition(ixn.DestinationPartition, ixn.DestinationNS, ixn.DestinationName))
 	r.obj = ixn
 	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
@@ -380,11 +385,17 @@ func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	return wm, nil
 }
 
-func maybePrefixNamespace(ns, name string) string {
-	if ns == "" {
+func maybePrefixNamespaceAndPartition(part, ns, name string) string {
+	switch {
+	case part == "" && ns == "":
 		return name
+	case part == "" && ns != "":
+		return ns + "/" + name
+	case part != "" && ns == "":
+		return part + "/" + IntentionDefaultNamespace + "/" + name
+	default:
+		return part + "/" + ns + "/" + name
 	}
-	return ns + "/" + name
 }
 
 // IntentionCreate will create a new intention. The ID in the given

@@ -1,0 +1,117 @@
+---
+title: The Data/Model Layer
+---
+# The Data/Model Layer
+
+Consul UI is currently backed by an Ember conventional ember-data model/adapter/serializer set of classes. But the primary unit for the model layer of the application are our `Repository` classes which 'front' ember-data and provide a layer of abstraction between the application code and ember-data.
+
+## ember-data Model classes
+
+These model classes are primarily used to describe the `schema` of our data objects. We mainly use the ember-data `@attr` decorator to do this, but we also have  `@nullValue` and `@replace` decorators which allow you to define what to do when the HTTP API responds with a `null` value for a property (using `@nullValue`) something which is very common in with the Consul HTTP API. `@nullValue` is a shortcut for `@replace` which can be used to declaratively specify any sort of replacement. For example we use this for our HealthCheck model to replace a `Type` property with an empty string (`''`) to the value `serf` (which is what the empty string actually means).
+
+When you come to need extra checks for abilities or characteristics of models, prefer using our `test` (or `is`/`can`) helpers along with `ember-can`s `Ability` classes instead of adding more computed properties to the model classes. Model classes should be primarily used for declaratively specifying the schema for the model. Here 'prefer' means don't worry if you can't, it's fine to keep using model classes if you can't use the `Ability` classes for some reason.
+
+We don't use ember-data to model relationships spread across more than one API request. Please use nested `DataLoader`/`DataSource` components which offer a more flexible/featured way to model relationships between different API requests.
+
+Whilst we don't use ember-data async relationships, we do use `ember-data-model-fragments` _minimally_ for when you need to add computed/tracked properties to nested objects of a model. We use them minimally because the compatibility matrix for this addon with ember-data can often lead to this addon blocking ember upgrades. Despite this, if you need to use it, then use it, we have it installed as a dependency currently.
+
+## ember-data Adapter classes
+
+We use a completely custom base adapter class (HTTPAdapter) which is based on (but doesn't inherit from) the ember-data RESTAdapter. This is not as strict at sticking to REST conventions as the original RESTAdapter, which suits Consul's HTTP API a lot better.
+
+The adapter aims to be very simple and gives full control of the HTTP request to the engineer all in one place. For example:
+
+```javascript
+async requestForQuery(request, { dc, ns, partition, index, id, uri }) {
+  return request`
+    GET /v1/internal/ui/nodes?${{ dc }}
+    X-Request-ID: ${uri}
+
+    ${{
+      ns,
+      partition,
+      index,
+    }}
+  `;
+}
+```
+
+Here the `request` Tagged Template Literal here ensures that it is very difficult not to URL encode user provided values. Depending on where you interpolate a user provided value the value will be encoded accordingly, whether thats URL parameters, query parameters or header values. The format of the template follows the HTTP protocol as much as possible.
+
+1. The HTTP method followed by a single space, followed by the URL for the request, followed by a question mark, an object interpolated directly after the question mark will be encoded as query parameters (using ='s &'s etc).
+2. After a single return, you can optinally provide HTTP header values, separated by a single return.
+3. A double return then lets you interpolate HTTP body values for POSTing/PUTing, if you've defined the HTTP method to be a GET request, then these values will be added to the query parameters.
+
+As `request` performs all of the encoding for you when the user provided values are interpolated into the template, the only way you can add a URL encoding error is if you actually type one yourself into the code. This avoids all manner of bugs.
+
+`request` is usually just returned by the method, but you can further normalize the response here also (which gives you direct access to the methods parameters without having to pass them all through somehow to the serializer. For example:
+
+```javascript
+async requestForQuery(request, { ns, dc, index }) {
+  const respond = await request`
+    GET /v1/partitions?${{ dc }}
+
+    ${{ index }}
+  `;
+  // deleting the x-consul-index header disables blocking queries for this request
+  await respond((headers, body) => delete headers['x-consul-index']);
+  return respond;
+}
+```
+
+`respond` here acts as kind of a distributed filter chain, in that you can call `respond` multiple times across different classes and it will keep filtering/mutating the values as you go. As the request and the response of a HTTP API endpint is usually very tightly coupled, it probably makes sense for us to do more and more of this here in the adapter in the future, and eventually to move all of this directly into our repositories.
+
+## ember-data Serializer classes
+
+Currently the majority of our serializing code (of which there is very little), is done in conventional ember-data serializers. Our Serializers also use a HTTPSerializer class as a base, which _does_ inherit form the standard ember-data serializer. Every model object gets fingerprinted with a `['partition', 'nspace', 'dc', 'slug', ...]` formatted unique ID. Therefore most models have `Partition`, `Namespace`, and `Datacenter` properties. The functions used for serializing are unfortunately a little verbose, but this gives use the distributed filter chain characteristic and was originally planned to also support streaming JSON responses.
+
+## Consul UIs Repository classes
+
+Most importantly Consul UI uses an extra `Repository` class per data model. This gives us a thin layer of abstraction over ember-data which means the rest of our application doesn't need to know it is using ember-data at all. We have a base/abstract Repository class which all of the others inherit from for now, and mostly just pass things through to more conventional ember-data access using the ember-data store. Importantly, it also gives us a place to smooth over any wrinkles that we might have with ember-data (and/or ember-changeset) without doing that outside of the data/model layer.
+
+All access methods on the `Repository` classes follow a fairly standard naming scheme `findAll/findBySlug`, but since we use our `@dataSource` decorator/annotation to access these methods, functionally the naming isn't important, so naming is mainly for documentation/consistency purposes.
+
+You'll find most `Repository` methods look like this:
+
+```javascript
+@dataSource('/:partition/:ns/:dc/auth-method/:id')
+async findBySlug() {
+  return super.findBySlug(...arguments);
+}
+```
+
+Which means that `partition`, `ns` and `id` parameters will eventually find their way into the Adapter class ready for you to make the request.
+
+The above method can be called from within the app, along with Blocking Query and/or more traditional polling support, using our DataSource and/or DataLoader component:
+
+```hbs
+{{! with loading, loaded, error and disconnection states }}
+<DataLoader @src={{uri '/${partition}/${nspace}/${dc}/auth-method/${id}'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+      id=(or route.params.id '')
+    )
+  }}
+as |loader|>
+  <BlockSlot @name="loaded">
+    Show the Auth Methods here {{loader.data}}
+  </BlockSlot>
+</DataLoader>
+
+{{! or just }}
+<DataSource @src={{uri '/${partition}/${nspace}/${dc}/auth-method/${id}'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+      id=(or route.params.id '')
+    )
+  }}
+as |source|>
+    Show the Auth Methods here {{source.data}}
+</DataSource>
+```
+
+See the separate Component documentation for both the DataLoader and the DataSource component for more details.

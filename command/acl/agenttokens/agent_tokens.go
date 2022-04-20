@@ -54,8 +54,8 @@ func (c *cmd) Run(args []string) int {
 		_, err = client.Agent().UpdateDefaultACLToken(token, nil)
 	case "agent":
 		_, err = client.Agent().UpdateAgentACLToken(token, nil)
-	case "master":
-		_, err = client.Agent().UpdateAgentMasterACLToken(token, nil)
+	case "recovery":
+		_, err = client.Agent().UpdateAgentRecoveryACLToken(token, nil)
 	case "replication":
 		_, err = client.Agent().UpdateReplicationACLToken(token, nil)
 	default:
@@ -78,7 +78,7 @@ func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 		return "", "", fmt.Errorf("Missing TYPE and TOKEN arguments")
 	case 1:
 		switch args[0] {
-		case "default", "agent", "master", "replication":
+		case "default", "agent", "recovery", "replication":
 			return "", "", fmt.Errorf("Missing TOKEN argument")
 		default:
 			return "", "", fmt.Errorf("MISSING TYPE argument")
@@ -121,7 +121,7 @@ Usage: consul acl set-agent-token [options] TYPE TOKEN
     agent         The token that the agent will use for internal agent operations.
                   If not given then the default token is used for these operations.
 
-    master        This sets the token that can be used to access the Agent APIs in
+    recovery      This sets the token that can be used to access the Agent APIs in
                   the event that the ACL datacenter cannot be reached.
 
     replication   This is the token that the agent will use for replication

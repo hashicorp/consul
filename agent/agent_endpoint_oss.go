@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package agent
@@ -5,9 +6,9 @@ package agent
 import (
 	"net/http"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
-func (s *HTTPHandlers) validateRequestPartition(_ http.ResponseWriter, _ *structs.EnterpriseMeta) bool {
+func (s *HTTPHandlers) validateRequestPartition(_ http.ResponseWriter, _ *acl.EnterpriseMeta) bool {
 	return true
 }

@@ -3,12 +3,14 @@ package api
 import (
 	crand "crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -16,10 +18,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type configCallback func(c *Config)
@@ -39,7 +44,7 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
-		serverConfig.ACL.Tokens.Master = "root"
+		serverConfig.ACL.Tokens.InitialManagement = "root"
 		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
@@ -588,9 +593,8 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(cc.RootCAs.Subjects()) != 2 {
-		t.Fatalf("didn't load root CAs")
-	}
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, cc.RootCAs, cmpCertPool)
 
 	// Load certs in-memory
 	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
@@ -737,8 +741,6 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	assert := assert.New(t)
-
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Namespace:         "operator",
@@ -784,7 +786,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	if r.params.Get("local-only") != "true" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	assert.Equal("", r.header.Get("Cache-Control"))
+	assert.Equal(t, "", r.header.Get("Cache-Control"))
 
 	r = c.newRequest("GET", "/v1/kv/foo")
 	q = &QueryOptions{
@@ -795,8 +797,8 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r.setQueryOptions(q)
 
 	_, ok := r.params["cached"]
-	assert.True(ok)
-	assert.Equal("max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
+	assert.True(t, ok)
+	assert.Equal(t, "max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
 }
 
 func TestAPI_SetWriteOptions(t *testing.T) {
@@ -932,6 +934,7 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-KnownLeader", "true")
 	resp.Header.Set("X-Consul-Translate-Addresses", "true")
 	resp.Header.Set("X-Consul-Default-ACL-Policy", "deny")
+	resp.Header.Set("X-Consul-Results-Filtered-By-ACLs", "true")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -951,6 +954,9 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if qm.DefaultACLPolicy != "deny" {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if !qm.ResultsFilteredByACLs {
 		t.Fatalf("Bad: %v", qm)
 	}
 }
@@ -1094,4 +1100,36 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	}
 
 	require.Equal(t, expected, c.GenerateEnv())
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		require.NoError(t, err)
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

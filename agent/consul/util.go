@@ -3,6 +3,7 @@ package consul
 import (
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
@@ -157,4 +158,13 @@ func (c *Client) CheckServers(datacenter string, fn func(*metadata.Server) bool)
 	}
 
 	c.router.CheckServers(datacenter, fn)
+}
+
+func isSerfMember(s *serf.Serf, nodeName string) bool {
+	for _, m := range s.Members() {
+		if strings.EqualFold(m.Name, nodeName) {
+			return true
+		}
+	}
+	return false
 }

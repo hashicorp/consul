@@ -38,9 +38,9 @@
     {{#if child.Redirect}}
           <dl class="redirect">
             <dt
-              {{tooltip "Redirect"}}
+              {{tooltip (concat child.Redirect ' redirect')}}
             >
-              Redirect
+              {{child.Redirect}} redirect
             </dt>
             <dd>
               {{child.Name}}
@@ -51,7 +51,7 @@
               <dt
                 {{tooltip (concat child.Failover.Type ' failover')}}
               >
-                {{concat child.Failover.Type ' failover'}}
+                {{child.Failover.Type}} failover
               </dt>
               <dd>
                 <ol>

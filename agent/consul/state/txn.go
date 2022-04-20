@@ -55,14 +55,14 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 		}
 
 	case api.KVGet:
-		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
 	case api.KVGetTree:
 		var entries structs.DirEntries
-		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if err == nil {
 			results := make(structs.TxnResults, 0, len(entries))
 			for _, e := range entries {
@@ -76,10 +76,10 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 		entry, err = kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckIndex:
-		entry, err = kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex, &op.DirEnt.EnterpriseMeta)
+		entry, err = kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex, op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckNotExists:
-		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
+		_, entry, err = kvsGetTxn(tx, nil, op.DirEnt.Key, op.DirEnt.EnterpriseMeta)
 		if entry != nil && err == nil {
 			err = fmt.Errorf("key %q exists", op.DirEnt.Key)
 		}

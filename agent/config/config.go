@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul"
+
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 
@@ -145,9 +147,6 @@ type Config struct {
 	Bootstrap                        *bool               `mapstructure:"bootstrap"`
 	BootstrapExpect                  *int                `mapstructure:"bootstrap_expect"`
 	Cache                            Cache               `mapstructure:"cache"`
-	CAFile                           *string             `mapstructure:"ca_file"`
-	CAPath                           *string             `mapstructure:"ca_path"`
-	CertFile                         *string             `mapstructure:"cert_file"`
 	Check                            *CheckDefinition    `mapstructure:"check"` // needs to be a pointer to avoid partial merges
 	CheckOutputMaxSize               *int                `mapstructure:"check_output_max_size"`
 	CheckUpdateInterval              *string             `mapstructure:"check_update_interval"`
@@ -184,7 +183,6 @@ type Config struct {
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
-	KeyFile                          *string             `mapstructure:"key_file"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
 	LicensePath                      *string             `mapstructure:"license_path"`
 	Limits                           Limits              `mapstructure:"limits"`
@@ -212,6 +210,7 @@ type Config struct {
 	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout"`
 	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan"`
 	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave"`
+	AutoReloadConfig                 *bool               `mapstructure:"auto_reload_config"`
 	RetryJoinIntervalLAN             *string             `mapstructure:"retry_interval"`
 	RetryJoinIntervalWAN             *string             `mapstructure:"retry_interval_wan"`
 	RetryJoinLAN                     []string            `mapstructure:"retry_join"`
@@ -231,9 +230,7 @@ type Config struct {
 	StartJoinAddrsLAN                []string            `mapstructure:"start_join"`
 	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility"`
-	TLSCipherSuites                  *string             `mapstructure:"tls_cipher_suites"`
-	TLSMinVersion                    *string             `mapstructure:"tls_min_version"`
-	TLSPreferServerCipherSuites      *bool               `mapstructure:"tls_prefer_server_cipher_suites"`
+	TLS                              TLS                 `mapstructure:"tls"`
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses"`
 	Telemetry                        Telemetry           `mapstructure:"telemetry"`
 	TranslateWANAddrs                *bool               `mapstructure:"translate_wan_addrs"`
@@ -246,15 +243,12 @@ type Config struct {
 	UIDir    *string     `mapstructure:"ui_dir"`
 	UIConfig RawUIConfig `mapstructure:"ui_config"`
 
-	UnixSocket           UnixSocket               `mapstructure:"unix_sockets"`
-	VerifyIncoming       *bool                    `mapstructure:"verify_incoming"`
-	VerifyIncomingHTTPS  *bool                    `mapstructure:"verify_incoming_https"`
-	VerifyIncomingRPC    *bool                    `mapstructure:"verify_incoming_rpc"`
-	VerifyOutgoing       *bool                    `mapstructure:"verify_outgoing"`
-	VerifyServerHostname *bool                    `mapstructure:"verify_server_hostname"`
-	Watches              []map[string]interface{} `mapstructure:"watches"`
+	UnixSocket UnixSocket               `mapstructure:"unix_sockets"`
+	Watches    []map[string]interface{} `mapstructure:"watches"`
 
 	RPC RPC `mapstructure:"rpc"`
+
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb"`
 
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
@@ -405,6 +399,7 @@ type CheckDefinition struct {
 	Header                         map[string][]string `mapstructure:"header"`
 	Method                         *string             `mapstructure:"method"`
 	Body                           *string             `mapstructure:"body"`
+	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
 	Interval                       *string             `mapstructure:"interval"`
@@ -608,6 +603,7 @@ type Connect struct {
 	CAProvider                      *string                `mapstructure:"ca_provider"`
 	CAConfig                        map[string]interface{} `mapstructure:"ca_config"`
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
+	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaft certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
@@ -742,14 +738,23 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `mapstructure:"master"`
-	Replication *string `mapstructure:"replication"`
-	AgentMaster *string `mapstructure:"agent_master"`
-	Default     *string `mapstructure:"default"`
-	Agent       *string `mapstructure:"agent"`
+	InitialManagement *string `mapstructure:"initial_management"`
+	Replication       *string `mapstructure:"replication"`
+	AgentRecovery     *string `mapstructure:"agent_recovery"`
+	Default           *string `mapstructure:"default"`
+	Agent             *string `mapstructure:"agent"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
+
+	DeprecatedTokens `mapstructure:",squash"`
+}
+
+type DeprecatedTokens struct {
+	// DEPRECATED (ACL) - renamed to "initial_management"
+	Master *string `mapstructure:"master"`
+	// DEPRECATED (ACL) - renamed to "agent_recovery"
+	AgentMaster *string `mapstructure:"agent_master"`
 }
 
 // ServiceProviderToken groups an accessor and secret for a service provider token. Enterprise Only
@@ -844,4 +849,23 @@ type RawUIMetricsProxyAddHeader struct {
 
 type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
+}
+
+type TLSProtocolConfig struct {
+	CAFile               *string `mapstructure:"ca_file"`
+	CAPath               *string `mapstructure:"ca_path"`
+	CertFile             *string `mapstructure:"cert_file"`
+	KeyFile              *string `mapstructure:"key_file"`
+	TLSMinVersion        *string `mapstructure:"tls_min_version"`
+	TLSCipherSuites      *string `mapstructure:"tls_cipher_suites"`
+	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
+	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
+	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
+}
+
+type TLS struct {
+	Defaults    TLSProtocolConfig `mapstructure:"defaults"`
+	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
+	HTTPS       TLSProtocolConfig `mapstructure:"https"`
+	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
 }

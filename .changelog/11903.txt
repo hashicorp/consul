@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fixes a bug where proxy service health checks would sometimes not appear
+until refresh
+```

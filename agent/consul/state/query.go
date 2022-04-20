@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -12,7 +13,11 @@ import (
 // enterprise identifier.
 type Query struct {
 	Value string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
+}
+
+func (q Query) IDValue() string {
+	return q.Value
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -24,6 +29,27 @@ func (q Query) NamespaceOrDefault() string {
 // PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (q Query) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+type MultiQuery struct {
+	Value []string
+	acl.EnterpriseMeta
+}
+
+func (q MultiQuery) IDValue() []string {
+	return q.Value
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q MultiQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q MultiQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
 }
 
@@ -93,7 +119,7 @@ func parseUUIDString(uuid string) ([]byte, error) {
 // enterprise identifier.
 type BoolQuery struct {
 	Value bool
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -113,7 +139,7 @@ func (q BoolQuery) PartitionOrDefault() string {
 type KeyValueQuery struct {
 	Key   string
 	Value string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -143,8 +169,8 @@ func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
 
 type AuthMethodQuery struct {
 	Value             string
-	AuthMethodEntMeta structs.EnterpriseMeta
-	structs.EnterpriseMeta
+	AuthMethodEntMeta acl.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

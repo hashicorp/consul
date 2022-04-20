@@ -6,6 +6,8 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -94,18 +96,18 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 }
 
 // ConfigEntry is called to get a given config entry.
-func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
+func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return configEntryTxn(tx, ws, kind, name, entMeta)
 }
 
-func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
+func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	// Get the existing config entry.
-	watchCh, existing, err := tx.FirstWatch(tableConfigEntries, "id", NewConfigEntryKindName(kind, name, entMeta))
+	watchCh, existing, err := tx.FirstWatch(tableConfigEntries, "id", configentry.NewKindName(kind, name, entMeta))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -123,19 +125,19 @@ func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *s
 }
 
 // ConfigEntries is called to get all config entry objects.
-func (s *Store) ConfigEntries(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
+func (s *Store) ConfigEntries(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	return s.ConfigEntriesByKind(ws, "", entMeta)
 }
 
 // ConfigEntriesByKind is called to get all config entry objects with the given kind.
 // If kind is empty, all config entries will be returned.
-func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
+func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return configEntriesByKindTxn(tx, ws, kind, entMeta)
 }
 
-func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
+func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	// Get the index and watch for updates
 	idx := maxIndexWatchTxn(tx, ws, tableConfigEntries)
 
@@ -277,7 +279,7 @@ func (s *Store) DeleteConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	return err == nil, err
 }
 
-func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -289,8 +291,8 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 }
 
 // TODO: accept structs.ConfigEntry instead of individual fields
-func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
-	q := NewConfigEntryKindName(kind, name, entMeta)
+func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *acl.EnterpriseMeta) error {
+	q := configentry.NewKindName(kind, name, entMeta)
 	existing, err := tx.First(tableConfigEntries, indexID, q)
 	if err != nil {
 		return fmt.Errorf("failed config entry lookup: %s", err)
@@ -370,7 +372,7 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 // to the caller that they can correct.
 func validateProposedConfigEntryInGraph(
 	tx ReadTxn,
-	kindName ConfigEntryKindName,
+	kindName configentry.KindName,
 	newEntry structs.ConfigEntry,
 ) error {
 	switch kindName.Kind {
@@ -395,7 +397,7 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
-	case structs.PartitionExports:
+	case structs.ExportedServices:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -403,7 +405,7 @@ func validateProposedConfigEntryInGraph(
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
 }
 
-func checkGatewayClash(tx ReadTxn, kindName ConfigEntryKindName, otherKind string) error {
+func checkGatewayClash(tx ReadTxn, kindName configentry.KindName, otherKind string) error {
 	_, entry, err := configEntryTxn(tx, nil, otherKind, kindName.Name, &kindName.EnterpriseMeta)
 	if err != nil {
 		return err
@@ -422,7 +424,7 @@ var serviceGraphKinds = []string{
 }
 
 // discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
-func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
 	source := structs.NewServiceName(service, entMeta)
 	req := discoverychain.CompileRequest{
 		ServiceName:          source.Name,
@@ -430,14 +432,14 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
 	}
-	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
+	idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
 
 	var resp []structs.ServiceName
 	for _, t := range chain.Targets {
-		em := structs.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
+		em := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
 		target := structs.NewServiceName(t.Service, &em)
 
 		// TODO (freddy): Allow upstream DC and encode in response
@@ -487,13 +489,13 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
 		}
-		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
+		idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}
 
 		for _, t := range chain.Targets {
-			em := structs.NewEnterpriseMetaWithPartition(sn.PartitionOrDefault(), t.Namespace)
+			em := acl.NewEnterpriseMetaWithPartition(sn.PartitionOrDefault(), t.Namespace)
 			candidate := structs.NewServiceName(t.Service, &em)
 
 			if !candidate.Matches(destination) {
@@ -513,7 +515,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 
 func validateProposedConfigEntryInServiceGraph(
 	tx ReadTxn,
-	kindName ConfigEntryKindName,
+	kindName configentry.KindName,
 	newEntry structs.ConfigEntry,
 ) error {
 	// Collect all of the chains that could be affected by this change
@@ -658,7 +660,7 @@ func validateProposedConfigEntryInServiceGraph(
 		checkChains[sn.ToServiceID()] = struct{}{}
 	}
 
-	overrides := map[ConfigEntryKindName]structs.ConfigEntry{
+	overrides := map[configentry.KindName]structs.ConfigEntry{
 		kindName: newEntry,
 	}
 
@@ -738,8 +740,8 @@ func validateProposedConfigEntryInServiceGraph(
 func testCompileDiscoveryChain(
 	tx ReadTxn,
 	chainName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (string, *structs.DiscoveryGraphNode, error) {
 	_, speculativeEntries, err := readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
@@ -769,9 +771,9 @@ func testCompileDiscoveryChain(
 func (s *Store) ServiceDiscoveryChain(
 	ws memdb.WatchSet,
 	serviceName string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -782,39 +784,153 @@ func (s *Store) serviceDiscoveryChainTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	req discoverychain.CompileRequest,
-) (uint64, *structs.CompiledDiscoveryChain, error) {
+) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error) {
 
 	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	req.Entries = entries
 
 	_, config, err := s.CAConfig(ws)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	} else if config == nil {
-		return 0, nil, errors.New("no cluster ca config setup")
+		return 0, nil, nil, errors.New("no cluster ca config setup")
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
-		return 0, nil, errors.New("no cluster trust domain setup")
+		return 0, nil, nil, errors.New("no cluster trust domain setup")
 	}
 	req.EvaluateInTrustDomain = signingID.Host()
 
 	// Then we compile it into something useful.
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
+		return 0, nil, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
 	}
 
-	return index, chain, nil
+	return index, chain, entries, nil
+}
+
+func (s *Store) ReadResolvedServiceConfigEntries(
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *acl.EnterpriseMeta,
+	upstreamIDs []structs.ServiceID,
+	proxyMode structs.ProxyMode,
+) (uint64, *configentry.ResolvedServiceConfigSet, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	var res configentry.ResolvedServiceConfigSet
+
+	// The caller will likely calculate this again, but we need to do it here
+	// to determine if we are going to traverse into implicit upstream
+	// definitions.
+	var inferredProxyMode structs.ProxyMode
+
+	index, proxyEntry, err := configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	maxIndex := index
+
+	if proxyEntry != nil {
+		var ok bool
+		proxyConf, ok := proxyEntry.(*structs.ProxyConfigEntry)
+		if !ok {
+			return 0, nil, fmt.Errorf("invalid proxy config type %T", proxyEntry)
+		}
+		res.AddProxyDefaults(proxyConf)
+
+		inferredProxyMode = proxyConf.Mode
+	}
+
+	index, serviceEntry, err := configEntryTxn(tx, ws, structs.ServiceDefaults, serviceName, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if index > maxIndex {
+		maxIndex = index
+	}
+
+	var serviceConf *structs.ServiceConfigEntry
+	if serviceEntry != nil {
+		var ok bool
+		serviceConf, ok = serviceEntry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return 0, nil, fmt.Errorf("invalid service config type %T", serviceEntry)
+		}
+		res.AddServiceDefaults(serviceConf)
+
+		if serviceConf.Mode != structs.ProxyModeDefault {
+			inferredProxyMode = serviceConf.Mode
+		}
+	}
+
+	var (
+		noUpstreamArgs = len(upstreamIDs) == 0
+
+		// Check the args and the resolved value. If it was exclusively set via a config entry, then proxyMode
+		// will never be transparent because the service config request does not use the resolved value.
+		tproxy = proxyMode == structs.ProxyModeTransparent || inferredProxyMode == structs.ProxyModeTransparent
+	)
+
+	// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
+	// If no upstreams were passed, then we should only return the resolved config if the proxy is in transparent mode.
+	// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
+	if noUpstreamArgs && !tproxy {
+		return maxIndex, &res, nil
+	}
+
+	// First collect all upstreams into a set of seen upstreams.
+	// Upstreams can come from:
+	// - Explicitly from proxy registrations, and therefore as an argument to this RPC endpoint
+	// - Implicitly from centralized upstream config in service-defaults
+	seenUpstreams := map[structs.ServiceID]struct{}{}
+
+	for _, sid := range upstreamIDs {
+		if _, ok := seenUpstreams[sid]; !ok {
+			seenUpstreams[sid] = struct{}{}
+		}
+	}
+
+	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
+		for _, override := range serviceConf.UpstreamConfig.Overrides {
+			if override.Name == "" {
+				continue // skip this impossible condition
+			}
+			seenUpstreams[override.ServiceID()] = struct{}{}
+		}
+	}
+
+	for upstream := range seenUpstreams {
+		index, rawEntry, err := configEntryTxn(tx, ws, structs.ServiceDefaults, upstream.ID, &upstream.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if index > maxIndex {
+			maxIndex = index
+		}
+
+		if rawEntry != nil {
+			entry, ok := rawEntry.(*structs.ServiceConfigEntry)
+			if !ok {
+				return 0, nil, fmt.Errorf("invalid service config type %T", rawEntry)
+			}
+			res.AddServiceDefaults(entry)
+		}
+	}
+
+	return maxIndex, &res, nil
 }
 
 // ReadDiscoveryChainConfigEntries will query for the full discovery chain for
@@ -826,8 +942,8 @@ func (s *Store) serviceDiscoveryChainTxn(
 func (s *Store) ReadDiscoveryChainConfigEntries(
 	ws memdb.WatchSet,
 	serviceName string,
-	entMeta *structs.EnterpriseMeta,
-) (uint64, *structs.DiscoveryChainConfigEntries, error) {
+	entMeta *acl.EnterpriseMeta,
+) (uint64, *configentry.DiscoveryChainSet, error) {
 	return s.readDiscoveryChainConfigEntries(ws, serviceName, nil, entMeta)
 }
 
@@ -844,9 +960,9 @@ func (s *Store) ReadDiscoveryChainConfigEntries(
 func (s *Store) readDiscoveryChainConfigEntries(
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
-) (uint64, *structs.DiscoveryChainConfigEntries, error) {
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
+) (uint64, *configentry.DiscoveryChainSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, overrides, entMeta)
@@ -856,10 +972,10 @@ func readDiscoveryChainConfigEntriesTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
-) (uint64, *structs.DiscoveryChainConfigEntries, error) {
-	res := structs.NewDiscoveryChainConfigEntries()
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
+) (uint64, *configentry.DiscoveryChainSet, error) {
+	res := configentry.NewDiscoveryChainSet()
 
 	// Note that below we always look up splitters and resolvers in pairs, even
 	// in some circumstances where both are not strictly necessary.
@@ -880,23 +996,20 @@ func readDiscoveryChainConfigEntriesTxn(
 
 	sid := structs.NewServiceID(serviceName, entMeta)
 
-	// Grab the proxy defaults if they exist.
-	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	} else if proxy != nil {
-		res.GlobalProxy = proxy
-	}
-
-	// At every step we'll need service defaults.
+	// At every step we'll need service and proxy defaults.
 	todoDefaults[sid] = struct{}{}
 
+	var maxIdx uint64
+
 	// first fetch the router, of which we only collect 1 per chain eval
-	_, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
+	idx, router, err := getRouterConfigEntryTxn(tx, ws, serviceName, overrides, entMeta)
 	if err != nil {
 		return 0, nil, err
 	} else if router != nil {
 		res.Routers[sid] = router
+	}
+	if idx > maxIdx {
+		maxIdx = idx
 	}
 
 	if router != nil {
@@ -922,9 +1035,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// Yes, even for splitters.
 		todoDefaults[splitID] = struct{}{}
 
-		_, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
+		idx, splitter, err := getSplitterConfigEntryTxn(tx, ws, splitID.ID, overrides, &splitID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if splitter == nil {
@@ -959,9 +1075,12 @@ func readDiscoveryChainConfigEntriesTxn(
 		// And resolvers, too.
 		todoDefaults[resolverID] = struct{}{}
 
-		_, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
+		idx, resolver, err := getResolverConfigEntryTxn(tx, ws, resolverID.ID, overrides, &resolverID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if resolver == nil {
@@ -987,16 +1106,31 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue // already fetched
 		}
 
-		_, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
+		if _, ok := res.ProxyDefaults[svcID.PartitionOrDefault()]; !ok {
+			idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, &svcID.EnterpriseMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if proxy != nil {
+				res.ProxyDefaults[proxy.PartitionOrDefault()] = proxy
+			}
+		}
+
+		idx, entry, err := getServiceConfigEntryTxn(tx, ws, svcID.ID, overrides, &svcID.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 
 		if entry == nil {
 			res.Services[svcID] = nil
 			continue
 		}
-
 		res.Services[svcID] = entry
 	}
 
@@ -1022,7 +1156,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
-	return idx, res, nil
+	return maxIdx, res, nil
 }
 
 // anyKey returns any key from the provided map if any exist. Useful for using
@@ -1045,8 +1179,8 @@ func getProxyConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	name string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ProxyConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ProxyDefaults, name, overrides, entMeta)
 	if err != nil {
@@ -1070,8 +1204,8 @@ func getServiceConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceDefaults, serviceName, overrides, entMeta)
 	if err != nil {
@@ -1095,8 +1229,8 @@ func getRouterConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceRouterConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceRouter, serviceName, overrides, entMeta)
 	if err != nil {
@@ -1120,8 +1254,8 @@ func getSplitterConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceSplitterConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceSplitter, serviceName, overrides, entMeta)
 	if err != nil {
@@ -1145,8 +1279,8 @@ func getResolverConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceResolverConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceResolver, serviceName, overrides, entMeta)
 	if err != nil {
@@ -1170,8 +1304,8 @@ func getServiceIntentionsConfigEntryTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	name string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceIntentionsConfigEntry, error) {
 	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceIntentions, name, overrides, entMeta)
 	if err != nil {
@@ -1192,11 +1326,11 @@ func configEntryWithOverridesTxn(
 	ws memdb.WatchSet,
 	kind string,
 	name string,
-	overrides map[ConfigEntryKindName]structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
 ) (uint64, structs.ConfigEntry, error) {
 	if len(overrides) > 0 {
-		kn := NewConfigEntryKindName(kind, name, entMeta)
+		kn := configentry.NewKindName(kind, name, entMeta)
 		kn.Normalize()
 		entry, ok := overrides[kn]
 		if ok {
@@ -1226,7 +1360,7 @@ func protocolForService(
 	}
 	maxIdx = lib.MaxUint64(maxIdx, idx)
 
-	entries := structs.NewDiscoveryChainConfigEntries()
+	entries := configentry.NewDiscoveryChainSet()
 	if proxyConfig != nil {
 		entries.AddEntries(proxyConfig)
 	}
@@ -1249,43 +1383,14 @@ func protocolForService(
 	return maxIdx, chain.Protocol, nil
 }
 
-// ConfigEntryKindName is a value type useful for maps. You can use:
-//     map[ConfigEntryKindName]Payload
-// instead of:
-//     map[string]map[string]Payload
-type ConfigEntryKindName struct {
-	Kind string
-	Name string
-	structs.EnterpriseMeta
-}
-
-// NewConfigEntryKindName returns a new ConfigEntryKindName. The EnterpriseMeta
-// values will be normalized based on the kind.
-//
-// Any caller which modifies the EnterpriseMeta field must call Normalize before
-// persisting or using the value as a map key.
-func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) ConfigEntryKindName {
-	ret := ConfigEntryKindName{
-		Kind: kind,
-		Name: name,
-	}
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
-
-	ret.EnterpriseMeta = *entMeta
-	ret.Normalize()
-	return ret
-}
-
-func newConfigEntryQuery(c structs.ConfigEntry) ConfigEntryKindName {
-	return NewConfigEntryKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
+func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {
+	return configentry.NewKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
 }
 
 // ConfigEntryKindQuery is used to lookup config entries by their kind.
 type ConfigEntryKindQuery struct {
 	Kind string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

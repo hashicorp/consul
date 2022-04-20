@@ -44,7 +44,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
 		c.ACLTokenMaxExpirationTTL = 8 * time.Second
 	})
@@ -58,7 +58,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 
 	acl := ACL{srv: s1}
 
-	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
+	initialManagementTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)
 
 	listTokens := func() (localTokens, globalTokens []string, err error) {
@@ -88,9 +88,9 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 		t.Helper()
 
 		var expectLocal, expectGlobal []string
-		// The master token and the anonymous token are always going to be
-		// present and global.
-		expectGlobal = append(expectGlobal, masterTokenAccessorID)
+		// The initial management token and the anonymous token are always
+		// going to be present and global.
+		expectGlobal = append(expectGlobal, initialManagementTokenAccessorID)
 		expectGlobal = append(expectGlobal, structs.ACLTokenAnonymousID)
 
 		if local {

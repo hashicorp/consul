@@ -2,6 +2,8 @@ package consul
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
@@ -14,16 +16,10 @@ import (
 // ring. We check that the peers are in the same datacenter and abort the
 // merge if there is a mis-match.
 type lanMergeDelegate struct {
-	dc       string
-	nodeID   types.NodeID
-	nodeName string
-	segment  string
-
-	// TODO(partitions): use server and partition to reject gossip messages
-	// from nodes in the wrong partition depending upon the role the node is
-	// playing. For example servers will always be in the default partition,
-	// but all clients in all partitions should be aware of the servers so that
-	// general RPC routing works.
+	dc        string
+	nodeID    types.NodeID
+	nodeName  string
+	segment   string
 	server    bool
 	partition string
 }
@@ -43,7 +39,7 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			nodeID := types.NodeID(rawID)
 
 			// See if there's another node that conflicts with us.
-			if (nodeID == md.nodeID) && (m.Name != md.nodeName) {
+			if (nodeID == md.nodeID) && !strings.EqualFold(m.Name, md.nodeName) {
 				return fmt.Errorf("Member '%s' has conflicting node ID '%s' with this agent's ID",
 					m.Name, nodeID)
 			}
@@ -81,9 +77,8 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			}
 		}
 
-		if segment := m.Tags["segment"]; segment != md.segment {
-			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')",
-				m.Name, segment, md.segment)
+		if err := md.enterpriseNotifyMergeMember(m); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -93,13 +88,40 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 // ring. We check that the peers are server nodes and abort the merge
 // otherwise.
 type wanMergeDelegate struct {
+	localDatacenter string
+
+	federationDisabledLock sync.Mutex
+	federationDisabled     bool
+}
+
+// SetWANFederationDisabled selectively disables the wan pool from accepting
+// non-local members. If the toggle changed the current value it returns true.
+func (md *wanMergeDelegate) SetWANFederationDisabled(disabled bool) bool {
+	md.federationDisabledLock.Lock()
+	prior := md.federationDisabled
+	md.federationDisabled = disabled
+	md.federationDisabledLock.Unlock()
+
+	return prior != disabled
 }
 
 func (md *wanMergeDelegate) NotifyMerge(members []*serf.Member) error {
+	// Deliberately hold this lock during the entire merge so calls to
+	// SetWANFederationDisabled returning immediately imply that the flag takes
+	// effect for all future merges.
+	md.federationDisabledLock.Lock()
+	defer md.federationDisabledLock.Unlock()
+
 	for _, m := range members {
-		ok, _ := metadata.IsConsulServer(*m)
+		ok, srv := metadata.IsConsulServer(*m)
 		if !ok {
 			return fmt.Errorf("Member '%s' is not a server", m.Name)
+		}
+
+		if md.federationDisabled {
+			if srv.Datacenter != md.localDatacenter {
+				return fmt.Errorf("Member '%s' part of wrong datacenter '%s'; WAN federation is disabled", m.Name, srv.Datacenter)
+			}
 		}
 	}
 	return nil

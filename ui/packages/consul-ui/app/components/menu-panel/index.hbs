@@ -3,11 +3,12 @@
   change=(action "change")
 ) as |api|}}
 <div
-  class={{join ' ' (compact (array
-    'menu-panel'
-    position
-    (if isConfirmation 'confirmation')
-  ))}}
+  class={{class-map
+    (array 'menu-panel')
+    (array 'menu-panel-deprecated')
+    (array position)
+    (array isConfirmation 'confirmation')
+  }}
   {{did-insert (action 'connect')}}
 >
   <YieldSlot @name="controls">

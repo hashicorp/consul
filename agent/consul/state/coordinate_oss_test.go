@@ -1,8 +1,12 @@
+//go:build !consulent
 // +build !consulent
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func testIndexerTableCoordinates() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
@@ -23,11 +27,11 @@ func testIndexerTableCoordinates() map[string]indexerTestCase {
 			},
 			prefix: []indexValue{
 				{
-					source:   (*structs.EnterpriseMeta)(nil),
+					source:   (*acl.EnterpriseMeta)(nil),
 					expected: nil,
 				},
 				{
-					source:   structs.EnterpriseMeta{},
+					source:   acl.EnterpriseMeta{},
 					expected: nil,
 				},
 				{

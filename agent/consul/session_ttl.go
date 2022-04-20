@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -47,13 +48,12 @@ func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
 
-	// TODO(partitions): track all session timers in all partitions
-	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
+	_, sessions, err := state.SessionListAll(nil)
 	if err != nil {
 		return err
 	}
 	for _, session := range sessions {
-		if err := s.resetSessionTimer(session.ID, session); err != nil {
+		if err := s.resetSessionTimer(session); err != nil {
 			return err
 		}
 	}
@@ -63,20 +63,7 @@ func (s *Server) initializeSessionTimers() error {
 // resetSessionTimer is used to renew the TTL of a session.
 // This can be used for new sessions and existing ones. A session
 // will be faulted in if not given.
-func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
-	// Fault the session in if not given
-	if session == nil {
-		state := s.fsm.State()
-		_, s, err := state.SessionGet(nil, id, nil)
-		if err != nil {
-			return err
-		}
-		if s == nil {
-			return fmt.Errorf("Session '%s' not found", id)
-		}
-		session = s
-	}
-
+func (s *Server) resetSessionTimer(session *structs.Session) error {
 	// Bail if the session has no TTL, fast-path some common inputs
 	switch session.TTL {
 	case "", "0", "0s", "0m", "0h":
@@ -96,7 +83,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	return nil
 }
 
-func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *structs.EnterpriseMeta) {
+func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *acl.EnterpriseMeta) {
 	// Reset the session timer
 	// Adjust the given TTL by the TTL multiplier. This is done
 	// to give a client a grace period and to compensate for network
@@ -109,7 +96,7 @@ func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *struc
 
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
-func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
+func (s *Server) invalidateSession(id string, entMeta *acl.EnterpriseMeta) {
 	defer metrics.MeasureSince([]string{"session_ttl", "invalidate"}, time.Now())
 
 	// Clear the session timer
@@ -129,7 +116,8 @@ func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
 
 	// Retry with exponential backoff to invalidate the session
 	for attempt := uint(0); attempt < maxInvalidateAttempts; attempt++ {
-		_, err := s.raftApply(structs.SessionRequestType, args)
+		// TODO(rpc-metrics-improv): Double check request name here
+		_, err := s.leaderRaftApply("Session.Check", structs.SessionRequestType, args)
 		if err == nil {
 			s.logger.Debug("Session TTL expired", "session", id)
 			return

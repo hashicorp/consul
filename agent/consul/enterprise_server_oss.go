@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -56,7 +57,7 @@ func (s *Server) revokeEnterpriseLeadership() error {
 	return nil
 }
 
-func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, write bool) error {
+func (s *Server) validateEnterpriseRequest(entMeta *acl.EnterpriseMeta, write bool) error {
 	return nil
 }
 
@@ -84,6 +85,31 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 	return errors.New("Namespaces is a Consul Enterprise feature")
 }
 
-func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
+// setupSerfLAN is used to setup and initialize a Serf for the LAN
+func (s *Server) setupSerfLAN(config *Config) error {
+	var err error
+	// Initialize the LAN Serf for the default network segment.
+	s.serfLAN, _, err = s.setupSerf(setupSerfOptions{
+		Config:       config.SerfLANConfig,
+		EventCh:      s.eventChLAN,
+		SnapshotPath: serfLANSnapshot,
+		Listener:     s.Listener,
+		WAN:          false,
+		Segment:      "",
+		Partition:    "",
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) shutdownSerfLAN() {
+	if s.serfLAN != nil {
+		s.serfLAN.Shutdown()
+	}
+}
+
+func addEnterpriseSerfTags(_ map[string]string, _ *acl.EnterpriseMeta) {
 	// do nothing
 }

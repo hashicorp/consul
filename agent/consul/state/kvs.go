@@ -6,23 +6,30 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// kvsTableSchema returns a new table schema used for storing key/value data for
-// Consul's kv store.
+const (
+	tableKVs        = "kvs"
+	tableTombstones = "tombstones"
+
+	indexSession = "session"
+)
+
+// kvsTableSchema returns a new table schema used for storing structs.DirEntry
 func kvsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "kvs",
+		Name: tableKVs,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      kvsIndexer(),
 			},
-			"session": {
-				Name:         "session",
+			indexSession: {
+				Name:         indexSession,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
@@ -33,14 +40,31 @@ func kvsTableSchema() *memdb.TableSchema {
 	}
 }
 
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromIDValue(raw interface{}) ([]byte, error) {
+	e, ok := raw.(singleValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	v := e.IDValue()
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(v)
+	return b.Bytes(), nil
+}
+
 // tombstonesTableSchema returns a new table schema used for storing tombstones
 // during KV delete operations to prevent the index from sliding backwards.
 func tombstonesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "tombstones",
+		Name: tableTombstones,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      kvsIndexer(),
@@ -51,11 +75,7 @@ func tombstonesTableSchema() *memdb.TableSchema {
 
 // KVs is used to pull the full list of KVS entries for use during snapshots.
 func (s *Snapshot) KVs() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("kvs", "id_prefix")
-	if err != nil {
-		return nil, err
-	}
-	return iter, nil
+	return s.tx.Get(tableKVs, indexID+"_prefix")
 }
 
 // Tombstones is used to pull all the tombstones from the graveyard.
@@ -97,6 +117,7 @@ func (s *Store) ReapTombstones(idx uint64, index uint64) error {
 
 // KVSSet is used to store a key/value pair.
 func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
+	entry.EnterpriseMeta.Normalize()
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -114,8 +135,7 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 // session (should be validated before calling this). Otherwise, we will keep
 // whatever the existing session is.
 func kvsSetTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
-	// Retrieve an existing KV pair
-	existingNode, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
+	existingNode, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -157,23 +177,27 @@ func kvsSetTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry, updateSession b
 }
 
 // KVSGet is used to retrieve a key/value pair from the state store.
-func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
+func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *acl.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return kvsGetTxn(tx, ws, key, entMeta)
+	// TODO: accept non-pointer entMeta
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+
+	return kvsGetTxn(tx, ws, key, *entMeta)
 }
 
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
 func kvsGetTxn(tx ReadTxn,
-	ws memdb.WatchSet, key string, entMeta *structs.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
+	ws memdb.WatchSet, key string, entMeta acl.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
 
 	// Get the table index.
 	idx := kvsMaxIndex(tx, entMeta)
 
-	// Retrieve the key.
-	watchCh, entry, err := firstWatchWithTxn(tx, "kvs", "id", key, entMeta)
+	watchCh, entry, err := tx.FirstWatch(tableKVs, indexID, Query{Value: key, EnterpriseMeta: entMeta})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -189,18 +213,23 @@ func kvsGetTxn(tx ReadTxn,
 // is the max index of the returned kvs entries or applicable tombstones, or
 // else it's the full table indexes for kvs and tombstones.
 func (s *Store) KVSList(ws memdb.WatchSet,
-	prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	prefix string, entMeta *acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.kvsListTxn(tx, ws, prefix, entMeta)
+	// TODO: accept non-pointer entMeta
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+
+	return s.kvsListTxn(tx, ws, prefix, *entMeta)
 }
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
 func (s *Store) kvsListTxn(tx ReadTxn,
-	ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+	ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
 	// Get the table indexes.
 	idx := kvsMaxIndex(tx, entMeta)
@@ -213,7 +242,7 @@ func (s *Store) kvsListTxn(tx ReadTxn,
 	// Check for the highest index in the graveyard. If the prefix is empty
 	// then just use the full table indexes since we are listing everything.
 	if prefix != "" {
-		gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix, entMeta)
+		gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix, &entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
 		}
@@ -234,7 +263,7 @@ func (s *Store) kvsListTxn(tx ReadTxn,
 
 // KVSDelete is used to perform a shallow delete on a single key in the
 // the state store.
-func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) KVSDelete(idx uint64, key string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -248,9 +277,14 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *acl.EnterpriseMeta) error {
+
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+
 	// Look up the entry in the state store.
-	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -270,7 +304,7 @@ func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *struc
 // raft index. If the CAS index specified is not equal to the last
 // observed index for the given key, then the call is a noop, otherwise
 // a normal KV delete is invoked.
-func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *acl.EnterpriseMeta) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -285,9 +319,11 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
 // transaction.
-func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
-	// Retrieve the existing kvs entry, if any exists.
-	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *acl.EnterpriseMeta) (bool, error) {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -327,8 +363,7 @@ func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
 // kvsSetCASTxn is the inner method used to do a CAS inside an existing
 // transaction.
 func kvsSetCASTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) {
-	// Retrieve the existing entry.
-	existing, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
+	existing, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -356,7 +391,7 @@ func kvsSetCASTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error
 // KVSDeleteTree is used to do a recursive delete on a key prefix
 // in the state store. If any keys are modified, the last index is
 // set, otherwise this is a no-op.
-func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -369,7 +404,7 @@ func (s *Store) KVSDeleteTree(idx uint64, prefix string, entMeta *structs.Enterp
 
 // KVSLockDelay returns the expiration time for any lock delay associated with
 // the given key.
-func (s *Store) KVSLockDelay(key string, entMeta *structs.EnterpriseMeta) time.Time {
+func (s *Store) KVSLockDelay(key string, entMeta *acl.EnterpriseMeta) time.Time {
 	return s.lockDelay.GetExpiration(key, entMeta)
 }
 
@@ -397,7 +432,7 @@ func kvsLockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) 
 	}
 
 	// Verify that the session exists.
-	sess, err := firstWithTxn(tx, "sessions", "id", entry.Session, &entry.EnterpriseMeta)
+	sess, err := tx.First(tableSessions, indexID, Query{Value: entry.Session, EnterpriseMeta: entry.EnterpriseMeta})
 	if err != nil {
 		return false, fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -405,8 +440,7 @@ func kvsLockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) 
 		return false, fmt.Errorf("invalid session %#v", entry.Session)
 	}
 
-	// Retrieve the existing entry.
-	existing, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
+	existing, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -462,8 +496,7 @@ func kvsUnlockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error
 		return false, fmt.Errorf("missing session")
 	}
 
-	// Retrieve the existing entry.
-	existing, err := firstWithTxn(tx, "kvs", "id", entry.Key, &entry.EnterpriseMeta)
+	existing, err := tx.First(tableKVs, indexID, entry)
 	if err != nil {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -495,9 +528,13 @@ func kvsUnlockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error
 // kvsCheckSessionTxn checks to see if the given session matches the current
 // entry for a key.
 func kvsCheckSessionTxn(tx WriteTxn,
-	key string, session string, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
+	key string, session string, entMeta *acl.EnterpriseMeta) (*structs.DirEntry, error) {
 
-	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+
+	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -516,9 +553,9 @@ func kvsCheckSessionTxn(tx WriteTxn,
 // kvsCheckIndexTxn checks to see if the given modify index matches the current
 // entry for a key.
 func kvsCheckIndexTxn(tx WriteTxn,
-	key string, cidx uint64, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
+	key string, cidx uint64, entMeta acl.EnterpriseMeta) (*structs.DirEntry, error) {
 
-	entry, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
+	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: entMeta})
 	if err != nil {
 		return nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}

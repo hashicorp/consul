@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"io/ioutil"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,16 +10,17 @@ import (
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -33,7 +33,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	t.Parallel()
 	dir, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		// remove this as we are bootstrapping
-		c.ACLMasterToken = ""
+		c.ACLInitialManagementToken = ""
 	}, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -117,14 +117,14 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 	acl := ACL{srv: srv}
 
 	t.Run("exists and matches what we created", func(t *testing.T) {
-		token, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+		token, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 		require.NoError(t, err)
 
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      token.AccessorID,
 			TokenIDType:  structs.ACLTokenAccessor,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenResponse{}
@@ -137,7 +137,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	t.Run("expired tokens are filtered", func(t *testing.T) {
 		// insert a token that will expire
-		token, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(t *structs.ACLToken) {
+		token, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(t *structs.ACLToken) {
 			t.ExpirationTTL = 200 * time.Millisecond
 		})
 		require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 				Datacenter:   "dc1",
 				TokenID:      token.AccessorID,
 				TokenIDType:  structs.ACLTokenAccessor,
-				QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+				QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLTokenResponse{}
@@ -161,7 +161,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 				Datacenter:   "dc1",
 				TokenID:      token.AccessorID,
 				TokenIDType:  structs.ACLTokenAccessor,
-				QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+				QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLTokenResponse{}
@@ -181,7 +181,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 			Datacenter:   "dc1",
 			TokenID:      fakeID,
 			TokenIDType:  structs.ACLTokenAccessor,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenResponse{}
@@ -196,7 +196,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 			Datacenter:   "dc1",
 			TokenID:      "definitely-really-certainly-not-a-uuid",
 			TokenIDType:  structs.ACLTokenAccessor,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenResponse{}
@@ -204,6 +204,181 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		err := acl.TokenRead(&req, &resp)
 		require.Nil(t, resp.Token)
 		require.EqualError(t, err, "failed acl token lookup: index error: UUID must be 36 characters")
+	})
+
+	t.Run("expanded output with role/policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p2.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID: p1.ID,
+					},
+				},
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1, p2}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with multiple roles that share a policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		r2, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+					{
+						ID: r2.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1, r2}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with node/service identities", func(t *testing.T) {
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "web",
+						Datacenters: []string{"dc1"},
+					},
+					{
+						ServiceName: "db",
+						Datacenters: []string{"dc2"},
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "dc1",
+					},
+					{
+						NodeName:   "bar",
+						Datacenter: "dc1",
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		var expectedPolicies []*structs.ACLPolicy
+		entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+		for _, serviceIdentity := range setReq.ACLToken.ServiceIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+		for _, serviceIdentity := range setReq.ACLToken.NodeIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+
+		setResp := structs.ACLToken{}
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, expectedPolicies, resp.ExpandedPolicies)
 	})
 }
 
@@ -220,13 +395,13 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	}, false)
 	waitForLeaderEstablishment(t, srv)
 
-	p1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	t1, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(t *structs.ACLToken) {
+	t1, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(t *structs.ACLToken) {
 		t.Policies = []structs.ACLTokenPolicyLink{
 			{ID: p1.ID},
 		}
@@ -248,7 +423,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter:   "dc1",
 			ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		t2 := structs.ACLToken{}
@@ -269,7 +444,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 	t.Run("can't clone expired token", func(t *testing.T) {
 		// insert a token that will expire
-		t1, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(t *structs.ACLToken) {
+		t1, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(t *structs.ACLToken) {
 			t.ExpirationTTL = 11 * time.Millisecond
 		})
 		require.NoError(t, err)
@@ -279,7 +454,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter:   "dc1",
 			ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		t2 := structs.ACLToken{}
@@ -321,7 +496,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -330,7 +505,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -352,7 +527,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description: "new-description",
 				AccessorID:  tokenID,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -361,7 +536,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -373,9 +548,9 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	})
 
 	t.Run("Create it using Policies linked by id and name", func(t *testing.T) {
-		policy1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+		policy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
-		policy2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+		policy2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
 
 		req := structs.ACLTokenSetRequest{
@@ -392,7 +567,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				},
 				Local: false,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -402,11 +577,11 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		// Delete both policies to ensure that we skip resolving ID->Name
 		// in the returned data.
-		require.NoError(t, deleteTestPolicy(codec, TestDefaultMasterToken, "dc1", policy1.ID))
-		require.NoError(t, deleteTestPolicy(codec, TestDefaultMasterToken, "dc1", policy2.ID))
+		require.NoError(t, deleteTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", policy1.ID))
+		require.NoError(t, deleteTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", policy2.ID))
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -419,9 +594,9 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	})
 
 	t.Run("Create it using Roles linked by id and name", func(t *testing.T) {
-		role1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+		role1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
-		role2, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+		role2, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
 
 		req := structs.ACLTokenSetRequest{
@@ -438,7 +613,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				},
 				Local: false,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -448,11 +623,11 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		// Delete both roles to ensure that we skip resolving ID->Name
 		// in the returned data.
-		require.NoError(t, deleteTestRole(codec, TestDefaultMasterToken, "dc1", role1.ID))
-		require.NoError(t, deleteTestRole(codec, TestDefaultMasterToken, "dc1", role2.ID))
+		require.NoError(t, deleteTestRole(codec, TestDefaultInitialManagementToken, "dc1", role1.ID))
+		require.NoError(t, deleteTestRole(codec, TestDefaultInitialManagementToken, "dc1", role2.ID))
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -471,7 +646,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description: "foobar",
 				AuthMethod:  "fakemethod",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -487,10 +662,10 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		defer testauth.ResetSession(testSessionID)
 		testauth.InstallSessionToken(testSessionID, "fake-token", "default", "demo", "abc123")
 
-		method1, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID)
+		method1, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 		require.NoError(t, err)
 
-		_, err = upsertTestBindingRule(codec, TestDefaultMasterToken, "dc1", method1.Name, "", structs.BindingRuleBindTypeService, "demo")
+		_, err = upsertTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", method1.Name, "", structs.BindingRuleBindTypeService, "demo")
 		require.NoError(t, err)
 
 		// create a token in one method
@@ -503,7 +678,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 		}, &methodToken))
 
-		method2, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+		method2, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 		require.NoError(t, err)
 
 		// try to update the token and change the method
@@ -516,7 +691,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description: "updated token",
 				Local:       true,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -532,10 +707,10 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		defer testauth.ResetSession(testSessionID)
 		testauth.InstallSessionToken(testSessionID, "fake-token", "default", "demo", "abc123")
 
-		method, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID)
+		method, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 		require.NoError(t, err)
 
-		_, err = upsertTestBindingRule(codec, TestDefaultMasterToken, "dc1", method.Name, "", structs.BindingRuleBindTypeService, "demo")
+		_, err = upsertTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", method.Name, "", structs.BindingRuleBindTypeService, "demo")
 		require.NoError(t, err)
 
 		methodToken := structs.ACLToken{}
@@ -556,7 +731,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description: "updated token",
 				Local:       true,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -564,7 +739,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, acl.TokenSet(&req, &resp))
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -587,7 +762,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					{ServiceName: ""},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -608,7 +783,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					{ServiceName: long},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -654,7 +829,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 						{ServiceName: test.name},
 					},
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLToken{}
@@ -664,7 +839,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				require.NoError(t, err)
 
 				// Get the token directly to validate that it exists
-				tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+				tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 				require.NoError(t, err)
 				token := tokenResp.Token
 				require.NotNil(t, token)
@@ -687,7 +862,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					{ServiceName: "example"},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -696,7 +871,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 		require.NotNil(t, token)
@@ -721,7 +896,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -730,7 +905,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 		require.NotNil(t, token)
@@ -751,7 +926,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					{ServiceName: "foo", Datacenters: []string{"dc2"}},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -779,7 +954,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					Local:          false,
 					ExpirationTime: timePointer(time.Now().Add(test.offset)),
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLToken{}
@@ -801,7 +976,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					Local:         false,
 					ExpirationTTL: test.offset,
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLToken{}
@@ -825,7 +1000,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				ExpirationTime: timePointer(time.Now().Add(4 * time.Second)),
 				ExpirationTTL:  4 * time.Second,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -843,7 +1018,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Local:         false,
 				ExpirationTTL: 4 * time.Second,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -852,7 +1027,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -878,7 +1053,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Local:          false,
 				ExpirationTime: &expTime,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -887,7 +1062,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -910,7 +1085,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				AccessorID:     tokenID,
 				ExpirationTime: timePointer(expTime.Add(-1 * time.Second)),
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -928,7 +1103,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description: "new-description-1",
 				AccessorID:  tokenID,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -937,7 +1112,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -956,7 +1131,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				AccessorID:     tokenID,
 				ExpirationTime: &expTime,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -965,7 +1140,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -978,7 +1153,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 	t.Run("cannot update a token that is past its expiration time", func(t *testing.T) {
 		// create a token that will expire
-		expiringToken, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(token *structs.ACLToken) {
+		expiringToken, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
 			token.ExpirationTTL = 11 * time.Millisecond
 		})
 		require.NoError(t, err)
@@ -992,7 +1167,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				AccessorID:    expiringToken.AccessorID,
 				ExpirationTTL: 4 * time.Second,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1011,7 +1186,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1031,7 +1206,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1049,7 +1224,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1082,7 +1257,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Policies:    nil,
 				Local:       false,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1103,7 +1278,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1112,7 +1287,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", resp.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
 
@@ -1133,7 +1308,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1153,7 +1328,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1173,7 +1348,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1193,7 +1368,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1213,7 +1388,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1233,7 +1408,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1253,7 +1428,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Policies:    nil,
 				Local:       false,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1274,7 +1449,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1294,7 +1469,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Policies:    nil,
 				Local:       false,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1315,7 +1490,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 				Local:       false,
 			},
 			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLToken{}
@@ -1335,7 +1510,7 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	policy, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	policy, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -1351,14 +1526,14 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 				},
 			},
 		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	token := structs.ACLToken{}
 	err = acl.TokenSet(&tokenUpsertReq, &token)
 	require.NoError(t, err)
 	require.NotEmpty(t, token.SecretID)
 
-	tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", structs.ACLTokenAnonymousID)
+	tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", structs.ACLTokenAnonymousID)
 	require.NoError(t, err)
 	require.Equal(t, len(tokenResp.Token.Policies), 1)
 	require.Equal(t, tokenResp.Token.Policies[0].ID, policy.ID)
@@ -1397,18 +1572,18 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
-	existingToken, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+	existingToken, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 	require.NoError(t, err)
 
 	t.Run("deletes a token that has an expiration time in the future", func(t *testing.T) {
 		// create a token that will expire
-		testToken, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(token *structs.ACLToken) {
+		testToken, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
 			token.ExpirationTTL = 4 * time.Second
 		})
 		require.NoError(t, err)
 
 		// Make sure the token is listable
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", testToken.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
 		require.NoError(t, err)
 		require.NotNil(t, tokenResp.Token)
 
@@ -1416,7 +1591,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      testToken.AccessorID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1425,14 +1600,14 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Make sure the token is gone
-		tokenResp, err = retrieveTestToken(codec, TestDefaultMasterToken, "dc1", testToken.AccessorID)
+		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, tokenResp.Token)
 	})
 
 	t.Run("deletes a token that is past its expiration time", func(t *testing.T) {
 		// create a token that will expire
-		expiringToken, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(token *structs.ACLToken) {
+		expiringToken, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
 			token.ExpirationTTL = 11 * time.Millisecond
 		})
 		require.NoError(t, err)
@@ -1440,7 +1615,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		time.Sleep(20 * time.Millisecond) // now 'expiringToken' is expired
 
 		// Make sure the token is not listable (filtered due to expiry)
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", expiringToken.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, tokenResp.Token)
 
@@ -1448,7 +1623,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      expiringToken.AccessorID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1457,7 +1632,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Make sure the token is still gone (this time it's actually gone)
-		tokenResp, err = retrieveTestToken(codec, TestDefaultMasterToken, "dc1", expiringToken.AccessorID)
+		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, tokenResp.Token)
 	})
@@ -1466,7 +1641,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      existingToken.AccessorID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1475,7 +1650,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Make sure the token is gone
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", existingToken.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
 		require.NoError(t, err)
 	})
@@ -1483,9 +1658,9 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	t.Run("can't delete itself", func(t *testing.T) {
 		readReq := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
-			TokenID:      TestDefaultMasterToken,
+			TokenID:      TestDefaultInitialManagementToken,
 			TokenIDType:  structs.ACLTokenSecret,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		var out structs.ACLTokenResponse
@@ -1497,7 +1672,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      out.Token.AccessorID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1512,7 +1687,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      fakeID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1521,7 +1696,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// token should be nil
-		tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", existingToken.AccessorID)
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
 		require.NoError(t, err)
 	})
@@ -1533,7 +1708,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc2",
 			TokenID:      fakeID,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var resp string
@@ -1542,7 +1717,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// token should be nil
-		tokenResp, err := retrieveTestToken(codec2, TestDefaultMasterToken, "dc1", existingToken.AccessorID)
+		tokenResp, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
 		require.NoError(t, err)
 	})
@@ -1563,7 +1738,7 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	req := structs.ACLTokenDeleteRequest{
 		Datacenter:   "dc1",
 		TokenID:      structs.ACLTokenAnonymousID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var resp string
@@ -1572,7 +1747,7 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	require.EqualError(t, err, "Delete operation not permitted on the anonymous token")
 
 	// Make sure the token is still there
-	tokenResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", structs.ACLTokenAnonymousID)
+	tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", structs.ACLTokenAnonymousID)
 	require.NoError(t, err)
 	require.NotNil(t, tokenResp.Token)
 }
@@ -1592,13 +1767,13 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 
 	acl := ACL{srv: srv}
 
-	t1, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+	t1, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 	require.NoError(t, err)
 
-	t2, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+	t2, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 	require.NoError(t, err)
 
-	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, TestDefaultMasterToken, "dc1", TestDefaultMasterToken)
+	initialManagementTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, TestDefaultInitialManagementToken, "dc1", TestDefaultInitialManagementToken)
 	require.NoError(t, err)
 
 	t.Run("normal", func(t *testing.T) {
@@ -1606,14 +1781,14 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		// however previously inserting it outside of the subtest func resulted in this being
 		// extra flakey due to there being more code that needed to run to setup the subtest
 		// between when we inserted the token and when we performed the listing.
-		t3, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(token *structs.ACLToken) {
+		t3, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
 			token.ExpirationTTL = 50 * time.Millisecond
 		})
 		require.NoError(t, err)
 
 		req := structs.ACLTokenListRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenListResponse{}
@@ -1622,7 +1797,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.NoError(t, err)
 
 		tokens := []string{
-			masterTokenAccessorID,
+			initialManagementTokenAccessorID,
 			structs.ACLTokenAnonymousID,
 			t1.AccessorID,
 			t2.AccessorID,
@@ -1636,7 +1811,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	t.Run("filter expired", func(t *testing.T) {
 		req := structs.ACLTokenListRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenListResponse{}
@@ -1645,7 +1820,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.NoError(t, err)
 
 		tokens := []string{
-			masterTokenAccessorID,
+			initialManagementTokenAccessorID,
 			structs.ACLTokenAnonymousID,
 			t1.AccessorID,
 			t2.AccessorID,
@@ -1657,7 +1832,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		rules := `
 			acl = "read"
 		`
-		readOnlyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", rules)
+		readOnlyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", rules)
 		require.NoError(t, err)
 
 		req := structs.ACLTokenListRequest{
@@ -1671,7 +1846,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.NoError(t, err)
 
 		tokens := []string{
-			masterTokenAccessorID,
+			initialManagementTokenAccessorID,
 			structs.ACLTokenAnonymousID,
 			readOnlyToken.AccessorID,
 			t1.AccessorID,
@@ -1699,13 +1874,13 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 
 	acl := ACL{srv: srv}
 
-	t1, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+	t1, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 	require.NoError(t, err)
 
-	t2, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", nil)
+	t2, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", nil)
 	require.NoError(t, err)
 
-	t3, err := upsertTestToken(codec, TestDefaultMasterToken, "dc1", func(token *structs.ACLToken) {
+	t3, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
 		token.ExpirationTTL = 4 * time.Second
 	})
 	require.NoError(t, err)
@@ -1716,7 +1891,7 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 		req := structs.ACLTokenBatchGetRequest{
 			Datacenter:   "dc1",
 			AccessorIDs:  tokens,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenBatchResponse{}
@@ -1734,7 +1909,7 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 		req := structs.ACLTokenBatchGetRequest{
 			Datacenter:   "dc1",
 			AccessorIDs:  tokens,
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLTokenBatchResponse{}
@@ -1754,7 +1929,7 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	policy, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	policy, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -1762,7 +1937,7 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 	req := structs.ACLPolicyGetRequest{
 		Datacenter:   "dc1",
 		PolicyID:     policy.ID,
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLPolicyResponse{}
@@ -1781,7 +1956,7 @@ func TestACLEndpoint_PolicyReadByName(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	policy, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	policy, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -1789,7 +1964,7 @@ func TestACLEndpoint_PolicyReadByName(t *testing.T) {
 	req := structs.ACLPolicyGetRequest{
 		Datacenter:   "dc1",
 		PolicyName:   policy.Name,
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLPolicyResponse{}
@@ -1809,10 +1984,10 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	p1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	p2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -1821,7 +1996,7 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter:   "dc1",
 		PolicyIDs:    policies,
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLPolicyBatchResponse{}
@@ -1852,7 +2027,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 				Name:        "baz",
 				Rules:       "service \"\" { policy = \"read\" }",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLPolicy{}
 
@@ -1861,7 +2036,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the policy directly to validate that it exists
-		policyResp, err := retrieveTestPolicy(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		policy := policyResp.Policy
 
@@ -1881,7 +2056,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 				Name:        "baz",
 				Rules:       "service \"\" { policy = \"read\" }",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLPolicy{}
 
@@ -1898,7 +2073,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 				Name:        "bar",
 				Rules:       "service \"\" { policy = \"write\" }",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLPolicy{}
 
@@ -1907,7 +2082,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the policy directly to validate that it exists
-		policyResp, err := retrieveTestPolicy(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		policy := policyResp.Policy
 
@@ -1939,7 +2114,7 @@ func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
 			Name:        "baz",
 			Rules:       "service \"\" { policy = \"read\" }",
 		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	resp := structs.ACLPolicy{}
 
@@ -1968,7 +2143,7 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 				Name:  "foobar", // This is required to get past validation
 				Rules: "service \"\" { policy = \"write\" }",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLPolicy{}
 
@@ -1985,7 +2160,7 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 				Name:  "foobar",
 				Rules: structs.ACLPolicyGlobalManagement,
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLPolicy{}
 
@@ -1993,7 +2168,7 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the policy again
-		policyResp, err := retrieveTestPolicy(codec, TestDefaultMasterToken, "dc1", structs.ACLPolicyGlobalManagementID)
+		policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", structs.ACLPolicyGlobalManagementID)
 		require.NoError(t, err)
 		policy := policyResp.Policy
 
@@ -2013,7 +2188,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	existingPolicy, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	existingPolicy, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -2021,7 +2196,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	req := structs.ACLPolicyDeleteRequest{
 		Datacenter:   "dc1",
 		PolicyID:     existingPolicy.ID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var resp string
@@ -2030,7 +2205,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make sure the policy is gone
-	tokenResp, err := retrieveTestPolicy(codec, TestDefaultMasterToken, "dc1", existingPolicy.ID)
+	tokenResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", existingPolicy.ID)
 	require.NoError(t, err)
 	require.Nil(t, tokenResp.Policy)
 }
@@ -2049,7 +2224,7 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 	req := structs.ACLPolicyDeleteRequest{
 		Datacenter:   "dc1",
 		PolicyID:     structs.ACLPolicyGlobalManagementID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	var resp string
 
@@ -2068,17 +2243,17 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	p1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	p2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
 
 	req := structs.ACLPolicyListRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLPolicyListResponse{}
@@ -2104,10 +2279,10 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	p1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	p2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -2127,7 +2302,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 				},
 			},
 		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	token := structs.ACLToken{}
 	err = acl.TokenSet(&tokenUpsertReq, &token)
@@ -2154,7 +2329,7 @@ func TestACLEndpoint_RoleRead(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	role, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	role, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -2162,7 +2337,7 @@ func TestACLEndpoint_RoleRead(t *testing.T) {
 	req := structs.ACLRoleGetRequest{
 		Datacenter:   "dc1",
 		RoleID:       role.ID,
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLRoleResponse{}
@@ -2182,10 +2357,10 @@ func TestACLEndpoint_RoleBatchRead(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	r2, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r2, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -2194,7 +2369,7 @@ func TestACLEndpoint_RoleBatchRead(t *testing.T) {
 	req := structs.ACLRoleBatchGetRequest{
 		Datacenter:   "dc1",
 		RoleIDs:      roles,
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLRoleBatchResponse{}
@@ -2217,9 +2392,9 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 	acl := ACL{srv: srv}
 	var roleID string
 
-	testPolicy1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	testPolicy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
-	testPolicy2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	testPolicy2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	t.Run("Create it", func(t *testing.T) {
@@ -2240,7 +2415,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLRole{}
 
@@ -2249,7 +2424,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the role directly to validate that it exists
-		roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		role := roleResp.Role
 
@@ -2278,7 +2453,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLRole{}
 
@@ -2287,7 +2462,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the role directly to validate that it exists
-		roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		role := roleResp.Role
 
@@ -2300,9 +2475,9 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 	})
 
 	t.Run("Create it using Policies linked by id and name", func(t *testing.T) {
-		policy1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+		policy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
-		policy2, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+		policy2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
 
 		req := structs.ACLRoleSetRequest{
@@ -2319,7 +2494,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLRole{}
 
@@ -2329,11 +2504,11 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		// Delete both policies to ensure that we skip resolving ID->Name
 		// in the returned data.
-		require.NoError(t, deleteTestPolicy(codec, TestDefaultMasterToken, "dc1", policy1.ID))
-		require.NoError(t, deleteTestPolicy(codec, TestDefaultMasterToken, "dc1", policy2.ID))
+		require.NoError(t, deleteTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", policy1.ID))
+		require.NoError(t, deleteTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", policy2.ID))
 
 		// Get the role directly to validate that it exists
-		roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		role := roleResp.Role
 
@@ -2361,7 +2536,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					{ServiceName: ""},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLRole{}
 
@@ -2380,7 +2555,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					{ServiceName: long},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLRole{}
 
@@ -2424,7 +2599,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 						{ServiceName: test.name},
 					},
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 
 			resp := structs.ACLRole{}
@@ -2434,7 +2609,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 				require.NoError(t, err)
 
 				// Get the token directly to validate that it exists
-				roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+				roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 				require.NoError(t, err)
 				role := roleResp.Role
 				require.ElementsMatch(t, req.Role.ServiceIdentities, role.ServiceIdentities)
@@ -2455,7 +2630,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					{ServiceName: "example"},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLRole{}
@@ -2464,7 +2639,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the role directly to validate that it exists
-		roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		role := roleResp.Role
 		require.Len(t, role.ServiceIdentities, 1)
@@ -2487,7 +2662,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLRole{}
@@ -2496,7 +2671,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the role directly to validate that it exists
-		roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		role := roleResp.Role
 		require.Len(t, role.ServiceIdentities, 1)
@@ -2516,7 +2691,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLRole{}
@@ -2537,7 +2712,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLRole{}
@@ -2556,7 +2731,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLRole{}
@@ -2577,7 +2752,7 @@ func TestACLEndpoint_RoleSet_names(t *testing.T) {
 	waitForLeaderEstablishment(t, srv)
 
 	acl := ACL{srv: srv}
-	testPolicy1, err := upsertTestPolicy(codec, TestDefaultMasterToken, "dc1")
+	testPolicy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 
 	require.NoError(t, err)
 
@@ -2616,7 +2791,7 @@ func TestACLEndpoint_RoleSet_names(t *testing.T) {
 
 		t.Run(testName, func(t *testing.T) {
 			// cleanup from a prior insertion that may have succeeded
-			require.NoError(t, deleteTestRoleByName(codec, TestDefaultMasterToken, "dc1", test.name))
+			require.NoError(t, deleteTestRoleByName(codec, TestDefaultInitialManagementToken, "dc1", test.name))
 
 			req := structs.ACLRoleSetRequest{
 				Datacenter: "dc1",
@@ -2629,7 +2804,7 @@ func TestACLEndpoint_RoleSet_names(t *testing.T) {
 						},
 					},
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 			resp := structs.ACLRole{}
 
@@ -2637,7 +2812,7 @@ func TestACLEndpoint_RoleSet_names(t *testing.T) {
 			if test.ok {
 				require.NoError(t, err)
 
-				roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", resp.ID)
+				roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 				require.NoError(t, err)
 				role := roleResp.Role
 				require.Equal(t, test.name, role.Name)
@@ -2657,7 +2832,7 @@ func TestACLEndpoint_RoleDelete(t *testing.T) {
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
-	existingRole, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	existingRole, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 
 	require.NoError(t, err)
 
@@ -2666,7 +2841,7 @@ func TestACLEndpoint_RoleDelete(t *testing.T) {
 	req := structs.ACLRoleDeleteRequest{
 		Datacenter:   "dc1",
 		RoleID:       existingRole.ID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var resp string
@@ -2675,7 +2850,7 @@ func TestACLEndpoint_RoleDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make sure the role is gone
-	roleResp, err := retrieveTestRole(codec, TestDefaultMasterToken, "dc1", existingRole.ID)
+	roleResp, err := retrieveTestRole(codec, TestDefaultInitialManagementToken, "dc1", existingRole.ID)
 	require.NoError(t, err)
 	require.Nil(t, roleResp.Role)
 }
@@ -2690,17 +2865,17 @@ func TestACLEndpoint_RoleList(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
-	r2, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	r2, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
 
 	req := structs.ACLRoleListRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLRoleListResponse{}
@@ -2721,10 +2896,10 @@ func TestACLEndpoint_RoleResolve(t *testing.T) {
 	waitForLeaderEstablishment(t, srv)
 
 	t.Run("Normal", func(t *testing.T) {
-		r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+		r1, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
 
-		r2, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+		r2, err := upsertTestRole(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
 
 		acl := ACL{srv: srv}
@@ -2742,7 +2917,7 @@ func TestACLEndpoint_RoleResolve(t *testing.T) {
 					},
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		token := structs.ACLToken{}
 		err = acl.TokenSet(&tokenUpsertReq, &token)
@@ -2791,7 +2966,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2799,7 +2974,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the method directly to validate that it exists
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
@@ -2815,7 +2990,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2832,7 +3007,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2840,7 +3015,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the method directly to validate that it exists
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
@@ -2858,7 +3033,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2866,7 +3041,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the method directly to validate that it exists
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
@@ -2880,7 +3055,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   newAuthMethod(""),
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2896,7 +3071,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 				Description: "invalid test",
 				Type:        "invalid",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2936,7 +3111,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 			req := structs.ACLAuthMethodSetRequest{
 				Datacenter:   "dc1",
 				AuthMethod:   newAuthMethod(test.name),
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 			}
 			resp := structs.ACLAuthMethod{}
 
@@ -2946,7 +3121,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 				require.NoError(t, err)
 
 				// Get the method directly to validate that it exists
-				methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+				methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 				require.NoError(t, err)
 				method := methodResp.AuthMethod
 
@@ -2965,7 +3140,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -2973,7 +3148,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the method directly to validate that it exists
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
@@ -2992,7 +3167,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -3000,7 +3175,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the method directly to validate that it exists
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", resp.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", resp.Name)
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
@@ -3018,7 +3193,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -3033,7 +3208,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
@@ -3055,7 +3230,7 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 	testSessionID := testauth.StartSession()
 	defer testauth.ResetSession(testSessionID)
 
-	existingMethod, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID)
+	existingMethod, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
@@ -3064,7 +3239,7 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 		req := structs.ACLAuthMethodDeleteRequest{
 			Datacenter:     "dc1",
 			AuthMethodName: existingMethod.Name,
-			WriteRequest:   structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:   structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
@@ -3072,7 +3247,7 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Make sure the method is gone
-		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", existingMethod.Name)
+		methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", existingMethod.Name)
 		require.NoError(t, err)
 		require.Nil(t, methodResp.AuthMethod)
 	})
@@ -3081,7 +3256,7 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 		req := structs.ACLAuthMethodDeleteRequest{
 			Datacenter:     "dc1",
 			AuthMethodName: "missing",
-			WriteRequest:   structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:   structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
@@ -3125,10 +3300,10 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 		return &resp
 	}
 
-	method1, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID1)
+	method1, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID1)
 	require.NoError(t, err)
 	i1_r1, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		method1.Name,
 		"serviceaccount.name==abc",
 		structs.BindingRuleBindTypeService,
@@ -3136,7 +3311,7 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	)
 	require.NoError(t, err)
 	i1_r2, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		method1.Name,
 		"serviceaccount.name==def",
 		structs.BindingRuleBindTypeService,
@@ -3146,10 +3321,10 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	i1_t1 := createToken(method1.Name, "fake-token1")
 	i1_t2 := createToken(method1.Name, "fake-token1")
 
-	method2, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID2)
+	method2, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID2)
 	require.NoError(t, err)
 	i2_r1, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		method2.Name,
 		"serviceaccount.name==abc",
 		structs.BindingRuleBindTypeService,
@@ -3157,7 +3332,7 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	)
 	require.NoError(t, err)
 	i2_r2, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		method2.Name,
 		"serviceaccount.name==def",
 		structs.BindingRuleBindTypeService,
@@ -3172,7 +3347,7 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	req := structs.ACLAuthMethodDeleteRequest{
 		Datacenter:     "dc1",
 		AuthMethodName: method1.Name,
-		WriteRequest:   structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest:   structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 
 	var ignored bool
@@ -3180,30 +3355,30 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make sure the method is gone.
-	methodResp, err := retrieveTestAuthMethod(codec, TestDefaultMasterToken, "dc1", method1.Name)
+	methodResp, err := retrieveTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", method1.Name)
 	require.NoError(t, err)
 	require.Nil(t, methodResp.AuthMethod)
 
 	// Make sure the rules and tokens are gone.
 	for _, id := range []string{i1_r1.ID, i1_r2.ID} {
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", id)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", id)
 		require.NoError(t, err)
 		require.Nil(t, ruleResp.BindingRule)
 	}
 	for _, id := range []string{i1_t1.AccessorID, i1_t2.AccessorID} {
-		tokResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", id)
+		tokResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", id)
 		require.NoError(t, err)
 		require.Nil(t, tokResp.Token)
 	}
 
 	// Make sure the rules and tokens for the untouched auth method are still there.
 	for _, id := range []string{i2_r1.ID, i2_r2.ID} {
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", id)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", id)
 		require.NoError(t, err)
 		require.NotNil(t, ruleResp.BindingRule)
 	}
 	for _, id := range []string{i2_t1.AccessorID, i2_t2.AccessorID} {
-		tokResp, err := retrieveTestToken(codec, TestDefaultMasterToken, "dc1", id)
+		tokResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", id)
 		require.NoError(t, err)
 		require.NotNil(t, tokResp.Token)
 	}
@@ -3219,17 +3394,17 @@ func TestACLEndpoint_AuthMethodList(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	i1, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	i1, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
-	i2, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	i2, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
 	acl := ACL{srv: srv}
 
 	req := structs.ACLAuthMethodListRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLAuthMethodListResponse{}
@@ -3252,10 +3427,10 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 
 	var ruleID string
 
-	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
-	otherTestAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	otherTestAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
 	newRule := func() structs.ACLBindingRule {
@@ -3272,7 +3447,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRule{}
 
@@ -3284,7 +3459,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRule{}
 
@@ -3300,7 +3475,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRule{}
 
@@ -3309,7 +3484,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the rule directly to validate that it exists
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		rule := ruleResp.BindingRule
 
@@ -3333,7 +3508,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 				BindType:    structs.BindingRuleBindTypeNode,
 				BindName:    "test-node",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		var resp structs.ACLBindingRule
 
@@ -3342,7 +3517,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the rule directly to validate that it exists
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		rule := ruleResp.BindingRule
 
@@ -3373,7 +3548,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRule{}
 
@@ -3382,7 +3557,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the rule directly to validate that it exists
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		rule := ruleResp.BindingRule
 
@@ -3405,7 +3580,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRule{}
 
@@ -3414,7 +3589,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.NotNil(t, resp.ID)
 
 		// Get the rule directly to validate that it exists
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", resp.ID)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
 		require.NoError(t, err)
 		rule := ruleResp.BindingRule
 
@@ -3510,11 +3685,11 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
 	existingRule, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		testAuthMethod.Name,
 		"serviceaccount.name==abc",
 		structs.BindingRuleBindTypeService,
@@ -3528,7 +3703,7 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 		req := structs.ACLBindingRuleDeleteRequest{
 			Datacenter:    "dc1",
 			BindingRuleID: existingRule.ID,
-			WriteRequest:  structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:  structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
@@ -3536,7 +3711,7 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Make sure the rule is gone
-		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultMasterToken, "dc1", existingRule.ID)
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", existingRule.ID)
 		require.NoError(t, err)
 		require.Nil(t, ruleResp.BindingRule)
 	})
@@ -3548,7 +3723,7 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 		req := structs.ACLBindingRuleDeleteRequest{
 			Datacenter:    "dc1",
 			BindingRuleID: fakeID,
-			WriteRequest:  structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:  structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
@@ -3567,11 +3742,11 @@ func TestACLEndpoint_BindingRuleList(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", "")
+	testAuthMethod, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", "")
 	require.NoError(t, err)
 
 	r1, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		testAuthMethod.Name,
 		"serviceaccount.name==abc",
 		structs.BindingRuleBindTypeService,
@@ -3580,7 +3755,7 @@ func TestACLEndpoint_BindingRuleList(t *testing.T) {
 	require.NoError(t, err)
 
 	r2, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		testAuthMethod.Name,
 		"serviceaccount.name==def",
 		structs.BindingRuleBindTypeService,
@@ -3592,7 +3767,7 @@ func TestACLEndpoint_BindingRuleList(t *testing.T) {
 
 	req := structs.ACLBindingRuleListRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 	}
 
 	resp := structs.ACLBindingRuleListResponse{}
@@ -3766,19 +3941,19 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 					"SessionID": testSessionID_2,
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
 		require.NoError(t, acl2.AuthMethodSet(&req, &resp))
 
 		// present in dc2
-		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultMasterToken, "dc2", "testmethod")
+		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultInitialManagementToken, "dc2", "testmethod")
 		require.NoError(t, err)
 		require.NotNil(t, resp2.AuthMethod)
 		require.Equal(t, "test original", resp2.AuthMethod.Description)
 		// absent in dc1
-		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultMasterToken, "dc1", "testmethod")
+		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultInitialManagementToken, "dc1", "testmethod")
 		require.NoError(t, err)
 		require.Nil(t, resp2.AuthMethod)
 	})
@@ -3793,19 +3968,19 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 					"SessionID": testSessionID_2,
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethod{}
 
 		require.NoError(t, acl2.AuthMethodSet(&req, &resp))
 
 		// present in dc2
-		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultMasterToken, "dc2", "testmethod")
+		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultInitialManagementToken, "dc2", "testmethod")
 		require.NoError(t, err)
 		require.NotNil(t, resp2.AuthMethod)
 		require.Equal(t, "test updated", resp2.AuthMethod.Description)
 		// absent in dc1
-		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultMasterToken, "dc1", "testmethod")
+		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultInitialManagementToken, "dc1", "testmethod")
 		require.NoError(t, err)
 		require.Nil(t, resp2.AuthMethod)
 	})
@@ -3815,7 +3990,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req := structs.ACLAuthMethodGetRequest{
 			Datacenter:     "dc2",
 			AuthMethodName: "testmethod",
-			QueryOptions:   structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions:   structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethodResponse{}
 		require.NoError(t, acl2.AuthMethodRead(&req, &resp))
@@ -3826,7 +4001,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req = structs.ACLAuthMethodGetRequest{
 			Datacenter:     "dc1",
 			AuthMethodName: "testmethod",
-			QueryOptions:   structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions:   structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp = structs.ACLAuthMethodResponse{}
 		require.NoError(t, acl.AuthMethodRead(&req, &resp))
@@ -3837,7 +4012,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// present in dc2
 		req := structs.ACLAuthMethodListRequest{
 			Datacenter:   "dc2",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLAuthMethodListResponse{}
 		require.NoError(t, acl2.AuthMethodList(&req, &resp))
@@ -3846,7 +4021,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc1
 		req = structs.ACLAuthMethodListRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp = structs.ACLAuthMethodListResponse{}
 		require.NoError(t, acl.AuthMethodList(&req, &resp))
@@ -3863,7 +4038,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 				BindType:    structs.BindingRuleBindTypeService,
 				BindName:    "${serviceaccount.name}",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLBindingRule{}
@@ -3872,12 +4047,12 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		ruleID = resp.ID
 
 		// present in dc2
-		resp2, err := retrieveTestBindingRule(codec2, TestDefaultMasterToken, "dc2", ruleID)
+		resp2, err := retrieveTestBindingRule(codec2, TestDefaultInitialManagementToken, "dc2", ruleID)
 		require.NoError(t, err)
 		require.NotNil(t, resp2.BindingRule)
 		require.Equal(t, "test original", resp2.BindingRule.Description)
 		// absent in dc1
-		resp2, err = retrieveTestBindingRule(codec1, TestDefaultMasterToken, "dc1", ruleID)
+		resp2, err = retrieveTestBindingRule(codec1, TestDefaultInitialManagementToken, "dc1", ruleID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.BindingRule)
 	})
@@ -3892,7 +4067,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 				BindType:    structs.BindingRuleBindTypeService,
 				BindName:    "${serviceaccount.name}",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		resp := structs.ACLBindingRule{}
@@ -3901,12 +4076,12 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		ruleID = resp.ID
 
 		// present in dc2
-		resp2, err := retrieveTestBindingRule(codec2, TestDefaultMasterToken, "dc2", ruleID)
+		resp2, err := retrieveTestBindingRule(codec2, TestDefaultInitialManagementToken, "dc2", ruleID)
 		require.NoError(t, err)
 		require.NotNil(t, resp2.BindingRule)
 		require.Equal(t, "test updated", resp2.BindingRule.Description)
 		// absent in dc1
-		resp2, err = retrieveTestBindingRule(codec1, TestDefaultMasterToken, "dc1", ruleID)
+		resp2, err = retrieveTestBindingRule(codec1, TestDefaultInitialManagementToken, "dc1", ruleID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.BindingRule)
 	})
@@ -3916,7 +4091,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req := structs.ACLBindingRuleGetRequest{
 			Datacenter:    "dc2",
 			BindingRuleID: ruleID,
-			QueryOptions:  structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions:  structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRuleResponse{}
 		require.NoError(t, acl2.BindingRuleRead(&req, &resp))
@@ -3927,7 +4102,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req = structs.ACLBindingRuleGetRequest{
 			Datacenter:    "dc1",
 			BindingRuleID: ruleID,
-			QueryOptions:  structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions:  structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp = structs.ACLBindingRuleResponse{}
 		require.NoError(t, acl.BindingRuleRead(&req, &resp))
@@ -3938,7 +4113,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// present in dc2
 		req := structs.ACLBindingRuleListRequest{
 			Datacenter:   "dc2",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp := structs.ACLBindingRuleListResponse{}
 		require.NoError(t, acl2.BindingRuleList(&req, &resp))
@@ -3947,7 +4122,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc1
 		req = structs.ACLBindingRuleListRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 		}
 		resp = structs.ACLBindingRuleListResponse{}
 		require.NoError(t, acl.BindingRuleList(&req, &resp))
@@ -3969,13 +4144,13 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		remoteToken = &resp
 
 		// present in dc2
-		resp2, err := retrieveTestToken(codec2, TestDefaultMasterToken, "dc2", remoteToken.AccessorID)
+		resp2, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", remoteToken.AccessorID)
 		require.NoError(t, err)
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web2", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc1
-		resp2, err = retrieveTestToken(codec1, TestDefaultMasterToken, "dc1", remoteToken.AccessorID)
+		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.Token)
 	})
@@ -3994,7 +4169,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 					"SessionID": testSessionID_1,
 				},
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		respAM := structs.ACLAuthMethod{}
 		require.NoError(t, acl.AuthMethodSet(&reqAM, &respAM))
@@ -4006,7 +4181,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 				BindType:   structs.BindingRuleBindTypeService,
 				BindName:   "${serviceaccount.name}",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		respBR := structs.ACLBindingRule{}
@@ -4028,13 +4203,13 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		primaryToken = &resp
 
 		// present in dc1
-		resp2, err := retrieveTestToken(codec1, TestDefaultMasterToken, "dc1", primaryToken.AccessorID)
+		resp2, err := retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", primaryToken.AccessorID)
 		require.NoError(t, err)
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web1", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc2
-		resp2, err = retrieveTestToken(codec2, TestDefaultMasterToken, "dc2", primaryToken.AccessorID)
+		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.Token)
 	})
@@ -4052,11 +4227,11 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		require.NoError(t, acl.Logout(&req, &ignored))
 
 		// absent in dc2
-		resp2, err := retrieveTestToken(codec2, TestDefaultMasterToken, "dc2", remoteToken.AccessorID)
+		resp2, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", remoteToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.Token)
 		// absent in dc1
-		resp2, err = retrieveTestToken(codec1, TestDefaultMasterToken, "dc1", remoteToken.AccessorID)
+		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.Token)
 	})
@@ -4071,13 +4246,13 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "ACL not found")
 
 		// present in dc1
-		resp2, err := retrieveTestToken(codec1, TestDefaultMasterToken, "dc1", primaryToken.AccessorID)
+		resp2, err := retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", primaryToken.AccessorID)
 		require.NoError(t, err)
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web1", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc2
-		resp2, err = retrieveTestToken(codec2, TestDefaultMasterToken, "dc2", primaryToken.AccessorID)
+		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.Token)
 	})
@@ -4089,18 +4264,18 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req := structs.ACLBindingRuleDeleteRequest{
 			Datacenter:    "dc2",
 			BindingRuleID: ruleID,
-			WriteRequest:  structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:  structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
 		require.NoError(t, acl2.BindingRuleDelete(&req, &ignored))
 
 		// absent in dc2
-		resp2, err := retrieveTestBindingRule(codec2, TestDefaultMasterToken, "dc2", ruleID)
+		resp2, err := retrieveTestBindingRule(codec2, TestDefaultInitialManagementToken, "dc2", ruleID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.BindingRule)
 		// absent in dc1
-		resp2, err = retrieveTestBindingRule(codec1, TestDefaultMasterToken, "dc1", ruleID)
+		resp2, err = retrieveTestBindingRule(codec1, TestDefaultInitialManagementToken, "dc1", ruleID)
 		require.NoError(t, err)
 		require.Nil(t, resp2.BindingRule)
 	})
@@ -4109,18 +4284,18 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		req := structs.ACLAuthMethodDeleteRequest{
 			Datacenter:     "dc2",
 			AuthMethodName: "testmethod",
-			WriteRequest:   structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest:   structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored bool
 		require.NoError(t, acl2.AuthMethodDelete(&req, &ignored))
 
 		// absent in dc2
-		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultMasterToken, "dc2", "testmethod")
+		resp2, err := retrieveTestAuthMethod(codec2, TestDefaultInitialManagementToken, "dc2", "testmethod")
 		require.NoError(t, err)
 		require.Nil(t, resp2.AuthMethod)
 		// absent in dc1
-		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultMasterToken, "dc1", "testmethod")
+		resp2, err = retrieveTestAuthMethod(codec1, TestDefaultInitialManagementToken, "dc1", "testmethod")
 		require.NoError(t, err)
 		require.Nil(t, resp2.AuthMethod)
 	})
@@ -4167,12 +4342,12 @@ func TestACLEndpoint_Login(t *testing.T) {
 		"default", "mynode", "jkl101",
 	)
 
-	method, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID)
+	method, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 	require.NoError(t, err)
 
 	// 'fake-db' rules
 	ruleDB, err := upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==db",
 		structs.BindingRuleBindTypeService,
 		"method-${serviceaccount.name}",
@@ -4181,7 +4356,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 
 	// 'fake-vault' rules
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==vault",
 		structs.BindingRuleBindTypeRole,
 		"method-${serviceaccount.name}",
@@ -4190,14 +4365,14 @@ func TestACLEndpoint_Login(t *testing.T) {
 
 	// 'fake-monolith' rules
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==monolith",
 		structs.BindingRuleBindTypeService,
 		"method-${serviceaccount.name}",
 	)
 	require.NoError(t, err)
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==monolith",
 		structs.BindingRuleBindTypeRole,
 		"method-${serviceaccount.name}",
@@ -4206,7 +4381,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 
 	// node identity rule
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==mynode",
 		structs.BindingRuleBindTypeNode,
 		"${serviceaccount.name}",
@@ -4292,7 +4467,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 			Role: structs.ACLRole{
 				Name: "method-vault",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var out structs.ACLRole
@@ -4355,7 +4530,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 			Role: structs.ACLRole{
 				Name: "method-monolith",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var out structs.ACLRole
@@ -4446,7 +4621,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 				BindName:   ruleDB.BindName,
 				Selector:   "",
 			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var out structs.ACLBindingRule
@@ -4490,7 +4665,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		req := structs.ACLAuthMethodSetRequest{
 			Datacenter:   "dc1",
 			AuthMethod:   updated,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 
 		var ignored structs.ACLAuthMethod
@@ -4535,7 +4710,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 		"default", "web", "abc123",
 	)
 
-	method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
+	method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", func(method *structs.ACLAuthMethod) {
 		method.MaxTokenTTL = 5 * time.Minute
 		method.Config = map[string]interface{}{
 			"SessionID": testSessionID,
@@ -4544,7 +4719,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"",
 		structs.BindingRuleBindTypeService,
 		"web",
@@ -4641,7 +4816,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
+			method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", func(method *structs.ACLAuthMethod) {
 				method.TokenLocality = tc.tokenLocality
 				method.Config = map[string]interface{}{
 					"SessionID": testSessionID,
@@ -4650,7 +4825,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			require.NoError(t, err)
 
 			_, err = upsertTestBindingRule(
-				codec, TestDefaultMasterToken, "dc1", method.Name,
+				codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 				"",
 				structs.BindingRuleBindTypeService,
 				"web",
@@ -4707,7 +4882,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 						TokenIDType:    structs.ACLTokenSecret,
 						Datacenter:     "dc2",
 						EnterpriseMeta: *defaultEntMeta,
-						QueryOptions:   structs.QueryOptions{Token: TestDefaultMasterToken},
+						QueryOptions:   structs.QueryOptions{Token: TestDefaultInitialManagementToken},
 					}, &resp))
 					require.NotNil(r, resp.Token, "cannot lookup token with secretID %q", secretID)
 				})
@@ -4756,7 +4931,7 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 	)
 
 	method, err := upsertTestKubernetesAuthMethod(
-		codec, TestDefaultMasterToken, "dc1",
+		codec, TestDefaultInitialManagementToken, "dc1",
 		testSrv.CACert(),
 		testSrv.Addr(),
 		goodJWT_A,
@@ -4792,7 +4967,7 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 	})
 
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default",
 		structs.BindingRuleBindTypeService,
 		"${serviceaccount.name}",
@@ -4868,7 +5043,7 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	acl := ACL{srv: srv}
 
 	// spin up a fake oidc server
-	oidcServer := startSSOTestServer(t)
+	oidcServer := oidcauthtest.Start(t)
 	pubKey, privKey := oidcServer.SigningKeys()
 
 	type mConfig = map[string]interface{}
@@ -4900,7 +5075,7 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
+			method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", func(method *structs.ACLAuthMethod) {
 				method.Type = "jwt"
 				method.Config = map[string]interface{}{
 					"JWTSupportedAlgs": []string{"ES256"},
@@ -4971,7 +5146,7 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 			})
 
 			_, err = upsertTestBindingRule(
-				codec, TestDefaultMasterToken, "dc1", method.Name,
+				codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 				"value.name == jeff2 and value.primary_org == engineering and foo in list.groups",
 				structs.BindingRuleBindTypeService,
 				"test--${value.name}--${value.primary_org}",
@@ -5003,14 +5178,6 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	}
 }
 
-func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
-	ports := freeport.MustTake(1)
-	return oidcauthtest.Start(t, oidcauthtest.WithPort(
-		ports[0],
-		func() { freeport.Return(ports) },
-	))
-}
-
 func TestACLEndpoint_Logout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -5031,11 +5198,11 @@ func TestACLEndpoint_Logout(t *testing.T) {
 		"default", "db", "def456",
 	)
 
-	method, err := upsertTestAuthMethod(codec, TestDefaultMasterToken, "dc1", testSessionID)
+	method, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 	require.NoError(t, err)
 
 	_, err = upsertTestBindingRule(
-		codec, TestDefaultMasterToken, "dc1", method.Name,
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"",
 		structs.BindingRuleBindTypeService,
 		"method-${serviceaccount.name}",
@@ -5044,8 +5211,8 @@ func TestACLEndpoint_Logout(t *testing.T) {
 
 	t.Run("you must provide a token", func(t *testing.T) {
 		req := structs.ACLLogoutRequest{
-			Datacenter: "dc1",
-			// WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			Datacenter:   "dc1",
+			WriteRequest: structs.WriteRequest{Token: ""},
 		}
 		req.Token = ""
 		var ignored bool
@@ -5065,7 +5232,7 @@ func TestACLEndpoint_Logout(t *testing.T) {
 	t.Run("logout from non-auth method-linked token should fail", func(t *testing.T) {
 		req := structs.ACLLogoutRequest{
 			Datacenter:   "dc1",
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
 		var ignored bool
 		testutil.RequireErrorContains(t, acl.Logout(&req, &ignored), "Permission denied")
@@ -5248,16 +5415,20 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 }
 
 // upsertTestToken creates a token for testing purposes
-func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+func upsertTestTokenInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken), entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
 	arg := structs.ACLTokenSetRequest{
 		Datacenter: datacenter,
 		ACLToken: structs.ACLToken{
-			Description: "User token",
-			Local:       false,
-			Policies:    nil,
+			Description:    "User token",
+			Local:          false,
+			Policies:       nil,
+			EnterpriseMeta: *entMeta,
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if tokenModificationFn != nil {
@@ -5279,15 +5450,21 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return &out, nil
 }
 
-func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
-	policy, err := upsertTestPolicyWithRules(codec, masterToken, datacenter, rules)
+func upsertTestToken(codec rpc.ClientCodec, initialManagementToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
+	return upsertTestTokenInEntMeta(codec, initialManagementToken, datacenter,
+		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
+	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := upsertTestToken(codec, masterToken, datacenter, func(token *structs.ACLToken) {
+	token, err := upsertTestTokenInEntMeta(codec, initialManagementToken, datacenter, func(token *structs.ACLToken) {
 		token.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
-	})
+	}, entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -5295,12 +5472,16 @@ func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, d
 	return token, nil
 }
 
-func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
+func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string) (*structs.ACLToken, error) {
+	return upsertTestTokenWithPolicyRulesInEntMeta(codec, initialManagementToken, datacenter, rules, nil)
+}
+
+func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, initialManagementToken string, datacenter string, id string) (string, error) {
 	arg := structs.ACLTokenGetRequest{
 		TokenID:      id,
 		TokenIDType:  structs.ACLTokenSecret,
 		Datacenter:   datacenter,
-		QueryOptions: structs.QueryOptions{Token: masterToken},
+		QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLTokenResponse
@@ -5319,12 +5500,12 @@ func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken strin
 }
 
 // retrieveTestToken returns a policy for testing purposes
-func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLTokenResponse, error) {
+func retrieveTestToken(codec rpc.ClientCodec, initialManagementToken string, datacenter string, id string) (*structs.ACLTokenResponse, error) {
 	arg := structs.ACLTokenGetRequest{
 		Datacenter:   datacenter,
 		TokenID:      id,
 		TokenIDType:  structs.ACLTokenAccessor,
-		QueryOptions: structs.QueryOptions{Token: masterToken},
+		QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLTokenResponse
@@ -5338,11 +5519,11 @@ func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter str
 	return &out, nil
 }
 
-func deleteTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, tokenAccessor string) error {
+func deleteTestToken(codec rpc.ClientCodec, initialManagementToken string, datacenter string, tokenAccessor string) error {
 	arg := structs.ACLTokenDeleteRequest{
 		Datacenter:   datacenter,
 		TokenID:      tokenAccessor,
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var ignored string
@@ -5350,11 +5531,11 @@ func deleteTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return err
 }
 
-func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyID string) error {
+func deleteTestPolicy(codec rpc.ClientCodec, initialManagementToken string, datacenter string, policyID string) error {
 	arg := structs.ACLPolicyDeleteRequest{
 		Datacenter:   datacenter,
 		PolicyID:     policyID,
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var ignored string
@@ -5362,7 +5543,7 @@ func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 	return err
 }
 
-func upsertTestCustomizedPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyModificationFn func(policy *structs.ACLPolicy)) (*structs.ACLPolicy, error) {
+func upsertTestCustomizedPolicy(codec rpc.ClientCodec, initialManagementToken string, datacenter string, policyModificationFn func(policy *structs.ACLPolicy)) (*structs.ACLPolicy, error) {
 	// Make sure test policies can't collide
 	policyUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5374,7 +5555,7 @@ func upsertTestCustomizedPolicy(codec rpc.ClientCodec, masterToken string, datac
 		Policy: structs.ACLPolicy{
 			Name: fmt.Sprintf("test-policy-%s", policyUnq),
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if policyModificationFn != nil {
@@ -5397,22 +5578,30 @@ func upsertTestCustomizedPolicy(codec rpc.ClientCodec, masterToken string, datac
 }
 
 // upsertTestPolicy creates a policy for testing purposes
-func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
-	return upsertTestPolicyWithRules(codec, masterToken, datacenter, "")
+func upsertTestPolicy(codec rpc.ClientCodec, initialManagementToken string, datacenter string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRules(codec, initialManagementToken, datacenter, "")
 }
 
-func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
-	return upsertTestCustomizedPolicy(codec, masterToken, datacenter, func(policy *structs.ACLPolicy) {
+func upsertTestPolicyWithRules(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
+}
+
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLPolicy, error) {
+	return upsertTestCustomizedPolicy(codec, initialManagementToken, datacenter, func(policy *structs.ACLPolicy) {
+		if entMeta == nil {
+			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		}
 		policy.Rules = rules
+		policy.EnterpriseMeta = *entMeta
 	})
 }
 
 // retrieveTestPolicy returns a policy for testing purposes
-func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLPolicyResponse, error) {
+func retrieveTestPolicy(codec rpc.ClientCodec, initialManagementToken string, datacenter string, id string) (*structs.ACLPolicyResponse, error) {
 	arg := structs.ACLPolicyGetRequest{
 		Datacenter:   datacenter,
 		PolicyID:     id,
-		QueryOptions: structs.QueryOptions{Token: masterToken},
+		QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLPolicyResponse
@@ -5426,11 +5615,11 @@ func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter st
 	return &out, nil
 }
 
-func deleteTestRole(codec rpc.ClientCodec, masterToken string, datacenter string, roleID string) error {
+func deleteTestRole(codec rpc.ClientCodec, initialManagementToken string, datacenter string, roleID string) error {
 	arg := structs.ACLRoleDeleteRequest{
 		Datacenter:   datacenter,
 		RoleID:       roleID,
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var ignored string
@@ -5438,8 +5627,8 @@ func deleteTestRole(codec rpc.ClientCodec, masterToken string, datacenter string
 	return err
 }
 
-func deleteTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter string, roleName string) error {
-	resp, err := retrieveTestRoleByName(codec, masterToken, datacenter, roleName)
+func deleteTestRoleByName(codec rpc.ClientCodec, initialManagementToken string, datacenter string, roleName string) error {
+	resp, err := retrieveTestRoleByName(codec, initialManagementToken, datacenter, roleName)
 	if err != nil {
 		return err
 	}
@@ -5447,15 +5636,15 @@ func deleteTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter 
 		return nil
 	}
 
-	return deleteTestRole(codec, masterToken, datacenter, resp.Role.ID)
+	return deleteTestRole(codec, initialManagementToken, datacenter, resp.Role.ID)
 }
 
 // upsertTestRole creates a role for testing purposes
-func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLRole, error) {
-	return upsertTestCustomizedRole(codec, masterToken, datacenter, nil)
+func upsertTestRole(codec rpc.ClientCodec, initialManagementToken string, datacenter string) (*structs.ACLRole, error) {
+	return upsertTestCustomizedRole(codec, initialManagementToken, datacenter, nil)
 }
 
-func upsertTestCustomizedRole(codec rpc.ClientCodec, masterToken string, datacenter string, modify func(role *structs.ACLRole)) (*structs.ACLRole, error) {
+func upsertTestCustomizedRole(codec rpc.ClientCodec, initialManagementToken string, datacenter string, modify func(role *structs.ACLRole)) (*structs.ACLRole, error) {
 	// Make sure test roles can't collide
 	roleUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5467,7 +5656,7 @@ func upsertTestCustomizedRole(codec rpc.ClientCodec, masterToken string, datacen
 		Role: structs.ACLRole{
 			Name: fmt.Sprintf("test-role-%s", roleUnq),
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if modify != nil {
@@ -5489,11 +5678,11 @@ func upsertTestCustomizedRole(codec rpc.ClientCodec, masterToken string, datacen
 	return &out, nil
 }
 
-func retrieveTestRole(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLRoleResponse, error) {
+func retrieveTestRole(codec rpc.ClientCodec, initialManagementToken string, datacenter string, id string) (*structs.ACLRoleResponse, error) {
 	arg := structs.ACLRoleGetRequest{
 		Datacenter:   datacenter,
 		RoleID:       id,
-		QueryOptions: structs.QueryOptions{Token: masterToken},
+		QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLRoleResponse
@@ -5507,11 +5696,11 @@ func retrieveTestRole(codec rpc.ClientCodec, masterToken string, datacenter stri
 	return &out, nil
 }
 
-func retrieveTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter string, name string) (*structs.ACLRoleResponse, error) {
+func retrieveTestRoleByName(codec rpc.ClientCodec, initialManagementToken string, datacenter string, name string) (*structs.ACLRoleResponse, error) {
 	arg := structs.ACLRoleGetRequest{
 		Datacenter:   datacenter,
 		RoleName:     name,
-		QueryOptions: structs.QueryOptions{Token: masterToken},
+		QueryOptions: structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLRoleResponse
@@ -5525,11 +5714,11 @@ func retrieveTestRoleByName(codec rpc.ClientCodec, masterToken string, datacente
 	return &out, nil
 }
 
-func deleteTestAuthMethod(codec rpc.ClientCodec, masterToken string, datacenter string, methodName string) error {
+func deleteTestAuthMethod(codec rpc.ClientCodec, initialManagementToken string, datacenter string, methodName string) error {
 	arg := structs.ACLAuthMethodDeleteRequest{
 		Datacenter:     datacenter,
 		AuthMethodName: methodName,
-		WriteRequest:   structs.WriteRequest{Token: masterToken},
+		WriteRequest:   structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var ignored string
@@ -5537,10 +5726,10 @@ func deleteTestAuthMethod(codec rpc.ClientCodec, masterToken string, datacenter 
 	return err
 }
 func upsertTestAuthMethod(
-	codec rpc.ClientCodec, masterToken string, datacenter string,
+	codec rpc.ClientCodec, initialManagementToken string, datacenter string,
 	sessionID string,
 ) (*structs.ACLAuthMethod, error) {
-	return upsertTestCustomizedAuthMethod(codec, masterToken, datacenter, func(method *structs.ACLAuthMethod) {
+	return upsertTestCustomizedAuthMethod(codec, initialManagementToken, datacenter, func(method *structs.ACLAuthMethod) {
 		method.Config = map[string]interface{}{
 			"SessionID": sessionID,
 		}
@@ -5548,7 +5737,7 @@ func upsertTestAuthMethod(
 }
 
 func upsertTestCustomizedAuthMethod(
-	codec rpc.ClientCodec, masterToken string, datacenter string,
+	codec rpc.ClientCodec, initialManagementToken string, datacenter string,
 	modify func(method *structs.ACLAuthMethod),
 ) (*structs.ACLAuthMethod, error) {
 	name, err := uuid.GenerateUUID()
@@ -5562,7 +5751,7 @@ func upsertTestCustomizedAuthMethod(
 			Name: "test-method-" + name,
 			Type: "testing",
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if modify != nil {
@@ -5580,7 +5769,7 @@ func upsertTestCustomizedAuthMethod(
 }
 
 func upsertTestKubernetesAuthMethod(
-	codec rpc.ClientCodec, masterToken string, datacenter string,
+	codec rpc.ClientCodec, initialManagementToken string, datacenter string,
 	caCert, kubeHost, kubeJWT string,
 ) (*structs.ACLAuthMethod, error) {
 	name, err := uuid.GenerateUUID()
@@ -5606,7 +5795,7 @@ func upsertTestKubernetesAuthMethod(
 				"ServiceAccountJWT": kubeJWT,
 			},
 		},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var out structs.ACLAuthMethod
@@ -5619,11 +5808,11 @@ func upsertTestKubernetesAuthMethod(
 	return &out, nil
 }
 
-func retrieveTestAuthMethod(codec rpc.ClientCodec, masterToken string, datacenter string, name string) (*structs.ACLAuthMethodResponse, error) {
+func retrieveTestAuthMethod(codec rpc.ClientCodec, initialManagementToken string, datacenter string, name string) (*structs.ACLAuthMethodResponse, error) {
 	arg := structs.ACLAuthMethodGetRequest{
 		Datacenter:     datacenter,
 		AuthMethodName: name,
-		QueryOptions:   structs.QueryOptions{Token: masterToken},
+		QueryOptions:   structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLAuthMethodResponse
@@ -5637,11 +5826,11 @@ func retrieveTestAuthMethod(codec rpc.ClientCodec, masterToken string, datacente
 	return &out, nil
 }
 
-func deleteTestBindingRule(codec rpc.ClientCodec, masterToken string, datacenter string, ruleID string) error {
+func deleteTestBindingRule(codec rpc.ClientCodec, initialManagementToken string, datacenter string, ruleID string) error {
 	arg := structs.ACLBindingRuleDeleteRequest{
 		Datacenter:    datacenter,
 		BindingRuleID: ruleID,
-		WriteRequest:  structs.WriteRequest{Token: masterToken},
+		WriteRequest:  structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	var ignored string
@@ -5651,14 +5840,14 @@ func deleteTestBindingRule(codec rpc.ClientCodec, masterToken string, datacenter
 
 func upsertTestBindingRule(
 	codec rpc.ClientCodec,
-	masterToken string,
+	initialManagementToken string,
 	datacenter string,
 	methodName string,
 	selector string,
 	bindType string,
 	bindName string,
 ) (*structs.ACLBindingRule, error) {
-	return upsertTestCustomizedBindingRule(codec, masterToken, datacenter, func(rule *structs.ACLBindingRule) {
+	return upsertTestCustomizedBindingRule(codec, initialManagementToken, datacenter, func(rule *structs.ACLBindingRule) {
 		rule.AuthMethod = methodName
 		rule.BindType = bindType
 		rule.BindName = bindName
@@ -5666,11 +5855,11 @@ func upsertTestBindingRule(
 	})
 }
 
-func upsertTestCustomizedBindingRule(codec rpc.ClientCodec, masterToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
+func upsertTestCustomizedBindingRule(codec rpc.ClientCodec, initialManagementToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
 	req := structs.ACLBindingRuleSetRequest{
 		Datacenter:   datacenter,
 		BindingRule:  structs.ACLBindingRule{},
-		WriteRequest: structs.WriteRequest{Token: masterToken},
+		WriteRequest: structs.WriteRequest{Token: initialManagementToken},
 	}
 
 	if modify != nil {
@@ -5687,11 +5876,11 @@ func upsertTestCustomizedBindingRule(codec rpc.ClientCodec, masterToken string, 
 	return &out, nil
 }
 
-func retrieveTestBindingRule(codec rpc.ClientCodec, masterToken string, datacenter string, ruleID string) (*structs.ACLBindingRuleResponse, error) {
+func retrieveTestBindingRule(codec rpc.ClientCodec, initialManagementToken string, datacenter string, ruleID string) (*structs.ACLBindingRuleResponse, error) {
 	arg := structs.ACLBindingRuleGetRequest{
 		Datacenter:    datacenter,
 		BindingRuleID: ruleID,
-		QueryOptions:  structs.QueryOptions{Token: masterToken},
+		QueryOptions:  structs.QueryOptions{Token: initialManagementToken},
 	}
 
 	var out structs.ACLBindingRuleResponse

@@ -69,6 +69,23 @@ func (e NotFoundError) Error() string {
 	return e.Reason
 }
 
+// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
+type UnauthorizedError struct {
+	Reason string
+}
+
+func (e UnauthorizedError) Error() string {
+	return e.Reason
+}
+
+type EntityTooLargeError struct {
+	Reason string
+}
+
+func (e EntityTooLargeError) Error() string {
+	return e.Reason
+}
+
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -82,10 +99,11 @@ func (e CodeWithPayloadError) Error() string {
 }
 
 type ForbiddenError struct {
+	Reason string
 }
 
 func (e ForbiddenError) Error() string {
-	return "Access is restricted"
+	return e.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -210,8 +228,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
 
-			// DEPRECATED Emit pre-1.9 metric as `consul.http...` to maintain backwards compatibility. Enabled by
-			// default. Users may set `telemetry { disable_compat_1.9 = true }`
+			// DEPRECATED Emit pre-1.9 metric as `consul.http...`. This will be removed in 1.13.
 			if !s.agent.config.Telemetry.DisableCompatOneNine {
 				key := append([]string{"http", req.Method}, parts...)
 				metrics.MeasureSince(key, start)
@@ -241,7 +258,8 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 			// If enableDebug is not set, and ACLs are disabled, write
 			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled(resp, req) {
+			if !enableDebug && s.checkACLDisabled() {
+				resp.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
@@ -254,6 +272,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
 			// TODO(partitions): should this be possible in a partition?
+			// TODO(acl-error-enhancements): We should return error details somehow here.
 			if authz.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
@@ -423,9 +442,19 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return ok
 		}
 
+		isUnauthorized := func(err error) bool {
+			_, ok := err.(UnauthorizedError)
+			return ok
+		}
+
 		isTooManyRequests := func(err error) bool {
 			// Sadness net/rpc can't do nice typed errors so this is all we got
 			return err.Error() == consul.ErrRateLimited.Error()
+		}
+
+		isEntityToLarge := func(err error) bool {
+			_, ok := err.(EntityTooLargeError)
+			return ok
 		}
 
 		addAllowHeader := func(methods []string) {
@@ -467,8 +496,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			case isNotFound(err):
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprint(resp, err.Error())
+			case isUnauthorized(err):
+				resp.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprint(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(resp, err.Error())
+			case isEntityToLarge(err):
+				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -507,6 +542,17 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
 		} else {
 			err = s.checkWriteAccess(req)
+
+			// Give the user a hint that they might be doing something wrong if they issue a GET request
+			// with a non-empty body (e.g., parameters placed in body rather than query string).
+			if req.Method == http.MethodGet {
+				if req.ContentLength > 0 {
+					httpLogger.Warn("GET request has a non-empty body that will be ignored; "+
+						"check whether parameters meant for the query string were accidentally placed in the body",
+						"url", logURL,
+						"from", req.RemoteAddr)
+				}
+			}
 
 			if err == nil {
 				// Invoke the handler
@@ -587,13 +633,19 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
 		resp.WriteHeader(http.StatusNotFound)
+
+		if strings.Contains(req.URL.Path, "/v1/") {
+			fmt.Fprintln(resp, "Invalid URL path: not a recognized HTTP API endpoint")
+		} else {
+			fmt.Fprintln(resp, "Invalid URL path: if attempting to use the HTTP API, ensure the path starts with '/v1/'")
+		}
 		return
 	}
 
 	// Give them something helpful if there's no UI so they at least know
 	// what this server is.
 	if !s.IsUIEnabled() {
-		fmt.Fprint(resp, "Consul Agent")
+		fmt.Fprint(resp, "Consul Agent: UI disabled. To enable, set ui_config.enabled=true in the agent configuration and restart.")
 		return
 	}
 
@@ -728,12 +780,18 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) error {
+	lastContact, err := m.GetLastContact()
+	if err != nil {
+		return err
+	}
+	setLastContact(resp, lastContact)
 	setIndex(resp, m.GetIndex())
-	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
+	setResultsFilteredByACLs(resp, m.GetResultsFilteredByACLs())
+	return nil
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {
@@ -757,6 +815,16 @@ func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
 	}
 }
 
+// setResultsFilteredByACLs sets an HTTP response header to indicate that the
+// query results were filtered by enforcing ACLs. If the given filtered value
+// is false the header will be omitted, as its ambiguous whether the results
+// were not filtered or whether the endpoint doesn't yet support this header.
+func setResultsFilteredByACLs(resp http.ResponseWriter, filtered bool) {
+	if filtered {
+		resp.Header().Set("X-Consul-Results-Filtered-By-ACLs", "true")
+	}
+}
+
 // setHeaders is used to set canonical response header fields
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {
@@ -774,7 +842,7 @@ func serveHandlerWithHeaders(h http.Handler, headers map[string]string) http.Han
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -799,7 +867,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptio
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
 // support maxage directive.
-func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	raw := strings.ToLower(req.Header.Get("Cache-Control"))
 
 	if raw == "" {
@@ -857,7 +925,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -1061,7 +1129,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parse is a convenience method for endpoints that need to use both parseWait
 // and parseDC.
-func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1101,11 +1169,51 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{}
+	return ForbiddenError{Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	if other := req.URL.Query().Get("filter"); other != "" {
 		*filter = other
 	}
+}
+
+func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
+	// The suffix may be URL-encoded, so attempt to decode
+	suffixRaw := strings.TrimPrefix(path, prefixToTrim)
+	suffixUnescaped, err := url.PathUnescape(suffixRaw)
+
+	if err != nil {
+		return suffixRaw, fmt.Errorf("failure in unescaping path param %q: %v", suffixRaw, err)
+	}
+
+	return suffixUnescaped, nil
+}
+
+func setMetaProtobuf(resp http.ResponseWriter, queryMeta *pbcommon.QueryMeta) {
+	qm := new(structs.QueryMeta)
+	pbcommon.QueryMetaToStructs(queryMeta, qm)
+	setMeta(resp, qm)
+}
+
+type QueryOptionsCompat interface {
+	GetAllowStale() bool
+	SetAllowStale(bool)
+
+	GetRequireConsistent() bool
+	SetRequireConsistent(bool)
+
+	GetUseCache() bool
+	SetUseCache(bool)
+
+	SetFilter(string)
+	SetToken(string)
+
+	SetMustRevalidate(bool)
+	SetMaxAge(time.Duration)
+	SetMaxStaleDuration(time.Duration)
+	SetStaleIfError(time.Duration)
+
+	SetMaxQueryTime(time.Duration)
+	SetMinQueryIndex(uint64)
 }

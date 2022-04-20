@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -60,6 +61,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Port:    80,
 		Connect: connectConf,
 	})
+
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
 	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
@@ -434,6 +436,43 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(27, meshConfig))
 
+	// Connect-native services for virtual IP generation
+	systemMetadataEntry = &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataVirtualIPsEnabled,
+		Value: "true",
+	}
+	require.NoError(t, fsm.state.SystemMetadataSet(28, systemMetadataEntry))
+
+	fsm.state.EnsureService(29, "foo", &structs.NodeService{
+		ID:      "frontend",
+		Service: "frontend",
+		Address: "127.0.0.1",
+		Port:    8000,
+		Connect: connectConf,
+	})
+	vip, err := fsm.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.1")
+
+	fsm.state.EnsureService(30, "foo", &structs.NodeService{
+		ID:      "backend",
+		Service: "backend",
+		Address: "127.0.0.1",
+		Port:    9000,
+		Connect: connectConf,
+	})
+	vip, err = fsm.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.2")
+
+	_, serviceNames, err := fsm.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect := []string{"backend", "db", "frontend", "web"}
+	for i, sn := range serviceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -519,7 +558,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	require.NoError(t, err)
-	require.Len(t, fooSrv.Services, 2)
+	require.Len(t, fooSrv.Services, 4)
 	require.Contains(t, fooSrv.Services["db"].Tags, "primary")
 	require.True(t, stringslice.Contains(fooSrv.Services["db"].Tags, "primary"))
 	require.Equal(t, 5001, fooSrv.Services["db"].Port)
@@ -537,6 +576,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, "web", checks[0].ServiceName)
 	require.Equal(t, uint64(7), checks[0].CreateIndex)
 	require.Equal(t, uint64(25), checks[0].ModifyIndex)
+
+	// Verify virtual IPs are consistent.
+	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.1")
+	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.2")
 
 	// Verify key is set
 	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
@@ -652,10 +699,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Len(t, roots, 2)
 
 	// Verify provider state is restored.
-	_, state, err := fsm2.state.CAProviderState("asdf")
+	_, provider, err := fsm2.state.CAProviderState("asdf")
 	require.NoError(t, err)
-	require.Equal(t, "foo", state.PrivateKey)
-	require.Equal(t, "bar", state.RootCert)
+	require.Equal(t, "foo", provider.PrivateKey)
+	require.Equal(t, "bar", provider.RootCert)
 
 	// Verify CA configuration is restored.
 	_, caConf, err := fsm2.state.CAConfig(nil)
@@ -700,8 +747,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Verify system metadata is restored.
 	_, systemMetadataLoaded, err := fsm2.state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, systemMetadataLoaded, 1)
-	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[0])
+	require.Len(t, systemMetadataLoaded, 2)
+	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[1])
 
 	// Verify service-intentions is restored
 	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -712,6 +759,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, meshConfig, meshConfigEntry)
+
+	_, restoredServiceNames, err := fsm2.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+	require.NoError(t, err)
+
+	expect = []string{"backend", "db", "frontend", "web"}
+	for i, sn := range restoredServiceNames {
+		require.Equal(t, expect[i], sn.Service.Name)
+	}
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

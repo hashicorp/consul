@@ -14,5 +14,7 @@
 }
 
 span.topology-metrics-status-loader::after {
-  @extend %with-loading-icon, %as-pseudo;
+  --icon-name: var(--icon-loading);
+  content: '';
+  margin-left: 0.5rem; /* 8px */
 }

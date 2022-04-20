@@ -10,7 +10,7 @@ description: |-
 
 The `/snapshot` endpoints save and restore the state of the Consul
 servers for disaster recovery. Snapshots include all state managed by Consul's
-Raft [consensus protocol](/docs/internals/consensus).
+Raft [consensus protocol](/docs/architecture/consensus).
 
 ## Generate Snapshot
 
@@ -30,14 +30,16 @@ restore.
 | `GET`  | `/snapshot` | `200 application/x-gzip` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `default,stale`   | `none`        | `management` |
+
+The corresponding CLI command is [`consul snapshot save`](/commands/snapshot/save).
 
 ### Parameters
 
@@ -60,7 +62,7 @@ The table below shows this endpoint's support for
 With a custom datacenter:
 
 ```shell-session
-$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter -o snapshot.tgz
+$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter --output snapshot.tgz
 ```
 
 The above example results in a tarball named `snapshot.tgz` in the current working directory.
@@ -85,14 +87,16 @@ call to the `GET` method.
 | `PUT`  | `/snapshot` | `200 text/plain (empty body)` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `management` |
+
+The corresponding CLI command is [`consul snapshot restore`](/commands/snapshot/restore).
 
 ### Parameters
 

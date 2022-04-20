@@ -1,0 +1,31 @@
+# Consul::LockSession::Form
+
+A component for rendering and deleting/invalidating a Lock Session.
+
+The form is fully functional and will delete/invalidate and show its
+notifications when pressing the delete/invalidate button.
+
+```hbs preview-template
+<DataSource
+  @src={{uri "/partition/default/dc-1/sessions/for-key/my-kv"}} as |source|>
+  {{#if source.data.ID}}
+    <Consul::LockSession::Form
+      @item={{source.data}}
+      @ondelete={{noop}}
+    />
+  {{/if}}
+</DataSource>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `array` |  | A Lock Session |
+| `ondelete` | `function` |  | An action to confirm when the `delete` (or Invalidate) action is clicked and confirmed |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

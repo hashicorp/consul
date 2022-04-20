@@ -1,0 +1,9 @@
+@keyframes icon-nomad-color {
+  50% {
+    background-image: var(--icon-nomad-color-24);
+  }
+
+  100% {
+    background-image: var(--icon-nomad-color-16);
+  }
+}

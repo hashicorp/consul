@@ -6,7 +6,6 @@ import (
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -17,15 +16,16 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := op.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.fsm.State()
@@ -49,15 +49,16 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// This action requires operator write access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := op.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:write permissions")
+
+	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
+		return err
 	}
 
 	// Apply the update
@@ -75,24 +76,21 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 
 // ServerHealth is used to get the current health of the servers.
 func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs.AutopilotHealthReply) error {
-	// This must be sent to the leader, so we fix the args since we are
-	// re-using a structure where we don't support all the options.
-	args.RequireConsistent = true
-	args.AllowStale = false
 	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := op.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.autopilot.GetState()
@@ -142,24 +140,21 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 }
 
 func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autopilot.State) error {
-	// This must be sent to the leader, so we fix the args since we are
-	// re-using a structure where we don't support all the options.
-	args.RequireConsistent = true
-	args.AllowStale = false
 	if done, err := op.srv.ForwardRPC("Operator.AutopilotState", args, reply); done {
 		return err
 	}
 
 	// This action requires operator read access.
-	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	authz, err := op.srv.ACLResolver.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
 		return err
 	}
-	if authz.OperatorRead(nil) != acl.Allow {
-		return acl.PermissionDenied("Missing operator:read permissions")
+
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return err
 	}
 
 	state := op.srv.autopilot.GetState()

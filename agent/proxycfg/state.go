@@ -113,12 +113,17 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 	// we can safely modify these since we just copied them
 	for idx := range proxyCfg.Upstreams {
 		us := &proxyCfg.Upstreams[idx]
-		if us.DestinationType != structs.UpstreamDestTypePreparedQuery && us.DestinationNamespace == "" {
-			// default the upstreams target namespace to the namespace of the proxy
+		if us.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			// default the upstreams target namespace and partition to those of the proxy
 			// doing this here prevents needing much more complex logic a bunch of other
 			// places and makes tracking these upstreams simpler as we can dedup them
 			// with the maps tracking upstream ids being watched.
-			proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+			if us.DestinationPartition == "" {
+				proxyCfg.Upstreams[idx].DestinationPartition = ns.EnterpriseMeta.PartitionOrDefault()
+			}
+			if us.DestinationNamespace == "" {
+				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+			}
 		}
 	}
 
@@ -147,10 +152,26 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 		return nil, err
 	}
 
+	handler, err := newKindHandler(config, s, ch)
+	if err != nil {
+		return nil, err
+	}
+
+	return &state{
+		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
+		serviceInstance: s,
+		handler:         handler,
+		ch:              ch,
+		snapCh:          make(chan ConfigSnapshot, 1),
+		reqCh:           make(chan chan *ConfigSnapshot, 1),
+	}, nil
+}
+
+func newKindHandler(config stateConfig, s serviceInstance, ch chan cache.UpdateEvent) (kindHandler, error) {
 	var handler kindHandler
 	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
 
-	switch ns.Kind {
+	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		handler = &handlerConnectProxy{handlerState: h}
 	case structs.ServiceKindTerminatingGateway:
@@ -165,14 +186,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
 
-	return &state{
-		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
-		serviceInstance: s,
-		handler:         handler,
-		ch:              ch,
-		snapCh:          make(chan ConfigSnapshot, 1),
-		reqCh:           make(chan chan *ConfigSnapshot, 1),
-	}, nil
+	return handler, nil
 }
 
 func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (serviceInstance, error) {
@@ -289,6 +303,8 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			}
 
 		case <-sendCh:
+			// Allow the next change to trigger a send
+			coalesceTimer = nil
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
@@ -302,9 +318,6 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 			case s.snapCh <- *snapCopy:
 				s.logger.Trace("Delivered new snapshot to proxy config watchers")
 
-				// Allow the next change to trigger a send
-				coalesceTimer = nil
-
 				// Skip rest of loop - there is nothing to send since nothing changed on
 				// this iteration
 				continue
@@ -315,11 +328,9 @@ func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				if coalesceTimer == nil {
-					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
-						sendCh <- struct{}{}
-					})
-				}
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					sendCh <- struct{}{}
+				})
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -410,7 +421,7 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 	)
 
 	for _, n := range nodes {
-		addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
+		_, addr, _ := n.BestAddress(!localKey.Matches(n.Node.Datacenter, n.Node.PartitionOrDefault()))
 		if net.ParseIP(addr) != nil {
 			hasIP = true
 			continue
@@ -435,7 +446,7 @@ type gatewayWatchOpts struct {
 	source     structs.QuerySource
 	token      string
 	key        GatewayKey
-	upstreamID string
+	upstreamID UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
@@ -446,5 +457,5 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID), opts.notifyCh)
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
 }

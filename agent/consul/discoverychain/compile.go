@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -37,7 +38,7 @@ type CompileRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
-	Entries *structs.DiscoveryChainConfigEntries
+	Entries *configentry.DiscoveryChainSet
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -131,7 +132,7 @@ type compiler struct {
 	// config entries that are being compiled (will be mutated during compilation)
 	//
 	// This is an INPUT field.
-	entries *structs.DiscoveryChainConfigEntries
+	entries *configentry.DiscoveryChainSet
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -160,6 +161,12 @@ type compiler struct {
 	// This is an OUTPUT field.
 	protocol string
 
+	// serviceMeta is the Meta field from the service-defaults entry that
+	// shares a name with this discovery chain.
+	//
+	// This is an OUTPUT field.
+	serviceMeta map[string]string
+
 	// startNode is computed inside of assembleChain()
 	//
 	// This is an OUTPUT field.
@@ -185,7 +192,7 @@ type customizationMarkers struct {
 // the String() method on the type itself. It is this way to be more
 // consistent with other string ids within the discovery chain.
 func serviceIDString(sid structs.ServiceID) string {
-	return fmt.Sprintf("%s.%s", sid.ID, sid.NamespaceOrDefault())
+	return fmt.Sprintf("%s.%s.%s", sid.ID, sid.NamespaceOrDefault(), sid.PartitionOrDefault())
 }
 
 func (m *customizationMarkers) IsZero() bool {
@@ -213,10 +220,10 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
-	if c.entries.GlobalProxy != nil {
+	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
-		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
+		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
 		if cfg.Protocol != "" {
 			return c.recordProtocol(sid, cfg.Protocol)
 		}
@@ -326,12 +333,45 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		Namespace:         c.evaluateInNamespace,
 		Partition:         c.evaluateInPartition,
 		Datacenter:        c.evaluateInDatacenter,
+		Default:           c.determineIfDefaultChain(),
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
+		ServiceMeta:       c.serviceMeta,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
 	}, nil
+}
+
+//	determineIfDefaultChain returns true if the compiled chain represents no
+//	routing, no splitting, and only the default resolution.  We have to be
+//	careful here to avoid returning "yep this is default" when the only
+//	resolver action being applied is redirection to another resolver that is
+//	default, so we double check the resolver matches the requested resolver.
+//
+// NOTE: "default chain" mostly means that this is compatible with how things
+// worked (roughly) in consul 1.5 pre-discovery chain, not that there are zero
+// config entries in play (like service-defaults).
+func (c *compiler) determineIfDefaultChain() bool {
+	if c.startNode == "" || len(c.nodes) == 0 {
+		return true
+	}
+
+	node := c.nodes[c.startNode]
+	if node == nil {
+		panic("not possible: missing node named '" + c.startNode + "' in chain '" + c.serviceName + "'")
+	}
+
+	if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+		return false
+	}
+	if !node.Resolver.Default {
+		return false
+	}
+
+	target := c.loadedTargets[node.Resolver.Target]
+
+	return target.Service == c.serviceName && target.Namespace == c.evaluateInNamespace && target.Partition == c.evaluateInPartition
 }
 
 func (c *compiler) detectCircularReferences() error {
@@ -514,6 +554,11 @@ func (c *compiler) assembleChain() error {
 
 	sid := structs.NewServiceID(c.serviceName, c.GetEnterpriseMeta())
 
+	// Extract the service meta for the service named by this discovery chain.
+	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
+		c.serviceMeta = serviceDefault.GetMeta()
+	}
+
 	// Check for short circuit path.
 	if len(c.resolvers) == 0 && c.entries.IsChainEmpty() {
 		// Materialize defaults and cache.
@@ -567,11 +612,12 @@ func (c *compiler) assembleChain() error {
 			dest = &structs.ServiceRouteDestination{
 				Service:   c.serviceName,
 				Namespace: router.NamespaceOrDefault(),
+				Partition: router.PartitionOrDefault(),
 			}
 		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
-		destPartition := router.PartitionOrDefault()
+		destPartition := defaultIfEmpty(dest.Partition, router.PartitionOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -602,7 +648,7 @@ func (c *compiler) assembleChain() error {
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault(), router.PartitionOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
@@ -613,7 +659,7 @@ func (c *compiler) assembleChain() error {
 	return nil
 }
 
-func newDefaultServiceRoute(serviceName string, namespace string) *structs.ServiceRoute {
+func newDefaultServiceRoute(serviceName, namespace, partition string) *structs.ServiceRoute {
 	return &structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
 			HTTP: &structs.ServiceRouteHTTPMatch{
@@ -623,6 +669,7 @@ func newDefaultServiceRoute(serviceName string, namespace string) *structs.Servi
 		Destination: &structs.ServiceRouteDestination{
 			Service:   serviceName,
 			Namespace: namespace,
+			Partition: partition,
 		},
 	}
 }
@@ -836,7 +883,7 @@ RESOLVE_AGAIN:
 			target,
 			redirect.Service,
 			redirect.ServiceSubset,
-			target.Partition,
+			redirect.Partition,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
@@ -880,6 +927,9 @@ RESOLVE_AGAIN:
 			c.customizedBy.ConnectTimeout = true
 		}
 	}
+
+	// Expose a copy of this on the targets for ease of access.
+	target.ConnectTimeout = connectTimeout
 
 	// Build node.
 	node := &structs.DiscoveryGraphNode{
@@ -940,9 +990,9 @@ RESOLVE_AGAIN:
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
 		}
-
-		if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+		if proxyDefault != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
 		}
 
 		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {

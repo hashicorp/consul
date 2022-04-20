@@ -36,27 +36,38 @@
           <strong>{{item.error.Name.validation}}</strong>
         {{/if}}
     </label>
-    <label class="type-text" data-test-rules>
-        <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+    <label for="" class="type-text" data-test-rules>
 {{#if (eq item.template 'service-identity')}}
         <CodeEditor
           @readonly={{true}}
           @name={{concat name "[Rules]"}}
           @syntax="hcl"
           @oninput={{action "change" (concat name "[Rules]")}}
-        ><Consul::ServiceIdentity::Template
-          @nspace={{nspace}}
-          @name={{item.Name}}
-        /></CodeEditor>
+        >
+          <:label>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:label>
+          <:content><Consul::ServiceIdentity::Template
+              @nspace={{nspace}}
+              @partition={{partition}}
+              @name={{item.Name}}
+            /></:content>
+        </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
         <CodeEditor
           @readonly={{true}}
           @name={{concat name "[Rules]"}}
           @syntax="hcl"
           @oninput={{action "change" (concat name "[Rules]")}}
-        ><Consul::NodeIdentity::Template
-          @name={{item.Name}}
-        /></CodeEditor>
+        >
+          <:label>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:label>
+          <:content><Consul::NodeIdentity::Template
+              @name={{item.Name}}
+              @partition={{partition}}
+            /></:content>
+        </CodeEditor>
 {{else}}
         <CodeEditor
           @syntax="hcl"
@@ -64,7 +75,11 @@
           @name={{concat name "[Rules]"}}
           @value={{item.Rules}}
           @onkeyup={{action "change" (concat name "[Rules]")}}
-        />
+        >
+          <:label>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:label>
+        </CodeEditor>
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
@@ -88,6 +103,8 @@
       </PowerSelect>
     </label>
 {{else}}
+{{! only show Valid Datacenters for the default partition }}
+{{#if (eq (or partition 'default') 'default')}}
     <div class="type-toggle">
       <span>Valid datacenters</span>
       <label>
@@ -95,6 +112,7 @@
         <span>All</span>
       </label>
     </div>
+{{/if}}
   {{#if isScoped }}
     <DataSource
       @src={{uri '/*/*/*/datacenters'}}

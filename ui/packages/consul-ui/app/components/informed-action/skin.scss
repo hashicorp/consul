@@ -3,7 +3,7 @@
     border-radius: var(--decor-radius-200);
     border: var(--decor-border-100);
     border-color: rgb(var(--tone-gray-300));
-    background-color: rgb(var(--white));
+    background-color: rgb(var(--tone-gray-000));
   }
   > div {
     border-top-left-radius: var(--decor-radius-200);
@@ -18,7 +18,7 @@
   }
   p {
     @extend %p2;
-    color: var(--black);
+    color: rgb(var(--tone-gray-999));
   }
   > ul {
     list-style: none;

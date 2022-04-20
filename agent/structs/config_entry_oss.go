@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
@@ -7,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func (e *ProxyConfigEntry) validateEnterpriseMeta() error {
@@ -31,6 +34,10 @@ func validateUnusedKeys(unused []string) error {
 	return err
 }
 
-func validateInnerEnterpriseMeta(_, _ *EnterpriseMeta) error {
+func validateInnerEnterpriseMeta(_, _ *acl.EnterpriseMeta) error {
 	return nil
+}
+
+func requireEnterprise(kind string) error {
+	return fmt.Errorf("Config entry kind %q requires Consul Enterprise", kind)
 }

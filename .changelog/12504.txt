@@ -1,0 +1,7 @@
+```release-note:feature
+tls: it is now possible to configure TLS differently for each of Consul's listeners (i.e. HTTPS, gRPC and the internal multiplexed RPC listener) using the `tls` stanza
+```
+
+```release-note:deprecation
+config: setting `cert_file`, `key_file`, `ca_file`, `ca_path`, `tls_min_version`, `tls_cipher_suites`, `verify_incoming`, `verify_incoming_rpc`, `verify_incoming_https`, `verify_outgoing` and `verify_server_hostname` at the top-level is now deprecated, use the `tls` stanza instead
+```

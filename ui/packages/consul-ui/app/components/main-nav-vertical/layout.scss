@@ -11,14 +11,13 @@
 %main-nav-vertical:not(.in-viewport) {
   visibility: hidden;
 }
-%main-nav-vertical li.partitions,
 %main-nav-vertical li.partition,
+%main-nav-vertical li.partitions,
 %main-nav-vertical li.nspaces {
   margin-bottom: 25px;
   padding: 0 26px;
 }
 %main-nav-vertical li.dcs {
-  margin-bottom: 18px;
   padding: 0 18px;
 }
 // TODO: We no longer have the rule that menu-panel buttons only contain two
@@ -41,9 +40,21 @@
   margin-top: 0.7rem;
   padding-bottom: 0;
 }
-
+%main-nav-vertical-popover-menu .disclosure {
+  position: relative;
+}
+%main-nav-vertical-popover-menu-trigger {
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+}
+%main-nav-vertical-popover-menu-trigger::after {
+  float: right;
+}
 %main-nav-vertical-menu-panel {
-  min-width: 248px;
+  position: absolute;
+  z-index: 1;
+  width: calc(100% - 2px);
 }
 %main-nav-vertical-hoisted {
   visibility: visible;

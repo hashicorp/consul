@@ -44,6 +44,10 @@ type KVPair struct {
 	// Namespace is the namespace the KVPair is associated with
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the KVPair is associated with
+	// Admin Partition is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 // KVPairs is a list of KVPair objects

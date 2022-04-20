@@ -21,9 +21,9 @@ the cluster.
 | `GET`  | `/connect/ca/roots` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -113,9 +113,9 @@ This endpoint returns the current CA configuration.
 | `GET`  | `/connect/ca/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
@@ -124,6 +124,8 @@ The table below shows this endpoint's support for
 
 <sup>1</sup> ACL required was <code>operator:read</code> prior to versions 1.8.6,
 1.7.10, and 1.6.10.
+
+The corresponding CLI command is [`consul connect ca get-config`](/commands/connect/ca#get-config).
 
 ### Sample Request
 
@@ -156,14 +158,16 @@ new root certificate being used, the [Root Rotation](/docs/connect/ca#root-certi
 | `PUT`  | `/connect/ca/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul connect ca set-config`](/commands/connect/ca#set-config).
 
 ### Parameters
 

@@ -1,0 +1,56 @@
+${[0].map(_ => {
+  const zones = range(env('CONSUL_ZONE_COUNT', 3)).map(_ => fake.hacker.noun());
+  const servers = range(env('CONSUL_SERVER_COUNT', 15)).map(_ => fake.random.uuid());
+  const failureTolerance = Math.ceil(servers.length / 2);
+  const optimisticTolerance = 0;
+  const leader = fake.random.number({min: 0, max: servers.length - 1});
+  return `
+{
+  "Healthy": true,
+  "FailureTolerance": ${failureTolerance},
+  "OptimisticFailureTolerance": ${optimisticTolerance},
+  "Servers": {${servers.map((item, i, items) => `
+    "${item}": {
+      "ID": "${item}",
+      "Name": "node-${i}",
+      "Address": "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}",
+      "NodeStatus": "alive",
+      "Version": "1.11.2",
+      "LastContact": "0s",
+      "LastTerm": 2,
+      "LastIndex": 91,
+      "Healthy": ${fake.random.boolean()},
+      "StableSince": "2022-02-02T11:59:01.0708146Z",
+      "ReadReplica": false,
+      "Status": "${i === leader ? `leader` : fake.helpers.randomize(['non-voter', 'voter', 'staging'])}",
+      "Meta": {
+        "consul-network-segment": ""
+      },
+      "NodeType": "voter"
+    }
+  `)}},
+  "Leader": "${servers[leader]}",
+  "Voters": [
+${servers.map(item => `"${item}"`)}
+  ],
+${ env('CONSUL_ZONES_ENABLE', false) ? `
+  "RedundancyZones": {${zones.map((item, i) => `
+    "${item}": {
+      "Servers": [
+${servers.map(item => `"${item}"`)}
+      ],
+      "Voters": [
+${servers.map(item => `"${item}"`)}
+      ],
+      "FailureTolerance": ${i}
+    }
+  `)}
+  },
+  "ReadReplicas": [
+    ${servers.map(item => `"${item}"`)}
+  ],
+` : ``}
+  "Upgrade": {}
+}
+  `;
+})}

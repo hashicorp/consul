@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -84,7 +85,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -189,7 +190,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -286,6 +287,9 @@ func TestKVSEndpoint_List(t *testing.T) {
 		if d.Value != nil {
 			t.Fatalf("bad: %v", d)
 		}
+	}
+	if dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should not be true")
 	}
 
 	// Try listing a nonexistent prefix
@@ -410,7 +414,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -475,6 +479,9 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 			}
 		}
 	}
+	if !dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
+	}
 }
 
 func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
@@ -486,7 +493,7 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.ACLEnableKeyListPolicy = true
 	})
@@ -652,6 +659,9 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+	if dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should not be true")
+	}
 
 	// Try listing a nonexistent prefix
 	getR.Prefix = "/nope"
@@ -675,7 +685,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -733,6 +743,9 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	}
 	if dirent.Keys[1] != "test" {
 		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if !dirent.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 

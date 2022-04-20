@@ -1,4 +1,4 @@
-.consul-upstream-instance-list {
+%consul-upstream-instance-list {
   li {
     @extend %composite-row;
   }
@@ -8,10 +8,22 @@
   dl.datacenter dt::before {
     @extend %with-user-organization-mask, %as-pseudo;
   }
+  dl.partition dt::before {
+    @extend %with-user-team-mask, %as-pseudo;
+  }
   dl.nspace dt::before {
     @extend %with-folder-outline-mask, %as-pseudo;
   }
-  dl.local-bind-mode dt {
+  dl.local-bind-socket-path dt,
+  dl.local-bind-address dt {
+    @extend %horizontal-kv-list-hidden-title;
+  }
+  dl.local-bind-socket-mode dt {
+    @extend %horizontal-kv-list-visible-title;
+    text-transform: lowercase;
     font-weight: var(--typo-weight-semibold);
   }
+}
+.consul-upstream-instance-list {
+  @extend %consul-upstream-instance-list;
 }

@@ -7,15 +7,17 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestConfigEntries_ACLs(t *testing.T) {
@@ -23,7 +25,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -193,8 +195,20 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 				for _, a := range tc.expectACLs {
 					require.NotEmpty(t, a.name)
 					t.Run(a.name, func(t *testing.T) {
-						require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer), "unexpected CanRead result")
-						require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer), "unexpected CanWrite result")
+						canRead := tc.entry.CanRead(a.authorizer)
+						if a.canRead {
+							require.Nil(t, canRead)
+						} else {
+							require.Error(t, canRead)
+							require.True(t, acl.IsErrPermissionDenied(canRead))
+						}
+						canWrite := tc.entry.CanWrite(a.authorizer)
+						if a.canWrite {
+							require.Nil(t, canWrite)
+						} else {
+							require.Error(t, canWrite)
+							require.True(t, acl.IsErrPermissionDenied(canWrite))
+						}
 					})
 				}
 			}
@@ -1107,6 +1121,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			// TODO(rb): test SDS stuff here in both places (global/service)
 			name: "ingress-gateway: kitchen sink",
 			snake: `
 				kind = "ingress-gateway"
@@ -1118,6 +1133,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 
 				tls {
 					enabled = true
+					tls_min_version = "TLSv1_1"
+					tls_max_version = "TLSv1_2"
+					cipher_suites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 
 				listeners = [
@@ -1181,6 +1202,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				TLS {
 					Enabled = true
+					TLSMinVersion = "TLSv1_1"
+					TLSMaxVersion = "TLSv1_2"
+					CipherSuites = [
+						"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+						"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+					]
 				}
 				Listeners = [
 					{
@@ -1242,7 +1269,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TLS: GatewayTLSConfig{
-					Enabled: true,
+					Enabled:       true,
+					TLSMinVersion: types.TLSv1_1,
+					TLSMaxVersion: types.TLSv1_2,
+					CipherSuites: []types.TLSCipherSuite{
+						types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+						types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					},
 				},
 				Listeners: []IngressListener{
 					{
@@ -1643,6 +1676,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1653,6 +1704,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1662,12 +1731,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+				},
 			},
 		},
 		{
-			name: "partition-exports",
+			name: "exported-services",
 			snake: `
-				kind = "partition-exports"
+				kind = "exported-services"
 				name = "foo"
 				meta {
 					"foo" = "bar"
@@ -1698,7 +1785,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				]
 			`,
 			camel: `
-				Kind = "partition-exports"
+				Kind = "exported-services"
 				Name = "foo"
 				Meta {
 					"foo" = "bar"
@@ -1728,7 +1815,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					}
 				]
 			`,
-			expect: &PartitionExportsConfigEntry{
+			expect: &ExportedServicesConfigEntry{
 				Name: "foo",
 				Meta: map[string]string{
 					"foo": "bar",
@@ -2664,7 +2751,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
 				opts := cmp.Options{
-					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+					cmp.Comparer(func(a, b acl.EnterpriseMeta) bool {
 						return a.IsSame(&b)
 					}),
 				}

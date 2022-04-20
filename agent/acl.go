@@ -7,13 +7,15 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
+	ident, err := a.delegate.ResolveTokenAndDefaultMeta(secretID, nil, nil)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -21,10 +23,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 		a.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
-	if ident == nil {
-		return ""
-	}
-	return ident.ID()
+	return ident.AccessorID()
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by
@@ -41,19 +40,18 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 
 func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
 	var authzContext acl.AuthorizerContext
-	service.FillAuthzContext(&authzContext)
+
 	// Vet the service itself.
-	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		serviceName := service.CompoundServiceName()
-		return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+	service.FillAuthzContext(&authzContext)
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+		return err
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			serviceName := service.CompoundServiceName()
-			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.Service, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -61,9 +59,8 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	// since it can be discovered as an instance of that service.
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			// TODO(partitions) fix this to include namespace and partition
-			return acl.PermissionDenied("Missing service:write on %s", service.Proxy.DestinationServiceName)
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
+			return err
 		}
 	}
 
@@ -76,42 +73,50 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	// Vet any changes based on the existing services's info.
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			serviceName := existing.CompoundServiceName()
-			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.Service, &authzContext); err != nil {
+			return err
+
 		}
 	} else {
-		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
+		// Take care if modifying this error message.
+		// agent/local/state.go's deleteService assumes the Catalog.Deregister RPC call
+		// will include "Unknown service"in the error if deregistration fails due to a
+		// service with that ID not existing.
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
+			serviceID)}
 	}
 
 	return nil
 }
 
 func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
-	// TODO(partitions)
-
 	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
+
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
-		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing service:write on %v", structs.ServiceIDString(check.ServiceName, &check.EnterpriseMeta))
+		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(check.ServiceName, &authzContext); err != nil {
+			return err
 		}
 	} else {
-		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+		// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+			return err
 		}
 	}
 
 	// Vet any check that might be getting overwritten.
 	if existing := a.State.Check(check.CompoundCheckID()); existing != nil {
 		if len(existing.ServiceName) > 0 {
-			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s", structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+			// N.B. Should this authzContext be derived from existing.EnterpriseMeta?
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
-			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+			// N.B. Should this authzContext be derived from a.AgentEnterpriseMeta()
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+				return err
 			}
 		}
 	}
@@ -126,16 +131,18 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	// Vet any changes based on the existing check's info.
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
-			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s", structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(existing.ServiceName, &authzContext); err != nil {
+				return err
 			}
 		} else {
-			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.AgentEnterpriseMeta()))
+			if err := authz.ToAllowAuthorizer().NodeWriteAllowed(a.config.NodeName, &authzContext); err != nil {
+				return err
 			}
 		}
 	} else {
-		return fmt.Errorf("Unknown check %q", checkID.String())
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown check ID %q. Ensure that the check ID is passed, not the check name.",
+			checkID.String())}
 	}
 
 	return nil
@@ -158,7 +165,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		accessorID := a.aclAccessorID(token)
+		accessorID := authz.AccessorID()
 		a.logger.Debug("dropping node from result due to ACLs", "node", node, "accessorID", accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--
@@ -167,24 +174,24 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	return nil
 }
 
-func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map[structs.ServiceID]*structs.NodeService) error {
+func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services map[string]*api.AgentService) error {
 	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
-	for id, service := range *services {
-		service.FillAuthzContext(&authzContext)
+	for id, service := range services {
+		agentServiceFillAuthzContext(service, &authzContext)
 		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Debug("dropping service from result due to ACLs", "service", id.String())
-		delete(*services, id)
+		a.logger.Debug("dropping service from result due to ACLs", "service", id)
+		delete(services, id)
 	}
 	return nil
 }
 
-func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks map[types.CheckID]*structs.HealthCheck) error {
 	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
-	for id, check := range *checks {
+	for id, check := range checks {
 		check.FillAuthzContext(&authzContext)
 		if len(check.ServiceName) > 0 {
 			if authz.ServiceRead(check.ServiceName, &authzContext) == acl.Allow {
@@ -195,8 +202,8 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		}
-		a.logger.Debug("dropping check from result due to ACLs", "check", id.String())
-		delete(*checks, id)
+		a.logger.Debug("dropping check from result due to ACLs", "check", id)
+		delete(checks, id)
 	}
 	return nil
 }

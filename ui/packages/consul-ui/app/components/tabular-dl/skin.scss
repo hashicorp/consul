@@ -6,13 +6,13 @@
   dt,
   dd {
     border-color: rgb(var(--tone-gray-300)) !important;
-    color: var(--black) !important;
+    color: rgb(var(--tone-gray-999)) !important;
   }
   dt {
     font-weight: var(--typo-weight-bold);
   }
   dd .copy-button button::before {
-    background-color: var(--black);
+    background-color: rgb(var(--tone-gray-999));
   }
   dt.type + dd span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;

@@ -1,7 +1,12 @@
+//go:build !consulent
 // +build !consulent
 
 package structs
 
-func validateSourceIntentionEnterpriseMeta(_, _ *EnterpriseMeta) error {
+import (
+	"github.com/hashicorp/consul/acl"
+)
+
+func validateSourceIntentionEnterpriseMeta(_, _ *acl.EnterpriseMeta) error {
 	return nil
 }

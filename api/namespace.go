@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -28,11 +29,33 @@ type Namespace struct {
 	// This is nullable so that we can omit if empty when encoding in JSON
 	DeletedAt *time.Time `json:"DeletedAt,omitempty" alias:"deleted_at"`
 
+	// Partition which contains the Namespace.
+	Partition string `json:"Partition,omitempty"`
+
 	// CreateIndex is the Raft index at which the Namespace was created
 	CreateIndex uint64 `json:"CreateIndex,omitempty"`
 
 	// ModifyIndex is the latest Raft index at which the Namespace was modified.
 	ModifyIndex uint64 `json:"ModifyIndex,omitempty"`
+}
+
+func (n *Namespace) UnmarshalJSON(data []byte) error {
+	type Alias Namespace
+	aux := struct {
+		DeletedAtSnake *time.Time `json:"deleted_at"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if n.DeletedAt == nil && aux.DeletedAtSnake != nil {
+		n.DeletedAt = aux.DeletedAtSnake
+	}
+
+	return nil
 }
 
 // NamespaceACLConfig is the Namespace specific ACL configuration container
@@ -45,12 +68,38 @@ type NamespaceACLConfig struct {
 	RoleDefaults []ACLLink `json:"RoleDefaults" alias:"role_defaults"`
 }
 
+func (n *NamespaceACLConfig) UnmarshalJSON(data []byte) error {
+	type Alias NamespaceACLConfig
+	aux := struct {
+		PolicyDefaultsSnake []ACLLink `json:"policy_defaults"`
+		RoleDefaultsSnake   []ACLLink `json:"role_defaults"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if n.PolicyDefaults == nil {
+		for _, pd := range aux.PolicyDefaultsSnake {
+			n.PolicyDefaults = append(n.PolicyDefaults, pd)
+		}
+	}
+	if n.RoleDefaults == nil {
+		for _, pd := range aux.RoleDefaultsSnake {
+			n.RoleDefaults = append(n.RoleDefaults, pd)
+		}
+	}
+	return nil
+}
+
 // Namespaces can be used to manage Namespaces in Consul Enterprise..
 type Namespaces struct {
 	c *Client
 }
 
-// Operator returns a handle to the operator endpoints.
+// Namespaces returns a handle to the namespaces endpoints.
 func (c *Client) Namespaces() *Namespaces {
 	return &Namespaces{c}
 }
