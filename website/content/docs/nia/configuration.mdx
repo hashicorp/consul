@@ -60,7 +60,7 @@ tls {
 
 ## License <EnterpriseAlert inline />
 
-The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. A license path must be provided or automatic license retrieval enabled to use CTS Enterprise. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
+The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. To use the license block for CTS Enterprise, a license path must be provided or automatic license retrieval enabled. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
 
 ```hcl
 license {
