@@ -66,16 +66,15 @@ type TimeoutConn struct {
 }
 
 func (c *TimeoutConn) Read(b []byte) (int, error) {
-	timeout := c.Timeout
-	c.Timeout = 0
-	if timeout == 0 {
-		timeout = c.DefaultTimeout
+	timeout := c.DefaultTimeout
+	// Apply timeout to first read then zero it out
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+		c.Timeout = 0
 	}
 	var deadline time.Time
 	if timeout > 0 {
 		deadline = time.Now().Add(timeout)
-	} else {
-		deadline = time.Time{}
 	}
 	if err := c.Conn.SetReadDeadline(deadline); err != nil {
 		return 0, err
