@@ -3,12 +3,14 @@ package api
 import (
 	crand "crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -16,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -589,9 +593,8 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(cc.RootCAs.Subjects()) != 2 {
-		t.Fatalf("didn't load root CAs")
-	}
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, cc.RootCAs, cmpCertPool)
 
 	// Load certs in-memory
 	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
@@ -1097,4 +1100,36 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	}
 
 	require.Equal(t, expected, c.GenerateEnv())
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		require.NoError(t, err)
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

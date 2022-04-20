@@ -5,6 +5,8 @@ dc:
       title: Server status
       unassigned: Unassigned Zones
       tolerance:
+        link: |
+          <a href="{CONSUL_DOCS_URL}/architecture/consensus" target="_blank" rel="noopener noreferrer">Learn more</a>
         header: Server fault tolerance
         immediate:
           header: Immediate
@@ -35,17 +37,17 @@ dc:
         body: |
           <ul>
             <li>
-              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire">
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire" target="_blank" rel="noopener noreferrer">
                 License expiration
               </a>
             </li>
             <li>
-              <a href="{CONSUL_DOCS_URL}/docs/enterprise/license/faq#q-how-can-i-renew-a-license">
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
                 Renewing a license
               </a>
             </li>
             <li>
-              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise">
+              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise" target="_blank" rel="noopener noreferrer">
                 Applying a new license
               </a>
             </li>

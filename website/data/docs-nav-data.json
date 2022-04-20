@@ -382,8 +382,8 @@
         "path": "api-gateway"
       },
       {
-        "title": "Usage",
-        "path": "api-gateway/api-gateway-usage"
+        "title": "Installation",
+        "path": "api-gateway/consul-api-gateway-install"
       },
       {
         "title": "Technical Specifications",
@@ -982,6 +982,10 @@
               {
                 "title": "OIDC",
                 "path": "security/acl/auth-methods/oidc"
+              },
+              {
+                "title": "AWS IAM",
+                "path": "security/acl/auth-methods/aws-iam"
               }
             ]
           }

@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.17.5
+ARG GOLANG_VERSION=1.18.1
 FROM golang:${GOLANG_VERSION}
 
 RUN go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master

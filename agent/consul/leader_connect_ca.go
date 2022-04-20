@@ -266,7 +266,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 	}
 	return &structs.CARoot{
 		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
-		Name:                fmt.Sprintf("%s CA Primary Cert", strings.Title(provider)),
+		Name:                fmt.Sprintf("%s CA Primary Cert", providerPrettyName(provider)),
 		SerialNumber:        primaryCert.SerialNumber.Uint64(),
 		SigningKeyID:        connect.EncodeSigningKeyID(primaryCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
@@ -1580,4 +1580,19 @@ func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
 	}
 	provider, _ := c.getCAProvider()
 	return primaryUsesIntermediate(provider)
+}
+
+func providerPrettyName(provider string) string {
+	switch provider {
+	case "consul":
+		return "Consul"
+	case "vault":
+		return "Vault"
+	case "aws-pca":
+		return "Aws-Pca"
+	case "provider-name":
+		return "Provider-Name"
+	default:
+		return provider
+	}
 }

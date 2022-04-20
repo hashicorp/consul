@@ -12,13 +12,7 @@ import (
 //
 // Note: topics are ordinarily defined in subscribe.proto, but this one isn't
 // currently available via the Subscribe endpoint.
-const EventTopicCARoots stringer = "CARoots"
-
-// stringer is a convenience type to turn a regular string into a fmt.Stringer
-// so that it can be used as a stream.Topic or stream.Subject.
-type stringer string
-
-func (s stringer) String() string { return string(s) }
+const EventTopicCARoots stream.StringTopic = "CARoots"
 
 type EventPayloadCARoots struct {
 	CARoots structs.CARoots

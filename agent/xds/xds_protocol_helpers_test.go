@@ -14,6 +14,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -302,6 +303,18 @@ func xdsNewInlineString(s string) *envoy_core_v3.DataSource {
 
 func xdsNewFilter(t *testing.T, name string, cfg proto.Message) *envoy_listener_v3.Filter {
 	f, err := makeFilter(name, cfg)
+	require.NoError(t, err)
+	return f
+}
+
+func xdsNewListenerFilter(t *testing.T, name string, cfg proto.Message) *envoy_listener_v3.ListenerFilter {
+	f, err := makeEnvoyListenerFilter(name, cfg)
+	require.NoError(t, err)
+	return f
+}
+
+func xdsNewHttpFilter(t *testing.T, name string, cfg proto.Message) *envoy_http_v3.HttpFilter {
+	f, err := makeEnvoyHTTPFilter(name, cfg)
 	require.NoError(t, err)
 	return f
 }
@@ -626,7 +639,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_RouteConfig{
 								RouteConfig: makeTestRoute(t, "http2:db:inline"),
@@ -651,7 +664,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
 								Rds: &envoy_http_v3.Rds{
@@ -679,7 +692,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
 								Rds: &envoy_http_v3.Rds{

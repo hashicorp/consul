@@ -677,8 +677,10 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	s.publicConnectCAServer.Register(s.publicGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
 		ACLResolver: plainACLResolver{s.ACLResolver},
+		Datacenter:  s.config.Datacenter,
 	}).Register(s.publicGRPCServer)
 
 	// Initialize private gRPC server.

@@ -34,6 +34,8 @@ var (
 	startingVirtualIP = net.IP{240, 0, 0, 0}
 
 	virtualIPMaxOffset = net.IP{15, 255, 255, 254}
+
+	ErrNodeNotFound = errors.New("node not found")
 )
 
 func resizeNodeLookupKey(s string) string {
@@ -1463,6 +1465,17 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.Ente
 }
 
 func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta) (*structs.NodeService, error) {
+	sn, err := getServiceNodeTxn(tx, nodeName, serviceID, entMeta)
+	if err != nil {
+		return nil, err
+	}
+	if sn != nil {
+		return sn.ToNodeService(), nil
+	}
+	return nil, nil
+}
+
+func getServiceNodeTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta) (*structs.ServiceNode, error) {
 	// TODO: pass non-pointer type for ent meta
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -1477,12 +1490,48 @@ func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.Ente
 	if err != nil {
 		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
-
 	if service != nil {
-		return service.(*structs.ServiceNode).ToNodeService(), nil
+		return service.(*structs.ServiceNode), nil
+	}
+	return nil, nil
+}
+
+// ServiceNode is used to retrieve a specific service by service ID and node ID or name.
+func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ServiceNode, error) {
+	var (
+		node *structs.Node
+		err  error
+	)
+	if nodeID != "" {
+		_, node, err = s.GetNodeID(types.NodeID(nodeID), entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("Failure looking up node by ID %s: %w", nodeID, err)
+		}
+	} else if nodeName != "" {
+		_, node, err = s.GetNode(nodeName, entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("Failure looking up node by name %s: %w", nodeName, err)
+		}
+	} else {
+		return 0, nil, fmt.Errorf("Node ID or name required to lookup the service")
+	}
+	if node == nil {
+		return 0, nil, ErrNodeNotFound
 	}
 
-	return nil, nil
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := catalogServicesMaxIndex(tx, entMeta)
+
+	// Query the service
+	service, err := getServiceNodeTxn(tx, node.Node, serviceID, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed querying service for node %q: %w", node.Node, err)
+	}
+
+	return idx, service, nil
 }
 
 func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, allowWildcard bool) (bool, uint64, *structs.Node, memdb.ResultIterator, error) {
