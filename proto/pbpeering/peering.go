@@ -31,6 +31,11 @@ func (msg *PeeringReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQ
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
+// Timeout implements structs.RPCInfo
+func (msg *PeeringReadRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
+}
+
 func (msg *PeeringListRequest) RequestDatacenter() string {
 	return msg.Datacenter
 }
@@ -53,6 +58,11 @@ func (msg *PeeringListRequest) SetTokenSecret(s string) {
 
 func (msg *PeeringListRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
 	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *PeeringListRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 func (msg *PeeringWriteRequest) RequestDatacenter() string {
@@ -79,6 +89,11 @@ func (msg *PeeringWriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, max
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
+// Timeout implements structs.RPCInfo
+func (msg *PeeringWriteRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
+}
+
 func (msg *PeeringDeleteRequest) RequestDatacenter() string {
 	return msg.Datacenter
 }
@@ -101,6 +116,11 @@ func (msg *PeeringDeleteRequest) SetTokenSecret(s string) {
 
 func (msg *PeeringDeleteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
 	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *PeeringDeleteRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 // RequestDatacenter implements structs.RPCInfo
@@ -133,6 +153,11 @@ func (req *GenerateTokenRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _,
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
+// Timeout implements structs.RPCInfo
+func (msg *GenerateTokenRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
+}
+
 // RequestDatacenter implements structs.RPCInfo
 func (req *InitiateRequest) RequestDatacenter() string {
 	return req.Datacenter
@@ -161,6 +186,11 @@ func (req *InitiateRequest) SetTokenSecret(token string) {
 // HasTimedOut implements structs.RPCInfo
 func (req *InitiateRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
 	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 // ShouldDial returns true when the peering was stored via the peering initiation endpoint,
