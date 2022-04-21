@@ -1,0 +1,3 @@
+```release-note:improvement
+grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed.
+```

@@ -46,6 +46,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
 	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
+	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -681,6 +682,12 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		Logger:      logger.Named("grpc-api.dataplane"),
 		ACLResolver: plainACLResolver{s.ACLResolver},
 		Datacenter:  s.config.Datacenter,
+	}).Register(s.publicGRPCServer)
+
+	serverdiscovery.NewServer(serverdiscovery.Config{
+		Publisher:   s.publisher,
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 
 	// Initialize private gRPC server.
