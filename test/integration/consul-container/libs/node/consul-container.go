@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/docker/docker/pkg/ioutils"
@@ -118,9 +118,9 @@ func (c *consulContainerNode) Terminate() error {
 
 func isRYUKDisabled() bool {
 	skipReaperStr := os.Getenv(disableRYUKEnv)
-	skipReaper := true
-	if skipReaperStr == "1" || strings.ToLower(skipReaperStr) == "true" {
-		skipReaper = true
+	skipReaper, err := strconv.ParseBool(skipReaperStr)
+	if err != nil {
+		return false
 	}
 	return skipReaper
 }
