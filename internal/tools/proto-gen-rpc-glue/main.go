@@ -344,6 +344,14 @@ func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a t
 	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
 
+// Timeout implements structs.RPCInfo
+func (msg *%[1]s) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	if msg == nil || msg.%[2]s == nil {
+		return 0
+	}
+	return msg.%[2]s.Timeout(rpcHoldTimeout, a, b)
+}
+
 // IsRead implements structs.RPCInfo
 func (msg *%[1]s) IsRead() bool {
 	return false
@@ -390,6 +398,14 @@ func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a t
 		return false, nil
 	}
 	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *%[1]s) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	if msg == nil || msg.%[2]s == nil {
+		return 0
+	}
+	return msg.%[2]s.Timeout(rpcHoldTimeout, a, b)
 }
 
 // SetTokenSecret implements structs.RPCInfo
@@ -443,6 +459,15 @@ func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a t
 	}
 	return msg.%[2]s.HasTimedOut(start, rpcHoldTimeout, a, b)
 }
+
+// Timeout implements structs.RPCInfo
+func (msg *%[1]s) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	if msg == nil || msg.%[2]s == nil {
+		return 0
+	}
+	return msg.%[2]s.Timeout(rpcHoldTimeout, a, b)
+}
+
 // SetTokenSecret implements structs.RPCInfo
 func (msg *%[1]s) SetTokenSecret(s string) {
     // TODO: initialize if nil
