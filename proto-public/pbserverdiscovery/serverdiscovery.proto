@@ -7,8 +7,11 @@ package serverdiscovery;
 
 option go_package = "github.com/hashicorp/consul/proto-public/pbserverdiscovery";
 
-
 service ServerDiscoveryService {
+   // WatchServers will stream back sets of ready servers as they change such as
+   // when new servers are added or older ones removed. A ready server is one that
+   // should be considered ready for sending general RPC requests towards that would
+   // catalog queries, xDS proxy configurations and similar services.
    rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {};
 }
 
@@ -19,6 +22,7 @@ message WatchServersRequest {
 }
 
 message WatchServersResponse{
+   // Servers is the list of server address information.
    repeated Server servers = 1;
 }
 

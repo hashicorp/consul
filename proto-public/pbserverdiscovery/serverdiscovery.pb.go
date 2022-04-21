@@ -86,6 +86,7 @@ type WatchServersResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Servers is the list of server address information.
 	Servers []*Server `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
 }
 
@@ -332,6 +333,10 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ServerDiscoveryServiceClient interface {
+	// WatchServers will stream back sets of ready servers as they change such as
+	// when new servers are added or older ones removed. A ready server is one that
+	// should be considered ready for sending general RPC requests towards that would
+	// catalog queries, xDS proxy configurations and similar services.
 	WatchServers(ctx context.Context, in *WatchServersRequest, opts ...grpc.CallOption) (ServerDiscoveryService_WatchServersClient, error)
 }
 
@@ -377,6 +382,10 @@ func (x *serverDiscoveryServiceWatchServersClient) Recv() (*WatchServersResponse
 
 // ServerDiscoveryServiceServer is the server API for ServerDiscoveryService service.
 type ServerDiscoveryServiceServer interface {
+	// WatchServers will stream back sets of ready servers as they change such as
+	// when new servers are added or older ones removed. A ready server is one that
+	// should be considered ready for sending general RPC requests towards that would
+	// catalog queries, xDS proxy configurations and similar services.
 	WatchServers(*WatchServersRequest, ServerDiscoveryService_WatchServersServer) error
 }
 
