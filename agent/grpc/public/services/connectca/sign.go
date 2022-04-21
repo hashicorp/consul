@@ -22,7 +22,7 @@ func (s *Server) Sign(ctx context.Context, req *pbconnectca.SignRequest) (*pbcon
 		return nil, err
 	}
 
-	logger := s.Logger.Named("sign").With("request_id", traceID())
+	logger := s.Logger.Named("sign").With("request_id", public.TraceID())
 	logger.Trace("request received")
 
 	token := public.TokenFromContext(ctx)

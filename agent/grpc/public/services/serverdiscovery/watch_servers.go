@@ -11,27 +11,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-// We tag logs with a unique identifier to ease debugging. In the future this
-// should probably be an Open Telemetry trace ID.
-func streamID() string {
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return ""
-	}
-	return id
-}
 
 // WatchServers provides a stream on which you can receive the list of servers
 // that are ready to receive incoming requests including stale queries. The
 // current set of ready servers are sent immediately at the start of the
 // stream and new updates will be sent whenver the set of ready servers changes.
 func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, serverStream pbserverdiscovery.ServerDiscoveryService_WatchServersServer) error {
-	logger := s.Logger.Named("watch-servers").With("trace_id", streamID())
+	logger := s.Logger.Named("watch-servers").With("request_id", public.TraceID())
 
 	logger.Debug("starting stream")
 	defer logger.Trace("stream closed")
