@@ -36,10 +36,13 @@ func New(configs []node.Config) (*Cluster, error) {
 
 // AddNodes add a number of nodes to the current cluster and join them to the cluster
 func (c *Cluster) AddNodes(nodes []node.Node) error {
-	if len(c.Nodes) < 1 {
-		return fmt.Errorf("cannot add a node to an empty cluster")
+	var joinAddr string
+	if len(c.Nodes) >= 1 {
+		joinAddr, _ = c.Nodes[0].GetAddr()
+	} else if len(nodes) >= 1 {
+		joinAddr, _ = nodes[0].GetAddr()
 	}
-	joinAddr, _ := c.Nodes[0].GetAddr()
+
 	for _, node := range nodes {
 		err := node.GetClient().Agent().Join(joinAddr, false)
 		if err != nil {
