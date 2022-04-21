@@ -39,12 +39,12 @@ type StateStore interface {
 	AbandonCh() <-chan struct{}
 }
 
-//go:generate mockery -name ACLResolver -inpkg
+//go:generate mockery --name ACLResolver --inpackage
 type ACLResolver interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 }
 
-//go:generate mockery -name CAManager -inpkg
+//go:generate mockery --name CAManager --inpackage
 type CAManager interface {
 	AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error)
 }

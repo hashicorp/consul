@@ -26,7 +26,7 @@ type StateStore interface {
 	ServiceNode(string, string, string, *acl.EnterpriseMeta) (uint64, *structs.ServiceNode, error)
 }
 
-//go:generate mockery -name ACLResolver -inpkg
+//go:generate mockery --name ACLResolver --inpackage
 type ACLResolver interface {
 	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
 }

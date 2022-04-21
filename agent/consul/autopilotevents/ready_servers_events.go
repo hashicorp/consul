@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
+	autopilot "github.com/hashicorp/raft-autopilot"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
-	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 const (
@@ -111,17 +112,17 @@ func NewReadyServersEventPublisher(config Config) *ReadyServersEventPublisher {
 	}
 }
 
-//go:generate mockery -name StateStore -inpkg -testonly
+//go:generate mockery --name StateStore --inpackage --testonly
 type StateStore interface {
 	GetNodeID(types.NodeID, *acl.EnterpriseMeta) (uint64, *structs.Node, error)
 }
 
-//go:generate mockery -name Publisher -inpkg -testonly
+//go:generate mockery --name Publisher --inpackage --testonly
 type Publisher interface {
 	Publish([]stream.Event)
 }
 
-//go:generate mockery -name timeProvider -inpkg -testonly
+//go:generate mockery --name timeProvider --inpackage --testonly
 type timeProvider interface {
 	Now() time.Time
 }

@@ -5,7 +5,7 @@ SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	github.com/vektra/mockery/cmd/mockery@master \
+	github.com/vektra/mockery/v2@latest \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 \
 	github.com/hashicorp/lint-consul-retry@master
 
