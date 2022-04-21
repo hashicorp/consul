@@ -831,7 +831,7 @@ jobs:
             mkdir -p /tmp/test-results/
             docker run consul:local consul version
             cd ./test/integration/consul-container
-            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --uut-version local --latest-version latest
+            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --target-version local --latest-version latest
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
