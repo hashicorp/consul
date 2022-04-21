@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: Clarify node/service identities must be lowercase
+```
