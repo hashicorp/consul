@@ -24,9 +24,21 @@ Unlike traditional federation, when you federate Consul Kubernetes clusters with
 
 ## Usage
 
-The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend between two clusters, dc1 and dc2.  dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the seconday Consul cluster.
+The expected use case is to create WAN Federation on Kubernetes clusters. The following procedure will result in a WAN Federation with Vault as the secrets backend between two clusters, dc1 and dc2.  dc1 will act as the primary Consul cluster and will also contain the Vault server installation.  dc2 will be the secondary Consul cluster. 
 
-For an overview of the general phases and steps involved in integrating Vault as the secrets backedn for Consul on Kubernetes, please refer to the outline provided in the [Systems Integration](/docs/website/content/docs/k8s/installation/vault/systems-integration) and [Data Integration](/docs/website/content/docs/k8s/installation/vault/data-integration) sections of the [Vault as a Secrets Backend](/docs/website/content/docs/k8s/installation/vault) area of the Consul on Kubernetes documentation.
+![Consul on Kubernetes with Vault as the Secrets Backend](/img/k8s/consul-vault-wan-federation-topology.svg 'Consul on Kubernetes with Vault as the Secrets Backend')
+
+The Vault Injectors in each cluster will ensure that every pod in cluster has a Vault agent inject into the pod.
+
+![Vault Injectors inject Vault agents into pods](/img/k8s/consul-vault-wan-federation-vault-injector.svg 'Vault Injectors inject Vault agents into pods')
+
+The Vault Agents on each Consul pod will communicate directly with Vault on its externally accessible endpoint.  Consul pods are also configured with Vault annotations that configure the secrets that the pod needs as well as the path that the Vault agent should locally store those secrets.
+
+![Vault agent and server communication](/img/k8s/consul-vault-wan-federation-vault-communication.svg 'Vault agent and server communication')
+
+The two data centers will federated using mesh gateways.  This communication topology is also described in the [WAN Federation Via Mesh Gateways](/docs/k8s/installation/multi-cluster#wan-federation-via-mesh-gateways) section of [Multi-Cluster Federation Overview](/docs/k8s/installation/multi-cluster).
+
+![Mesh Federation via Mesh Gateways](/img/k8s/consul-vault-wan-federation-mesh-communication.svg 'Mesh Federation via Mesh Gateways')
 
 ### Install Vault
 
