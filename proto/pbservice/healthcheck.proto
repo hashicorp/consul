@@ -65,6 +65,7 @@ message HealthCheckDefinition {
     string Body = 18;
     bool DisableRedirects = 22;
     string TCP = 5;
+    string UDP = 23;
     // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
     google.protobuf.Duration Interval = 6;
 
@@ -114,6 +115,7 @@ message CheckType {
     string Body = 26;
     bool DisableRedirects = 31;
     string TCP = 8;
+    string UDP = 32;
     // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
     google.protobuf.Duration Interval = 9;
 
