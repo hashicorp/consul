@@ -16,7 +16,8 @@ Starting with Consul Kubernetes 0.33.0, Consul Kubernetes versions all of its co
 
 | Consul Version | Compatible consul-k8s Versions  |
 | -------------- | ------------------------------- |
-| 1.11.x         | 0.39.0 - latest                 |
+| 1.12.x         | 0.43.0 - latest                 |
+| 1.11.x         | 0.39.0 - 0.42.0                 |
 | 1.10.x         | 0.33.0 - 0.38.0                 |
 
 ### Prior to version 0.33.0
@@ -35,13 +36,6 @@ Prior to Consul Kubernetes 0.33.0, a separately versioned Consul Helm chart was 
 
 Supported versions of Envoy for Consul versions are also found in [Envoy - Supported Versions](/docs/connect/proxies/envoy#supported-versions). The recommended best practice is to use the default version of Envoy that is provided in the Helm values.yml file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
 
-## Red Hat OpenShift compatibility
-
-Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Please note the following details regarding OpenShift support.
-
-- Red Hat OpenShift is only supported for OpenShift 4.4.x and above.
-- Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported.
-
 ## Vault as a Secrets Backend compatibility
 
 Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports the ability to utilize Vault as the secrets backend for all the secrets utilized by Consul on Kubernetes.
@@ -49,4 +43,21 @@ Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports th
 | `consul-k8s` Versions    | Compatible Vault Versions | Compatible `vault-k8s` Versions |
 | ------------------------ | --------------------------| ----------------------------- |
 | 0.39.0 - latest          | 1.9.0 - latest            | 0.14.0 - latest               |
+
+## Platform Specific compatability notes
+
+### Red Hat OpenShift 
+
+Consul Kubernetes delivered Red Hat OpenShift support starting with Consul Helm chart version 0.25.0 for Consul 1.8.4. Please note the following details regarding OpenShift support.
+
+- Red Hat OpenShift is only supported for OpenShift 4.4.x and above.
+- Only the default CNI Plugin, [OpenShift SDN CNI Plugin](https://docs.openshift.com/container-platform/4.9/networking/openshift_sdn/about-openshift-sdn.html) is currently supported.
+
+### VMware Tanzu Kubernetes Grid and Tanzu Kubernetes Grid Integrated Edition
+
+Consul Kubernetes is [certified](https://marketplace.cloud.vmware.com/services/details/hashicorp-consul-1?slug=true) for both VMware Tanzu Kubernetes Grid, and VMware Tanzu Kubernetes Integrated Edition.
+
+- Tanzu Kubernetes Grid is certified for version 1.3.0 and above. Only Calico is supported as the CNI Plugin.
+- Tanzu Kuberntetes Grid Integrated Edition is supported for version 1.11.1 and above. [NSX-T CNI Plugin v3.1.2](https://docs.vmware.com/en/VMware-NSX-T-Data-Center/3.1/rn/NSX-Container-Plugin-312-Release-Notes.html) and greater should be used and configured with the `enable_hostport_snat` setting set to `true`. 
+
 
