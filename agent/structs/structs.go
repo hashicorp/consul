@@ -18,13 +18,11 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 
 	"github.com/golang/protobuf/proto"
+	ptypes "github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
-
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-
-	ptypes "github.com/golang/protobuf/ptypes"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -217,6 +215,7 @@ type RPCInfo interface {
 	TokenSecret() string
 	SetTokenSecret(string)
 	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error)
+	Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -315,18 +314,24 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
 		} else if q.MaxQueryTime <= 0 {
 			q.MaxQueryTime = defaultQueryTime
 		}
+		// Timeout after maximum jitter has elapsed.
 		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
 
-		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout), nil
+		return q.MaxQueryTime + rpcHoldTimeout
 	}
-	return time.Since(start) > rpcHoldTimeout, nil
+	return rpcHoldTimeout
+}
+
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
 type WriteRequest struct {
@@ -353,7 +358,11 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 }
 
 func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+func (w WriteRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 type QueryBackend int

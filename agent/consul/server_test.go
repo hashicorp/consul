@@ -165,7 +165,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	// TODO (slackpad) - We should be able to run all tests w/o this, but it
 	// looks like several depend on it.
-	config.RPCHoldTimeout = 5 * time.Second
+	config.RPCHoldTimeout = 10 * time.Second
 
 	config.ConnectEnabled = true
 	config.CAConfig = &structs.CAConfiguration{
