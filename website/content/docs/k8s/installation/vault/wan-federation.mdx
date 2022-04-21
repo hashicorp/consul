@@ -12,15 +12,7 @@ description: >-
 This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster) for more information on use cases and how it works.
 
 ## Differences Between Using Kubernetes Secrets vs. Vault
-The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for a [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret).
-
-When federating Consul Kubernetes clusters with Kubernetes secrets, the Federation Secret is used in the following workflow:
-- [`global.federation.createFederationSecret`](/docs/k8s/helm#v-global-federation-createfederationsecret) in primary data center is set to true
-- A Kubernetes secret called `<RELEASE-NAME>-federation` is created in the primary datacenter. The federation secret's contents are outlined in the [Federation Secret Contents](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#federation-secret-contents) page.
-- The federation secret is exported to a yaml file.
-- The federation secret must be imported as a Kubernetes secret into all secondary datacenters and Consul configurations will need to reference the Federation secret and its keys for all needed secrets as outlined in the [Secondary Cluster(s)](https://www.consul.io/docs/k8s/installation/multi-cluster/kubernetes#secondary-cluster-s) section of the [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page.
-
-Unlike traditional federation, when you federate Consul Kubernetes clusters with Vault secrets, each datacenter is configured to request the secrets from Vault directly.  There is no need for you to export and import a Federation Secret in each datacenter.
+The [Federation Between Kubernetes Clusters](/docs/k8s/installation/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for you to export and import a [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in each datacenter.
 
 ## Usage
 
