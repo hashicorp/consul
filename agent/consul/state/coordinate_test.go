@@ -181,7 +181,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	require.Equal(t, expected, coords)
 
 	// Now delete the node.
-	require.NoError(t, s.DeleteNode(3, "node1", nil))
+	require.NoError(t, s.DeleteNode(3, "node1", nil, ""))
 
 	// Make sure the coordinate is gone.
 	_, coords, err = s.Coordinate(nil, "node1", nil)

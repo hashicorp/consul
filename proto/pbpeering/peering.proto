@@ -1,0 +1,283 @@
+syntax = "proto3";
+
+package pbpeering;
+
+option go_package = "github.com/hashicorp/consul/proto/pbpeering";
+
+import "google/protobuf/any.proto";
+
+// TODO(peering): Handle this some other way
+import "proto/pbstatus/status.proto";
+
+// PeeringService handles operations for establishing peering relationships
+// between disparate Consul clusters.
+service PeeringService {
+  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse);
+  rpc Initiate(InitiateRequest) returns (InitiateResponse);
+  rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse);
+  rpc PeeringList(PeeringListRequest) returns (PeeringListResponse);
+  rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse);
+
+  // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
+  // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
+  rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse);
+
+  // StreamResources opens an event stream for resources to share between peers, such as services.
+  // Events are streamed as they happen.
+  rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
+}
+
+// PeeringState enumerates all the states a peering can be in
+enum PeeringState {
+  // Undefined represents an unset value for PeeringState during
+  // writes.
+  UNDEFINED = 0;
+
+  // Initial means a Peering has been initialized and is awaiting
+  // acknowledgement from a remote peer.
+  INITIAL = 1;
+
+  // Active means that the peering connection is active and healthy.
+  ACTIVE = 2;
+
+  // Failing means the peering connection has been interrupted but has not yet
+  // been terminated.
+  FAILING = 3;
+
+  // Terminated means the peering relationship has been removed.
+  TERMINATED = 4;
+}
+
+// Peering defines a peering relationship between two disparate Consul clusters
+message Peering {
+  // ID is a datacenter-scoped UUID for the peering.
+  // The ID is generated when a peering is first written to the state store.
+  string ID = 1;
+
+  // Name is the local alias for the peering relationship.
+  string Name = 2;
+
+  // Partition is the local partition connecting to the peer.
+  string Partition = 3;
+
+  // State is one of the valid PeeringState values to represent the status of
+  // peering relationship.
+  PeeringState State = 4;
+
+  // PeerID is the ID that our peer assigned to this peering.
+  // This ID is to be used when dialing the peer, so that it can know who dialed it.
+  string PeerID = 5;
+
+  // PeerCAPems contains all the CA certificates for the remote peer.
+  repeated string PeerCAPems = 6;
+
+  // PeerServerName is the name of the remote server as it relates to TLS.
+  string PeerServerName = 7;
+
+  // PeerServerAddresses contains all the the connection addresses for the remote peer.
+  repeated string PeerServerAddresses = 8;
+
+  // CreateIndex is the Raft index at which the Peering was created.
+  uint64 CreateIndex = 9;
+
+  // ModifyIndex is the latest Raft index at which the Peering. was modified.
+  uint64 ModifyIndex = 10;
+}
+
+// PeeringTrustBundle holds the trust information for validating requests from a peer.
+message PeeringTrustBundle {
+  // TrustDomain is the domain for the bundle, example.com, foo.bar.gov for example. Note that this must not have a prefix such as "spiffe://".
+  string TrustDomain = 1;
+
+  // PeerName associates the trust bundle with a peer.
+  string PeerName = 2;
+
+  // Partition isolates the bundle from other trust bundles in separate partitions.
+  string Partition = 3;
+
+  // RootPEMs holds ASN.1 DER encoded X.509 certificate data for the trust bundle.
+  repeated string RootPEMs = 4;
+
+  // CreateIndex is the Raft index at which the trust domain was created.
+  uint64 CreateIndex = 5;
+
+  // ModifyIndex is the latest Raft index at which the trust bundle was modified.
+  uint64 ModifyIndex = 6;
+}
+
+message PeeringReadRequest {
+  string Name = 1;
+  string Partition = 2;
+
+  string Datacenter = 3;
+
+  //TODO(peering) query metadata
+}
+
+message PeeringReadResponse {
+  Peering Peering = 1;
+
+  //TODO(peering) query metadata
+}
+
+message PeeringListRequest {
+  string Partition = 1;
+
+  string Datacenter = 2;
+
+  //TODO(peering) query metadata
+}
+
+message PeeringListResponse {
+  repeated Peering Peerings = 1;
+
+  //TODO(peering) query metadata
+}
+
+message PeeringWriteRequest {
+  Peering Peering = 1;
+
+  //TODO(peering): what to do with embedded write request?
+  string Datacenter = 2;
+}
+
+// TODO(peering): Consider returning Peering if we keep this endpoint around
+message PeeringWriteResponse{}
+
+message PeeringDeleteRequest {
+  string Name = 1;
+
+  string Partition = 2;
+
+  //TODO(peering): what to do with embedded write request?
+  string Datacenter = 3;
+}
+
+message PeeringDeleteResponse {}
+
+message PeeringTerminateByIDRequest {
+  string ID = 1;
+}
+
+message PeeringTerminateByIDResponse {}
+
+message PeeringTrustBundleWriteRequest {
+  PeeringTrustBundle PeeringTrustBundle = 1;
+
+  //TODO(peering): what to do with embedded write request?
+  string Datacenter = 2;
+}
+
+message PeeringTrustBundleWriteResponse{}
+
+message PeeringTrustBundleDeleteRequest {
+  string Name = 1;
+
+  string Partition = 2;
+
+  //TODO(peering): what to do with embedded write request?
+  string Datacenter = 3;
+}
+
+message PeeringTrustBundleDeleteResponse{}
+
+message GenerateTokenRequest {
+  // Name of the remote peer.
+  string PeerName = 1;
+
+  // Partition to to be peered.
+  string Partition = 2;
+
+  // these are common fields required for implementing structs.RPCInfo methods
+  // that are used to forward requests
+  string Datacenter = 3;
+  string Token = 4;
+}
+
+message GenerateTokenResponse {
+  // PeeringToken is an opaque string provided to the remote peer for it to complete
+  // the peering initialization handshake.
+  string PeeringToken = 1;
+}
+
+message InitiateRequest {
+  // Name of the remote peer.
+  string PeerName = 1;
+
+  // The peering token returned from the peer's GenerateToken endpoint.
+  string PeeringToken = 2;
+
+  // these are common fields required for implementing structs.RPCInfo methods
+  // that are used to forward requests
+  string Datacenter = 3;
+  string Token = 4;
+}
+
+message InitiateResponse {
+  // this is just a placeholder to avoid returning google.protobuf.Empty
+  // (and consequently gogo.protobuf.types that it will be replaced with)
+  uint32 Status = 1;
+}
+
+message ReplicationMessage {
+  oneof Payload {
+    Request request = 1;
+    Response response = 2;
+    Terminated terminated = 3;
+  }
+
+  // A Request requests to subscribe to a resource of a given type.
+  message Request {
+    // An identifier for the peer making the request.
+    // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
+    string PeerID = 1;
+
+    // Nonce corresponding to that of the response being ACKed or NACKed.
+    // Initial subscription requests will have an empty nonce.
+    // The nonce is generated and incremented by the exporting peer.
+    string Nonce = 2;
+
+    // The type URL for the resource being requested or ACK/NACKed.
+    string ResourceURL = 3;
+
+    // The error if the previous response was not applied successfully.
+    // This field is empty in the first subscription request.
+    status.Status Error = 4;
+  }
+
+  // A Response contains resources corresponding to a subscription request.
+  message Response {
+    // Nonce identifying a response in a stream.
+    string Nonce = 1;
+
+    // The type URL of resource being returned.
+    string ResourceURL = 2;
+
+    // An identifier for the resource being returned.
+    // This could be the SPIFFE ID of the service.
+    string ResourceID = 3;
+
+    // The resource being returned.
+    google.protobuf.Any Resource = 4;
+
+    // Operation enumerates supported operations for replicated resources.
+    enum Operation {
+      Unknown = 0;
+
+      // UPSERT represents a create or update event.
+      UPSERT = 1;
+
+      // DELETE indicates the resource should be deleted.
+      // In DELETE operations no Resource will be returned.
+      // Deletion by an importing peer must be done with the type URL and ID.
+      DELETE = 2;
+    }
+
+    // REQUIRED. The operation to be performed in relation to the resource.
+    Operation operation = 5;
+  }
+
+  // Terminated is sent when a peering is deleted locally.
+  // This message signals to the peer that they should clean up their local state about the peering.
+  message Terminated {}
+}

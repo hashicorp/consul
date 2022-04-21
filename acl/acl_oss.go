@@ -3,7 +3,9 @@
 
 package acl
 
-const DefaultPartitionName = ""
+const (
+	DefaultPartitionName = ""
+)
 
 // Reviewer Note: This is a little bit strange; one might want it to be "" like partition name
 // However in consul/structs/intention.go we define IntentionDefaultNamespace as 'default' and so

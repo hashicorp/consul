@@ -142,7 +142,7 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	// populate the node meta if there is any. When a node first joins or if
 	// there are ACL issues then this could be empty if the server has not
 	// yet been able to register itself in the catalog
-	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition())
+	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node from state store: %w", err)
 	}

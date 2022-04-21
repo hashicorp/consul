@@ -91,7 +91,7 @@ const (
 // struct in agent/structs.  This API makes cache usage a mostly drop-in
 // replacement for non-cached RPC calls.
 //
-// The cache is partitioned by ACL and datacenter. This allows the cache
+// The cache is partitioned by ACL and datacenter/peer. This allows the cache
 // to be safe for multi-DC queries and for queries where the data is modified
 // due to ACLs all without the cache having to have any clever logic, at
 // the slight expense of a less perfect cache.
@@ -406,7 +406,7 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 		return result.Value, ResultMeta{}, err
 	}
 
-	key := makeEntryKey(r.TypeEntry.Name, r.Info.Datacenter, r.Info.Token, r.Info.Key)
+	key := makeEntryKey(r.TypeEntry.Name, r.Info.Datacenter, r.Info.PeerName, r.Info.Token, r.Info.Key)
 
 	// First time through
 	first := true
@@ -526,7 +526,11 @@ RETRY_GET:
 	}
 }
 
-func makeEntryKey(t, dc, token, key string) string {
+func makeEntryKey(t, dc, peerName, token, key string) string {
+	// TODO(peering): figure out if this is the desired format
+	if peerName != "" {
+		return fmt.Sprintf("%s/%s/%s/%s", t, "peer:"+peerName, token, key)
+	}
 	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
@@ -884,8 +888,8 @@ func (c *Cache) Close() error {
 // on startup. It is used to set the ConnectRootCA and AgentLeafCert when
 // AutoEncrypt.TLS is turned on. The cache itself cannot fetch that the first
 // time because it requires a special RPCType. Subsequent runs are fine though.
-func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
-	key := makeEntryKey(t, dc, token, k)
+func (c *Cache) Prepopulate(t string, res FetchResult, dc, peerName, token, k string) error {
+	key := makeEntryKey(t, dc, peerName, token, k)
 	newEntry := cacheEntry{
 		Valid:     true,
 		Value:     res.Value,

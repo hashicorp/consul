@@ -153,9 +153,9 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 
 	getNode := func() (*structs.Node, error) {
 		if op.Node.ID != "" {
-			return getNodeIDTxn(tx, op.Node.ID, op.Node.GetEnterpriseMeta())
+			return getNodeIDTxn(tx, op.Node.ID, op.Node.GetEnterpriseMeta(), op.Node.PeerName)
 		} else {
-			return getNodeTxn(tx, op.Node.Node, op.Node.GetEnterpriseMeta())
+			return getNodeTxn(tx, op.Node.Node, op.Node.GetEnterpriseMeta(), op.Node.PeerName)
 		}
 	}
 
@@ -182,11 +182,11 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 		entry, err = getNode()
 
 	case api.NodeDelete:
-		err = s.deleteNodeTxn(tx, idx, op.Node.Node, op.Node.GetEnterpriseMeta())
+		err = s.deleteNodeTxn(tx, idx, op.Node.Node, op.Node.GetEnterpriseMeta(), op.Node.PeerName)
 
 	case api.NodeDeleteCAS:
 		var ok bool
-		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node, op.Node.GetEnterpriseMeta())
+		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node, op.Node.GetEnterpriseMeta(), op.Node.PeerName)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete node %q, index is stale", op.Node.Node)
 		}
@@ -219,7 +219,7 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
 	switch op.Verb {
 	case api.ServiceGet:
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		switch {
 		case err != nil:
 			return nil, err
@@ -233,7 +233,7 @@ func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (s
 		if err := ensureServiceTxn(tx, idx, op.Node, false, &op.Service); err != nil {
 			return nil, err
 		}
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceCAS:
@@ -246,15 +246,15 @@ func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (s
 			return nil, err
 		}
 
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceDelete:
-		err := s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		err := s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		return nil, err
 
 	case api.ServiceDeleteCAS:
-		ok, err := s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
+		ok, err := s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		if !ok && err == nil {
 			return nil, fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
 		}
@@ -284,7 +284,7 @@ func (s *Store) txnCheck(tx WriteTxn, idx uint64, op *structs.TxnCheckOp) (struc
 
 	switch op.Verb {
 	case api.CheckGet:
-		_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
+		_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta, op.Check.PeerName)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("check %q on node %q doesn't exist", op.Check.CheckID, op.Check.Node)
 		}
@@ -292,7 +292,7 @@ func (s *Store) txnCheck(tx WriteTxn, idx uint64, op *structs.TxnCheckOp) (struc
 	case api.CheckSet:
 		err = s.ensureCheckTxn(tx, idx, false, &op.Check)
 		if err == nil {
-			_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
+			_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta, op.Check.PeerName)
 		}
 
 	case api.CheckCAS:
@@ -303,14 +303,14 @@ func (s *Store) txnCheck(tx WriteTxn, idx uint64, op *structs.TxnCheckOp) (struc
 			err = fmt.Errorf("failed to set check %q on node %q, index is stale", entry.CheckID, entry.Node)
 			break
 		}
-		_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
+		_, entry, err = getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta, op.Check.PeerName)
 
 	case api.CheckDelete:
-		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
+		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta, op.Check.PeerName)
 
 	case api.CheckDeleteCAS:
 		var ok bool
-		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
+		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta, op.Check.PeerName)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete check %q on node %q, index is stale", op.Check.CheckID, op.Check.Node)
 		}

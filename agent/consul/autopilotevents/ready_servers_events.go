@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -70,6 +71,12 @@ func (e EventPayloadReadyServers) HasReadPermission(authz acl.Authorizer) bool {
 	return authz.ServiceWriteAny(&authzContext) == acl.Allow
 }
 
+func (e EventPayloadReadyServers) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	// TODO(peering) is this right?
+	// TODO(agentless) is this right?
+	panic("EventPayloadReadyServers does not implement ToSubscriptionEvent")
+}
+
 func ExtractEventPayload(event stream.Event) (EventPayloadReadyServers, error) {
 	if event.Topic != EventTopicReadyServers {
 		return nil, fmt.Errorf("unexpected topic (%q) for a %q event", event.Topic, EventTopicReadyServers)
@@ -114,7 +121,7 @@ func NewReadyServersEventPublisher(config Config) *ReadyServersEventPublisher {
 
 //go:generate mockery --name StateStore --inpackage --testonly
 type StateStore interface {
-	GetNodeID(types.NodeID, *acl.EnterpriseMeta) (uint64, *structs.Node, error)
+	GetNodeID(types.NodeID, *acl.EnterpriseMeta, string) (uint64, *structs.Node, error)
 }
 
 //go:generate mockery --name Publisher --inpackage --testonly
@@ -245,7 +252,7 @@ func (r *ReadyServersEventPublisher) getTaggedAddresses(srv *autopilot.ServerSta
 	// from the catalog at that often and publish the events. So while its not quite
 	// as responsive as actually watching for the Catalog changes, its MUCH simpler to
 	// code and reason about and having those addresses be updated within 30s is good enough.
-	_, node, err := r.GetStore().GetNodeID(types.NodeID(srv.Server.ID), structs.NodeEnterpriseMetaInDefaultPartition())
+	_, node, err := r.GetStore().GetNodeID(types.NodeID(srv.Server.ID), structs.NodeEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil || node == nil {
 		// no catalog information means we should return a nil addres map
 		return nil

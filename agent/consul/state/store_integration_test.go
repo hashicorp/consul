@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
@@ -399,7 +400,7 @@ var topicService topic = "test-topic-service"
 func (s *Store) topicServiceTestHandler(req stream.SubscribeRequest, snap stream.SnapshotAppender) (uint64, error) {
 	key := req.Subject.String()
 
-	idx, nodes, err := s.ServiceNodes(nil, key, nil)
+	idx, nodes, err := s.ServiceNodes(nil, key, nil, structs.TODOPeerKeyword)
 	if err != nil {
 		return idx, err
 	}
@@ -432,6 +433,10 @@ func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
 
 func (p nodePayload) Subject() stream.Subject {
 	return stream.StringSubject(p.key)
+}
+
+func (e nodePayload) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("EventPayloadCARoots does not implement ToSubscriptionEvent")
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {

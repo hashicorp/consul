@@ -1545,7 +1545,7 @@ func TestCacheReload(t *testing.T) {
 		c.entriesLock.Lock()
 		tEntry, ok := c.types["t1"]
 		require.True(t, ok)
-		keyName := makeEntryKey("t1", "", "", "hello1")
+		keyName := makeEntryKey("t1", "", "", "", "hello1")
 		ok, entryValid, entry := c.getEntryLocked(tEntry, keyName, RequestInfo{})
 		require.True(t, ok)
 		require.True(t, entryValid)
@@ -1687,7 +1687,7 @@ func TestCache_Prepopulate(t *testing.T) {
 	c := New(Options{})
 	c.RegisterType("t", typ)
 
-	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "token", "v1")
+	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "", "token", "v1")
 
 	ctx := context.Background()
 	req := fakeRequest{
@@ -1740,7 +1740,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	c := New(Options{})
 	c.RegisterType("t", typ)
 
-	key := makeEntryKey("t", "dc1", "token", "v1")
+	key := makeEntryKey("t", "dc1", "", "token", "v1")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

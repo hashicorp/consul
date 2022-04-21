@@ -44,9 +44,14 @@ type ExportedService struct {
 }
 
 // ServiceConsumer represents a downstream consumer of the service to be exported.
+// At most one of Partition or PeerName must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
+	// Deprecated: PeerName should be used for both remote peers and local partitions.
 	Partition string
+
+	// PeerName is the name of the peer to export the service to.
+	PeerName string
 }
 
 func (e *ExportedServicesConfigEntry) GetKind() string            { return ExportedServices }

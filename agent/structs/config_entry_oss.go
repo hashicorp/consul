@@ -38,6 +38,9 @@ func validateInnerEnterpriseMeta(_, _ *acl.EnterpriseMeta) error {
 	return nil
 }
 
-func requireEnterprise(kind string) error {
-	return fmt.Errorf("Config entry kind %q requires Consul Enterprise", kind)
+func validateExportedServicesName(name string) error {
+	if name != "default" {
+		return fmt.Errorf(`exported-services Name must be "default"`)
+	}
+	return nil
 }

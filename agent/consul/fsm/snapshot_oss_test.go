@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -473,6 +474,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		require.Equal(t, expect[i], sn.Service.Name)
 	}
 
+	// Peerings
+	require.NoError(t, fsm.state.PeeringWrite(31, &pbpeering.Peering{
+		Name: "baz",
+	}))
+
+	// Peering Trust Bundles
+	require.NoError(t, fsm.state.PeeringTrustBundleWrite(32, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "qux.com",
+		PeerName:    "qux",
+		RootPEMs:    []string{"qux certificate bundle"},
+	}))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -528,7 +541,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm2.Restore(sink))
 
 	// Verify the contents
-	_, nodes, err := fsm2.state.Nodes(nil, nil)
+	_, nodes, err := fsm2.state.Nodes(nil, nil, "")
 	require.NoError(t, err)
 	require.Len(t, nodes, 2, "incorect number of nodes: %v", nodes)
 
@@ -556,7 +569,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(1), nodes[1].CreateIndex)
 	require.Equal(t, uint64(23), nodes[1].ModifyIndex)
 
-	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
+	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil, "")
 	require.NoError(t, err)
 	require.Len(t, fooSrv.Services, 4)
 	require.Contains(t, fooSrv.Services["db"].Tags, "primary")
@@ -569,7 +582,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(3), fooSrv.Services["web"].CreateIndex)
 	require.Equal(t, uint64(3), fooSrv.Services["web"].ModifyIndex)
 
-	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil, "")
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
 	require.Equal(t, "foo", checks[0].Node)
@@ -768,6 +781,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		require.Equal(t, expect[i], sn.Service.Name)
 	}
 
+	// Verify peering is restored
+	idx, prngRestored, err := fsm2.state.PeeringRead(nil, state.Query{
+		Value: "baz",
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(31), idx)
+	require.NotNil(t, prngRestored)
+	require.Equal(t, "baz", prngRestored.Name)
+
+	// Verify peering trust bundle is restored
+	idx, ptbRestored, err := fsm2.state.PeeringTrustBundleRead(nil, state.Query{
+		Value: "qux",
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(32), idx)
+	require.NotNil(t, ptbRestored)
+	require.Equal(t, "qux.com", ptbRestored.TrustDomain)
+	require.Equal(t, "qux", ptbRestored.PeerName)
+	require.Len(t, ptbRestored.RootPEMs, 1)
+	require.Equal(t, "qux certificate bundle", ptbRestored.RootPEMs[0])
+
 	// Snapshot
 	snap, err = fsm2.Snapshot()
 	require.NoError(t, err)
@@ -821,7 +855,7 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 	require.Error(t, fsm.Restore(sink))
 
 	// Verify the contents didn't get corrupted.
-	_, nodes, err := fsm.state.Nodes(nil, nil)
+	_, nodes, err := fsm.state.Nodes(nil, nil, "")
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	require.Equal(t, "foo", nodes[0].Node)

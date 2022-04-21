@@ -305,6 +305,8 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startFederationStateAntiEntropy(ctx)
 
+	s.startPeeringStreamSync(ctx)
+
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
 	}
@@ -341,6 +343,8 @@ func (s *Server) revokeLeadership() {
 	s.stopConfigReplication()
 
 	s.stopACLReplication()
+
+	s.stopPeeringStreamSync()
 
 	s.stopConnectLeader()
 
@@ -887,7 +891,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.Ent
 	}
 
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny, nodeEntMeta)
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -903,7 +907,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.Ent
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node, nodeEntMeta)
+		_, services, err := state.NodeServices(nil, check.Node, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -914,7 +918,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.Ent
 	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
-				_, node, err := state.GetNode(check.Node, nodeEntMeta)
+				_, node, err := state.GetNode(check.Node, nodeEntMeta, check.PeerName)
 				if err != nil {
 					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
@@ -1051,7 +1055,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -1059,7 +1063,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta)
+			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 			if err != nil {
 				return err
 			}
@@ -1077,7 +1081,7 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -1127,7 +1131,7 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.Enterpr
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
@@ -1142,7 +1146,7 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.Enterpr
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 		if err != nil {
 			return err
 		}
@@ -1220,7 +1224,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
 	if err != nil {
 		return err
 	}
