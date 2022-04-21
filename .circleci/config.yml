@@ -801,7 +801,7 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
       
-  upgrade-integration-test-latest:
+  upgrade-integration-test:
     machine:
       image: ubuntu-2004:202101-01
       docker_layer_caching: true
@@ -1156,7 +1156,7 @@ workflows:
       - envoy-integration-test-1_22_0:
           requires:
             - dev-build
-      - upgrade-integration-test-latest:
+      - upgrade-integration-test:
           requires:
             - dev-build
 

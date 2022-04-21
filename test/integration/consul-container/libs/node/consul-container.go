@@ -7,21 +7,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/ioutils"
+	"github.com/hashicorp/consul/api"
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/docker/docker/pkg/ioutils"
-
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
-
-	"github.com/testcontainers/testcontainers-go"
-
-	"github.com/hashicorp/consul/api"
 )
 
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
-// consulContainerNode implement a ConsulNode
+// consulContainerNode implement a Node
 // it instantiate Consul as a container
 type consulContainerNode struct {
 	ctx       context.Context
@@ -31,11 +28,10 @@ type consulContainerNode struct {
 	port      int
 }
 
-// NewConsulContainer create a ConsulNode implemented as a consulContainerNode
-func NewConsulContainer(ctx context.Context, config Config) (ConsulNode, error) {
+// NewConsulContainer create a Node implemented as a consulContainerNode
+func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 
 	name := utils.RandName("consul-")
-	ctx = context.WithValue(ctx, "name", name)
 	tmpDir, err := ioutils.TempDir("", name)
 	if err != nil {
 		return nil, err
@@ -104,12 +100,12 @@ func NewConsulContainer(ctx context.Context, config Config) (ConsulNode, error) 
 	return c, nil
 }
 
-// GetClient return the client associated with the ConsulNode
+// GetClient return the client associated with the Node
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
 }
 
-// GetAddr return the network address associated with the ConsulNode
+// GetAddr return the network address associated with the Node
 func (c *consulContainerNode) GetAddr() (string, int) {
 	return c.ip, c.port
 }

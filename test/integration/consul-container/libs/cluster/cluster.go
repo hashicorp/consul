@@ -13,36 +13,35 @@ import (
 // a way to add nodes to a cluster
 // a way to fetch the cluster leader...
 type Cluster struct {
-	Nodes []node.ConsulNode
+	Nodes []node.Node
 }
 
 // New Create a new cluster based on the provided configuration
 func New(configs []node.Config) (*Cluster, error) {
 	cluster := Cluster{}
 
-	for _, c := range configs {
+	nodes := make([]node.Node, len(configs))
+	for idx, c := range configs {
 		n, err := node.NewConsulContainer(context.Background(), c)
 		if err != nil {
 			return nil, err
 		}
-		cluster.Nodes = append(cluster.Nodes, n)
+		nodes[idx] = n
 	}
-	err := cluster.join()
-	if err != nil {
+	if err := cluster.AddNodes(nodes); err != nil {
 		return nil, err
 	}
 	return &cluster, nil
 }
 
 // AddNodes add a number of nodes to the current cluster and join them to the cluster
-func (c *Cluster) AddNodes(nodes []node.ConsulNode) error {
+func (c *Cluster) AddNodes(nodes []node.Node) error {
 	if len(c.Nodes) < 1 {
 		return fmt.Errorf("cannot add a node to an empty cluster")
 	}
-	n0 := c.Nodes[0]
+	joinAddr, _ := c.Nodes[0].GetAddr()
 	for _, node := range nodes {
-		addr, _ := n0.GetAddr()
-		err := node.GetClient().Agent().Join(addr, false)
+		err := node.GetClient().Agent().Join(joinAddr, false)
 		if err != nil {
 			return err
 		}
@@ -66,7 +65,7 @@ func (c *Cluster) Terminate() error {
 // Leader return the cluster leader node
 // if no leader is available or the leader is not part of the cluster
 // an error will be returned
-func (c *Cluster) Leader() (node.ConsulNode, error) {
+func (c *Cluster) Leader() (node.Node, error) {
 	if len(c.Nodes) < 1 {
 		return nil, fmt.Errorf("no node available")
 	}
@@ -85,21 +84,4 @@ func (c *Cluster) Leader() (node.ConsulNode, error) {
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
-}
-
-func (c *Cluster) join() error {
-	if len(c.Nodes) < 2 {
-		return nil
-	}
-	n0 := c.Nodes[0]
-	for _, n := range c.Nodes {
-		if n != n0 {
-			addr, _ := n0.GetAddr()
-			err := n.GetClient().Agent().Join(addr, false)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

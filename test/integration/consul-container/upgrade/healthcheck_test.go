@@ -18,77 +18,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var uutImage = flag.String("uut-version", "local", "docker image to be used as UUT (unit under test)")
+var targetImage = flag.String("target-version", "local", "docker image to be used as UUT (unit under test)")
 var latestImage = flag.String("latest-version", "latest", "docker image to be used as latest")
 
 const retryTimeout = 10 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
-// Test health check GRPC call using Current Clients and Latest GA Servers
-func TestLatestGAServersWithCurrentClients(t *testing.T) {
-	t.Parallel()
-	numServers := 3
-	Cluster, err := serversCluster(t, numServers, *latestImage)
-	require.NoError(t, err)
-	defer Terminate(t, Cluster)
-	numClients := 2
-	Clients, err := clientsCreate(numClients)
-	client := Clients[0].GetClient()
-	err = Cluster.AddNodes(Clients)
-	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
-		leader, err := Cluster.Leader()
-		require.NoError(r, err)
-		require.NotEmpty(r, leader)
-		members, err := client.Agent().Members(false)
-		require.Len(r, members, 5)
-	})
-
-	serviceName := "api"
-	err, index := serviceCreate(t, client, serviceName)
-
-	ch := make(chan []*api.ServiceEntry)
-	errCh := make(chan error)
-
-	go func() {
-		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
-		if q.QueryBackend != api.QueryBackendStreaming {
-			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
-		}
-		if err != nil {
-			errCh <- err
-		} else {
-			ch <- service
-		}
-	}()
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9998})
-	timer := time.NewTimer(1 * time.Second)
-	select {
-	case err := <-errCh:
-		require.NoError(t, err)
-	case service := <-ch:
-		require.Len(t, service, 1)
-		require.Equal(t, serviceName, service[0].Service.Service)
-		require.Equal(t, 9998, service[0].Service.Port)
-	case <-timer.C:
-		t.Fatalf("test timeout")
-	}
-
-}
-
 // Test health check GRPC call using Current Servers and Latest GA Clients
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
-	Cluster, err := serversCluster(t, numServers, *uutImage)
+	cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
-	defer Terminate(t, Cluster)
+	defer Terminate(t, cluster)
 	numClients := 1
 
 	Clients, err := clientsCreate(numClients)
-	client := Cluster.Nodes[0].GetClient()
-	err = Cluster.AddNodes(Clients)
+	client := cluster.Nodes[0].GetClient()
+	err = cluster.AddNodes(Clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
-		leader, err := Cluster.Leader()
+		leader, err := cluster.Leader()
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
 		members, err := client.Agent().Members(false)
@@ -135,7 +84,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 					log_level="TRACE"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *uutImage,
+			Version: *targetImage,
 		})
 
 	for i := 1; i < 3; i++ {
@@ -209,7 +158,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *uutImage,
+				Version: *targetImage,
 			})
 
 	}
@@ -268,8 +217,8 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(numClients int) ([]node.ConsulNode, error) {
-	Clients := make([]node.ConsulNode, numClients)
+func clientsCreate(numClients int) ([]node.Node, error) {
+	Clients := make([]node.Node, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
 		Clients[i], err = node.NewConsulContainer(context.Background(),
@@ -277,7 +226,7 @@ func clientsCreate(numClients int) ([]node.ConsulNode, error) {
 				HCL: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *uutImage,
+				Version: *targetImage,
 			})
 	}
 	return Clients, err
