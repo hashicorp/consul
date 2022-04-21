@@ -1,6 +1,6 @@
 package cachetype
 
-//go:generate mockery -all -inpkg
+//go:generate mockery --all --inpackage
 
 // RPC is an interface that an RPC client must implement. This is a helper
 // interface that is implemented by the agent delegate so that Type
