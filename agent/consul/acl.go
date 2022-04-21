@@ -1174,7 +1174,21 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
+// TODO(peering): fix all calls to use the new signature and rename it back
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(
+	token string,
+	entMeta *acl.EnterpriseMeta,
+	authzContext *acl.AuthorizerContext,
+) (ACLResolveResult, error) {
+	return r.ResolveTokenAndDefaultMetaWithPeerName(token, entMeta, structs.DefaultPeerKeyword, authzContext)
+}
+
+func (r *ACLResolver) ResolveTokenAndDefaultMetaWithPeerName(
+	token string,
+	entMeta *acl.EnterpriseMeta,
+	peerName string,
+	authzContext *acl.AuthorizerContext,
+) (ACLResolveResult, error) {
 	result, err := r.ResolveToken(token)
 	if err != nil {
 		return ACLResolveResult{}, err
@@ -1186,9 +1200,19 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.Ente
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
-	if result.ACLIdentity != nil {
+	switch {
+	case peerName == "" && result.ACLIdentity != nil:
 		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
-	} else {
+	case result.ACLIdentity != nil:
+		// We _do not_ normalize the enterprise meta from the token when a peer
+		// name was specified because namespaces across clusters are not
+		// equivalent. A local namespace is _never_ correct for a remote query.
+		entMeta.Merge(
+			structs.DefaultEnterpriseMetaInPartition(
+				result.ACLIdentity.EnterpriseMetadata().PartitionOrDefault(),
+			),
+		)
+	default:
 		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 

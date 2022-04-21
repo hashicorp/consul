@@ -2,7 +2,6 @@ package subscribe
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
@@ -13,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
@@ -61,7 +59,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		return status.Error(codes.InvalidArgument, "Key is required")
 	}
 
-	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req, entMeta))
+	sub, err := h.Backend.Subscribe(state.PBToStreamSubscribeRequest(req, entMeta))
 	if err != nil {
 		return err
 	}
@@ -84,22 +82,12 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		}
 
 		elog.Trace(event)
-		e := newEventFromStreamEvent(event)
+
+		// TODO: This conversion could be cached if needed
+		e := event.Payload.ToSubscriptionEvent(event.Index)
 		if err := serverStream.Send(e); err != nil {
 			return err
 		}
-	}
-}
-
-func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.EnterpriseMeta) *stream.SubscribeRequest {
-	return &stream.SubscribeRequest{
-		Topic: req.Topic,
-		Subject: state.EventSubjectService{
-			Key:            req.Key,
-			EnterpriseMeta: entMeta,
-		},
-		Token: req.Token,
-		Index: req.Index,
 	}
 }
 
@@ -128,49 +116,4 @@ func forwardToDC(
 			}
 		}
 	}
-}
-
-func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
-	e := &pbsubscribe.Event{Index: event.Index}
-	switch {
-	case event.IsEndOfSnapshot():
-		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
-		return e
-	case event.IsNewSnapshotToFollow():
-		e.Payload = &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true}
-		return e
-	}
-	setPayload(e, event.Payload)
-	return e
-}
-
-func setPayload(e *pbsubscribe.Event, payload stream.Payload) {
-	switch p := payload.(type) {
-	case *stream.PayloadEvents:
-		e.Payload = &pbsubscribe.Event_EventBatch{
-			EventBatch: &pbsubscribe.EventBatch{
-				Events: batchEventsFromEventSlice(p.Items),
-			},
-		}
-	case state.EventPayloadCheckServiceNode:
-		e.Payload = &pbsubscribe.Event_ServiceHealth{
-			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
-				Op: p.Op,
-				// TODO: this could be cached
-				CheckServiceNode: pbservice.NewCheckServiceNodeFromStructs(p.Value),
-			},
-		}
-	default:
-		panic(fmt.Sprintf("unexpected payload: %T: %#v", p, p))
-	}
-}
-
-func batchEventsFromEventSlice(events []stream.Event) []*pbsubscribe.Event {
-	result := make([]*pbsubscribe.Event, len(events))
-	for i := range events {
-		event := events[i]
-		result[i] = &pbsubscribe.Event{Index: event.Index}
-		setPayload(result[i], event.Payload)
-	}
-	return result
 }

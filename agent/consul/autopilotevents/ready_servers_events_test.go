@@ -4,14 +4,16 @@ import (
 	"testing"
 	time "time"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/stream"
-	structs "github.com/hashicorp/consul/agent/structs"
-	types "github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/stream"
+	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	types "github.com/hashicorp/consul/types"
 )
 
 var testTime = time.Date(2022, 4, 14, 10, 56, 00, 0, time.UTC)
@@ -161,6 +163,7 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("792ae13c-d765-470b-852c-e073fdb6e849"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
@@ -170,6 +173,7 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("65e79ff4-bbce-467b-a9d6-725c709fa985"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
@@ -179,6 +183,7 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("db11f0ac-0cbe-4215-80cc-b4e843f4df1e"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
@@ -487,6 +492,7 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("792ae13c-d765-470b-852c-e073fdb6e849"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
@@ -496,6 +502,7 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("65e79ff4-bbce-467b-a9d6-725c709fa985"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
@@ -505,6 +512,7 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 	store.On("GetNodeID",
 		types.NodeID("db11f0ac-0cbe-4215-80cc-b4e843f4df1e"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
 	).Once().Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
@@ -545,6 +553,10 @@ func (e fakePayload) Subject() stream.Subject { return stream.SubjectNone }
 
 func (e fakePayload) HasReadPermission(authz acl.Authorizer) bool {
 	return false
+}
+
+func (e fakePayload) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("fakePayload does not implement ToSubscriptionEvent")
 }
 
 func TestExtractEventPayload(t *testing.T) {

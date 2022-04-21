@@ -133,15 +133,16 @@ func (r serviceRequest) Type() string {
 	return "agent.rpcclient.health.serviceRequest"
 }
 
-func (r serviceRequest) NewMaterializer() (*submatview.Materializer, error) {
+func (r serviceRequest) NewMaterializer() (submatview.Materializer, error) {
 	view, err := newHealthView(r.ServiceSpecificRequest)
 	if err != nil {
 		return nil, err
 	}
-	return submatview.NewMaterializer(submatview.Deps{
+	deps := submatview.Deps{
 		View:    view,
-		Client:  pbsubscribe.NewStateChangeSubscriptionClient(r.deps.Conn),
 		Logger:  r.deps.Logger,
 		Request: newMaterializerRequest(r.ServiceSpecificRequest),
-	}), nil
+	}
+
+	return submatview.NewRPCMaterializer(pbsubscribe.NewStateChangeSubscriptionClient(r.deps.Conn), deps), nil
 }

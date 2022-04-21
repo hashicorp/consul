@@ -1105,6 +1105,12 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 	}
 }
 
+func (s *HTTPHandlers) parsePeerName(req *http.Request, args *structs.ServiceSpecificRequest) {
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
+}
+
 // parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
 // filtering results to nodes with the given metadata key/value
 func (s *HTTPHandlers) parseMetaFilter(req *http.Request) map[string]string {

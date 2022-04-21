@@ -12,8 +12,13 @@ import (
 // Query is a type used to query any single value index that may include an
 // enterprise identifier.
 type Query struct {
-	Value string
+	Value    string
+	PeerName string
 	acl.EnterpriseMeta
+}
+
+func (q Query) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 func (q Query) IDValue() string {
@@ -137,9 +142,14 @@ func (q BoolQuery) PartitionOrDefault() string {
 // KeyValueQuery is a type used to query for both a key and a value that may
 // include an enterprise identifier.
 type KeyValueQuery struct {
-	Key   string
-	Value string
+	Key      string
+	Value    string
+	PeerName string
 	acl.EnterpriseMeta
+}
+
+func (q KeyValueQuery) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer

@@ -53,7 +53,7 @@ func TestPointerStructure(t *testing.T) {
 	require.Equal(t, "1.1.1.1", val)
 }
 
-///////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////
 //
 // NOTE: The tests within this file are designed to validate that the fields
 //       that will be available for filtering for various data types in the
@@ -61,7 +61,7 @@ func TestPointerStructure(t *testing.T) {
 //       to update this file to get the tests passing again then you definitely
 //       should update the documentation as well.
 //
-///////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////
 
 type fieldConfigTest struct {
 	dataType interface{}
@@ -309,6 +309,11 @@ var expectedFieldConfigNode bexpr.FieldConfigurations = bexpr.FieldConfiguration
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
+	"PeerName": &bexpr.FieldConfiguration{
+		StructFieldName:     "PeerName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 	"Address": &bexpr.FieldConfiguration{
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
@@ -407,6 +412,11 @@ var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfig
 	"ServiceConnect": &bexpr.FieldConfiguration{
 		StructFieldName: "ServiceConnect",
 		SubFields:       expectedFieldConfigServiceConnect,
+	},
+	"PeerName": &bexpr.FieldConfiguration{
+		StructFieldName:     "PeerName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 }
 
@@ -507,6 +517,11 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 		StructFieldName: "ServiceConnect",
 		SubFields:       expectedFieldConfigServiceConnect,
 	},
+	"PeerName": &bexpr.FieldConfiguration{
+		StructFieldName:     "PeerName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 }
 
 var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfigurations{
@@ -578,6 +593,11 @@ var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfig
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 		StructFieldName:     "ExposedPort",
 	},
+	"PeerName": &bexpr.FieldConfiguration{
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+		StructFieldName:     "PeerName",
+	},
 }
 
 var expectedFieldConfigCheckServiceNode bexpr.FieldConfigurations = bexpr.FieldConfigurations{
@@ -609,6 +629,11 @@ var expectedFieldConfigNodeInfo bexpr.FieldConfigurations = bexpr.FieldConfigura
 	},
 	"Partition": &bexpr.FieldConfiguration{
 		StructFieldName:     "Partition",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"PeerName": &bexpr.FieldConfiguration{
+		StructFieldName:     "PeerName",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},

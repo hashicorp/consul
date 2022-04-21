@@ -84,6 +84,9 @@ message SubscribeRequest {
     //
     // Partition is an enterprise-only feature.
     string Partition = 7;
+
+    // TODO(peering): docs
+    string PeerName = 8;
 }
 
 // Event describes a streaming update on a subscription. Events are used both to

@@ -291,10 +291,9 @@ func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	return lindex
 }
 
-// indexUpdateMaxTxn is used when restoring entries and sets the table's index to
-// the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
-	ti, err := tx.First(tableIndex, indexID, table)
+// indexUpdateMaxTxn sets the table's index to the given idx only if it's greater than the current index.
+func indexUpdateMaxTxn(tx WriteTxn, idx uint64, key string) error {
+	ti, err := tx.First(tableIndex, indexID, key)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
 	}
@@ -311,7 +310,7 @@ func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
 		}
 	}
 
-	if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{key, idx}); err != nil {
 		return fmt.Errorf("failed updating index %s", err)
 	}
 	return nil

@@ -956,7 +956,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
-		actual := newEventFromStreamEvent(tc.event)
+		actual := tc.event.Payload.ToSubscriptionEvent(tc.event.Index)
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 

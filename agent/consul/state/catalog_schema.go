@@ -48,9 +48,9 @@ func nodesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromQuery,
-					writeIndex:  indexFromNode,
-					prefixIndex: prefixIndexFromQueryNoNamespace,
+					readIndex:   indexWithPeerName(indexFromQuery),
+					writeIndex:  indexWithPeerName(indexFromNode),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexUUID: {
@@ -58,9 +58,9 @@ func nodesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       true,
 				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromUUIDQuery,
-					writeIndex:  indexIDFromNode,
-					prefixIndex: prefixIndexFromUUIDQuery,
+					readIndex:   indexWithPeerName(indexFromUUIDQuery),
+					writeIndex:  indexWithPeerName(indexIDFromNode),
+					prefixIndex: prefixIndexFromUUIDWithPeerQuery,
 				},
 			},
 			indexMeta: {
@@ -68,8 +68,8 @@ func nodesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerMulti{
-					readIndex:       indexFromKeyValueQuery,
-					writeIndexMulti: indexMetaFromNode,
+					readIndex:       indexWithPeerName(indexFromKeyValueQuery),
+					writeIndexMulti: multiIndexWithPeerName(indexMetaFromNode),
 				},
 			},
 		},
@@ -146,9 +146,9 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromNodeServiceQuery,
-					writeIndex:  indexFromServiceNode,
-					prefixIndex: prefixIndexFromQuery,
+					readIndex:   indexWithPeerName(indexFromNodeServiceQuery),
+					writeIndex:  indexWithPeerName(indexFromServiceNode),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexNode: {
@@ -156,8 +156,8 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNodeIdentity,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexFromNodeIdentity),
 				},
 			},
 			indexService: {
@@ -165,8 +165,8 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexServiceNameFromServiceNode,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexServiceNameFromServiceNode),
 				},
 			},
 			indexConnect: {
@@ -174,8 +174,8 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexConnectNameFromServiceNode,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexConnectNameFromServiceNode),
 				},
 			},
 			indexKind: {
@@ -183,8 +183,8 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexKindFromServiceNode,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexKindFromServiceNode),
 				},
 			},
 		},
@@ -295,6 +295,61 @@ func indexKindFromServiceNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// indexWithPeerName adds peer name to the index.
+func indexWithPeerName(
+	fn func(interface{}) ([]byte, error),
+) func(interface{}) ([]byte, error) {
+	return func(raw interface{}) ([]byte, error) {
+		v, err := fn(raw)
+		if err != nil {
+			return nil, err
+		}
+
+		n, ok := raw.(peerIndexable)
+		if !ok {
+			return nil, fmt.Errorf("type must be peerIndexable: %T", raw)
+		}
+
+		peername := n.PeerOrEmpty()
+		if peername == "" {
+			peername = structs.LocalPeerKeyword
+		}
+		b := newIndexBuilder(len(v) + len(peername) + 1)
+		b.String(strings.ToLower(peername))
+		b.Raw(v)
+		return b.Bytes(), nil
+	}
+}
+
+// multiIndexWithPeerName adds peer name to multiple indices, and returns multiple indices.
+func multiIndexWithPeerName(
+	fn func(interface{}) ([][]byte, error),
+) func(interface{}) ([][]byte, error) {
+	return func(raw interface{}) ([][]byte, error) {
+		results, err := fn(raw)
+		if err != nil {
+			return nil, err
+		}
+
+		n, ok := raw.(peerIndexable)
+		if !ok {
+			return nil, fmt.Errorf("type must be peerIndexable: %T", raw)
+		}
+
+		peername := n.PeerOrEmpty()
+		if peername == "" {
+			peername = structs.LocalPeerKeyword
+		}
+		for i, v := range results {
+			b := newIndexBuilder(len(v) + len(peername) + 1)
+			b.String(strings.ToLower(peername))
+			b.Raw(v)
+			results[i] = b.Bytes()
+		}
+		return results, nil
+	}
+}
+
 // checksTableSchema returns a new table schema used for storing and indexing
 // health check information. Health checks have a number of different attributes
 // we want to filter by, so this table is a bit more complex.
@@ -307,9 +362,9 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromNodeCheckQuery,
-					writeIndex:  indexFromHealthCheck,
-					prefixIndex: prefixIndexFromQuery,
+					readIndex:   indexWithPeerName(indexFromNodeCheckQuery),
+					writeIndex:  indexWithPeerName(indexFromHealthCheck),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexStatus: {
@@ -317,8 +372,8 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexStatusFromHealthCheck,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexStatusFromHealthCheck),
 				},
 			},
 			indexService: {
@@ -326,8 +381,8 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexServiceNameFromHealthCheck,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexServiceNameFromHealthCheck),
 				},
 			},
 			indexNode: {
@@ -335,8 +390,8 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNodeIdentity,
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexFromNodeIdentity),
 				},
 			},
 			indexNodeService: {
@@ -344,8 +399,8 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromNodeServiceQuery,
-					writeIndex: indexNodeServiceFromHealthCheck,
+					readIndex:  indexWithPeerName(indexFromNodeServiceQuery),
+					writeIndex: indexWithPeerName(indexNodeServiceFromHealthCheck),
 				},
 			},
 		},
@@ -588,9 +643,18 @@ type upstreamDownstream struct {
 
 // NodeCheckQuery is used to query the ID index of the checks table.
 type NodeCheckQuery struct {
-	Node    string
-	CheckID string
+	Node     string
+	CheckID  string
+	PeerName string
 	acl.EnterpriseMeta
+}
+
+type peerIndexable interface {
+	PeerOrEmpty() string
+}
+
+func (q NodeCheckQuery) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -680,7 +744,16 @@ type KindServiceName struct {
 	structs.RaftIndex
 }
 
+func (n *KindServiceName) PartitionOrDefault() string {
+	return n.Service.PartitionOrDefault()
+}
+
+func (n *KindServiceName) NamespaceOrDefault() string {
+	return n.Service.NamespaceOrDefault()
+}
+
 func kindServiceNameTableSchema() *memdb.TableSchema {
+	// TODO(peering): make this peer-aware
 	return &memdb.TableSchema{
 		Name: tableKindServiceNames,
 		Indexes: map[string]*memdb.IndexSchema{
@@ -693,8 +766,8 @@ func kindServiceNameTableSchema() *memdb.TableSchema {
 					writeIndex: indexFromKindServiceName,
 				},
 			},
-			indexKindOnly: {
-				Name:         indexKindOnly,
+			indexKind: {
+				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
@@ -732,20 +805,20 @@ func indexFromKindServiceNameKindOnly(raw interface{}) ([]byte, error) {
 		b.String(strings.ToLower(string(x.Kind)))
 		return b.Bytes(), nil
 
-	case structs.ServiceKind:
+	case Query:
 		var b indexBuilder
-		b.String(strings.ToLower(string(x)))
+		b.String(strings.ToLower(x.Value))
 		return b.Bytes(), nil
 
 	default:
-		return nil, fmt.Errorf("type must be *KindServiceName or structs.ServiceKind: %T", raw)
+		return nil, fmt.Errorf("type must be *KindServiceName or Query: %T", raw)
 	}
 }
 
-func kindServiceNamesMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind) uint64 {
+func kindServiceNamesMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind string) uint64 {
 	return maxIndexWatchTxn(tx, ws, kindServiceNameIndexName(kind))
 }
 
-func kindServiceNameIndexName(kind structs.ServiceKind) string {
-	return "kind_service_names." + kind.Normalized()
+func kindServiceNameIndexName(kind string) string {
+	return "kind_service_names." + kind
 }

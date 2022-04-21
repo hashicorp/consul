@@ -6,9 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
@@ -38,16 +35,27 @@ type View interface {
 	Reset()
 }
 
-// Materializer consumes the event stream, handling any framing events, and
-// sends the events to View as they are received.
-//
-// Materializer is used as the cache.Result.State for a streaming
-// cache type and manages the actual streaming RPC call to the servers behind
-// the scenes until the cache result is discarded when TTL expires.
-type Materializer struct {
-	deps        Deps
+// Result returned from the View.
+type Result struct {
+	Index uint64
+	Value interface{}
+	// Cached is true if the requested value was already available locally. If
+	// the value is false, it indicates that GetFromView had to wait for an update,
+	Cached bool
+}
+
+type Deps struct {
+	View    View
+	Logger  hclog.Logger
+	Waiter  *retry.Waiter
+	Request func(index uint64) *pbsubscribe.SubscribeRequest
+}
+
+// materializer consumes the event stream, handling any framing events, and
+// allows for querying the materialized view.
+type materializer struct {
 	retryWaiter *retry.Waiter
-	handler     eventHandler
+	logger      hclog.Logger
 
 	// lock protects the mutable state - all fields below it must only be accessed
 	// while holding lock.
@@ -58,175 +66,22 @@ type Materializer struct {
 	err      error
 }
 
-type Deps struct {
-	View    View
-	Client  StreamClient
-	Logger  hclog.Logger
-	Waiter  *retry.Waiter
-	Request func(index uint64) *pbsubscribe.SubscribeRequest
-}
-
-// StreamClient provides a subscription to state change events.
-type StreamClient interface {
-	Subscribe(ctx context.Context, in *pbsubscribe.SubscribeRequest, opts ...grpc.CallOption) (pbsubscribe.StateChangeSubscription_SubscribeClient, error)
-}
-
-// NewMaterializer returns a new Materializer. Run must be called to start it.
-func NewMaterializer(deps Deps) *Materializer {
-	v := &Materializer{
-		deps:        deps,
-		view:        deps.View,
-		retryWaiter: deps.Waiter,
+func newMaterializer(logger hclog.Logger, view View, waiter *retry.Waiter) *materializer {
+	m := materializer{
+		view:        view,
+		retryWaiter: waiter,
+		logger:      logger,
 		updateCh:    make(chan struct{}),
 	}
-	if v.retryWaiter == nil {
-		v.retryWaiter = &retry.Waiter{
-			MinFailures: 1,
-			// Start backing off with small increments (200-400ms) which will double
-			// each attempt. (200-400, 400-800, 800-1600, 1600-3200, 3200-6000, 6000
-			// after that). (retry.Wait applies Max limit after jitter right now).
-			Factor:  200 * time.Millisecond,
-			MinWait: 0,
-			MaxWait: 60 * time.Second,
-			Jitter:  retry.NewJitter(100),
-		}
+	if m.retryWaiter == nil {
+		m.retryWaiter = defaultWaiter()
 	}
-	return v
+	return &m
 }
 
-// Run receives events from the StreamClient and sends them to the View. It runs
-// until ctx is cancelled, so it is expected to be run in a goroutine.
-func (m *Materializer) Run(ctx context.Context) {
-	for {
-		req := m.deps.Request(m.index)
-		err := m.runSubscription(ctx, req)
-		if ctx.Err() != nil {
-			return
-		}
-
-		failures := m.retryWaiter.Failures()
-		if isNonTemporaryOrConsecutiveFailure(err, failures) {
-			m.lock.Lock()
-			m.notifyUpdateLocked(err)
-			m.lock.Unlock()
-		}
-
-		m.deps.Logger.Error("subscribe call failed",
-			"err", err,
-			"topic", req.Topic,
-			"key", req.Key,
-			"failure_count", failures+1)
-
-		if err := m.retryWaiter.Wait(ctx); err != nil {
-			return
-		}
-	}
-}
-
-// isNonTemporaryOrConsecutiveFailure returns true if the error is not a
-// temporary error or if failures > 0.
-func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
-	// temporary is an interface used by net and other std lib packages to
-	// show error types represent temporary/recoverable errors.
-	temp, ok := err.(interface {
-		Temporary() bool
-	})
-	return !ok || !temp.Temporary() || failures > 0
-}
-
-// runSubscription opens a new subscribe streaming call to the servers and runs
-// for it's lifetime or until the view is closed.
-func (m *Materializer) runSubscription(ctx context.Context, req *pbsubscribe.SubscribeRequest) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	m.handler = initialHandler(req.Index)
-
-	s, err := m.deps.Client.Subscribe(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	for {
-		event, err := s.Recv()
-		switch {
-		case isGrpcStatus(err, codes.Aborted):
-			m.reset()
-			return resetErr("stream reset requested")
-		case err != nil:
-			return err
-		}
-
-		m.handler, err = m.handler(m, event)
-		if err != nil {
-			m.reset()
-			return err
-		}
-	}
-}
-
-func isGrpcStatus(err error, code codes.Code) bool {
-	s, ok := status.FromError(err)
-	return ok && s.Code() == code
-}
-
-// resetErr represents a server request to reset the subscription, it's typed so
-// we can mark it as temporary and so attempt to retry first time without
-// notifying clients.
-type resetErr string
-
-// Temporary Implements the internal Temporary interface
-func (e resetErr) Temporary() bool {
-	return true
-}
-
-// Error implements error
-func (e resetErr) Error() string {
-	return string(e)
-}
-
-// reset clears the state ready to start a new stream from scratch.
-func (m *Materializer) reset() {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	m.view.Reset()
-	m.index = 0
-}
-
-func (m *Materializer) updateView(events []*pbsubscribe.Event, index uint64) error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	if err := m.view.Update(events); err != nil {
-		return err
-	}
-	m.index = index
-	m.notifyUpdateLocked(nil)
-	m.retryWaiter.Reset()
-	return nil
-}
-
-// notifyUpdateLocked closes the current update channel and recreates a new
-// one. It must be called while holding the s.lock lock.
-func (m *Materializer) notifyUpdateLocked(err error) {
-	m.err = err
-	close(m.updateCh)
-	m.updateCh = make(chan struct{})
-}
-
-// Result returned from the View.
-type Result struct {
-	Index uint64
-	Value interface{}
-	// Cached is true if the requested value was already available locally. If
-	// the value is false, it indicates that getFromView had to wait for an update,
-	Cached bool
-}
-
-// getFromView blocks until the index of the View is greater than opts.MinIndex,
-//or the context is cancelled.
-func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result, error) {
+// Query blocks until the index of the View is greater than opts.MinIndex,
+// or the context is cancelled.
+func (m *materializer) query(ctx context.Context, minIndex uint64) (Result, error) {
 	m.lock.Lock()
 
 	result := Result{
@@ -276,5 +131,87 @@ func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result
 			m.lock.Unlock()
 			return result, ctx.Err()
 		}
+	}
+}
+
+func (m *materializer) currentIndex() uint64 {
+	var resp uint64
+
+	m.lock.Lock()
+	resp = m.index
+	m.lock.Unlock()
+
+	return resp
+}
+
+// notifyUpdateLocked closes the current update channel and recreates a new
+// one. It must be called while holding the m.lock lock.
+func (m *materializer) notifyUpdateLocked(err error) {
+	m.err = err
+	close(m.updateCh)
+	m.updateCh = make(chan struct{})
+}
+
+// reset clears the state ready to start a new stream from scratch.
+func (m *materializer) reset() {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.view.Reset()
+	m.index = 0
+}
+
+// updateView updates the view from a sequence of events and stores
+// the corresponding Raft index.
+func (m *materializer) updateView(events []*pbsubscribe.Event, index uint64) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	if err := m.view.Update(events); err != nil {
+		return err
+	}
+
+	m.index = index
+	m.notifyUpdateLocked(nil)
+	m.retryWaiter.Reset()
+	return nil
+}
+
+func (m *materializer) handleError(req *pbsubscribe.SubscribeRequest, err error) {
+	failures := m.retryWaiter.Failures()
+	if isNonTemporaryOrConsecutiveFailure(err, failures) {
+		m.lock.Lock()
+		m.notifyUpdateLocked(err)
+		m.lock.Unlock()
+	}
+
+	m.logger.Error("subscribe call failed",
+		"err", err,
+		"topic", req.Topic,
+		"key", req.Key,
+		"failure_count", failures+1)
+}
+
+// isNonTemporaryOrConsecutiveFailure returns true if the error is not a
+// temporary error or if failures > 0.
+func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
+	// temporary is an interface used by net and other std lib packages to
+	// show error types represent temporary/recoverable errors.
+	temp, ok := err.(interface {
+		Temporary() bool
+	})
+	return !ok || !temp.Temporary() || failures > 0
+}
+
+func defaultWaiter() *retry.Waiter {
+	return &retry.Waiter{
+		MinFailures: 1,
+		// Start backing off with small increments (200-400ms) which will double
+		// each attempt. (200-400, 400-800, 800-1600, 1600-3200, 3200-6000, 6000
+		// after that). (retry.Wait applies Max limit after jitter right now).
+		Factor:  200 * time.Millisecond,
+		MinWait: 0,
+		MaxWait: 60 * time.Second,
+		Jitter:  retry.NewJitter(100),
 	}
 }

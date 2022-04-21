@@ -51,7 +51,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -61,7 +61,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Server should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s1.config.NodeName, nil)
+		_, node, err := state.GetNode(s1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -90,7 +90,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Service should be registered
-	_, services, err := state.NodeServices(nil, s1.config.NodeName, nil)
+	_, services, err := state.NodeServices(nil, s1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -139,7 +139,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err = state.NodeChecks(nil, c1.config.NodeName, nil)
+		_, checks, err = state.NodeChecks(nil, c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -193,7 +193,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		require.NoError(r, err)
 		require.NotNil(r, node, "client not registered")
 	})
@@ -204,7 +204,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		require.NoError(r, err)
 		require.Nil(r, node, "client still registered")
 	})
@@ -236,7 +236,7 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		require.NoError(r, err)
 		require.NotNil(r, node, "client not registered")
 	})
@@ -257,7 +257,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	// anti-entropy will put it back.
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		require.NoError(t, err)
 		if node == nil {
 			reaped = true
@@ -296,7 +296,7 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 
 		// Should be registered
 		retry.Run(t, func(r *retry.R) {
-			_, node, err := state.GetNode(nodeName, nil)
+			_, node, err := state.GetNode(nodeName, nil, "")
 			require.NoError(r, err)
 			require.NotNil(r, node, "server not registered")
 		})
@@ -318,7 +318,7 @@ func TestLeader_ReapOrLeftMember_IgnoreSelf(t *testing.T) {
 		// anti-entropy will put it back if it did get deleted.
 		reaped := false
 		for start := time.Now(); time.Since(start) < 5*time.Second; {
-			_, node, err := state.GetNode(nodeName, nil)
+			_, node, err := state.GetNode(nodeName, nil, "")
 			require.NoError(t, err)
 			if node == nil {
 				reaped = true
@@ -402,7 +402,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	}
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -438,7 +438,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta)
+		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -506,7 +506,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName, nil)
+		_, node, err := state.GetNode(s3.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -527,7 +527,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	}
 	// s3 should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName, nil)
+		_, node, err := state.GetNode(s3.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -582,7 +582,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	_, node, err := state.GetNode("no-longer-around", nil)
+	_, node, err := state.GetNode("no-longer-around", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -615,7 +615,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	_, node, err := state.GetNode(c1.config.NodeName, nil)
+	_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -625,7 +625,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -657,7 +657,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName, nil)
+		_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -693,7 +693,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	if err := s1.reconcile(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	_, node, err := state.GetNode(c1.config.NodeName, nil)
+	_, node, err := state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -707,7 +707,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
+		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -720,7 +720,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Make sure the metadata didn't get clobbered.
-	_, node, err = state.GetNode(c1.config.NodeName, nil)
+	_, node, err = state.GetNode(c1.config.NodeName, nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -835,7 +835,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(leader.config.NodeName, nil)
+		_, node, err := state.GetNode(leader.config.NodeName, nil, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -2336,7 +2336,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, node, err := state.NodeService("bar", "tgate1", nil)
+	_, node, err := state.NodeService("bar", "tgate1", nil, "")
 	require.NoError(t, err)
 	sn := structs.ServiceName{Name: "api"}
 	key := structs.ServiceGatewayVirtualIPTag(sn)

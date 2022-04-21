@@ -237,6 +237,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 			r.Fatalf("err: %v", err)
 		}
 	})
+	t.Cleanup(func() { srv.Shutdown() })
+
 	return dir, srv
 }
 

@@ -404,7 +404,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		qs.Node = args.Agent.Node
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
-			_, nodes, err := state.Nodes(nil, structs.NodeEnterpriseMetaInDefaultPartition())
+			_, nodes, err := state.Nodes(nil, structs.NodeEnterpriseMetaInDefaultPartition(), structs.TODOPeerKeyword)
 			if err != nil {
 				return err
 			}
@@ -534,7 +534,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta, query.Service.PeerName)
 	if err != nil {
 		return err
 	}

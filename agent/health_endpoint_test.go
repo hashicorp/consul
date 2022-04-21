@@ -607,129 +607,163 @@ func TestHealthServiceNodes(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	testingPeerNames := []string{"", "my-peer"}
+
+	suffix := func(peerName string) string {
+		if peerName == "" {
+			return ""
+		}
+		// TODO(peering): after streaming works, remove the "&near=_agent" part
+		return "&peer=" + peerName + "&near=_agent"
 	}
 
-	assertIndex(t, resp)
-
-	// Should be 1 health check for consul
-	nodes := obj.(structs.CheckServiceNodes)
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	req, _ = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	assertIndex(t, resp)
-
-	// Should be a non-nil empty list
-	nodes = obj.(structs.CheckServiceNodes)
-	if nodes == nil || len(nodes) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "test",
-			Service: "test",
-		},
-	}
-
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	assertIndex(t, resp)
-
-	// Should be a non-nil empty list for checks
-	nodes = obj.(structs.CheckServiceNodes)
-	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	// Test caching
-	{
-		// List instances with cache enabled
-		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+	for _, peerName := range testingPeerNames {
+		req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1"+suffix(peerName), nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(t, err)
-		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 1)
 
-		// Should be a cache miss
-		assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		if peerName == "" {
+			// Should be 1 health check for consul
+			require.Len(t, nodes, 1)
+		} else {
+			require.NotNil(t, nodes)
+			require.Len(t, nodes, 0)
+		}
+
+		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+suffix(peerName), nil)
+		require.NoError(t, err)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.HealthServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		assertIndex(t, resp)
+
+		// Should be a non-nil empty list
+		nodes = obj.(structs.CheckServiceNodes)
+		require.NotNil(t, nodes)
+		require.Len(t, nodes, 0)
 	}
 
-	{
-		// List instances with cache enabled
-		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+	// TODO(peering): will have to seed this data differently in the future
+	originalRegister := make(map[string]*structs.RegisterRequest)
+	for _, peerName := range testingPeerNames {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.1",
+			PeerName:   peerName,
+			Service: &structs.NodeService{
+				ID:       "test",
+				Service:  "test",
+				PeerName: peerName,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		originalRegister[peerName] = args
+	}
+
+	verify := func(t *testing.T, peerName string, nodes structs.CheckServiceNodes) {
+		require.Len(t, nodes, 1)
+		require.Equal(t, peerName, nodes[0].Node.PeerName)
+		require.Equal(t, "bar", nodes[0].Node.Node)
+		require.Equal(t, peerName, nodes[0].Service.PeerName)
+		require.Equal(t, "test", nodes[0].Service.Service)
+		require.NotNil(t, nodes[0].Checks)
+		require.Len(t, nodes[0].Checks, 0)
+	}
+
+	for _, peerName := range testingPeerNames {
+		req, err := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+suffix(peerName), nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(t, err)
-		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 1)
 
-		// Should be a cache HIT now!
-		assert.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		assertIndex(t, resp)
+
+		// Should be a non-nil empty list for checks
+		nodes := obj.(structs.CheckServiceNodes)
+		verify(t, peerName, nodes)
+
+		// Test caching
+		{
+			// List instances with cache enabled
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			require.NoError(t, err)
+			nodes := obj.(structs.CheckServiceNodes)
+			verify(t, peerName, nodes)
+
+			// Should be a cache miss
+			require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+		}
+
+		{
+			// List instances with cache enabled
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			require.NoError(t, err)
+			nodes := obj.(structs.CheckServiceNodes)
+			verify(t, peerName, nodes)
+
+			// Should be a cache HIT now!
+			require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		}
 	}
 
 	// Ensure background refresh works
 	{
-		// Register a new instance of the service
-		args2 := args
-		args2.Node = "baz"
-		args2.Address = "127.0.0.2"
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		// TODO(peering): will have to seed this data differently in the future
+		for _, peerName := range testingPeerNames {
+			args := originalRegister[peerName]
+			// Register a new instance of the service
+			args2 := *args
+			args2.Node = "baz"
+			args2.Address = "127.0.0.2"
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", &args2, &out))
+		}
 
-		retry.Run(t, func(r *retry.R) {
-			// List it again
-			req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.HealthServiceNodes(resp, req)
-			r.Check(err)
+		for _, peerName := range testingPeerNames {
+			retry.Run(t, func(r *retry.R) {
+				// List it again
+				req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+				require.NoError(r, err)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(r, err)
 
-			nodes := obj.(structs.CheckServiceNodes)
-			if len(nodes) != 2 {
-				r.Fatalf("Want 2 nodes")
-			}
-			header := resp.Header().Get("X-Consul-Index")
-			if header == "" || header == "0" {
-				r.Fatalf("Want non-zero header: %q", header)
-			}
-			_, err = strconv.ParseUint(header, 10, 64)
-			r.Check(err)
+				nodes := obj.(structs.CheckServiceNodes)
+				require.Len(r, nodes, 2)
 
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
-		})
+				header := resp.Header().Get("X-Consul-Index")
+				if header == "" || header == "0" {
+					r.Fatalf("Want non-zero header: %q", header)
+				}
+				_, err = strconv.ParseUint(header, 10, 64)
+				require.NoError(r, err)
+
+				// Should be a cache hit! The data should've updated in the cache
+				// in the background so this should've been fetched directly from
+				// the cache.
+				if resp.Header().Get("X-Cache") != "HIT" {
+					r.Fatalf("should be a cache hit")
+				}
+			})
+		}
 	}
 }
 

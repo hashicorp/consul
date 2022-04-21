@@ -137,7 +137,7 @@ func (m *mockCache) Notify(ctx context.Context, t string, r cache.Request, corre
 	return err
 }
 
-func (m *mockCache) Prepopulate(t string, result cache.FetchResult, dc string, token string, key string) error {
+func (m *mockCache) Prepopulate(t string, result cache.FetchResult, dc string, peerName string, token string, key string) error {
 	var restore string
 	cert, ok := result.Value.(*structs.IssuedCert)
 	if ok {
@@ -147,7 +147,7 @@ func (m *mockCache) Prepopulate(t string, result cache.FetchResult, dc string, t
 		cert.PrivateKeyPEM = "redacted"
 	}
 
-	ret := m.Called(t, result, dc, token, key)
+	ret := m.Called(t, result, dc, peerName, token, key)
 
 	if ok && restore != "" {
 		cert.PrivateKeyPEM = restore
@@ -304,6 +304,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 		rootRes,
 		datacenter,
 		"",
+		"",
 		rootsReq.CacheInfo().Key,
 	).Return(nil).Once()
 
@@ -330,6 +331,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 		cachetype.ConnectCALeafName,
 		leafRes,
 		datacenter,
+		"",
 		token,
 		leafReq.Key(),
 	).Return(nil).Once()
