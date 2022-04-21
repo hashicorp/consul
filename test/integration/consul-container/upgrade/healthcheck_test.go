@@ -9,8 +9,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	consulCluster "github.com/hashicorp/consul/integration/consul-container/libs/consul-cluster"
-	consulNode "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
+	"github.com/hashicorp/consul/integration/consul-container/libs/cluster"
+	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var curImage = flag.String("uut-version", "local", "docker image to be used as UUT (unit under test)")
+var uutImage = flag.String("uut-version", "local", "docker image to be used as UUT (unit under test)")
 var latestImage = flag.String("latest-version", "latest", "docker image to be used as latest")
 
 const retryTimeout = 10 * time.Second
@@ -79,7 +79,7 @@ func TestLatestGAServersWithCurrentClients(t *testing.T) {
 func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
 	numServers := 3
-	Cluster, err := serversCluster(t, numServers, *curImage)
+	Cluster, err := serversCluster(t, numServers, *uutImage)
 	require.NoError(t, err)
 	defer Terminate(t, Cluster)
 	numClients := 1
@@ -128,20 +128,19 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	t.Parallel()
-	var configs []consulNode.Config
+	var configs []node.Config
 	configs = append(configs,
-		consulNode.Config{
+		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
-					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *curImage,
+			Version: *uutImage,
 		})
 
 	for i := 1; i < 3; i++ {
 		configs = append(configs,
-			consulNode.Config{
+			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
 					bootstrap_expect=3
@@ -152,7 +151,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 
 	}
 
-	cluster, err := consulCluster.New(configs)
+	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
 
@@ -201,31 +200,29 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 // Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
 func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	t.Parallel()
-	var configs []consulNode.Config
-	configs = append(configs,
-		consulNode.Config{
-			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
-					bootstrap_expect=3
-					server=true`,
-			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *latestImage,
-		})
-
-	for i := 1; i < 3; i++ {
+	var configs []node.Config
+	for i := 0; i < 2; i++ {
 		configs = append(configs,
-			consulNode.Config{
+			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *curImage,
+				Version: *uutImage,
 			})
 
 	}
+	configs = append(configs,
+		node.Config{
+			HCL: `node_name="` + utils.RandName("consul-server") + `"
+					log_level="TRACE"
+					server=true`,
+			Cmd:     []string{"agent", "-client=0.0.0.0"},
+			Version: *latestImage,
+		})
 
-	cluster, err := consulCluster.New(configs)
+	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
 
@@ -271,16 +268,16 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(numClients int) ([]consulNode.ConsulNode, error) {
-	Clients := make([]consulNode.ConsulNode, numClients)
+func clientsCreate(numClients int) ([]node.ConsulNode, error) {
+	Clients := make([]node.ConsulNode, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
-		Clients[i], err = consulNode.NewConsulContainer(context.Background(),
-			consulNode.Config{
+		Clients[i], err = node.NewConsulContainer(context.Background(),
+			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *curImage,
+				Version: *uutImage,
 			})
 	}
 	return Clients, err
@@ -297,11 +294,11 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) (error,
 	return err, meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, image string) (*consulCluster.Cluster, error) {
+func serversCluster(t *testing.T, numServers int, image string) (*cluster.Cluster, error) {
 	var err error
-	var configs []consulNode.Config
+	var configs []node.Config
 	for i := 0; i < numServers; i++ {
-		configs = append(configs, consulNode.Config{
+		configs = append(configs, node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
 					bootstrap_expect=3
@@ -310,7 +307,7 @@ func serversCluster(t *testing.T, numServers int, image string) (*consulCluster.
 			Version: image,
 		})
 	}
-	cluster, err := consulCluster.New(configs)
+	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
@@ -322,7 +319,7 @@ func serversCluster(t *testing.T, numServers int, image string) (*consulCluster.
 	return cluster, err
 }
 
-func Terminate(t *testing.T, cluster *consulCluster.Cluster) {
+func Terminate(t *testing.T, cluster *cluster.Cluster) {
 	err := cluster.Terminate()
 	require.NoError(t, err)
 }

@@ -1,11 +1,11 @@
-package consul_cluster
+package cluster
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	consulnode "github.com/hashicorp/consul/integration/consul-container/libs/consul-node"
+	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 )
 
 // Cluster abstract a Consul Cluster by providing
@@ -13,15 +13,15 @@ import (
 // a way to add nodes to a cluster
 // a way to fetch the cluster leader...
 type Cluster struct {
-	Nodes []consulnode.ConsulNode
+	Nodes []node.ConsulNode
 }
 
 // New Create a new cluster based on the provided configuration
-func New(configs []consulnode.Config) (*Cluster, error) {
+func New(configs []node.Config) (*Cluster, error) {
 	cluster := Cluster{}
 
 	for _, c := range configs {
-		n, err := consulnode.NewConsulContainer(context.Background(), c)
+		n, err := node.NewConsulContainer(context.Background(), c)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func New(configs []consulnode.Config) (*Cluster, error) {
 }
 
 // AddNodes add a number of nodes to the current cluster and join them to the cluster
-func (c *Cluster) AddNodes(nodes []consulnode.ConsulNode) error {
+func (c *Cluster) AddNodes(nodes []node.ConsulNode) error {
 	if len(c.Nodes) < 1 {
 		return fmt.Errorf("cannot add a node to an empty cluster")
 	}
@@ -66,7 +66,7 @@ func (c *Cluster) Terminate() error {
 // Leader return the cluster leader node
 // if no leader is available or the leader is not part of the cluster
 // an error will be returned
-func (c *Cluster) Leader() (consulnode.ConsulNode, error) {
+func (c *Cluster) Leader() (node.ConsulNode, error) {
 	if len(c.Nodes) < 1 {
 		return nil, fmt.Errorf("no node available")
 	}

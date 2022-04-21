@@ -1,4 +1,4 @@
-package consul_node
+package node
 
 import (
 	"context"
