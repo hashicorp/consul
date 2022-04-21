@@ -255,7 +255,7 @@ jobs:
       - run:
          command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz
+            wget https://dl.google.com/go${GO_VERSION}.linux-arm64.tar.gz
             sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
       - run: *install-gotestsum
       - run: go mod download
@@ -815,7 +815,7 @@ jobs:
       - run:
           command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
+            wget https://dl.google.com/go${GO_VERSION}.linux-amd64.tar.gz
             sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
           environment:
             <<: *ENVIRONMENT
