@@ -10,23 +10,38 @@ as |route|>
     <BlockSlot @name="toolbar">
     </BlockSlot>
     <BlockSlot @name="nav">
-{{#if false}}
+
+{{#let
+    (from-entries (array
+      (array 'serverstatus' true)
+      (array 'cataloghealth' false)
+      (array 'license' (can 'read license'))
+    ))
+as |tabs|}}
+
+  {{#let (without false
+    (values tabs)
+  ) as |tabsEnabled|}}
+
+{{#if (gt tabsEnabled.length 1)}}
       <TabNav @items={{
         compact
           (array
+(if tabs.serverstatus
             (hash
               label=(compute (fn route.t 'serverstatus.title'))
               href=(href-to "dc.show.serverstatus")
               selected=(is-href "dc.show.serverstatus")
             )
-(if false
+'')
+(if tabs.cataloghealth
             (hash
               label=(compute (fn route.t 'cataloghealth.title'))
               href=(href-to 'dc.show.cataloghealth')
               selected=(is-href 'dc.show.cataloghealth')
             )
 '')
-(if (can 'read license')
+(if tabs.license
             (hash
               label=(compute (fn route.t 'license.title'))
               href=(href-to 'dc.show.license')
@@ -36,6 +51,9 @@ as |route|>
 '')
       }}/>
 {{/if}}
+
+  {{/let}}
+{{/let}}
     </BlockSlot>
     <BlockSlot @name="content">
       <Outlet

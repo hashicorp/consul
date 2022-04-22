@@ -15,7 +15,6 @@ type Config struct {
 	MaxRetries             int
 	IAMEndpoint            string
 	STSEndpoint            string
-	STSRegion              string
 	AllowedSTSHeaderValues []string
 
 	// Customizable header names
@@ -63,6 +62,18 @@ func (c *Config) Validate() error {
 		c.GetEntityURLHeader == "") {
 		return fmt.Errorf("Must set all of GetEntityMethodHeader, GetEntityURLHeader, " +
 			"GetEntityHeadersHeader, and GetEntityBodyHeader when EnableIAMEntityDetails=true")
+	}
+
+	if c.STSEndpoint != "" {
+		if _, err := parseUrl(c.STSEndpoint); err != nil {
+			return fmt.Errorf("STSEndpoint is invalid: %s", err)
+		}
+	}
+
+	if c.IAMEndpoint != "" {
+		if _, err := parseUrl(c.IAMEndpoint); err != nil {
+			return fmt.Errorf("IAMEndpoint is invalid: %s", err)
+		}
 	}
 
 	return nil

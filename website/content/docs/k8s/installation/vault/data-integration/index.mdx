@@ -20,7 +20,7 @@ Generally, for each secret you wish to store in Vault, the process to integrate 
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
   
-#### setup per Consul datacenter
+#### Setup per Consul datacenter
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
 
@@ -35,7 +35,7 @@ Following the general integraiton steps, a more detailed workflow for integratio
   1. Create a Vault policy that authorizes the desired level of access to the secret.
       - Create a Vault policy that you name `gossip-policy` which allows `read` access to the path `secret/consul/gossip`.
 
-#### setup per Consul datacenter
+#### Setup per Consul datacenter
 
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
       - Both Consul servers and Consul clients need access to the gossip encryption key, so you create two Vault Kubernetes:

@@ -1093,6 +1093,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/installation/compatibility',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role',
     destination: '/commands/acl/role',
     permanent: true,
@@ -1257,6 +1262,16 @@ module.exports = [
   {
     source: '/api/:path*',
     destination: '/api-docs/:path*',
+    permanent: true,
+  },
+  {
+    source: '/docs/agent/options',
+    destination: '/docs/agent/config',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/api-gateway-usage',
+    destination: '/docs/api-gateway/consul-api-gateway-install',
     permanent: true,
   },
 ]

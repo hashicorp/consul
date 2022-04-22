@@ -130,16 +130,9 @@ export default class DcService extends RepositoryService {
                   // convert the string[] to Server[]
                   Servers: value.Servers.reduce((prev, item) => {
                     const server = body.Servers[item];
-                    // TODO: It is not currently clear whether we should be
-                    // taking ReadReplicas out of the RedundancyZones when we
-                    // encounter one in a Zone once this is cleared up either
-                    // way we can either remove this comment or make any
-                    // necessary amends here
-                    if(!server.ReadReplica) {
-                      // keep a record of things
-                      grouped.push(server.ID);
-                      prev.push(server);
-                    }
+                    // keep a record of things
+                    grouped.push(server.ID);
+                    prev.push(server);
                     return prev;
                   }, []),
                 }

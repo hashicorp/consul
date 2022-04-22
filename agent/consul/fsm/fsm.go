@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
@@ -56,6 +57,8 @@ type FSM struct {
 	// Raft side, so doesn't need to lock this.
 	stateLock sync.RWMutex
 	state     *state.Store
+
+	publisher *stream.EventPublisher
 }
 
 // New is used to construct a new FSM with a blank state.
@@ -77,6 +80,8 @@ type Deps struct {
 	// NewStateStore will be called once when the FSM is created and again any
 	// time Restore() is called.
 	NewStateStore func() *state.Store
+
+	Publisher *stream.EventPublisher
 }
 
 // NewFromDeps creates a new FSM from its dependencies.
@@ -101,6 +106,10 @@ func NewFromDeps(deps Deps) *FSM {
 	}
 
 	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
+
+	// register the streaming snapshot handlers if an event publisher was provided.
+	fsm.registerStreamSnapshotHandlers()
+
 	return fsm
 }
 
@@ -204,12 +213,28 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	c.stateLock.Lock()
 	stateOld := c.state
 	c.state = stateNew
+
+	// Tell the EventPublisher to cycle anything watching these topics. Replacement
+	// of the state store means that indexes could have gone backwards and data changed.
+	//
+	// This needs to happen while holding the state lock to ensure its not racey. If we
+	// did this outside of the locked section closer to where we abandon the old store
+	// then there would be a possibility for new streams to be opened that would get
+	// a snapshot from the cache sourced from old data but would be receiving events
+	// for new data. To prevent that inconsistency we refresh the topics while holding
+	// the lock which ensures that any subscriptions to topics for FSM generated events
+	if c.deps.Publisher != nil {
+		c.deps.Publisher.RefreshTopic(state.EventTopicServiceHealth)
+		c.deps.Publisher.RefreshTopic(state.EventTopicServiceHealthConnect)
+		c.deps.Publisher.RefreshTopic(state.EventTopicCARoots)
+	}
 	c.stateLock.Unlock()
 
 	// Signal that the old state store has been abandoned. This is required
 	// because we don't operate on it any more, we just throw it away, so
 	// blocking queries won't see any changes and need to be woken up.
 	stateOld.Abandon()
+
 	return nil
 }
 
@@ -242,5 +267,32 @@ func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.
 		if err := handler(&header, msg, dec); err != nil {
 			return err
 		}
+	}
+}
+
+func (c *FSM) registerStreamSnapshotHandlers() {
+	if c.deps.Publisher == nil {
+		return
+	}
+
+	err := c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealth, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().ServiceHealthSnapshot(req, buf)
+	})
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicServiceHealthConnect, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().ServiceHealthSnapshot(req, buf)
+	})
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicCARoots, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().CARootsSnapshot(req, buf)
+	})
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
 	}
 }

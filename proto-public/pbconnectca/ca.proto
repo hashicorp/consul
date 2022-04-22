@@ -12,6 +12,10 @@ service ConnectCAService {
   // Connect CA roots. Current roots are sent immediately at the start of the
   // stream, and new lists will be sent whenever the roots are rotated.
   rpc WatchRoots(google.protobuf.Empty) returns (stream WatchRootsResponse) {};
+
+  // Sign a leaf certificate for the service or agent identified by the SPIFFE
+  // ID in the given CSR's SAN.
+  rpc Sign(SignRequest) returns (SignResponse) {};
 }
 
 message WatchRootsResponse {
@@ -69,4 +73,18 @@ message CARoot {
    // This will only be set on roots that have been rotated out from being the
    // active root.
    google.protobuf.Timestamp rotated_out_at = 8;
+}
+
+message SignRequest {
+  // csr is the PEM-encoded Certificate Signing Request (CSR).
+  //
+  // The CSR's SAN must include a SPIFFE ID that identifies a service or agent
+  // to which the ACL token provided in the `x-consul-token` metadata has write
+  // access.
+  string csr = 1;
+}
+
+message SignResponse {
+  // cert_pem is the PEM-encoded leaf certificate.
+  string cert_pem = 2;
 }

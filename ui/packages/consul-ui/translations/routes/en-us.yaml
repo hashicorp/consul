@@ -16,6 +16,40 @@ dc:
       title: Health
     license:
       title: License
+      expiry:
+        header: Expiry
+        expired:
+          header: Expired
+          body: |
+            <p>
+              Your license expired on {date} at {time}.
+            </p>
+        valid:
+          header: ''
+          body: |
+            <p>
+              Your license expires on {date} at {time}.
+            </p>
+      documentation:
+        title: Learn More
+        body: |
+          <ul>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire">
+                License expiration
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/docs/enterprise/license/faq#q-how-can-i-renew-a-license">
+                Renewing a license
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise">
+                Applying a new license
+              </a>
+            </li>
+          </ul>
 
   nodes:
     index:

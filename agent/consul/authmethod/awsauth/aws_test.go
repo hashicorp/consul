@@ -24,9 +24,8 @@ func TestNewValidator(t *testing.T) {
 		IAMEntityTags:          []string{"tag-1"},
 		ServerIDHeaderValue:    "x-some-header",
 		MaxRetries:             3,
-		IAMEndpoint:            "iam-endpoint",
-		STSEndpoint:            "sts-endpoint",
-		STSRegion:              "sts-region",
+		IAMEndpoint:            "http://iam-endpoint",
+		STSEndpoint:            "http://sts-endpoint",
 		AllowedSTSHeaderValues: []string{"header-value"},
 		ServerIDHeaderName:     "X-Consul-IAM-ServerID",
 		GetEntityMethodHeader:  "X-Consul-IAM-GetEntity-Method",
@@ -44,9 +43,8 @@ func TestNewValidator(t *testing.T) {
 			"IAMEntityTags":          []string{"tag-1"},
 			"ServerIDHeaderValue":    "x-some-header",
 			"MaxRetries":             3,
-			"IAMEndpoint":            "iam-endpoint",
-			"STSEndpoint":            "sts-endpoint",
-			"STSRegion":              "sts-region",
+			"IAMEndpoint":            "http://iam-endpoint",
+			"STSEndpoint":            "http://sts-endpoint",
 			"AllowedSTSHeaderValues": []string{"header-value"},
 		}
 
@@ -224,7 +222,6 @@ func setup(t *testing.T, config map[string]interface{}, server *iamauthtest.Serv
 	fakeAws := iamauthtest.NewTestServer(t, server)
 
 	config["STSEndpoint"] = fakeAws.URL + "/sts"
-	config["STSRegion"] = "fake-region"
 	config["IAMEndpoint"] = fakeAws.URL + "/iam"
 
 	method := &structs.ACLAuthMethod{
@@ -241,7 +238,7 @@ func setup(t *testing.T, config map[string]interface{}, server *iamauthtest.Serv
 		Creds:                  credentials.NewStaticCredentials("fake", "fake", ""),
 		IncludeIAMEntity:       v.config.EnableIAMEntityDetails,
 		STSEndpoint:            v.config.STSEndpoint,
-		STSRegion:              v.config.STSRegion,
+		STSRegion:              "fake-region",
 		Logger:                 nullLogger,
 		ServerIDHeaderValue:    v.config.ServerIDHeaderValue,
 		ServerIDHeaderName:     v.config.ServerIDHeaderName,

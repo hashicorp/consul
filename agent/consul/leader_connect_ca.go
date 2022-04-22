@@ -1382,7 +1382,7 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
 	// Parse the SPIFFE ID from the CSR SAN.
 	if len(csr.URIs) == 0 {
-		return nil, errors.New("CSR SAN does not contain a SPIFFE ID")
+		return nil, connect.InvalidCSRError("CSR SAN does not contain a SPIFFE ID")
 	}
 	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
@@ -1403,7 +1403,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 		// requirement later but being restrictive for now is safer.
 		dc := c.serverConf.Datacenter
 		if v.Datacenter != dc {
-			return nil, fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
 		}
 	case *connect.SpiffeIDAgent:
@@ -1412,7 +1412,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 			return nil, err
 		}
 	default:
-		return nil, errors.New("SPIFFE ID in CSR must be a service or agent ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
 	return c.SignCertificate(csr, spiffeID)
@@ -1436,13 +1436,13 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
-		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
 	}
 
 	var entMeta acl.EnterpriseMeta
 	if isService {
 		if !signingID.CanSign(spiffeID) {
-			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())

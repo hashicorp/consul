@@ -6277,6 +6277,13 @@ elliptic@^6.5.3:
     minimalistic-assert "^1.0.1"
     minimalistic-crypto-utils "^1.0.1"
 
+ember-array-fns@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/ember-array-fns/-/ember-array-fns-1.4.0.tgz#92188edecb91c0b69c78e411f1b3339dfe0006a5"
+  integrity sha512-dKQ2wvuh+rVYhGsbR8pk8j9TX/Kqwf3sRehtJ+HqEi3VavH/WPPvsY2sH5nczYEtQwgkV1NAzgSzLr1iYj4uXQ==
+  dependencies:
+    ember-cli-babel "^7.7.3"
+
 ember-assign-helper@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/ember-assign-helper/-/ember-assign-helper-0.3.0.tgz#7a023dd165ef56b28f77f70fd20e88261380aca7"
