@@ -7,9 +7,9 @@ Describe why you're making this change, in plain English.
 * Call out any important/ relevant unit tests, e2e tests or integration tests you have added or are adding
 
 ### Links
-Include any links here that might be helpful for people reviewing your PR (Asana tasks, GH issues, API docs, external benchmarks, tools docs, etc). If there are none, feel free to delete this section.
+Include any links here that might be helpful for people reviewing your PR (Tickets, GH issues, API docs, external benchmarks, tools docs, etc). If there are none, feel free to delete this section.
 
-Please be mindful not to leak any customer or confidential information. Feel free to use [HashiLinks](https://go.hashi.co/) to obfuscate links as needed.
+Please be mindful not to leak any customer or confidential information. HashiCorp employees may want to use our internal URL shortener to obfuscate links.
 
 ### PR Checklist
 
