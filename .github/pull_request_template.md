@@ -1,7 +1,7 @@
 ### Description
 Describe why you're making this change, in plain English.
 
-### Testing & Repro steps
+### Testing & Reproduction steps
 * In the case of bugs, describe how to replicate
 * If any manual tests were done, document the steps and the conditions to replicate
 * Call out any important/ relevant unit tests, e2e tests or integration tests you have added or are adding
