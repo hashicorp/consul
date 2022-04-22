@@ -116,6 +116,9 @@ func (c *consulContainerNode) Terminate() error {
 	return c.container.Terminate(c.ctx)
 }
 
+// isRYUKDisabled check if we need to disable
+// the use a reaper container.
+// https://github.com/testcontainers/moby-ryuk
 func isRYUKDisabled() bool {
 	skipReaperStr := os.Getenv(disableRYUKEnv)
 	skipReaper, err := strconv.ParseBool(skipReaperStr)

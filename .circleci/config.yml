@@ -801,7 +801,7 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
       
-  upgrade-integration-test:
+  compatibility-integration-test:
     machine:
       image: ubuntu-2004:202101-01
       docker_layer_caching: true
@@ -822,7 +822,7 @@ jobs:
       - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
-          name: Upgrade Integration Tests
+          name: Compatibility Integration Tests
           command: |
             subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
             echo "Running $(echo $subtests | wc -w) subtests"
