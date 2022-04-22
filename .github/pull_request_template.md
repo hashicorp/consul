@@ -9,7 +9,7 @@ Describe why you're making this change, in plain English.
 ### Links
 Include any links here that might be helpful for people reviewing your PR (Asana tasks, GH issues, API docs, external benchmarks, tools docs, etc). If there are none, feel free to delete this section.
 
-Please be mindful not to leak any customer or confidential information. Feel free to use HashiLinks to obfuscate links as needed.
+Please be mindful not to leak any customer or confidential information. Feel free to use [HashiLinks](https://go.hashi.co/) to obfuscate links as needed.
 
 ### PR Checklist
 
