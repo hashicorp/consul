@@ -56,11 +56,10 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		WaitingFor:   wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
 		AutoRemove:   false,
 		Name:         name,
-		BindMounts:   map[string]string{"/consul/config/config.hcl": configFile},
+		Mounts:       testcontainers.ContainerMounts{testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"}},
 		Cmd:          config.Cmd,
 		SkipReaper:   skipReaper,
 	}
-
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
