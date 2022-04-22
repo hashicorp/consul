@@ -392,6 +392,10 @@
       {
         "title": "Common Errors",
         "path": "api-gateway/common-errors"
+      },
+      {
+        "title": "Upgrading Specific Versions",
+        "path": "api-gateway/upgrade-specific-versions"
       }
     ]
   },

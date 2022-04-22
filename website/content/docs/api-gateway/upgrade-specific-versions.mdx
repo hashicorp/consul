@@ -1,0 +1,180 @@
+---
+layout: docs
+page_title: Upgrading Specific Versions
+description: >-
+  Consul api gateway versions v0.2.x introduced a change to namespace backend ref
+  enforcement that will potentially break any routes created with a cross namespace in
+  v0.1.0. This documents the flow for finding and remediating any potentially
+  broken routes
+---
+
+# Upgrading Specific Versions
+
+
+## Consul API Gateway v0.1.0
+
+This guide explains how to best upgrade a Consul API Gateway deployment that is currently
+running v0.1.0 to all future versions. v0.2.0 introduced a breaking change that
+causes routes defined with a BackendRef defined in a different namespace to
+require a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy)
+that explicitly allows traffic from the route's namespace to the BackendRef's namespace.
+
+
+
+## Requirements
+
+- The consul-api-gateway should be running version v0.1.0. If the version is different, follow the normal upgrade path.
+- [jq](https://stedolan.github.io/jq/download/) is installed on the users CLI
+
+Note, as of writing, this is the only upgrade path documented as v0.1.0 is the only currently released version. Normal upgrade path will be documented
+in future releases
+
+## Pre-requisites
+
+In order to follow this guide, the following conditions must be true:
+
+- You have the ability to run Kubectl CLI commands
+- Your kubectl config is already configured to point at the cluster with the installation you are upgrading
+- You have HTTPRoute.read, TCPRoute.read and ReferencePolicy.create rights on your Kubernetes cluster
+
+
+## Procedures
+
+**1.** Optional, double check the current version of the consul-api-gateway with the following command:
+
+```
+$ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
+```
+
+If the output looks as follows
+
+```log
+"hashicorp/consul-api-gateway:0.1.0"
+```
+
+ continue following this upgrade path.
+
+**2.** Run the following command to retrieve all routes defined with a cross namespace:
+
+```shell-session
+$ kubectl get HttpRoute,TcpRoute -o json -A | jq -r '.items[] | {name: .metadata.name, namespace: .metadata.namespace, kind: .kind, crossNamespaceBackendReferences: ( .metadata.namespace as $parentnamespace | .spec.rules[] .backendRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
+```
+
+Note, the above command will retrieve all HTTPRoutes and TCPRoutes. TLSRoutes and UDPRoutes are not supported in v0.1.0.
+
+If your output is empty, you can skip to the last step; otherwise, you have existing routes that require a new ReferencePolicy. In this case, your output will appear similar to the following:
+
+```log
+{
+  "name": "example-breaking-http-route",
+  "namespace": "example-namespace",
+  "kind": "HTTPRoute",
+  "crossNamespaceBackendReferences": {
+    "group": "",
+    "kind": "Service",
+    "name": "web-backend",
+    "namespace": "gateway-namespace",
+    "port": 8080,
+    "weight": 1
+  }
+}
+{
+  "name": "example-breaking-tcp-route",
+  "namespace": "a-different-namespace",
+  "kind": "TCPRoute",
+  "crossNamespaceBackendReferences": {
+    "group": "",
+    "kind": "Service",
+    "name": "web-backend",
+    "namespace": "gateway-namespace",
+    "port": 8080,
+    "weight": 1
+  }
+}
+```
+
+**3.** Create a ReferencePolicy to allow cross namespace traffic for each route service pair.
+
+Using the above output as a guide, create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic.
+You will need to create a reference policy that explicitly allows each cross namespace route to service pair to prevent the route from breaking. If you've already created a ReferencePolicy you can skip this step.
+<!---
+TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
+--->
+For example, the above output would require a reference policy that looks as follows.
+
+Note, the ReferencePolicy should be created in the same namespace that it is allowing traffic to
+
+<CodeBlockConfig filename="referencepolicy.yaml">
+
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: gateway-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: example-namespace
+    - group: gateway.networking.k8s.io
+      kind: TCPRoute
+      namespace: a-different-namespace
+  to:
+    - group: ""
+      kind: Service
+      name: web-backend
+</CodeBlockConfig>
+
+Edit your ReferencePolicy so all routes are allowed and then save into a file called referencepolicy.yaml
+
+Run the following command to apply it to your cluster
+
+```shell-session
+$ kubectl apply -f referencepolicy.yaml
+```
+
+Repeat as needed until all of your cross namespace routes have defined reference policys.
+
+**4.** Upgrade your deployment to v.0.2.0.
+
+Install the updated CRDs into your cluster
+
+``` shell-session
+$ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=0.2.0"
+```
+
+**5.** Helm upgrade consul
+
+Upgrade your consul installation using helm.
+
+~> Warning: This will call the API Gateway controller to be shut down and restart with the new version
+
+```shell-session
+$ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> hashicorp/consul <DEPLOYMENT_NAME>
+```
+
+**6.** Refresh gateway deployments
+Because [the gateway class is immutable](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io%2fv1alpha2.GatewayClass), once you've upgraded your CRD installation, in order to see the effects on prexisting gateways, you will need to delete and recreate any gateways.
+
+To accomplish this you can run the following two commands
+
+~> Warning: This will delete and recreate your gateway.
+
+
+```shell-session
+$ kubectl delete -f <path_to_gateway_config.yaml>
+$ kubectl create -f <path_to_gateway_config.yaml>
+```
+
+<!---
+  remove this warning once updating a gateway triggers reconciliation on child routes
+--->
+
+~> Warning: Optionally you might want to delete and recreate your routes following the same pattern, as when you update your
+gateway, it might take a long time for it's attached routes to reconcile and start reporting bind errors.
+
+
+## Post-Upgrade Configuration Changes
+
+No configuration changes are required for this upgrade.
