@@ -1156,7 +1156,7 @@ workflows:
       - envoy-integration-test-1_22_0:
           requires:
             - dev-build
-      - upgrade-integration-test:
+      - compatibility-integration-test:
           requires:
             - dev-build
 
