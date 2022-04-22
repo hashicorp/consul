@@ -1586,6 +1586,9 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 	if config.HeartbeatTimeout > 5*time.Millisecond {
 		raftCfg.HeartbeatTimeout = config.HeartbeatTimeout
 	}
+	if config.ElectionTimeout > 5*time.Millisecond {
+		raftCfg.ElectionTimeout = config.ElectionTimeout
+	}
 	return raftCfg
 }
 
