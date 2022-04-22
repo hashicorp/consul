@@ -8,15 +8,14 @@ import (
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 )
 
-// Cluster abstract a Consul Cluster by providing
-// a way to create and join a Consul Cluster
-// a way to add nodes to a cluster
-// a way to fetch the cluster leader...
+// Cluster provides an interface for creating and controlling a Consul cluster
+// in integration tests, with nodes running in containers.
 type Cluster struct {
 	Nodes []node.Node
 }
 
-// New Create a new cluster based on the provided configuration
+// New creates a Consul cluster. A node will be started for each of the given
+// configs and joined to the cluster.
 func New(configs []node.Config) (*Cluster, error) {
 	cluster := Cluster{}
 
@@ -34,7 +33,7 @@ func New(configs []node.Config) (*Cluster, error) {
 	return &cluster, nil
 }
 
-// AddNodes add a number of nodes to the current cluster and join them to the cluster
+// AddNodes joins the given nodes to the cluster.
 func (c *Cluster) AddNodes(nodes []node.Node) error {
 	var joinAddr string
 	if len(c.Nodes) >= 1 {
@@ -53,8 +52,8 @@ func (c *Cluster) AddNodes(nodes []node.Node) error {
 	return nil
 }
 
-// Terminate will attempt to terminate all the nodes in the cluster
-// if a node termination fail, Terminate will abort and return and error
+// Terminate will attempt to terminate all nodes in the cluster. If any node
+// termination fails, Terminate will abort and return an error.
 func (c *Cluster) Terminate() error {
 	for _, n := range c.Nodes {
 		err := n.Terminate()
@@ -65,9 +64,8 @@ func (c *Cluster) Terminate() error {
 	return nil
 }
 
-// Leader return the cluster leader node
-// if no leader is available or the leader is not part of the cluster
-// an error will be returned
+// Leader returns the cluster leader node, or an error if no leader is
+// available.
 func (c *Cluster) Leader() (node.Node, error) {
 	if len(c.Nodes) < 1 {
 		return nil, fmt.Errorf("no node available")

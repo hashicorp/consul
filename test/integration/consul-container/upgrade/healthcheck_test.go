@@ -33,9 +33,9 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	defer Terminate(t, cluster)
 	numClients := 1
 
-	Clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients)
 	client := cluster.Nodes[0].GetClient()
-	err = cluster.AddNodes(Clients)
+	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
@@ -105,9 +105,9 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	Clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients)
 	client := Clients[0].GetClient()
-	err = cluster.AddNodes(Clients)
+	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
 		leader, err := cluster.Leader()
 		require.NoError(r, err)
@@ -218,10 +218,10 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 }
 
 func clientsCreate(numClients int) ([]node.Node, error) {
-	Clients := make([]node.Node, numClients)
+	clients := make([]node.Node, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
-		Clients[i], err = node.NewConsulContainer(context.Background(),
+		clients[i], err = node.NewConsulContainer(context.Background(),
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
@@ -229,7 +229,7 @@ func clientsCreate(numClients int) ([]node.Node, error) {
 				Version: *targetImage,
 			})
 	}
-	return Clients, err
+	return clients, err
 }
 
 func serviceCreate(t *testing.T, client *api.Client, serviceName string) (error, uint64) {

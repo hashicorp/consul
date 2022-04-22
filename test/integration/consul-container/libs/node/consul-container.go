@@ -18,8 +18,8 @@ import (
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
-// consulContainerNode implement a Node
-// it instantiate Consul as a container
+// consulContainerNode implements the Node interface by running a Consul node
+// in a container.
 type consulContainerNode struct {
 	ctx       context.Context
 	client    *api.Client
@@ -28,7 +28,7 @@ type consulContainerNode struct {
 	port      int
 }
 
-// NewConsulContainer create a Node implemented as a consulContainerNode
+// NewConsulContainer starts a Consul node in a container with the given config.
 func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 
 	name := utils.RandName("consul-")
@@ -99,24 +99,25 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	return c, nil
 }
 
-// GetClient return the client associated with the Node
+// GetClient returns an API client that can be used to communicate with the Node.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
 }
 
-// GetAddr return the network address associated with the Node
+// GetAddr return the network address associated with the Node.
 func (c *consulContainerNode) GetAddr() (string, int) {
 	return c.ip, c.port
 }
 
-// Terminate will attempt to terminate a consulContainerNode
-// if this fail the container will be killed by RYUK if enabled
+// Terminate attempts to terminate the container. On failure, an error will be
+// returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
 	return c.container.Terminate(c.ctx)
 }
 
-// isRYUKDisabled check if we need to disable
-// the use a reaper container.
+// isRYUKDisabled returns whether the reaper process (RYUK) has been disabled
+// by an environment variable.
+//
 // https://github.com/testcontainers/moby-ryuk
 func isRYUKDisabled() bool {
 	skipReaperStr := os.Getenv(disableRYUKEnv)
