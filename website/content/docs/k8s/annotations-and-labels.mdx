@@ -125,6 +125,15 @@ Resource annotations could be used on the Kubernetes pod to control connnect-inj
     consul.hashicorp.com/envoy-extra-args: '--log-level debug --disable-hot-restart'
   ```
 
+- `consul.hashicorp.com/kubernetes-service` - Specifies the name of the Kubernetes service used for Consul service registration.
+  This is useful when multiple Kubernetes services reference the same deployment. Any service that does not match the name
+  specified in this annotation is ignored. When not specified no service is ignored.
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/kubernetes-service: 'service-name-to-use'
+  ```
+
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
 
