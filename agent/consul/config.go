@@ -604,6 +604,7 @@ type ReloadableConfig struct {
 	RaftSnapshotThreshold int
 	RaftSnapshotInterval  time.Duration
 	RaftTrailingLogs      int
+	HeartbeatTimeout      time.Duration
 }
 
 type RaftBoltDBConfig struct {

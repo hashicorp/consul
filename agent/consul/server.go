@@ -1583,6 +1583,9 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 	if config.RaftTrailingLogs != 0 {
 		raftCfg.TrailingLogs = uint64(config.RaftTrailingLogs)
 	}
+	if config.HeartbeatTimeout > 5*time.Millisecond {
+		raftCfg.HeartbeatTimeout = config.HeartbeatTimeout
+	}
 	return raftCfg
 }
 
