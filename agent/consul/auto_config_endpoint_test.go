@@ -154,7 +154,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 				"BoundIssuer":          "consul",
 				"JWTValidationPubKeys": []string{pub},
 				"ClaimMappings": map[string]string{
-					"consul_node_name": "node",
+					"consul_node_name":   "node",
+					"allowed_acl_policy": "allowed_acl_policy",
 				},
 			},
 		}
@@ -215,6 +216,9 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	joinAddr := &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: s.config.SerfLANConfig.MemberlistConfig.AdvertisePort}
 
+	p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+	require.NoError(t, err)
+
 	// -------------------------------------------------------------------------
 	// Common test setup is now complete
 	// -------------------------------------------------------------------------
@@ -258,11 +262,30 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 			},
 			err: "Spiffe ID agent name (alt) of the certificate signing request is not for the correct node (test-node)",
 		},
+		"missing-allowed-policy-claim-mapping": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:   "test-node",
+				JWT:    signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
+				CSR:    altCSR,
+				Policy: "policy-with-no-claim-mapping",
+			},
+			err: "no allowed policy is specified. Did you create the 'allowed_acl_policy' claim_mapping in the server configuration?",
+		},
+		"missing-acl-policy": {
+			request: &pbautoconf.AutoConfigRequest{
+				Node:   "test-node",
+				JWT:    signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node", "allowed_acl_policy": "test-policy"}),
+				CSR:    csr,
+				Policy: "test-policy",
+			},
+			err: "could not find acl 'test-policy'. does it exist?",
+		},
 		"good": {
 			request: &pbautoconf.AutoConfigRequest{
-				Node: "test-node",
-				JWT:  signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node"}),
-				CSR:  csr,
+				Node:   "test-node",
+				JWT:    signJWTWithStandardClaims(t, priv, map[string]interface{}{"consul_node_name": "test-node", "allowed_acl_policy": p1.Name}),
+				CSR:    csr,
+				Policy: p1.Name,
 			},
 			expected: &pbautoconf.AutoConfigResponse{
 				CARoots:             pbroots,
