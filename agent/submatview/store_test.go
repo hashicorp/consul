@@ -24,7 +24,7 @@ func TestStore_Get(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
@@ -199,14 +199,14 @@ type resultOrError struct {
 	Err    error
 }
 
-type fakeRequest struct {
+type fakeRPCRequest struct {
 	index   uint64
 	timeout time.Duration
 	key     string
 	client  *TestStreamingClient
 }
 
-func (r *fakeRequest) CacheInfo() cache.RequestInfo {
+func (r *fakeRPCRequest) CacheInfo() cache.RequestInfo {
 	key := r.key
 	if key == "" {
 		key = "key"
@@ -220,10 +220,9 @@ func (r *fakeRequest) CacheInfo() cache.RequestInfo {
 	}
 }
 
-func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
-	return NewMaterializer(Deps{
+func (r *fakeRPCRequest) NewMaterializer() (Materializer, error) {
+	deps := Deps{
 		View:   &fakeView{srvs: make(map[string]*pbservice.CheckServiceNode)},
-		Client: r.client,
 		Logger: hclog.New(nil),
 		Request: func(index uint64) *pbsubscribe.SubscribeRequest {
 			req := &pbsubscribe.SubscribeRequest{
@@ -236,10 +235,11 @@ func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
 			}
 			return req
 		},
-	}), nil
+	}
+	return NewRPCMaterializer(r.client, deps), nil
 }
 
-func (r *fakeRequest) Type() string {
+func (r *fakeRPCRequest) Type() string {
 	return fmt.Sprintf("%T", r)
 }
 
@@ -291,7 +291,7 @@ func TestStore_Notify(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
@@ -360,7 +360,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
@@ -393,13 +393,13 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 		assertRequestCount(r, store, req, 4)
 	})
 
-	var req2 *fakeRequest
+	var req2 *fakeRPCRequest
 
 	runStep(t, "Get and Notify with a different key", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		req2 = &fakeRequest{client: req.client, key: "key2", index: 22}
+		req2 = &fakeRPCRequest{client: req.client, key: "key2", index: 22}
 
 		require.NoError(t, store.Notify(ctx, req2, cID, ch1))
 		go func() {
@@ -472,7 +472,7 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	store.idleTTL = ttl
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))

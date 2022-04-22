@@ -253,7 +253,6 @@ func (e *eventProducer) Produce(ctx context.Context, pub *stream.EventPublisher)
 					},
 				},
 			}
-
 		}
 
 		e.nodesLock.Lock()

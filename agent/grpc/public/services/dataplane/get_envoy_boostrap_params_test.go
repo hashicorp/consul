@@ -69,7 +69,7 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		store := testStateStore(t)
+		store := testutils.TestStateStore(t, nil)
 		err := store.EnsureRegistration(1, tc.registerReq)
 		require.NoError(t, err)
 
@@ -148,7 +148,7 @@ func TestGetEnvoyBootstrapParams_Error(t *testing.T) {
 			Return(testutils.TestAuthorizerServiceRead(t, proxyServiceID), nil)
 		ctx := public.ContextWithToken(context.Background(), testToken)
 
-		store := testStateStore(t)
+		store := testutils.TestStateStore(t, nil)
 		registerReq := testRegisterRequestProxy(t)
 		err := store.EnsureRegistration(1, registerReq)
 		require.NoError(t, err)
@@ -217,7 +217,7 @@ func TestGetEnvoyBootstrapParams_Unauthenticated(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, acl.ErrNotFound)
 	ctx := public.ContextWithToken(context.Background(), testToken)
-	store := testStateStore(t)
+	store := testutils.TestStateStore(t, nil)
 	server := NewServer(Config{
 		GetStore:    func() StateStore { return store },
 		Logger:      hclog.NewNullLogger(),
@@ -236,7 +236,7 @@ func TestGetEnvoyBootstrapParams_PermissionDenied(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
 		Return(acl.DenyAll(), nil)
 	ctx := public.ContextWithToken(context.Background(), testToken)
-	store := testStateStore(t)
+	store := testutils.TestStateStore(t, nil)
 	registerReq := structs.TestRegisterRequestProxy(t)
 	proxyServiceID := "web-sidecar-proxy"
 	registerReq.Service.ID = proxyServiceID

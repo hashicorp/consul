@@ -13,6 +13,7 @@ func NodeToStructs(s *Node, t *structs.Node) {
 	t.Address = s.Address
 	t.Datacenter = s.Datacenter
 	t.Partition = s.Partition
+	t.PeerName = s.PeerName
 	t.TaggedAddresses = s.TaggedAddresses
 	t.Meta = s.Meta
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
@@ -26,6 +27,7 @@ func NodeFromStructs(t *structs.Node, s *Node) {
 	s.Address = t.Address
 	s.Datacenter = t.Datacenter
 	s.Partition = t.Partition
+	s.PeerName = t.PeerName
 	s.TaggedAddresses = t.TaggedAddresses
 	s.Meta = t.Meta
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
@@ -53,6 +55,7 @@ func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
 	}
 	t.LocallyRegisteredAsSidecar = s.LocallyRegisteredAsSidecar
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
+	t.PeerName = s.PeerName
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
 }
 func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
@@ -82,5 +85,6 @@ func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
 	}
 	s.LocallyRegisteredAsSidecar = t.LocallyRegisteredAsSidecar
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.PeerName = t.PeerName
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
 }

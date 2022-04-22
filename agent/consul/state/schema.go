@@ -22,12 +22,16 @@ func newDBSchema() *memdb.DBSchema {
 		configTableSchema,
 		coordinatesTableSchema,
 		federationStateTableSchema,
+		freeVirtualIPTableSchema,
 		gatewayServicesTableSchema,
 		indexTableSchema,
 		intentionsTableSchema,
+		kindServiceNameTableSchema,
 		kvsTableSchema,
 		meshTopologyTableSchema,
 		nodesTableSchema,
+		peeringTableSchema,
+		peeringTrustBundlesTableSchema,
 		policiesTableSchema,
 		preparedQueriesTableSchema,
 		rolesTableSchema,
@@ -39,8 +43,6 @@ func newDBSchema() *memdb.DBSchema {
 		tokensTableSchema,
 		tombstonesTableSchema,
 		usageTableSchema,
-		freeVirtualIPTableSchema,
-		kindServiceNameTableSchema,
 	)
 	withEnterpriseSchema(db)
 	return db

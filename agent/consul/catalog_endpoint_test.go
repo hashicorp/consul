@@ -1650,6 +1650,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 		c.ACLsEnabled = true
 		c.Bootstrap = false // Disable bootstrap
+		c.RPCHoldTimeout = 10 * time.Millisecond
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

@@ -1142,6 +1142,41 @@ func TestACL_HTTP(t *testing.T) {
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
 		})
+
+		t.Run("Create with uppercase node identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "agent token for foo node",
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "FOO",
+						Datacenter: "bar",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
+
+		t.Run("Create with uppercase service identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for service identity foo",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "FOO",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
 	})
 }
 

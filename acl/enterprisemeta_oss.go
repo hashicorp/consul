@@ -106,3 +106,7 @@ func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMeta {
 
 // FillAuthzContext stub
 func (_ *EnterpriseMeta) FillAuthzContext(_ *AuthorizerContext) {}
+
+func NormalizeNamespace(_ string) string {
+	return ""
+}

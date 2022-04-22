@@ -38,7 +38,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeInfo(ws, args.Node, &args.EnterpriseMeta)
+			index, dump, err := state.NodeInfo(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -69,7 +69,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta)
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -112,7 +112,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			// Get, store, and filter nodes
-			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta)
+			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -314,7 +314,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 			// Loop over the gateway <-> serviceName mappings and fetch all service instances for each
 			var result structs.ServiceDump
 			for _, gs := range gatewayServices {
-				idx, instances, err := state.CheckServiceNodes(ws, gs.Service.Name, &gs.Service.EnterpriseMeta)
+				idx, instances, err := state.CheckServiceNodes(ws, gs.Service.Name, &gs.Service.EnterpriseMeta, args.PeerName)
 				if err != nil {
 					return err
 				}

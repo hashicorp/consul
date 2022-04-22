@@ -92,6 +92,7 @@ type AgentService struct {
 	ContentHash       string                          `json:",omitempty" bexpr:"-"`
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
+	PeerName          string                          `json:",omitempty"`
 	// NOTE: If we ever set the ContentHash outside of singular service lookup then we may need
 	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
 	// For now though, ignoring it works well enough.

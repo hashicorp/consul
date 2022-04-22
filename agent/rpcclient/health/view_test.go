@@ -537,17 +537,17 @@ type serviceRequestStub struct {
 	streamClient submatview.StreamClient
 }
 
-func (r serviceRequestStub) NewMaterializer() (*submatview.Materializer, error) {
+func (r serviceRequestStub) NewMaterializer() (submatview.Materializer, error) {
 	view, err := newHealthView(r.ServiceSpecificRequest)
 	if err != nil {
 		return nil, err
 	}
-	return submatview.NewMaterializer(submatview.Deps{
+	deps := submatview.Deps{
 		View:    view,
-		Client:  r.streamClient,
 		Logger:  hclog.New(nil),
 		Request: newMaterializerRequest(r.ServiceSpecificRequest),
-	}), nil
+	}
+	return submatview.NewRPCMaterializer(r.streamClient, deps), nil
 }
 
 func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {

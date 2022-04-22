@@ -23,5 +23,9 @@ func (req *AutoConfigRequest) SetTokenSecret(token string) {
 }
 
 func (req *AutoConfigRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+	return time.Since(start) > req.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+func (req *AutoConfigRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }

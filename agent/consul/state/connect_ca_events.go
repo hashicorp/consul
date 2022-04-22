@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // EventTopicCARoots is the streaming topic to which events will be published
@@ -27,6 +28,10 @@ func (e EventPayloadCARoots) HasReadPermission(authz acl.Authorizer) bool {
 		FillAuthzContext(&authzContext)
 
 	return authz.ServiceWriteAny(&authzContext) == acl.Allow
+}
+
+func (e EventPayloadCARoots) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("EventPayloadCARoots does not implement ToSubscriptionEvent")
 }
 
 // caRootsChangeEvents returns an event on EventTopicCARoots whenever the list

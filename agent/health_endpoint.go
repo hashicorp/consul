@@ -194,6 +194,8 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	s.parsePeerName(req, &args)
+
 	// Check for tags
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {

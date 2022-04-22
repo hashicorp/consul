@@ -15,6 +15,7 @@ import (
 
 	acl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/grpc/public/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
@@ -231,7 +232,7 @@ func TestSign_RPCForwarding(t *testing.T) {
 		ForwardRPC:     noopForwardRPC,
 		ConnectEnabled: true,
 	})
-	leaderConn, err := grpc.Dial(runTestServer(t, leader).String(), grpc.WithInsecure())
+	leaderConn, err := grpc.Dial(testutils.RunTestServer(t, leader).String(), grpc.WithInsecure())
 	require.NoError(t, err)
 
 	follower := NewServer(Config{

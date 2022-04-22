@@ -12,6 +12,9 @@ import (
 type rpcFn func(string, interface{}, interface{}) error
 
 // WaitForLeader ensures we have a leader and a node registration.
+//
+// Most uses of this would be better served in the agent/consul package by
+// using waitForLeaderEstablishment() instead.
 func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
 

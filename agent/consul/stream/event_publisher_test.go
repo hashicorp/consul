@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 type intTopic int
@@ -83,6 +84,10 @@ func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
 }
 
 func (p simplePayload) Subject() Subject { return StringSubject(p.key) }
+
+func (p simplePayload) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("simplePayload does not implement ToSubscriptionEvent")
+}
 
 func registerTestSnapshotHandlers(t *testing.T, publisher *EventPublisher) {
 	t.Helper()

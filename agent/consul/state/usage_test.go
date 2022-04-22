@@ -38,7 +38,7 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 	require.Equal(t, idx, uint64(1))
 	require.Equal(t, usage.Nodes, 2)
 
-	require.NoError(t, s.DeleteNode(2, "node2", nil))
+	require.NoError(t, s.DeleteNode(2, "node2", nil, ""))
 	idx, usage, err = s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(2))
@@ -152,7 +152,7 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
 
-	require.NoError(t, s.DeleteNode(4, "node1", nil))
+	require.NoError(t, s.DeleteNode(4, "node1", nil, ""))
 
 	idx, usage, err = s.ServiceUsage()
 	require.NoError(t, err)
