@@ -8,6 +8,7 @@ linters:
     - ineffassign
     - unparam
     - forbidigo
+    - gomodguard
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -75,6 +76,23 @@ linters-settings:
     # Exclude godoc examples from forbidigo checks.
     # Default: true
     exclude_godoc_examples: false
+  gomodguard:
+    blocked:
+      # List of blocked modules.
+      modules:
+        # Blocked module.
+        - net/rpc:
+            # Recommended modules that should be used instead. (Optional)
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/net/rpc
+        - github.com/hashicorp/net-rpc-msgpackrpc:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc
+        - github.com/hashicorp/go-msgpack:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/go-msgpack
+      # Set to true to raise lint issues for packages that are loaded from a local path via replace directive.
+      local_replace_directives: true
 
 run:
   timeout: 10m
