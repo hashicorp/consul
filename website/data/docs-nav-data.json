@@ -846,19 +846,6 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
-      },
-      {
-        "title": "Release Notes",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "nia/release-notes"
-          },
-          {
-            "title": "v0.5.0",
-            "path": "nia/release-notes/0-5-0"
-          }
-        ]
       }
     ]
   },
@@ -1223,6 +1210,41 @@
           {
             "title": "v0.1.0",
             "path": "release-notes/consul-api-gateway/v0_1_0"
+          }
+        ]
+      },
+      {
+        "title": "Consul ECS",
+        "routes": [
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-ecs/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-ecs/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-ecs/v0_2_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v0.43.x",
+            "path": "release-notes/consul-k8s/v0_43_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul Terraform Sync",
+        "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-terraform-sync/v0_5_x"
           }
         ]
       }
