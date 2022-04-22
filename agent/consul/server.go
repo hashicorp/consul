@@ -1573,6 +1573,8 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 		TrailingLogs:      defaultConf.RaftConfig.TrailingLogs,
 		SnapshotInterval:  defaultConf.RaftConfig.SnapshotInterval,
 		SnapshotThreshold: defaultConf.RaftConfig.SnapshotThreshold,
+		ElectionTimeout:   defaultConf.RaftConfig.ElectionTimeout,
+		HeartbeatTimeout:  defaultConf.RaftConfig.HeartbeatTimeout,
 	}
 	if config.RaftSnapshotThreshold != 0 {
 		raftCfg.SnapshotThreshold = uint64(config.RaftSnapshotThreshold)
@@ -1583,10 +1585,10 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 	if config.RaftTrailingLogs != 0 {
 		raftCfg.TrailingLogs = uint64(config.RaftTrailingLogs)
 	}
-	if config.HeartbeatTimeout > 5*time.Millisecond {
+	if config.HeartbeatTimeout >= 5*time.Millisecond {
 		raftCfg.HeartbeatTimeout = config.HeartbeatTimeout
 	}
-	if config.ElectionTimeout > 5*time.Millisecond {
+	if config.ElectionTimeout >= 5*time.Millisecond {
 		raftCfg.ElectionTimeout = config.ElectionTimeout
 	}
 	return raftCfg
