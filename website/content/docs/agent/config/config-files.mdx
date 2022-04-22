@@ -209,7 +209,27 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `policy` (Defaults to `""`) If the consul ACL system is enabled, this
     specifies an additional policy to append to the ACL token generated for the
-    agent. Auto config will error if this policy does not already exist
+    agent. Auto config will error if this policy does not already exist. The
+    `intro_token` used for the initial RPC must have a claim such as
+    `"http://consul.internal/allowedACLPolicy": "<POLICY>"` the server can
+    check to see if the agent is allowed to request the policy. The server will
+    check against the "allowed_acl_policy [claim_mapping](#claim_mappings) like
+    so
+
+    ```
+    auto_config {
+      authorization {
+        static {
+          claim_mappings {
+            "http://consul.internal/allowedACLPolicy" = "allowed_acl_policy"
+          }
+        }
+      }
+    }
+    ```
+
+    If this [claim_mapping](#claim_mapping) is missing or the requested policyt
+    doesn't match what is provided in the token, the authorization will fail.
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
