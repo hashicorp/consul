@@ -2707,6 +2707,38 @@ tls {
 
 <CodeBlockConfig lineNumbers highlight="10-12">
 
+See, especially, the use of the `ports` setting highlighted below.
+
+<CodeTabs heading="Example configuration with TLS">
+
+<CodeBlockConfig lineNumbers highlight="10-12">
+
+```hcl
+datacenter = "east-aws"
+data_dir = "/opt/consul"
+log_level = "INFO"
+node_name = "foobar"
+server = true
+
+addresses = {
+  https = "0.0.0.0"
+}
+ports {
+  https = 8501
+}
+
+key_file = "/etc/pki/tls/private/my.key"
+cert_file = "/etc/pki/tls/certs/my.crt"
+ca_file = "/etc/pki/tls/certs/ca-bundle.crt"
+verify_incoming = true
+verify_outgoing = true
+verify_server_hostname = true
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig lineNumbers highlight="10-12">
+
 ```json
 {
   "datacenter": "east-aws",

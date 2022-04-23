@@ -133,7 +133,7 @@ function start_consul {
         '-p=9502:8502'
       )
   fi
-  
+
   license="${CONSUL_LICENSE:-}"
   # load the consul license so we can pass it into the consul
   # containers as an env var in the case that this is a consul

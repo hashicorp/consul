@@ -8,12 +8,12 @@ description: >-
 # Vault as the Secrets Backend - Systems Integration
 
 ## Overview
-At a high level, configuring a systems integration of Vault with Consul on Kubernetes consists of 1) a one time setup on Vault and 2) a setup of the secrets backend per Consul datacenter via Helm.  
+At a high level, configuring a systems integration of Vault with Consul on Kubernetes consists of 1) a one time setup on Vault and 2) a setup of the secrets backend per Consul datacenter via Helm.
 
 ### One time setup on Vault
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
   - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
-  
+
 ### Setup per Consul datacenter
   - Installing the Vault Injector within the Consul datacenter installation
   - Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul datacenter
@@ -21,9 +21,9 @@ At a high level, configuring a systems integration of Vault with Consul on Kuber
 
 ## One time setup on Vault
 
-A one time setup on a Vault deployment is necessary to enable both the Vault KV Secrets Engine and the Vault PKI Engine. These docs assume that you have already setup a Vault cluster for use with Consul on Kubernetes. 
+A one time setup on a Vault deployment is necessary to enable both the Vault KV Secrets Engine and the Vault PKI Engine. These docs assume that you have already setup a Vault cluster for use with Consul on Kubernetes.
 
-Please read [Run Vault on Kubernetes](https://www.vaultproject.io/docs/platform/k8s/helm/run) if instructions on setting up a Vault cluster are needed. 
+Please read [Run Vault on Kubernetes](https://www.vaultproject.io/docs/platform/k8s/helm/run) if instructions on setting up a Vault cluster are needed.
 
 ### Vault KV Secrets Engine - Version 2
 
@@ -51,7 +51,7 @@ $ vault secrets enable pki
 
 ## Setup per Consul datacenter
 
-After configuring Vault, Consul datacenters on Kubernetes must be deployed with the Vault Agent injector and configured to leverage the Vault Kubernetes Auth Method to read secrets from a Vault cluster. 
+After configuring Vault, Consul datacenters on Kubernetes must be deployed with the Vault Agent injector and configured to leverage the Vault Kubernetes Auth Method to read secrets from a Vault cluster.
 
 ### Set Environment Variables to ensure integration consistency
 
@@ -63,17 +63,17 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
     ```shell-session
     $ export DATACENTER=dc1
     ```
-#### VAULT_AUTH_METHOD_NAME 
+#### VAULT_AUTH_METHOD_NAME
 
   - **Recommended value:** a concatentation of a `kubernetes-` prefix (to denote the auth method type) with `DATACENTER` environment variable.
     ```shell-session
     $ export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
     ```
-    
+
 #### VAULT_SERVER_HOST
 
-  - **Recommended value:** find the external IP address of your Vault cluster. 
-    - If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
+  - **Recommended value:** find the external IP address of your Vault cluster.
+    - If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer.
       - On GKE or AKS, it'll be an IP:
         ```shell-session
         $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -86,14 +86,15 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
         ```shell-session
         $ export VAULT_SERVER_HOST=<external IP for vault cluster>
         ```
-        
+
 #### VAULT_ADDR
 
   - **Recommended value:** Connecting to port 8200 of the Vault server
     ```shell-session
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
--> **Note:** If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
+
+  -> **Note:** If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
 #### VAULT_TOKEN
 
@@ -116,7 +117,7 @@ injector:
   externalVaultAddr: ${VAULT_ADDR}
   authPath: auth/${VAULT_AUTH_METHOD_NAME}
 EOF
-``` 
+```
 
 Issue the Helm `install` command to install the Vault agent injector using the HashiCorp Vault Helm chart.
 
@@ -128,7 +129,7 @@ $ helm install vault-${DATACENTER} -f vault-injector.yaml hashicorp/vault --wait
 
 #### Enable the Auth Method
 
-Ensure that the Vault Kubernetes Auth method is enabled. 
+Ensure that the Vault Kubernetes Auth method is enabled.
 
 ```shell-session
 $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
@@ -136,7 +137,7 @@ $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 
 #### Configure Auth Method with JWT token of service account
 
-After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). 
+After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration).
 
 First, while targeting your Consul cluster, get the externally reachable address of the Consul Kubernetes cluster.
 

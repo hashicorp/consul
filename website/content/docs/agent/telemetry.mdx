@@ -298,7 +298,7 @@ it took as well as how many logs were contained in the batch. Writing logs in th
 a subsequent log storage operation can only be started after the previous one completed. The maximum number
 of log storage operations that can be performed each second is represented with the `consul.raft.boltdb.writeCapacity`
 metric. When log storage operations are becoming slower you may not see an immediate decrease in write capacity
-due to increased batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if 
+due to increased batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if
 the `logsPerBatch` metric is near 64 and the `storeLogs` metric is seeing increased time to write each batch to disk,
 then it is likely that increased write latencies and other errors may occur.
 
