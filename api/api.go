@@ -680,11 +680,6 @@ func SetClientConfig(config *Config) error {
 		if err != nil {
 			return err
 		}
-	} else {
-		err := setClientTransportWithTLSConfig(config.HttpClient, config.Transport, config.TLSConfig)
-		if err != nil {
-			return err
-		}
 	}
 
 	if config.Namespace == "" {
@@ -752,13 +747,43 @@ func NewClient(config *Config) (*Client, error) {
 func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, error) {
 	client := &http.Client{}
 
-	err := setClientTransportWithTLSConfig(client, transport, tlsConf)
+	err := SetClientTransportWithTLSConfig(client, transport, tlsConf)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return client, nil
+}
+
+// SetClientTransportWithTLSConfig configure Transport with TLS config on
+// the http client.
+func SetClientTransportWithTLSConfig(client *http.Client, transport *http.Transport, tlsConf TLSConfig) error {
+	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
+	// should turn it on by default if TLS is enabled. We would basically
+	// just need to call http2.ConfigureTransport(transport) here. We also
+	// don't want to introduce another external dependency on
+	// golang.org/x/net/http2 at this time. For a complete recipe for how
+	// to enable HTTP/2 support on a transport suitable for the API client
+	// library see agent/http_test.go:TestHTTPServer_H2.
+
+	if transport.TLSClientConfig == nil {
+		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
+
+		if err != nil {
+			return err
+		}
+
+		transport.TLSClientConfig = tlsClientConfig
+	}
+
+	// NewHttpClient allows you to pass in an http client in the config.  It
+	// may already have Transport configured.  If so, we won't set Transport and
+	// clobber the existing setting.
+	if client.Transport == nil {
+		client.Transport = transport
+	}
+	return nil
 }
 
 // request is used to help build up a request
@@ -1183,34 +1208,4 @@ func requireNotFoundOrOK(resp *http.Response) (bool, *http.Response, error) {
 	default:
 		return false, nil, generateUnexpectedResponseCodeError(resp)
 	}
-}
-
-// setClientTransportWithTLSConfig configure Transport with TLS config on
-// the http client.
-func setClientTransportWithTLSConfig(client *http.Client, transport *http.Transport, tlsConf TLSConfig) error {
-	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
-	// should turn it on by default if TLS is enabled. We would basically
-	// just need to call http2.ConfigureTransport(transport) here. We also
-	// don't want to introduce another external dependency on
-	// golang.org/x/net/http2 at this time. For a complete recipe for how
-	// to enable HTTP/2 support on a transport suitable for the API client
-	// library see agent/http_test.go:TestHTTPServer_H2.
-
-	if transport.TLSClientConfig == nil {
-		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
-
-		if err != nil {
-			return err
-		}
-
-		transport.TLSClientConfig = tlsClientConfig
-	}
-
-	// NewHttpClient allows you to pass in an http client in the config.  It
-	// may already have Transport configured.  If so, we won't set Transport and
-	// clobber the existing setting.
-	if client.Transport == nil {
-		client.Transport = transport
-	}
-	return nil
 }
