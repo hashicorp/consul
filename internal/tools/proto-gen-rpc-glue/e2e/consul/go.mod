@@ -1,4 +1,4 @@
-module github.com/hashicorp/consul/internal/tools/proto-gen-rpc-glue/e2e/consul
+module github.com/hashicorp/consul
 
 go 1.13
 
