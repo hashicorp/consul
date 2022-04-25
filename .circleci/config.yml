@@ -12,18 +12,8 @@ parameters:
     description: "Boolean whether to run the load test workflow"
 
 references:
-  images:
-    # When updating the Go version, remember to also update the versions in the
-    # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
-
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
-
-  cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
-
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
     EMAIL: noreply@hashicorp.com
@@ -32,6 +22,14 @@ references:
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
+    GO_VERSION: 1.18.1
+  images:
+    # When updating the Go version, remember to also update the versions in the
+    # workflows section for go-test-lib jobs.
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -257,8 +255,8 @@ jobs:
       - run:
          command: |
             sudo rm -rf /usr/local/go
-            wget https://dl.google.com/go/go1.18.1.linux-arm64.tar.gz
-            sudo tar -C /usr/local -xzvf go1.18.1.linux-arm64.tar.gz
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
       - run: *install-gotestsum
       - run: go mod download
       - run:
@@ -802,7 +800,55 @@ jobs:
           working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
       - run: *notify-slack-failure
-
+      
+  compatibility-integration-test:
+    machine:
+      image: ubuntu-2004:202101-01
+      docker_layer_caching: true
+    parallelism: 1
+    steps:
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      # Build the consul-dev image from the already built binary
+      - run:
+          command: |
+            sudo rm -rf /usr/local/go
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+          environment:
+            <<: *ENVIRONMENT
+      - run: *install-gotestsum
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - run:
+          name: Compatibility Integration Tests
+          command: |
+            subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
+            echo "Running $(echo $subtests | wc -w) subtests"
+            echo "$subtests"
+            subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
+            mkdir -p /tmp/test-results/
+            docker run consul:local consul version
+            cd ./test/integration/consul-container
+            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --target-version local --latest-version latest
+            ls -lrt
+          environment:
+            # this is needed because of incompatibility between RYUK container and circleci
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/consul-container/upgrade/workdir/logs
+          destination: container-logs
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
+      
   envoy-integration-test-1_19_3: &ENVOY_TESTS
     machine:
       image: ubuntu-2004:202101-01
@@ -1108,6 +1154,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1_22_0:
+          requires:
+            - dev-build
+      - compatibility-integration-test:
           requires:
             - dev-build
 
