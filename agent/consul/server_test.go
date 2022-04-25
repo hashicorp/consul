@@ -1858,6 +1858,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1869,6 +1871,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1880,6 +1884,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1891,6 +1897,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      78910,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1899,11 +1907,15 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				RaftSnapshotThreshold: 123456,
 				RaftSnapshotInterval:  13 * time.Minute,
 				RaftTrailingLogs:      78910,
+				ElectionTimeout:       300 * time.Millisecond,
+				HeartbeatTimeout:      400 * time.Millisecond,
 			},
 			want: raft.ReloadableConfig{
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      78910,
+				ElectionTimeout:   300 * time.Millisecond,
+				HeartbeatTimeout:  400 * time.Millisecond,
 			},
 		},
 	}
