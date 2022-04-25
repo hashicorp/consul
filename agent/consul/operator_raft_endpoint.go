@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"net"
 
+	"github.com/hashicorp/consul/acl"
+
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 
