@@ -7,28 +7,41 @@ description: >-
   connections, automatically wrapping and verifying TLS connections.
 ---
 
-# Connect Configuration
+# Service Mesh Configuration
 
-There are many configuration options exposed for Connect. The only option
-that must be set is the "enabled" option on Consul Servers to enable Connect.
+There are many configuration options exposed for Consul service mesh. The only option
+that must be set is the "connect.enabled" option on Consul Servers to enable Consul service mesh.
 All other configurations are optional and have reasonable defaults.
 
--> **Tip:** Connect is enabled by default when running Consul in
+As a reminder, Consul Connect is used interchangeably
+with the name Consul Service Mesh and is what this document will use to refer to for Service Mesh functionality within Consul.
+
+-> **Tip:** Service mesh is enabled by default when running Consul in
 dev mode with `consul agent -dev`.
 
 ## Agent Configuration
 
-The first step to use Connect is to enable Connect for your Consul
+The first step to use service mesh is to enable Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
 Connect, add the following to a new or existing
 [server configuration file](/docs/agent/config/config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
+
+
+<CodeTabs heading="Enable Consul service mesh" tabs={[ "HCL", "JSON" ]}>
 
 ```hcl
 connect {
   enabled = true
 }
 ```
+
+```json
+"connect": {
+ "enabled": true
+}
+```
+</CodeTabs>
 
 This will enable Connect and configure your Consul cluster to use the
 built-in certificate authority for creating and managing certificates.
