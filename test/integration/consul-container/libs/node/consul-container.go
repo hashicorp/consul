@@ -31,6 +31,10 @@ type consulContainerNode struct {
 // NewConsulContainer starts a Consul node in a container with the given config.
 func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 
+	license, err := readLicense()
+	if err != nil {
+		return nil, err
+	}
 	name := utils.RandName("consul-")
 	tmpDir, err := ioutils.TempDir("", name)
 	if err != nil {
@@ -59,6 +63,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		Mounts:       testcontainers.ContainerMounts{testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"}},
 		Cmd:          config.Cmd,
 		SkipReaper:   skipReaper,
+		Env:          map[string]string{"CONSUL_LICENSE": license},
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -126,4 +131,19 @@ func isRYUKDisabled() bool {
 		return false
 	}
 	return skipReaper
+}
+
+func readLicense() (string, error) {
+	license := os.Getenv("CONSUL_LICENSE")
+	if license == "" {
+		licensePath := os.Getenv("CONSUL_LICENSE_PATH")
+		if licensePath != "" {
+			licenseBytes, err := os.ReadFile(licensePath)
+			if err != nil {
+				return "", err
+			}
+			license = string(licenseBytes)
+		}
+	}
+	return license, nil
 }
