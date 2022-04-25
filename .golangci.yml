@@ -9,6 +9,7 @@ linters:
     - unparam
     - forbidigo
     - gomodguard
+    - depguard
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -81,10 +82,6 @@ linters-settings:
       # List of blocked modules.
       modules:
         # Blocked module.
-        - net/rpc:
-            # Recommended modules that should be used instead. (Optional)
-            recommendations:
-              - github.com/hashicorp/consul-net-rpc/net/rpc
         - github.com/hashicorp/net-rpc-msgpackrpc:
             recommendations:
               - github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc
@@ -93,6 +90,19 @@ linters-settings:
               - github.com/hashicorp/consul-net-rpc/go-msgpack
       # Set to true to raise lint issues for packages that are loaded from a local path via replace directive.
       local_replace_directives: true
+
+  depguard:
+    list-type: denylist
+    include-go-root: true
+    # A list of packages for the list type specified.
+    # Default: []
+    packages:
+      - net/rpc
+    # A list of packages for the list type specified.
+    # Specify an error message to output when a denied package is used.
+    # Default: []
+    packages-with-error-message:
+      - net/rpc: 'only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc'
 
 run:
   timeout: 10m
