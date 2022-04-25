@@ -1202,6 +1202,8 @@ workflows:
               only:
                 - main
                 - /release\/\d+\.\d+\.x$/
+          requires:
+            - approval-check
       - cherry-picker:
           context: team-consul
           filters:
@@ -1209,6 +1211,11 @@ workflows:
               only:
                 - main
                 - /release\/\d+\.\d+\.x$/
+          requires:
+            - approval-check
+      - approval-check:
+          type: approval
+          context: team-consul
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:
