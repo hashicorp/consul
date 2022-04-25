@@ -116,15 +116,27 @@ func newSerfEncryptionKey() (string, error) {
 	return base64.StdEncoding.EncodeToString(key), nil
 }
 
-func GetLeader(client *api.Client) (string, error) {
-	leaderAdd, err := client.Status().Leader()
+// Leader returns the cluster leader node, or an error if no leader is
+// available.
+func (c *Cluster) Leader() (node.Node, error) {
+	if len(c.Nodes) < 1 {
+		return nil, fmt.Errorf("no node available")
+	}
+	n0 := c.Nodes[0]
+	leaderAdd, err := n0.GetClient().Status().Leader()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if leaderAdd == "" {
-		return "", fmt.Errorf("no leader available")
+		return nil, fmt.Errorf("no leader available")
 	}
-	return leaderAdd, nil
+	for _, n := range c.Nodes {
+		addr, _ := n.GetAddr()
+		if strings.Contains(leaderAdd, addr) {
+			return n, nil
+		}
+	}
+	return nil, fmt.Errorf("leader not found")
 }
 
 const retryTimeout = 20 * time.Second

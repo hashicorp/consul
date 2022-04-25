@@ -4,9 +4,9 @@ go 1.16
 
 require (
 	github.com/docker/docker v20.10.11+incompatible
-	github.com/hashicorp/consul v1.12.1
-	github.com/hashicorp/consul/api v1.11.0
-	github.com/hashicorp/consul/sdk v0.8.0
+	github.com/hashicorp/consul v1.12.3
+	github.com/hashicorp/consul/api v1.13.1
+	github.com/hashicorp/consul/sdk v0.10.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v0.16.2 // indirect
