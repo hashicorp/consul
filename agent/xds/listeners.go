@@ -859,6 +859,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		if err != nil {
 			return nil, err
 		}
+		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
+			filterOpts.forwardClientDetails = true
+			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
+		}
 	}
 	filter, err := makeListenerFilter(filterOpts)
 	if err != nil {
@@ -1146,6 +1150,13 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 
 		opts.cluster = ""
 		opts.useRDS = true
+
+		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
+			opts.forwardClientDetails = true
+			// Note: filter Connection may not be mTLS, so then ALWAYS_FORWARD_ONLY. For mTLS connections we might want APPEND_FORWARD.
+			// Open question; how do I determine if this is mTLS or not?
+			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_ALWAYS_FORWARD_ONLY
+		}
 	}
 
 	filter, err := makeListenerFilter(opts)
@@ -1366,16 +1377,18 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 }
 
 type listenerFilterOpts struct {
-	useRDS           bool
-	protocol         string
-	filterName       string
-	routeName        string
-	cluster          string
-	statPrefix       string
-	routePath        string
-	requestTimeoutMs *int
-	ingressGateway   bool
-	httpAuthzFilter  *envoy_http_v3.HttpFilter
+	useRDS               bool
+	protocol             string
+	filterName           string
+	routeName            string
+	cluster              string
+	statPrefix           string
+	routePath            string
+	requestTimeoutMs     *int
+	ingressGateway       bool
+	httpAuthzFilter      *envoy_http_v3.HttpFilter
+	forwardClientDetails bool
+	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -1511,6 +1524,18 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	if opts.protocol == "http2" || opts.protocol == "grpc" {
 		cfg.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+	}
+
+	// Note the default leads to setting HttpConnectionManager_SANITIZE
+	if opts.forwardClientDetails {
+		cfg.ForwardClientCertDetails = opts.forwardClientPolicy
+		cfg.SetCurrentClientCertDetails = &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails{
+			Subject: &wrappers.BoolValue{Value: true},
+			Cert:    true,
+			Chain:   true,
+			Dns:     true,
+			Uri:     true,
+		}
 	}
 
 	// Like injectConnectFilters for L4, here we ensure that the first filter

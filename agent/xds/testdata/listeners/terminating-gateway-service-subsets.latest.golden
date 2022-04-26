@@ -184,6 +184,14 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "setCurrentClientCertDetails": {
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "subject": true,
+                  "uri": true
+                },
                 "statPrefix": "upstream.web.default.default.dc1",
                 "rds": {
                   "configSource": {
@@ -258,6 +266,14 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "setCurrentClientCertDetails": {
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "subject": true,
+                  "uri": true
+                },
                 "statPrefix": "upstream.web.default.default.dc1",
                 "rds": {
                   "configSource": {
@@ -332,6 +348,14 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "setCurrentClientCertDetails": {
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "subject": true,
+                  "uri": true
+                },
                 "statPrefix": "upstream.web.default.default.dc1",
                 "rds": {
                   "configSource": {

@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Envoy now inserts x-forwarded-client-cert for incoming proxy connections
+```
