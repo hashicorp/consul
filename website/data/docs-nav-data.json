@@ -142,7 +142,7 @@
         "path": "connect"
       },
       {
-        "title": "How Connect Works",
+        "title": "How Service Mesh Works",
         "path": "connect/connect-internals"
       },
       {
