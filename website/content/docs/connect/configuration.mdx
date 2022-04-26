@@ -10,18 +10,17 @@ description: >-
 # Service Mesh Configuration
 
 There are many configuration options exposed for Consul service mesh. The only option
-that must be set is the "connect.enabled" option on Consul Servers to enable Consul service mesh.
+that must be set is the `connect.enabled` option on Consul servers to enable Consul service mesh.
 All other configurations are optional and have reasonable defaults.
 
-As a reminder, Consul Connect is used interchangeably
-with the name Consul Service Mesh and is what this document will use to refer to for Service Mesh functionality within Consul.
+Consul Connect is the component shipped with Consul that enables service mesh functionality. The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
 
 -> **Tip:** Service mesh is enabled by default when running Consul in
 dev mode with `consul agent -dev`.
 
 ## Agent Configuration
 
-The first step to use service mesh is to enable Connect for your Consul
+Begin by enabling Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
 Connect, add the following to a new or existing
