@@ -305,6 +305,49 @@ spec:
 
 </CodeBlockConfig>
 
+If you wish to create a route in a namespace other than the namespace the backendRef is in, you will need to additionally
+create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+
+The following example creates a route named `example-route` in namespace `route-namespace` with a backendRef in namespace `service-namespace` Traffic is allowed because of the ReferencePolicy named `reference-policy` in namespace `service-namespace` that allows traffic from HTTPRoutes in `route-namespace` to Services in `service-namespace`.
+
+<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: route-namespace
+spec:
+  parentRefs:
+    - name: example-gateway
+      namespace: gateway-namespace
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: echo
+          namespace: service-namespace
+          port: 8080
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: service-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: route-namespace
+  to:
+    - group: ""
+      kind: Service
+      name: echo
+```
+
+</CodeBlockConfig>
+
 ### MeshService
 
 The `MeshService` configuration holds a reference to an externally-managed Consul service mesh service and can be used as a `backendRef` for a [`Route`](#route).
