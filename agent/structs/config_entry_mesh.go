@@ -15,6 +15,8 @@ type MeshConfigEntry struct {
 
 	TLS *MeshTLSConfig `json:",omitempty"`
 
+	HTTP *MeshHTTPConfig `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -31,6 +33,10 @@ type TransparentProxyMeshConfig struct {
 type MeshTLSConfig struct {
 	Incoming *MeshDirectionalTLSConfig `json:",omitempty"`
 	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
+}
+
+type MeshHTTPConfig struct {
+	SanitizeXForwardedClientCert bool `json:",omitempty"`
 }
 
 type MeshDirectionalTLSConfig struct {
