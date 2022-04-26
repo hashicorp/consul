@@ -7,7 +7,7 @@ description:  >-
 
 # Consul API Gateway Overview
 
-This topic provides an overview of the Consul API Gateway. 
+This topic provides an overview of the Consul API Gateway.
 
 ## What is Consul API Gateway?
 
@@ -24,7 +24,7 @@ Consul API Gateway can be deployed on Kubernetes-based runtime environments and 
 
 API Gateway routes traffic to services connected to the same service mesh. Those services can be running on the same Kubernetes cluster as the API Gateway, a different Kubernetes cluster, or another runtime, as long as they are connected to the same service mesh deployment and reachable over the network.
 
-Consul API Gateway implements, and is configured through, the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request. 
+Consul API Gateway implements, and is configured through, the Kubernetes [Gateway API Specification](https://gateway-api.sigs.k8s.io/). This specification defines a set of custom resource definitions (CRD) that can create logical gateways and routes based on the path or protocol of a client request.
 
 ### Supported Kubernetes Gateway Specification Features
 
@@ -38,8 +38,8 @@ are used, see the [documentation in our GitHub repo](https://github.com/hashicor
 | [`Gateway`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) | <ul><li>Supported protocols: `HTTP`, `HTTPS`, `TCP`</li><li>Header-based hostname matching (no SNI support)</li><li>Supported filters: header addition, removal, and setting</li><li>TLS modes supported: `terminate`</li><li>Certificate types supported: `core/v1/Secret`</li><li>Extended options: TLS version and cipher constraints</li></ul> |
 | [`HTTPRoute`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute) | <ul><li>Weight-based load balancing</li><li>Supported rules: path, header, query, and method-based matching</li><li>Supported filters: header addition, removal, and setting</li><li>Supported backend types: <ol><li>`core/v1/Service` (must map to a registered Consul service)</li><li>`api-gateway.consul.hashicorp.com/v1alpha1/MeshService`</li></ol></li></ul> |
 | [`TCPRoute`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute) | <ul><li>Supported backend types: <ol><li>`core/v1/Service` (must map to a registered Consul service)</li><li>`api-gateway.consul.hashicorp.com/v1alpha1/MeshService`</li></ol></li></ul> |
+| [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) | <ul><li>Required for allowing any reference from an `HTTPRoute` or `TCPRoute` to a Kubernetes `core/v1/Service` in a different namespace.</li><li>A route which has an unpermitted BackendRef due to the lack of a ReferencePolicy will set a `ResolvedRefs` status to `False` with the reason `RefNotPermitted`, and will be rejected by the gateway listener.</li><li>WARNING: If a route BackendRef becomes unpermitted (due to deleting a ReferencePolicy or adding a new unpermitted BackendRef to an existing route) this will cause the entire route to be removed from the gateway listener.</li></ul> |
 
 ## Additional Resources
 
 You can learn more about using Consul API Gateway by completing the [Consul API Gateway tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-api-gateway).
-
