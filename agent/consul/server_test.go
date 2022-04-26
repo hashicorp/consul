@@ -165,7 +165,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	// TODO (slackpad) - We should be able to run all tests w/o this, but it
 	// looks like several depend on it.
-	config.RPCHoldTimeout = 5 * time.Second
+	config.RPCHoldTimeout = 10 * time.Second
 
 	config.ConnectEnabled = true
 	config.CAConfig = &structs.CAConfiguration{
@@ -237,6 +237,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 			r.Fatalf("err: %v", err)
 		}
 	})
+	t.Cleanup(func() { srv.Shutdown() })
+
 	return dir, srv
 }
 
@@ -255,6 +257,26 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 
 	codec := rpcClient(t, srv)
 	return dir, srv, codec
+}
+
+func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn) {
+	_, srv, _ := testACLServerWithConfig(t, cb, false)
+
+	// Normally the gRPC server listener is created at the agent level and passed down into
+	// the Server creation. For our tests, we need to ensure
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	go func() {
+		_ = srv.publicGRPCServer.Serve(ln)
+	}()
+	t.Cleanup(srv.publicGRPCServer.Stop)
+
+	conn, err := grpc.Dial(ln.Addr().String(), grpc.WithInsecure())
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = conn.Close() })
+
+	return srv, conn
 }
 
 func newServer(t *testing.T, c *Config) (*Server, error) {
@@ -1836,6 +1858,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1847,6 +1871,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1858,6 +1884,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      defaults.TrailingLogs,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1869,6 +1897,8 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				SnapshotThreshold: defaults.SnapshotThreshold,
 				SnapshotInterval:  defaults.SnapshotInterval,
 				TrailingLogs:      78910,
+				ElectionTimeout:   defaults.ElectionTimeout,
+				HeartbeatTimeout:  defaults.HeartbeatTimeout,
 			},
 		},
 		{
@@ -1877,11 +1907,15 @@ func TestServer_computeRaftReloadableConfig(t *testing.T) {
 				RaftSnapshotThreshold: 123456,
 				RaftSnapshotInterval:  13 * time.Minute,
 				RaftTrailingLogs:      78910,
+				ElectionTimeout:       300 * time.Millisecond,
+				HeartbeatTimeout:      400 * time.Millisecond,
 			},
 			want: raft.ReloadableConfig{
 				SnapshotThreshold: 123456,
 				SnapshotInterval:  13 * time.Minute,
 				TrailingLogs:      78910,
+				ElectionTimeout:   300 * time.Millisecond,
+				HeartbeatTimeout:  400 * time.Millisecond,
 			},
 		},
 	}

@@ -29,5 +29,10 @@ func (req *SubscribeRequest) SetTokenSecret(token string) {
 
 // HasTimedOut implements structs.RPCInfo
 func (req *SubscribeRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+	return time.Since(start) > req.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+// Timeout implements structs.RPCInfo
+func (req *SubscribeRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }

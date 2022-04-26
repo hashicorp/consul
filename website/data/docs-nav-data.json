@@ -382,8 +382,8 @@
         "path": "api-gateway"
       },
       {
-        "title": "Usage",
-        "path": "api-gateway/api-gateway-usage"
+        "title": "Installation",
+        "path": "api-gateway/consul-api-gateway-install"
       },
       {
         "title": "Technical Specifications",
@@ -539,6 +539,10 @@
                     "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
                   }
                 ]
+              },
+              {
+                "title": "WAN Federation",
+                "path": "k8s/installation/vault/wan-federation"
               }
             ]
           },
@@ -969,6 +973,10 @@
               {
                 "title": "OIDC",
                 "path": "security/acl/auth-methods/oidc"
+              },
+              {
+                "title": "AWS IAM",
+                "path": "security/acl/auth-methods/aws-iam"
               }
             ]
           }

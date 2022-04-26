@@ -5,8 +5,8 @@ SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
 	github.com/hashicorp/go-bindata/go-bindata@master \
-	github.com/vektra/mockery/cmd/mockery@master \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
+	github.com/vektra/mockery/v2@latest \
+	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 \
 	github.com/hashicorp/lint-consul-retry@master
 
 PROTOC_VERSION=3.15.8
@@ -15,7 +15,7 @@ PROTOC_VERSION=3.15.8
 # MOG_VERSION can be either a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use whatever is currently installed locally.
 ###
-MOG_VERSION='v0.2.0'
+MOG_VERSION='v0.3.0'
 ###
 # PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use whatever is currently installed locally.
@@ -158,7 +158,8 @@ dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	#  'consul:local' tag is needed to run the integration tests
+	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' -t 'consul:local' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 # In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.

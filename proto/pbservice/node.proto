@@ -8,6 +8,12 @@ import "proto/pbcommon/common.proto";
 import "proto/pbservice/healthcheck.proto";
 import "proto/pbservice/service.proto";
 
+// IndexedCheckServiceNodes is used to return multiple instances for a given service.
+message IndexedCheckServiceNodes {
+  uint64 Index = 1;
+  repeated CheckServiceNode Nodes = 2;
+}
+
 // CheckServiceNode is used to provide the node, its service
 // definition, as well as a HealthCheck that is associated.
 message CheckServiceNode {
@@ -29,6 +35,7 @@ message Node {
 
   string Node = 2;
   string Partition = 8;
+  string PeerName = 9;
   string Address = 3;
   string Datacenter = 4;
   map<string, string> TaggedAddresses = 5;
@@ -104,6 +111,8 @@ message NodeService {
 
   // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 16;
+
+  string PeerName = 18;
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
   common.RaftIndex RaftIndex = 14;

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 type intTopic int
@@ -22,7 +23,7 @@ var testTopic Topic = intTopic(999)
 func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -82,7 +83,11 @@ func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
 	return !p.noReadPerm
 }
 
-func (p simplePayload) Subject() Subject { return stringer(p.key) }
+func (p simplePayload) Subject() Subject { return StringSubject(p.key) }
+
+func (p simplePayload) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("simplePayload does not implement ToSubscriptionEvent")
+}
 
 func registerTestSnapshotHandlers(t *testing.T, publisher *EventPublisher) {
 	t.Helper()
@@ -188,7 +193,7 @@ func consumeSub(ctx context.Context, sub *Subscription) error {
 func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -234,7 +239,7 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -288,7 +293,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -345,7 +350,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -414,7 +419,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 		Index:   1,
 	}
 
@@ -499,7 +504,7 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -522,7 +527,7 @@ func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
 func TestEventPublisher_Unsubscribe_FreesResourcesWhenThereAreNoSubscribers(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("sub-key"),
+		Subject: StringSubject("sub-key"),
 	}
 
 	publisher := NewEventPublisher(time.Second)

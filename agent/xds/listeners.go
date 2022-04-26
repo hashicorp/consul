@@ -18,8 +18,13 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_grpc_http1_bridge_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_http1_bridge/v3"
 	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
+	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
+	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -80,18 +85,19 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
 		}
 
+		originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
+		if err != nil {
+			return nil, err
+		}
+
 		outboundListener = makePortListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
-			{
-				// The original_dst filter is a listener filter that recovers the original destination
-				// address before the iptables redirection. This filter is needed for transparent
-				// proxies because they route to upstreams using filter chains that match on the
-				// destination IP address. If the filter is not present, no chain will match.
-				//
-				// TODO(tproxy): Hard-coded until we upgrade the go-control-plane library
-				Name: "envoy.filters.listener.original_dst",
-			},
+			// The original_dst filter is a listener filter that recovers the original destination
+			// address before the iptables redirection. This filter is needed for transparent
+			// proxies because they route to upstreams using filter chains that match on the
+			// destination IP address. If the filter is not present, no chain will match.
+			originalDstFilter,
 		}
 	}
 
@@ -1058,9 +1064,15 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	if err != nil {
 		return nil, err
 	}
+
+	sniCluster, err := makeSNIClusterFilter()
+	if err != nil {
+		return nil, err
+	}
+
 	fallback := &envoy_listener_v3.FilterChain{
 		Filters: []*envoy_listener_v3.Filter{
-			{Name: "envoy.filters.network.sni_cluster"},
+			sniCluster,
 			tcpProxy,
 		},
 	}
@@ -1383,7 +1395,7 @@ func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, err
 }
 
 func makeTLSInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error) {
-	return &envoy_listener_v3.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
+	return makeEnvoyListenerFilter("envoy.filters.listener.tls_inspector", &envoy_tls_inspector_v3.TlsInspector{})
 }
 
 func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
@@ -1393,8 +1405,7 @@ func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChai
 }
 
 func makeSNIClusterFilter() (*envoy_listener_v3.Filter, error) {
-	// This filter has no config which is why we are not calling make
-	return &envoy_listener_v3.Filter{Name: "envoy.filters.network.sni_cluster"}, nil
+	return makeFilter("envoy.filters.network.sni_cluster", &envoy_sni_cluster_v3.SniCluster{})
 }
 
 func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener_v3.Filter, error) {
@@ -1413,13 +1424,16 @@ func makeStatPrefix(prefix, filterName string) string {
 }
 
 func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
+	router, err := makeEnvoyHTTPFilter("envoy.filters.http.router", &envoy_http_router_v3.Router{})
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &envoy_http_v3.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 		CodecType:  envoy_http_v3.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoy_http_v3.HttpFilter{
-			{
-				Name: "envoy.filters.http.router",
-			},
+			router,
 		},
 		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 			// Don't trace any requests by default unless the client application
@@ -1508,10 +1522,13 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 	}
 
 	if opts.protocol == "grpc" {
-		// Add grpc bridge before router and authz
-		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{{
-			Name: "envoy.filters.http.grpc_http1_bridge",
-		}}, cfg.HttpFilters...)
+		grpcHttp1Bridge, err := makeEnvoyHTTPFilter(
+			"envoy.filters.http.grpc_http1_bridge",
+			&envoy_grpc_http1_bridge_v3.Config{},
+		)
+		if err != nil {
+			return nil, err
+		}
 
 		// In envoy 1.14.x the default value "stats_for_all_methods=true" was
 		// deprecated, and was changed to "false" in 1.18.x. Avoid using the
@@ -1527,12 +1544,26 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		if err != nil {
 			return nil, err
 		}
+
+		// Add grpc bridge before router and authz, and the stats in front of that.
 		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{
 			grpcStatsFilter,
+			grpcHttp1Bridge,
 		}, cfg.HttpFilters...)
 	}
 
 	return makeFilter("envoy.filters.network.http_connection_manager", cfg)
+}
+
+func makeEnvoyListenerFilter(name string, cfg proto.Message) (*envoy_listener_v3.ListenerFilter, error) {
+	any, err := ptypes.MarshalAny(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &envoy_listener_v3.ListenerFilter{
+		Name:       name,
+		ConfigType: &envoy_listener_v3.ListenerFilter_TypedConfig{TypedConfig: any},
+	}, nil
 }
 
 func makeFilter(name string, cfg proto.Message) (*envoy_listener_v3.Filter, error) {

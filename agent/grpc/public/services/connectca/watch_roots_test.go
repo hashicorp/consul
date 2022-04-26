@@ -54,7 +54,7 @@ func TestWatchRoots_Success(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizer(t), nil)
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -140,7 +140,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 	// first two times it is called (initial connect and first re-auth).
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizer(t), nil).Twice()
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil).Twice()
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -208,7 +208,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	// Mock the ACL Resolver to return an authorizer with `service:write`.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(testutils.TestAuthorizer(t), nil)
+		Return(testutils.TestAuthorizerServiceWriteAny(t), nil)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -230,7 +230,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 	mustGetRoots(t, rspCh)
 
 	// Simulate a snapshot restore.
-	storeB := testStateStore(t, publisher)
+	storeB := testutils.TestStateStore(t, publisher)
 
 	rootB := connect.TestCA(t, nil)
 	_, err = storeB.CARootSetCAS(1, 0, structs.CARoots{rootB})

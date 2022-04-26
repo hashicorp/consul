@@ -27,7 +27,7 @@ type DirectRPC interface {
 // agent/cache.Cache struct that we care about
 type Cache interface {
 	Notify(ctx context.Context, t string, r cache.Request, correlationID string, ch chan<- cache.UpdateEvent) error
-	Prepopulate(t string, result cache.FetchResult, dc string, token string, key string) error
+	Prepopulate(t string, result cache.FetchResult, dc string, peerName string, token string, key string) error
 }
 
 // ServerProvider is an interface that can be used to find one server in the local DC known to

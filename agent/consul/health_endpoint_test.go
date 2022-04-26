@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -558,124 +557,109 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
-	arg := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"primary"},
-		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
-		},
-	}
-	var out struct{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	testingPeerNames := []string{"", "my-peer"}
 
-	arg = structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.2",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"replica"},
-		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthWarning,
-			ServiceID: "db",
-		},
-	}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	var out2 structs.IndexedCheckServiceNodes
-	req := structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "db",
-		ServiceTags: []string{"primary"},
-		TagFilter:   false,
-	}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	nodes := out2.Nodes
-	if len(nodes) != 2 {
-		t.Fatalf("Bad: %v", nodes)
-	}
-	if nodes[0].Node.Node != "bar" {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if nodes[1].Node.Node != "foo" {
-		t.Fatalf("Bad: %v", nodes[1])
-	}
-	if !stringslice.Contains(nodes[0].Service.Tags, "replica") {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if !stringslice.Contains(nodes[1].Service.Tags, "primary") {
-		t.Fatalf("Bad: %v", nodes[1])
-	}
-	if nodes[0].Checks[0].Status != api.HealthWarning {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if nodes[1].Checks[0].Status != api.HealthPassing {
-		t.Fatalf("Bad: %v", nodes[1])
-	}
-
-	// Same should still work for <1.3 RPCs with singular tags
-	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
-	// with 1.2.x is not required.
-	{
-		var out2 structs.IndexedCheckServiceNodes
-		req := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "db",
-			ServiceTag:  "primary",
-			TagFilter:   false,
+	// TODO(peering): will have to seed this data differently in the future
+	for _, peerName := range testingPeerNames {
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			PeerName:   peerName,
+			Service: &structs.NodeService{
+				ID:       "db",
+				Service:  "db",
+				Tags:     []string{"primary"},
+				PeerName: peerName,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+				PeerName:  peerName,
+			},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			PeerName:   peerName,
+			Service: &structs.NodeService{
+				ID:       "db",
+				Service:  "db",
+				Tags:     []string{"replica"},
+				PeerName: peerName,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+				PeerName:  peerName,
+			},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+
+	verify := func(t *testing.T, out2 structs.IndexedCheckServiceNodes, peerName string) {
 		nodes := out2.Nodes
-		if len(nodes) != 2 {
-			t.Fatalf("Bad: %v", nodes)
+		require.Len(t, nodes, 2)
+		require.Equal(t, peerName, nodes[0].Node.PeerName)
+		require.Equal(t, peerName, nodes[1].Node.PeerName)
+		require.Equal(t, "bar", nodes[0].Node.Node)
+		require.Equal(t, "foo", nodes[1].Node.Node)
+		require.Equal(t, peerName, nodes[0].Service.PeerName)
+		require.Equal(t, peerName, nodes[1].Service.PeerName)
+		require.Contains(t, nodes[0].Service.Tags, "replica")
+		require.Contains(t, nodes[1].Service.Tags, "primary")
+		require.Equal(t, peerName, nodes[0].Checks[0].PeerName)
+		require.Equal(t, peerName, nodes[1].Checks[0].PeerName)
+		require.Equal(t, api.HealthWarning, nodes[0].Checks[0].Status)
+		require.Equal(t, api.HealthPassing, nodes[1].Checks[0].Status)
+	}
+
+	for _, peerName := range testingPeerNames {
+		testName := "peer named " + peerName
+		if peerName == "" {
+			testName = "local peer"
 		}
-		if nodes[0].Node.Node != "bar" {
-			t.Fatalf("Bad: %v", nodes[0])
-		}
-		if nodes[1].Node.Node != "foo" {
-			t.Fatalf("Bad: %v", nodes[1])
-		}
-		if !stringslice.Contains(nodes[0].Service.Tags, "replica") {
-			t.Fatalf("Bad: %v", nodes[0])
-		}
-		if !stringslice.Contains(nodes[1].Service.Tags, "primary") {
-			t.Fatalf("Bad: %v", nodes[1])
-		}
-		if nodes[0].Checks[0].Status != api.HealthWarning {
-			t.Fatalf("Bad: %v", nodes[0])
-		}
-		if nodes[1].Checks[0].Status != api.HealthPassing {
-			t.Fatalf("Bad: %v", nodes[1])
-		}
+		t.Run(testName, func(t *testing.T) {
+			t.Run("with service tags", func(t *testing.T) {
+				var out2 structs.IndexedCheckServiceNodes
+				req := structs.ServiceSpecificRequest{
+					Datacenter:  "dc1",
+					ServiceName: "db",
+					ServiceTags: []string{"primary"},
+					TagFilter:   false,
+					PeerName:    peerName,
+				}
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+				verify(t, out2, peerName)
+			})
+
+			// Same should still work for <1.3 RPCs with singular tags
+			// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+			// with 1.2.x is not required.
+			t.Run("with legacy service tag", func(t *testing.T) {
+				var out2 structs.IndexedCheckServiceNodes
+				req := structs.ServiceSpecificRequest{
+					Datacenter:  "dc1",
+					ServiceName: "db",
+					ServiceTag:  "primary",
+					TagFilter:   false,
+					PeerName:    peerName,
+				}
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+				verify(t, out2, peerName)
+			})
+		})
 	}
 }
 

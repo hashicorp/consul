@@ -1287,6 +1287,16 @@ module.exports = [
   {
     source: '/docs/nia/release-notes/0-5-0',
     destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
+   permanent: true,
+  },
+  { 
+    source: '/docs/api-gateway/api-gateway-usage',
+    destination: '/docs/api-gateway/consul-api-gateway-install',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/vault/connect-ca',
+    destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
     permanent: true,
   },
 ]

@@ -1908,6 +1908,8 @@ func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
 var cacheInfoIgnoredFields = map[string]bool{
 	// Datacenter is part of the cache key added by the cache itself.
 	"Datacenter": true,
+	// PeerName is part of the cache key added by the cache itself.
+	"PeerName": true,
 	// QuerySource is always the same for every request from a single agent, so it
 	// is excluded from the key.
 	"Source": true,

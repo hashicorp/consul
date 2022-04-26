@@ -19,6 +19,14 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 		CheckID:     "CheckID",
 		Status:      "PASSING",
 	}
+	objWPeer := &structs.HealthCheck{
+		Node:        "NoDe",
+		ServiceID:   "SeRvIcE",
+		ServiceName: "ServiceName",
+		CheckID:     "CheckID",
+		Status:      "PASSING",
+		PeerName:    "Peer1",
+	}
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
@@ -26,11 +34,11 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 					Node:    "NoDe",
 					CheckID: "CheckId",
 				},
-				expected: []byte("node\x00checkid\x00"),
+				expected: []byte("internal\x00node\x00checkid\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("node\x00checkid\x00"),
+				expected: []byte("internal\x00node\x00checkid\x00"),
 			},
 			prefix: []indexValue{
 				{
@@ -39,28 +47,75 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 				},
 				{
 					source:   Query{Value: "nOdE"},
-					expected: []byte("node\x00"),
+					expected: []byte("internal\x00node\x00"),
+				},
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: NodeCheckQuery{
+							Node:     "NoDe",
+							CheckID:  "CheckId",
+							PeerName: "Peer1",
+						},
+						expected: []byte("peer1\x00node\x00checkid\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00node\x00checkid\x00"),
+					},
+					prefix: []indexValue{
+						{
+							source: Query{Value: "nOdE",
+								PeerName: "Peer1"},
+							expected: []byte("peer1\x00node\x00"),
+						},
+					},
 				},
 			},
 		},
 		indexStatus: {
 			read: indexValue{
 				source:   Query{Value: "PASSING"},
-				expected: []byte("passing\x00"),
+				expected: []byte("internal\x00passing\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("passing\x00"),
+				expected: []byte("internal\x00passing\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source:   Query{Value: "PASSING", PeerName: "Peer1"},
+						expected: []byte("peer1\x00passing\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00passing\x00"),
+					},
+				},
 			},
 		},
 		indexService: {
 			read: indexValue{
 				source:   Query{Value: "ServiceName"},
-				expected: []byte("servicename\x00"),
+				expected: []byte("internal\x00servicename\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("servicename\x00"),
+				expected: []byte("internal\x00servicename\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source:   Query{Value: "ServiceName", PeerName: "Peer1"},
+						expected: []byte("peer1\x00servicename\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00servicename\x00"),
+					},
+				},
 			},
 		},
 		indexNodeService: {
@@ -69,11 +124,27 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 					Node:    "NoDe",
 					Service: "SeRvIcE",
 				},
-				expected: []byte("node\x00service\x00"),
+				expected: []byte("internal\x00node\x00service\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("node\x00service\x00"),
+				expected: []byte("internal\x00node\x00service\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: NodeServiceQuery{
+							Node:     "NoDe",
+							PeerName: "Peer1",
+							Service:  "SeRvIcE",
+						},
+						expected: []byte("peer1\x00node\x00service\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00node\x00service\x00"),
+					},
+				},
 			},
 		},
 		indexNode: {
@@ -81,11 +152,26 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 				source: Query{
 					Value: "NoDe",
 				},
-				expected: []byte("node\x00"),
+				expected: []byte("internal\x00node\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("node\x00"),
+				expected: []byte("internal\x00node\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: Query{
+							Value:    "NoDe",
+							PeerName: "Peer1",
+						},
+						expected: []byte("peer1\x00node\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00node\x00"),
+					},
+				},
 			},
 		},
 	}
@@ -186,11 +272,11 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 		indexID: {
 			read: indexValue{
 				source:   Query{Value: "NoDeId"},
-				expected: []byte("nodeid\x00"),
+				expected: []byte("internal\x00nodeid\x00"),
 			},
 			write: indexValue{
 				source:   &structs.Node{Node: "NoDeId"},
-				expected: []byte("nodeid\x00"),
+				expected: []byte("internal\x00nodeid\x00"),
 			},
 			prefix: []indexValue{
 				{
@@ -203,38 +289,90 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 				},
 				{
 					source:   Query{Value: "NoDeId"},
-					expected: []byte("nodeid\x00"),
+					expected: []byte("internal\x00nodeid\x00"),
+				},
+				{
+					source:   Query{},
+					expected: []byte("internal\x00"),
+				},
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source:   Query{Value: "NoDeId", PeerName: "Peer1"},
+						expected: []byte("peer1\x00nodeid\x00"),
+					},
+					write: indexValue{
+						source:   &structs.Node{Node: "NoDeId", PeerName: "Peer1"},
+						expected: []byte("peer1\x00nodeid\x00"),
+					},
+					prefix: []indexValue{
+						{
+							source:   Query{PeerName: "Peer1"},
+							expected: []byte("peer1\x00"),
+						},
+						{
+							source:   Query{Value: "NoDeId", PeerName: "Peer1"},
+							expected: []byte("peer1\x00nodeid\x00"),
+						},
+					},
 				},
 			},
 		},
 		indexUUID: {
 			read: indexValue{
 				source:   Query{Value: uuid},
-				expected: uuidBuf,
+				expected: append([]byte("internal\x00"), uuidBuf...),
 			},
 			write: indexValue{
 				source: &structs.Node{
 					ID:   types.NodeID(uuid),
 					Node: "NoDeId",
 				},
-				expected: uuidBuf,
+				expected: append([]byte("internal\x00"), uuidBuf...),
 			},
 			prefix: []indexValue{
-				{
-					source:   (*acl.EnterpriseMeta)(nil),
-					expected: nil,
-				},
-				{
-					source:   acl.EnterpriseMeta{},
-					expected: nil,
-				},
 				{ // partial length
 					source:   Query{Value: uuid[:6]},
-					expected: uuidBuf[:3],
+					expected: append([]byte("internal\x00"), uuidBuf[:3]...),
 				},
 				{ // full length
 					source:   Query{Value: uuid},
-					expected: uuidBuf,
+					expected: append([]byte("internal\x00"), uuidBuf...),
+				},
+				{
+					source:   Query{},
+					expected: []byte("internal\x00"),
+				},
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source:   Query{Value: uuid, PeerName: "Peer1"},
+						expected: append([]byte("peer1\x00"), uuidBuf...),
+					},
+					write: indexValue{
+						source: &structs.Node{
+							ID:       types.NodeID(uuid),
+							PeerName: "Peer1",
+							Node:     "NoDeId",
+						},
+						expected: append([]byte("peer1\x00"), uuidBuf...),
+					},
+					prefix: []indexValue{
+						{ // partial length
+							source:   Query{Value: uuid[:6], PeerName: "Peer1"},
+							expected: append([]byte("peer1\x00"), uuidBuf[:3]...),
+						},
+						{ // full length
+							source:   Query{Value: uuid, PeerName: "Peer1"},
+							expected: append([]byte("peer1\x00"), uuidBuf...),
+						},
+						{
+							source:   Query{PeerName: "Peer1"},
+							expected: []byte("peer1\x00"),
+						},
+					},
 				},
 			},
 		},
@@ -244,7 +382,7 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 					Key:   "KeY",
 					Value: "VaLuE",
 				},
-				expected: []byte("KeY\x00VaLuE\x00"),
+				expected: []byte("internal\x00KeY\x00VaLuE\x00"),
 			},
 			writeMulti: indexValueMulti{
 				source: &structs.Node{
@@ -255,8 +393,34 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 					},
 				},
 				expected: [][]byte{
-					[]byte("MaP-kEy-1\x00mAp-VaL-1\x00"),
-					[]byte("mAp-KeY-2\x00MaP-vAl-2\x00"),
+					[]byte("internal\x00MaP-kEy-1\x00mAp-VaL-1\x00"),
+					[]byte("internal\x00mAp-KeY-2\x00MaP-vAl-2\x00"),
+				},
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: KeyValueQuery{
+							Key:      "KeY",
+							Value:    "VaLuE",
+							PeerName: "Peer1",
+						},
+						expected: []byte("peer1\x00KeY\x00VaLuE\x00"),
+					},
+					writeMulti: indexValueMulti{
+						source: &structs.Node{
+							Node: "NoDeId",
+							Meta: map[string]string{
+								"MaP-kEy-1": "mAp-VaL-1",
+								"mAp-KeY-2": "MaP-vAl-2",
+							},
+							PeerName: "Peer1",
+						},
+						expected: [][]byte{
+							[]byte("peer1\x00MaP-kEy-1\x00mAp-VaL-1\x00"),
+							[]byte("peer1\x00mAp-KeY-2\x00MaP-vAl-2\x00"),
+						},
+					},
 				},
 			},
 		},
@@ -271,6 +435,12 @@ func testIndexerTableServices() map[string]indexerTestCase {
 		ServiceID:   "SeRviCe",
 		ServiceName: "ServiceName",
 	}
+	objWPeer := &structs.ServiceNode{
+		Node:        "NoDeId",
+		ServiceID:   "SeRviCe",
+		ServiceName: "ServiceName",
+		PeerName:    "Peer1",
+	}
 
 	return map[string]indexerTestCase{
 		indexID: {
@@ -279,11 +449,11 @@ func testIndexerTableServices() map[string]indexerTestCase {
 					Node:    "NoDeId",
 					Service: "SeRvIcE",
 				},
-				expected: []byte("nodeid\x00service\x00"),
+				expected: []byte("internal\x00nodeid\x00service\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("nodeid\x00service\x00"),
+				expected: []byte("internal\x00nodeid\x00service\x00"),
 			},
 			prefix: []indexValue{
 				{
@@ -295,8 +465,38 @@ func testIndexerTableServices() map[string]indexerTestCase {
 					expected: nil,
 				},
 				{
+					source:   Query{},
+					expected: []byte("internal\x00"),
+				},
+				{
 					source:   Query{Value: "NoDeId"},
-					expected: []byte("nodeid\x00"),
+					expected: []byte("internal\x00nodeid\x00"),
+				},
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: NodeServiceQuery{
+							Node:     "NoDeId",
+							PeerName: "Peer1",
+							Service:  "SeRvIcE",
+						},
+						expected: []byte("peer1\x00nodeid\x00service\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00nodeid\x00service\x00"),
+					},
+					prefix: []indexValue{
+						{
+							source:   Query{Value: "NoDeId", PeerName: "Peer1"},
+							expected: []byte("peer1\x00nodeid\x00"),
+						},
+						{
+							source:   Query{PeerName: "Peer1"},
+							expected: []byte("peer1\x00"),
+						},
+					},
 				},
 			},
 		},
@@ -305,34 +505,61 @@ func testIndexerTableServices() map[string]indexerTestCase {
 				source: Query{
 					Value: "NoDeId",
 				},
-				expected: []byte("nodeid\x00"),
+				expected: []byte("internal\x00nodeid\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("nodeid\x00"),
+				expected: []byte("internal\x00nodeid\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: Query{
+							Value:    "NoDeId",
+							PeerName: "Peer1",
+						},
+						expected: []byte("peer1\x00nodeid\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00nodeid\x00"),
+					},
+				},
 			},
 		},
 		indexService: {
 			read: indexValue{
 				source:   Query{Value: "ServiceName"},
-				expected: []byte("servicename\x00"),
+				expected: []byte("internal\x00servicename\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("servicename\x00"),
+				expected: []byte("internal\x00servicename\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source:   Query{Value: "ServiceName", PeerName: "Peer1"},
+						expected: []byte("peer1\x00servicename\x00"),
+					},
+					write: indexValue{
+						source:   objWPeer,
+						expected: []byte("peer1\x00servicename\x00"),
+					},
+				},
 			},
 		},
 		indexConnect: {
 			read: indexValue{
 				source:   Query{Value: "ConnectName"},
-				expected: []byte("connectname\x00"),
+				expected: []byte("internal\x00connectname\x00"),
 			},
 			write: indexValue{
 				source: &structs.ServiceNode{
 					ServiceName:    "ConnectName",
 					ServiceConnect: structs.ServiceConnect{Native: true},
 				},
-				expected: []byte("connectname\x00"),
+				expected: []byte("internal\x00connectname\x00"),
 			},
 			extra: []indexerTestCase{
 				{
@@ -344,7 +571,20 @@ func testIndexerTableServices() map[string]indexerTestCase {
 								DestinationServiceName: "ConnectName",
 							},
 						},
-						expected: []byte("connectname\x00"),
+						expected: []byte("internal\x00connectname\x00"),
+					},
+				},
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindConnectProxy,
+							ServiceProxy: structs.ConnectProxyConfig{
+								DestinationServiceName: "ConnectName",
+							},
+							PeerName: "Peer1",
+						},
+						expected: []byte("peer1\x00connectname\x00"),
 					},
 				},
 				{
@@ -362,18 +602,32 @@ func testIndexerTableServices() map[string]indexerTestCase {
 						expectedIndexMissing: true,
 					},
 				},
+				{
+					read: indexValue{
+						source:   Query{Value: "ConnectName", PeerName: "Peer1"},
+						expected: []byte("peer1\x00connectname\x00"),
+					},
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName:    "ConnectName",
+							ServiceConnect: structs.ServiceConnect{Native: true},
+							PeerName:       "Peer1",
+						},
+						expected: []byte("peer1\x00connectname\x00"),
+					},
+				},
 			},
 		},
 		indexKind: {
 			read: indexValue{
 				source:   Query{Value: "connect-proxy"},
-				expected: []byte("connect-proxy\x00"),
+				expected: []byte("internal\x00connect-proxy\x00"),
 			},
 			write: indexValue{
 				source: &structs.ServiceNode{
 					ServiceKind: structs.ServiceKindConnectProxy,
 				},
-				expected: []byte("connect-proxy\x00"),
+				expected: []byte("internal\x00connect-proxy\x00"),
 			},
 			extra: []indexerTestCase{
 				{
@@ -382,7 +636,30 @@ func testIndexerTableServices() map[string]indexerTestCase {
 							ServiceName: "ServiceName",
 							ServiceKind: structs.ServiceKindTypical,
 						},
-						expected: []byte("\x00"),
+						expected: []byte("internal\x00\x00"),
+					},
+				},
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindTypical,
+							PeerName:    "Peer1",
+						},
+						expected: []byte("peer1\x00\x00"),
+					},
+				},
+				{
+					read: indexValue{
+						source:   Query{Value: "connect-proxy", PeerName: "Peer1"},
+						expected: []byte("peer1\x00connect-proxy\x00"),
+					},
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceKind: structs.ServiceKindConnectProxy,
+							PeerName:    "Peer1",
+						},
+						expected: []byte("peer1\x00connect-proxy\x00"),
 					},
 				},
 			},
@@ -440,7 +717,7 @@ func testIndexerTableKindServiceNames() map[string]indexerTestCase {
 		},
 		indexKind: {
 			read: indexValue{
-				source:   structs.ServiceKindConnectProxy,
+				source:   Query{Value: string(structs.ServiceKindConnectProxy)},
 				expected: []byte("connect-proxy\x00"),
 			},
 			write: indexValue{

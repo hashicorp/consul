@@ -16,23 +16,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/rpc/middleware"
-
-	"github.com/hashicorp/go-version"
-	"go.etcd.io/bbolt"
-
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"github.com/hashicorp/serf/serf"
+	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -46,14 +42,18 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
 	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
+	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -123,6 +123,7 @@ const (
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
+	peeringStreamsRoutineName             = "streaming peering resources"
 )
 
 var (
@@ -354,6 +355,9 @@ type Server struct {
 	// need Events generated outside of the Server and all its components, then we could move
 	// this into the Deps struct and created it much earlier on.
 	publisher *stream.EventPublisher
+
+	// peering is a service used to handle peering streams.
+	peeringService *peering.Service
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -677,8 +681,16 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	s.publicConnectCAServer.Register(s.publicGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
 		ACLResolver: plainACLResolver{s.ACLResolver},
+		Datacenter:  s.config.Datacenter,
+	}).Register(s.publicGRPCServer)
+
+	serverdiscovery.NewServer(serverdiscovery.Config{
+		Publisher:   s.publisher,
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 
 	// Initialize private gRPC server.
@@ -721,12 +733,19 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
+	p := peering.NewService(
+		deps.Logger.Named("grpc-api.peering"),
+		NewPeeringBackend(s, deps.GRPCConnPool),
+	)
+	s.peeringService = p
+
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
 				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
 				deps.Logger.Named("grpc-api.subscription")))
 		}
+		pbpeering.RegisterPeeringServiceServer(srv, s.peeringService)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: this public gRPC service is also exposed on the private server to
@@ -774,7 +793,7 @@ func (s *Server) setupRaft() error {
 	}()
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
-	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
+	if s.config.RaftConfig.ProtocolVersion >= 3 { // ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
 		serverAddressProvider = s.serverLookup
 	}
 
@@ -1554,6 +1573,8 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 		TrailingLogs:      defaultConf.RaftConfig.TrailingLogs,
 		SnapshotInterval:  defaultConf.RaftConfig.SnapshotInterval,
 		SnapshotThreshold: defaultConf.RaftConfig.SnapshotThreshold,
+		ElectionTimeout:   defaultConf.RaftConfig.ElectionTimeout,
+		HeartbeatTimeout:  defaultConf.RaftConfig.HeartbeatTimeout,
 	}
 	if config.RaftSnapshotThreshold != 0 {
 		raftCfg.SnapshotThreshold = uint64(config.RaftSnapshotThreshold)
@@ -1563,6 +1584,12 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 	}
 	if config.RaftTrailingLogs != 0 {
 		raftCfg.TrailingLogs = uint64(config.RaftTrailingLogs)
+	}
+	if config.HeartbeatTimeout >= 5*time.Millisecond {
+		raftCfg.HeartbeatTimeout = config.HeartbeatTimeout
+	}
+	if config.ElectionTimeout >= 5*time.Millisecond {
+		raftCfg.ElectionTimeout = config.ElectionTimeout
 	}
 	return raftCfg
 }
@@ -1601,7 +1628,7 @@ func (s *Server) trackLeaderChanges() {
 				continue
 			}
 
-			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.Leader))
+			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

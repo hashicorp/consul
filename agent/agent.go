@@ -20,6 +20,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -357,6 +358,8 @@ type Agent struct {
 	// into Agent, which will allow us to remove this field.
 	rpcClientHealth *health.Client
 
+	rpcClientPeering pbpeering.PeeringServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -433,6 +436,8 @@ func New(bd BaseDeps) (*Agent, error) {
 		UseStreamingBackend: a.config.UseStreamingBackend,
 		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
+
+	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -3901,6 +3906,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
 		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
 		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,
+		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
+		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
 		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {

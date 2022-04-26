@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // EventTopicCARoots is the streaming topic to which events will be published
@@ -12,13 +13,7 @@ import (
 //
 // Note: topics are ordinarily defined in subscribe.proto, but this one isn't
 // currently available via the Subscribe endpoint.
-const EventTopicCARoots stringer = "CARoots"
-
-// stringer is a convenience type to turn a regular string into a fmt.Stringer
-// so that it can be used as a stream.Topic or stream.Subject.
-type stringer string
-
-func (s stringer) String() string { return string(s) }
+const EventTopicCARoots stream.StringTopic = "CARoots"
 
 type EventPayloadCARoots struct {
 	CARoots structs.CARoots
@@ -33,6 +28,10 @@ func (e EventPayloadCARoots) HasReadPermission(authz acl.Authorizer) bool {
 		FillAuthzContext(&authzContext)
 
 	return authz.ServiceWriteAny(&authzContext) == acl.Allow
+}
+
+func (e EventPayloadCARoots) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("EventPayloadCARoots does not implement ToSubscriptionEvent")
 }
 
 // caRootsChangeEvents returns an event on EventTopicCARoots whenever the list

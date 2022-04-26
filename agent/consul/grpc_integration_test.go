@@ -2,24 +2,21 @@ package consul
 
 import (
 	"context"
-	"net"
-	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 )
 
 func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	// The gRPC endpoint itself well-tested with mocks. This test checks we're
 	// correctly wiring everything up in the server by:
@@ -28,41 +25,23 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 	//	* Making a request to a follower's public gRPC port.
 	//	* Ensuring that the request is correctly forwarded to the leader.
 	//	* Ensuring we get a valid certificate back (so it went through the CAManager).
-	dir1, server1 := testServerWithConfig(t, func(c *Config) {
+	server1, conn1 := testGRPCIntegrationServer(t, func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 2
 	})
-	defer os.RemoveAll(dir1)
-	defer server1.Shutdown()
 
-	dir2, server2 := testServerWithConfig(t, func(c *Config) {
+	server2, conn2 := testGRPCIntegrationServer(t, func(c *Config) {
 		c.Bootstrap = false
 	})
-	defer os.RemoveAll(dir2)
-	defer server2.Shutdown()
 
 	joinLAN(t, server2, server1)
 
-	testrpc.WaitForLeader(t, server1.RPC, "dc1")
+	waitForLeaderEstablishment(t, server1, server2)
 
-	var follower *Server
-	if server1.IsLeader() {
-		follower = server2
-	} else {
-		follower = server1
+	conn := conn2
+	if server2.IsLeader() {
+		conn = conn1
 	}
-
-	// publicGRPCServer is bound to a listener by the wrapping agent code, so we
-	// need to do it ourselves here.
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	go func() {
-		require.NoError(t, follower.publicGRPCServer.Serve(lis))
-	}()
-	t.Cleanup(follower.publicGRPCServer.Stop)
-
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
-	require.NoError(t, err)
 
 	client := pbconnectca.NewConnectCAServiceClient(conn)
 
@@ -73,12 +52,66 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 		Service:    "foo",
 	})
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	ctx = public.ContextWithToken(ctx, TestDefaultInitialManagementToken)
+
 	// This would fail if it wasn't forwarded to the leader.
-	rsp, err := client.Sign(context.Background(), &pbconnectca.SignRequest{
+	rsp, err := client.Sign(ctx, &pbconnectca.SignRequest{
 		Csr: csr,
 	})
 	require.NoError(t, err)
 
 	_, err = connect.ParseCert(rsp.CertPem)
 	require.NoError(t, err)
+}
+
+func TestGRPCIntegration_ServerDiscovery_WatchServers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// The gRPC endpoint itself well-tested with mocks. This test checks we're
+	// correctly wiring everything up in the server by:
+	//
+	//	* Starting a server
+	// * Initiating the gRPC stream
+	// * Validating the snapshot
+	// * Adding another server
+	// * Validating another message is sent.
+
+	server1, conn := testGRPCIntegrationServer(t, func(c *Config) {
+		c.Bootstrap = true
+		c.BootstrapExpect = 1
+	})
+	waitForLeaderEstablishment(t, server1)
+
+	client := pbserverdiscovery.NewServerDiscoveryServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	ctx = public.ContextWithToken(ctx, TestDefaultInitialManagementToken)
+
+	serverStream, err := client.WatchServers(ctx, &pbserverdiscovery.WatchServersRequest{Wan: false})
+	require.NoError(t, err)
+
+	rsp, err := serverStream.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, rsp)
+	require.Len(t, rsp.Servers, 1)
+
+	_, server2, _ := testACLServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+	}, false)
+
+	// join the new server to the leader
+	joinLAN(t, server2, server1)
+
+	// now receive the event containing 2 servers
+	rsp, err = serverStream.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, rsp)
+	require.Len(t, rsp.Servers, 2)
 }

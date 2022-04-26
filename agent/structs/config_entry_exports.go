@@ -35,9 +35,14 @@ type ExportedService struct {
 }
 
 // ServiceConsumer represents a downstream consumer of the service to be exported.
+// At most one of Partition or PeerName must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
+	// Deprecated: PeerName should be used for both remote peers and local partitions.
 	Partition string
+
+	// PeerName is the name of the peer to export the service to.
+	PeerName string
 }
 
 func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
@@ -99,37 +104,40 @@ func (e *ExportedServicesConfigEntry) Normalize() error {
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
-		e.Services[i].Namespace = acl.NamespaceOrDefault(e.Services[i].Namespace)
+		e.Services[i].Namespace = acl.NormalizeNamespace(e.Services[i].Namespace)
 	}
 
 	return nil
 }
 
 func (e *ExportedServicesConfigEntry) Validate() error {
-	if e.Name == "" {
-		return fmt.Errorf("Name is required")
-	}
-	if e.Name == WildcardSpecifier {
-		return fmt.Errorf("exported-services Name must be the name of a partition, and not a wildcard")
-	}
-
-	if err := requireEnterprise(e.GetKind()); err != nil {
+	if err := validateExportedServicesName(e.Name); err != nil {
 		return err
 	}
+
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
 
-	for _, svc := range e.Services {
+	for i, svc := range e.Services {
 		if svc.Name == "" {
-			return fmt.Errorf("service name cannot be empty")
+			return fmt.Errorf("Services[%d]: service name cannot be empty", i)
+		}
+		if svc.Namespace == WildcardSpecifier && svc.Name != WildcardSpecifier {
+			return fmt.Errorf("Services[%d]: service name must be wildcard if namespace is wildcard", i)
 		}
 		if len(svc.Consumers) == 0 {
-			return fmt.Errorf("service %q must have at least one consumer", svc.Name)
+			return fmt.Errorf("Services[%d]: must have at least one consumer", i)
 		}
-		for _, consumer := range svc.Consumers {
+		for j, consumer := range svc.Consumers {
+			if consumer.PeerName != "" && consumer.Partition != "" {
+				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of PeerName or Partition", i, j)
+			}
 			if consumer.Partition == WildcardSpecifier {
-				return fmt.Errorf("exporting to all partitions (wildcard) is not yet supported")
+				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all partitions (wildcard) is not supported", i, j)
+			}
+			if consumer.PeerName == WildcardSpecifier {
+				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all peers (wildcard) is not supported", i, j)
 			}
 		}
 	}

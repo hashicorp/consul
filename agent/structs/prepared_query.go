@@ -79,6 +79,10 @@ type ServiceQuery struct {
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
 
+	// If not empty, PeerName represents the peer that the service
+	// was imported from.
+	PeerName string
+
 	// EnterpriseMeta is the embedded enterprise metadata
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }

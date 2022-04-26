@@ -10,7 +10,7 @@ Feature: page-navigation
     ---
       dc: dc1
     ---
-    Then the url should be /dc1/overview/server-status
+    Then the url should be /dc1/services
   Scenario: Clicking [Link] in the navigation takes me to [URL]
     When I visit the services page for yaml
     ---

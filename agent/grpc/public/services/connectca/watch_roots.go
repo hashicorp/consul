@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -30,7 +29,7 @@ func (s *Server) WatchRoots(_ *emptypb.Empty, serverStream pbconnectca.ConnectCA
 		return err
 	}
 
-	logger := s.Logger.Named("watch-roots").With("stream_id", traceID())
+	logger := s.Logger.Named("watch-roots").With("request_id", public.TraceID())
 	logger.Trace("starting stream")
 	defer logger.Trace("stream closed")
 
@@ -179,16 +178,6 @@ func (s *Server) authorize(token string) error {
 		return status.Error(codes.PermissionDenied, err.Error())
 	}
 	return nil
-}
-
-// We tag logs with a unique identifier to ease debugging. In the future this
-// should probably be a real Open Telemetry trace ID.
-func traceID() string {
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return ""
-	}
-	return id
 }
 
 func getTrustDomain(store StateStore, logger hclog.Logger) (string, error) {

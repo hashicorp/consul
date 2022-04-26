@@ -16,49 +16,6 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func TestEventPayloadCheckServiceNode_Subject(t *testing.T) {
-	for desc, tc := range map[string]struct {
-		evt EventPayloadCheckServiceNode
-		sub string
-	}{
-		"default partition and namespace": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-			},
-			"default/default/foo",
-		},
-		"mixed casing": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "FoO",
-					},
-				},
-			},
-			"default/default/foo",
-		},
-		"override key": {
-			EventPayloadCheckServiceNode{
-				Value: &structs.CheckServiceNode{
-					Service: &structs.NodeService{
-						Service: "foo",
-					},
-				},
-				overrideKey: "bar",
-			},
-			"default/default/bar",
-		},
-	} {
-		t.Run(desc, func(t *testing.T) {
-			require.Equal(t, tc.sub, tc.evt.Subject().String())
-		})
-	}
-}
-
 func TestServiceHealthSnapshot(t *testing.T) {
 	store := NewStateStore(nil)
 
@@ -307,7 +264,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// Should only publish deregistration for that service
@@ -327,7 +284,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteNodeTxn(tx, tx.Index, "node1", nil)
+			return s.deleteNodeTxn(tx, tx.Index, "node1", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// Should publish deregistration events for all services
@@ -380,7 +337,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// We should see both a regular service dereg event and a connect one
@@ -444,7 +401,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete only the sidecar
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "web_sidecar_proxy", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "web_sidecar_proxy", nil, "")
 		},
 		WantEvents: []stream.Event{
 			// We should see both a regular service dereg event and a connect one
@@ -910,7 +867,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete only the node-level check
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "serf-health", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "serf-health", nil, ""); err != nil {
 				return err
 			}
 			return nil
@@ -964,11 +921,11 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			// Delete the service-level check for the main service
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web", nil, ""); err != nil {
 				return err
 			}
 			// Also delete for a proxy
-			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web_sidecar_proxy", nil); err != nil {
+			if err := s.deleteCheckTxn(tx, tx.Index, "node1", "service:web_sidecar_proxy", nil, ""); err != nil {
 				return err
 			}
 			return nil
@@ -1029,10 +986,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			// In one transaction the operator moves the web service and it's
 			// sidecar from node2 back to node1 and deletes them from node2
 
-			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web", nil); err != nil {
+			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web", nil, ""); err != nil {
 				return err
 			}
-			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web_sidecar_proxy", nil); err != nil {
+			if err := s.deleteServiceTxn(tx, tx.Index, "node2", "web_sidecar_proxy", nil, ""); err != nil {
 				return err
 			}
 
@@ -1544,7 +1501,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "srv1", nil)
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "srv1", nil, "")
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t, "srv1"),
@@ -1649,7 +1606,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition())
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition(), "")
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,

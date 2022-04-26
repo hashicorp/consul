@@ -29,7 +29,7 @@ func TestSubscription(t *testing.T) {
 
 	req := SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("test"),
+		Subject: StringSubject("test"),
 	}
 	sub := newSubscription(req, startHead, noopUnSub)
 
@@ -103,7 +103,7 @@ func TestSubscription_Close(t *testing.T) {
 
 	req := SubscribeRequest{
 		Topic:   testTopic,
-		Subject: stringer("test"),
+		Subject: StringSubject("test"),
 	}
 	sub := newSubscription(req, startHead, noopUnSub)
 

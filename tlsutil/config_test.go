@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -1018,15 +1020,16 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		shouldErr      bool
 		isNil          bool
 		count          int
+		expectedCaPool *x509.CertPool
 	}
 	variants := []variant{
-		{"", "", false, true, 0},
-		{"bogus", "", true, true, 0},
-		{"", "bogus", true, true, 0},
-		{"", "../test/bin", true, true, 0},
-		{"../test/ca/root.cer", "", false, false, 1},
-		{"", "../test/ca_path", false, false, 2},
-		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
+		{"", "", false, true, 0, nil},
+		{"bogus", "", true, true, 0, nil},
+		{"", "bogus", true, true, 0, nil},
+		{"", "../test/bin", true, true, 0, nil},
+		{"../test/ca/root.cer", "", false, false, 1, getExpectedCaPoolByFile(t)},
+		{"", "../test/ca_path", false, false, 2, getExpectedCaPoolByDir(t)},
+		{"../test/ca/root.cer", "../test/ca_path", false, false, 1, getExpectedCaPoolByFile(t)},
 	}
 	for i, v := range variants {
 		pems, err1 := LoadCAs(v.cafile, v.capath)
@@ -1045,7 +1048,7 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		} else {
 			require.NotEmpty(t, pems, info)
 			require.NotNil(t, pool, info)
-			require.Len(t, pool.Subjects(), v.count, info)
+			assertDeepEqual(t, v.expectedCaPool, pool, cmpCertPool)
 			require.Len(t, pems, v.count, info)
 		}
 	}
@@ -1325,7 +1328,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4803632738), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
@@ -1569,4 +1572,52 @@ func loadFile(t *testing.T, path string) string {
 	data, err := ioutil.ReadFile(path)
 	require.NoError(t, err)
 	return string(data)
+}
+
+func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	if err != nil {
+		t.Fatal("could not open test file ../test/ca/root.cer for reading")
+	}
+	if !pool.AppendCertsFromPEM(data) {
+		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
+	}
+	return pool
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	if err != nil {
+		t.Fatal("could not open test dir ../test/ca_path for reading")
+	}
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			t.Fatalf("could not open test file %s for reading", filename)
+		}
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

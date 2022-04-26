@@ -770,7 +770,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Service identity %q cannot specify a list of datacenters on a local token", svcid.ServiceName)
 		}
 		if !isValidServiceIdentityName(svcid.ServiceName) {
-			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
+			return fmt.Errorf("Service identity %q has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
 		}
 	}
 	token.ServiceIdentities = dedupeServiceIdentities(token.ServiceIdentities)
@@ -783,7 +783,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Node identity is missing the datacenter field on this token")
 		}
 		if !isValidNodeIdentityName(nodeid.NodeName) {
-			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+			return fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")
 		}
 	}
 	token.NodeIdentities = dedupeNodeIdentities(token.NodeIdentities)
@@ -1682,7 +1682,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 			return fmt.Errorf("Service identity is missing the service name field on this role")
 		}
 		if !isValidServiceIdentityName(svcid.ServiceName) {
-			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
+			return fmt.Errorf("Service identity %q has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
 		}
 	}
 	role.ServiceIdentities = dedupeServiceIdentities(role.ServiceIdentities)
@@ -1695,7 +1695,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 			return fmt.Errorf("Node identity is missing the datacenter field on this role")
 		}
 		if !isValidNodeIdentityName(nodeid.NodeName) {
-			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+			return fmt.Errorf("Node identity has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed")
 		}
 	}
 	role.NodeIdentities = dedupeNodeIdentities(role.NodeIdentities)

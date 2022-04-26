@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-//go:generate mockery -name Provider -inpkg
+//go:generate mockery --name Provider --inpackage
 
 // ErrRateLimited is a sentinel error value Providers may return from any method
 // to indicate that the operation can't complete due to a temporary rate limit.

@@ -33,6 +33,11 @@ section[data-route='dc.show.serverstatus'] {
   border-bottom: var(--decor-border-100);
   border-color: rgb(var(--tone-border));
 }
+%server-failure-tolerance > header a {
+  float: right;
+  margin-top: 4px;
+  font-weight: var(--typo-weight-semibold);
+}
 %server-failure-tolerance header em {
   @extend %pill-200;
   font-size: 0.812rem; /* 13px */
