@@ -1,0 +1,76 @@
+---
+layout: docs
+page_title: 0.1.x
+description: >-
+  Consul API Gateway release notes for version 0.1.x
+---
+
+
+# Consul API Gateway 0.1.0
+
+## OVerview
+
+This is the first general availability (GA) release of Consul API Gateway. It
+provides controlled access for network traffic from outside a Consul service
+mesh to Services on the mesh
+
+You can use API Gateway in Kubernetes deployments as an alternative to Consul's ingress
+gateway functionality. It provides additional capabilities that ingress gateway does not. These include:
+
+1. It allows you to configure and deploy new gateways at any time, without
+   rerunning the Consul Helm chart. The configuration of a running gateway can
+   be changed dynamically at anytime, usually without disrupting any the the
+   traffic flowing through it.
+1. Listeners on a gateway can use TLS server certificates signed by any
+   certificate authority (CA). This allows you to use certificates from public
+   CA's, such as Verisign and Let's Encrypt, and private CA's, such as a company's
+   internal CA.
+
+## Release Highlights
+This release includes the following features and capabilities:
+
+1. Can be deployed in the following run time environments:
+  - Self-managed Kubernetes
+  - AWS EKS
+  - Google GKE
+  - Azure AKS.
+1. Install via the  HashiCorp Consul Helm chart.
+1. Works with self-managed Consul servers and HCP Consul servers
+1. Configure via Kubernetes Gateway API - v1alpha2
+1. Deploy 1 or more logical API Gateways per Kubernetes cluster
+1. Support for HTTP, HTTPS, TCP, and TCP+TLS
+1. Support for HTTP versions 1.1 and 2
+1. Load balance across a service’s instances
+1. Listeners load TLS certificates, signed by any CA, from Kubernetes secret storage
+1. Route HTTP/S traffic to Services based on matching:
+   - Hostname
+   - URI Path
+   - HTTP Header
+   - HTTP Method
+   - HTTP Query parameters
+1  HTTP header manipulation:
+   - Set header value
+   - Add header and/or value
+   - Remove header and/or value
+1. TLS settings configurable per Kubernetes Listener:
+   - Set minimum allowed TLS version
+   - Enabled cipher-suites (a.k.a. cipher string)
+1. Route to services in different namespaces
+1. Split traffic across multiple services based on weight
+1. Support for multi-runtime service mesh deployments
+   - Consul API Gateway must be running on Kubernetes, but it can route
+     traffic to services running outside of K8s as long the service is connected to the Consul service mesh.
+
+## Supported Software
+
+- Consul 1.11.2+
+- HashiCorp Consul Helm chart 0.41.1+
+- Kubernetes 1.21+
+- Kubectl 1.21+
+- Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details.
+
+## Kubernetes Gateway API Specification
+
+Supported version of the Gateway API spec: `v1alpha2`(v0.4.1)
+
+For more detailed information, please refer to the [product documentation](/docs/api-gateway).
