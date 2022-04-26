@@ -1246,17 +1246,17 @@ module.exports = [
   },
   {
     source: '/docs/release-notes/1-11-0',
-    destination: '/docs/releases/release-notes/v1_11_0',
+    destination: '/docs/release-notes/consul/v1_11_x',
     permanent: true,
   },
   {
     source: '/docs/release-notes/1-10-0',
-    destination: '/docs/releases/release-notes/v1_10_0',
+    destination: '/docs/release-notes/consul/v1_10_x',
     permanent: true,
   },
   {
     source: '/docs/release-notes/1-9-0',
-    destination: '/docs/releases/release-notes/v1_9_0',
+    destination: '/docs/release-notes/consul/v1_9_x',
     permanent: true,
   },
   {
@@ -1270,6 +1270,26 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/releases/release-notes/v1_11_0',
+    destination: '/docs/release-notes/consul/v1_11_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/release-notes/consul/v1_10_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/release-notes/consul/v1_9_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/release-notes/0-5-0',
+    destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
+   permanent: true,
+  },
+  { 
     source: '/docs/api-gateway/api-gateway-usage',
     destination: '/docs/api-gateway/consul-api-gateway-install',
     permanent: true,
