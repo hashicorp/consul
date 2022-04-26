@@ -1285,8 +1285,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/nia/release-notes/:path',
-    destination: '/docs/release-notes/consul-terraform-sync/:path',
+    source: '/docs/nia/release-notes/0-5-0',
+    destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
     permanent: true,
   },
 ]

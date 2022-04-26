@@ -1208,8 +1208,8 @@
         "title": "Consul API Gateway",
         "routes": [
           {
-            "title": "v0.1.0",
-            "path": "release-notes/consul-api-gateway/v0_1_0"
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
           }
         ]
       },
@@ -1227,15 +1227,6 @@
           {
             "title": "v0.2.x",
             "path": "release-notes/consul-ecs/v0_2_x"
-          }
-        ]
-      },
-      {
-        "title": "Consul K8s",
-        "routes": [
-          {
-            "title": "v0.43.x",
-            "path": "release-notes/consul-k8s/v0_43_x"
           }
         ]
       },
