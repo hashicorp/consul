@@ -1266,7 +1266,7 @@ module.exports = [
   },
   {
     source: '/docs/agent/options',
-    destination: '/docs/agent/config',
+    destination: '/docs/agent/config/config-files',
     permanent: true,
   },
   {
