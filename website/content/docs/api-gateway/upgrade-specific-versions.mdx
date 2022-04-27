@@ -231,8 +231,8 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. (Optional) Delete and recreate your routes. Note that it may take several minutes for attached routes to reconcile and start reporting bind errors.
   ```shell-session
-  $ kubectl delete -f <path_to_route_config.yaml>
-  $ kubectl create -f <path_to_route_config.yaml>
+  $ kubectl delete --filename <path_to_route_config.yaml>
+  $ kubectl create --filename <path_to_route_config.yaml>
   ```
 
 ## Post-Upgrade Configuration Changes
