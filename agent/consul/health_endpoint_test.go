@@ -663,6 +663,85 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 }
 
+func TestHealth_ServiceNodes_BlockingQuery_withFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServer(t)
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	register := func(t *testing.T, name, tag string) {
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			ID:         types.NodeID("43d419c0-433b-42c3-bf8a-193eba0b41a3"),
+			Node:       "node1",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      name,
+				Service: name,
+				Tags:    []string{tag},
+			},
+		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+
+	register(t, "web", "foo")
+
+	var lastIndex uint64
+	runStep(t, "read original", func(t *testing.T) {
+		var out structs.IndexedCheckServiceNodes
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+			QueryOptions: structs.QueryOptions{
+				Filter: "foo in Service.Tags",
+			},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out))
+
+		require.Len(t, out.Nodes, 1)
+		node := out.Nodes[0]
+		require.Equal(t, "node1", node.Node.Node)
+		require.Equal(t, "web", node.Service.Service)
+		require.Equal(t, []string{"foo"}, node.Service.Tags)
+
+		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
+		lastIndex = out.Index
+	})
+
+	runStep(t, "read blocking query result", func(t *testing.T) {
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+			QueryOptions: structs.QueryOptions{
+				Filter: "foo in Service.Tags",
+			},
+		}
+		req.MinQueryIndex = lastIndex
+
+		var out structs.IndexedCheckServiceNodes
+		errCh := channelCallRPC(s1, "Health.ServiceNodes", &req, &out, nil)
+
+		time.Sleep(200 * time.Millisecond)
+
+		// Change the tags
+		register(t, "web", "bar")
+
+		if err := <-errCh; err != nil {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
+		require.Len(t, out.Nodes, 0)
+	})
+}
+
 func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
