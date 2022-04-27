@@ -222,8 +222,8 @@ Ensure that the following requirements are met prior to upgrading:
 1. According to the Kubernetes Gateway API specification, [Gateway Class](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io%2fv1alpha2.GatewayClass) configurations should only be applied to a gateway upon creation. To see the effects on preexisting gateways after upgrading your CRD installation, delete and recreate any gateways by issuing the following commands:  
 
   ```shell-session
-  $ kubectl delete -f <path_to_gateway_config.yaml>
-  $ kubectl create -f <path_to_gateway_config.yaml>
+  $ kubectl delete --filename <path_to_gateway_config.yaml>
+  $ kubectl create --filename <path_to_gateway_config.yaml>
   ```
   <!---
   remove this warning once updating a gateway triggers reconciliation on child routes
