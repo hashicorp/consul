@@ -2,9 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul"
 	discover "github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
 	"github.com/hashicorp/go-hclog"
@@ -12,13 +15,27 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
+// advertiseAddrs returns a list of addresses that this agent is advertising on.
+func (a *Agent) advertiseAddrs() []string {
+	return []string{
+		net.JoinHostPort(
+			a.config.AdvertiseAddrLAN.IP.String(), strconv.Itoa(a.config.SerfPortLAN),
+		),
+		net.JoinHostPort(
+			a.config.AdvertiseAddrWAN.IP.String(), strconv.Itoa(a.config.SerfPortWAN),
+		),
+	}
+
+}
+
 func (a *Agent) retryJoinLAN() {
 	r := &retryJoiner{
-		variant:     retryJoinSerfVariant,
-		cluster:     "LAN",
-		addrs:       a.config.RetryJoinLAN,
-		maxAttempts: a.config.RetryJoinMaxAttemptsLAN,
-		interval:    a.config.RetryJoinIntervalLAN,
+		variant:      retryJoinSerfVariant,
+		cluster:      "LAN",
+		addrs:        a.config.RetryJoinLAN,
+		excludeAddrs: a.advertiseAddrs(),
+		maxAttempts:  a.config.RetryJoinMaxAttemptsLAN,
+		interval:     a.config.RetryJoinIntervalLAN,
 		join: func(addrs []string) (int, error) {
 			// NOTE: For partitioned servers you are only capable of using retry join
 			// to join nodes in the default partition.
@@ -74,13 +91,14 @@ func (a *Agent) retryJoinWAN() {
 	}
 
 	r := &retryJoiner{
-		variant:     retryJoinSerfVariant,
-		cluster:     "WAN",
-		addrs:       joinAddrs,
-		maxAttempts: a.config.RetryJoinMaxAttemptsWAN,
-		interval:    a.config.RetryJoinIntervalWAN,
-		join:        a.JoinWAN,
-		logger:      a.logger.With("cluster", "WAN"),
+		variant:      retryJoinSerfVariant,
+		cluster:      "WAN",
+		addrs:        joinAddrs,
+		excludeAddrs: a.advertiseAddrs(),
+		maxAttempts:  a.config.RetryJoinMaxAttemptsWAN,
+		interval:     a.config.RetryJoinIntervalWAN,
+		join:         a.JoinWAN,
+		logger:       a.logger.With("cluster", "WAN"),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -121,7 +139,40 @@ func newDiscover() (*discover.Discover, error) {
 	)
 }
 
-func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin []string, logger hclog.Logger) []string {
+// hasPort is given a string of the form "host", "host:port", "ipv6::address",
+// or "[ipv6::address]:port", and returns true if the string includes a port.
+//
+// Taken directly from hashicorp/memberlist.
+func hasPort(s string) bool {
+	// IPv6 address in brackets.
+	if strings.LastIndex(s, "[") == 0 {
+		return strings.LastIndex(s, ":") > strings.LastIndex(s, "]")
+	}
+
+	// Otherwise the presence of a single colon determines if there's a port
+	// since IPv6 addresses outside of brackets (count > 1) can't have a
+	// port.
+	return strings.Count(s, ":") == 1
+}
+
+func addrInSlice(addr string, s []string) bool {
+	for _, element := range s {
+		if element == addr {
+			return true
+		}
+	}
+
+	return false
+}
+
+func retryJoinAddrs(
+	disco *discover.Discover,
+	variant string,
+	cluster string,
+	retryJoin []string,
+	excludeAddrs []string,
+	logger hclog.Logger,
+) []string {
 	addrs := []string{}
 	if disco == nil {
 		return addrs
@@ -157,6 +208,34 @@ func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin
 			}
 
 		default:
+			// Append default serf port to addr if the port is not specified.
+			addrWithPorts := make([]string, 1)
+			addrWithPorts[0] = addr
+
+			if !hasPort(addr) {
+				addrWithPorts[0] = net.JoinHostPort(addr, strconv.Itoa(consul.DefaultLANSerfPort))
+				addrWithPorts = append(
+					addrWithPorts, net.JoinHostPort(addr, strconv.Itoa(consul.DefaultWANSerfPort)),
+				)
+			}
+
+			var match string
+			skipping := false
+			for _, addrWithPort := range addrWithPorts {
+				if addrInSlice(addrWithPort, excludeAddrs) {
+					skipping = true
+					match = addrWithPort
+				}
+			}
+
+			if skipping {
+				if logger != nil {
+					logger.Info("This agent is bound to: %s. Not attempting to self-join.", match)
+				}
+
+				continue
+			}
+
 			addrs = append(addrs, addr)
 		}
 	}
@@ -182,6 +261,10 @@ type retryJoiner struct {
 	// addrs is the list of servers or go-discover configurations
 	// to join with.
 	addrs []string
+
+	// excludeAddrs is a list of addresses that this joiner should not attempt
+	// to join to.
+	excludeAddrs []string
 
 	// maxAttempts is the number of join attempts before giving up.
 	maxAttempts int
@@ -224,7 +307,7 @@ func (r *retryJoiner) retryJoin() error {
 
 	attempt := 0
 	for {
-		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.logger)
+		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.excludeAddrs, r.logger)
 		if len(addrs) > 0 {
 			n, err := r.join(addrs)
 			if err == nil {
