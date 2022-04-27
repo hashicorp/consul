@@ -602,6 +602,7 @@ services = [
                         local_path_port = 8080
                         listener_port = 21500
                         protocol = "http"
+                        websocket = true
                     }
                 ]
             }

@@ -34,6 +34,11 @@ type CompileRequest struct {
 	// will not include Routers or Splitters.
 	OverrideProtocol string
 
+	// OverrideWebsocket allows usage of the websocket, this field is only allowed
+	// when protocol is http.
+	// If not present, the previously declared websocket state will be used.
+	OverrideWebsocket string
+
 	// OverrideConnectTimeout allows for the ConnectTimeout setting to be
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
@@ -91,6 +96,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		evaluateInTrustDomain:  evaluateInTrustDomain,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
+		overrideWebsocket:      req.OverrideWebsocket,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
 
@@ -120,13 +126,15 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 // compiler is a single-use struct for handling intermediate state necessary
 // for assembling a discovery chain from raw config entries.
 type compiler struct {
-	serviceName            string
-	evaluateInNamespace    string
-	evaluateInPartition    string
-	evaluateInDatacenter   string
-	evaluateInTrustDomain  string
-	overrideMeshGateway    structs.MeshGatewayConfig
-	overrideProtocol       string
+	serviceName           string
+	evaluateInNamespace   string
+	evaluateInPartition   string
+	evaluateInDatacenter  string
+	evaluateInTrustDomain string
+	overrideMeshGateway   structs.MeshGatewayConfig
+	overrideProtocol      string // using string since we want a three-state, empty true and false
+	// to avoid overriding the value when omitted
+	overrideWebsocket      string
 	overrideConnectTimeout time.Duration
 
 	// config entries that are being compiled (will be mutated during compilation)
@@ -161,6 +169,12 @@ type compiler struct {
 	// This is an OUTPUT field.
 	protocol string
 
+	// websocket whether upgrade to websocket connection is supported.
+	// Only valid for http protocol.
+	//
+	// This is an OUTPUT field.
+	websocket bool
+
 	// serviceMeta is the Meta field from the service-defaults entry that
 	// shares a name with this discovery chain.
 	//
@@ -185,6 +199,7 @@ type compiler struct {
 type customizationMarkers struct {
 	MeshGateway    bool
 	Protocol       bool
+	Websocket      bool
 	ConnectTimeout bool
 }
 
@@ -196,7 +211,7 @@ func serviceIDString(sid structs.ServiceID) string {
 }
 
 func (m *customizationMarkers) IsZero() bool {
-	return !m.MeshGateway && !m.Protocol && !m.ConnectTimeout
+	return !m.MeshGateway && !m.Protocol && !m.ConnectTimeout && !m.Websocket
 }
 
 // recordNode stores the node internally in the compiled chain.
@@ -218,17 +233,17 @@ func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
 
 func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
-		return c.recordProtocol(sid, serviceDefault.Protocol)
+		return c.recordProtocol(sid, serviceDefault.Protocol, serviceDefault.Websocket)
 	}
 	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
 		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
 		if cfg.Protocol != "" {
-			return c.recordProtocol(sid, cfg.Protocol)
+			return c.recordProtocol(sid, cfg.Protocol, false)
 		}
 	}
-	return c.recordProtocol(sid, "")
+	return c.recordProtocol(sid, "", false)
 }
 
 // proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
@@ -236,7 +251,7 @@ type proxyConfig struct {
 	Protocol string `mapstructure:"protocol"`
 }
 
-func (c *compiler) recordProtocol(fromService structs.ServiceID, protocol string) error {
+func (c *compiler) recordProtocol(fromService structs.ServiceID, protocol string, websocket bool) error {
 	if protocol == "" {
 		protocol = "tcp"
 	} else {
@@ -244,6 +259,15 @@ func (c *compiler) recordProtocol(fromService structs.ServiceID, protocol string
 	}
 
 	if c.protocol == "" {
+		if websocket && protocol != "http" {
+			return &structs.ConfigEntryGraphError{
+				Message: fmt.Sprintf(
+					"discovery chain %q uses inconsistent protocols; service %q has %q but uses websocket",
+					c.serviceName, fromService.String(), protocol,
+				),
+			}
+		}
+		c.websocket = websocket
 		c.protocol = protocol
 	} else if c.protocol != protocol {
 		return &structs.ConfigEntryGraphError{
@@ -304,11 +328,20 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		}
 	}
 
+	if c.overrideWebsocket != "" {
+		parsedWebsocket := strings.ToLower(c.overrideWebsocket) == "true"
+		if parsedWebsocket != c.websocket {
+			c.websocket = parsedWebsocket
+			c.customizedBy.Websocket = true
+		}
+	}
+
 	var customizationHash string
 	if !c.customizedBy.IsZero() {
 		var customization struct {
 			OverrideMeshGateway    structs.MeshGatewayConfig
 			OverrideProtocol       string
+			OverrideWebsocket      string
 			OverrideConnectTimeout time.Duration
 		}
 
@@ -317,6 +350,9 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		}
 		if c.customizedBy.Protocol {
 			customization.OverrideProtocol = c.overrideProtocol
+		}
+		if c.customizedBy.Websocket {
+			customization.OverrideWebsocket = c.overrideWebsocket
 		}
 		if c.customizedBy.ConnectTimeout {
 			customization.OverrideConnectTimeout = c.overrideConnectTimeout
@@ -336,6 +372,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		Default:           c.determineIfDefaultChain(),
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
+		Websocket:         c.websocket,
 		ServiceMeta:       c.serviceMeta,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,

@@ -70,6 +70,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				clusterName: clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
+				websocket:   cfg.Websocket,
 				tlsContext:  tlsContext,
 			})
 			if err != nil {

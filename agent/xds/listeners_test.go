@@ -190,6 +190,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "http-public-listener-websocket",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["websocket"] = "true"
+				}, nil)
+			},
+		},
+		{
 			name: "http-listener-with-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {

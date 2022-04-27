@@ -49,6 +49,11 @@ type ProxyConfig struct {
 	// pooling, tracing, routing etc.
 	Protocol string `mapstructure:"protocol"`
 
+	// Websocket enable or disable the possibility to upgrade a http
+	// connection to a websocket. Makes sense only for http protocol,
+	// disabled by default.
+	Websocket bool `mapstructure:"websocket"`
+
 	// BindAddress overrides the address the proxy's listener binds to. This
 	// enables proxies in network namespaces to bind to a different address
 	// than the host address.

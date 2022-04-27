@@ -1271,11 +1271,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// GW level TLS should be disabled
 						require.False(t, snap.IngressGateway.TLSConfig.Enabled)
 						// Mixed listener TLS
-						l, ok := snap.IngressGateway.Listeners[IngressListenerKey{"tcp", 8080}]
+						l, ok := snap.IngressGateway.Listeners[IngressListenerKey{"tcp", false, 8080}]
 						require.True(t, ok)
 						require.NotNil(t, l.TLS)
 						require.True(t, l.TLS.Enabled)
-						l, ok = snap.IngressGateway.Listeners[IngressListenerKey{"tcp", 9090}]
+						l, ok = snap.IngressGateway.Listeners[IngressListenerKey{"tcp", false, 9090}]
 						require.True(t, ok)
 						require.Nil(t, l.TLS)
 

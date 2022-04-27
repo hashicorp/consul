@@ -34,6 +34,9 @@ type CompiledDiscoveryChain struct {
 	// Protocol is the overall protocol shared by everything in the chain.
 	Protocol string `json:",omitempty"`
 
+	// Websocket whether websocket upgrade is supported.
+	Websocket bool
+
 	// ServiceMeta is the metadata from the underlying service-defaults config
 	// entry for the service named ServiceName.
 	ServiceMeta map[string]string `json:",omitempty"`

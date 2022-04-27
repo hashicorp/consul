@@ -625,8 +625,9 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 }
 
 type IngressListenerKey struct {
-	Protocol string
-	Port     int
+	Protocol  string
+	Websocket bool
+	Port      int
 }
 
 func (k *IngressListenerKey) RouteName() string {
@@ -634,11 +635,11 @@ func (k *IngressListenerKey) RouteName() string {
 }
 
 func IngressListenerKeyFromGWService(s structs.GatewayService) IngressListenerKey {
-	return IngressListenerKey{Protocol: s.Protocol, Port: s.Port}
+	return IngressListenerKey{Protocol: s.Protocol, Websocket: s.Websocket, Port: s.Port}
 }
 
 func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKey {
-	return IngressListenerKey{Protocol: l.Protocol, Port: l.Port}
+	return IngressListenerKey{Protocol: l.Protocol, Websocket: l.Websocket, Port: l.Port}
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.

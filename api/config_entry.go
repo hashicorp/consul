@@ -118,6 +118,9 @@ type ExposePath struct {
 	// Valid values are "http" and "http2", defaults to "http"
 	Protocol string `json:",omitempty"`
 
+	// Websocket whether websocket upgrade is supported.
+	Websocket bool `json:",omitempty"`
+
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
 }
@@ -162,6 +165,9 @@ type UpstreamConfig struct {
 	// aware features like per-request metrics and connection pooling, tracing,
 	// routing etc.
 	Protocol string `json:",omitempty"`
+
+	// Websocket whether websocket upgrade is supported.
+	Websocket bool `json:",omitempty"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
@@ -223,6 +229,7 @@ type ServiceConfigEntry struct {
 	Partition        string                  `json:",omitempty"`
 	Namespace        string                  `json:",omitempty"`
 	Protocol         string                  `json:",omitempty"`
+	Websocket        bool                    `json:",omitempty"`
 	Mode             ProxyMode               `json:",omitempty"`
 	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`

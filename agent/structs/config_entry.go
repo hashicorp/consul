@@ -100,6 +100,7 @@ type ServiceConfigEntry struct {
 	Kind                  string
 	Name                  string
 	Protocol              string
+	Websocket             bool
 	Mode                  ProxyMode              `json:",omitempty"`
 	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
@@ -151,6 +152,10 @@ func (e *ServiceConfigEntry) Normalize() error {
 
 	var validationErr error
 
+	if e.Websocket && e.Protocol != "http" {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("error in default configurations provided for %s: websocket parameter was used for protocols different from http", e.Name))
+	}
+
 	if e.UpstreamConfig != nil {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.NormalizeWithName(&e.EnterpriseMeta)
@@ -184,6 +189,10 @@ func (e *ServiceConfigEntry) Validate() error {
 	if e.UpstreamConfig != nil && e.Destination != nil {
 		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Destination are mutually exclusive for service defaults"))
 		return validationErr
+	}
+
+	if e.Websocket && e.Protocol != "http" {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("error in default configurations provided for %s: websocket parameter was used for protocols different from http", e.Name))
 	}
 
 	if e.UpstreamConfig != nil {
@@ -775,6 +784,11 @@ type UpstreamConfig struct {
 	// aware features like per-request metrics and connection pooling, tracing,
 	// routing etc.
 	Protocol string `json:",omitempty"`
+
+	// Websocket enable or disable the possibility to upgrade a http
+	// connection to a websocket. Makes sense only for http protocol,
+	// disabled by default.
+	Websocket bool `json:",omitempty"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.

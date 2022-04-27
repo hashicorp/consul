@@ -581,6 +581,9 @@ type ExposePath struct {
 	// Protocol describes the upstream's service protocol.
 	Protocol *string `mapstructure:"protocol"`
 
+	// Websocket whether websocket upgrade is supported.
+	Websocket *bool `mapstructure:"websocket"`
+
 	// LocalPathPort is the port that the service is listening on for the given path.
 	LocalPathPort *int `mapstructure:"local_path_port"`
 }

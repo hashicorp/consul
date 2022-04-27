@@ -152,6 +152,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				clusterName: clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
+				websocket:   cfg.Websocket,
 				useRDS:      useRDS,
 			})
 			if err != nil {
@@ -177,6 +178,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			clusterName: clusterName,
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
+			websocket:   cfg.Websocket,
 			useRDS:      useRDS,
 		})
 		if err != nil {
@@ -345,6 +347,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					upstreamCfg.DestinationPeer),
 				routeName:  uid.EnvoyID(),
 				protocol:   cfg.Protocol,
+				websocket:  cfg.Websocket,
 				useRDS:     false,
 				statPrefix: "upstream_peered.",
 			})
@@ -533,6 +536,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterName:  uid.EnvoyID(),
 			routeName:   uid.EnvoyID(),
 			protocol:    cfg.Protocol,
+			websocket:   cfg.Websocket,
 		})
 		if err != nil {
 			return nil, err
@@ -1190,6 +1194,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 	filterOpts := listenerFilterOpts{
 		protocol:         cfg.Protocol,
+		websocket:        cfg.Websocket,
 		filterName:       name,
 		routeName:        name,
 		cluster:          LocalAppClusterName,
@@ -1293,6 +1298,7 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 	opts := listenerFilterOpts{
 		useRDS:          false,
 		protocol:        path.Protocol,
+		websocket:       path.Websocket,
 		filterName:      filterName,
 		routeName:       filterName,
 		cluster:         cluster,
@@ -1386,6 +1392,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			service:    svc,
 			intentions: intentions,
 			protocol:   cfg.Protocol,
+			websocket:  cfg.Websocket,
 		}
 
 		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
@@ -1486,6 +1493,7 @@ type terminatingGatewayFilterChainOpts struct {
 	service    structs.ServiceName
 	intentions structs.Intentions
 	protocol   string
+	websocket  bool
 	address    string // only valid for destination listeners
 	port       int    // only valid for destination listeners
 }
@@ -1536,6 +1544,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
 		protocol:   tgtwyOpts.protocol,
+		websocket:  tgtwyOpts.websocket,
 		filterName: fmt.Sprintf("%s.%s.%s.%s", tgtwyOpts.service.Name, tgtwyOpts.service.NamespaceOrDefault(), tgtwyOpts.service.PartitionOrDefault(), cfgSnap.Datacenter),
 		routeName:  tgtwyOpts.cluster, // Set cluster name for route config since each will have its own
 		cluster:    tgtwyOpts.cluster,
@@ -1782,6 +1791,7 @@ type filterChainOpts struct {
 	clusterName          string
 	filterName           string
 	protocol             string
+	websocket            bool
 	useRDS               bool
 	tlsContext           *envoy_tls_v3.DownstreamTlsContext
 	statPrefix           string
@@ -1796,6 +1806,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 	filter, err := makeListenerFilter(listenerFilterOpts{
 		useRDS:               opts.useRDS,
 		protocol:             opts.protocol,
+		websocket:            opts.websocket,
 		filterName:           opts.filterName,
 		routeName:            opts.routeName,
 		cluster:              opts.clusterName,
@@ -1934,6 +1945,7 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 type listenerFilterOpts struct {
 	useRDS               bool
 	protocol             string
+	websocket            bool
 	filterName           string
 	routeName            string
 	cluster              string
@@ -2008,6 +2020,17 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		return nil, err
 	}
 
+	var UpgradeConfigs []*envoy_http_v3.HttpConnectionManager_UpgradeConfig
+	if opts.protocol == "http" && opts.websocket {
+		UpgradeConfigs = []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+			{
+				UpgradeType: "websocket",
+			},
+		}
+	} else {
+		UpgradeConfigs = []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{}
+	}
+
 	cfg := &envoy_http_v3.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 		CodecType:  envoy_http_v3.HttpConnectionManager_AUTO,
@@ -2020,6 +2043,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			// sampled.
 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
 		},
+		UpgradeConfigs: UpgradeConfigs,
 	}
 
 	if opts.useRDS {

@@ -146,6 +146,9 @@ func computeResolvedServiceConfig(
 			}
 			thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
 		}
+		if serviceConf.Websocket {
+			thisReply.ProxyConfig["websocket"] = true
+		}
 		if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
 			thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
 		}
@@ -238,14 +241,23 @@ func computeResolvedServiceConfig(
 		upstreamSvcDefaults := entries.GetServiceDefaults(
 			structs.NewServiceID(upstream.ID, &upstream.EnterpriseMeta),
 		)
+		var websocket bool
+
 		if upstreamSvcDefaults != nil {
 			if upstreamSvcDefaults.Protocol != "" {
 				protocol = upstreamSvcDefaults.Protocol
+			}
+			if upstreamSvcDefaults.Websocket {
+				websocket = true
 			}
 		}
 
 		if protocol != "" {
 			resolvedCfg["protocol"] = protocol
+		}
+
+		if websocket {
+			resolvedCfg["websocket"] = true
 		}
 
 		// Merge centralized defaults for all upstreams before configuration for specific upstreams

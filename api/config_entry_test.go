@@ -312,7 +312,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"LocalPathPort": 8080,
 							"ListenerPort": 21500,
 							"Path": "/healthz",
-							"Protocol": "http2"
+							"Protocol": "http2",
+							"Websocket": true
 						}
 					]
 				}
@@ -329,6 +330,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							ListenerPort:  21500,
 							Path:          "/healthz",
 							Protocol:      "http2",
+							Websocket:     true,
 						},
 					},
 				},
@@ -347,7 +349,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"LocalPathPort": 8080,
 							"ListenerPort": 21500,
 							"Path": "/healthz",
-							"Protocol": "http2"
+							"Protocol": "http2",
+							"Websocket": true
 						}
 					]
 				}
@@ -364,6 +367,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							ListenerPort:  21500,
 							Path:          "/healthz",
 							Protocol:      "http2",
+							Websocket:     true,
 						},
 					},
 				},
@@ -431,6 +435,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"Protocol": "http",
+				"Websocket": true,
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
 					"Mode": "remote"
@@ -482,6 +487,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				Protocol:    "http",
+				Websocket:   true,
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,

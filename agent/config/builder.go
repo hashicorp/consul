@@ -1794,6 +1794,7 @@ func (b *builder) pathsVal(v []ExposePath) []structs.ExposePath {
 			Path:          stringVal(p.Path),
 			LocalPathPort: intVal(p.LocalPathPort),
 			Protocol:      stringVal(p.Protocol),
+			Websocket:     boolVal(p.Websocket),
 		}
 	}
 	return paths

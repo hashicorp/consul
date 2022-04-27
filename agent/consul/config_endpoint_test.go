@@ -1053,12 +1053,14 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
-			"foo":      int64(1),
-			"protocol": "http",
+			"foo":       int64(1),
+			"protocol":  "http",
+			"websocket": false,
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
 			"bar": {
-				"protocol": "grpc",
+				"protocol":  "grpc",
+				"websocket": false,
 			},
 		},
 		Meta: map[string]string{"foo": "bar"},
@@ -1073,6 +1075,76 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
 	require.True(t, ok)
 	require.Equal(t, map[string]interface{}{"foo": 1}, proxyConf.Config)
+}
+
+func TestConfigEntry_ResolveServiceConfig_With_Websocket(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:      structs.ServiceDefaults,
+		Name:      "foo",
+		Protocol:  "http",
+		Websocket: true,
+	}))
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:      structs.ServiceDefaults,
+		Name:      "bar",
+		Protocol:  "grpc",
+		Websocket: false,
+	}))
+
+	//check that webrtc is accepted only with http
+	require.Error(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:      structs.ServiceDefaults,
+		Name:      "bar",
+		Protocol:  "grpc",
+		Websocket: true,
+	}))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol":  "http",
+			"websocket": true,
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(t, expected, out)
+
+	args = structs.ServiceConfigRequest{
+		Name:       "bar",
+		Datacenter: s1.config.Datacenter,
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected = structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol":  "grpc",
+			"websocket": false,
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(t, expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
@@ -1682,8 +1754,9 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"global":   int64(1),
-				"protocol": "grpc",
+				"global":    int64(1),
+				"protocol":  "grpc",
+				"websocket": false,
 			},
 			QueryMeta: out.QueryMeta,
 		}
@@ -1747,8 +1820,9 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"global":   int64(1),
-				"protocol": "http",
+				"global":    int64(1),
+				"protocol":  "http",
+				"websocket": false,
 			},
 			QueryMeta: out.QueryMeta,
 		}
@@ -1791,7 +1865,8 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			QueryMeta: out.QueryMeta,
 		}
@@ -1849,13 +1924,15 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			UpstreamIDConfigs: []structs.OpaqueUpstreamConfig{
 				{
 					Upstream: structs.NewServiceID("bar", nil),
 					Config: map[string]interface{}{
-						"protocol": "http",
+						"protocol":  "http",
+						"websocket": false,
 					},
 				},
 			},
@@ -1910,7 +1987,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			QueryMeta: out.QueryMeta, // don't care
 		}
@@ -1936,7 +2014,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 		expected := structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			QueryMeta: out.QueryMeta, // don't care
 		}
@@ -2046,20 +2125,25 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
-			"protocol": "http",
+			"protocol":  "http",
+			"websocket": false,
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
 			"bar": {
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			"other": {
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			"dne": {
-				"protocol": "http",
+				"protocol":  "http",
+				"websocket": false,
 			},
 			"alreadyprotocol": {
-				"protocol": "grpc",
+				"protocol":  "grpc",
+				"websocket": false,
 			},
 		},
 		// Don't know what this is deterministically
