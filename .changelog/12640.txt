@@ -1,0 +1,3 @@
+```release-note:bug
+health: ensure /v1/health/service/:service endpoint returns the most recent results when a filter is used with streaming #12640
+```
