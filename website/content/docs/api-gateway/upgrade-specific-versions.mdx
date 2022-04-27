@@ -43,7 +43,7 @@ Ensure that the following requirements are met prior to upgrading:
 1. Retrieve all routes that have a backend in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command). Otherwise, issue the following command to get all `HTTPRoutes` and `TCPRoutes` across all namespaces: 
 
   ```shell-session
-  $ kubectl get HTTPRoute,TCPRoute -o json -A
+  $ kubectl get HTTPRoute,TCPRoute --output json --all-namespaces
   ```
   Note that the command only retrieves `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
   
