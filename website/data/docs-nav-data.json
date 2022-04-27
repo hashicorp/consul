@@ -1061,10 +1061,6 @@
         "path": "enterprise/sentinel"
       },
       {
-        "title": "Feature Availability",
-        "path": "enterprise/feature-availability"
-      },
-      {
         "title": "License",
         "routes": [
           {
