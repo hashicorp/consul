@@ -13,18 +13,18 @@ that requires additional steps from the standard upgrade path.
 Note: As of writing, v0.1.0 is the only previous release. A standardized upgrade path will be documented with future releases.
 
 
-## Consul API Gateway v0.2.0
+## Consul API Gateway v0.1.0
 
-Consul API Gateway v0.2.0 introduced a breaking change that causes routes with a BackendRef defined in a different namespace to
+Consul API Gateway v0.2.0 introduced a breaking change that causes routes with a `backendRef` defined in a different namespace to
 require a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy)
-that explicitly allows traffic from the route's namespace to the BackendRef's namespace. This guide explains how to find all routes
-that require a ReferencePolicy and create a matching ReferencePolicy.
+that explicitly allows traffic from the route's namespace to the `backendRef's` namespace. This guide explains how to find all routes
+that require a `ReferencePolicy` and create a matching `ReferencePolicy`.
 
 
 
 ### Requirements
 
-- The consul-api-gateway should be running version v0.1.0. If the version is different, follow the normal upgrade path.
+- Consul API Gateway should be running version v0.1.0. If the version is different, follow the normal upgrade path.
 - **Optional** [jq](https://stedolan.github.io/jq/download/) is installed on the users CLI
 
 
@@ -35,12 +35,12 @@ In order to follow this guide, the following conditions must be true:
 
 - You have the ability to run Kubectl CLI commands
 - Your kubectl config is already configured to point at the cluster with the installation you are upgrading
-- You have HTTPRoute.read, TCPRoute.read and ReferencePolicy.create rights on your Kubernetes cluster
+- You have `HTTPRoute.read`, `TCPRoute.read` and `ReferencePolicy.create` rights on your Kubernetes cluster
 
 
 ### Procedures
 
-**1.** Double check the current version of the consul-api-gateway-controller Deployment with the following command:
+**1.** Double check the current version of the `consul-api-gateway-controller` `Deployment` with the following command:
 
 ```shell-session
 $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
@@ -63,15 +63,15 @@ There are two ways to retrieve cross-namespace routes:
 
 ##### Method 1: Manual
 
-Get all HTTPRoutes and TCPRoutes across all namespaces with the following command:
+Get all `HTTPRoutes` and `TCPRoutes` across all namespaces with the following command:
 
 ```shell-session
 $ kubectl get HTTPRoute,TCPRoute -o json -A
 ```
 
-If you have any active HTTPRoutes or TCPRoutes, you should receive output that looks as follows. Note that the output has been truncated to show only relevant fields.
+If you have any active `HTTPRoutes` or `TCPRoutes`, you should receive output that looks as follows. Note that the output has been truncated to show only relevant fields.
 
-Note that the above command will retrieve only HTTPRoutes and TCPRoutes. TLSRoutes and UDPRoutes are not supported in v0.1.0.
+Note that the above command will retrieve only `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
 
 ```yaml
 ...
@@ -121,11 +121,11 @@ items:
 
 ```
 
-For each of the above defined routes, you will need to inspect each of the backendRefs.
+For each of the above defined routes, you will need to inspect each of the `backendRefs`.
 
-If a backendRef has no namespace field defined or the namespace matches the namespace of the route itself, that backendRef requires no further action.
+If a `backendRef` has no `namespace` field defined or the namespace matches the namespace of the route itself, that `backendRef` requires no further action.
 
-If the `backendRef` does have a namespace defined and it does not match the namespace of the parent route, make a note of the backendRef's `group`, `kind`, `name`, and `namespace`, as well as the `kind` and `namespace` of the parent route.
+If the `backendRef` does have a `namespace` defined and it does not match the namespace of the parent route, make a note of the `backendRef`'s `group`, `kind`, `name`, and `namespace`, as well as the `kind` and `namespace` of the parent route.
 You will need these later. Keep going until you have a list of all routes that match this criteria. The routes above would yield the following:
 
 ```yaml
@@ -153,15 +153,15 @@ If after inspecting your routes, your list is empty, you may skip to the last st
 
 ##### Method 2: Using jq
 
-Get all HTTPRoutes and TCPRoutes, using [jq](https://stedolan.github.io/jq/) to filter for routes that require a ReferencePolicy.
+Get all `HTTPRoutes` and `TCPRoutes`, using [jq](https://stedolan.github.io/jq/) to filter for routes that require a `ReferencePolicy`.
 
 ```shell-session
 $ kubectl get HTTPRoute,TCPRoute -o json -A | jq -r '.items[] | {name: .metadata.name, namespace: .metadata.namespace, kind: .kind, crossNamespaceBackendReferences: ( .metadata.namespace as $parentnamespace | .spec.rules[] .backendRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
 ```
 
-Note, the above command will retrieve all HTTPRoutes and TCPRoutes. TLSRoutes and UDPRoutes are not supported in v0.1.0.
+Note, the above command will retrieve all `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
 
-If your output is empty, you can skip to the last step; otherwise, you have existing routes that require a new ReferencePolicy. In this case, your output will appear similar to the following:
+If your output is empty, you can skip to the last step; otherwise, you have existing routes that require a new `ReferencePolicy`. In this case, your output will appear similar to the following:
 
 ```log
 {
@@ -192,16 +192,16 @@ If your output is empty, you can skip to the last step; otherwise, you have exis
 }
 ```
 
-**3.** Create a ReferencePolicy to allow cross namespace traffic for each route service pair
+**3.** Create a `ReferencePolicy` to allow cross namespace traffic for each route service pair
 
 Using the list of routes you created earlier as a guide, create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic.
-You will need to create a ReferencePolicy that explicitly allows each cross-namespace route to service pair to prevent the route from breaking. If you've already created a ReferencePolicy, you can skip this step.
+You will need to create a `ReferencePolicy` that explicitly allows each cross-namespace route to service pair to prevent the route from breaking. If you've already created a `ReferencePolicy`, you can skip this step.
 <!---
 TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
 --->
-For example, the above output would require a ReferencePolicy that looks as follows.
+For example, the above output would require a `ReferencePolicy` that looks as follows.
 
-Note: The ReferencePolicy should be created in the same namespace as the backend Service.
+Note: The `ReferencePolicy` should be created in the same `namespace` as the backend `Service`.
 
 <CodeBlockConfig filename="referencepolicy.yaml">
 
@@ -224,9 +224,9 @@ spec:
 ```
 </CodeBlockConfig>
 
-Edit your ReferencePolicy so your route is allowed and then save into a file called referencepolicy.yaml
-Note, Because each ReferencePolicy [only supports one to field and one from field](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) you
-might need to create multiple ReferencePolicys.
+Edit your `ReferencePolicy` so your route is allowed and then save into a file called referencepolicy.yaml
+Note, Because each `ReferencePolicy` [only supports one to field and one from field](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) you
+might need to create multiple `ReferencePolicys`.
 
 Run the following command to apply it to your cluster
 
@@ -234,7 +234,7 @@ Run the following command to apply it to your cluster
 $ kubectl apply --filename referencepolicy.yaml
 ```
 
-Repeat as needed until each of your cross-namespace routes have a corresponding ReferencePolicy.
+Repeat as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
 
 **4.** Upgrade your deployment to v.0.2.0.
 
