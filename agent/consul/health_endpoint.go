@@ -222,27 +222,35 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			var thisReply structs.IndexedCheckServiceNodes
+
 			index, nodes, err := f(ws, state, args)
 			if err != nil {
 				return err
 			}
 
-			reply.Index, reply.Nodes = index, nodes
+			thisReply.Index, thisReply.Nodes = index, nodes
+
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
+				thisReply.Nodes = nodeMetaFilter(args.NodeMetaFilters, thisReply.Nodes)
 			}
 
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
+			if err := h.srv.filterACL(args.Token, &thisReply); err != nil {
 				return err
 			}
 
-			raw, err := filter.Execute(reply.Nodes)
+			raw, err := filter.Execute(thisReply.Nodes)
 			if err != nil {
 				return err
 			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = raw.(structs.CheckServiceNodes)
 
-			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
+			if err := h.srv.sortNodesByDistanceFrom(args.Source, thisReply.Nodes); err != nil {
+				return err
+			}
+
+			*reply = thisReply
+			return nil
 		})
 
 	// Provide some metrics

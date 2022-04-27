@@ -77,6 +77,8 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 				return err
 			case passed:
 				s.state[id] = csn
+			default:
+				delete(s.state, id)
 			}
 
 		case pbsubscribe.CatalogOp_Deregister:
