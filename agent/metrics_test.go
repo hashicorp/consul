@@ -44,7 +44,7 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
-// assertMetricExistsWithLabels looks in the prometheus metrics reponse for the metric name and all the labels. eg:
+// assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
 // new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
 func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
 	if respRec.Body.String() == "" {
@@ -197,11 +197,13 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
+		fmt.Printf("AAAAAA\n%+v\nAAAAAA", respRec)
 
 		// make sure the labels exist for this metric
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
+		t.Fatal("asdasd")
 	})
 }
 

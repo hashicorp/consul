@@ -1,8 +1,8 @@
 # RPC
 
-This section is a work in progress.
 
-The RPC subsystem is exclusicely in Server Agents. It is comprised of two main components:
+
+The RPC subsystem is exclusively in Server Agents. It is comprised of two main components:
 
 1. the "RPC Server" (for lack of a better term) handles multiplexing of many different
    requests on a single TCP port.
@@ -19,7 +19,7 @@ The RPC subsystems handles requests from:
 ## Routing
 
 The "RPC Server" accepts requests to the [server port] and routes the requests based on
-configuration of the Server and the the first byte in the request. The diagram below shows
+configuration of the Server and the first byte in the request. The diagram below shows
 all the possible routing flows.
 
 [server port]: https://www.consul.io/docs/agent/config/config-files#server_rpc_port
