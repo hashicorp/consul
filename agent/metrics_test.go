@@ -133,6 +133,29 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
+func assertMetricsWithLabelHasValueDifferentFrom(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string, value string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	metrics := respRec.Body.String()
+	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+
+	for _, line := range strings.Split(metrics, "\n") {
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, labelWithValueTarget) {
+			s := strings.SplitN(line, " ", 2)
+			if s[1] != value {
+				t.Fatal("Should have not been a zero")
+			}
+		}
+	}
+
+}
+
 func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -197,13 +220,11 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
-		fmt.Printf("AAAAAA\n%+v\nAAAAAA", respRec)
 
 		// make sure the labels exist for this metric
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
-		t.Fatal("asdasd")
 	})
 }
 
@@ -421,4 +442,32 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		require.Contains(t, out, "agent_5_mesh_active_signing_ca_expiry 3.15")
 	})
 
+}
+
+func TestNotSureAboutTheName(t *testing.T) {
+	skipIfShortTesting(t)
+
+	t.Run("RPC calls with elapsed time below 1ms are reported as decimal", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics_2"
+		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+			prefix_filter = ["+%s"]
+		}
+		`, metricsPrefix, allowRPCMetricRule)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		_ = a.RPC("Status.Ping", struct{}{}, &out)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricsWithLabelHasValueDifferentFrom(t, respRec, "method", "Status.Ping", "0")
+	})
 }
