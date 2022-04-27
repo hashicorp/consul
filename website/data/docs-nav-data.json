@@ -392,6 +392,10 @@
       {
         "title": "Common Errors",
         "path": "api-gateway/common-errors"
+      },
+      {
+        "title": "Upgrades",
+        "path": "api-gateway/upgrade-specific-versions"
       }
     ]
   },
@@ -1218,6 +1222,10 @@
           {
             "title": "v0.1.x",
             "path": "release-notes/consul-api-gateway/v0_1_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-api-gateway/v0_2_x"
           }
         ]
       },

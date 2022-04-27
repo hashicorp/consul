@@ -1,0 +1,258 @@
+---
+layout: docs
+page_title: Upgrades
+description: >-
+  This topic describes how to upgrade Consul API Gateway.
+---
+
+# Upgrades
+
+This topic describes how to upgrade Consul API Gateway.
+
+## Breaking Changes
+
+Consul API Gateway v0.2.0 introduces a breaking change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace. 
+
+## Requirements
+
+Ensure that the following requirements are met prior to upgrading:
+
+- Consul API Gateway should be running version v0.1.0. 
+- You should have the ability to run `kubectl` CLI commands.
+- `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
+- You should have the following permission rights on your Kubernetes cluster:
+  * `HTTPRoute.read` 
+  * `TCPRoute.read` 
+  * `ReferencePolicy.create` 
+- (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process. 
+
+## Procedure
+
+1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
+
+  ```shell-session
+  $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
+  ```
+
+  You should receive the following response:
+
+  ```log
+  "hashicorp/consul-api-gateway:0.1.0"
+  ```
+
+1. Retrieve all routes that have a backend in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command). Otherwise, issue the following command to get all `HTTPRoutes` and `TCPRoutes` across all namespaces: 
+
+  ```shell-session
+  $ kubectl get HTTPRoute,TCPRoute --output json --all-namespaces
+  ```
+  Note that the command only retrieves `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
+  
+  If you have any active `HTTPRoutes` or `TCPRoutes`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
+  
+  ```yaml
+    apiVersion: v1
+    items:
+    - apiVersion: gateway.networking.k8s.io/v1alpha2
+      kind: HTTPRoute
+      metadata:
+        name: example-http-route,
+        namespace: example-namespace,
+        ...
+      spec:
+        parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: gateway
+          namespace: gw-ns
+        rules:
+        - backendRefs:
+          - group: ""
+            kind: Service
+            name: web-backend
+            namespace: gateway-namespace
+            ...
+          ...
+    - apiVersion: gateway.networking.k8s.io/v1alpha2
+      kind: TCPRoute
+      metadata:
+        name: example-tcp-route,
+        namespace: a-different-namespace,
+        ...
+      spec:
+        parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: gateway
+          namespace: gateway-namespace
+        rules:
+        - backendRefs:
+          - group: ""
+            kind: Service
+            name: web-backend
+            namespace: gateway-namespace
+            ...
+      ...
+  ```
+1. Inspect the `backendRefs` entries for each of the routes. 
+  
+  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-policy)). 
+  
+  After completing this step, you will have a list of all routes similar to the following:
+  
+  <CodeBlockConfig hideClipboard>
+
+  ```yaml hideClipboard
+    example-http-route:
+      - namespace: example-namespace
+        kind: HTTPRoute
+        backendReferences:
+          - group : ""
+            kind: Service
+            name: web-backend
+            namespace: gateway-namespace
+
+    example-tcp-route:
+      - namespace: a-different-namespace
+        kind: HTTPRoute
+        backendReferences:
+          - group : ""
+            kind: Service
+            name: web-backend
+            namespace: gateway-namespace
+  ```
+  </CodeBlockConfig>
+
+  Skip to [step 8](#step-8) if your list is empty. 
+<a name="jq-command"/>
+
+1.  If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferencePolicy`.
+
+  ```shell-session
+  $ kubectl get HTTPRoute,TCPRoute -o json -A | jq -r '.items[] | {name: .metadata.name, namespace: .metadata.namespace, kind: .kind, crossNamespaceBackendReferences: ( .metadata.namespace as $parentnamespace | .spec.rules[] .backendRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
+  ```
+  
+  Note that the command retrieves all `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
+
+  The output will resemble the following response if routes that require a new `ReferencePolicy` are returned:
+
+  <CodeBlockConfig hideClipboard>
+
+  ```log hideClipboard
+  {
+    "name": "example-http-route",
+    "namespace": "example-namespace",
+    "kind": "HTTPRoute",
+    "crossNamespaceBackendReferences": {
+      "group": "",
+      "kind": "Service",
+      "name": "web-backend",
+      "namespace": "gateway-namespace",
+      "port": 8080,
+      "weight": 1
+    }
+  }
+  {
+    "name": "example-tcp-route",
+    "namespace": "a-different-namespace",
+    "kind": "TCPRoute",
+    "crossNamespaceBackendReferences": {
+      "group": "",
+      "kind": "Service",
+      "name": "web-backend",
+      "namespace": "gateway-namespace",
+      "port": 8080,
+      "weight": 1
+    }
+  }
+  ```
+  </CodeBlockConfig>
+  
+  If your output is empty, skip to [step 8](#step-8).
+<a name="create-reference-policy"/>
+
+1. Using the list of routes you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic for each route service pair. 
+  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`. 
+
+  Skip to the next step if you've already created a `ReferencePolicy`.   
+  <!---
+  TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
+  --->
+  The following example `ReferencePolicy` enables `HTTPRoute` traffic from the `example-namespace` to Kubernetes Services in the `web-backend` namespace: 
+
+  <CodeBlockConfig filename="referencepolicy.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferencePolicy
+  metadata:
+    name: reference-policy
+    namespace: gateway-namespace
+  spec:
+    from:
+      - group: gateway.networking.k8s.io
+        kind: HTTPRoute
+        namespace: example-namespace
+    to:
+      - group: ""
+        kind: Service
+        name: web-backend
+  </div>
+  ```
+  </CodeBlockConfig>
+
+1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+
+1. Issue the following command to apply it to your cluster:
+
+  ```shell-session
+  $ kubectl apply --filename referencepolicy.yaml
+  ```
+
+  Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
+<a name="step-8"/>
+
+1. Issue the following command to install the v.0.2.0 CRDs into your cluster:
+
+  ``` shell-session
+  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=0.2.0"
+  ```
+
+1. Update `apiGateway.image` in `values.yaml`:
+
+  <CodeBlockConfig hideClipboard filename="values.yaml">
+
+  ```yaml
+  ...
+  apiGateway:
+    image: hashicorp/consul-api-gateway:0.2.0
+    ...
+  ```
+  </CodeBlockConfig>
+
+1. Issue the following command to upgrade your Consul installation:
+
+  ```shell-session
+  $ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> hashicorp/consul <DEPLOYMENT_NAME>
+  ```
+  
+  Note that the upgrade will cause the Consul API Gateway controller shut down and restart with the new version.
+
+1. According to the Kubernetes Gateway API specification, [Gateway Class](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io%2fv1alpha2.GatewayClass) configurations should only be applied to a gateway upon creation. To see the effects on preexisting gateways after upgrading your CRD installation, delete and recreate any gateways by issuing the following commands:  
+
+  ```shell-session
+  $ kubectl delete --filename <path_to_gateway_config.yaml>
+  $ kubectl create --filename <path_to_gateway_config.yaml>
+  ```
+  <!---
+  remove this warning once updating a gateway triggers reconciliation on child routes
+  --->
+
+1. (Optional) Delete and recreate your routes. Note that it may take several minutes for attached routes to reconcile and start reporting bind errors.
+  ```shell-session
+  $ kubectl delete --filename <path_to_route_config.yaml>
+  $ kubectl create --filename <path_to_route_config.yaml>
+  ```
+
+## Post-Upgrade Configuration Changes
+
+No configuration changes are required for this upgrade.

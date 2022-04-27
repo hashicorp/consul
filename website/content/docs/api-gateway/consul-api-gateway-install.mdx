@@ -32,14 +32,13 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    ```yaml
    global:
      name: consul
-     image: 'hashicorp/consul:1.11.3'
    connectInject:
      enabled: true
    controller:
      enabled: true
    apiGateway:
      enabled: true
-     image: hashicorp/consul-api-gateway:0.1.0
+     image: hashicorp/consul-api-gateway:0.2.0
    ```
 
    </CodeBlockConfig>
@@ -301,6 +300,48 @@ spec:
         - kind: Service
           name: echo
           port: 8080
+```
+
+</CodeBlockConfig>
+
+To create a route for a `backendRef` in a different namespace, you must also
+create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+
+The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
+
+<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: gateway-namespace
+spec:
+  parentRefs:
+    - name: example-gateway
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: echo
+          namespace: service-namespace
+          port: 8080
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: service-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gateway-namespace
+  to:
+    - group: ""
+      kind: Service
+      name: echo
 ```
 
 </CodeBlockConfig>
