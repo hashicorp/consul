@@ -217,6 +217,18 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=0.2.0"
   ```
 
+1. Update `apiGateway.image` in `values.yaml`:
+
+  <CodeBlockConfig hideClipboard filename="values.yaml">
+
+  ```yaml
+  ...
+  apiGateway:
+    image: hashicorp/consul-api-gateway:0.2.0
+    ...
+  ```
+  </CodeBlockConfig>
+
 1. Issue the following command to upgrade your Consul installation:
 
   ```shell-session
