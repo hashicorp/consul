@@ -1260,11 +1260,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/agent/options',
-    destination: '/docs/agent/config/config-files',
-    permanent: true,
-  },
-  {
     source: '/docs/releases/release-notes/v1_11_0',
     destination: '/docs/release-notes/consul/v1_11_x',
     permanent: true,
