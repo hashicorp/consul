@@ -308,7 +308,7 @@ spec:
 If you wish to create a route for a backendRef in a different namespace, you will need to additionally
 create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
 
-The following example creates a route named `example-route` in namespace `route-namespace` with a backendRef in namespace `service-namespace` Traffic is allowed because of the ReferencePolicy named `reference-policy` in namespace `service-namespace` that allows traffic from HTTPRoutes in `route-namespace` to Services in `service-namespace`.
+The following example creates a route named `example-route` in namespace `gateway-namespace` with a backendRef in namespace `service-namespace` Traffic is allowed because of the ReferencePolicy named `reference-policy` in namespace `service-namespace` that allows traffic from HTTPRoutes in `gateway-namespace` to Services in `service-namespace`.
 
 <CodeBlockConfig filename="route_with_referencepolicy.yaml">
 
