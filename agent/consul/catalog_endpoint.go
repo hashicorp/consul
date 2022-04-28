@@ -204,7 +204,7 @@ func servicePreApply(service *structs.NodeService, authz ACLResolveResult, authz
 		}
 	}
 
-	if service.Connect.SidecarService.Port == 0 {
+	if service.Connect.SidecarService != nil && service.Connect.SidecarService.Port == 0 {
 		return fmt.Errorf("Side car service must have non-zero port")
 	}
 
