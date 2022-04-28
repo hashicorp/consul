@@ -48,7 +48,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    <CodeBlockConfig>
 
    ```shell-session
-   $ helm install consul hashicorp/consul --version 0.41.1 --values values.yaml --create-namespace --namespace consul
+   $ helm install consul hashicorp/consul --version 0.43.0 --values values.yaml --create-namespace --namespace consul
    ```
 
    </CodeBlockConfig>
@@ -137,7 +137,7 @@ Configure the following artifacts to facilitate ingress into your Consul service
 - [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners` (see [Listeners](#listeners)), which specify the logical endpoints bound to the gateway's addresses.
 - [Routes](#routes): Specifies the path from the client to the listener.
 
--> ** Note:** Add the following `managedGatewayClass` configuration to the `values.yaml` Helm configuration to enable the `GatewayClassConfig` and `GatewayClass` to be created automatically. The gateway, listeners, and routes will need to be configured manually. When `managedGatewayClass` is enabled, the [`serviceType`](/docs/k8s/helm#v-apigateway-managedgatewayclass-servicetype) for a managed `GatewayClass` will also default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (i.e., EKS, GKE, AKS). Other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP`, instead.
+-> **Note:** Add the following `managedGatewayClass` configuration to the `values.yaml` Helm configuration to enable the `GatewayClassConfig` and `GatewayClass` to be created automatically. The gateway, listeners, and routes will need to be configured manually. When `managedGatewayClass` is enabled, the [`serviceType`](/docs/k8s/helm#v-apigateway-managedgatewayclass-servicetype) for a managed `GatewayClass` will also default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (i.e., EKS, GKE, AKS). Other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP`, instead.
 
 ### GatewayClassConfig
 
