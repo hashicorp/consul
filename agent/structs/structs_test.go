@@ -1271,11 +1271,6 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 			},
 			"SidecarService cannot have a nested SidecarService",
 		},
-		{
-			"empty public listener port",
-			func(x *NodeService) { x.Connect.SidecarService.Port = 0 },
-			fmt.Sprintf("Side car service must have non-zero port"),
-		},
 	}
 
 	for _, tc := range cases {

@@ -451,6 +451,29 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
+func TestCatalog_Register_ServiceWithSideCar_invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequest(t)
+	args.Service.Connect.SidecarService = &structs.ServiceDefinition{Name: args.Service.Service + "-proxy"}
+
+	// Register
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Side car service must have non-zero port")
+}
+
 // Test that write is required for the proxy destination to register a proxy.
 func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	if testing.Short() {
