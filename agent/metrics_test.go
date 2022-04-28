@@ -148,8 +148,8 @@ func assertMetricsWithLabelHasValueDifferentFrom(t *testing.T, respRec *httptest
 
 		if strings.Contains(line, labelWithValueTarget) {
 			s := strings.SplitN(line, " ", 2)
-			if s[1] != value {
-				t.Fatal("Should have not been a zero")
+			if s[1] == value {
+				t.Fatal("Should have not been zero")
 			}
 		}
 	}
