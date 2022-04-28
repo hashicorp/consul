@@ -27,12 +27,8 @@ well as the flag will be removed in upcoming Consul 1.13. We recommend changing 
 style `consul.api.http...` metrics and removing the configuration flag from your setup.
 
 ### Nomad Namespace Incompatibility
-
-Consul 1.12.0 Enterprise introduced a bug that prevents Nomad Enterprise from
-removing services from non-default Consul namespaces.
-
-Nomad Enterprise users should *not* upgrade to Consul Enterprise 1.12.0 and
-wait for 1.12.1.
+### Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0
+Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
 
 ## Consul 1.11.0
 
