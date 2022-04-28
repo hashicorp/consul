@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -48,8 +49,16 @@ func NewRequestRecorder(logger hclog.Logger, isLeader func() bool, localDC strin
 	}
 }
 
+//func roundTo(n float64, decimals uint32) float64 {
+//	return math.Round(n*math.Pow(10, float64(decimals))) / math.Pow(10, float64(decimals))
+//}
+
 func (r *RequestRecorder) Record(requestName string, rpcType string, start time.Time, request interface{}, respErrored bool) {
-	elapsed := time.Since(start).Milliseconds()
+	elapsedDuration := time.Since(start)
+	elapsed := float64(elapsedDuration.Milliseconds())
+	if elapsed == 0 {
+		elapsed = math.Round(float64(elapsedDuration.Microseconds())) / math.Pow(10, 3)
+	}
 	reqType := requestType(request)
 	isLeader := r.getServerLeadership()
 
