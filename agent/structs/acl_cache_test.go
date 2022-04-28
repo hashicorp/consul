@@ -47,7 +47,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cache)
 
-		cache.PutIdentity("foo", &ACLToken{})
+		cache.PutIdentity("foo", &ACLToken{}, nil)
 		entry := cache.GetIdentity("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Identity)

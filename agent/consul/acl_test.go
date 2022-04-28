@@ -1264,6 +1264,35 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		requireIdentityCached(t, r, tokenSecretCacheID("found"), false, "no longer cached")
 	})
 
+	t.Run("Cache-Error", func(t *testing.T) {
+		_, rawToken, _ := testIdentityForToken("found")
+		foundToken := rawToken.(*structs.ACLToken)
+		secretID := foundToken.SecretID
+
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				return acl.ErrPermissionDenied
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+		})
+
+		// Attempt to resolve the token - this should set up the cache entry with a nil
+		// identity and permission denied error.
+		authz, err := r.ResolveToken(secretID)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		entry := r.cache.GetIdentity(tokenSecretCacheID(secretID))
+		require.Nil(t, entry.Identity)
+		require.Equal(t, acl.ErrPermissionDenied, entry.Error)
+	})
+
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
