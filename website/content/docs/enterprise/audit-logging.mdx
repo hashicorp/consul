@@ -8,14 +8,17 @@ description: >-
 # Audit Logging
 
 <EnterpriseAlert>
-  This feature requires{' '}
-  <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}.
+  This feature requires
+  HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+  Refer to the{' '}
+  <a href="/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
+  {' '}for additional information.
 </EnterpriseAlert>
 
-Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and
+With Consul Enterprise v1.8.0+, audit logging can be used to capture a clear and
 actionable log of authenticated events (both attempted and committed) that Consul
-processes via its HTTP API and compiles them into a JSON format for easy export.
-These events contain a timestamp, the operation performed, and the user who initiated the action.
+processes via its HTTP API. These events are compiled them into a JSON format for easy export
+and contain a timestamp, the operation performed, and the user who initiated the action.
 
 Audit logging enables security and compliance teams within an organization to get
 greater insight into Consul access and usage patterns.
