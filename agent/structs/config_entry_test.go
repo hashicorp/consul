@@ -1770,6 +1770,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -1801,6 +1804,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -1831,6 +1837,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								PeerName: "flarm",
 							},
 						},
 					},

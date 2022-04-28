@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: 1.11.x
+description: >-
+  Consul release notes for version 1.11.x
+---
+
+# Consul 1.11.0
+
+## Release Highlights
+
+- **Admin Partitions (Enterprise):** Consul 1.11.0 Enteprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segment created for each partition. This release also enables cross partition communication between services across partitions, using Mesh Gateways. For more information refer to the [Admin Partitions](/docs/enterprise/admin-partitions) documentation.
+
+- **Virtual IPs for services deployed with Consul Service Mesh:**  Consul will now generate a unique virtual IP for each service deployed within Consul Service Mesh, allowing transparent proxy to route to services within a data center that exist in different clusters or outside the service mesh.
+
+- **Replace [boltdb](https://github.com/boltdb/bolt) with [etcd-io/bbolt](https://github.com/etcd-io/bbolt) for raft log store:** Consul now leverages `etcd-io/bbolt` as the default implementation of `boltdb` instead of `boltdb/bolt`. This change also exposes a configuration to allow for disabling boltdb freelist syncing. In addition, Consul now emits metrics for the raft boltdb store to provide insights into boltdb performance.
+
+- **TLS Certificates for Ingress Gateways via an SDS source:**: Ingress Gateways can now be configured to retrieve TLS certificates from an external SDS Service and load the TLS certificates for Ingress listeners. This configuration is set using the `ingress-gateway` configuration entry via the [SDS](/docs/connect/config-entries/ingress-gateway#sds) stanza within the Ingress Gateway TLS configuration.
+
+- **Vault Auth Method support for Connect CA Vault Provider:** Consul now supports configuring the Connect CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. The Vault Auth Method for Connect CA Provider is utilized by default for the [Vault Secrets Backend](/docs/k8s/installation/vault) feature on Consul on Kubernetes. Utilizing a Vault Auth method would no longer require a Vault token to be managed or provisioned ahead of time to be used for authentication to Vault.
+
+## What's Changed
+
+- The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that all tokens and policies have been migrated to the newer ACL system. See the [Migrate Legacy ACL Tokens Learn Guide](https://learn.hashicorp.com/tutorials/consul/access-control-token-migration) for more information.
+
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/docs/security/acl/acl-system#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
+
+- Drops support for Envoy versions 1.15.x and 1.16.x
+
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-11-0) and the changelogs.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [1.11.0](https://github.com/hashicorp/consul/releases/tag/v1.11.0)
+- [1.11.1](https://github.com/hashicorp/consul/releases/tag/v1.11.1)
+- [1.11.2](https://github.com/hashicorp/consul/releases/tag/v1.11.2)
+- [1.11.3](https://github.com/hashicorp/consul/releases/tag/v1.11.3)
+- [1.11.4](https://github.com/hashicorp/consul/releases/tag/v1.11.4)
+- [1.11.5](https://github.com/hashicorp/consul/releases/tag/v1.11.5)

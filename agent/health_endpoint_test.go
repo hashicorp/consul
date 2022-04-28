@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestHealthChecksInState(t *testing.T) {
@@ -932,6 +933,135 @@ use_streaming_backend = true
 					t.Errorf("expected at least 2 grpc gauge metrics, got: %v", count)
 				}
 			}
+		})
+	}
+}
+
+func TestHealthServiceNodes_Blocking_withFilter(t *testing.T) {
+	cases := []struct {
+		name         string
+		hcl          string
+		queryBackend string
+	}{
+		{
+			name:         "no streaming",
+			queryBackend: "blocking-query",
+			hcl:          `use_streaming_backend = false`,
+		},
+		{
+			name: "streaming",
+			hcl: `
+rpc { enable_streaming = true }
+use_streaming_backend = true
+`,
+			queryBackend: "streaming",
+		},
+	}
+
+	runStep := func(t *testing.T, name string, fn func(t *testing.T)) {
+		t.Helper()
+		if !t.Run(name, fn) {
+			t.FailNow()
+		}
+	}
+
+	register := func(t *testing.T, a *TestAgent, name, tag string) {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			ID:         types.NodeID("43d419c0-433b-42c3-bf8a-193eba0b41a3"),
+			Node:       "node1",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      name,
+				Service: name,
+				Tags:    []string{tag},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+			// Register one with a tag.
+			register(t, a, "web", "foo")
+
+			filterUrlPart := "filter=" + url.QueryEscape("foo in Service.Tags")
+
+			// TODO: use other call format
+
+			// Initial request with a filter should return one.
+			var lastIndex uint64
+			runStep(t, "read original", func(t *testing.T) {
+				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart, nil)
+				require.NoError(t, err)
+
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
+
+				nodes := obj.(structs.CheckServiceNodes)
+
+				require.Len(t, nodes, 1)
+
+				node := nodes[0]
+				require.Equal(t, "node1", node.Node.Node)
+				require.Equal(t, "web", node.Service.Service)
+				require.Equal(t, []string{"foo"}, node.Service.Tags)
+
+				require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
+
+				idx := getIndex(t, resp)
+				require.True(t, idx > 0)
+
+				lastIndex = idx
+			})
+
+			const timeout = 30 * time.Second
+			runStep(t, "read blocking query result", func(t *testing.T) {
+				var (
+					// out and resp are not safe to read until reading from errCh
+					out   structs.CheckServiceNodes
+					resp  = httptest.NewRecorder()
+					errCh = make(chan error, 1)
+				)
+				go func() {
+					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s", lastIndex, timeout, filterUrlPart)
+					req, err := http.NewRequest("GET", url, nil)
+					if err != nil {
+						errCh <- err
+						return
+					}
+
+					obj, err := a.srv.HealthServiceNodes(resp, req)
+					if err != nil {
+						errCh <- err
+						return
+					}
+
+					nodes := obj.(structs.CheckServiceNodes)
+					out = nodes
+					errCh <- nil
+				}()
+
+				time.Sleep(200 * time.Millisecond)
+
+				// Change the tags.
+				register(t, a, "web", "bar")
+
+				if err := <-errCh; err != nil {
+					require.NoError(t, err)
+				}
+
+				require.Len(t, out, 0)
+				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+			})
 		})
 	}
 }

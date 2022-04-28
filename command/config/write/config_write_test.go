@@ -2891,6 +2891,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -2922,6 +2925,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -2954,6 +2960,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								"partition": "baz"
+							},
+							{
+								"peer_name": "flarm"
 							}
 						]
 					},
@@ -2987,6 +2996,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								"Partition": "baz"
+							},
+							{
+								"PeerName": "flarm"
 							}
 						]
 					},
@@ -3018,6 +3030,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								PeerName: "flarm",
 							},
 						},
 					},

@@ -398,6 +398,8 @@ const (
 	QueryBackendStreaming
 )
 
+func (q QueryBackend) GoString() string { return q.String() }
+
 func (q QueryBackend) String() string {
 	switch q {
 	case QueryBackendBlocking:

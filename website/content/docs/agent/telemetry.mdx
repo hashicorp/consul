@@ -149,6 +149,28 @@ you will need to apply a function such as InfluxDB's [`non_negative_difference()
 Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
 `consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
 
+### Raft Thread Saturation
+
+| Metric Name                          | Description                                                                                                              | Unit       | Type   |
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| `consul.raft.thread.main.saturation` | An approximate measurement of the proportion of time the main Raft goroutine is busy and unavailable to accept new work. | percentage | sample |
+| `consul.raft.thread.fsm.saturation`  | An approximate measurement of the proportion of time the Raft FSM goroutine is busy and unavailable to accept new work.  | percentage | sample |
+
+**Why they're important:** These measurements are a useful proxy for how much
+capacity a Consul server has to accept additional write load. High saturation
+of the Raft goroutines can lead to elevated latency in the rest of the system
+and cause cluster instability.
+
+**What to look for:** Generally, a server's steady-state saturation should be
+less than 50%.
+
+**NOTE:** These metrics are approximate and under extremely heavy load won't
+give a perfect fine-grained view of how much headroom a server has available.
+Instead, treat them as an early warning sign.
+
+** Requirements: **
+* Consul 1.13.0+
+
 ### Raft Replication Capacity Issues
 
 | Metric Name                  | Description                                                                                                                                                                       | Unit     | Type    |
