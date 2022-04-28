@@ -1481,11 +1481,6 @@ func (s *NodeService) Validate() error {
 					"A SidecarService cannot have a nested SidecarService"))
 			}
 		}
-
-		if s.Connect.SidecarService.Port == 0 {
-			result = multierror.Append(result, fmt.Errorf(
-				"Side car service must have non-zero port"))
-		}
 	}
 
 	if s.Connect.Native && s.Port == 0 {
