@@ -9,57 +9,61 @@ description: >-
 # Consul Enterprise
 
 [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-features address the organizational complexities of collaboration, operations, scale, and governance
-and are [available in several forms of Consul Enterprise](#consul-enterprise-feature-availability).
-If you have purchased Consul Enterprise, refer to
-[how to gain access to enterprise features](#gain-access-to-enterprise-features).
+features address the organizational complexities of collaboration, operations, scale, and governance.
+If you have purchased or wish to try out Consul Enterprise,
+refer to [how to access Consul Enterprise](#access-consul-enterprise).
 
-Enterprise features include:
+## Enterprise Features
 
-#### Multi-Tenancy
-- [Admin Partitions](/docs/enterprise/admin-partitions): define administrative boundaries between tenants within a single Consul datacenter
-- [Namespaces](/docs/enterprise/namespaces): define resource boundaries within a single admin partition for further organizational flexibility
+The following features are [available in several forms of Consul Enterprise](#consul-enterprise-feature-availability).
 
-#### Resiliency
-- [Automated Backups](/docs/enterprise/backups): configure the automatic backup of Consul state
-- [Redundancy Zones](/docs/enterprise/redundancy): deploy backup voting Consul servers to efficiently improve Consul fault tolerance
+### Multi-Tenancy
+- [Admin Partitions](/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
+- [Namespaces](/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
 
-#### Scalability
-- [Read Replicas](/docs/enterprise/read-scale): deploy non-voting Consul servers to enhance the scalability of read requests
+### Resiliency
+- [Automated Backups](/docs/enterprise/backups): Donfigure the automatic backup of Consul state
+- [Redundancy Zones](/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
 
-#### Operational Simplification
-- [Automated Upgrades](/docs/enterprise/upgrades): ease upgrades by automating the transition from existing to newly deployed Consul servers
-- [Consul-Terraform-Sync Enterprise](/docs/nia/enterprise): leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
+### Scalability
+- [Read Replicas](/docs/enterprise/read-scale): Deploy non-voting Consul servers to enhance the scalability of read requests
 
-#### Complex Network Topology Support
-- [Network Areas](/docs/enterprise/federation): support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
-- [Network Segments](/docs/enterprise/network-segments): support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
+### Operational Simplification
+- [Automated Upgrades](/docs/enterprise/upgrades): Ease upgrades by automating the transition from existing to newly deployed Consul servers
+- [Consul-Terraform-Sync Enterprise](/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
 
-#### Governance
-- [OIDC Auth Method](/docs/security/acl/auth-methods/oidc): manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
-- [Audit Logging](/docs/enterprise/audit-logging): understand Consul access and usage patterns by reviewing access to the Consul HTTP API 
-- [Sentinel for KV](/docs/enterprise/sentinel): policy-as-code framework for defining advanced key-value storage access control policies
+### Complex Network Topology Support
+- [Network Areas](/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
+- [Network Segments](/docs/enterprise/network-segments): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
 
-# Gain Access to Enterprise Features
+### Governance
+- [OIDC Auth Method](/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
+- [Audit Logging](/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API 
+- [Sentinel for KV](/docs/enterprise/sentinel): Policy-as-code framework for defining advanced key-value storage access control policies
+
+## Access Consul Enterprise
+
+The method of accessing Consul Enterprise and its features depends on the whether using
+HashiCorp Cloud Platform or self-managed Consul.
+
+### HCP Consul
+
+No action is required to access Consul Enterprise in a
+[HashiCorp Cloud Platform](https://cloud.hashicorp.com/products/consul) installation.
+
+You can try out HCP Consul for free. Refer to the
+[HCP Consul product page](https://cloud.hashicorp.com/products/consul) for more details.
 
 ### Self-Managed Consul
 
-To gain access to Consul Enterprise features in a self-managed installation,
+To access Consul Enterprise in a self-managed installation,
 [apply a purchased license](/docs/enterprise/license/overview)
 to the Consul Enterprise binary that grants access to the desired features.
 
 You can also try out Consul Enterprise before purchasing by
 [requesting a 30-day trial license](https://consul.io/trial).
 
-### HCP Consul
-
-No action is required to gain access to Consul Enterprise features in a
-[HashiCorp Cloud Platform](https://cloud.hashicorp.com/products/consul) installation.
-
-You can try out HCP Consul for free. Refer to the
-[HCP Consul product page](https://cloud.hashicorp.com/products/consul) for more details.
-
-# Consul Enterprise Feature Availability
+## Consul Enterprise Feature Availability
 
 Consul Enterprise is offered in several forms that provide a different mix of enterprise features.
 Choose the form that best suits the needs of your organization.
