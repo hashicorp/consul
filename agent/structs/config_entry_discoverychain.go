@@ -409,6 +409,11 @@ type ServiceRouteDestination struct {
 	// 4 failure bubbling up to layer 7.
 	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
 
+	// RetryOnReset allows for disconnects and connection resets to trigger a
+	// retry. This should be expressible in other proxies as it's just a layer
+	// 4 failure bubbling up to layer 7.
+	RetryOnReset bool `json:",omitempty" alias:"retry_on_reset"`
+
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
@@ -455,7 +460,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 }
 
 func (d *ServiceRouteDestination) HasRetryFeatures() bool {
-	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
+	return d.NumRetries > 0 || d.RetryOnConnectFailure || d.RetryOnReset || len(d.RetryOnStatusCodes) > 0
 }
 
 // ServiceSplitterConfigEntry defines how incoming requests are split across

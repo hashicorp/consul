@@ -397,17 +397,21 @@ func makeUpstreamRouteForDiscoveryChain(
 					}
 
 					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+					var retryStrings []string
 					if destination.RetryOnConnectFailure {
-						retryPolicy.RetryOn = "connect-failure"
+						retryStrings = append(retryStrings, "connect-failure")
 					}
+
+					if destination.RetryOnReset {
+						retryStrings = append(retryStrings, "reset")
+					}
+
 					if len(destination.RetryOnStatusCodes) > 0 {
-						if retryPolicy.RetryOn != "" {
-							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
-						} else {
-							retryPolicy.RetryOn = "retriable-status-codes"
-						}
+						retryStrings = append(retryStrings, "retriable-status-codes")
 						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
 					}
+
+					retryPolicy.RetryOn = strings.Join(retryStrings, ",")
 
 					routeAction.Route.RetryPolicy = retryPolicy
 				}

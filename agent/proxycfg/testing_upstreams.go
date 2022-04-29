@@ -632,6 +632,16 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/retry-reset",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:      "retry-reset",
+							NumRetries:   15,
+							RetryOnReset: true,
+						},
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
 							PathPrefix: "/retry-codes",
 						}),
 						Destination: &structs.ServiceRouteDestination{
@@ -642,11 +652,12 @@ func setupTestVariationDiscoveryChain(
 					},
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
-							PathPrefix: "/retry-both",
+							PathPrefix: "/retry-all",
 						}),
 						Destination: &structs.ServiceRouteDestination{
-							Service:               "retry-both",
+							Service:               "retry-all",
 							RetryOnConnectFailure: true,
+							RetryOnReset:          true,
 							RetryOnStatusCodes:    []uint32{401, 409, 451},
 						},
 					},
