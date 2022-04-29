@@ -11,16 +11,18 @@ This topic describes how to use the Consul API Gateway add-on module. It include
 
 ## Requirements
 
-Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications](/docs/api-gateway/tech-specs). This includes validating that the requirements for minimum versions of software are met.
+Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications][tech-specs]. This includes validating that the requirements for minimum versions of software are met. See the [Release Notes][rel-notes] for the version of API Gateway you are deploying.
 
 ## Installation
+
+-> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
 
 1. Issue the following command to install the CRDs:
 
    <CodeBlockConfig>
 
    ```shell-session
-   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.2.0"
+   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
    ```
 
    </CodeBlockConfig>
@@ -38,7 +40,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
      enabled: true
    apiGateway:
      enabled: true
-     image: hashicorp/consul-api-gateway:0.2.0
+     image: hashicorp/consul-api-gateway:VERSION
    ```
 
    </CodeBlockConfig>
@@ -355,3 +357,10 @@ The `MeshService` configuration holds a reference to an externally-managed Consu
 | `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
 
 Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
+
+<!--
+    ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
+    Only Reference style links should be added below this comment
+--->
+[tech-specs]: /docs/api-gateway/tech-specs
+[rel-notes]: /docs/release-notes
