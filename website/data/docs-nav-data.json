@@ -1087,6 +1087,10 @@
         "path": "architecture"
       },
       {
+        "title": "Improving Consul Resilience",
+        "path": "architecture/improving-consul-resilience"
+      },
+      {
         "title": "Anti-Entropy",
         "path": "architecture/anti-entropy"
       },
