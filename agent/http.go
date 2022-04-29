@@ -51,41 +51,6 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
-// BadRequestError should be returned by a handler when parameters or the payload are not valid
-type BadRequestError struct {
-	Reason string
-}
-
-func (e BadRequestError) Error() string {
-	return fmt.Sprintf("Bad request: %s", e.Reason)
-}
-
-// NotFoundError should be returned by a handler when a resource specified does not exist
-type NotFoundError struct {
-	Reason string
-}
-
-func (e NotFoundError) Error() string {
-	return e.Reason
-}
-
-// UnauthorizedError should be returned by a handler when the request lacks valid authorization.
-type UnauthorizedError struct {
-	Reason string
-}
-
-func (e UnauthorizedError) Error() string {
-	return e.Reason
-}
-
-type EntityTooLargeError struct {
-	Reason string
-}
-
-func (e EntityTooLargeError) Error() string {
-	return e.Reason
-}
-
 // CodeWithPayloadError allow returning non HTTP 200
 // Error codes while not returning PlainText payload
 type CodeWithPayloadError struct {
@@ -98,12 +63,15 @@ func (e CodeWithPayloadError) Error() string {
 	return e.Reason
 }
 
-type ForbiddenError struct {
-	Reason string
+// HTTPError is returned by the handler when a specific http error
+// code is needed alongside a plain text response.
+type HTTPError struct {
+	StatusCode int
+	Reason     string
 }
 
-func (e ForbiddenError) Error() string {
-	return e.Reason
+func (h HTTPError) Error() string {
+	return h.Reason
 }
 
 // HTTPHandlers provides an HTTP api for an agent.
@@ -423,27 +391,11 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
 				return true
 			}
-			_, ok := err.(ForbiddenError)
-			return ok
+			return false
 		}
 
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
-			return ok
-		}
-
-		isBadRequest := func(err error) bool {
-			_, ok := err.(BadRequestError)
-			return ok
-		}
-
-		isNotFound := func(err error) bool {
-			_, ok := err.(NotFoundError)
-			return ok
-		}
-
-		isUnauthorized := func(err error) bool {
-			_, ok := err.(UnauthorizedError)
 			return ok
 		}
 
@@ -452,13 +404,13 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return err.Error() == consul.ErrRateLimited.Error()
 		}
 
-		isEntityToLarge := func(err error) bool {
-			_, ok := err.(EntityTooLargeError)
-			return ok
-		}
-
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
+		}
+
+		isHTTPError := func(err error) bool {
+			_, ok := err.(HTTPError)
+			return ok
 		}
 
 		handleErr := func(err error) {
@@ -490,20 +442,20 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
-			case isBadRequest(err):
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, err.Error())
-			case isNotFound(err):
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprint(resp, err.Error())
-			case isUnauthorized(err):
-				resp.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprint(resp, err.Error())
+			case isHTTPError(err):
+				err := err.(HTTPError)
+				code := http.StatusInternalServerError
+				if err.StatusCode != 0 {
+					code = err.StatusCode
+				}
+				reason := "An unexpected error occurred"
+				if err.Error() != "" {
+					reason = err.Error()
+				}
+				resp.WriteHeader(code)
+				fmt.Fprint(resp, reason)
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
-				fmt.Fprint(resp, err.Error())
-			case isEntityToLarge(err):
-				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -1175,7 +1127,7 @@ func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 		}
 	}
 
-	return ForbiddenError{Reason: "Access is restricted"}
+	return HTTPError{StatusCode: http.StatusForbidden, Reason: "Access is restricted"}
 }
 
 func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {

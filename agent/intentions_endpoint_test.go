@@ -483,7 +483,7 @@ func TestIntentionSpecificGet(t *testing.T) {
 		obj, err := a.srv.IntentionSpecific(resp, req)
 		require.Nil(t, obj)
 		require.Error(t, err)
-		require.IsType(t, BadRequestError{}, err)
+		require.True(t, isHTTPBadRequest(err))
 		require.Contains(t, err.Error(), "UUID")
 	})
 

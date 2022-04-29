@@ -1405,9 +1405,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=nope-nope-nope", nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.HealthServiceNodes(resp, req)
-		if _, ok := err.(BadRequestError); !ok {
-			t.Fatalf("Expected bad request error but got %v", err)
-		}
+		require.True(t, isHTTPBadRequest(err), fmt.Sprintf("Expected bad request HTTP error but got %v", err))
 		if !strings.Contains(err.Error(), "Invalid value for ?passing") {
 			t.Errorf("bad %s", err.Error())
 		}
@@ -1813,8 +1811,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		resp := httptest.NewRecorder()
 		_, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.NotNil(t, err)
-		_, ok := err.(BadRequestError)
-		assert.True(t, ok)
+		assert.True(t, isHTTPBadRequest(err))
 
 		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))
 	})

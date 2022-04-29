@@ -5473,7 +5473,7 @@ func TestAgent_Token(t *testing.T) {
 			url:         "acl_token?token=root",
 			body:        badJSON(),
 			code:        http.StatusBadRequest,
-			expectedErr: `Bad request: Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
+			expectedErr: `Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
 		},
 		{
 			name:      "set user legacy",

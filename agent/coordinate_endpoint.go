@@ -14,7 +14,7 @@ func (s *HTTPHandlers) checkCoordinateDisabled() error {
 	if !s.agent.config.DisableCoordinates {
 		return nil
 	}
-	return UnauthorizedError{Reason: "Coordinate support disabled"}
+	return HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Coordinate support disabled"}
 }
 
 // sorter wraps a coordinate list and implements the sort.Interface to sort by
@@ -156,7 +156,7 @@ func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Requ
 
 	args := structs.CoordinateUpdateRequest{}
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
