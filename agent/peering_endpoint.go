@@ -15,7 +15,7 @@ func (s *HTTPHandlers) PeeringRead(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 	if name == "" {
-		return nil, BadRequestError{Reason: "Must specify a name to fetch."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Must specify a name to fetch."}
 	}
 
 	entMeta := s.agent.AgentEnterpriseMeta()
@@ -34,7 +34,7 @@ func (s *HTTPHandlers) PeeringRead(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 	if result.Peering == nil {
-		return nil, NotFoundError{}
+		return nil, HTTPError{StatusCode: http.StatusNotFound}
 	}
 
 	// TODO(peering): replace with API types
@@ -68,15 +68,15 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 	}
 
 	if req.Body == nil {
-		return nil, BadRequestError{Reason: "The peering arguments must be provided in the body"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "The peering arguments must be provided in the body"}
 	}
 
 	if err := lib.DecodeJSON(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Body decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Body decoding failed: %v", err)}
 	}
 
 	if args.PeerName == "" {
-		return nil, BadRequestError{Reason: "PeerName is required in the payload when generating a new peering token."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeerName is required in the payload when generating a new peering token."}
 	}
 
 	entMeta := s.agent.AgentEnterpriseMeta()
@@ -99,19 +99,19 @@ func (s *HTTPHandlers) PeeringInitiate(resp http.ResponseWriter, req *http.Reque
 	}
 
 	if req.Body == nil {
-		return nil, BadRequestError{Reason: "The peering arguments must be provided in the body"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "The peering arguments must be provided in the body"}
 	}
 
 	if err := lib.DecodeJSON(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Body decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Body decoding failed: %v", err)}
 	}
 
 	if args.PeerName == "" {
-		return nil, BadRequestError{Reason: "PeerName is required in the payload when initiating a peering."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeerName is required in the payload when initiating a peering."}
 	}
 
 	if args.PeeringToken == "" {
-		return nil, BadRequestError{Reason: "PeeringToken is required in the payload when initiating a peering."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeeringToken is required in the payload when initiating a peering."}
 	}
 
 	return s.agent.rpcClientPeering.Initiate(req.Context(), &args)
