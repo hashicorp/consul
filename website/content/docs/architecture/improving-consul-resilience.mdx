@@ -1,0 +1,139 @@
+---
+layout: docs
+page_title: Improving Consul Resilience
+description: >-
+  Fault tolerance is the ability of a system to continue operating without interruption
+  despite the failure of one or more components. Consul's resilience, or fault tolerance,
+  is determined by the configuring of its voting server agents. Recommended strategies for
+  increasing Consul's fault tolerance include using 3 or 5 voting server agents, spreading
+  server agents across infrastructure availability zones, and using Consul Enterprise
+  redundancy zones to enable backup voting servers to automatically replace lost voters.
+---
+
+# Improving Consul Resilience
+
+Fault tolerance is the ability of a system to continue operating without interruption
+despite the failure of one or more components.
+The most basic production deployment of Consul has 3 server agents and can lose a single
+server without interruption.
+
+As you continue to use Consul, your circumstances may change.
+Perhaps a datacenter becomes more business critical or risk management policies change,
+necessitating an increase in fault tolerance.
+The sections below discuss options for how to improve Consul's fault tolerance.
+
+## Fault Tolerance in Consul
+
+Consul's fault tolerance is determined by the configuration of its voting server agents.
+
+Each Consul datacenter depends on a set of Consul voting server agents.
+The voting servers ensure Consul has a consistent, fault-tolerant state
+by requiring a majority of voting servers, known as a quorum, to agree upon any state changes.
+Examples of state changes include: adding or removing services,
+adding or removing nodes, and changes in service or node health status.
+
+Without a quorum, Consul experiences an outage:
+it cannot provide most of its capabilities because they rely on
+the availability of this state information.
+If Consul has an outage, normal operation can be restored by following the
+[outage recovery guide](https://learn.hashicorp.com/tutorials/consul/recovery-outage).
+
+If Consul is deployed with 3 servers, the quorum size is 2. The deployment can lose 1
+server and still maintain quorum, so it has a fault tolerance of 1.
+If Consul is instead deployed with 5 servers, the quorum size increases to 3, so
+the fault tolerance increases to 2.
+To learn more about the relationship between the
+number of servers, quorum, and fault tolerance, refer to the
+[concensus protocol documentation](/docs/architecture/consensus#deployment_table).
+
+Effectively mitigating your risk is more nuanced than just increasing the fault tolerance
+metric described above. You must consider:
+
+### Correlated Risks
+
+Are you protected against correlated risks? Infrastructure-level failures can cause multiple servers to fail at the same time. This means that a single infrastructure-level failure could cause a Consul outage, even if your server-level fault tolerance is 2.
+
+### Mitigation Costs
+
+What are the costs of the mitigation? Different mitigation options present different trade-offs for operational complexity, computing cost, and Consul request performance.
+
+## Strategies to Increase Fault Tolerance
+
+The following sections explore several options for increasing Consul's fault tolerance.
+
+HashiCorp recommends all production deployments consider:
+- [Spreading Consul servers across availability zones](#spread-servers-across-infrastructure-availability-zones)
+- <EnterpriseAlert inline /><a href="#use-backup-voting-servers-to-replace-lost-voters">Using backup voting servers to replace lost voters</a>
+
+### Spread Servers Across Infrastructure Availability Zones
+
+The cloud or on-premise infrastructure underlying your  [Consul datacenter](/docs/install/glossary#datacenter)
+may be split into several "availability zones".
+An availability zone is meant to share no points of failure with other zones by:
+- Having power, cooling, and networking systems independent from other zones
+- Being physically distant enough from other zones so that large-scale disruptions
+  such as natural disasters (flooding, earthquakes) are very unlikely to affect multiple zones
+
+Availability zones are available in the regions of most cloud providers and in some on-premise installations.
+If possible, spread your Consul voting servers across 3 availability zones
+to protect your Consul datacenter from a single zone-level failure.
+For example, if deploying 5 Consul servers across 3 availability zones, place no more than 2 servers in each zone.
+If one zone fails, at most 2 servers are lost and quorum will be maintained by the 3 remaining servers.
+
+To distribute your Consul servers across availability zones, modify your infrastructure configuration with your infrastructure provider. No change is needed to your Consul server’s agent configuration.
+
+Additionally, you should leverage resources that can automatically restore your compute instance,
+such as autoscaling groups, virtual machine scale sets, or compute engine autoscaler.
+The autoscaling resources can be customized to re-deploy servers into specific availability zones
+and ensure the desired numbers of servers are available at all time. 
+
+### Add More Voting Servers
+
+For most production use cases, we recommend using either 3 or 5 voting servers,
+yielding a server-level fault tolerance of 1 or 2 respectively.
+
+Even though it would improve fault tolerance,
+adding voting servers beyond 5 is **not recommended** because it decreases Consul's performance—
+it requires Consul to involve more servers in every state change or consistent read.
+
+Consul Enterprise provides a way to improve fault tolerance without this performance penalty:
+[using backup voting servers to replace lost voters](#use-backup-voting-servers-to-replace-lost-voters).
+
+### <EnterpriseAlert inline /> Use Backup Voting Servers to Replace Lost Voters
+
+Consul Enterprise [redundancy zones](/docs/enterprise/redundancy)
+can be used to improve fault tolerance without the performance penalty of increasing the number of voting servers.
+
+Each redundancy zone should be assigned 2 or more Consul servers.
+If all servers are healthy, only one server per redundancy zone will be an active voter;
+all other servers will be backup voters.
+If a zone's voter is lost, it will be replaced by:
+- A backup voter within the same zone, if any. Otherwise,
+- A backup voter within another zone, if any.
+
+Consul can replace lost voters with backup voters within 30 seconds in most cases.
+Because this replacement process is not instantaneous,
+redundancy zones do not improve immediate fault tolerance—
+the number of healthy voting servers that can fail at once without causing an outage.
+Instead, redundancy zones improve optimistic fault tolerance:
+the number of healthy active and back-up voting servers that can fail gradually without causing an outage.
+
+The relationship between these two types of fault tolerance is:
+
+_Optimistic fault tolerance = immediate fault tolerance + the number of healthy backup voters_
+
+For example, consider a Consul datacenter with 3 redundancy zones and 2 servers per zone.
+There will be 3 voting servers (1 per zone), meaning a quorum size of 2 and an immediate fault tolerance of 1.
+There will also be 3 backup voters (1 per zone), each of which increase the optimistic fault tolerance.
+Therefore, the optimistic fault tolerance is 4.
+This provides performance similar to a 3 server setup with fault tolerance similar to a 7 server setup.
+
+We recommend associating each Consul redundancy zone with an infrastructure availability zone
+to also gain the infrastructure-level fault tolerance benefits provided by availability zones.
+However, Consul redundancy zones can be used even without the backing of infrastructure availability zones.
+
+For more information on redundancy zones, refer to:
+- [Redundancy zone documentation](/docs/enterprise/redundancy)
+  for a more detailed explanation
+- [Redundancy zone tutorial](https://learn.hashicorp.com/tutorials/consul/redundancy-zones?in=consul/enterprise)
+  to learn how to use them
