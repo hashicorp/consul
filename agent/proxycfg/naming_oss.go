@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func UpstreamIDString(typ, dc, name string, _ *acl.EnterpriseMeta) string {
+func UpstreamIDString(typ, dc, name string, _ *acl.EnterpriseMeta, peerName string) string {
 	ret := name
 
-	if dc != "" {
+	if peerName != "" {
+		ret += "?peer=" + peerName
+	} else if dc != "" {
 		ret += "?dc=" + dc
 	}
 
