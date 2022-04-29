@@ -2508,6 +2508,47 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterCheck_UDP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.CheckDefinition{
+		UDP:  "1.1.1.1",
+		Name: "test",
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	// Ensure we have a check mapping
+	checkID := structs.NewCheckID("test", nil)
+	if existing := a.State.Check(checkID); existing == nil {
+		t.Fatalf("missing test check")
+	}
+
+	if _, ok := a.checkUDPs[checkID]; !ok {
+		t.Fatalf("missing test check udp")
+	}
+
+	// Ensure the token was configured
+	if token := a.State.CheckToken(checkID); token == "" {
+		t.Fatalf("missing token")
+	}
+
+	// By default, checks start in critical state.
+	state := a.State.Check(checkID)
+	if state.Status != api.HealthCritical {
+		t.Fatalf("bad: %v", state)
+	}
+}
+
 // This verifies all the forms of the new args-style check that we need to
 // support as a result of https://github.com/hashicorp/consul/issues/3587.
 func TestAgent_RegisterCheck_Scripts(t *testing.T) {
@@ -3270,6 +3311,10 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 			{
 				TTL: 30 * time.Second,
 			},
+			{
+				UDP:      "1.1.1.1",
+				Interval: 5 * time.Second,
+			},
 		},
 		Weights: &structs.Weights{
 			Passing: 100,
@@ -3301,12 +3346,12 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 
 	// Ensure we have a check mapping
 	checks := a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
-	if len(checks) != 3 {
+	if len(checks) != 4 {
 		t.Fatalf("bad: %v", checks)
 	}
 	for _, c := range checks {
-		if c.Type != "ttl" {
-			t.Fatalf("expected ttl check type, got %s", c.Type)
+		if c.Type != "ttl" && c.Type != "udp" {
+			t.Fatalf("expected ttl or udp check type, got %s", c.Type)
 		}
 	}
 
@@ -3356,6 +3401,11 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 				CheckID: types.CheckID("check_2"),
 				TTL:     30 * time.Second,
 			},
+			{
+				CheckID:  types.CheckID("check_3"),
+				UDP:      "1.1.1.1",
+				Interval: 5 * time.Second,
+			},
 		},
 		Weights: &structs.Weights{
 			Passing: 100,
@@ -3380,6 +3430,11 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 			{
 				CheckID: types.CheckID("check_3"),
 				TTL:     30 * time.Second,
+			},
+			{
+				CheckID:  types.CheckID("check_3"),
+				UDP:      "1.1.1.1",
+				Interval: 5 * time.Second,
 			},
 		},
 		Weights: &structs.Weights{
