@@ -1697,6 +1697,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
 			DestinationPartition: stringVal(u.DestinationPartition),
+			DestinationPeer:      stringVal(u.DestinationPeer),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),

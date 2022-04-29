@@ -1120,6 +1120,20 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			},
 			"upstreams cannot contain duplicates",
 		},
+		{
+			"connect-proxy: valid Upstream.PeerDestination",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationPeer: "peer1",
+						LocalBindPort:   5000,
+					},
+				}
+			},
+			"",
+		},
 	}
 
 	for _, tc := range cases {
@@ -1173,6 +1187,36 @@ func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 						DestinationName:      "foo",
 						DestinationPartition: "foo",
 						LocalBindPort:        5000,
+					},
+				}
+			},
+			"",
+		},
+		{
+			"connect-proxy: Upstream with peer targets partition different from NodeService",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "part1",
+						DestinationPeer:      "peer1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams must target peers in the same partition as the service",
+		},
+		{
+			"connect-proxy: Upstream with peer defaults to NodeService's peer",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						// No DestinationPartition here but we assert that it defaults to "bar" and not "default"
+						DestinationPeer: "peer1",
+						LocalBindPort:   5000,
 					},
 				}
 			},

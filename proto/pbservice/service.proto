@@ -95,6 +95,8 @@ message Upstream {
     // on service definitions in various places.
     string DestinationType = 1;
     string DestinationNamespace = 2;
+    string DestinationPartition = 12;
+    string DestinationPeer = 13;
     string DestinationName = 3;
 
     // Datacenter that the service discovery request should be run against. Note
@@ -127,7 +129,6 @@ message Upstream {
     // LocalBindSocketPath is the socket to create to connect to the upstream service
     string LocalBindSocketPath = 10;
     string LocalBindSocketMode = 11;
-    string DestinationPartition = 12;
 }
 
 // ServiceConnect are the shared Connect settings between all service
