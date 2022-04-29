@@ -304,7 +304,7 @@ Routes = [
     Match{
         HTTP {
             PathPrefix = "/coffees"
-        }  
+        }
     }
 
     Destination {
@@ -312,13 +312,14 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOnReset = true
     }
   },
   {
     Match{
         HTTP {
             PathPrefix = "/orders"
-        }  
+        }
     }
 
     Destination {
@@ -326,6 +327,7 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOnReset = true
     }
   }
 ]
@@ -346,6 +348,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
+        retryOnReset: true
     - match:
         http:
           pathExact: /orders
@@ -354,7 +357,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
-
+        retryOnReset: true
 ```
 
 
@@ -373,6 +376,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOnReset": true,
                 "Service": "procurement"
             }
         },
@@ -386,6 +390,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOnReset": true,
                 "Service": "procurement"
             }
         }
@@ -702,6 +707,11 @@ spec:
       name: 'RetryOnConnectFailure',
       type: 'bool: false',
       description: 'Allows for connection failure errors to trigger a retry.',
+    },
+    {
+      name: 'RetryOnReset',
+      type: 'bool: false',
+      description: 'Allows for connection resets to trigger a retry.',
     },
     {
       name: 'RetryOnStatusCodes',
