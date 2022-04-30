@@ -133,7 +133,7 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
-func assertMetricsWithLabelHasValueDifferentFrom(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string, value string) {
+func assertMetricsWithLabelHaveValueDifferentFrom(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string, value string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -149,11 +149,10 @@ func assertMetricsWithLabelHasValueDifferentFrom(t *testing.T, respRec *httptest
 		if strings.Contains(line, labelWithValueTarget) {
 			s := strings.SplitN(line, " ", 2)
 			if s[1] == value {
-				t.Fatal("Should have not been zero")
+				t.Fatalf("Metric with label provided \"%s:%s\" has the same outcome as the provided value `%s`", label, labelValue, value)
 			}
 		}
 	}
-
 }
 
 func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
@@ -444,7 +443,7 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 
 }
 
-func TestNotSureAboutTheName(t *testing.T) {
+func TestMetricsOutput(t *testing.T) {
 	skipIfShortTesting(t)
 
 	t.Run("RPC calls with elapsed time below 1ms are reported as decimal", func(t *testing.T) {
@@ -468,6 +467,6 @@ func TestNotSureAboutTheName(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricsWithLabelHasValueDifferentFrom(t, respRec, "method", "Status.Ping", "0")
+		assertMetricsWithLabelHaveValueDifferentFrom(t, respRec, "method", "Status.Ping", "0")
 	})
 }
