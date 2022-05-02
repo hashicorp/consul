@@ -1,0 +1,3 @@
+```release-note:feature
+api: Expose peering endpoints in the API module for GenerateToken, Initiate and Read.
+```
