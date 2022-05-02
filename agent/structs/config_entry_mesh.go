@@ -35,10 +35,6 @@ type MeshTLSConfig struct {
 	Outgoing *MeshDirectionalTLSConfig `json:",omitempty"`
 }
 
-type MeshHTTPConfig struct {
-	SanitizeXForwardedClientCert bool `json:",omitempty"`
-}
-
 type MeshDirectionalTLSConfig struct {
 	TLSMinVersion types.TLSVersion `json:",omitempty" alias:"tls_min_version"`
 	TLSMaxVersion types.TLSVersion `json:",omitempty" alias:"tls_max_version"`
