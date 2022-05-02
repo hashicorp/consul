@@ -851,7 +851,7 @@ jobs:
       
   envoy-integration-test-1_19_3: &ENVOY_TESTS
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:202201-02
     parallelism: 4
     resource_class: medium
     environment:
