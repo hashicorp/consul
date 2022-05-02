@@ -191,7 +191,7 @@ jobs:
       - run:
           name: lint
           command: &lintcmd |
-            golangci-lint run --build-tags="$GOTAGS" -v --concurrency 2
+            golangci-lint run --build-tags="$GOTAGS" -v
       - run:
           name: lint api
           working_directory: api

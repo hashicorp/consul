@@ -69,3 +69,4 @@ linters-settings:
 
 run:
   timeout: 10m
+  concurrency: 4
