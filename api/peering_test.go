@@ -13,9 +13,10 @@ import (
 // TODO(peering): cover the following test cases: bad/ malformed input, peering with wrong token,
 // peering with the wrong PeerName
 
-// TestAPI_Peering_GenerateToken_Read_Initiate tests the following use case:
+// TestAPI_Peering_GenerateToken_Read_Initiate_Delete tests the following use case:
 // a server creates a peering token, reads the token, then another server calls initiate peering
-func TestAPI_Peering_GenerateToken_Read_Initiate(t *testing.T) {
+// finally, we delete the token on the first server
+func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithCA(t)
 	defer s.Stop()
@@ -28,66 +29,82 @@ func TestAPI_Peering_GenerateToken_Read_Initiate(t *testing.T) {
 		PeerName: "peer1",
 	}
 	var token1 string
-	t.Run("Generate a token happy path", func(t *testing.T) {
-		resp, qq, err := peerings.GenerateToken(ctx, p1, options)
-		token1 = resp.PeeringToken
+	// Generate a token happy path
+	resp, wm, err := peerings.GenerateToken(ctx, p1, options)
+	token1 = resp.PeeringToken
 
-		require.NoError(t, err)
-		require.NotEmpty(t, qq)
-		require.NotEmpty(t, resp)
+	require.NoError(t, err)
+	require.NotEmpty(t, wm)
+	require.NotEmpty(t, resp)
+
+	// Read token generated on server
+	resp2, qm, err2 := peerings.Read(ctx, "peer1", nil)
+
+	// basic ok checking
+	require.NoError(t, err2)
+	require.NotEmpty(t, qm)
+	require.NotEmpty(t, resp2)
+
+	// token specific assertions on the "server"
+	require.Equal(t, "peer1", resp2.Name)
+	require.Equal(t, "default", resp2.Partition)
+	require.Equal(t, INITIAL, resp2.State)
+
+	// Initiate peering
+
+	// make a "client" server in second DC for peering
+	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Datacenter = "dc2"
 	})
+	defer s2.Stop()
 
-	t.Run("Read token generated on \"server\"", func(t *testing.T) {
-		resp, qq, err := peerings.Read(ctx, "peer1", nil)
+	i := PeeringInitiateRequest{
+		Datacenter:   c2.config.Datacenter,
+		PeerName:     "peer1",
+		PeeringToken: token1,
+	}
 
-		// basic ok checking
-		require.NoError(t, err)
-		require.NotEmpty(t, qq)
-		require.NotEmpty(t, resp)
+	respi, wm3, err3 := c2.Peerings().Initiate(ctx, i, options)
 
-		// token specific assertions on the "server"
-		require.Equal(t, "peer1", resp.Name)
-		require.Equal(t, "default", resp.Partition)
-		require.Equal(t, INITIAL, resp.State)
+	// basic checks
+	require.NoError(t, err3)
+	require.NotEmpty(t, wm3)
 
-	})
+	// at first the token will be undefined
+	require.Equal(t, UNDEFINED, PeeringState(respi.Status))
 
-	t.Run("Initiate peering", func(t *testing.T) {
-		// make a "client" server in second DC for peering
-		c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-			conf.Datacenter = "dc2"
-		})
-		defer s2.Stop()
+	// wait for the peering backend to finish the peering connection
+	time.Sleep(2 * time.Second)
 
-		i := PeeringInitiateRequest{
-			Datacenter:   c2.config.Datacenter,
-			PeerName:     "peer1",
-			PeeringToken: token1,
-		}
+	respr, qm2, err4 := c2.Peerings().Read(ctx, "peer1", nil)
 
-		respi, wm, err := c2.Peerings().Initiate(ctx, i, options)
+	// basic ok checking
+	require.NoError(t, err4)
+	require.NotEmpty(t, qm2)
 
-		// basic checks
-		require.NoError(t, err)
-		require.NotEmpty(t, wm)
+	// require that the peering state is not undefined
+	require.Equal(t, INITIAL, respr.State)
 
-		// at first the token will be undefined
-		require.Equal(t, UNDEFINED, PeeringState(respi.Status))
+	// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
+	// require.Equal(t, PeeringState_ACTIVE, respr.State)
 
-		// wait for the peering backend to finish the peering connection
-		time.Sleep(2 * time.Second)
+	// Delete the token on server 1
+	p := PeeringRequest{
+		Name: "peer1",
+	}
+	resp4, qm3, err5 := peerings.Delete(ctx, p, nil)
 
-		respr, qq, err := c2.Peerings().Read(ctx, "peer1", nil)
+	require.NoError(t, err5)
+	require.NotEmpty(t, qm3)
 
-		// basic ok checking
-		require.NoError(t, err)
-		require.NotEmpty(t, qq)
+	// {} is returned on success for now
+	require.Empty(t, resp4)
 
-		// require that the peering state is not undefined
-		require.Equal(t, INITIAL, respr.State)
+	// Read to see if the token is "gone"
+	resp5, qm4, err6 := peerings.Read(ctx, "peer1", nil)
 
-		// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
-		// require.Equal(t, PeeringState_ACTIVE, respr.State)
-	})
-
+	// basic checks
+	require.NotNil(t, err6)
+	require.Empty(t, qm4)
+	require.Empty(t, resp5)
 }
