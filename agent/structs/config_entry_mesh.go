@@ -44,6 +44,10 @@ type MeshDirectionalTLSConfig struct {
 	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
 }
 
+type MeshHTTPConfig struct {
+	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
+}
+
 func (e *MeshConfigEntry) GetKind() string {
 	return MeshConfig
 }
