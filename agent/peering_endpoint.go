@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-// PeeringRead fetches a peering that matches the request parameters.
-func (s *HTTPHandlers) PeeringRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// PeeringEndpoint handles GET, DELETE on v1/peering/name
+func (s *HTTPHandlers) PeeringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	name, err := getPathSuffixUnescaped(req.URL.Path, "/v1/peering/")
 	if err != nil {
 		return nil, err
@@ -23,10 +23,24 @@ func (s *HTTPHandlers) PeeringRead(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	// Switch on the method
+	switch req.Method {
+	case "GET":
+		return s.peeringRead(resp, req, name, entMeta.PartitionOrEmpty())
+	case "DELETE":
+		return s.peeringDelete(resp, req, name, entMeta.PartitionOrEmpty())
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "DELETE"}}
+	}
+}
+
+// peeringRead fetches a peering that matches the name and partition.
+// This assumes that the name and partition parameters are valid
+func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, name, partition string) (interface{}, error) {
 	args := pbpeering.PeeringReadRequest{
 		Name:       name,
 		Datacenter: s.agent.config.Datacenter,
-		Partition:  entMeta.PartitionOrEmpty(), // should be "" in OSS
+		Partition:  partition, // should be "" in OSS
 	}
 
 	result, err := s.agent.rpcClientPeering.PeeringRead(req.Context(), &args)
@@ -115,4 +129,22 @@ func (s *HTTPHandlers) PeeringInitiate(resp http.ResponseWriter, req *http.Reque
 	}
 
 	return s.agent.rpcClientPeering.Initiate(req.Context(), &args)
+}
+
+// peeringDelete initiates a deletion for a peering that matches the name and partition.
+// This assumes that the name and partition parameters are valid.
+func (s *HTTPHandlers) peeringDelete(resp http.ResponseWriter, req *http.Request, name, partition string) (interface{}, error) {
+	args := pbpeering.PeeringDeleteRequest{
+		Name:       name,
+		Datacenter: s.agent.config.Datacenter,
+		Partition:  partition, // should be "" in OSS
+	}
+
+	result, err := s.agent.rpcClientPeering.PeeringDelete(req.Context(), &args)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(peering) -- today pbpeering.PeeringDeleteResponse is a {} so the result below is actually {}
+	return result, nil
 }

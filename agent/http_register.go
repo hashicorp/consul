@@ -105,7 +105,7 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
 	registerEndpoint("/v1/peering/token", []string{"POST"}, (*HTTPHandlers).PeeringGenerateToken)
 	registerEndpoint("/v1/peering/initiate", []string{"POST"}, (*HTTPHandlers).PeeringInitiate)
-	registerEndpoint("/v1/peering/", []string{"GET"}, (*HTTPHandlers).PeeringRead)
+	registerEndpoint("/v1/peering/", []string{"GET", "DELETE"}, (*HTTPHandlers).PeeringEndpoint)
 	registerEndpoint("/v1/peerings", []string{"GET"}, (*HTTPHandlers).PeeringList)
 	registerEndpoint("/v1/query", []string{"GET", "POST"}, (*HTTPHandlers).PreparedQueryGeneral)
 	// specific prepared query endpoints have more complex rules for allowed methods, so
