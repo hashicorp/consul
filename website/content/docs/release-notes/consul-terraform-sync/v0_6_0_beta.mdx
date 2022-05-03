@@ -96,7 +96,10 @@ With the update to automatically retrieve a new license, during license retrieva
 
 ~> Configuring [`license_path`](/docs/nia/configuration#license_path) <EnterpriseAlert inline /> will be deprecated in v0.6.0. The described `license` block will be the preferred way to set the license configuration.
 
-The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. To use the license block for CTS Enterprise, a license path must be provided or automatic license retrieval enabled. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
+To configure how CTS attains a license, use the 'license' block. You can:
+- Provide a path to a license file.
+- Configure CTS to automatically retrieve a license from Consul.
+If a license block is not configured, 'license.auto_retrieval.enabled' defaults to true.
 
 ```hcl
 license {
@@ -110,15 +113,15 @@ license {
 ##### License Config
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured this license will be use until, if enabled, a new license is automatically retrieved by CTS. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details. | none |
-| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. See [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for details. | See [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for defaults. |
+| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/docs/nia/enterprise/license#setting-the-license). | none |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for details and [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for defaults. |
 
 
 ##### Auto-Retrieval Config
 
-The `auto_retrieval` block is used to configure the license auto-retrieval used by CTS. If enabled, CTS will attempt to retrieve a new license from its configured Consul Enterprise backend each day. In the case where a license was not able to be retrieved on the daily cadence, and the license is reaching expiry, CTS will attempt to retrieve a license at each period defined by the [License Expiry Handling](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#license-expiry-handling).
+You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#license-expiry-handling).
 
-~> `auto_retrieval` is an important feature to have enabled when connecting to HCP-Consul. HCP-Consul has a relatively short license expiry, and in order to ensure that CTS can continue to work without restart, it is important that CTS be able to dynamically attain fresh licenses from HCP-Consul.
+~> `auto_retrieval` is an important feature to enable when you connect to HCP Consul. To ensure that CTS can work without restarting the service, it is important for CTS to have the ability to dynamically obtain fresh licenses from HCP Consul.
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
