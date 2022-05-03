@@ -55,12 +55,15 @@ tls {
   - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
-- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license-1) instead.**  Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
-- `license` <EnterpriseAlert inline /> - (obj) The `license` block is used to configure how CTS attains a license, for more information see the [license block](/docs/nia/configuration#license) section
+- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license-1) instead.**  Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. Review [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
+- `license` <EnterpriseAlert inline /> - (obj) The `license` block is used to configure how CTS attains a license, for more information review the [license block](/docs/nia/configuration#license) section
 
 ## License <EnterpriseAlert inline />
 
-The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. To use the license block for CTS Enterprise, a license path must be provided or automatic license retrieval enabled. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
+To configure how CTS obtains a license, use the `license` block. You can:
+- Provide a path to a license file.
+- Configure CTS to automatically retrieve a license from Consul.
+If a license block is not configured, 'license.auto_retrieval.enabled' defaults to true.
 
 ```hcl
 license {
@@ -74,15 +77,15 @@ license {
 ### License Config
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured this license will be use until, if enabled, a new license is automatically retrieved by CTS. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details. | none |
-| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. See [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for details. | See [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for defaults. |
+| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/docs/nia/enterprise/license#setting-the-license). | none |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for details | Review [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for defaults. |
 
 
 ### Auto-Retrieval Config
 
-The `auto_retrieval` block is used to configure the license auto-retrieval used by CTS. If enabled, CTS will attempt to retrieve a new license from its configured Consul Enterprise backend each day. In the case where a license was not able to be retrieved on the daily cadence, and the license is reaching expiry, CTS will attempt to retrieve a license at each period defined by the [License Expiry Handling](/docs/nia/enterprise/license#license-expiry-handling).
+You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
 
-~> `auto_retrieval` is an important feature to have enabled when connecting to HCP-Consul. HCP-Consul has a relatively short license expiry, and in order to ensure that CTS can continue to work without restart, it is important that CTS be able to dynamically attain fresh licenses from HCP-Consul.
+~> `auto_retrieval` is an important feature to enable when you connect to HCP Consul. To ensure that CTS can work without restarting the service, it is important for CTS to have the ability to dynamically obtain fresh licenses from HCP Consul.
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -228,11 +231,11 @@ task {
 - `condition` - (obj: required) The requirement that, when met, triggers CTS to execute the task. Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
 - `source_input` - (obj) **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `module_input` block instead.**
 - `module_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `module_input` block defines any extra module inputs needed for task execution.  This is in addition to any module input provided by the `condition` block or `services` field (deprecated). Multiple `module_input` blocks can be configured per task. [Task Module Input](#task-module-input) configuration for full details on usage and restrictions.
-- `terraform_version` - (string) <EnterpriseAlert inline />  **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. See `terraform_cloud_workspace.terraform_version` instead.** The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
-- `terraform_cloud_workspace` - (obj) <EnterpriseAlert inline /> Configures attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver). For global configurations of all workspaces, see [`driver.workspaces`](#workspaces).
+- `terraform_version` - (string) <EnterpriseAlert inline />  **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. Review `terraform_cloud_workspace.terraform_version` instead.** The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
+- `terraform_cloud_workspace` - (obj) <EnterpriseAlert inline /> Configures attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver). For global configurations of all workspaces, review [`driver.workspaces`](#workspaces).
   - `execution_mode` - (string: "remote") The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".
   - `agent_pool_id` - (string) Only supported if `execution_mode` is set to "agent". The ID of the agent pool that should run the Terraform workloads. Either `agent_pool_id` or `agent_pool_name` are required if `execution_mode` is set to "agent". `agent_pool_id` takes precedence over `agent_pool_name` if both are provided.
-  - `agent_pool_name` - (string) Only supported if `execution_mode` is set to "agent". The name of the agent pool that should run the Terraform workloads. Either `agent_pool_id` or `agent_pool_name` are required if `execution_mode` is set to "agent". `agent_pool_id` takes precedence over `agent_pool_name` if both are provided.
+  - `agent_pool_name` - (string) Only supported if `execution_mode` is set to "agent". The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided.
   - `terraform_version` - (string) The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization.
 
 ### Task Condition
