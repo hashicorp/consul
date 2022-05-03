@@ -26,10 +26,8 @@ information.
 
 ## General
 
-- `-auto-reload-config` ((#\_auto_reload_config)) - This flag set Consul to automatically reload
-  [Reloadable Configuration](/docs/agent/config#reloadable-configuration) when configuration files change.
-  Consul will also watch certificate and key files set in `cert_file` and `key_file` and reload the configuration
-  if updated.
+- `-auto-reload-config` ((#\_auto_reload_config)) - This option directs Consul to automatically reload the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change.
+  Consul also watches the certificate and key files specified with the `cert_file` and `key_file` parameters and reloads the configuration if the files are updated.
 
 - `-check_output_max_size` - Override the default
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
