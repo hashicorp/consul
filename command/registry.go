@@ -121,7 +121,7 @@ import (
 // factory is a function that returns a new instance of a CLI-sub command.
 type factory func(cli.Ui) (cli.Command, error)
 
-// entry is a struct that returns a command's name and a factory for that command.
+// entry is a struct that contains a command's name and a factory for that command.
 type entry struct {
 	name string
 	fn   factory
