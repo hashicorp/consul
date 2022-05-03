@@ -363,6 +363,13 @@ function suite_setup {
     echo "Rebuilding 'bats-verify' image..."
     docker build -t bats-verify -f Dockerfile-bats .
 
+    # if this fails on CircleCI your first thing to try would be to upgrade
+    # the machine image to the latest version using this listing:
+    #
+    # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
+    echo "Checking bats image..."
+    docker run --rm -t bats-verify -v
+
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
     docker build -t consul-dev-envoy:${ENVOY_VERSION} \
