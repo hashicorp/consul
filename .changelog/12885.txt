@@ -1,0 +1,3 @@
+```release-note:bug
+acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter.
+```
