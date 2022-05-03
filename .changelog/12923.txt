@@ -1,0 +1,4 @@
+```release-note:breaking-change
+agent: Cap the number of attempts when joining the LAN gossip pool at 10. Agents will no longer attempt to retry indefinitely.
+The previous default can be restored by setting the retry-max agent option.
+```
