@@ -15,7 +15,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.3.10
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.42.34
+	github.com/aws/aws-sdk-go v1.44.5
 	github.com/coredns/coredns v1.1.2
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/digitalocean/godo v1.10.0 // indirect
@@ -86,7 +86,7 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/goleak v1.1.10
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
