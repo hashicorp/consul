@@ -28,6 +28,6 @@ jobs:
         run: |
           backport-assistant backport -merge-method=rebase
         env:
-          BACKPORT_LABEL_REGEXP: "backport\/(?P<target>\\d+\\.\\d+)"
+          BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
