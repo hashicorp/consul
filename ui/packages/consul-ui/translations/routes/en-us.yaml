@@ -181,7 +181,7 @@ dc:
               </p>
           wildcard-intention:
             header: Permissive Intention
-            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this vizualization more useful.
+            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this visualization more useful.
             footer: |
               <p>
                 <a href="{route_intentions}">Edit Intentions</a>
