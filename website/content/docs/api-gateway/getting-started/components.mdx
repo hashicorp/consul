@@ -7,7 +7,16 @@ page_title: Components
 
 ## GatewayClass
 
+`GatewayClass` describes a class of `Gateway` that fulfills the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/).
+The `GatewayClass` indicates what type of `Gateway` is meant to be used. For the purposes of this documentation, we always
+want to use a Consul API Gateway and so will specify the `consul-api-gateway` class that is created by the Consul Helm chart.
+
 ## GatewayClassConfig
+
+`GatewayClassConfig` is a component that enables Consul-specific configuration for the `Gateway`. Since the `GatewayClass`
+is generic and only describes the type of `Gateway` implementation that you'd like to use, the `GatewayClassConfig` houses
+configuration that may not apply to other implementations of the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/)
+but applies to your desired implementation, Consul API Gateway.
 
 ## Gateway
 
