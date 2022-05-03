@@ -124,24 +124,26 @@ The `auto_retrieval` block is used to configure the license auto-retrieval used 
 | --------- | -------- | ---- | ----------- | ------- |
 | `enabled` |  Optional | string | If set to true, enables license auto-retrieval | true |
 
-## Addition of Features to Support TFC Agents <EnterpriseAlert inline />
+## Additional Features to Support Terraform Cloud (TFC) Agents <EnterpriseAlert inline />
 
 In v0.6.0, CTS officially supports [Terraform Cloud agents](https://www.terraform.io/cloud-docs/agents).
 
 ### Terraform Cloud Remote Workspaces
 
-In addition to the current information on [Terraform Cloud Remote Workspaces](/docs/nia/network-drivers/terraform-cloud#remote-workspaces), to help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration object to the [`Task`](/docs/nia/configuration#task) object. `terraform_cloud_workspace` is used to set options like Terraform version, execution mode, and agent pool if relevant. CTS will also use any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
+To help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration object to the [`Task`](/docs/nia/configuration#task) object. You can use `terraform_cloud_workspace` to set options like Terraform version, execution mode, and relevant agent pools. CTS also uses any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
 
-~> To support TFC Agents, `terraform_cloud_workspace.execution_mode` must be set to agent execution mode.
+~> For a task to use Terraform Cloud agents, `terraform_cloud_workspace.execution_mode` must be set to "agent" and either `terraform_cloud_workspace.agent_pool_id` or `terraform_cloud_workspace.agent_pool_name` must be specified.
 
 #### Terraform Cloud Workspace Configuration
 ~> Configuring [`terraform_version`](/docs/nia/configuration#terraform_version) <EnterpriseAlert inline /> will be deprecated in v0.6.0, use `terraform_cloud_workspace.terraform_version` instead.
 
-The following configuration options are for the new `terraform_cloud_workspace` `task` configuration object which configures attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver). For global configurations of all workspaces, see [`driver.workspaces`](/docs/nia/configuration#workspaces).
+You can use the new `terraform_cloud_workspace` `task` configuration object to configure attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver). For global configurations of all workspaces, review [`driver.workspaces`](/docs/nia/configuration#workspaces).
+
+The configuration options are:
 
 | Name            | Required | Type    | Description                     |Default                  |
 | --------------- | -------- | ------- | ------------------------------- | ----------------------- |
 | `-execution_mode ` &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".| "remote" |
 | `-agent_pool_id` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent". | none |
-| `-agent_pool_name` | Optional | string | Only supported if `execution_mode` is set to "agent". The name of the agent pool that should run the Terraform workloads. Either `agent_pool_id` or `agent_pool_name` are required if `execution_mode` is set to "agent". `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | false |
+| `-agent_pool_name` | Optional | string | The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | false |
 | `-terraform_version` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. | none |
