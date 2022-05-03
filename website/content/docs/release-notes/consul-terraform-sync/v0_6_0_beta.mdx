@@ -43,31 +43,28 @@ The `start` command supports the following options:
 
 ## Introduction of CLI Autocompletion
 
-In v0.6.0 the `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
+In v0.6.0, the `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
 arguments (where supported).
 
-Enable autocompletion by running:
+To enable autocompletion, run:
 
 ```shell-session
 $ consul-terraform-sync -autocomplete-install
-```
-
-~> Be sure to **restart your shell** after installing autocompletion!
 
 When you start typing a CTS command, press the `<tab>` key to show a
-list of available completions. Type `-<tab>` to show available flag completions.
+list of available completions. To show available flag completes, type `-<tab>`.
 
-If the `CTS_*` environment variables are set, the autocompletion will
-automatically query the running CTS server and return helpful argument suggestions.
+If the `CTS_*` environment variables are set, the autocompletion
+automatically queries the running CTS server and returns helpful argument suggestions.
 
 ## Addition of Features to Support HCP Consul <EnterpriseAlert inline />
 
-In v0.6.0, CTS officially supports HCP-Consul. To help enable this support, v0.6.0 introduces license auto-retrieval (**Enterprise only**) which allows CTS to retrieve a new license from its configured Consul Enterprise backend (including HCP-Consul).
+In v0.6.0, CTS officially supports HCP Consul. To help enable this support, v0.6.0 introduces license auto-retrieval (**Enterprise only**). The auto-retrieval feature works for both on-premise Consul Enterprise and HCP Consul, but it is especially useful for HCP Consul because the licenses for this service expire much sooner.
 
 ### License
 
 #### Setting the License Manually
-~> By default in v0.6.0, CTS is configured to automatically retrieve a license from its configured Consul Enterprise Backend, and also retrieve new licenses periodically.
+~> In v0.6.0, CTS is configured by default to automatically retrieve a license from its configured Consul Enterprise backend when it starts. It also retrieves new licenses periodically.
 
 If a license needs to be manually set, use one of the [existing methods](http://localhost:3000/docs/nia/enterprise/license#setting-the-license), or use the new license block:
 
@@ -78,10 +75,10 @@ If a license needs to be manually set, use one of the [existing methods](http://
    ```
 
 #### Updating the License Manually
-~> By default CTS will automatically retrieve a license from its configured Consul Enterprise Backend. If however this is disabled, follow the instructions under [Updating the License](/docs/nia/enterprise/license#updating-the-license).
+~> CTS automatically retrieves a license from its configured Consul Enterprise backend by default. If this default settings is disabled, follow the instructions under [Updating the License](/docs/nia/enterprise/license#updating-the-license).
 
-#### License Expiry Handling
-With the update to automatically retrieve a new license, during license retrieval failures, CTS will also increase the retrieval attempts as the license approaches expiry. When approaching expiration and termination, by default, CTS Enterprise will attempt to retrieve a new license. If auto-retrieval is disabled, CTS Enterprise will provide notifications in the system logs:
+#### License Expiration Handling
+As the license expiration date approaches, CTS Enterprise automatically retrieves a new license by default. If the automatic license retrieval fails, CTS increases the number of retrieval attempts. If auto-retrieval is disabled, CTS Enterprise will provide notifications in the system logs:
 
 | Time period                                 | Behavior - auto-retrieval enabled (default) |Behavior - auto-retrieval disabled |
 | ------------------------------------------- |-------------------------------------------- |---------------------------------- |
@@ -94,7 +91,7 @@ With the update to automatically retrieve a new license, during license retrieva
 
 #### License Configuration
 
-~> Configuring [`license_path`](/docs/nia/configuration#license_path) <EnterpriseAlert inline /> will be deprecated in v0.6.0. The described `license` block will be the preferred way to set the license configuration.
+~> [`license_path`](/docs/nia/configuration#license_path) <EnterpriseAlert inline /> is deprecated as of v0.6.0. The preferred way to set the license configuration is to use the 'license' block.
 
 To configure how CTS attains a license, use the 'license' block. You can:
 - Provide a path to a license file.
