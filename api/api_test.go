@@ -1102,6 +1102,65 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	require.Equal(t, expected, c.GenerateEnv())
 }
 
+// TestAPI_PrefixPath() validates that Config.Address is split into
+// Config.Address and Config.PathPrefix as expected.  If we want to add end to
+// end testing in the future this will require configuring and running an
+// API gateway / reverse proxy (e.g. nginx)
+func TestAPI_PrefixPath(t *testing.T) {
+	t.Parallel()
+
+	// reverse proxy PathPrefix should be separated out
+	for _, addr := range []string{
+		"http://reverse.proxy.com/consul/path/prefix",
+		"https://reverse.proxy.com/consul/path/prefix",
+	} {
+		c := &Config{Address: addr}
+
+		client, err := NewClient(c)
+		if err != nil {
+			t.Errorf("NewClient() err=%v", err)
+			return
+		}
+		exp := "reverse.proxy.com"
+		c = &client.config
+		if c.Address != exp {
+			t.Errorf("expecting Address=%q, got %q",
+				exp, c.Address)
+		}
+		exp = "/consul/path/prefix"
+		if c.PathPrefix != exp {
+			t.Errorf("expecting PathPrefix=%q, got %q",
+				exp, c.Address)
+		}
+	}
+
+	// examples with no PathPrefix
+	for _, addr := range []string{
+		"http://localhost",
+		"https://localhost",
+		"localhost",
+	} {
+		c := &Config{Address: addr}
+
+		client, err := NewClient(c)
+		if err != nil {
+			t.Errorf("NewClient() err=%v", err)
+			return
+		}
+		exp := "localhost"
+		c = &client.config
+		if c.Address != exp {
+			t.Errorf("expecting Address=%q, got %q",
+				exp, c.Address)
+		}
+		exp = ""
+		if c.PathPrefix != exp {
+			t.Errorf("expecting PathPrefix=%q, got %q",
+				exp, c.Address)
+		}
+	}
+}
+
 func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	entries, err := os.ReadDir("../test/ca_path")
