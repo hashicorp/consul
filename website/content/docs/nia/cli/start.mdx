@@ -7,13 +7,13 @@ description: >-
 
 # start
 
-The `start` command starts Consul-Terraform-Sync (CTS) as a daemon. When running as a daemon, there is no default configuration to start CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+The `start` command starts Consul-Terraform-Sync (CTS) as a daemon. When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag `-config-file` or `-config-dir`. For example:
 
 ```shell-session
 $ consul-terraform-sync start -config-file=config.hcl
 ```
 
-To view a list of available flags, use the `-help` or `-h` flag.
+To review a list of available flags, use the `-help` or `-h` flag.
 
 ### Modes
 
