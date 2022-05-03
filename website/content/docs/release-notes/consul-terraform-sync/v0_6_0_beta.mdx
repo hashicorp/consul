@@ -21,7 +21,7 @@ description: >-
 
 ### start
 
-In v0.6.0, the `start` command is the new and preferred way to start CTS as a daemon. 
+In v0.6.0, the `start` command is the new and preferred way to start CTS as a daemon.
 
 When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag `-config-file` or `-config-dir`. For example:
 
@@ -52,6 +52,8 @@ To enable autocompletion, run:
 
 ```shell-session
 $ consul-terraform-sync -autocomplete-install
+
+~> After you install autocomplete, you must restart your shell for the change to take effect.
 
 When you start typing a CTS command, press the `<tab>` key to show a
 list of available completions. To show available flag completes, type `-<tab>`.
@@ -118,7 +120,7 @@ license {
 
 ##### Auto-Retrieval Config
 
-You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#license-expiry-handling).
+You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#license-expiration-handling).
 
 ~> `auto_retrieval` is an important feature to enable when you connect to HCP Consul. To ensure that CTS can work without restarting the service, it is important for CTS to have the ability to dynamically obtain fresh licenses from HCP Consul.
 
@@ -145,7 +147,7 @@ The configuration options are:
 
 | Name            | Required | Type    | Description                     |Default                  |
 | --------------- | -------- | ------- | ------------------------------- | ----------------------- |
-| `-execution_mode ` &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".| "remote" |
-| `-agent_pool_id` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent". | none |
-| `-agent_pool_name` | Optional | string | The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | false |
-| `-terraform_version` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. | none |
+| `execution_mode ` &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".| "remote" |
+| `agent_pool_id` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent". | none |
+| `agent_pool_name` | Optional | string | The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | false |
+| `terraform_version` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. | none |
