@@ -9,7 +9,15 @@ page_title: Components
 
 `GatewayClass` describes a class of `Gateway` that fulfills the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/).
 The `GatewayClass` indicates what type of `Gateway` is meant to be used. For the purposes of this documentation, we always
-want to use a Consul API Gateway and so will specify the `consul-api-gateway` class that is created by the Consul Helm chart.
+want to use a Consul API Gateway and so will specify the `consul-api-gateway` gateway class that is created by the Consul Helm chart.
+Using this class indicates that the Consul API Gateway controller is responsible for creating the required infrastructure resources
+and configuring them appropriately, resulting in a functional `Gateway`.
+
+Though Consul API Gateway doesn't offer it today, it's possible for a single controller to be responsible for multiple `GatewayClasses`.
+This can serve multiple high-level use cases with a gateway class specific to each use case. For example, you may have two `GatewayClasses`:
+
+1. `internet` for `Gateways` used for public-facing applications and
+2. `private` for `Gateway` that  internal applications
 
 ## GatewayClassConfig
 
