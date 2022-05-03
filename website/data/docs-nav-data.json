@@ -389,8 +389,8 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "What is a Gateway?",
-            "path": "api-gateway/getting-started/what-is-a-gateway"
+            "title": "Components",
+            "path": "api-gateway/getting-started/components"
           },
           {
             "title": "Example Configuration",
