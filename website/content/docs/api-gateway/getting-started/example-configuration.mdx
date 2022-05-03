@@ -2,3 +2,85 @@
 layout: docs
 page_title: Example Configuration
 ---
+
+After `helm install` runs, by default the helm chart creates a `gatewayClass` and a `gatewayClassConfig` on your cluster. In order to see these newly created classes, you can run the following commands.
+
+```shell-session
+$ kubectl get gatewayClass consul-api-gateway -o yaml
+```
+
+```shell-session
+$ kubectl get gatewayClassConfig consul-api-gateway -o yaml
+```
+
+The following example shows how to utilize the newly created `gatewayClass` and deploy a gateway object in the default namespace.
+
+<!-- TODO: test this example config on GKE/EKS/Azure and make edits →
+<CodeBlockConfig filename="example.yaml">
+
+```yaml
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: example-gateway
+spec:
+  gatewayClassName: consul-api-gateway
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: All
+    name: http
+    port: 80
+    protocol: HTTP
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+  labels:
+    app: example-service
+spec:
+  containers:
+  - name: echo
+    image: hashicorp/echo-service
+    ports:
+      - containerPort: 5678
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-service
+spec:
+  selector:
+    app: example-service
+  ports:
+  - protocol: TCP
+    targetPort: 5678
+    port: 80
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+spec:
+  parentRefs:
+  - name: example-gateway
+  rules:
+  - backendRefs:
+    - name: example-service
+      port: 80
+
+```
+</CodeBlockConfig>
+
+The above gateway configuration creates a gateway that explicitly allows routes from `All namespaces` to connect to the gateway. Additionally, it also creates a service named `example-http-service` that routes to any pod with the `app: example-service` label, and a `hashicorp/echo-service` pod for the service to route to. Finally, it creates an`HTTPRoute` named `example-route` to attach to `example-gateway`.
+
+
