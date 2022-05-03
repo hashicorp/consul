@@ -12,22 +12,24 @@ description: >-
 **Feature Summary:**
 
 - New CLI Start Command
-- Introduction of CLI Autocompletion
+- New CLI Autocompletion
 - Addition of Features to Support HCP Consul <EnterpriseAlert inline />
 - Addition of Features to Support Terraform Cloud Agents <EnterpriseAlert inline />
 
 ## Introduction of CLI Start Command
-~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0 and will be removed at a much later date in a major release. The preferred way of running CTS is through use of the `start` command.
+~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0. The feature will be removed at a much later date in a major release. The preferred way to run CTS is to use the `start` command.
 
 ### start
 
-The `start` command is the new and preferred way in v0.6.0 of starting CTS as a daemon. When running as a daemon, there is no default configuration to start CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+In v0.6.0, the `start` command is the new and preferred way to start CTS as a daemon. 
+
+When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag `-config-file` or `-config-dir`. For example:
 
 ```shell-session
 $ consul-terraform-sync start -config-file=config.hcl
 ```
 
-To view a list of available flags, use the `-help` or `-h` flag.
+To review a list of available flags, use the `-help` or `-h` flag.
 
 ##### Options
 
@@ -41,7 +43,7 @@ The `start` command supports the following options:
 | `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
 | `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |
 
-## Introduction of CLI Autocompletion
+## New CLI Autocompletion
 
 In v0.6.0, the `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
 arguments (where supported).
