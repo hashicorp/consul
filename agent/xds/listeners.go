@@ -1153,9 +1153,8 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 
 		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
 			opts.forwardClientDetails = true
-			// Note: filter Connection may not be mTLS, so then ALWAYS_FORWARD_ONLY. For mTLS connections we might want APPEND_FORWARD.
-			// Open question; how do I determine if this is mTLS or not?
-			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_ALWAYS_FORWARD_ONLY
+			// This assumes that we have a client cert (mTLS) (implied by the context of this function)
+			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 		}
 	}
 
