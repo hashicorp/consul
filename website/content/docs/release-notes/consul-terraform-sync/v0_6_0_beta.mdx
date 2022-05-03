@@ -1,0 +1,147 @@
+---
+layout: docs
+page_title: CTS v0.6.0 Beta
+description: >-
+  Consul-Terraform-Sync beta release notes for v0.6.0
+---
+
+-> The beta release notes for v0.6.0 focus on changes and deprecations in the upcoming Consul-Terraform-Sync (CTS) v0.6.0 release. Details of these features are subject to change as the beta period commences.
+
+# New and Deprecated Features in v0.6.0
+
+**Feature Summary:**
+
+- Unify CTS UX With New CLI Start Command
+- Introduction of CLI Autocompletion
+- Addition of Features to Support HCP-Consul <EnterpriseAlert inline />
+- Addition of Features to Support TFC Agents <EnterpriseAlert inline />
+
+## Unify CTS UX With New CLI Start Command
+~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0 and will be removed at a much later date in a major release. The preferred way of running CTS is through use of the `start` command.
+
+### start
+
+The `start` command is the new and preferred way in v0.6.0 of starting CTS as a daemon. When running as a daemon, there is no default configuration to start CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+
+```shell-session
+$ consul-terraform-sync start -config-file=config.hcl
+```
+
+To view a list of available flags, use the `-help` or `-h` flag.
+
+##### Options
+
+The `start` command supports the following options:
+
+| Name            | Required | Type    | Description                     |Default                  |
+| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
+| `-config-dir ` &nbsp; &nbsp; &nbsp;| Optional | string | A directory to load files for configuring CTS. Configuration files require an .hcl or .json file extension in order to specify their format. This option can be specified multiple times to load different directories. | none |
+| `-config-file` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | A file to load for configuring CTS. Configuration file requires an .hcl or .json extension in order to specify their format. This option can be specified multiple times to load different configuration files. | none |
+| `-inspect` | Optional | boolean | Run CTS in Inspect mode to print the proposed state changes for all tasks, and then exit. No changes are applied in this mode. | false |
+| `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
+| `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |
+
+## Introduction of CLI Autocompletion
+
+In v0.6.0 the `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
+arguments (where supported).
+
+Enable autocompletion by running:
+
+```shell-session
+$ consul-terraform-sync -autocomplete-install
+```
+
+~> Be sure to **restart your shell** after installing autocompletion!
+
+When you start typing a CTS command, press the `<tab>` character to show a
+list of available completions. Type `-<tab>` to show available flag completions.
+
+If the `CTS_*` environment variables are set, the autocompletion will
+automatically query the running CTS server and return helpful argument suggestions.
+
+## Addition of Features to Support HCP-Consul <EnterpriseAlert inline />
+
+In v0.6.0, CTS officially supports HCP-Consul. To help enable this support, v0.6.0 introduces license auto-retrieval (**Enterprise only**) which allows CTS to retrieve a new license from its configured Consul Enterprise backend (including HCP-Consul).
+
+### License
+
+#### Setting the License Manually
+~> By default in v0.6.0, CTS is configured to automatically retrieve a license from its configured Consul Enterprise Backend, and also retrieve new licenses periodically.
+
+If a license needs to be manually set, use one of the [existing methods](http://localhost:3000/docs/nia/enterprise/license#setting-the-license), or use the new license block:
+
+   ```hcl
+   license {
+     path = "<PATH>/<TO>/<FILE>"
+   }
+   ```
+
+#### Updating the License Manually
+~> By default CTS will automatically retrieve a license from its configured Consul Enterprise Backend. If however this is disabled, follow the instructions under [Updating the License](/docs/nia/enterprise/license#updating-the-license).
+
+#### License Expiry Handling
+With the update to automatically retrieve a new license, during license retrieval failures, CTS will also increase the retrieval attempts as the license approaches expiry. When approaching expiration and termination, by default, CTS Enterprise will attempt to retrieve a new license. If auto-retrieval is disabled, CTS Enterprise will provide notifications in the system logs:
+
+| Time period                                 | Behavior - auto-retrieval enabled (default) |Behavior - auto-retrieval disabled |
+| ------------------------------------------- |-------------------------------------------- |---------------------------------- |
+| 30 days before expiration                   | License retrieval attempt every 24-hours    | Warning-level log every 24-hours  |
+| 7 days before expiration                    | License retrieval attempt every 1 hour      | Warning-level log every 1 hour    |
+| 1 day before expiration                     | License retrieval attempt every 5 minutes   | Warning-level log every 5 minutes |
+| 1 hour before expiration                    | License retrieval attempt every 1 minute    | Warning-level log every 1 minute  |
+| At or after expiration (before termination) | License retrieval attempt every 1 minute    | Error-level log every 1 minute    |
+| At or after termination                     | Error-level log and exit                    | Error-level log and exit          |
+
+#### License Configuration
+
+~> Configuring [`license_path`](/docs/nia/configuration#license_path) <EnterpriseAlert inline /> will be deprecated in v0.6.0. The described `license` block will be the preferred way to set the license configuration.
+
+The `license` block is used to configure how CTS attains a license. A license can be provided as a path to a license file, or CTS can be configured to automatically retrieve a license from Consul. To use the license block for CTS Enterprise, a license path must be provided or automatic license retrieval enabled. If this block is not provided, `license.auto_retrieval.enabled` will be set to true.
+
+```hcl
+license {
+  path = "path/to/license.lic"
+  auto_retrieval {
+    enabled = true
+  }
+}
+```
+
+##### License Config
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured this license will be use until, if enabled, a new license is automatically retrieved by CTS. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details. | none |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. See [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for details. | See [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for defaults. |
+
+
+##### Auto-Retrieval Config
+
+The `auto_retrieval` block is used to configure the license auto-retrieval used by CTS. If enabled, CTS will attempt to retrieve a new license from its configured Consul Enterprise backend each day. In the case where a license was not able to be retrieved on the daily cadence, and the license is reaching expiry, CTS will attempt to retrieve a license at each period defined by the [License Expiry Handling](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#license-expiry-handling).
+
+~> `auto_retrieval` is an important feature to have enabled when connecting to HCP-Consul. HCP-Consul has a relatively short license expiry, and in order to ensure that CTS can continue to work without restart, it is important that CTS be able to dynamically attain fresh licenses from HCP-Consul.
+
+| Parameter | Required | Type | Description | Default |
+| --------- | -------- | ---- | ----------- | ------- |
+| `enabled` |  Optional | string | If set to true, enables license auto-retrieval | true |
+
+## Addition of Features to Support TFC Agents <EnterpriseAlert inline />
+
+In v0.6.0, CTS officially supports [TFC agents](https://www.terraform.io/cloud-docs/agents).
+
+### Terraform Cloud Remote Workspaces
+
+In addition to the current information on [Terraform Cloud Remote Workspaces](/docs/nia/network-drivers/terraform-cloud#remote-workspaces), to help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration object to the [`Task`](/docs/nia/configuration#task) object. `terraform_cloud_workspace` is used to set options like Terraform version, execution mode, and agent pool if relevant. CTS will also use any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
+
+~> To support TFC Agents, `terraform_cloud_workspace.execution_mode` must be set to agent execution mode.
+
+#### Terraform Cloud Workspace Configuration
+~> Configuring [`terraform_version`](/docs/nia/configuration#terraform_version) <EnterpriseAlert inline /> will be deprecated in v0.6.0, use `terraform_cloud_workspace.terraform_version` instead.
+
+The following configuration options are for the new `terraform_cloud_workspace` `task` configuration object which configures attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver). For global configurations of all workspaces, see [`driver.workspaces`](/docs/nia/configuration#workspaces).
+
+| Name            | Required | Type    | Description                     |Default                  |
+| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
+| `-execution_mode ` &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".| "remote" |
+| `-agent_pool_id` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent". | none |
+| `-agent_pool_name` | Optional | string | Only supported if `execution_mode` is set to "agent". The name of the agent pool that should run the Terraform workloads. Either `agent_pool_id` or `agent_pool_name` are required if `execution_mode` is set to "agent". `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | false |
+| `-terraform_version` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. | none |
