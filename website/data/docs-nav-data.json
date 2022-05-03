@@ -386,6 +386,19 @@
         "path": "api-gateway/consul-api-gateway-install"
       },
       {
+        "title": "Get Started",
+        "routes": [
+          {
+            "title": "What is a Gateway?",
+            "path": "api-gateway/getting-started/what-is-a-gateway"
+          },
+          {
+            "title": "Example Configuration",
+            "path": "api-gateway/getting-started/example-configuration"
+          }
+        ]
+      },
+      {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
       },
