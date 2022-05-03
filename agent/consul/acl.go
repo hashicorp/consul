@@ -402,6 +402,9 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	cacheEntry := r.cache.GetIdentity(tokenSecretCacheID(token))
 	if cacheEntry != nil && cacheEntry.Age() <= r.config.ACLTokenTTL {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
+		if cacheEntry.Error != nil && !acl.IsErrNotFound(cacheEntry.Error) {
+			return cacheEntry.Identity, ACLRemoteError{Err: cacheEntry.Error}
+		}
 		return cacheEntry.Identity, cacheEntry.Error
 	}
 
@@ -416,6 +419,9 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	waitForResult := cacheEntry == nil || r.config.ACLDownPolicy != "async-cache"
 	if !waitForResult {
 		// waitForResult being false requires the cacheEntry to not be nil
+		if cacheEntry.Error != nil && !acl.IsErrNotFound(cacheEntry.Error) {
+			return cacheEntry.Identity, ACLRemoteError{Err: cacheEntry.Error}
+		}
 		return cacheEntry.Identity, cacheEntry.Error
 	}
 
