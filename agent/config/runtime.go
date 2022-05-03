@@ -130,7 +130,7 @@ type RuntimeConfig struct {
 	// AutopilotMinQuorum sets the minimum number of servers required in a cluster
 	// before autopilot can prune dead servers.
 	//
-	//hcl: autopilot { min_quorum = int }
+	// hcl: autopilot { min_quorum = int }
 	AutopilotMinQuorum uint
 
 	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
@@ -987,7 +987,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinMaxAttemptsLAN specifies the maximum number of times to retry
 	// joining a host on startup. This is useful for cases where we know the
-	// node will be online eventually.
+	// node will be online eventually. The default is 10.
 	//
 	// hcl: retry_max = int
 	// flag: -retry-max int
@@ -1304,7 +1304,7 @@ type RuntimeConfig struct {
 	SkipLeaveOnInt bool
 
 	// AutoReloadConfig indicate if the config will be
-	//auto reloaded bases on config file modification
+	// auto reloaded bases on config file modification
 	// hcl: auto_reload_config = (true|false)
 	AutoReloadConfig bool
 

@@ -49,6 +49,7 @@ func DefaultSource() Source {
 		protocol = ` + strconv.Itoa(consul.DefaultRPCProtocol) + `
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
+		retry_max = 10
 
 		# segment_limit is the maximum number of network segments that may be declared. Default 64 is highly encouraged
 		segment_limit = 64

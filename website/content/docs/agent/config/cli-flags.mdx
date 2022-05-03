@@ -263,7 +263,7 @@ information.
   server. This option may be provided multiple times, and is functionally equivalent
   to the [`recursors` configuration option](#recursors).
 
-## Join Options 
+## Join Options
 
 - `-join` ((#\_join)) - Address of another agent to join upon starting up.
   This can be specified multiple times to specify multiple agents to join. If Consul
@@ -343,8 +343,8 @@ information.
   Defaults to 30s.
 
 - `-retry-max` ((#\_retry_max)) - The maximum number of [`-join`](#_join)
-  attempts to be made before exiting with return code 1. By default, this is set
-  to 0 which is interpreted as infinite retries.
+  attempts to be made before exiting with return code 1. As of Consul 1.13.0 the
+  default is 10. Previously this was set to 0 which is interpreted as infinite retries.
 
 - `-join-wan` ((#\_join_wan)) - Address of another wan agent to join upon
   starting up. This can be specified multiple times to specify multiple WAN agents
