@@ -130,7 +130,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
                   "cert": true,
                   "chain": true,
@@ -220,7 +220,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
                   "cert": true,
                   "chain": true,
@@ -364,7 +364,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "forwardClientCertDetails": "ALWAYS_FORWARD_ONLY",
+                "forwardClientCertDetails": "APPEND_FORWARD",
                 "setCurrentClientCertDetails": {
                   "cert": true,
                   "chain": true,
