@@ -23,7 +23,7 @@ CTS can be run as a daemon in different modes.
 
 Flag: none
 
-Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long-running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. Once beginning the long-running process, the daemon serves any API and command requests.
+Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long-running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. When the long-running process begins, CTS daemon starts serving API and command requests.
 
 #### Inspect Mode
 
