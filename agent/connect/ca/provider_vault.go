@@ -54,8 +54,9 @@ var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 
 type VaultProvider struct {
-	config *structs.VaultCAProviderConfig
-	client *vaultapi.Client
+	config        *structs.VaultCAProviderConfig
+	client        *vaultapi.Client
+	baseNamespace string
 
 	stopWatcher func()
 
@@ -109,6 +110,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	// same.
 	if config.Namespace != "" {
 		client.SetNamespace(config.Namespace)
+		v.baseNamespace = config.Namespace
 	}
 
 	if config.AuthMethod != nil {
@@ -282,7 +284,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	}
 
 	// Set up the root PKI backend if necessary.
-	rootPEM, err := v.getCA(v.config.RootPKIPath)
+	rootPEM, err := v.getCA(v.config.RootPKINamespace, v.config.RootPKIPath)
 	switch err {
 	case ErrBackendNotMounted:
 
@@ -307,7 +309,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		if err != nil {
 			return RootResult{}, err
 		}
-		resp, err := v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
+		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
@@ -328,7 +330,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		}
 	}
 
-	rootChain, err := v.getCAChain(v.config.RootPKIPath)
+	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
 		return RootResult{}, err
 	}
@@ -359,7 +361,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		return nil
 	}
 
-	_, err := v.getCA(v.config.IntermediatePKIPath)
+	_, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 	if err != nil {
 		if err == ErrBackendNotMounted {
 			err := v.mountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &vaultapi.MountInput{
@@ -379,13 +381,13 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 
 	// Create the role for issuing leaf certs if it doesn't exist yet
 	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
-	role, err := v.client.Logical().Read(rolePath)
+	role, err := v.readNamespaced(v.config.IntermediatePKINamespace, rolePath)
 
 	if err != nil {
 		return err
 	}
 	if role == nil {
-		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
+		_, err := v.writeNamespaced(v.config.IntermediatePKINamespace, rolePath, map[string]interface{}{
 			"allow_any_name":   true,
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
@@ -413,7 +415,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
+	data, err := v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
 		"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
@@ -445,7 +447,7 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return err
 	}
 
-	_, err = v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
 		"certificate": intermediatePEM,
 	})
 	if err != nil {
@@ -461,7 +463,7 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 		return "", err
 	}
 
-	cert, err := v.getCA(v.config.IntermediatePKIPath)
+	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
 	// first time. It means that the backend is mounted and ready, but
@@ -479,7 +481,11 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 // We have to use the raw NewRequest call here instead of Logical().Read
 // because the endpoint only returns the raw PEM contents of the CA cert
 // and not the typical format of the secrets endpoints.
-func (v *VaultProvider) getCA(path string) (string, error) {
+func (v *VaultProvider) getCA(namespace, path string) (string, error) {
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
 	req := v.client.NewRequest("GET", "/v1/"+path+"/ca/pem")
 	resp, err := v.client.RawRequest(req)
 	if resp != nil {
@@ -506,7 +512,12 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 }
 
 // TODO: refactor to remove duplication with getCA
-func (v *VaultProvider) getCAChain(path string) (string, error) {
+func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
+
 	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
 	resp, err := v.client.RawRequest(req)
 	if resp != nil {
@@ -538,7 +549,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	}
 
 	// Sign the CSR with the root backend.
-	intermediate, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
+	intermediate, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
 		"csr":            csr,
 		"use_csr_values": true,
 		"format":         "pem_bundle",
@@ -552,7 +563,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	}
 
 	// Set the intermediate backend to use the new certificate.
-	_, err = v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+	_, err = v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
 		"certificate": intermediate.Data["certificate"],
 	})
 	if err != nil {
@@ -574,7 +585,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 
 	// Use the leaf cert role to sign a new cert for this CSR.
-	response, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"sign/"+VaultCALeafCertRole, map[string]interface{}{
+	response, err := v.writeNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath+"sign/"+VaultCALeafCertRole, map[string]interface{}{
 		"csr": pemBuf.String(),
 		"ttl": v.config.LeafCertTTL.String(),
 	})
@@ -607,7 +618,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 	}
 
 	// Sign the CSR with the root backend.
-	data, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
+	data, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
 		"csr":             pemBuf.String(),
 		"use_csr_values":  true,
 		"format":          "pem_bundle",
@@ -632,7 +643,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
-	rootPEM, err := v.getCA(v.config.RootPKIPath)
+	rootPEM, err := v.getCA(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
 		return "", err
 	}
@@ -651,7 +662,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	}
 
 	// Have the root PKI backend sign this cert.
-	response, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-self-issued", map[string]interface{}{
+	response, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/sign-self-issued", map[string]interface{}{
 		"certificate": pemBuf.String(),
 	})
 	if err != nil {
@@ -713,9 +724,12 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
-	fullPath := makePathHelper(namespace, path)
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
 
-	r := v.client.NewRequest("POST", fullPath)
+	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
 	if err := r.SetJSONBody(mountInfo); err != nil {
 		return err
 	}
@@ -727,9 +741,12 @@ func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vault
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
-	fullPath := makePathHelper(namespace, path)
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
 
-	r := v.client.NewRequest("DELETE", fullPath)
+	r := v.client.NewRequest("DELETE", fmt.Sprintf("/v1/sys/mounts/%s", path))
 	resp, err := v.client.RawRequest(r)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -745,6 +762,24 @@ func makePathHelper(namespace, path string) string {
 		fullPath = fmt.Sprintf("/v1/sys/mounts/%s", path)
 	}
 	return fullPath
+}
+
+func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
+	result, err := v.client.Logical().Read(resource)
+	return result, err
+}
+
+func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
+	defer v.client.SetNamespace(v.baseNamespace)
+	if namespace != "" {
+		v.client.SetNamespace(namespace)
+	}
+	result, err := v.client.Logical().Write(resource, data)
+	return result, err
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
