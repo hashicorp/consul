@@ -59,7 +59,7 @@ type VaultProvider struct {
 
 	client *vaultapi.Client
 	// We modify the namespace on the fly to override default namespace for rootCertificate and intermediateCertificate. Can't guarantee
-	// all operations (specifically Sign) are not called re-entrantly, so we add this for safety. 
+	// all operations (specifically Sign) are not called re-entrantly, so we add this for safety.
 	clientMutex   sync.Mutex
 	baseNamespace string
 
@@ -487,14 +487,8 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 // because the endpoint only returns the raw PEM contents of the CA cert
 // and not the typical format of the secrets endpoints.
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
+	defer v.setNamespace(namespace)()
+
 	req := v.client.NewRequest("GET", "/v1/"+path+"/ca/pem")
 	resp, err := v.client.RawRequest(req)
 	if resp != nil {
@@ -522,14 +516,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 
 // TODO: refactor to remove duplication with getCA
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
+	defer v.setNamespace(namespace)()
 
 	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
 	resp, err := v.client.RawRequest(req)
@@ -737,15 +724,7 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
-
+	defer v.setNamespace(namespace)()
 	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
 	if err := r.SetJSONBody(mountInfo); err != nil {
 		return err
@@ -758,15 +737,7 @@ func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vault
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
-
+	defer v.setNamespace(namespace)()
 	r := v.client.NewRequest("DELETE", fmt.Sprintf("/v1/sys/mounts/%s", path))
 	resp, err := v.client.RawRequest(r)
 	if resp != nil {
@@ -786,29 +757,28 @@ func makePathHelper(namespace, path string) string {
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
+	defer v.setNamespace(namespace)()
 	result, err := v.client.Logical().Read(resource)
 	return result, err
 }
 
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
-	if namespace != "" {
-		v.clientMutex.Lock()
-		defer func() {
-			v.client.SetNamespace(v.baseNamespace)
-			v.clientMutex.Unlock()
-		}()
-		v.client.SetNamespace(namespace)
-	}
+	defer v.setNamespace(namespace)()
 	result, err := v.client.Logical().Write(resource, data)
 	return result, err
+}
+
+func (v *VaultProvider) setNamespace(namespace string) func() {
+	if namespace != "" {
+		v.clientMutex.Lock()
+		v.client.SetNamespace(namespace)
+		return func() {
+			v.client.SetNamespace(v.baseNamespace)
+			v.clientMutex.Unlock()
+		}
+	} else {
+		return func() {}
+	}
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
