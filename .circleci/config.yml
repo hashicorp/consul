@@ -414,7 +414,7 @@ jobs:
           command: |
             for os in $XC_OS; do
               target="./pkg/bin/${GOOS}_${GOARCH}/"
-              GOOS="$os" CGO_ENABLED=0 go build -o "$target" -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+              GOOS="$os" CGO_ENABLED=0 go build -o "${target}" -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}"
             done
 
       # save dev build to CircleCI
