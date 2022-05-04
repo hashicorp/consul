@@ -39,7 +39,7 @@ Once the `Gateway` is ready, it will have a publicly-accessible IP address assig
 
 ## HTTPRoute
 
-A `HTTPRoute` provides a way to route HTTP requests from a listener on a `Gateway` to the desired backend. `HTTPRoutes` must specify:
+A `HTTPRoute` provides a way to route HTTP requests from a listener on a `Gateway` to a set of backends. `HTTPRoutes` must specify:
 
 1. The `Gateway` (or "parent") that the route is intended to attach to
 1. A list of rules that determine which requests match this route based on path, header, or query parameter
@@ -47,8 +47,15 @@ A `HTTPRoute` provides a way to route HTTP requests from a listener on a `Gatewa
 Optionally, a route can specify a virtual hostname that must match in order for the route to apply. If no hostname is specified, matching is done
 for every request against the list of rules.
 
-Optionally, a route can include filters to specify additional processing steps such as adding a header to the request.
+Optionally, a `HTTPRoute` can include filters to specify additional processing steps such as adding a header to the request.
 
 ## TCPRoute
+
+A `TCPRoute` provides a way to route TCP requests from a listener on a `Gateway` to a set of backends. `TCPRoutes` must specify:
+
+1. The `Gateway` (or "parent") that the route is intended to attach to
+1. A list of rules that determine which requests match this route based on path, header, or query parameter
+
+Optionally, a `TCPRoute` can include filters to specify additional processing steps such as adding a header to the request.
 
 ## ReferencePolicy
