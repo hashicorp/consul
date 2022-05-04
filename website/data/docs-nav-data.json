@@ -781,6 +781,10 @@
           {
             "title": "Tasks",
             "path": "nia/api/tasks"
+          },
+          {
+            "title": "Health",
+            "path": "nia/api/health"
           }
         ]
       },
