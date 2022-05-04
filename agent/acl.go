@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/serf/serf"
 
@@ -82,9 +83,10 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 		// agent/local/state.go's deleteService assumes the Catalog.Deregister RPC call
 		// will include "Unknown service"in the error if deregistration fails due to a
 		// service with that ID not existing.
-		return NotFoundError{Reason: fmt.Sprintf(
-			"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
-			serviceID)}
+		return HTTPError{
+			StatusCode: http.StatusNotFound,
+			Reason:     fmt.Sprintf("Unknown service ID %q. Ensure that the service ID is passed, not the service name.", serviceID),
+		}
 	}
 
 	return nil
@@ -140,9 +142,10 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 			}
 		}
 	} else {
-		return NotFoundError{Reason: fmt.Sprintf(
-			"Unknown check ID %q. Ensure that the check ID is passed, not the check name.",
-			checkID.String())}
+		return HTTPError{
+			StatusCode: http.StatusNotFound,
+			Reason:     fmt.Sprintf("Unknown check ID %q. Ensure that the check ID is passed, not the check name.", checkID.String()),
+		}
 	}
 
 	return nil

@@ -11,16 +11,18 @@ This topic describes how to use the Consul API Gateway add-on module. It include
 
 ## Requirements
 
-Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications](/docs/api-gateway/tech-specs). This includes validating that the requirements for minimum versions of software are met.
+Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications][tech-specs]. This includes validating that the requirements for minimum versions of software are met. See the [Release Notes][rel-notes] for the version of API Gateway you are deploying.
 
 ## Installation
+
+-> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
 
 1. Issue the following command to install the CRDs:
 
    <CodeBlockConfig>
 
    ```shell-session
-   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.1.0"
+   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
    ```
 
    </CodeBlockConfig>
@@ -32,14 +34,13 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    ```yaml
    global:
      name: consul
-     image: 'hashicorp/consul:1.11.3'
    connectInject:
      enabled: true
    controller:
      enabled: true
    apiGateway:
      enabled: true
-     image: hashicorp/consul-api-gateway:0.1.0
+     image: hashicorp/consul-api-gateway:VERSION
    ```
 
    </CodeBlockConfig>
@@ -49,7 +50,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    <CodeBlockConfig>
 
    ```shell-session
-   $ helm install consul hashicorp/consul --version 0.41.1 --values values.yaml --create-namespace --namespace consul
+   $ helm install consul hashicorp/consul --version 0.43.0 --values values.yaml --create-namespace --namespace consul
    ```
 
    </CodeBlockConfig>
@@ -138,7 +139,7 @@ Configure the following artifacts to facilitate ingress into your Consul service
 - [Gateway](#gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more `listeners` (see [Listeners](#listeners)), which specify the logical endpoints bound to the gateway's addresses.
 - [Routes](#routes): Specifies the path from the client to the listener.
 
--> ** Note:** Add the following `managedGatewayClass` configuration to the `values.yaml` Helm configuration to enable the `GatewayClassConfig` and `GatewayClass` to be created automatically. The gateway, listeners, and routes will need to be configured manually. When `managedGatewayClass` is enabled, the [`serviceType`](/docs/k8s/helm#v-apigateway-managedgatewayclass-servicetype) for a managed `GatewayClass` will also default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (i.e., EKS, GKE, AKS). Other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP`, instead.
+-> **Note:** Add the following `managedGatewayClass` configuration to the `values.yaml` Helm configuration to enable the `GatewayClassConfig` and `GatewayClass` to be created automatically. The gateway, listeners, and routes will need to be configured manually. When `managedGatewayClass` is enabled, the [`serviceType`](/docs/k8s/helm#v-apigateway-managedgatewayclass-servicetype) for a managed `GatewayClass` will also default to `LoadBalancer`, which is appropriate for most deployments to managed Kubernetes cloud offerings (i.e., EKS, GKE, AKS). Other deployments, such as to a [kind](https://kind.sigs.k8s.io/) cluster, may require specifying `NodePort` or `ClusterIP`, instead.
 
 ### GatewayClassConfig
 
@@ -305,6 +306,48 @@ spec:
 
 </CodeBlockConfig>
 
+To create a route for a `backendRef` in a different namespace, you must also
+create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+
+The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
+
+<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: gateway-namespace
+spec:
+  parentRefs:
+    - name: example-gateway
+  rules:
+    - backendRefs:
+        - kind: Service
+          name: echo
+          namespace: service-namespace
+          port: 8080
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: service-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gateway-namespace
+  to:
+    - group: ""
+      kind: Service
+      name: echo
+```
+
+</CodeBlockConfig>
+
 ### MeshService
 
 The `MeshService` configuration holds a reference to an externally-managed Consul service mesh service and can be used as a `backendRef` for a [`Route`](#route).
@@ -314,3 +357,10 @@ The `MeshService` configuration holds a reference to an externally-managed Consu
 | `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
 
 Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
+
+<!--
+    ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
+    Only Reference style links should be added below this comment
+--->
+[tech-specs]: /docs/api-gateway/tech-specs
+[rel-notes]: /docs/release-notes

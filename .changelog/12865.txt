@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines
+```

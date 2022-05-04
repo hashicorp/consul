@@ -27,6 +27,7 @@ type ACLCaches struct {
 type IdentityCacheEntry struct {
 	Identity  ACLIdentity
 	CacheTime time.Time
+	Error     error
 }
 
 func (e *IdentityCacheEntry) Age() time.Duration {
@@ -187,12 +188,12 @@ func (c *ACLCaches) GetRole(roleID string) *RoleCacheEntry {
 }
 
 // PutIdentity adds a new identity to the cache
-func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
+func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity, err error) {
 	if c == nil || c.identities == nil {
 		return
 	}
 
-	c.identities.Add(id, &IdentityCacheEntry{Identity: ident, CacheTime: time.Now()})
+	c.identities.Add(id, &IdentityCacheEntry{Identity: ident, CacheTime: time.Now(), Error: err})
 }
 
 func (c *ACLCaches) PutPolicy(policyId string, policy *ACLPolicy) {

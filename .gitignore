@@ -13,6 +13,7 @@ bin/
 changelog.tmp
 exit-code
 Thumbs.db
+.idea
 
 # MacOS
 .DS_Store

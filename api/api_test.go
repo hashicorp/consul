@@ -51,6 +51,23 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 	})
 }
 
+func makeClientWithCA(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t,
+		func(c *Config) {
+			c.TLSConfig = TLSConfig{
+				Address:  "consul.test",
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			}
+		},
+		func(c *testutil.TestServerConfig) {
+			c.CAFile = "../test/client_certs/rootca.crt"
+			c.CertFile = "../test/client_certs/server.crt"
+			c.KeyFile = "../test/client_certs/server.key"
+		})
+}
+
 func makeClientWithConfig(
 	t *testing.T,
 	cb1 configCallback,

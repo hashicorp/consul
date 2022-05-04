@@ -80,11 +80,12 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 				return errors.New("check service node was unexpectedly nil")
 			}
 			passed, err := s.filter.Evaluate(*csn)
-			switch {
-			case err != nil:
+			if err != nil {
 				return err
-			case passed:
+			} else if passed {
 				s.state[id] = *csn
+			} else {
+				delete(s.state, id)
 			}
 
 		case pbsubscribe.CatalogOp_Deregister:

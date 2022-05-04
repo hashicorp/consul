@@ -49,10 +49,13 @@ func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Requ
 	}
 
 	if !hasID && !hasAddress {
-		return nil, BadRequestError{Reason: "Must specify either ?id with the server's ID or ?address with IP:port of peer to remove"}
+		return nil, HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason:     "Must specify either ?id with the server's ID or ?address with IP:port of peer to remove",
+		}
 	}
 	if hasID && hasAddress {
-		return nil, BadRequestError{Reason: "Must specify only one of ?id or ?address"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Must specify only one of ?id or ?address"}
 	}
 
 	var reply struct{}
@@ -79,7 +82,7 @@ func (s *HTTPHandlers) OperatorKeyringEndpoint(resp http.ResponseWriter, req *ht
 	var args keyringArgs
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
 		if err := decodeBody(req.Body, &args); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 	s.parseToken(req, &args.Token)
@@ -88,12 +91,12 @@ func (s *HTTPHandlers) OperatorKeyringEndpoint(resp http.ResponseWriter, req *ht
 	if relayFactor := req.URL.Query().Get("relay-factor"); relayFactor != "" {
 		n, err := strconv.Atoi(relayFactor)
 		if err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing relay factor: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Error parsing relay factor: %v", err)}
 		}
 
 		args.RelayFactor, err = ParseRelayFactor(n)
 		if err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid relay-factor: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid relay-factor: %v", err)}
 		}
 	}
 
@@ -102,12 +105,12 @@ func (s *HTTPHandlers) OperatorKeyringEndpoint(resp http.ResponseWriter, req *ht
 		var err error
 		args.LocalOnly, err = strconv.ParseBool(localOnly)
 		if err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing local-only: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Error parsing local-only: %v", err)}
 		}
 
 		err = ValidateLocalOnly(args.LocalOnly, req.Method == "GET")
 		if err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid use of local-only: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid use of local-only: %v", err)}
 		}
 	}
 
@@ -226,7 +229,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 
 		conf := api.NewAutopilotConfiguration()
 		if err := decodeBody(req.Body, &conf); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
 
 		args.Config = structs.AutopilotConfig{
@@ -245,7 +248,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		if _, ok := params["cas"]; ok {
 			casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
 			if err != nil {
-				return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing cas value: %v", err)}
+				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Error parsing cas value: %v", err)}
 			}
 			args.Config.ModifyIndex = casVal
 			args.CAS = true

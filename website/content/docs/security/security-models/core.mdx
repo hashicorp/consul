@@ -143,25 +143,24 @@ environment and adapt these configurations accordingly.
     **Example Client Agent TLS Configuration**
 
     ```hcl
-    tls {
-      defaults {
-        verify_incoming = false
-        verify_outgoing = true
-        ca_file = "consul-agent-ca.pem"
+      tls {
+        defaults {
+          verify_incoming = false
+          verify_outgoing = true
+          ca_file = "consul-agent-ca.pem"
+        }
+
+        internal_rpc {
+          verify_server_hostname = true
+        }
       }
 
-      internal_rpc {
-        verify_server_hostname = true
+      auto_encrypt {
+        tls = true
       }
-    }
-
-
-    auto_encrypt {
-      tls = true
-    }
     ```
 
-    -> The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming)
+  -> **Note**: The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming)
     to false which assumes all incoming traffic is restricted to `localhost`. The primary benefit for this configuration
     would be to avoid provisioning client TLS certificates (in addition to ACL tokens) for all tools or applications
     using the local Consul agent. In this case ACLs should be enabled to provide authorization and only ACL tokens would
