@@ -30,6 +30,7 @@ IMPROVEMENTS:
 * agent: add support for specifying TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 and TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 cipher suites [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
 * agent: bump default min version for connections to TLS 1.2 [[GH-12522](https://github.com/hashicorp/consul/issues/12522)]
 * api: add QueryBackend to QueryMeta so an api user can determine if a query was served using which backend (streaming or blocking query). [[GH-12791](https://github.com/hashicorp/consul/issues/12791)]
+* api: URL-encode/decode resource names for all HTTP API endpoints [[GH-11258](https://github.com/hashicorp/consul/issues/11258)]
 * ci: include 'enhancement' entry type in IMPROVEMENTS section of changelog. [[GH-12376](https://github.com/hashicorp/consul/issues/12376)]
 * ui: Exclude Service Instance Health from Health Check reporting on the Node listing page. The health icons on each individual row now only reflect Node health. [[GH-12248](https://github.com/hashicorp/consul/issues/12248)]
 * ui: Improve usability of Topology warning/information panels [[GH-12305](https://github.com/hashicorp/consul/issues/12305)]
