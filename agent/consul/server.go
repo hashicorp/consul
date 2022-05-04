@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -30,6 +29,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -40,6 +41,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
+	aclgrpc "github.com/hashicorp/consul/agent/grpc/public/services/acl"
 	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
@@ -238,6 +240,11 @@ type Server struct {
 	// and trying to shed its RPC traffic onto other Consul servers. This
 	// is only ever closed.
 	leaveCh chan struct{}
+
+	// publicACLServer serves the ACL service exposed on the public gRPC port.
+	// It is also exposed on the private multiplexed "server" port to enable
+	// RPC forwarding.
+	publicACLServer *aclgrpc.Server
 
 	// publicConnectCAServer serves the Connect CA service exposed on the public
 	// gRPC port. It is also exposed on the private multiplexed "server" port to
@@ -667,6 +674,24 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize public gRPC server - register services on public gRPC server.
+	s.publicACLServer = aclgrpc.NewServer(aclgrpc.Config{
+		ACLsEnabled: s.config.ACLsEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		InPrimaryDatacenter: s.InPrimaryDatacenter(),
+		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
+			return s.loadAuthMethod(methodName, entMeta)
+		},
+		LocalTokensEnabled:        s.LocalTokensEnabled,
+		Logger:                    logger.Named("grpc-api.acl"),
+		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
+		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
+		PrimaryDatacenter:         s.config.PrimaryDatacenter,
+		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
+	})
+	s.publicACLServer.Register(s.publicGRPCServer)
+
 	s.publicConnectCAServer = connectca.NewServer(connectca.Config{
 		Publisher:   s.publisher,
 		GetStore:    func() connectca.StateStore { return s.FSM().State() },
@@ -748,8 +773,9 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		pbpeering.RegisterPeeringServiceServer(srv, s.peeringService)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
-		// Note: this public gRPC service is also exposed on the private server to
+		// Note: these public gRPC services are also exposed on the private server to
 		// enable RPC forwarding.
+		s.publicACLServer.Register(srv)
 		s.publicConnectCAServer.Register(srv)
 	}
 
