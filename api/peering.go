@@ -9,14 +9,12 @@ import (
 type PeeringState int32
 
 const (
-	// Undefined represents an unset value for PeeringState during
+	// UNDEFINED represents an unset value for PeeringState during
 	// writes.
 	UNDEFINED PeeringState = 0
 	// INITIAL Initial means a Peering has been initialized and is awaiting
 	// acknowledgement from a remote peer.
 	INITIAL PeeringState = 1
-	// Active means that the peering connection is active and healthy.
-	// ACTIVE PeeringState = 2
 )
 
 type Peering struct {
@@ -87,6 +85,11 @@ type PeeringInitiateResponse struct {
 	Status uint32
 }
 
+type PeeringListRequest struct {
+	Partition  string `json:"Partition,omitempty"`
+	Datacenter string
+}
+
 type Peerings struct {
 	c *Client
 }
@@ -96,14 +99,21 @@ func (c *Client) Peerings() *Peerings {
 	return &Peerings{c: c}
 }
 
-func (p *Peerings) Read(ctx context.Context, name string, q *QueryOptions) (*Peering, *QueryMeta, error) {
-	if name == "" {
+func (p *Peerings) Read(ctx context.Context, peeringReq PeeringRequest, q *QueryOptions) (*Peering, *QueryMeta, error) {
+	if peeringReq.Name == "" {
 		return nil, nil, fmt.Errorf("peering name cannot be empty")
 	}
 
-	req := p.c.newRequest("GET", fmt.Sprintf("/v1/peering/%s", name))
+	var url string
+	if peeringReq.Partition != "" {
+		url = fmt.Sprintf("/v1/peering/%s?partition=%s", peeringReq.Name, peeringReq.Partition)
+	} else {
+		url = fmt.Sprintf("/v1/peering/%s", peeringReq.Name)
+	}
+	req := p.c.newRequest("GET", url)
 	req.setQueryOptions(q)
 	req.ctx = ctx
+	req.obj = peeringReq
 
 	rtt, resp, err := p.c.doRequest(req)
 	if err != nil {
@@ -210,4 +220,32 @@ func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *W
 	}
 
 	return &out, wm, nil
+}
+
+func (p *Peerings) List(ctx context.Context, plr PeeringListRequest, q *QueryOptions) ([]*Peering, *QueryMeta, error) {
+
+	req := p.c.newRequest("GET", "/v1/peerings")
+	req.setQueryOptions(q)
+	req.ctx = ctx
+	req.obj = plr
+
+	rtt, resp, err := p.c.doRequest(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out []*Peering
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return out, qm, nil
 }
