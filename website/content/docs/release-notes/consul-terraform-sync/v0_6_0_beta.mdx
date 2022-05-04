@@ -144,6 +144,26 @@ To help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/do
 
 You can use the new `terraform_cloud_workspace` `task` configuration object to configure attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver). For global configurations of all workspaces, review [`driver.workspaces`](/docs/nia/configuration#workspaces).
 
+```hcl
+task {
+  name        = "terraform_cloud_agent_task"
+  description = "execute on changes to services with names starting with web using cloud agents"
+  providers   = ["my-provider"]
+  module      = "path/to/services-condition-module"
+
+  condition "services" {
+    regexp     = "^web.*"
+    datacenter = "dc1"
+  }
+
+  terraform_cloud_workspace {
+    execution_mode = "agent"
+    agent_pool_id = "apool-v9ZZW1qACRjTyzWh"
+    terraform_version = "1.1.5"
+  }
+}
+```
+
 The configuration options are:
 
 | Name            | Required | Type    | Description                     |Default                  |
