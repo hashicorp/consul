@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -170,6 +172,31 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			fallthrough
 
 		case "":
+			// If DestinationPeer is not empty, insert a default discovery chain directly to the snapshot
+			if u.DestinationPeer != "" {
+				req := discoverychain.CompileRequest{
+					ServiceName:           u.DestinationName,
+					EvaluateInNamespace:   u.DestinationNamespace,
+					EvaluateInPartition:   u.DestinationPartition,
+					EvaluateInDatacenter:  dc,
+					EvaluateInTrustDomain: "trustdomain.consul", // TODO(peering): where to evaluate this?
+					Entries:               configentry.NewDiscoveryChainSet(),
+				}
+				chain, err := discoverychain.Compile(req)
+				if err != nil {
+					return snap, fmt.Errorf("error while compiling default discovery chain: %w", err)
+				}
+
+				// Directly insert chain and empty function into the discovery chain maps
+				snap.ConnectProxy.ConfigSnapshotUpstreams.DiscoveryChain[uid] = chain
+				snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedDiscoveryChains[uid] = func() {}
+
+				if err := (*handlerUpstreams)(s).resetWatchesFromChain(ctx, uid, chain, &snap.ConnectProxy.ConfigSnapshotUpstreams); err != nil {
+					return snap, fmt.Errorf("error while resetting watches from chain: %w", err)
+				}
+				return snap, nil
+			}
+
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
 				QueryOptions:           structs.QueryOptions{Token: s.token},
