@@ -368,9 +368,9 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'SanitizeXForwardedClientCert',
           yaml: false,
           type: 'bool: <optional>',
-          description: `Set the envoy \`forward_client_cert_details\` option to \`SANITIZE\` for all proxies. This
-                        configures Envoy to not send the \`x-forwarded-client-cert\` header to the next hop. If
-                        unspecified or \`false\`, the XFCC header is propagated to upstream applications.`,
+          description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\` 
+                        for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
+                        If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },
       ],
     },
