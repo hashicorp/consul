@@ -92,6 +92,14 @@ func (m *QueryOptions) GetFilter() string {
 	return ""
 }
 
+// GetMergeCentralConfig helps implement the QueryOptionsCompat interface
+func (m *QueryOptions) GetMergeCentralConfig() bool {
+	if m != nil {
+		return m.MergeCentralConfig
+	}
+	return false
+}
+
 // SetToken is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetToken(token string) {
 	q.Token = token
@@ -145,6 +153,11 @@ func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
+}
+
+// SetMergeCentralConfig is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMergeCentralConfig(mergeCentralConfig bool) {
+	q.MergeCentralConfig = mergeCentralConfig
 }
 
 //

@@ -434,6 +434,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 }
 
 // ResolveServiceConfig
+// RIDDHI - RPC that can be useful to get the defaults. Then merge helper in service manager could be moved to a common
+// place and called along with this RPC's internal helper's return
 func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, reply *structs.ServiceConfigResponse) error {
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err

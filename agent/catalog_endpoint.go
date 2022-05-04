@@ -356,6 +356,8 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		args.TagFilter = true
 	}
 
+	s.parseMergeCentralConfig(req, &args.QueryOptions)
+
 	// Pull out the service name
 	var err error
 	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, pathPrefix)

@@ -1107,6 +1107,13 @@ func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *st
 	return parseWait(resp, req, b)
 }
 
+func (s *HTTPHandlers) parseMergeCentralConfig(req *http.Request, q QueryOptionsCompat) {
+	query := req.URL.Query()
+	if _, ok := query["merge-central-config"]; ok {
+		q.SetMergeCentralConfig(true)
+	}
+}
+
 func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
 		return nil
@@ -1177,4 +1184,7 @@ type QueryOptionsCompat interface {
 
 	SetMaxQueryTime(time.Duration)
 	SetMinQueryIndex(uint64)
+
+	GetMergeCentralConfig() bool
+	SetMergeCentralConfig(bool)
 }

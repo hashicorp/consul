@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1198,7 +1199,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
 			require.NoError(t, err)
 
-			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			got, err := consul.MergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 
@@ -1298,7 +1299,7 @@ func Test_mergeServiceConfig_TransparentProxy(t *testing.T) {
 			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
 			require.NoError(t, err)
 
-			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			got, err := consul.MergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 
