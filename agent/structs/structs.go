@@ -1334,8 +1334,8 @@ func (s *NodeService) Validate() error {
 					"services"))
 		}
 
-		if s.Port == 0 {
-			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
+		if s.Port == 0 && s.SocketPath == "" {
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -1434,8 +1434,8 @@ func (s *NodeService) Validate() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
-			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
+		if s.Port == 0 && s.SocketPath == "" && s.Kind != ServiceKindIngressGateway {
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		// Gateways cannot have sidecars
@@ -1483,9 +1483,9 @@ func (s *NodeService) Validate() error {
 		}
 	}
 
-	if s.Connect.Native && s.Port == 0 {
+	if s.Connect.Native && s.Port == 0 && s.SocketPath == "" {
 		result = multierror.Append(result, fmt.Errorf(
-			"Connect native service must have non-zero port"))
+			"Port or SocketPath must be set for a Connect native service."))
 	}
 
 	return result

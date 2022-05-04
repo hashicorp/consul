@@ -600,7 +600,7 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 		},
 		"zero-port": {
 			func(x *NodeService) { x.Port = 0 },
-			"Port must be non-zero",
+			fmt.Sprintf("port or socketpath must be set for a %s", ServiceKindMeshGateway),
 		},
 		"sidecar-service": {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
@@ -680,7 +680,7 @@ func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
 		},
 		"port": {
 			func(x *NodeService) { x.Port = 0 },
-			fmt.Sprintf("Port must be non-zero for a %s", ServiceKindTerminatingGateway),
+			fmt.Sprintf("Port or SocketPath must be set for a %s", ServiceKindTerminatingGateway),
 		},
 	}
 
@@ -849,7 +849,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			fmt.Sprintf("Port must be non-zero for a %s", ServiceKindConnectProxy),
+			fmt.Sprintf("Port or SocketPath must be set for a %s", ServiceKindConnectProxy),
 		},
 
 		{
@@ -1295,7 +1295,7 @@ func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
 	ns.Port = 0
 	err := ns.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Connect native service must have non-zero port")
+	assert.Contains(t, err.Error(), "Port or SocketPath must be set for a Connect native service.")
 }
 
 func TestStructs_NodeService_IsSame(t *testing.T) {

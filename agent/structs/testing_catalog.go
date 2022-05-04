@@ -151,7 +151,7 @@ func TestNodeServiceSidecar(t testing.T) *NodeService {
 		Service: "web",
 		Port:    2222,
 		Connect: ServiceConnect{
-			SidecarService: &ServiceDefinition{Port: 20000},
+			SidecarService: &ServiceDefinition{},
 		},
 	}
 }
