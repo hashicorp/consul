@@ -2519,8 +2519,9 @@ func TestAgent_RegisterCheck_UDP(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	args := &structs.CheckDefinition{
-		UDP:  "1.1.1.1",
-		Name: "test",
+		UDP:      "1.1.1.1",
+		Name:     "test",
+		Interval: 10 * time.Second,
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -4749,11 +4750,11 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = false")
+		testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = true")
+		testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t, "enable_central_service_config = true")
 	})
 }
 
