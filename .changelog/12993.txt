@@ -1,0 +1,3 @@
+```release-note:bug
+ci: use correct variable syntax for build-distros job
+```
