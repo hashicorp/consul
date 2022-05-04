@@ -15,10 +15,10 @@ $ kubectl get gatewayClassConfig consul-api-gateway -o yaml
 
 The following example shows how to utilize the newly created `gatewayClass` and deploy a gateway object in the default namespace.
 
-<!-- TODO: test this example config on GKE/EKS/Azure and make edits →
 <CodeBlockConfig filename="example.yaml">
 
 ```yaml
+# TODO: test this example config on GKE/EKS/Azure and make edits
 
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: Gateway
