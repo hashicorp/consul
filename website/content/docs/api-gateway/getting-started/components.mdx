@@ -21,7 +21,7 @@ This can serve multiple high-level use cases with a gateway class specific to ea
 
 ## GatewayClassConfig
 
-`GatewayClassConfig` is a component that enables Consul-specific configuration for the `Gateway`. Since the `GatewayClass`
+A `GatewayClassConfig` enables Consul-specific configuration for the Consul API Gateway `GatewayClass`. Since the `GatewayClass`
 is generic and only describes the type of `Gateway` implementation that you'd like to use, the `GatewayClassConfig` houses
 configuration that may not apply to other implementations of the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/)
 but applies to your desired implementation, Consul API Gateway.
@@ -59,3 +59,52 @@ A `TCPRoute` provides a way to route TCP requests from a listener on a `Gateway`
 Optionally, a `TCPRoute` can include filters to specify additional processing steps such as adding a header to the request.
 
 ## ReferencePolicy
+
+A `ReferencePolicy` enables cross-namespace references between objects. There are two scenarios where the `ReferencePolicy` comes into play:
+
+1. A `HTTPRoute` or `TCPRoute` in one namespace references a backend in another namespace
+1. A `Gateway` in one namespace references a certificate in another namespace
+
+In either case, the object that's being referenced must be accompanied by a `ReferencePolicy` in the same namespace granting access to the referencing object and its namespace.
+
+For example, the `HTTPRoute` below in `namespace1` needs to reference a backend in `namespace2`. The accompanying `ReferencePolicy` in `namespace2` explicitly grants
+access to `HTTPRoutes` from `namespace1` to any `Service` in `namespace2`:
+
+<CodeBlockConfig filename="example.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: namespace1
+spec:
+  parentRefs:
+  - name: example-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - kind: Service
+      name: example-app
+      namespace: namespace2  # References a backend in another namespace
+      port: 80
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: example-reference-policy
+  namespace: namespace2
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: namespace1  # Matches the namespace containing the HTTPRoute
+  to:
+    - group: ""
+      kind: Service
+```
+</CodeBlockConfig>
