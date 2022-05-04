@@ -52,6 +52,7 @@ To enable autocompletion, run:
 
 ```shell-session
 $ consul-terraform-sync -autocomplete-install
+```
 
 ~> After you install autocomplete, you must restart your shell for the change to take effect.
 
@@ -70,7 +71,7 @@ In v0.6.0, CTS officially supports HCP Consul. To help enable this support, v0.6
 #### Setting the License Manually
 ~> In v0.6.0, CTS is configured by default to automatically retrieve a license from its configured Consul Enterprise backend when it starts. It also retrieves new licenses periodically.
 
-If a license needs to be manually set, use one of the [existing methods](http://localhost:3000/docs/nia/enterprise/license#setting-the-license), or use the new license block:
+If a license needs to be manually set, use one of the [existing methods](/docs/nia/enterprise/license#setting-the-license), or use the new license block:
 
    ```hcl
    license {
@@ -115,7 +116,7 @@ license {
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
 | `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/docs/nia/enterprise/license#setting-the-license). | none |
-| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for details and [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for defaults. |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for details | Review [Auto-Retrieval Config](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#auto-retrieval-config) for defaults. |
 
 
 ##### Auto-Retrieval Config
