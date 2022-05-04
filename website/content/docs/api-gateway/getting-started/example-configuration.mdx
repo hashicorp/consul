@@ -36,18 +36,20 @@ spec:
 
 ---
 
+
 apiVersion: v1
 kind: Pod
 metadata:
   name: example-pod
   labels:
-    app: example-service
+    app: echo-service
 spec:
   containers:
   - name: echo
-    image: hashicorp/echo-service
+    image: hashicorp/http-echo
     ports:
       - containerPort: 5678
+    args: ["-text", "'Hello, World'"]
 
 
 ---
