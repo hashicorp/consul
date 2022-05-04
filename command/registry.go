@@ -129,9 +129,10 @@ type entry struct {
 
 func createCommands(ui cli.Ui, cmdEntries ...entry) map[string]mcli.CommandFactory {
 	m := make(map[string]mcli.CommandFactory)
-	for _, entry := range cmdEntries {
-		m[entry.name] = func() (mcli.Command, error) {
-			return entry.fn(ui)
+	for _, ent := range cmdEntries {
+		thisFn := ent.fn
+		m[ent.name] = func() (mcli.Command, error) {
+			return thisFn(ui)
 		}
 	}
 	return m
