@@ -273,7 +273,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'Incoming',
           yaml: false,
           type: 'TLSDirectionConfig: <optional>',
-          description: `TLS configuration for inbound mTLS connections targeting 
+          description: `TLS configuration for inbound mTLS connections targeting
                         the public listener on \`connect-proxy\` and \`terminating-gateway\`
                         proxy kinds.`,
           children: [
@@ -356,6 +356,21 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                             Envoy.`,
             },
           ],
+        },
+      ],
+    },
+    {
+      name: 'HTTP',
+      type: 'HTTPConfig: <optional>',
+      description: 'HTTP configuration for the service mesh.',
+      children: [
+        {
+          name: 'SanitizeXForwardedClientCert',
+          yaml: false,
+          type: 'bool: <optional>',
+          description: `Set the envoy \`forward_client_cert_details\` option to \`SANITIZE\` for all proxies. This
+                        configures Envoy to not send the \`x-forwarded-client-cert\` header to the next hop. If
+                        unspecified or \`false\`, the XFCC header is propagated to upstream applications.`,
         },
       ],
     },

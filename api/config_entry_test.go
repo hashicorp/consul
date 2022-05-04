@@ -1278,6 +1278,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
 						]
 					}
+				},
+				"HTTP": {
+					"SanitizeXForwardedClientCert": true
 				}
 			}
 			`,
@@ -1306,6 +1309,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 						},
 					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},
