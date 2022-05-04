@@ -374,6 +374,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 
 	ctx, cancel := context.WithCancel(ctx)
 	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+		PeerName:   opts.upstreamID.Peer,
 		Datacenter: opts.datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:  s.token,
