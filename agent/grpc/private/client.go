@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -130,8 +131,8 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
 		grpc.WithStatsHandler(newStatsHandler(defaultMetrics())),
-		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
-		grpc.WithBalancerName("pick_first"),
+		// nolint:staticcheck
+		grpc.WithBalancerName(roundrobin.Name),
 		// Keep alive parameters are based on the same default ones we used for
 		// Yamux. These are somewhat arbitrary but we did observe in scale testing
 		// that the gRPC defaults (servers send keepalives only every 2 hours,

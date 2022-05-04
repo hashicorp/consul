@@ -373,21 +373,11 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	first, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 
-	t.Run("rebalance a different DC, does nothing", func(t *testing.T) {
-		res.NewRebalancer("dc-other")()
-
-		resp, err := client.Something(ctx, &testservice.Req{})
-		require.NoError(t, err)
-		require.Equal(t, resp.ServerName, first.ServerName)
-	})
-
 	t.Run("rebalance the dc", func(t *testing.T) {
 		// Rebalance is random, but if we repeat it a few times it should give us a
 		// new server.
 		attempts := 100
 		for i := 0; i < attempts; i++ {
-			res.NewRebalancer("dc1")()
-
 			resp, err := client.Something(ctx, &testservice.Req{})
 			require.NoError(t, err)
 			if resp.ServerName != first.ServerName {

@@ -96,9 +96,6 @@ func NewRouter(logger hclog.Logger, localDatacenter, serverName string, tracker 
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
-	if tracker == nil {
-		tracker = NoOpServerTracker{}
-	}
 
 	router := &Router{
 		logger:            logger.Named(logging.Router),
@@ -260,8 +257,7 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 	}
 
 	shutdownCh := make(chan struct{})
-	rb := r.grpcServerTracker.NewRebalancer(dc)
-	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName, rb)
+	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
 	info = &managerInfo{
 		manager:    manager,
 		shutdownCh: shutdownCh,
