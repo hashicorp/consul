@@ -344,6 +344,17 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 		  {
 			"Name": "api"
 		  }
+		],
+		"Endpoints": [
+			{
+				"Name":     "external",
+				"Address":  "api.google.com",
+				"Port":     443,
+				"CAFile":   "/etc/external/ca.pem",
+				"CertFile": "/etc/external/cert.pem",
+				"KeyFile":  "/etc/external/tls.key",
+				"SNI":      "mydomain"
+			}
 		]
 	}`))
 
@@ -365,7 +376,7 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 		require.Len(t, out.Entries, 1)
 
 		got := out.Entries[0].(*structs.TerminatingGatewayConfigEntry)
-		expect := []structs.LinkedService{
+		expectedServices := []structs.LinkedService{
 			{
 				Name:           "web",
 				CAFile:         "/etc/web/ca.crt",
@@ -378,7 +389,21 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
-		require.Equal(t, expect, got.Services)
+		require.Equal(t, expectedServices, got.Services)
+
+		expectedEndpoints := []structs.LinkedEndpoint{
+			{
+				Name:     "external",
+				Address:  "api.google.com",
+				Port:     443,
+				CAFile:   "/etc/external/ca.pem",
+				CertFile: "/etc/external/cert.pem",
+				KeyFile:  "/etc/external/tls.key",
+				SNI:      "mydomain",
+			},
+		}
+		require.Equal(t, expectedEndpoints, got.Endpoints)
+
 	}
 }
 

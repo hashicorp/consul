@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 
@@ -435,9 +436,10 @@ func (s *IngressService) ToServiceName() ServiceName {
 // TerminatingGatewayConfigEntry manages the configuration for a terminating service
 // with the given name.
 type TerminatingGatewayConfigEntry struct {
-	Kind     string
-	Name     string
-	Services []LinkedService
+	Kind      string
+	Name      string
+	Services  []LinkedService
+	Endpoints []LinkedEndpoint
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -465,6 +467,36 @@ type LinkedService struct {
 	SNI string `json:",omitempty"`
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+}
+
+// A LinkedEndpoint is a service represented by a terminating gateway
+type LinkedEndpoint struct {
+	// Name is the name of the endpoint
+	Name string `json:",omitempty"`
+
+	// Address of the endpoint
+	Address string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
+
+	// Protocol that this endpoint enforce
+	Protocol string `json:",omitempty"`
+
+	// CAFile is the optional path to a CA certificate to use for TLS connections
+	// from the gateway to the linked service
+	CAFile string `json:",omitempty" alias:"ca_file"`
+
+	// CertFile is the optional path to a client certificate to use for TLS    connections
+	// from the gateway to the linked service
+	CertFile string `json:",omitempty" alias:"cert_file"`
+
+	// KeyFile is the optional path to a private key to use for TLS connections
+	// from the gateway to the linked service
+	KeyFile string `json:",omitempty" alias:"key_file"`
+
+	// SNI is the optional name to specify during the TLS handshake with a linked service.
+	SNI string `json:",omitempty"`
 }
 
 func (e *TerminatingGatewayConfigEntry) GetKind() string {
@@ -507,7 +539,7 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		return err
 	}
 
-	seen := make(map[ServiceID]bool)
+	serviceSet := make(map[ServiceID]bool)
 
 	for _, svc := range e.Services {
 		if svc.Name == "" {
@@ -526,10 +558,10 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		}
 
 		// Check for duplicates within the entry
-		if ok := seen[cid]; ok {
+		if ok := serviceSet[cid]; ok {
 			return fmt.Errorf("Service %q was specified more than once within a namespace", cid.String())
 		}
-		seen[cid] = true
+		serviceSet[cid] = true
 
 		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
 		// Specifying only a CAFile is allowed for one-way TLS
@@ -538,6 +570,56 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 
 			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
 		}
+	}
+
+	endpointSet := make(map[string]bool)
+
+	for _, endpoint := range e.Endpoints {
+		if endpoint.Name == "" {
+			return fmt.Errorf("Endpoint name cannot be blank.")
+		}
+
+		// Check for duplicate names
+		if ok := endpointSet[endpoint.Name]; ok {
+			return fmt.Errorf("Endpoint %s was specified more than once in the gateway", endpoint.Name)
+		}
+		endpointSet[endpoint.Name] = true
+
+		tlsEnabled := endpoint.CAFile != ""
+		if err := validateLinkedEndpointAddress(tlsEnabled, endpoint.Address); err != nil {
+			return fmt.Errorf("Endpoint Name is invalid %w", err)
+		}
+
+		if endpoint.Port < 1 || endpoint.Port > 65535 {
+			return fmt.Errorf("Invalid Port number %d", endpoint.Port)
+		}
+
+		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
+		// Specifying only a CAFile is allowed for one-way TLS
+		if (endpoint.CertFile != "" || endpoint.KeyFile != "") &&
+			!(endpoint.CAFile != "" && endpoint.CertFile != "" && endpoint.KeyFile != "") {
+
+			return fmt.Errorf("Endpoint %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", endpoint.Name)
+		}
+	}
+
+	return nil
+}
+
+func validateLinkedEndpointAddress(tlsEnabled bool, address string) error {
+	var valid bool
+
+	ip := net.ParseIP(address)
+	valid = ip != nil
+
+	_, _, err := net.ParseCIDR(address)
+	valid = valid || err == nil
+
+	err = validateHost(tlsEnabled, address)
+	valid = valid || err == nil
+
+	if !valid {
+		return fmt.Errorf("Could not validate address %s as an IP, CIDR block or Hostname", address)
 	}
 	return nil
 }
@@ -579,6 +661,13 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 	for _, svc := range e.Services {
 		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") && svc.SNI == "" {
 			warning := fmt.Sprintf("TLS is configured but SNI is not set for service %q. Enabling SNI is strongly recommended when using TLS.", svc.Name)
+			warnings = append(warnings, warning)
+		}
+	}
+
+	for _, endpoint := range e.Endpoints {
+		if (endpoint.CAFile != "" || endpoint.CertFile != "" || endpoint.KeyFile != "") && endpoint.SNI == "" {
+			warning := fmt.Sprintf("TLS is configured but SNI is not set for endpoint %q. Enabling SNI is strongly recommended when using TLS.", endpoint.Name)
 			warnings = append(warnings, warning)
 		}
 	}

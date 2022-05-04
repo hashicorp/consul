@@ -147,6 +147,9 @@ type TerminatingGatewayConfigEntry struct {
 	// Services is a list of service names represented by the terminating gateway.
 	Services []LinkedService `json:",omitempty"`
 
+	// Endpoints is a list of external endpoints that are accessible through this gateway.
+	Endpoints []LinkedEndpoint `json:",omitempty"`
+
 	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
@@ -187,6 +190,36 @@ type LinkedService struct {
 
 	// KeyFile is the optional path to a private key to use for TLS connections
 	// from the gateway to the linked service.
+	KeyFile string `json:",omitempty" alias:"key_file"`
+
+	// SNI is the optional name to specify during the TLS handshake with a linked service.
+	SNI string `json:",omitempty"`
+}
+
+// A LinkedEndpoint is a service represented by a terminating gateway
+type LinkedEndpoint struct {
+	// Name is the name of the endpoint
+	Name string `json:",omitempty"`
+
+	// Address of the endpoint
+	Address string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
+
+	// Protocol that this endpoint enforce
+	Protocol string `json:",omitempty"`
+
+	// CAFile is the optional path to a CA certificate to use for TLS connections
+	// from the gateway to the linked service
+	CAFile string `json:",omitempty" alias:"ca_file"`
+
+	// CertFile is the optional path to a client certificate to use for TLS    connections
+	// from the gateway to the linked service
+	CertFile string `json:",omitempty" alias:"cert_file"`
+
+	// KeyFile is the optional path to a private key to use for TLS connections
+	// from the gateway to the linked service
 	KeyFile string `json:",omitempty" alias:"key_file"`
 
 	// SNI is the optional name to specify during the TLS handshake with a linked service.

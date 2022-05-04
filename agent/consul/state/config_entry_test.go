@@ -1400,6 +1400,42 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 
 // TODO(rb): add ServiceIntentions tests
 
+func TestStore_ReadWriteTerminatingGateways(t *testing.T) {
+	s := testConfigStateStore(t)
+	ws := memdb.NewWatchSet()
+
+	gatewayName := "terminating"
+	expected := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: gatewayName,
+		Services: []structs.LinkedService{
+			{
+				Name: "web",
+			},
+		},
+		Endpoints: []structs.LinkedEndpoint{
+			{
+				Name:    "external-one",
+				Address: "api.google.com",
+				Port:    443,
+			},
+			{
+				Name:    "external-two",
+				Address: "10.0.0.1",
+				Port:    80,
+			},
+		},
+	}
+	require.NoError(t, s.EnsureConfigEntry(0, expected))
+
+	_, entry, err := s.ConfigEntry(ws, structs.TerminatingGateway, gatewayName, nil)
+	require.NoError(t, err)
+
+	actual, ok := entry.(*structs.TerminatingGatewayConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, actual, expected)
+}
+
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
 	s := testConfigStateStore(t)
 

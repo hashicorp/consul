@@ -962,7 +962,7 @@ func TestIngressConfigEntry_ListRelatedServices(t *testing.T) {
 	}
 }
 
-func TestTerminatingGatewayConfigEntry(t *testing.T) {
+func TestTerminatingGatewayConfigEntryServices(t *testing.T) {
 	cases := map[string]configEntryTestcase{
 		"service conflict": {
 			entry: &TerminatingGatewayConfigEntry{
@@ -1039,6 +1039,196 @@ func TestTerminatingGatewayConfigEntry(t *testing.T) {
 					{
 						Name:   "web",
 						CAFile: "ca.crt",
+					},
+				},
+			},
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestTerminatingGatewayConfigEntryEndpoints(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"endpoint conflict": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "api.google.com",
+						Port:    443,
+					},
+					{
+						Name:    "foo",
+						Address: "api.google.com",
+						Port:    443,
+					},
+				},
+			},
+			validateErr: "specified more than once",
+		},
+		"blank endpoint name": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "",
+						Address: "api.google.com",
+						Port:    443,
+					},
+				},
+			},
+			validateErr: "Endpoint name cannot be blank.",
+		},
+		"missing endpoint address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name: "foo",
+						Port: 443,
+					},
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"valid endpoint ipv4 address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "1.2.3.4",
+						Port:    443,
+					},
+				},
+			},
+		},
+		"valid endpoint ipv4 CIDR address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "10.0.0.1/16",
+						Port:    443,
+					},
+				},
+			},
+		},
+		"valid endpoint ipv6 address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
+						Port:    443,
+					},
+				},
+			},
+		},
+		"valid endpoint shortened ipv6 address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "2001:db8::8a2e:370:7334",
+						Port:    443,
+					},
+				},
+			},
+		},
+		"valid endpoint ipv6 CIDR address": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "2001:db8::8a2e:370:7334/64",
+						Port:    443,
+					},
+				},
+			},
+		},
+		"invalid endpoint port": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "foo",
+						Address: "2001:db8::8a2e:370:7334/64",
+					},
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"not all TLS options provided-1": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:     "web",
+						Address:  "2001:db8::8a2e:370:7334/64",
+						Port:     443,
+						CertFile: "client.crt",
+					},
+				},
+			},
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		"not all TLS options provided-2": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "web",
+						Address: "2001:db8::8a2e:370:7334/64",
+						Port:    443,
+						KeyFile: "tls.key",
+					},
+				},
+			},
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		"all TLS options provided": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:     "web",
+						Address:  "2001:db8::8a2e:370:7334/64",
+						Port:     443,
+						CAFile:   "ca.crt",
+						CertFile: "client.crt",
+						KeyFile:  "tls.key",
+					},
+				},
+			},
+		},
+		"only providing ca file is allowed": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:    "web",
+						Address: "2001:db8::8a2e:370:7334/64",
+						Port:    443,
+						CAFile:  "ca.crt",
 					},
 				},
 			},

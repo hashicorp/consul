@@ -1347,6 +1347,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 						sni = "my-alt-domain",
 					},
 				]
+				endpoints = [
+					{
+						name = "external",
+						address = "api.google.com",
+						port = 443,
+						ca_file = "/etc/external/ca.pem",
+						cert_file = "/etc/external/cert.pem",
+						key_file = "/etc/external/tls.key",
+						sni = "my-domain",
+					},
+				]
 			`,
 			camel: `
 				Kind = "terminating-gateway"
@@ -1371,6 +1382,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 						SNI = "my-alt-domain",
 					},
 				]
+				Endpoints = [
+					{
+						Name = "external",
+						Address = "api.google.com",
+						Port = 443,
+						CAFile = "/etc/external/ca.pem",
+						CertFile = "/etc/external/cert.pem",
+						KeyFile = "/etc/external/tls.key",
+						SNI = "my-domain",
+					},
+				]
 			`,
 			expect: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
@@ -1393,6 +1415,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 						CertFile: "/etc/all/cert.pem",
 						KeyFile:  "/etc/all/tls.key",
 						SNI:      "my-alt-domain",
+					},
+				},
+				Endpoints: []LinkedEndpoint{
+					{
+						Name:     "external",
+						Address:  "api.google.com",
+						Port:     443,
+						CAFile:   "/etc/external/ca.pem",
+						CertFile: "/etc/external/cert.pem",
+						KeyFile:  "/etc/external/tls.key",
+						SNI:      "my-domain",
 					},
 				},
 			},
