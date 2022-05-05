@@ -175,7 +175,7 @@ jobs:
         default: ""
     docker:
       - image: *GOLANG_IMAGE
-    resource_class: large
+    resource_class: xlarge
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
       GOARCH: "<<parameters.go-arch>>"
@@ -191,7 +191,7 @@ jobs:
       - run:
           name: lint
           command: &lintcmd |
-            golangci-lint run --build-tags="$GOTAGS" -v --concurrency 2
+            golangci-lint run --build-tags="$GOTAGS" -v
       - run:
           name: lint api
           working_directory: api
