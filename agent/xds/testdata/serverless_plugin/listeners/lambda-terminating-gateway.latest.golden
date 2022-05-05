@@ -184,14 +184,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "forwardClientCertDetails": "APPEND_FORWARD",
-                "setCurrentClientCertDetails": {
-                  "cert": true,
-                  "chain": true,
-                  "dns": true,
-                  "subject": true,
-                  "uri": true
-                },
                 "statPrefix": "upstream.web.default.default.dc1",
                 "rds": {
                   "configSource": {
@@ -230,6 +222,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 },
                 "stripAnyHostPort": true
               }
