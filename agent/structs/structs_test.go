@@ -678,6 +678,10 @@ func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
 			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{{}} },
 			"Proxy.Upstreams configuration is invalid",
 		},
+		"port": {
+			func(x *NodeService) { x.Port = 0 },
+			"Port must be non-zero",
+		},
 	}
 
 	for name, tc := range cases {
@@ -845,7 +849,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			"port or socketpath must",
+			fmt.Sprintf("Port or SocketPath must be set for a %s", ServiceKindConnectProxy),
 		},
 
 		{
@@ -1283,6 +1287,15 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
+}
+
+func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
+	ns := TestNodeService(t)
+	ns.Connect.Native = true
+	ns.Port = 0
+	err := ns.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Port or SocketPath must be set for a Connect native service.")
 }
 
 func TestStructs_NodeService_IsSame(t *testing.T) {
