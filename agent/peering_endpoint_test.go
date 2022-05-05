@@ -305,9 +305,6 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Insert peerings directly to state store.
-	// Note that the state store holds reference to the underlying
-	// variables; do not modify them after writing.
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
@@ -357,7 +354,6 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
-		// TODO(peering): it may be a security concern, but do we want to say 404 here?
 		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }

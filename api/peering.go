@@ -9,14 +9,12 @@ import (
 type PeeringState int32
 
 const (
-	// Undefined represents an unset value for PeeringState during
+	// PeeringStateUndefined represents an unset value for PeeringState during
 	// writes.
-	UNDEFINED PeeringState = 0
-	// INITIAL Initial means a Peering has been initialized and is awaiting
+	PeeringStateUndefined PeeringState = 0
+	// PeeringStateInitial means a Peering has been initialized and is awaiting
 	// acknowledgement from a remote peer.
-	INITIAL PeeringState = 1
-	// Active means that the peering connection is active and healthy.
-	// ACTIVE PeeringState = 2
+	PeeringStateInitial PeeringState = 1
 )
 
 type Peering struct {
@@ -44,9 +42,13 @@ type Peering struct {
 	ModifyIndex uint64
 }
 
-// PeeringRequest is used for Read and Delete HTTP calls.
-// The PeeringReadRequest and PeeringDeleteRequest look the same, so we treat them the same for now
-type PeeringRequest struct {
+type PeeringReadRequest struct {
+	Name       string
+	Partition  string `json:"Partition,omitempty"`
+	Datacenter string
+}
+
+type PeeringDeleteRequest struct {
 	Name       string
 	Partition  string `json:"Partition,omitempty"`
 	Datacenter string
@@ -87,6 +89,10 @@ type PeeringInitiateResponse struct {
 	Status uint32
 }
 
+type PeeringListRequest struct {
+	// future proofing in case we extend List functionality
+}
+
 type Peerings struct {
 	c *Client
 }
@@ -96,14 +102,15 @@ func (c *Client) Peerings() *Peerings {
 	return &Peerings{c: c}
 }
 
-func (p *Peerings) Read(ctx context.Context, name string, q *QueryOptions) (*Peering, *QueryMeta, error) {
-	if name == "" {
+func (p *Peerings) Read(ctx context.Context, peeringReq PeeringReadRequest, q *QueryOptions) (*Peering, *QueryMeta, error) {
+	if peeringReq.Name == "" {
 		return nil, nil, fmt.Errorf("peering name cannot be empty")
 	}
 
-	req := p.c.newRequest("GET", fmt.Sprintf("/v1/peering/%s", name))
+	req := p.c.newRequest("GET", fmt.Sprintf("/v1/peering/%s", peeringReq.Name))
 	req.setQueryOptions(q)
 	req.ctx = ctx
+	req.obj = peeringReq
 
 	rtt, resp, err := p.c.doRequest(req)
 	if err != nil {
@@ -126,7 +133,7 @@ func (p *Peerings) Read(ctx context.Context, name string, q *QueryOptions) (*Pee
 	return &out, qm, nil
 }
 
-func (p *Peerings) Delete(ctx context.Context, peeringReq PeeringRequest, q *QueryOptions) (*PeeringDeleteResponse, *QueryMeta, error) {
+func (p *Peerings) Delete(ctx context.Context, peeringReq PeeringDeleteRequest, q *QueryOptions) (*PeeringDeleteResponse, *QueryMeta, error) {
 	if peeringReq.Name == "" {
 		return nil, nil, fmt.Errorf("peering name cannot be empty")
 	}
@@ -210,4 +217,32 @@ func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *W
 	}
 
 	return &out, wm, nil
+}
+
+func (p *Peerings) List(ctx context.Context, plr PeeringListRequest, q *QueryOptions) ([]*Peering, *QueryMeta, error) {
+
+	req := p.c.newRequest("GET", "/v1/peerings")
+	req.setQueryOptions(q)
+	req.ctx = ctx
+	req.obj = plr
+
+	rtt, resp, err := p.c.doRequest(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out []*Peering
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return out, qm, nil
 }
