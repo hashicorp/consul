@@ -17,27 +17,27 @@ This endpoint returns information about an existing task.
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/tasks/:task_name` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 
 | Name         | Required | Type   | Description                                | Default |
 | ------------ | -------- | ------ | ------------------------------------------ | ------- |
 | `:task_name` | Required | string | Specifies the name of the task to retrieve | none    |
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason                                               |
 | ------ | ---------------------------------------------------- |
 | 200    | Successfully retrieved and returned task information |
 | 404    | Task with the given name not found                   |
 
-#### Response Fields
+### Response Fields
 
 | Name         | Type   | Description                                                                        |
 | ------------ | ------ | ---------------------------------------------------------------------------------- |
 | `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
 | `task`       | object | The task's configuration information. See [task object](#task-object) for details. |
 
-#### Example: Retrieve a task
+### Example: Retrieve a task
 
 Request:
 
@@ -94,32 +94,32 @@ This endpoint allows for creation of a task. It only supports creation of a new 
 | ------ | -------- | ------------------ |
 | `POST` | `/tasks` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 
 | Name  | Required | Type   | Description                                                                                                                                                                                                                                                                                                                                           | Default |
 | ----- | -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `run` | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not create the task but returns information on if/how resources would be changed for the proposed task creation.</li><li> `"now"`: Creates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none    |
 
-#### Request Body
+### Request Body
 
 | Name   | Required | Type   | Description                                                                        |
 | ------ | -------- | ------ | ---------------------------------------------------------------------------------- |
 | `task` | Required | object | The task's configuration information. See [task object](#task-object) for details. |
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason                        |
 | ------ | ----------------------------- |
 | 201    | Successfully created the task |
 
-#### Response Fields
+### Response Fields
 
 | Name         | Type   | Description                                                                                       |
 | ------------ | ------ | ------------------------------------------------------------------------------------------------- |
 | `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                                  |
 | `task`       | object | The task's configuration information after creation. See [task object](#task-object) for details. |
 
-#### Example: Create a task
+### Example: Create a task
 
 Payload:
 
@@ -190,27 +190,27 @@ This endpoint allows patch updates to specifically supported fields for existing
 | ------- | ------------------- | ------------------ |
 | `PATCH` | `/tasks/:task_name` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 
 | Name         | Required | Type   | Description                                                                                                                                                                                                                                                                                                                                         | Default |
 | ------------ | -------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `:task_name` | Required | string | Specifies the name of the task to update                                                                                                                                                                                                                                                                                                            | none    |
 | `run`        | Optional | string | Values can only be `"inspect"` and `"now"`.<br/><ul><li>`"inspect"`: Does not update the task but returns information on if/how resources would be changed for the proposed task update.</li><li> `"now"`: Updates the task accordingly and immediately runs the task, rather than allowing the task to run at the natural daemon cadence</li></ul> | none    |
 
-#### Request Body
+### Request Body
 
 | Name      | Required | Type    | Description                                              |
 | --------- | -------- | ------- | -------------------------------------------------------- |
 | `enabled` | Required | boolean | Whether the task is enabled to run and manage resources. |
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason                             |
 | ------ | ---------------------------------- |
 | 200    | Successfully updated the task      |
 | 404    | Task with the given name not found |
 
-#### Response Fields
+### Response Fields
 
 | Name                      | Type    | Description                                                                                                                                                                                                            |
 | ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -218,7 +218,7 @@ This endpoint allows patch updates to specifically supported fields for existing
 | `inspect.changes_present` | boolean | Whether or not changes were detected for running the proposed task update.                                                                                                                                             |
 | `inspect.plan`            | string  | The Terraform plan generated for the proposed task update. Note: a non-empty string does not necessarily indicate changes were detected.                                                                               |
 
-#### Example: Disable a task
+### Example: Disable a task
 
 Request:
 
@@ -235,7 +235,7 @@ Response:
 {}
 ```
 
-#### Example: Inspect enabling a task
+### Example: Inspect enabling a task
 
 Request:
 
@@ -278,33 +278,33 @@ This endpoint allows for deletion of existing tasks. It marks a task for deletio
 | -------- | ------------------- | ------------------ |
 | `DELETE` | `/tasks/:task_name` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 
 | Name         | Required | Type   | Description                                | Default |
 | ------------ | -------- | ------ | ------------------------------------------ | ------- |
 | `:task_name` | Required | string | Specifies the name of the task to retrieve | none    |
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason                                    |
 | ------ | ----------------------------------------- |
 | 202    | Successfully marked the task for deletion |
 | 404    | Task with the given name not found        |
 
-#### Response Fields
+### Response Fields
 
 | Name         | Type   | Description                                                      |
 | ------------ | ------ | ---------------------------------------------------------------- |
 | `request_id` | string | The ID of the request. Used for auditing and debugging purposes. |
 
-#### Sample Request
+### Sample Request
 
 ```shell-session
 $ curl --request DELETE \
   localhost:8558/v1/tasks/task_a
 ```
 
-#### Sample Response
+### Sample Response
 
 ```json
 {
