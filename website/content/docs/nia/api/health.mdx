@@ -7,7 +7,7 @@ description: >-
 
 # Health
 
-The `/health` endpoints provide information on the health of a running Consul-Terraform-Sync (CTS) instance.
+The `/health` endpoint provide health information about running instances of Consul-Terraform-Sync (CTS).
 
 ## Get Health
 
@@ -17,22 +17,23 @@ This endpoint returns the health of CTS.
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/health` | `application/json` |
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason                                               |
 | ------ | ---------------------------------------------------- |
 | 200    | CTS is healthy                                       |
 | 503    | CTS is unhealthy                                     |
 
-#### Response Fields
+### Response Fields
 
 | Name         | Type   | Description                                                                        |
 | ------------ | ------ | ---------------------------------------------------------------------------------- |
 | `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
 
-#### Example: Getting the health of CTS
+## Example
 
-Request:
+The following request makes a `GET` call to the `health` endpoint:
+```suggestion
 
 ```shell-session
 $ curl --request GET \
