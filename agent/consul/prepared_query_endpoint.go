@@ -267,6 +267,39 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		})
 }
 
+// GetByExactName returns a single prepared query by Name.
+func (p *PreparedQuery) GetByExactName(args *structs.PreparedQuerySpecificRequest,
+	reply *structs.IndexedPreparedQueries) error {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.GetByExactName", args, reply); done {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	if authz, err := p.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if err := authz.ToAllowAuthorizer().PreparedQueryReadAllowed(args.QueryName, &authzContext); err != nil {
+		return err
+	}
+
+	return p.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, query, err := state.PreparedQueryGetByExactName(ws, args.QueryName)
+			if err != nil {
+				return err
+			}
+			if query == nil {
+				return structs.ErrQueryNotFound
+			}
+
+			reply.Index = index
+			reply.Queries = structs.PreparedQueries{query}
+
+			return nil
+		})
+}
+
 // List returns all the prepared queries.
 func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 	if done, err := p.srv.ForwardRPC("PreparedQuery.List", args, reply); done {

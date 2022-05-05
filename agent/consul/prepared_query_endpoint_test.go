@@ -1064,6 +1064,146 @@ func TestPreparedQuery_Get(t *testing.T) {
 	}
 }
 
+func TestPreparedQuery_GetByExactName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	const initialManagementToken = "root"
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = initialManagementToken
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(initialManagementToken))
+
+	rules := `
+		query_prefix "redis" {
+			policy = "write"
+		}
+	`
+	token := createToken(t, codec, rules)
+
+	// Set up a bare bones query.
+	query := structs.PreparedQueryRequest{
+		Datacenter: "dc1",
+		Op:         structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			Name: "redis-master",
+			Service: structs.ServiceQuery{
+				Service: "the-redis",
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: token},
+	}
+	var reply string
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Capture the ID, then read back the query to verify.
+	query.Query.ID = reply
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryName:    query.Query.Name,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.GetByExactName", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Try again with no token, which should return an error.
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryName:    query.Query.Name,
+			QueryOptions: structs.QueryOptions{Token: ""},
+		}
+		var resp structs.IndexedPreparedQueries
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.GetByExactName", req, &resp)
+		if !acl.IsErrPermissionDenied(err) {
+			t.Fatalf("bad: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// A management token should be able to read no matter what.
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryName:    query.Query.Name,
+			QueryOptions: structs.QueryOptions{Token: initialManagementToken},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.GetByExactName", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Try to get an unknown Name.
+	{
+		rules := `
+			query_prefix "non-existent-name" {
+				policy = "read"
+			}
+		`
+		token := createTokenWithPolicyNameFull(t, codec, "non-existent-name-policy", rules, "root").SecretID
+
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryName:    "non-existent-name",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.GetByExactName", req, &resp); err != nil {
+			if !structs.IsErrQueryNotFound(err) {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+}
+
 func TestPreparedQuery_List(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
