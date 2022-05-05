@@ -517,11 +517,13 @@ type CAConsulProviderState struct {
 type VaultCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	Address             string
-	Token               string
-	RootPKIPath         string
-	IntermediatePKIPath string
-	Namespace           string
+	Address                  string
+	Token                    string
+	RootPKIPath              string
+	RootPKINamespace         string
+	IntermediatePKIPath      string
+	IntermediatePKINamespace string
+	Namespace                string
 
 	CAFile        string
 	CAPath        string

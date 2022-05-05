@@ -1,0 +1,4 @@
+```release-note:improvement
+Support Vault namespaces in Connect CA by adding RootPKINamespace and
+IntermediatePKINamespace fields to the config.
+```
