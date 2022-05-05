@@ -600,7 +600,7 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 		},
 		"zero-port": {
 			func(x *NodeService) { x.Port = 0 },
-			fmt.Sprintf("port or socketpath must be set for a %s", ServiceKindMeshGateway),
+			fmt.Sprintf("Port must be non-zero"),
 		},
 		"sidecar-service": {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
@@ -680,7 +680,7 @@ func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
 		},
 		"port": {
 			func(x *NodeService) { x.Port = 0 },
-			fmt.Sprintf("Port or SocketPath must be set for a %s", ServiceKindTerminatingGateway),
+			fmt.Sprintf("Port must be non-zero"),
 		},
 	}
 
