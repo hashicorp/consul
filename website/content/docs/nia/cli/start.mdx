@@ -15,17 +15,17 @@ $ consul-terraform-sync start -config-file=config.hcl
 
 To review a list of available flags, use the `-help` or `-h` flag.
 
-### Modes
+## Modes
 
 CTS can be run as a daemon in different modes.
 
-#### Long-running Mode
+### Long-running Mode
 
 Flag: none
 
 Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long-running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. When the long-running process begins, CTS daemon starts serving API and command requests.
 
-#### Inspect Mode
+### Inspect Mode
 
 Flag: `-inspect`
 
@@ -41,7 +41,7 @@ Behavior: This has similar behavior as `-inspect` mode for the selected task. Th
 
 Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
 
-#### Once Mode
+### Once Mode
 
 Flag: `-once`
 
@@ -49,7 +49,7 @@ Behavior: CTS will run all tasks once with buffer periods disabled and exit. On 
 
 Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
 
-### Options
+## Options
 
 The `start` command supports the following options:
 
