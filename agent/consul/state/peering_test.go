@@ -809,3 +809,196 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.Empty(t, exported)
 	})
 }
+
+func TestStateStore_PeeringsForService(t *testing.T) {
+	type testCase struct {
+		name      string
+		services  []structs.ServiceName
+		peerings  []*pbpeering.Peering
+		entries   []*structs.ExportedServicesConfigEntry
+		query     []string
+		expect    [][]*pbpeering.Peering
+		expectIdx uint64
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		s := testStateStore(t)
+
+		var lastIdx uint64
+		// Create peerings
+		for _, peering := range tc.peerings {
+			lastIdx++
+			require.NoError(t, s.PeeringWrite(lastIdx, peering))
+
+			// make sure it got created
+			q := Query{Value: peering.Name}
+			_, p, err := s.PeeringRead(nil, q)
+			require.NoError(t, err)
+			require.NotNil(t, p)
+		}
+
+		// Create a Nodes for services
+		svcNode := &structs.Node{Node: "foo", Address: "127.0.0.1"}
+		lastIdx++
+		require.NoError(t, s.EnsureNode(lastIdx, svcNode))
+
+		// Create the test services
+		for _, svc := range tc.services {
+			lastIdx++
+			require.NoError(t, s.EnsureService(lastIdx, svcNode.Node, &structs.NodeService{
+				ID:      svc.Name,
+				Service: svc.Name,
+				Port:    8080,
+			}))
+		}
+
+		// Write the config entries.
+		for _, entry := range tc.entries {
+			lastIdx++
+			require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
+		}
+
+		// Query for peers.
+		for resultIdx, q := range tc.query {
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+			idx, peers, err := s.PeeringsForService(nil, q, *acl.DefaultEnterpriseMeta())
+			require.NoError(t, err)
+			require.Equal(t, tc.expectIdx, idx)
+
+			// Verify the result, ignoring generated fields
+			require.Len(t, peers, len(tc.expect[resultIdx]))
+			for _, got := range peers {
+				got.ID = ""
+				got.ModifyIndex = 0
+				got.CreateIndex = 0
+			}
+			require.ElementsMatch(t, tc.expect[resultIdx], peers)
+		}
+	}
+
+	cases := []testCase{
+		{
+			name: "no exported services",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+			},
+			peerings: []*pbpeering.Peering{},
+			entries:  []*structs.ExportedServicesConfigEntry{},
+			query:    []string{"foo"},
+			expect:   [][]*pbpeering.Peering{{}},
+		},
+		{
+			name: "service does not exist",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+			},
+			peerings:  []*pbpeering.Peering{},
+			entries:   []*structs.ExportedServicesConfigEntry{},
+			query:     []string{"bar"},
+			expect:    [][]*pbpeering.Peering{{}},
+			expectIdx: uint64(2), // catalog services max index
+		},
+		{
+			name: "config entry with exact service name",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+			peerings: []*pbpeering.Peering{
+				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+			},
+			entries: []*structs.ExportedServicesConfigEntry{
+				{
+					Name: "ce1",
+					Services: []structs.ExportedService{
+						{
+							Name: "foo",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer1",
+								},
+							},
+						},
+						{
+							Name: "bar",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer2",
+								},
+							},
+						},
+					},
+				},
+			},
+			query: []string{"foo", "bar"},
+			expect: [][]*pbpeering.Peering{
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				},
+				{
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				},
+			},
+			expectIdx: uint64(6), // config	entries max index
+		},
+		{
+			name: "config entry with wildcard service name",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+			peerings: []*pbpeering.Peering{
+				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+			},
+			entries: []*structs.ExportedServicesConfigEntry{
+				{
+					Name: "ce1",
+					Services: []structs.ExportedService{
+						{
+							Name: "*",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer1",
+								},
+								{
+									PeerName: "peer2",
+								},
+							},
+						},
+						{
+							Name: "bar",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer3",
+								},
+							},
+						},
+					},
+				},
+			},
+			query: []string{"foo", "bar"},
+			expect: [][]*pbpeering.Peering{
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				},
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+				},
+			},
+			expectIdx: uint64(7),
+		},
+	}
+
+	for _, tc := range cases {
+		runStep(t, tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
