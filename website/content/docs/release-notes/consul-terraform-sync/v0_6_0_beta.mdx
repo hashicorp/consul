@@ -83,7 +83,7 @@ If a license needs to be manually set, use one of the [existing methods](/docs/n
 ~> CTS automatically retrieves a license from its configured Consul Enterprise backend by default. If this default settings is disabled, follow the instructions under [Updating the License](/docs/nia/enterprise/license#updating-the-license).
 
 #### License Expiration Handling
-As the license expiration date approaches, CTS Enterprise automatically retrieves a new license by default. If the automatic license retrieval fails, CTS increases the number of retrieval attempts. If auto-retrieval is disabled, CTS Enterprise will provide notifications in the system logs:
+As the license expiration date approaches, CTS Enterprise automatically retrieves a new license by default. If the automatic license retrieval fails, CTS increases the number of retrieval attempts. If auto-retrieval is disabled, CTS Enterprise provides notifications in the system logs:
 
 | Time period                                 | Behavior - auto-retrieval enabled (default) |Behavior - auto-retrieval disabled |
 | ------------------------------------------- |-------------------------------------------- |---------------------------------- |
@@ -140,7 +140,7 @@ To help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/do
 ~> For a task to use Terraform Cloud agents, `terraform_cloud_workspace.execution_mode` must be set to "agent" and either `terraform_cloud_workspace.agent_pool_id` or `terraform_cloud_workspace.agent_pool_name` must be specified.
 
 #### Terraform Cloud Workspace Configuration
-~> Configuring [`terraform_version`](/docs/nia/configuration#terraform_version) <EnterpriseAlert inline /> will be deprecated in v0.6.0, use `terraform_cloud_workspace.terraform_version` instead.
+~> Configuring [`terraform_version`](/docs/nia/configuration#terraform_version) <EnterpriseAlert inline /> is deprecated as of v0.6.0. Use `terraform_cloud_workspace.terraform_version` instead.
 
 You can use the new `terraform_cloud_workspace` `task` configuration object to configure attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver). For global configurations of all workspaces, review [`driver.workspaces`](/docs/nia/configuration#workspaces).
 
