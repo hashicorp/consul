@@ -22,7 +22,6 @@ This endpoint returns the health of CTS.
 | Status | Reason                                               |
 | ------ | ---------------------------------------------------- |
 | 200    | CTS is healthy                                       |
-| 503    | CTS is unhealthy                                     |
 
 ### Response Fields
 
@@ -30,10 +29,9 @@ This endpoint returns the health of CTS.
 | ------------ | ------ | ---------------------------------------------------------------------------------- |
 | `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
 
-## Example
+### Example
 
 The following request makes a `GET` call to the `health` endpoint:
-```suggestion
 
 ```shell-session
 $ curl --request GET \
