@@ -720,7 +720,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// consul version metric with labels
 	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.Version},
+		{Name: "version", Value: a.config.VersionWithMetadata()},
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
 
@@ -1272,7 +1272,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
+	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.VersionWithMetadata(), runtimeCfg.VersionPrerelease, revision)
 
 	cfg.TLSConfig = runtimeCfg.TLS
 
@@ -3212,9 +3212,10 @@ func (a *Agent) Stats() map[string]map[string]string {
 		revision = revision[:8]
 	}
 	stats["build"] = map[string]string{
-		"revision":   revision,
-		"version":    a.config.Version,
-		"prerelease": a.config.VersionPrerelease,
+		"revision":         revision,
+		"version":          a.config.Version,
+		"version_metadata": a.config.VersionMetadata,
+		"prerelease":       a.config.VersionPrerelease,
 	}
 
 	for outerKey, outerValue := range a.enterpriseStats() {
