@@ -107,6 +107,8 @@ The expected use case is to create admin partitions on Kubernetes clusters. This
 
 The following procedure will result in an admin partition in each Kubernetes cluster. The Consul clients running in the cluster with servers will be in the `default` partition. Another partition called `clients` will also be created.
 
+## Prepartion for install across multiple Kubernetes clusters
+
 Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernetes-requirements) before proceeding.
 
 1. Verify that your VPC is configured to enable connectivity between the pods running Consul clients and servers. Refer to your virtual cloud provider's documentation for instructions on configuring network connectivity.
@@ -124,15 +126,32 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config use-context ${SERVER_CONTEXT}
   ```
   
-### Install the Consul Server Cluster
-
-1. Create the license secret in each cluster, e.g.:
+1. Create the license secret in server cluster.
 
   ```shell-session
   $ kubectl create secret -n generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
+  
+1. Set your context to the workload client cluster. 
 
-  This step must also be completed for every cluster.
+  ```shell-session
+  $ kubectl config use-context ${CLIENT_CONTEXT}
+  ```
+
+1. Create the license secret in workload client cluster. This step must be repeated for every additional workload client cluster. 
+
+  ```shell-session
+  $ kubectl create ns consul 
+  $ kubectl create secret -n generic license --from-file=key=[license file path i.e. ./license.hclic]
+  ```
+  
+### Install the Consul server cluster
+
+1. Set your context to the server cluster. 
+
+  ```shell-session
+  $ kubectl config use-context ${SERVER_CONTEXT}
+  ```
 
 1. Create a server configuration values file to override the default Consul Helm chart settings:
 
@@ -213,7 +232,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
   ```
   
-### Install the Workload client cluster 
+### Install the workload client cluster 
   
 1. Switch to the workload cllient clusters:
 
