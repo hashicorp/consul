@@ -208,7 +208,7 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 
 		// require that the peering state is not undefined
 		require.Equal(r, PeeringStateInitial, respr.State)
-		require.Equal(r, map[string]string{"foo": "bar"}, resp2.Meta)
+		require.Equal(r, map[string]string{"foo": "bar"}, respr.Meta)
 
 		// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
 	})
