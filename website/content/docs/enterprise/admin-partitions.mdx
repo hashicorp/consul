@@ -95,7 +95,9 @@ One of the primary use cases for admin partitions is for enabling a service mesh
 - A Consul Enterprise license must be installed on each Kubernetes cluster.
 - The helm chart for consul-k8s v0.39.0 or greater.
 - Consul 1.11.1-ent or greater.
-- All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients.
+- All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. 
+  - A designated Kubernetes `LoadBalancer` service is exposed on the Consul server cluster to allow communication for RPC (port 8300), Gossip (port 8301), and HTTPS (port 443) API requests to the both the Consul servers and the `default` partition. 
+  - Mesh Gateways are deployed as Kubernetes `LoadBalancer` services on port 443, on all Kubernetes clusters to allow for cross partition networking between Kubernets services. 
 
 ## Usage
 
@@ -138,7 +140,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config use-context ${CLIENT_CONTEXT}
   ```
 
-1. Create the license secret in workload client cluster. This step must be repeated for every additional workload client cluster. 
+1. Create the license secret in the workload client cluster. This step must be repeated for every additional workload client cluster. 
 
   ```shell-session
   $ kubectl create ns consul 
