@@ -278,7 +278,7 @@ kubectl config use-context ${CLIENT_CONTEXT}
 1. Install the workload client clusters:
 
 ```shell-session
-$ helm install clients hashicorp/consul --values client.yaml --version "0.40.0"
+$ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace -n consul  --values client.yaml 
 ```
 
 ### Verifying the Deployment
@@ -288,7 +288,7 @@ You can log into the Consul UI to verify that the partitions appear as expected.
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
   ```shell-session
-  $ kubectl get secret server-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
+  $ kubectl get secret -n consul ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
   ```
 
   The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
