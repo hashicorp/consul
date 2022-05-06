@@ -217,19 +217,19 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Copy the server certificate to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply -n consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
 1. Copy the server key to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply -n consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
 1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply -n consul --context ${CLIENT_CONTEXT} --filename -
   ```
   
 ### Install the workload client cluster 
@@ -245,7 +245,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 
   <CodeTabs heading="client.yaml">
 
-  <CodeBlockConfig lineNumbers highlight="2,27,29,33">
+  <CodeBlockConfig lineNumbers highlight="2,12,15,20,27,29,33">
 
   ```yaml
   global:
@@ -259,28 +259,28 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     tls:
       enabled: true
       caCert:
-        secretName: server-consul-ca-cert
+        secretName: server-consul-ca-cert # See step 6 from `Install Consul server cluster`
         secretKey: tls.crt
       caKey:
-        secretName: server-consul-ca-key
+        secretName: server-consul-ca-key # See step 7 from `Install Consul server cluster`
         secretKey: tls.key
     acls:
       manageSystemACLs: true
       bootstrapToken:
-        secretName: server-consul-partitions-acl-token
+        secretName: server-consul-partitions-acl-token # See step 8 from `Install Consul server cluster`
         secretKey: token
     enterpriseLicense:
       secretName: license
       secretKey: key
   externalServers:
     enabled: true
-    hosts: [34.135.103.67] # See step 5
+    hosts: [34.135.103.67] # See step 4 from `Install Consul server cluster`
     tlsServerName: server.dc1.consul
-    k8sAuthMethodHost: https://104.154.156.146 # See step 6
+    k8sAuthMethodHost: https://104.154.156.146 # See step 5 from `Install Consul server cluster`
   client:
     enabled: true
     exposeGossipPorts: true
-    join: [34.135.103.67] # See step 5
+    join: [34.135.103.67] # See step 4 from `Install Consul server cluster`
   connectInject:
     enabled: true
     consulNamespaces:
