@@ -113,21 +113,23 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Set environment variables to use with shell commands. 
 
   ```shell-session
-  export HELM_RELEASE_SERVER=server
-  export HELM_RELEASE_CLIENT=client
-  export SERVER_CONTEXT=<context for server, run `kubectl config current-context` for cluster provisioned for servers>
-  export CLIENT_CONTEXT=<context for cluster partition, run `kubectl config current-context` for cluster provisioned for workload partition>
+  $ export HELM_RELEASE_SERVER=server
+  $ export HELM_RELEASE_CLIENT=client
+  $ export SERVER_CONTEXT=<context for server, run `kubectl config current-context` for cluster provisioned for servers>
+  $ export CLIENT_CONTEXT=<context for cluster partition, run `kubectl config current-context` for cluster provisioned for workload partition>
   ```
-1. Set your context to the server cluster
+1. Set your context to the server cluster. 
 
   ```shell-session
-  kubectl config use-context ${SERVER_CONTEXT}
+  $ kubectl config use-context ${SERVER_CONTEXT}
   ```
+  
+### Install the Consul Server Cluster
 
 1. Create the license secret in each cluster, e.g.:
 
   ```shell-session
-  $ kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
+  $ kubectl create secret -n generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
 
   This step must also be completed for every cluster.
@@ -196,26 +198,28 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Copy the server certificate to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret server-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
   ```
 
 1. Copy the server key to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret server-consul-ca-key --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
   ```
 
 1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret server-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply --context ${CLIENT_CONTEXT} --filename -
   ```
+  
+### Install the Workload client cluster 
   
 1. Switch to the workload cllient clusters:
 
-```shell-session
-kubectl config use-context ${CLIENT_CONTEXT}  
-```
+  ```shell-session
+  $ kubectl config use-context ${CLIENT_CONTEXT}  
+  ```
 
 1. Create the workload configuration for client nodes in your cluster. Create a configuration for each admin partition.
    In the following example, the external IP address and the Kubernetes authentication method IP address from the previous steps have been applied. Also, ensure a unique global name is assigned.
@@ -277,14 +281,20 @@ kubectl config use-context ${CLIENT_CONTEXT}
 
 1. Install the workload client clusters:
 
-```shell-session
-$ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace -n consul  --values client.yaml 
-```
+  ```shell-session
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace -n consul  --values client.yaml 
+  ```
 
 ### Verifying the Deployment
 
 You can log into the Consul UI to verify that the partitions appear as expected.
 
+1. Set your context to the server cluster. 
+
+  ```shell-session
+  $ kubectl config use-context ${SERVER_CONTEXT} 
+  ```
+  
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
   ```shell-session
