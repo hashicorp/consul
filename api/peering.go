@@ -25,7 +25,7 @@ type Peering struct {
 	// Partition is the local partition connecting to the peer.
 	Partition string `json:"Partition,omitempty"`
 	// Meta is a mapping of some string value to any other string value
-	Meta map[string]string
+	Meta map[string]string `json:",omitempty"`
 	// State is one of the valid PeeringState values to represent the status of
 	// peering relationship.
 	State PeeringState
@@ -71,7 +71,7 @@ type PeeringGenerateTokenRequest struct {
 	Datacenter string
 	Token      string
 	// Meta is a mapping of some string value to any other string value
-	Meta map[string]string
+	Meta map[string]string `json:",omitempty"`
 }
 
 type PeeringGenerateTokenResponse struct {
@@ -88,7 +88,7 @@ type PeeringInitiateRequest struct {
 	Datacenter   string
 	Token        string
 	// Meta is a mapping of some string value to any other string value
-	Meta map[string]string
+	Meta map[string]string `json:",omitempty"`
 }
 
 type PeeringInitiateResponse struct {
