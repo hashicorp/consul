@@ -53,7 +53,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1"}
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -83,6 +83,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		Partition: acl.DefaultPartitionName,
 		ID:        token.PeerID,
 		State:     pbpeering.PeeringState_INITIAL,
+		Meta:      map[string]string{"foo": "bar"},
 	}
 	require.Equal(t, expect, peers[0])
 }
@@ -167,11 +168,13 @@ func TestPeeringService_Initiate(t *testing.T) {
 			req: &pbpeering.InitiateRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
+				Meta:         map[string]string{"foo": "bar"},
 			},
 			expectResp: &pbpeering.InitiateResponse{},
 			expectPeering: peering.TestPeering(
 				"peer1-usw1",
 				pbpeering.PeeringState_INITIAL,
+				map[string]string{"foo": "bar"},
 			),
 		},
 	}

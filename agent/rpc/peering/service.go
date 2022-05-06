@@ -158,9 +158,9 @@ func (s *Service) GenerateToken(
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name: req.PeerName,
-
 			// TODO(peering): Normalize from ACL token once this endpoint is guarded by ACLs.
 			Partition: req.PartitionOrDefault(),
+			Meta:      req.Meta,
 		},
 	}
 	if err := s.Backend.Apply().PeeringWrite(&writeReq); err != nil {
@@ -243,6 +243,7 @@ func (s *Service) Initiate(
 			PeerServerName:      tok.ServerName,
 			// uncomment once #1613 lands
 			// PeerID: 			 tok.PeerID,
+			Meta: req.Meta,
 		},
 	}
 	if err = s.Backend.Apply().PeeringWrite(writeReq); err != nil {
