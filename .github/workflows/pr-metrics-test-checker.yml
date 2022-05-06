@@ -8,7 +8,7 @@ on:
 
 jobs:
   metrics_test_check:
-    if: "!contains(github.event.pull_request.labels.*.name, 'pr/no-metrics-test')"
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-metrics-test') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )" 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

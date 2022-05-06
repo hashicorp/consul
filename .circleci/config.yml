@@ -927,19 +927,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
-  cherry-picker:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress git bash curl ncurses jq openssh-client
-      - checkout
-      - add_ssh_keys: # needs a key to push cherry-picked commits back to github
-          fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
-      - run: .circleci/scripts/cherry-picker.sh
-      - run: *notify-slack-failure
-
   trigger-oss-merge:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:3.12
@@ -1202,13 +1189,7 @@ workflows:
               only:
                 - main
                 - /release\/\d+\.\d+\.x$/
-      - cherry-picker:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
+
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:
