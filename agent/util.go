@@ -11,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -144,4 +147,21 @@ func (d durationFixer) FixupDurations(raw interface{}) error {
 		}
 	}
 	return nil
+}
+
+func validateMetaTags(metaTags map[string]string) error {
+	var err error
+	if len(metaTags) > structs.MetaMaxKeyPairs {
+		err = multierror.Append(err, fmt.Errorf(
+			"meta exceeds maximum element count %d", structs.MetaMaxKeyPairs))
+	}
+	for k, v := range metaTags {
+		if len(k) > structs.MetaKeyMaxLength {
+			err = multierror.Append(err, fmt.Errorf("meta key %q exceeds maximum length %d", k, structs.MetaKeyMaxLength))
+		}
+		if len(v) > structs.MetaValueMaxLength {
+			err = multierror.Append(err, fmt.Errorf("meta value for key %q exceeds maximum length %d", k, structs.MetaValueMaxLength))
+		}
+	}
+	return err
 }
