@@ -231,7 +231,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. If ACLs were enabled in the server configuration values file, copy the token to the workload cluster.
 
   ```shell-session
-  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --output yaml | kubectl apply -n consul --context ${CLIENT_CONTEXT} --filename -
+  $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply -n consul --context ${CLIENT_CONTEXT} --filename -
   ```
   
 #### Install the workload client cluster 
