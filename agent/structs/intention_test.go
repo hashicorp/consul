@@ -135,7 +135,7 @@ func TestIntentionValidate(t *testing.T) {
 		{
 			"long description",
 			func(x *Intention) {
-				x.Description = strings.Repeat("x", metaValueMaxLength+1)
+				x.Description = strings.Repeat("x", MetaValueMaxLength+1)
 			},
 			"description exceeds",
 		},
