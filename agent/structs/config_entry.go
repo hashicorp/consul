@@ -1117,18 +1117,18 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 
 func validateConfigEntryMeta(meta map[string]string) error {
 	var err error
-	if len(meta) > MetaMaxKeyPairs {
+	if len(meta) > metaMaxKeyPairs {
 		err = multierror.Append(err, fmt.Errorf(
-			"Meta exceeds maximum element count %d", MetaMaxKeyPairs))
+			"Meta exceeds maximum element count %d", metaMaxKeyPairs))
 	}
 	for k, v := range meta {
-		if len(k) > MetaKeyMaxLength {
+		if len(k) > metaKeyMaxLength {
 			err = multierror.Append(err, fmt.Errorf(
-				"Meta key %q exceeds maximum length %d", k, MetaKeyMaxLength))
+				"Meta key %q exceeds maximum length %d", k, metaKeyMaxLength))
 		}
-		if len(v) > MetaValueMaxLength {
+		if len(v) > metaValueMaxLength {
 			err = multierror.Append(err, fmt.Errorf(
-				"Meta value for key %q exceeds maximum length %d", k, MetaValueMaxLength))
+				"Meta value for key %q exceeds maximum length %d", k, metaValueMaxLength))
 		}
 	}
 	return err

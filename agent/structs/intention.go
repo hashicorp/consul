@@ -263,22 +263,22 @@ func (x *Intention) Validate() error {
 	}
 
 	// Length of opaque values
-	if len(x.Description) > MetaValueMaxLength {
+	if len(x.Description) > metaValueMaxLength {
 		result = multierror.Append(result, fmt.Errorf(
-			"Description exceeds maximum length %d", MetaValueMaxLength))
+			"Description exceeds maximum length %d", metaValueMaxLength))
 	}
-	if len(x.Meta) > MetaMaxKeyPairs {
+	if len(x.Meta) > metaMaxKeyPairs {
 		result = multierror.Append(result, fmt.Errorf(
-			"Meta exceeds maximum element count %d", MetaMaxKeyPairs))
+			"Meta exceeds maximum element count %d", metaMaxKeyPairs))
 	}
 	for k, v := range x.Meta {
-		if len(k) > MetaKeyMaxLength {
+		if len(k) > metaKeyMaxLength {
 			result = multierror.Append(result, fmt.Errorf(
-				"Meta key %q exceeds maximum length %d", k, MetaKeyMaxLength))
+				"Meta key %q exceeds maximum length %d", k, metaKeyMaxLength))
 		}
-		if len(v) > MetaValueMaxLength {
+		if len(v) > metaValueMaxLength {
 			result = multierror.Append(result, fmt.Errorf(
-				"Meta value for key %q exceeds maximum length %d", k, MetaValueMaxLength))
+				"Meta value for key %q exceeds maximum length %d", k, metaValueMaxLength))
 		}
 	}
 

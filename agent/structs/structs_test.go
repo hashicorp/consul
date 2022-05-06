@@ -1802,7 +1802,7 @@ func TestStructs_DirEntry_Clone(t *testing.T) {
 
 func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 	tooMuchMeta := make(map[string]string)
-	for i := 0; i < MetaMaxKeyPairs+1; i++ {
+	for i := 0; i < metaMaxKeyPairs+1; i++ {
 		tooMuchMeta[fmt.Sprint(i)] = "value"
 	}
 	type testcase struct {
@@ -1900,8 +1900,8 @@ func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 }
 
 func TestStructs_validateMetaPair(t *testing.T) {
-	longKey := strings.Repeat("a", MetaKeyMaxLength+1)
-	longValue := strings.Repeat("b", MetaValueMaxLength+1)
+	longKey := strings.Repeat("a", metaKeyMaxLength+1)
+	longValue := strings.Repeat("b", metaValueMaxLength+1)
 	pairs := []struct {
 		Key               string
 		Value             string

@@ -167,14 +167,14 @@ const (
 	// The meta key prefix reserved for Consul's internal use
 	MetaKeyReservedPrefix = "consul-"
 
-	// MetaMaxKeyPairs is maximum number of metadata key pairs allowed to be registered
-	MetaMaxKeyPairs = 64
+	// metaMaxKeyPairs is maximum number of metadata key pairs allowed to be registered
+	metaMaxKeyPairs = 64
 
-	// MetaKeyMaxLength is the maximum allowed length of a metadata key
-	MetaKeyMaxLength = 128
+	// metaKeyMaxLength is the maximum allowed length of a metadata key
+	metaKeyMaxLength = 128
 
-	// MetaValueMaxLength is the maximum allowed length of a metadata value
-	MetaValueMaxLength = 512
+	// metaValueMaxLength is the maximum allowed length of a metadata value
+	metaValueMaxLength = 512
 
 	// MetaSegmentKey is the node metadata key used to store the node's network segment
 	MetaSegmentKey = "consul-network-segment"
@@ -893,8 +893,8 @@ func ValidateMetaTags(metaTags map[string]string) error {
 }
 
 func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
-	if len(meta) > MetaMaxKeyPairs {
-		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", MetaMaxKeyPairs)
+	if len(meta) > metaMaxKeyPairs {
+		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
 	}
 
 	for key, value := range meta {
@@ -931,16 +931,16 @@ func validateMetaPair(key, value string, allowConsulPrefix bool, allowedConsulKe
 	if !metaKeyFormat(key) {
 		return fmt.Errorf("Key contains invalid characters")
 	}
-	if len(key) > MetaKeyMaxLength {
-		return fmt.Errorf("Key is too long (limit: %d characters)", MetaKeyMaxLength)
+	if len(key) > metaKeyMaxLength {
+		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
 	}
 	if strings.HasPrefix(key, MetaKeyReservedPrefix) {
 		if _, ok := allowedConsulKeys[key]; !allowConsulPrefix && !ok {
 			return fmt.Errorf("Key prefix '%s' is reserved for internal use", MetaKeyReservedPrefix)
 		}
 	}
-	if len(value) > MetaValueMaxLength {
-		return fmt.Errorf("Value is too long (limit: %d characters)", MetaValueMaxLength)
+	if len(value) > metaValueMaxLength {
+		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
 	}
 	return nil
 }

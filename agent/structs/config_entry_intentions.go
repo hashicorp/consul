@@ -577,27 +577,27 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		}
 
 		// Length of opaque values
-		if len(src.Description) > MetaValueMaxLength {
+		if len(src.Description) > metaValueMaxLength {
 			return fmt.Errorf(
-				"Sources[%d].Description exceeds maximum length %d", i, MetaValueMaxLength)
+				"Sources[%d].Description exceeds maximum length %d", i, metaValueMaxLength)
 		}
 
 		if legacyWrite {
-			if len(src.LegacyMeta) > MetaMaxKeyPairs {
+			if len(src.LegacyMeta) > metaMaxKeyPairs {
 				return fmt.Errorf(
-					"Sources[%d].Meta exceeds maximum element count %d", i, MetaMaxKeyPairs)
+					"Sources[%d].Meta exceeds maximum element count %d", i, metaMaxKeyPairs)
 			}
 			for k, v := range src.LegacyMeta {
-				if len(k) > MetaKeyMaxLength {
+				if len(k) > metaKeyMaxLength {
 					return fmt.Errorf(
 						"Sources[%d].Meta key %q exceeds maximum length %d",
-						i, k, MetaKeyMaxLength,
+						i, k, metaKeyMaxLength,
 					)
 				}
-				if len(v) > MetaValueMaxLength {
+				if len(v) > metaValueMaxLength {
 					return fmt.Errorf(
 						"Sources[%d].Meta value for key %q exceeds maximum length %d",
-						i, k, MetaValueMaxLength,
+						i, k, metaValueMaxLength,
 					)
 				}
 			}
