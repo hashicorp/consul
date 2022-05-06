@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -102,7 +103,7 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 		args.Partition = entMeta.PartitionOrEmpty()
 	}
 
-	if err := validateMetaTags(args.Meta); err != nil {
+	if err := structs.ValidateMetaTags(args.Meta); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("meta tags failed validation: %v", err)}
 	}
 
@@ -132,7 +133,7 @@ func (s *HTTPHandlers) PeeringInitiate(resp http.ResponseWriter, req *http.Reque
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeeringToken is required in the payload when initiating a peering."}
 	}
 
-	if err := validateMetaTags(args.Meta); err != nil {
+	if err := structs.ValidateMetaTags(args.Meta); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("meta tags failed validation: %v", err)}
 	}
 
