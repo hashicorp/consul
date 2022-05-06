@@ -179,6 +179,7 @@ func TestHTTP_Peering_Initiate(t *testing.T) {
 		body := &pbpeering.InitiateRequest{
 			PeerName:     "peering-a",
 			PeeringToken: tokenB64,
+			Meta:         map[string]string{"foo": "bar"},
 		}
 
 		bodyBytes, err := json.Marshal(body)
@@ -253,6 +254,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},
+			Meta:                map[string]string{"foo": "bar"},
 		},
 	}
 	_, err := a.rpcClientPeering.PeeringWrite(ctx, foo)
@@ -281,6 +283,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&pbresp))
 
 		require.Equal(t, foo.Peering.Name, pbresp.Name)
+		require.Equal(t, foo.Peering.Meta, pbresp.Meta)
 	})
 
 	t.Run("not found", func(t *testing.T) {
