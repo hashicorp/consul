@@ -674,78 +674,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 			mergedServices := services
 			if args.MergeCentralConfig {
-
-				var mergedServiceNodes structs.ServiceNodes
-				for _, sn := range services {
-					ns := sn.ToNodeService()
-
-					serviceName := ns.Service
-					var upstreams []structs.ServiceID
-					if ns.IsSidecarProxy() {
-						// This is a sidecar proxy, ignore the proxy service's config since we are
-						// managed by the target service config.
-						serviceName = ns.Proxy.DestinationServiceName
-
-						// Also if we have any upstreams defined, add them to the defaults lookup request
-						// so we can learn about their configs.
-						for _, us := range ns.Proxy.Upstreams {
-							if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-								sid := us.DestinationID()
-								sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-								upstreams = append(upstreams, sid)
-							}
-						}
-					}
-
-					configReq := &structs.ServiceConfigRequest{
-						Name:           serviceName,
-						Datacenter:     args.Datacenter,
-						QueryOptions:   args.QueryOptions,
-						MeshGateway:    ns.Proxy.MeshGateway,
-						Mode:           ns.Proxy.Mode,
-						UpstreamIDs:    upstreams,
-						EnterpriseMeta: ns.EnterpriseMeta,
-					}
-
-					// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
-					// so as to pass down the same watch set to also watch on changes to
-					// proxy-defaults/global and service-defaults.
-					cfgIndex, configEntries, err := state.ReadResolvedServiceConfigEntries(
-						ws,
-						configReq.Name,
-						&configReq.EnterpriseMeta,
-						upstreams,
-						configReq.Mode,
-					)
-					if err != nil {
-						return err
-					}
-
-					defaults, err := computeResolvedServiceConfig(
-						configReq,
-						upstreams,
-						false,
-						configEntries,
-						c.logger,
-					)
-					if err != nil {
-						return err
-					}
-
-					mergedns, err := MergeServiceConfig(defaults, ns)
-					if err != nil {
-						return fmt.Errorf("Failure merging service definition with config entry defaults for %s: %v",
-							ns.ID, err)
-					}
-
-					mergedServiceNodes = append(mergedServiceNodes, mergedns.ToServiceNode(sn.Node))
-
-					if cfgIndex > index {
-						index = cfgIndex
-					}
+				index, mergedServices, err = mergeServiceNodesWithCentralConfig(ws, state, index, args, services, c.logger)
+				if err != nil {
+					return err
 				}
-
-				mergedServices = mergedServiceNodes
 			}
 
 			reply.Index, reply.ServiceNodes = index, mergedServices
