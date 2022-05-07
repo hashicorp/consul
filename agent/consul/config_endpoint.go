@@ -484,7 +484,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			}
 
 			// Fetch all relevant config entries.
-
 			index, entries, err := state.ReadResolvedServiceConfigEntries(
 				ws,
 				args.Name,
@@ -515,11 +514,12 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				ranOnce = true
 			}
 
-			thisReply, err := c.computeResolvedServiceConfig(
+			thisReply, err := computeResolvedServiceConfig(
 				args,
 				upstreamIDs,
 				legacyUpstreams,
 				entries,
+				c.logger,
 			)
 			if err != nil {
 				return err
@@ -536,11 +536,12 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		})
 }
 
-func (c *ConfigEntry) computeResolvedServiceConfig(
+func computeResolvedServiceConfig(
 	args *structs.ServiceConfigRequest,
 	upstreamIDs []structs.ServiceID,
 	legacyUpstreams bool,
 	entries *configentry.ResolvedServiceConfigSet,
+	logger hclog.Logger,
 ) (*structs.ServiceConfigResponse, error) {
 	var thisReply structs.ServiceConfigResponse
 

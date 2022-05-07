@@ -672,20 +672,86 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 
-			// Q: Should it be done here or after the filtering?
-			// Better here in case filtering done on some of the merged data?
-			mergedServiceNodes := services
+			mergedServices := services
 			if args.MergeCentralConfig {
-				mergedServiceNodes, err = c.mergeServiceNodesWithCentralConfig(args, services)
-				if err != nil {
-					return err
+
+				var mergedServiceNodes structs.ServiceNodes
+				for _, sn := range services {
+					ns := sn.ToNodeService()
+
+					serviceName := ns.Service
+					var upstreams []structs.ServiceID
+					if ns.IsSidecarProxy() {
+						// This is a sidecar proxy, ignore the proxy service's config since we are
+						// managed by the target service config.
+						serviceName = ns.Proxy.DestinationServiceName
+
+						// Also if we have any upstreams defined, add them to the defaults lookup request
+						// so we can learn about their configs.
+						for _, us := range ns.Proxy.Upstreams {
+							if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+								sid := us.DestinationID()
+								sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+								upstreams = append(upstreams, sid)
+							}
+						}
+					}
+
+					configReq := &structs.ServiceConfigRequest{
+						Name:           serviceName,
+						Datacenter:     args.Datacenter,
+						QueryOptions:   args.QueryOptions,
+						MeshGateway:    ns.Proxy.MeshGateway,
+						Mode:           ns.Proxy.Mode,
+						UpstreamIDs:    upstreams,
+						EnterpriseMeta: ns.EnterpriseMeta,
+					}
+
+					// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
+					// so as to pass down the same watch set to also watch on changes to
+					// proxy-defaults/global and service-defaults.
+					cfgIndex, configEntries, err := state.ReadResolvedServiceConfigEntries(
+						ws,
+						configReq.Name,
+						&configReq.EnterpriseMeta,
+						upstreams,
+						configReq.Mode,
+					)
+					if err != nil {
+						return err
+					}
+
+					defaults, err := computeResolvedServiceConfig(
+						configReq,
+						upstreams,
+						false,
+						configEntries,
+						c.logger,
+					)
+					if err != nil {
+						return err
+					}
+
+					mergedns, err := MergeServiceConfig(defaults, ns)
+					if err != nil {
+						return fmt.Errorf("Failure merging service definition with config entry defaults for %s: %v",
+							ns.ID, err)
+					}
+
+					mergedServiceNodes = append(mergedServiceNodes, mergedns.ToServiceNode(sn.Node))
+
+					if cfgIndex > index {
+						index = cfgIndex
+					}
 				}
+
+				mergedServices = mergedServiceNodes
 			}
 
-			reply.Index, reply.ServiceNodes = index, mergedServiceNodes
+			reply.Index, reply.ServiceNodes = index, mergedServices
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
-				for _, service := range mergedServiceNodes {
+				for _, service := range mergedServices {
 					if structs.SatisfiesMetaFilters(service.NodeMeta, args.NodeMetaFilters) {
 						filtered = append(filtered, service)
 					}
@@ -948,63 +1014,4 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	state := c.srv.fsm.State()
 	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
 	return err
-}
-
-// mergeServiceNodesWithCentralConfig merges each service instance (NodeService) with the
-// proxy-defaults/global and service-defaults/:service config entries.
-func (c *Catalog) mergeServiceNodesWithCentralConfig(args *structs.ServiceSpecificRequest, serviceNodes structs.ServiceNodes) (structs.ServiceNodes, error) {
-
-	// TODO: also return index to compare for max index
-	var mergedServiceNodes structs.ServiceNodes
-	// TODO: Use go routines + waitgroup?
-	for _, sn := range serviceNodes {
-		ns := sn.ToNodeService()
-
-		// TODO: move to some common place (makeConfigRequest)
-		var upstreams []structs.ServiceID
-		serviceName := ns.Service
-		if ns.IsSidecarProxy() {
-			// This is a sidecar proxy, ignore the proxy service's config since we are
-			// managed by the target service config.
-			serviceName = ns.Proxy.DestinationServiceName
-
-			// Also if we have any upstreams defined, add them to the request so we can
-			// learn about their configs.
-			for _, us := range ns.Proxy.Upstreams {
-				if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-					sid := us.DestinationID()
-					sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-					upstreams = append(upstreams, sid)
-				}
-			}
-		}
-		configReq := &structs.ServiceConfigRequest{
-			Name:           serviceName,
-			Datacenter:     args.Datacenter,
-			QueryOptions:   structs.QueryOptions{Token: args.Token, AllowStale: true},
-			MeshGateway:    ns.Proxy.MeshGateway,
-			Mode:           ns.Proxy.Mode,
-			UpstreamIDs:    upstreams,
-			EnterpriseMeta: ns.EnterpriseMeta,
-		}
-		c.logger.Trace("RIDDHI", "request", *configReq)
-
-		// pass down the watchset.
-
-		var defaults structs.ServiceConfigResponse
-		if err := c.srv.RPC("ConfigEntry.ResolveServiceConfig", configReq, &defaults); err != nil {
-			return nil, fmt.Errorf("could not retrieve central configs for service %s: %v",
-				ns.ID, err)
-		}
-		c.logger.Trace("RIDDHI", "defaults", defaults)
-
-		mergedns, err := MergeServiceConfig(&defaults, ns)
-		if err != nil {
-			return nil, fmt.Errorf("Failure merging service definition with config entry defaults for %s: %v",
-				ns.ID, err)
-		}
-		mergedServiceNodes = append(mergedServiceNodes, mergedns.ToServiceNode(sn.Node))
-	}
-
-	return mergedServiceNodes, nil
 }

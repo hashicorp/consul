@@ -8,8 +8,8 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
-// MergeServiceConfig from service into defaults to produce the final effective
-// config for the watched service.
+// MergeServiceConfig merges the service into defaults to produce the final effective
+// config for the specified service.
 func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *structs.NodeService) (*structs.NodeService, error) {
 	if defaults == nil {
 		return service, nil
