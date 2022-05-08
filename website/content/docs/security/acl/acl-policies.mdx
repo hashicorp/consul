@@ -32,13 +32,15 @@ A rule is composed of a resource declaration and an access level defined with th
 ```hcl
 <resource> {
   policy = "<policy disposition>"
-  }
+}
 ```
 
 ```json
-"<resource>": [{
-  "policy": "<policy disposition>"
-  }]
+{
+  "<resource>": {
+    "policy": "<policy disposition>"
+  }
+}
 ```
 
 </CodeTabs>
@@ -60,11 +62,13 @@ The following syntax describes how to include a resource label in the rule:
 ```
 
 ```json
-"<resource>": [{
-  "<label>": [{
-    "policy": "<policy disposition>"
-  }]
-}]
+{
+  "<resource>": {
+    "<label>": {
+      "policy": "<policy disposition>"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -85,7 +89,9 @@ Use the following syntax to create rules for these resources:
 ```
 
 ```json
-"<resource>": "<policy disposition>"
+{
+  "<resource>": "<policy disposition>"
+}
 ```
 
 </CodeTabs>
@@ -115,11 +121,13 @@ service "web-prod" {
 ```
 
 ```json
-"service": [{
-  "web-prod" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "service": {
+    "web-prod": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -135,11 +143,13 @@ service_prefix "web" {
 ```
 
 ```json
-"service_prefix": [{
-  "web" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "service_prefix": {
+    "web": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -155,11 +165,13 @@ service_prefix "" {
 ```
 
 ```json
-"service_prefix" : [{
-  "" : [{
-  "policy" :"read"
-  }]
-}]
+{
+  "service_prefix": {
+    "": {
+      "policy":"read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -209,38 +221,22 @@ operator = "read"
 
 ```json
 {
-  "key": [
-    {
-      "foo/bar/secret": [
-        {
-          "policy": "deny"
-        }
-      ]
-    }
-  ],
-  "key_prefix": [
-    {
-      "": [
-        {
-          "policy": "read"
-        }
-      ]
+  "key_prefix": {
+    "": {
+      "policy": "read"
     },
-    {
-      "foo/": [
-        {
-          "policy": "write"
-        }
-      ]
+    "foo/": {
+      "policy": "write"
     },
-    {
-      "foo/private/": [
-        {
-          "policy": "deny"
-        }
-      ]
+    "foo/private/": {
+      "policy": "deny"
     }
-  ],
+  },
+  "key": {
+    "foo/bar/secret": {
+      "policy": "deny"
+    }
+  },
   "operator": "read"
 }
 ```
@@ -482,6 +478,11 @@ session_prefix "" {
 
 ```json
 {
+  "agent_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
   "key_prefix": {
     "vault/": {
       "policy": "write"
@@ -490,11 +491,6 @@ session_prefix "" {
   "service": {
     "vault": {
       "policy": "write"
-    }
-  },
-  "agent_prefix": {
-    "": {
-      "policy": "read"
     }
   },
   "session_prefix": {

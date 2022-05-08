@@ -56,7 +56,9 @@ acl = "write"
 ```
 
 ```json
-"acl" : "write"
+{
+  "acl": "write"
+}
 ```
 
 </CodeTabs>
@@ -77,91 +79,64 @@ partition "example" {
   node "my-node" {
     policy = "write"
   }
-    ...
   namespace "ex-namespace" {
-    ...
+    policy = "write"
   }
   namespace_prefix "exns-" {
-    ...
+    policy = "write"
   }
 }
-partition_prefix "ex-" {
-  ... (Same as above)
+
+partition_prefix "example-" {
+  mesh = "read"
+
+  node "my-node" {
+    policy = "read"
+  }
+
+  namespace "ex-namespace" {
+    policy = "read"
+  }
 }
 ```
 
 ```json
 {
-  "partition": [
-    {
-      "example": [
-        {
-          "mesh": "write",
-          "node": [
-            {
-              "my-node": [
-                {
-                  "policy": "write"
-                }
-              ],
-              "namespace": [
-                {
-                  "ex-namespace": [
-                    {
-                      "policy": "read"
-                    }
-                  ]
-                }
-              ],
-              "namespace_prefix": [
-                {
-                  "exns-": [
-                    {
-                      "policy": "read"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+  "partition": {
+    "example": {
+      "mesh": "write",
+      "node": {
+        "my-node": {
+          "policy": "write"
         }
-      ]
+      },
+      "namespace": {
+        "ex-namespace": {
+          "policy": "write"
+        }
+      },
+      "namespace_prefix": {
+        "exns-": {
+          "policy": "write"
+        }
+      }
     }
-  ]
-},
-{
-  "partition_prefix": [
-    {
-      "": [
-        {
+  },
+  "partition_prefix": {
+    "example-": {
+      "mesh": "read",
+      "node": {
+        "my-node": {
           "policy": "read"
         }
-      ],
-      "example": [
-        {
-          "mesh": "read",
-          "node": [
-            {
-              "my-node": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "namespace": [
-            {
-              "ex-namespace": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ]
+      },
+      "namespace": {
+        "ex-namespace": {
+          "policy": "read"
         }
-      ]
+      }
     }
-  ]
+  }
 }
 ```
 
@@ -176,11 +151,11 @@ and [`service` or `service_prefix`](#service-rules) policies instead.
 <CodeTabs heading="Example agent rules">
 
 ```hcl
-agent_prefix "" {
-  policy = "read"
-}
 agent "foo" {
   policy = "write"
+}
+agent_prefix "" {
+  policy = "read"
 }
 agent_prefix "bar" {
   policy = "deny"
@@ -188,19 +163,21 @@ agent_prefix "bar" {
 ```
 
 ```json
-"agent_prefix" : [{
-  "" : [{
-    "policy" : "read"
-    }],
-  "bar" : [{
-    "policy" : "deny"
-    }]
-  }],
-"agent" : [{
-  "foo" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "agent": {
+    "foo": {
+      "policy": "write"
+    }
+  },
+  "agent_prefix": {
+    "": {
+      "policy": "read"
+    },
+    "bar": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -232,16 +209,18 @@ event "deploy" {
 ```
 
 ```json
-"event_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"event" : [{
-  "deploy" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "event_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "event": {
+    "deploy": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -273,19 +252,21 @@ key "bar" {
 ```
 
 ```json
-"key_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"key" : [{
-  "foo" : [{
-    "policy" : "write"
-  }],
-  "bar" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "key_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "key": {
+    "foo": {
+      "policy": "write"
+    },
+    "bar": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -314,17 +295,19 @@ key_prefix "baz" {
 ```
 
 ```json
-"key_prefix" : [{
-  "" : [{
-    "policy" : "deny"
-  }],
-  "bar" : [{
-    "policy" : "list"
-  }],
-  "baz" : [{
-    "policy" : "read"
-  }]
-}]
+{
+  "key_prefix": {
+    "": {
+      "policy": "deny"
+    },
+    "bar": {
+      "policy": "list"
+    },
+    "baz": {
+      "policy": "read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -364,7 +347,9 @@ keyring = "write"
 ```
 
 ```json
-"keyring" : "write"
+{
+  "keyring": "write"
+}
 ```
 
 </CodeTabs>
@@ -380,7 +365,9 @@ mesh = "write"
 ```
 
 ```json
-"mesh" : "write"
+{
+  "mesh": "write"
+}
 ```
 
 </CodeTabs>
@@ -399,6 +386,8 @@ The following examples describe how namespace rules can be defined in a policy:
 
 ```hcl
 namespace_prefix "" {
+  # grants permission to create and edit all namespaces
+  policy = "write"
 
   # grant service:read for all services in all namespaces
   service_prefix "" {
@@ -409,8 +398,6 @@ namespace_prefix "" {
   node_prefix "" {
     policy = "read"
   }
-  # grants permission to create and edit all namespace
-   policy = "write"
 }
 
 namespace "foo" {
@@ -444,79 +431,47 @@ namespace "foo" {
 
 ```json
 {
-  "namespace": [
-    {
-      "foo": [
-        {
-          "acl": "write",
-          "key_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ],
-          "node_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "policy": "write",
-          "service_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ],
-          "session_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ]
+  "namespace_prefix": {
+    "": {
+      "policy": "write",
+      "service_prefix": {
+        "": {
+          "policy": "read"
         }
-      ]
-    }
-  ],
-  "namespace_prefix": [
-    {
-      "": [
-        {
-          "node_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "policy": "write",
-          "service_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ]
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
         }
-      ]
+      }
     }
-  ]
+  },
+  "namespace": {
+    "foo": {
+      "acl": "write",
+      "policy": "write",
+      "key_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "session_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "service_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -571,17 +526,21 @@ node "admin" {
 ```
 
 ```json
-"node_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }],
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    },
+  },
+  "node": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -621,7 +580,9 @@ operator = "read"
 ```
 
 ```json
-"operator" : "read"
+{
+  "operator": "read"
+}
 ```
 
 </CodeTabs>
@@ -645,16 +606,18 @@ query "foo" {
 ```
 
 ```json
-"query_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"query" : [{
-  "foo" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "query_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "query": {
+    "foo": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -752,19 +715,21 @@ service "admin" {
 ```
 
 ```json
-"service_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"service" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "service": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -815,12 +780,14 @@ service "app" {
 ```
 
 ```json
-"service" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "intentions" : "read"
-}]
+{
+  "service": {
+    "app": {
+      "policy": "write",
+      "intentions": "read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -851,19 +818,21 @@ session "admin" {
 ```
 
 ```json
-"session_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"session" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "session_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "session": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
