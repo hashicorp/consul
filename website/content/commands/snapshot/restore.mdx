@@ -17,7 +17,8 @@ from the given file.
 Restores involve a potentially dangerous low-level Raft operation that is not
 designed to handle server failures during a restore. This command is primarily
 intended to be used when recovering from a disaster, restoring into a fresh
-cluster of Consul servers.
+cluster of Consul servers running the same version as the cluster from where the
+snapshot was taken.
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
