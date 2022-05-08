@@ -12,89 +12,77 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
-// mergeServiceNodesWithCentralConfig merges each service instance (NodeService) with the
+// mergeServiceNodesWithCentralConfig merges a service instance (NodeService) with the
 // proxy-defaults/global and service-defaults/:service config entries.
-func mergeServiceNodesWithCentralConfig(
+func mergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state *state.Store,
-	index uint64,
 	args *structs.ServiceSpecificRequest,
-	serviceNodes structs.ServiceNodes,
-	logger hclog.Logger) (uint64, structs.ServiceNodes, error) {
+	ns *structs.NodeService,
+	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
-	var mergedServiceNodes structs.ServiceNodes
-	for _, sn := range serviceNodes {
-		ns := sn.ToNodeService()
+	serviceName := ns.Service
+	var upstreams []structs.ServiceID
+	if ns.IsSidecarProxy() {
+		// This is a sidecar proxy, ignore the proxy service's config since we are
+		// managed by the target service config.
+		serviceName = ns.Proxy.DestinationServiceName
 
-		serviceName := ns.Service
-		var upstreams []structs.ServiceID
-		if ns.IsSidecarProxy() {
-			// This is a sidecar proxy, ignore the proxy service's config since we are
-			// managed by the target service config.
-			serviceName = ns.Proxy.DestinationServiceName
-
-			// Also if we have any upstreams defined, add them to the defaults lookup request
-			// so we can learn about their configs.
-			for _, us := range ns.Proxy.Upstreams {
-				if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-					sid := us.DestinationID()
-					sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-					upstreams = append(upstreams, sid)
-				}
+		// Also if we have any upstreams defined, add them to the defaults lookup request
+		// so we can learn about their configs.
+		for _, us := range ns.Proxy.Upstreams {
+			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+				sid := us.DestinationID()
+				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+				upstreams = append(upstreams, sid)
 			}
-		}
-
-		configReq := &structs.ServiceConfigRequest{
-			Name:           serviceName,
-			Datacenter:     args.Datacenter,
-			QueryOptions:   args.QueryOptions,
-			MeshGateway:    ns.Proxy.MeshGateway,
-			Mode:           ns.Proxy.Mode,
-			UpstreamIDs:    upstreams,
-			EnterpriseMeta: ns.EnterpriseMeta,
-		}
-
-		// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
-		// so as to pass down the same watch set to also watch on changes to
-		// proxy-defaults/global and service-defaults.
-		cfgIndex, configEntries, err := state.ReadResolvedServiceConfigEntries(
-			ws,
-			configReq.Name,
-			&configReq.EnterpriseMeta,
-			upstreams,
-			configReq.Mode,
-		)
-		if err != nil {
-			return 0, nil, fmt.Errorf("Failure looking up service config entries for %s: %v",
-				ns.ID, err)
-		}
-
-		defaults, err := computeResolvedServiceConfig(
-			configReq,
-			upstreams,
-			false,
-			configEntries,
-			logger,
-		)
-		if err != nil {
-			return 0, nil, fmt.Errorf("Failure computing service defaults for %s: %v",
-				ns.ID, err)
-		}
-
-		mergedns, err := MergeServiceConfig(defaults, ns)
-		if err != nil {
-			return 0, nil, fmt.Errorf("Failure merging service definition with config entry defaults for %s: %v",
-				ns.ID, err)
-		}
-
-		mergedServiceNodes = append(mergedServiceNodes, mergedns.ToServiceNode(sn.Node))
-
-		if cfgIndex > index {
-			index = cfgIndex
 		}
 	}
 
-	return index, mergedServiceNodes, nil
+	configReq := &structs.ServiceConfigRequest{
+		Name:           serviceName,
+		Datacenter:     args.Datacenter,
+		QueryOptions:   args.QueryOptions,
+		MeshGateway:    ns.Proxy.MeshGateway,
+		Mode:           ns.Proxy.Mode,
+		UpstreamIDs:    upstreams,
+		EnterpriseMeta: ns.EnterpriseMeta,
+	}
+
+	// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
+	// so as to pass down the same watch set to also watch on changes to
+	// proxy-defaults/global and service-defaults.
+	cfgIndex, configEntries, err := state.ReadResolvedServiceConfigEntries(
+		ws,
+		configReq.Name,
+		&configReq.EnterpriseMeta,
+		upstreams,
+		configReq.Mode,
+	)
+	if err != nil {
+		return 0, nil, fmt.Errorf("Failure looking up service config entries for %s: %v",
+			ns.ID, err)
+	}
+
+	defaults, err := computeResolvedServiceConfig(
+		configReq,
+		upstreams,
+		false,
+		configEntries,
+		logger,
+	)
+	if err != nil {
+		return 0, nil, fmt.Errorf("Failure computing service defaults for %s: %v",
+			ns.ID, err)
+	}
+
+	mergedns, err := MergeServiceConfig(defaults, ns)
+	if err != nil {
+		return 0, nil, fmt.Errorf("Failure merging service definition with config entry defaults for %s: %v",
+			ns.ID, err)
+	}
+
+	return cfgIndex, mergedns, nil
 }
 
 func computeResolvedServiceConfig(
@@ -207,7 +195,7 @@ func computeResolvedServiceConfig(
 	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
 		for i, override := range serviceConf.UpstreamConfig.Overrides {
 			if override.Name == "" {
-				c.logger.Warn(
+				logger.Warn(
 					"Skipping UpstreamConfig.Overrides entry without a required name field",
 					"entryIndex", i,
 					"kind", serviceConf.GetKind(),

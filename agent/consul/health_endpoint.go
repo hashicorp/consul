@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -15,7 +16,8 @@ import (
 
 // Health endpoint is used to query the health information
 type Health struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // ChecksInState is used to get all the checks in a given state
@@ -243,7 +245,21 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				return err
 			}
 
-			thisReply.Index, thisReply.Nodes = index, nodes
+			resolvedNodes := nodes
+			if args.MergeCentralConfig {
+				for _, node := range resolvedNodes {
+					cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, node.Service, h.logger)
+					if err != nil {
+						return err
+					}
+					node.Service = mergedns
+					if cfgIndex > index {
+						index = cfgIndex
+					}
+				}
+			}
+
+			thisReply.Index, thisReply.Nodes = index, resolvedNodes
 
 			if len(args.NodeMetaFilters) > 0 {
 				thisReply.Nodes = nodeMetaFilter(args.NodeMetaFilters, thisReply.Nodes)
