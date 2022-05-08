@@ -46,6 +46,9 @@ func (c *Client) ServiceNodes(
 			return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, err
 		}
 		meta := cache.ResultMeta{Index: result.Index, Hit: result.Cached}
+		// RIDDHI: Option 2 - if using streaming, and merge specified, merge here by directly making RPC call to resolve for each service.
+		// Only issue with that is we would not get notified on changes to service defaults.
+
 		return *result.Value.(*structs.IndexedCheckServiceNodes), meta, err
 	}
 

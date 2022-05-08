@@ -100,6 +100,7 @@ func (s *Store) ServiceHealthSnapshot(req stream.SubscribeRequest, buf stream.Sn
 	if err != nil {
 		return 0, err
 	}
+	// RIDDHI: Perform merging here if req requires merging
 
 	for i := range nodes {
 		n := nodes[i]
@@ -170,6 +171,7 @@ var serviceChangeIndirect = serviceChange{changeType: changeIndirect}
 
 // ServiceHealthEventsFromChanges returns all the service and Connect health
 // events that should be emitted given a set of changes to the state store.
+// RIDDHI: Perform merging here for changes AND determine changes on tableConfigEntries. TBD: How to pass down the flag for merging.
 func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	var events []stream.Event
 
