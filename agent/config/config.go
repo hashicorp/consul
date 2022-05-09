@@ -272,6 +272,7 @@ type Config struct {
 	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
 	Version                    *string  `mapstructure:"version"`
 	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
+	VersionMetadata            *string  `mapstructure:"version_metadata"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
