@@ -70,7 +70,6 @@ In the following example, the agent has write access to the `ex-namespace` names
 The `mesh` resource is also scoped to the admin partition rule, which grants `write` access to mesh-level resources in the partition:
 
 <CodeTabs heading="Example admin partition rules">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 partition "example" {
@@ -90,9 +89,6 @@ partition_prefix "ex-" {
   ... (Same as above)
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig linenumbers>
 
 ```json
 {
@@ -169,7 +165,6 @@ partition_prefix "ex-" {
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## Agent Rules
@@ -179,7 +174,6 @@ such as join and leave. All of the catalog-related operations are covered by the
 and [`service` or `service_prefix`](#service-rules) policies instead.
 
 <CodeTabs heading="Example agent rules">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 agent_prefix "" {
@@ -192,9 +186,6 @@ agent_prefix "bar" {
   policy = "deny"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 "agent_prefix" : [{
@@ -212,7 +203,6 @@ agent_prefix "bar" {
 }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 Agent rules are keyed by the node name they apply to. In the example above the rules
