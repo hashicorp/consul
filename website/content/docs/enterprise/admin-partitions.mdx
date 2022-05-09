@@ -303,7 +303,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Install the workload client clusters:
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace -n consul --values client.yaml 
+  $ helm install ${HELM_RELEASE_CLIENT} hashicorp/consul --version "0.43.0" --create-namespace --namespace consul --values client.yaml 
   ```
 
 ### Verifying the Deployment
