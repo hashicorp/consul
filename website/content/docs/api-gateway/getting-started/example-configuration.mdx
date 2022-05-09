@@ -52,13 +52,12 @@ spec:
 ---
 
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: ProxyDefaults
+kind: ServiceDefaults
 metadata:
-  name: global
-  namespace: consul
+  name: example-service
+  namespace: default
 spec:
-  config:
-    protocol: http
+  protocol: http
 
 ---
 
