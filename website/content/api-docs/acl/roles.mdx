@@ -50,7 +50,7 @@ The corresponding CLI command is [`consul acl role create`](/commands/acl/role/c
   breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -64,7 +64,7 @@ The corresponding CLI command is [`consul acl role create`](/commands/acl/role/c
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the role. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -339,11 +339,11 @@ The corresponding CLI command is [`consul acl role update`](/commands/acl/role/u
   breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the role. Added in Consul 1.8.1.
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
