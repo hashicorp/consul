@@ -132,6 +132,10 @@ func (s *Service) GenerateToken(
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 
+	if err := structs.ValidateMetaTags(req.Meta); err != nil {
+		return nil, fmt.Errorf("meta tags failed validation: %w", err)
+	}
+
 	// TODO(peering): add metrics
 	// TODO(peering): add tracing
 
@@ -158,9 +162,9 @@ func (s *Service) GenerateToken(
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name: req.PeerName,
-
 			// TODO(peering): Normalize from ACL token once this endpoint is guarded by ACLs.
 			Partition: req.PartitionOrDefault(),
+			Meta:      req.Meta,
 		},
 	}
 	if err := s.Backend.Apply().PeeringWrite(&writeReq); err != nil {
@@ -214,6 +218,10 @@ func (s *Service) Initiate(
 		return nil, err
 	}
 
+	if err := structs.ValidateMetaTags(req.Meta); err != nil {
+		return nil, fmt.Errorf("meta tags failed validation: %w", err)
+	}
+
 	resp := &pbpeering.InitiateResponse{}
 	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
 		var err error
@@ -243,6 +251,7 @@ func (s *Service) Initiate(
 			PeerServerName:      tok.ServerName,
 			// uncomment once #1613 lands
 			// PeerID: 			 tok.PeerID,
+			Meta: req.Meta,
 		},
 	}
 	if err = s.Backend.Apply().PeeringWrite(writeReq); err != nil {

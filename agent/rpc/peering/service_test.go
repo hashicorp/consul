@@ -36,6 +36,16 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func generateTooManyMetaKeys() map[string]string {
+	// todo -- modularize in structs.go or testing.go
+	tooMuchMeta := make(map[string]string)
+	for i := 0; i < 64+1; i++ {
+		tooMuchMeta[fmt.Sprint(i)] = "value"
+	}
+
+	return tooMuchMeta
+}
+
 func TestPeeringService_GenerateToken(t *testing.T) {
 	dir := testutil.TempDir(t, "consul")
 	signer, _, _ := tlsutil.GeneratePrivateKey()
@@ -53,7 +63,14 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1"}
+	// TODO(peering): for more failure cases, consider using a table test
+	// check meta tags
+	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: generateTooManyMetaKeys()}
+	_, errE := client.GenerateToken(ctx, &reqE)
+	require.EqualError(t, errE, "rpc error: code = Unknown desc = meta tags failed validation: Node metadata cannot contain more than 64 key/value pairs")
+
+	// happy path
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -83,6 +100,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		Partition: acl.DefaultPartitionName,
 		ID:        token.PeerID,
 		State:     pbpeering.PeeringState_INITIAL,
+		Meta:      map[string]string{"foo": "bar"},
 	}
 	require.Equal(t, expect, peers[0])
 }
@@ -163,15 +181,26 @@ func TestPeeringService_Initiate(t *testing.T) {
 			expectErr: "peering token CA value is empty",
 		},
 		{
+			name: "too many meta tags",
+			req: &pbpeering.InitiateRequest{
+				PeerName:     "peer1-usw1",
+				PeeringToken: validTokenB64,
+				Meta:         generateTooManyMetaKeys(),
+			},
+			expectErr: "meta tags failed validation:",
+		},
+		{
 			name: "success",
 			req: &pbpeering.InitiateRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
+				Meta:         map[string]string{"foo": "bar"},
 			},
 			expectResp: &pbpeering.InitiateResponse{},
 			expectPeering: peering.TestPeering(
 				"peer1-usw1",
 				pbpeering.PeeringState_INITIAL,
+				map[string]string{"foo": "bar"},
 			),
 		},
 	}

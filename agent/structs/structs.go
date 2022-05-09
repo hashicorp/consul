@@ -887,6 +887,11 @@ func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowCons
 	}
 }
 
+// ValidateMetaTags validates arbitrary key/value pairs from the agent_endpoints
+func ValidateMetaTags(metaTags map[string]string) error {
+	return validateMetadata(metaTags, false, nil)
+}
+
 func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if len(meta) > metaMaxKeyPairs {
 		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)

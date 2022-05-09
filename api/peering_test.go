@@ -148,6 +148,7 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 
 	p1 := PeeringGenerateTokenRequest{
 		PeerName: "peer1",
+		Meta:     map[string]string{"foo": "bar"},
 	}
 	var token1 string
 	// Generate a token happy path
@@ -169,6 +170,7 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	// token specific assertions on the "server"
 	require.Equal(t, "peer1", resp2.Name)
 	require.Equal(t, PeeringStateInitial, resp2.State)
+	require.Equal(t, map[string]string{"foo": "bar"}, resp2.Meta)
 
 	// Initiate peering
 
@@ -182,6 +184,7 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 		Datacenter:   c2.config.Datacenter,
 		PeerName:     "peer1",
 		PeeringToken: token1,
+		Meta:         map[string]string{"foo": "bar"},
 	}
 
 	respi, wm3, err3 := c2.Peerings().Initiate(ctx, i, options)
@@ -205,6 +208,7 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 
 		// require that the peering state is not undefined
 		require.Equal(r, PeeringStateInitial, respr.State)
+		require.Equal(r, map[string]string{"foo": "bar"}, respr.Meta)
 
 		// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
 	})

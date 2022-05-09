@@ -52,7 +52,7 @@ var validPeerID = "peer1"
 
 // TestPeering is a test utility for generating a pbpeering.Peering with valid
 // data along with the peerName, state and index.
-func TestPeering(peerName string, state pbpeering.PeeringState) *pbpeering.Peering {
+func TestPeering(peerName string, state pbpeering.PeeringState, meta map[string]string) *pbpeering.Peering {
 	return &pbpeering.Peering{
 		Name:                peerName,
 		PeerCAPems:          []string{validCA},
@@ -61,6 +61,7 @@ func TestPeering(peerName string, state pbpeering.PeeringState) *pbpeering.Peeri
 		State:               state,
 		// uncomment once #1613 lands
 		// PeerID: validPeerID
+		Meta: meta,
 	}
 }
 

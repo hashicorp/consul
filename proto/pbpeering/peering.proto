@@ -60,6 +60,9 @@ message Peering {
   // Partition is the local partition connecting to the peer.
   string Partition = 3;
 
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 11;
+
   // State is one of the valid PeeringState values to represent the status of
   // peering relationship.
   PeeringState State = 4;
@@ -139,6 +142,9 @@ message PeeringWriteRequest {
 
   //TODO(peering): what to do with embedded write request?
   string Datacenter = 2;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 3;
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
@@ -192,6 +198,9 @@ message GenerateTokenRequest {
   // that are used to forward requests
   string Datacenter = 3;
   string Token = 4;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 5;
 }
 
 message GenerateTokenResponse {
@@ -211,6 +220,9 @@ message InitiateRequest {
   // that are used to forward requests
   string Datacenter = 3;
   string Token = 4;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 5;
 }
 
 message InitiateResponse {
