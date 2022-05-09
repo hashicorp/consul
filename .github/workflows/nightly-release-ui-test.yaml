@@ -5,16 +5,14 @@ on:
   workflow_dispatch: {}
 
 env:
-  BRANCH_MATRIX: "[ release/1.10.x, release/1.11.x, release/1.12.x ]"
-  EMBER_PARTITION_TOTAL: 4
-  EMBER_PARTITION_MATRIX: "[ 1, 2, 3, 4 ]"
+  EMBER_PARTITION_TOTAL: 4  # Has to be changed in tandem with the matrix.partion
 
 jobs:
   frontend-cache:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -38,7 +36,7 @@ jobs:
     needs: [frontend-cache]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -72,7 +70,7 @@ jobs:
     needs: [frontend-cache]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 0
@@ -110,8 +108,8 @@ jobs:
     needs: [frontend-build-oss]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
-        partion: ${{ env.EMBER_PARTITION_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
+        partion: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 0
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
@@ -152,7 +150,7 @@ jobs:
     needs: [frontend-cache]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 1
@@ -190,8 +188,8 @@ jobs:
     needs: [frontend-build-ent]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
-        partion: ${{ env.EMBER_PARTITION_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
+        partion: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 1
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
@@ -232,7 +230,7 @@ jobs:
     needs: [frontend-build-ent]
     strategy:
       matrix:
-        branch: ${{ env.BRANCH_MATRIX }}
+        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     steps:
       - uses: actions/checkout@v2
         with:
