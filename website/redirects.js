@@ -47,12 +47,22 @@ module.exports = [
   },
   {
     source: '/docs/agent/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
     permanent: true,
   },
   {
     source: '/docs/acl/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/roles',
+    destination: '/docs/security/acl/acl-roles',
     permanent: true,
   },
   { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
@@ -1287,9 +1297,9 @@ module.exports = [
   {
     source: '/docs/nia/release-notes/0-5-0',
     destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
-   permanent: true,
+    permanent: true,
   },
-  { 
+  {
     source: '/docs/api-gateway/api-gateway-usage',
     destination: '/docs/api-gateway/consul-api-gateway-install',
     permanent: true,
