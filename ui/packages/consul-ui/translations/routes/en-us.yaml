@@ -42,7 +42,7 @@ dc:
               </a>
             </li>
             <li>
-              <a href="{CONSUL_DOCS_URL}/docs/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
                 Renewing a license
               </a>
             </li>
