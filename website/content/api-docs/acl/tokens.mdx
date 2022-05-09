@@ -62,7 +62,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -76,7 +76,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -418,7 +418,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
   enables role renaming without breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -432,7 +432,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
