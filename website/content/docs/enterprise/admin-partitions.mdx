@@ -68,6 +68,10 @@ Your Consul configuration must meet the following requirements to use admin part
 
 - Consul 1.11.1 and newer
 
+### General Networking Requirements
+
+- All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. 
+
 ### Security Configurations
 
 - The agent token used by the client agent must allow `node:write` in the admin partition.
