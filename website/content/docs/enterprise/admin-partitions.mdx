@@ -131,7 +131,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Create the license secret in server cluster.
 
   ```shell-session
-  $ kubectl create secret -n consul generic license --from-file=key=./path/to/license.hclic
+  $ kubectl create secret --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
   
 1. Set your context to the workload client cluster. 
