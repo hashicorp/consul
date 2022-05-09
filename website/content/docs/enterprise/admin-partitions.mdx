@@ -211,7 +211,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and clients. <a name="get-external-ip-address"/>
 
   ```shell-session
-  $ kubectl get services --selector="app=consul,component=server" -n consul --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
+  $ kubectl get services --selector="app=consul,component=server" --namespace consul --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
   34.135.103.67
   ```
 
