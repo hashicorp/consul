@@ -60,6 +60,11 @@ module.exports = [
     destination: '/docs/security/acl',
     permanent: true,
   },
+  {
+    source: '/docs/security/roles',
+    destination: '/docs/security/acl/acl-roles',
+    permanent: true,
+  },
   { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
   {
     source: '/docs/guides/acl-legacy',
