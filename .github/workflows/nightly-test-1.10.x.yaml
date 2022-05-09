@@ -1,47 +1,21 @@
-name: nightly-release-ui-test
+name: Nightly 1.10.x Test
 on:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch: {}
 
 env:
-  EMBER_PARTITION_TOTAL: 4  # Has to be changed in tandem with the matrix.partion
+  EMBER_PARTITION_TOTAL: 4      # Has to be changed in tandem with the matrix.partition
+  BRANCH: "release/1.10.x"
+  BRANCH_NAME: "release-1.10.x" # Used for naming artifacts
 
 jobs:
-  frontend-cache:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
-
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 14
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
-
-      - name: Install
-        id: install
-        working-directory: ./ui
-        run: make deps
-
   frontend-test-workspace-node:
     runs-on: ubuntu-latest
-    needs: [frontend-cache]
-    strategy:
-      matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -53,7 +27,7 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
 
       - name: Workspace Tests
         id: workspace-test
@@ -67,18 +41,13 @@ jobs:
 
   frontend-build-oss:
     runs-on: ubuntu-latest
-    needs: [frontend-cache]
-    strategy:
-      matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 0
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -90,7 +59,7 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
 
       - name: Ember Build OSS
         id: build-oss
@@ -100,16 +69,16 @@ jobs:
       - name: Upload OSS Frontend
         uses: actions/upload-artifact@v3
         with:
-          name: frontend-oss-${{ matrix.branch }}
-          path: .ui/packages/consul-ui/dist
+          name: frontend-oss-${{ env.BRANCH_NAME }}
+          path: ./ui/packages/consul-ui/dist
+          if-no-files-found: error
 
   frontend-test-oss:
     runs-on: ubuntu-latest
     needs: [frontend-build-oss]
     strategy:
       matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
-        partion: [ 1, 2, 3, 4 ]
+        partition: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 0
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
@@ -117,8 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -130,35 +98,28 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
 
       - name: Download OSS Frontend
-        uses: actions/upload-artifact@v3
+        uses: actions/download-artifact@v3
         with:
-          name: frontend-oss-${{ matrix.branch }}
-          path: .ui/packages/consul-ui/dist
+          name: frontend-oss-${{ env.BRANCH_NAME }}
+          path: ./ui/packages/consul-ui/dist
 
       - name: Ember Test OSS
         id: cache
         working-directory: ./ui/packages/consul-ui
         run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
 
-      # TODO: add test-reporter: https://github.com/marketplace/actions/test-reporter
-
   frontend-build-ent:
     runs-on: ubuntu-latest
-    needs: [frontend-cache]
-    strategy:
-      matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 1
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -170,7 +131,7 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
 
       - name: Ember Build ENT
         id: build-oss
@@ -180,16 +141,16 @@ jobs:
       - name: Upload ENT Frontend
         uses: actions/upload-artifact@v3
         with:
-          name: frontend-ent-${{ matrix.branch }}
-          path: .ui/packages/consul-ui/dist
+          name: frontend-ent-${{ env.BRANCH_NAME }}
+          path: ./ui/packages/consul-ui/dist
+          if-no-files-found: error
 
   frontend-test-ent:
     runs-on: ubuntu-latest
     needs: [frontend-build-ent]
     strategy:
       matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
-        partion: [ 1, 2, 3, 4 ]
+        partition: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 1
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
@@ -197,8 +158,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -210,32 +170,26 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
 
       - name: Download ENT Frontend
-        uses: actions/upload-artifact@v3
+        uses: actions/download-artifact@v3
         with:
-          name: frontend-ent-${{ matrix.branch }}
-          path: .ui/packages/consul-ui/dist
+          name: frontend-ent-${{ env.BRANCH_NAME }}
+          path: ./ui/packages/consul-ui/dist
 
       - name: Ember Test ENT
         id: cache
         working-directory: ./ui/packages/consul-ui
         run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
 
-        # TODO: add test-reporter: https://github.com/marketplace/actions/test-reporter
-
   frontend-test-coverage-ent:
     runs-on: ubuntu-latest
     needs: [frontend-build-ent]
-    strategy:
-      matrix:
-        branch: [ release/1.10.x, release/1.11.x, release/1.12.x ]
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-          ref: ${{ matrix.branch }}
+          ref: ${{ env.BRANCH }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@v3
@@ -247,7 +201,13 @@ jobs:
       - name: Install
         id: install
         working-directory: ./ui
-        run: make deps
+        run: yarn install
+
+      - name: Download ENT Frontend
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-ent-${{ env.BRANCH_NAME }}
+          path: ./ui/packages/consul-ui/dist
 
       - name: Run ENT Code Coverage
         working-directory: ./ui/packages/consul-ui
@@ -260,8 +220,11 @@ jobs:
     steps:
       - name: Slack Notification
         id: slack
-        uses: slackapi/slack-github-action@main
+        uses: slackapi/slack-github-action@v1.19
         with:
-          payload: "{\"message\":\"One or more nightly UI test have failed on a release branch for Consul. [Link to Failed Action](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). \"}"
+          payload: |
+            {
+              "message": "One or more nightly UI tests have failed on branch ${{ env.BRANCH }} for Consul. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_CORE_SLACK_WEBHOOK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_UI_SLACK_WEBHOOK }}
