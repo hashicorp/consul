@@ -424,13 +424,13 @@ information.
 
 - `-log-file` ((#\_log_file)) - writes all the Consul agent log messages
   to a file at the path indicated by this flag. The filename defaults to `consul.log`.
-  When the log file rotates, this value is used as a prefix for the path to the log and the current timestamp is 
+  When the log file rotates, this value is used as a prefix for the path to the log and the current timestamp is
   appended to the file name. If the value ends in a path separator, `consul-`
   will be appended to the value. If the file name is missing an extension, `.log`
   is appended. For example, setting `log-file` to `/var/log/` would result in a log
   file path of `/var/log/consul.log`. `log-file` can be combined with
   [`-log-rotate-bytes`](#_log_rotate_bytes) and [`-log-rotate-duration`](#_log_rotate_duration)
-  for a fine-grained log rotation experience. After rotation, the path and filename take the following form: 
+  for a fine-grained log rotation experience. After rotation, the path and filename take the following form:
   `/var/log/consul-{timestamp}.log`
 
 - `-log-rotate-bytes` ((#\_log_rotate_bytes)) - to specify the number of
@@ -554,13 +554,12 @@ information.
   specifying only the `-ui` flag is enough to enable the Web UI. Specifying both
   the '-ui' and '-ui-dir' flags will result in an error.
 
-<!-- prettier-ignore -->
 - `-ui-content-path` ((#\_ui\_content\_path)) - This flag provides the option
   to change the path the Consul UI loads from and will be displayed in the browser.
   By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics,
-  `-`, and `_` are allowed in a custom path.`/v1/` is not allowed as it would overwrite
+  `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite
   the API endpoint.
 
-<!-- list of reference-style links -->
+{/* list of reference-style links */}
 
 [go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template
