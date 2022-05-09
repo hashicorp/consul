@@ -289,7 +289,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusNotFound, resp.Code)
-		require.Equal(t, "peering with name \"baz\" does not exist", resp.Body.String())
+		require.Equal(t, "Peering not found for \"baz\"", resp.Body.String())
 	})
 }
 
