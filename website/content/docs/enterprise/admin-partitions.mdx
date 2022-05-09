@@ -70,7 +70,10 @@ Your Consul configuration must meet the following requirements to use admin part
 
 ### General Networking Requirements
 
-- All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. 
+- All Consul clients must be able to communicate with the Consul servers in the `default` partition, and all servers must be able to communicate with the clients. On Kubernetes, this is accomplished on Consul on Kubernetes by deploying a dedicated `partition` Kubernetes `LoadBalancer` service that allows clients to talk to servers on the `default` partition created on the Consul servers. For other runtimes, please refer to the documentation for your infrastructure environment for instructions on how to allow communication between clients within a parittion and Consul Servers across the following ports:
+  - RPC on port 8300 
+  - Gossip on port 8301
+  - HTTPS API requests on port 443 API requests  
 
 ### Security Configurations
 
