@@ -488,14 +488,14 @@ or local datacenter respectively.
 ## DNS with ACLs
 
 In order to use the DNS interface when
-[Access Control Lists (ACLs)](/docs/security/acl/acl-system)
+[Access Control Lists (ACLs)](/docs/security/acl)
 are enabled, you must first create ACL tokens with the necessary policies.
 
 Consul agents resolve DNS requests using one of the preconfigured tokens below,
 listed in order of precedence:
 
 1. The agent's [`default` token](/docs/agent/config/config-files#acl_tokens_default).
-2. The built-in [`anonymous` token](/docs/security/acl/acl-system#builtin-tokens).
+2. The built-in [`anonymous` token](/docs/security/acl/acl-tokens#built-in-tokens).
    Because the anonymous token is used when any request is made to Consul without
    explicitly specifying a token, production deployments should not apply policies
    needed for DNS to this token.
