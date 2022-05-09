@@ -83,7 +83,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 			Version: *targetImage,
 		})
 
-	for i := 1; i < 2; i++ {
+	for i := 1; i < 3; i++ {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
@@ -147,7 +147,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 
 	var configs []node.Config
 
-	for i := 1; i < 2; i++ {
+	for i := 0; i < 2; i++ {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
