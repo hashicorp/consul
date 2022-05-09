@@ -453,7 +453,8 @@ service "consul-snapshot" {
 
 If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
 
-In the following example, Vault is registered as a service and provided access to Consul's KV store.
+In the following example, the ACL policy enables Vault to register as a service
+and provides access to the `vault/` path in Consul's KV store.
 
 <CodeTabs>
 
