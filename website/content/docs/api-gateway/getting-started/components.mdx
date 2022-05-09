@@ -46,7 +46,7 @@ In some cases, such as on Amazon EKS, this may be a hostname instead of an IP ad
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: Gateways
+kind: Gateway
 metadata:
   # This name will be referenced when configuring other components described below
   name: example-gateway
@@ -88,10 +88,12 @@ apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: HTTPRoute
 metadata:
   name: example-httproute
-  namespace: default  # This HTTPRoute is in the same namespace as the Gateway above so it is allowed to attach
+  # This HTTPRoute is in the same namespace as the Gateway above so it is allowed to attach
+  namespace: default
 spec:
   parentRefs:
-  - name: example-gateway  # This HTTPRoute should attach to the Gateway defined above
+  # This HTTPRoute should attach to the Gateway defined above
+  - name: example-gateway
   rules:
   # This rule will route all requests to /echo1 to the echo-1 service
   - matches:
@@ -131,7 +133,10 @@ Optionally, a `TCPRoute` can include filters to specify additional processing st
 
 ## ReferencePolicy
 
-A `ReferencePolicy` enables cross-namespace references between objects. There are two scenarios where the `ReferencePolicy` comes into play:
+In the examples above, the resources that we've configured all reside in the `default` namespace; however, that will not be the case for everyone.
+
+By default, relationships across the namespace boundary are not allowed. A `ReferencePolicy` enables cross-namespace references between objects.
+There are two scenarios where the `ReferencePolicy` comes into play:
 
 1. A `HTTPRoute` or `TCPRoute` in one namespace references a backend in another namespace
 1. A `Gateway` in one namespace references a certificate in another namespace
