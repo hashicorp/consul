@@ -1,4 +1,4 @@
-package consul_container
+package upgrade
 
 import (
 	"context"
@@ -17,12 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const retryTimeout = 10 * time.Second
+const retryTimeout = 20 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
-// Test health check GRPC call using Current Servers and Latest GA Clients
-func TestCurrentServersWithLatestGAClients(t *testing.T) {
-
+// Test health check GRPC call using Target Servers and Latest GA Clients
+func TestTargetServersWithLatestGAClients(t *testing.T) {
 	numServers := 3
 	cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
@@ -30,6 +29,7 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 	numClients := 1
 
 	clients, err := clientsCreate(numClients, *latestImage)
+	require.NoError(t, err)
 	client := cluster.Nodes[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -72,7 +72,6 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-
 	var configs []node.Config
 	configs = append(configs,
 		node.Config{
@@ -142,11 +141,9 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	}
 }
 
-// Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
-func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
-
+// Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
+func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	var configs []node.Config
-
 	for i := 0; i < 2; i++ {
 		configs = append(configs,
 			node.Config{
@@ -155,20 +152,19 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *latestImage,
+				Version: *targetImage,
 			})
 
 	}
-
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
 					log_level="TRACE"
-					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *targetImage,
+			Version: *latestImage,
 		})
+
 	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
@@ -241,7 +237,7 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) (error,
 	return err, meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, image string) (*cluster.Cluster, error) {
+func serversCluster(t *testing.T, numServers int, version string) (*cluster.Cluster, error) {
 	var err error
 	var configs []node.Config
 	for i := 0; i < numServers; i++ {
@@ -251,7 +247,7 @@ func serversCluster(t *testing.T, numServers int, image string) (*cluster.Cluste
 					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: image,
+			Version: version,
 		})
 	}
 	cluster, err := cluster.New(configs)

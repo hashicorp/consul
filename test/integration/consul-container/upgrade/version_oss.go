@@ -1,7 +1,7 @@
 //go:build !consulent
 // +build !consulent
 
-package consul_container
+package upgrade
 
 import "flag"
 
