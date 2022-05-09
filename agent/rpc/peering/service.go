@@ -133,7 +133,7 @@ func (s *Service) GenerateToken(
 	}
 
 	if err := structs.ValidateMetaTags(req.Meta); err != nil {
-		return nil, fmt.Errorf("meta tags failed validation: %v", err)
+		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
 	// TODO(peering): add metrics
@@ -219,7 +219,7 @@ func (s *Service) Initiate(
 	}
 
 	if err := structs.ValidateMetaTags(req.Meta); err != nil {
-		return nil, fmt.Errorf("meta tags failed validation: %v", err)
+		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
 	resp := &pbpeering.InitiateResponse{}
