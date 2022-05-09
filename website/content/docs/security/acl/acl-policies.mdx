@@ -460,19 +460,19 @@ In the following example, Vault is registered as a service and provided access t
 ```hcl
 # Provide KV visibility to all agents.
 agent_prefix "" {
-  "policy" = "read"
+  policy = "read"
 }
 # Enable resources prefixed with 'vault/' to write to the KV
 key_prefix "vault/" {
-  "policy" = "write"
+  policy = "write"
 }
 # Enable the vault service to write to the KV
 service "vault" {
-  "policy" = "write"
+  policy = "write"
 }
 # Enable the agent to initialize a new session.
 session_prefix "" {
-  "policy" = "write"
+  policy = "write"
 }
 ```
 

@@ -38,12 +38,12 @@ Specify the value of the `SecretID` attribute with the `token` parameter when co
 <CodeBlockConfig lineNumbers highlight="6">
 
 ```hcl
-"service" = {
-  "id" = "redis"
-  "name" = "redis"
+service = {
+  id = "redis"
+  name = "redis"
   ...
-  "namespace" = "foo"
-  "token" = "233b604b-b92e-48c8-a253-5f11514e4b50"
+  namespace = "foo"
+  token = "233b604b-b92e-48c8-a253-5f11514e4b50"
 }
 ```
 
@@ -86,8 +86,8 @@ In the following example, the agent is configured to use a default token:
 <CodeTabs>
 
 ```hcl
-"tokens" = {
-  "default" = "233b604b-b92e-48c8-a253-5f11514e4b50"
+tokens = {
+  default = "233b604b-b92e-48c8-a253-5f11514e4b50"
 }
 ```
 
