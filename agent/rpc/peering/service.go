@@ -132,6 +132,10 @@ func (s *Service) GenerateToken(
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 
+	if err := structs.ValidateMetaTags(req.Meta); err != nil {
+		return nil, fmt.Errorf("meta tags failed validation: %v", err)
+	}
+
 	// TODO(peering): add metrics
 	// TODO(peering): add tracing
 
@@ -212,6 +216,10 @@ func (s *Service) Initiate(
 	}
 	if err := validatePeeringToken(tok); err != nil {
 		return nil, err
+	}
+
+	if err := structs.ValidateMetaTags(req.Meta); err != nil {
+		return nil, fmt.Errorf("meta tags failed validation: %v", err)
 	}
 
 	resp := &pbpeering.InitiateResponse{}
