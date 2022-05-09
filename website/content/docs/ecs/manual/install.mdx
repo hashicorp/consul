@@ -64,7 +64,7 @@ during task startup.
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
 | `family`               | string | The task family name. This is used as the Consul service name by default.                                          |
 | `networkMode`          | string | Must be `awsvpc`, which is the only network mode supported by Consul on ECS.                                       |
-| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for initial task setup.  |
+| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for initial task setup. |
 | `containerDefinitions` | list   | The list of containers to run in this task (see [Application container](#application-container)).                  |
 
 ### Task Tags
