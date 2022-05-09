@@ -144,7 +144,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 
   ```shell-session
   $ kubectl create ns consul 
-  $ kubectl create secret -n consul generic license --from-file=key=./path/to/license.hclic
+  $ kubectl create secret --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
   
 #### Install the Consul server cluster
