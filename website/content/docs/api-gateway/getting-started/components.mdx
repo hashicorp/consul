@@ -28,6 +28,10 @@ but applies to your desired implementation, Consul API Gateway.
 
 ## Gateway
 
+The `Gateway` is the only place where the above components - `GatewayClass` and `GatewayClassConfig` - are exposed to you as the operator.
+This occurs via the `spec.gatewayClassName` field when defining the `Gateway` resource. As described above, the Consul Helm chart creates the
+`GatewayClass` that we will reference by name here, `consul-api-gateway`.
+
 A `Gateway` consists of a load balancer that distributes requests across one-to-many instances. Having multiple instances increases our availability
 and ability to scale. A `Gateway` can specify multiple listeners that each include a port and a protocol. Each instance that the load balancer
 distributes requests to will have all configured listener(s) available on the designated port and with the designated protocol.
@@ -35,7 +39,32 @@ distributes requests to will have all configured listener(s) available on the de
 Each listener can have multiple routes attached to it. Routes are matched based on a specific set of rules. For more information on these rules, please
 see [TODO](). Each listener can match all hostnames - the default behavior - or specify a virtual hostname for matching.
 
-Once the `Gateway` is ready, it will have a publicly-accessible IP address assigned to it. You may also choose to set a hostname on each listener.
+Once the `Gateway` is ready, it will have a publicly-accessible IP address listed in the `status.addresses` field.
+In some cases, such as on Amazon EKS, this may be a hostname instead of an IP address.
+
+<CodeBlockConfig filename="example.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateways
+metadata:
+  name: example-gateway  # This name will be referenced when configuring other components described below
+  namespace: consul
+spec:
+  gatewayClassName: consul-api-gateway  # This Gateway should be a Consul API Gateway
+  listeners:
+  - protocol: HTTPS
+    port: 8443  # The routes attached to this Gateway will be accessible on port 8443
+    name: https
+    allowedRoutes:
+      namespaces:
+        from: Same  # Only routes within the "consul" namespace may attach to this Gateway
+    tls:
+      certificateRefs:
+        - name: consul-server-cert  # This Gateway can reference a Secret containing the TLS certificate
+```
+
+</CodeBlockConfig>
 
 ## HTTPRoute
 
