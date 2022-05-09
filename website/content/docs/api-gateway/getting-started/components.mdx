@@ -133,7 +133,7 @@ Optionally, a `TCPRoute` can include filters to specify additional processing st
 
 ## ReferencePolicy
 
-In the examples above, the resources that we've configured all reside in the `default` namespace; however, that will not be the case for everyone.
+In the examples above, the resources that we've configured all reside in the same namespace; however, that will not be the case for everyone.
 
 By default, relationships across the namespace boundary are not allowed. A `ReferencePolicy` enables cross-namespace references between objects.
 There are two scenarios where the `ReferencePolicy` comes into play:
@@ -169,6 +169,7 @@ spec:
       port: 80
 
 ---
+
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: ReferencePolicy
 metadata:
