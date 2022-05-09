@@ -801,6 +801,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
+		VersionMetadata:            stringVal(c.VersionMetadata),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),

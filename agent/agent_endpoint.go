@@ -99,7 +99,8 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Partition:         s.agent.config.PartitionOrEmpty(),
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
-		Version:           s.agent.config.Version,
+		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
+		Version: s.agent.config.VersionWithMetadata(),
 	}
 	return Self{
 		Config:      config,
