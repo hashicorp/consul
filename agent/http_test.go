@@ -1214,6 +1214,21 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	}
 }
 
+func TestParseMergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	var b structs.QueryOptions
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/service/redis?merge-central-config", nil)
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	a.srv.parseMergeCentralConfig(req, &b)
+	require.True(t, b.MergeCentralConfig)
+}
+
 // Test ACL token is resolved in correct order
 func TestACLResolution(t *testing.T) {
 	if testing.Short() {
