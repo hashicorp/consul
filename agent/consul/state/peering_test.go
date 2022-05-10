@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func insertTestPeerings(t *testing.T, s *Store) {
@@ -643,14 +644,14 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 
 	ws := memdb.NewWatchSet()
 
-	runStep(t, "no exported services", func(t *testing.T) {
+	testutil.RunStep(t, "no exported services", func(t *testing.T) {
 		idx, exported, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Empty(t, exported)
 	})
 
-	runStep(t, "config entry with exact service names", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with exact service names", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
@@ -703,7 +704,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.ElementsMatch(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service name picks up existing service", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service name picks up existing service", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, s.EnsureNode(lastIdx, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
 
@@ -742,7 +743,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service names picks up new registrations", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service names picks up new registrations", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{ID: "payments", Service: "payments", Port: 5000}))
 
@@ -778,7 +779,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.ElementsMatch(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service names picks up service deletions", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service names picks up service deletions", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, s.DeleteService(lastIdx, "foo", "billing", nil, ""))
 
@@ -801,7 +802,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.ElementsMatch(t, expect, got)
 	})
 
-	runStep(t, "deleting the config entry clears exported services", func(t *testing.T) {
+	testutil.RunStep(t, "deleting the config entry clears exported services", func(t *testing.T) {
 		require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", structs.DefaultEnterpriseMetaInDefaultPartition()))
 		idx, exported, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
@@ -997,7 +998,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		runStep(t, tc.name, func(t *testing.T) {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
 	}

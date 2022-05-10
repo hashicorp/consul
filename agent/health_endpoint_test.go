@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -958,13 +959,6 @@ use_streaming_backend = true
 		},
 	}
 
-	runStep := func(t *testing.T, name string, fn func(t *testing.T)) {
-		t.Helper()
-		if !t.Run(name, fn) {
-			t.FailNow()
-		}
-	}
-
 	register := func(t *testing.T, a *TestAgent, name, tag string) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -998,7 +992,7 @@ use_streaming_backend = true
 
 			// Initial request with a filter should return one.
 			var lastIndex uint64
-			runStep(t, "read original", func(t *testing.T) {
+			testutil.RunStep(t, "read original", func(t *testing.T) {
 				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart, nil)
 				require.NoError(t, err)
 
@@ -1024,7 +1018,7 @@ use_streaming_backend = true
 			})
 
 			const timeout = 30 * time.Second
-			runStep(t, "read blocking query result", func(t *testing.T) {
+			testutil.RunStep(t, "read blocking query result", func(t *testing.T) {
 				var (
 					// out and resp are not safe to read until reading from errCh
 					out   structs.CheckServiceNodes

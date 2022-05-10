@@ -153,7 +153,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	err := client.Send(sub)
 	require.NoError(t, err)
 
-	runStep(t, "new stream gets tracked", func(t *testing.T) {
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(peerID)
 			require.True(r, ok)
@@ -175,7 +175,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	}
 	prototest.AssertDeepEqual(t, expect, receivedSub)
 
-	runStep(t, "terminate the stream", func(t *testing.T) {
+	testutil.RunStep(t, "terminate the stream", func(t *testing.T) {
 		done := srv.ConnectedStreams()[peerID]
 		close(done)
 
@@ -228,7 +228,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	err := client.Send(sub)
 	require.NoError(t, err)
 
-	runStep(t, "new stream gets tracked", func(t *testing.T) {
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(peerID)
 			require.True(r, ok)
@@ -236,7 +236,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	runStep(t, "client receives initial subscription", func(t *testing.T) {
+	testutil.RunStep(t, "client receives initial subscription", func(t *testing.T) {
 		ack, err := client.Recv()
 		require.NoError(t, err)
 
@@ -255,7 +255,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var sequence uint64
 	var lastSendSuccess time.Time
 
-	runStep(t, "ack tracked as success", func(t *testing.T) {
+	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Request_{
 				Request: &pbpeering.ReplicationMessage_Request{
@@ -288,7 +288,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastNack time.Time
 	var lastNackMsg string
 
-	runStep(t, "nack tracked as error", func(t *testing.T) {
+	testutil.RunStep(t, "nack tracked as error", func(t *testing.T) {
 		nack := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Request_{
 				Request: &pbpeering.ReplicationMessage_Request{
@@ -325,7 +325,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 	var lastRecvSuccess time.Time
 
-	runStep(t, "response applied locally", func(t *testing.T) {
+	testutil.RunStep(t, "response applied locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
 				Response: &pbpeering.ReplicationMessage_Response{
@@ -373,7 +373,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastRecvError time.Time
 	var lastRecvErrorMsg string
 
-	runStep(t, "response fails to apply locally", func(t *testing.T) {
+	testutil.RunStep(t, "response fails to apply locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
 				Response: &pbpeering.ReplicationMessage_Response{
@@ -427,7 +427,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	runStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
+	testutil.RunStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
 		client.Close()
 
 		sequence++
@@ -533,7 +533,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
-	runStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
+	testutil.RunStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
@@ -577,7 +577,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
 	}
 
-	runStep(t, "registering mongo instance leads to an UPSERT event", func(t *testing.T) {
+	testutil.RunStep(t, "registering mongo instance leads to an UPSERT event", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.EnsureNode(lastIdx, mongo.Node))
 
@@ -596,7 +596,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		})
 	})
 
-	runStep(t, "un-exporting mysql leads to a DELETE event for mysql", func(t *testing.T) {
+	testutil.RunStep(t, "un-exporting mysql leads to a DELETE event for mysql", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
@@ -623,7 +623,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		})
 	})
 
-	runStep(t, "deleting the config entry leads to a DELETE event for mongo", func(t *testing.T) {
+	testutil.RunStep(t, "deleting the config entry leads to a DELETE event for mongo", func(t *testing.T) {
 		lastIdx++
 		err = store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", nil)
 		require.NoError(t, err)

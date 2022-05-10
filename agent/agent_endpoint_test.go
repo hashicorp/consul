@@ -6205,13 +6205,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBlock(t *testing.T) {
 	// see: https://github.com/hashicorp/consul/issues/12048
 
-	runStep := func(t *testing.T, name string, fn func(t *testing.T)) {
-		t.Helper()
-		if !t.Run(name, fn) {
-			t.FailNow()
-		}
-	}
-
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -6246,7 +6239,7 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 		index        string
 		issued       structs.IssuedCert
 	)
-	runStep(t, "do initial non-blocking query", func(t *testing.T) {
+	testutil.RunStep(t, "do initial non-blocking query", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -6278,7 +6271,7 @@ func TestAgentConnectCALeafCert_nonBlockingQuery_after_blockingQuery_shouldNotBl
 	// in between both of these steps the data should still be there, causing
 	// this to be a HIT that completes in less than 10m (the default inner leaf
 	// cert blocking query timeout).
-	runStep(t, "do a non-blocking query that should not block", func(t *testing.T) {
+	testutil.RunStep(t, "do a non-blocking query that should not block", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)

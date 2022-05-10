@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -82,7 +83,7 @@ func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
-	runStep(t, "forward a write", func(t *testing.T) {
+	testutil.RunStep(t, "forward a write", func(t *testing.T) {
 		// Do the grpc Write call to server2
 		req := pbpeering.GenerateTokenRequest{
 			Datacenter: "dc1",
