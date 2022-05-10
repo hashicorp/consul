@@ -31,10 +31,10 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul namespace create`](/commands/namespace/create).
 
-### Parameters
+### JSON Request Body Schema
 
-- `Name` `(string: <required>)` - The namespaces name. This must be a valid
-  DNS hostname label.
+- `Name` `(string: <required>)` - The namespace's name.
+  This field must be a valid DNS hostname label.
 
 - `Description` `(string: "")` - Free form namespaces description.
 
@@ -106,7 +106,7 @@ $ curl --request PUT \
    http://127.0.0.1:8500/v1/namespace
 ```
 
-### SampleResponse
+### Sample Response
 
 ```json
 {
@@ -165,10 +165,9 @@ the request has been granted any access in the namespace (read, list or write).
 
 The corresponding CLI command is [`consul namespace read`](/commands/namespace/read).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the namespace to read. This
-  is required and is specified as part of the URL path.
+- `name` `(string: <required>)` - Specifies the namespace to read.
 
 ### Sample Request
 
@@ -177,7 +176,7 @@ $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
-### SampleResponse
+### Sample Response
 
 ```json
 {
@@ -233,11 +232,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul namespace update`](/commands/namespace/update) or [`consul namespace write`](/commands/namespace/write).
 
-### Parameters
+### Path Parameters
 
-- `Name` `(string: <optional>)` - The namespaces name. This must be a valid
-  DNS hostname label. If present in the payload it must match what was given
-  in the URL path.
+- `name` `(string: <required>)` - The namespaces name. This must be a valid DNS hostname label.
+
+### JSON Request Body Schema
+
+- `Name` `(string: <optional>)` - If specified, this field must be an exact match
+  with the `name` path parameter.
 
 - `Description` `(string: "")` - Free form namespaces description.
 
@@ -308,7 +310,7 @@ $ curl --request PUT \
    http://127.0.0.1:8500/v1/namespace/team-1
 ```
 
-### SampleResponse
+### Sample Response
 
 ```json
 {
@@ -372,10 +374,9 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul namespace delete`](/commands/namespace/delete).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the namespace to delete. This
-  is required and is specified as part of the URL path.
+- `name` `(string: <required>)` - Specifies the namespace to delete.
 
 ### Sample Request
 
