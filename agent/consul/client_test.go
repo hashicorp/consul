@@ -511,8 +511,8 @@ func newClient(t *testing.T, config *Config) *Client {
 
 func newTestResolverConfig(t testutil.TestingTB, suffix string, dc, agentType string) resolver.Config {
 	n := t.Name()
-	s := strings.Replace(n, "/", "", -1)
-	s = strings.Replace(s, "_", "", -1)
+	s := strings.ReplaceAll(n, "/", "")
+	s = strings.ReplaceAll(s, "_", "")
 	return resolver.Config{
 		Datacenter: dc,
 		AgentType:  agentType,

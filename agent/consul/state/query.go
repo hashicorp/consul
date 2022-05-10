@@ -105,7 +105,7 @@ func parseUUIDString(uuid string) ([]byte, error) {
 	}
 
 	// The sanitized length is the length of the original string without the "-".
-	sanitized := strings.Replace(uuid, "-", "", -1)
+	sanitized := strings.ReplaceAll(uuid, "-", "")
 	sanitizedLength := len(sanitized)
 	if sanitizedLength%2 != 0 {
 		return nil, fmt.Errorf("UUID (without hyphens) must be even length")
