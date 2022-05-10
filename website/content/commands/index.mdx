@@ -119,6 +119,12 @@ $ consul operator raft
 list-peers   remove-peer
 ```
 
+## Arguments with URL-Invalid Characters
+
+The CLI automatically URL-encodes arguments, which are then
+[URL-decoded by the underlying HTTP API endpoints](/api-docs#url-encoded-resource-names).
+To avoid double-encoding arguments, do not URL-encode arguments passed to the CLI.
+
 ## Environment Variables
 
 In addition to CLI flags, Consul reads environment variables for behavior
