@@ -63,13 +63,13 @@ Refer to the following topics for details about policies:
 A role is a collection of policies that your ACL administrator can link to a token.
 They enable you to reuse policies by decoupling the policies from the token distributed to team members.
 Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
-As a result, roles can provide a more convenient authentication infrastrcture than creating unique policies and tokens for each requester.
+As a result, roles can provide a more convenient authentication infrastructure than creating unique policies and tokens for each requester.
 
 Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional information.
 
 ## Service Identities
 
-Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the service(s) specifed. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh.
+Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the service(s) specified. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh.
 
 Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
@@ -80,7 +80,7 @@ Refer to the following topics for additional information about service identitie
 
 ## Node Identities
 
-Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the node(s) specifed. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. The are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
 
 Node identities enable you to quickly construct policies for nodes, rather than creating identical polices for each service.
 

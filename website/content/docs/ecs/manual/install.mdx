@@ -64,7 +64,7 @@ during task startup.
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
 | `family`               | string | The task family name. This is used as the Consul service name by default.                                          |
 | `networkMode`          | string | Must be `awsvpc`, which is the only network mode supported by Consul on ECS.                                       |
-| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for intial task setup.  |
+| `volumes`              | list   | Must be defined as shown above. Volumes are used to share configuration between containers for initial task setup. |
 | `containerDefinitions` | list   | The list of containers to run in this task (see [Application container](#application-container)).                  |
 
 ### Task Tags
@@ -551,4 +551,4 @@ and `consul-ecs-mesh-init` containers.
 
 * Create the task definition using the [AWS Console](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html) or the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html), or another method of your choice.
 * Create an [ECS Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) to start tasks using the task definition.
-* Follow the [Secure Configration](/docs/ecs/manual/secure-configuration) to get production-ready.
+* Follow the [Secure Configuration](/docs/ecs/manual/secure-configuration) to get production-ready.

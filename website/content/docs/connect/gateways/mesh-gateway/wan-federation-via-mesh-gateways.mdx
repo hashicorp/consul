@@ -15,7 +15,7 @@ WAN federation via mesh gateways allows for Consul servers in different datacent
 to be federated exclusively through mesh gateways.
 
 When setting up a
-[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan)
 Consul cluster, operators must ensure that all Consul servers in every
 datacenter must be directly connectable over their WAN-advertised network
 address from each other.
@@ -102,7 +102,7 @@ each datacenter otherwise the WAN will become only partly connected.
 
 There are a few necessary additional pieces of configuration beyond those
 required for standing up a
-[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan)
+[multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan)
 Consul cluster.
 
 Consul servers in the _primary_ datacenter should add this snippet to the
