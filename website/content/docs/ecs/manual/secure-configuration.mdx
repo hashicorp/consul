@@ -2,7 +2,7 @@
 layout: docs
 page_title: Secure Configuration - AWS ECS
 description: >-
-  Manual Secure Confguration of the Consul Service Mesh on AWS ECS (Elastic Container Service).
+  Manual Secure Configuration of the Consul Service Mesh on AWS ECS (Elastic Container Service).
 ---
 
 # Secure Configuration
@@ -181,12 +181,12 @@ EOF
 
 The following table describes the additional fields that must be included in the Consul client configuration file.
 
-| Field name                                                            | Type    | Description                                                                          |
-| --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------ |
-| [`encrypt`](/docs/agent/options#_encrypt)                             | string  | Specifies the gossip encryption key                                                  |
-| [`tls.defaults.ca_file`](/docs/agent/options#tls_defaults_ca_file)    | string  | Specifies the Consul server CA cert for TLS verification.                            |
-| [`acl.enabled`](/docs/agent/options#acl_enabled)                      | boolean | Enable ACLs for this agent.                                                          |
-| [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)            | string  | Specifies the Consul client token which authorizes this agent with Consul servers.   |
+| Field name                                                                     | Type    | Description                                                                          |
+| -------------------------------------------------------------------------------| ------- | ------------------------------------------------------------------------------------ |
+| [`encrypt`](/docs/agent/config/cli-flags#_encrypt)                             | string  | Specifies the gossip encryption key                                                  |
+| [`tls.defaults.ca_file`](/docs/agent/config/config-files#tls_defaults_ca_file) | string  | Specifies the Consul server CA cert for TLS verification.                            |
+| [`acl.enabled`](/docs/agent/config/config-files#acl_enabled)                   | boolean | Enable ACLs for this agent.                                                          |
+| [`acl.tokens.agent`](/docs/agent/config/config-files#acl_tokens_agent)         | string  | Specifies the Consul client token which authorizes this agent with Consul servers.   |
 
 ## Configure `consul-ecs-mesh-init` and `consul-ecs-health-sync`
 
