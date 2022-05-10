@@ -1126,55 +1126,52 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 func TestAPI_PrefixPath(t *testing.T) {
 	t.Parallel()
 
-	// reverse proxy PathPrefix should be separated out
-	for _, addr := range []string{
-		"http://reverse.proxy.com/consul/path/prefix",
-		"https://reverse.proxy.com/consul/path/prefix",
-	} {
-		c := &Config{Address: addr}
-
-		client, err := NewClient(c)
-		if err != nil {
-			t.Errorf("NewClient() err=%v", err)
-			return
-		}
-		exp := "reverse.proxy.com"
-		c = &client.config
-		if c.Address != exp {
-			t.Errorf("expecting Address=%q, got %q",
-				exp, c.Address)
-		}
-		exp = "/consul/path/prefix"
-		if c.PathPrefix != exp {
-			t.Errorf("expecting PathPrefix=%q, got %q",
-				exp, c.Address)
-		}
+	cases := []struct {
+		name         string
+		addr         string
+		expectAddr   string
+		expectPrefix string
+	}{
+		{
+			name:         "with http and prefix",
+			addr:         "http://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with https and prefix",
+			addr:         "https://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with http and no prefix",
+			addr:         "http://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "with https and no prefix",
+			addr:         "https://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "no scheme and no prefix",
+			addr:         "localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
 	}
 
-	// examples with no PathPrefix
-	for _, addr := range []string{
-		"http://localhost",
-		"https://localhost",
-		"localhost",
-	} {
-		c := &Config{Address: addr}
-
-		client, err := NewClient(c)
-		if err != nil {
-			t.Errorf("NewClient() err=%v", err)
-			return
-		}
-		exp := "localhost"
-		c = &client.config
-		if c.Address != exp {
-			t.Errorf("expecting Address=%q, got %q",
-				exp, c.Address)
-		}
-		exp = ""
-		if c.PathPrefix != exp {
-			t.Errorf("expecting PathPrefix=%q, got %q",
-				exp, c.Address)
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Config{Address: tc.addr}
+			client, err := NewClient(c)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectAddr, client.config.Address)
+			require.Equal(t, tc.expectPrefix, client.config.PathPrefix)
+		})
 	}
 }
 
