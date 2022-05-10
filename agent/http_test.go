@@ -1215,18 +1215,31 @@ func TestParseConsistency_Invalid(t *testing.T) {
 }
 
 func TestParseMergeCentralConfig(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
+	type testCase struct {
+		name          string
+		urlQuery      string
+		expectedValue bool
+	}
+	run := func(t *testing.T, tc testCase) {
+		var b structs.QueryOptions
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/service/redis%s", tc.urlQuery), nil)
+		a := NewTestAgent(t, "")
+		defer a.Shutdown()
+		a.srv.parseMergeCentralConfig(req, &b)
+		require.Equal(t, tc.expectedValue, b.MergeCentralConfig)
 	}
 
-	t.Parallel()
-	var b structs.QueryOptions
+	testcases := []testCase{
+		{name: "valid merge query param", urlQuery: "?merge-central-config", expectedValue: true},
+		{name: "invalid query param", urlQuery: "?merge=true", expectedValue: false},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/service/redis?merge-central-config", nil)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-	a.srv.parseMergeCentralConfig(req, &b)
-	require.True(t, b.MergeCentralConfig)
 }
 
 // Test ACL token is resolved in correct order
