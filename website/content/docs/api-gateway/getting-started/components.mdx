@@ -76,11 +76,6 @@ A `HTTPRoute` provides a way to route HTTP requests from a listener on a `Gatewa
 1. The `Gateway` (or "parent") that the route is intended to attach to
 1. A list of rules that determine which requests match this route based on path, header, or query parameter
 
-Optionally, a route can specify a virtual hostname that must match in order for the route to apply. If no hostname is specified, matching is done
-for every request against the list of rules.
-
-Optionally, a `HTTPRoute` can include filters to specify additional processing steps such as adding a header to the request.
-
 <CodeBlockConfig filename="example-httproute.yaml">
 
 ```yaml
@@ -121,6 +116,76 @@ spec:
 ```
 
 </CodeBlockConfig>
+
+As demonstrated above, a `HTTPRoute` can have multiple rules. Each rule can match requests based on path, header or query parameter.
+To match based on a header value, you would use a rule such as:
+
+```yaml
+spec:
+  rules:
+  - matches:
+    - headers:
+      - type: Exact
+        name: Version
+        value: "1"
+    ...
+```
+
+Similarly, to match based on a query parameter, you would use a rule such as:
+
+```yaml
+spec:
+  rules:
+  - matches:
+    - queryParams:
+      - type: Exact
+        name: version
+        value: "1"
+    ...
+```
+
+You can also combine these examples into a single rule that requires both a header and query parameter to match.
+
+```yaml
+spec:
+  rules:
+  - matches:
+    - headers:
+      - type: Exact
+        name: Version
+        value: "1"
+      queryParams:
+      - type: Exact
+        name: version
+        value: "1"
+    ...
+```
+
+Optionally, a route can specify a virtual hostname that must match in order for the route to apply. If no hostname is specified, matching is done
+for every request based only on the list of rules.
+
+```yaml
+spec:
+  hostnames:
+  - example.com
+```
+
+Optionally, a `HTTPRoute` can include filters to specify additional processing steps such as setting, adding, or removing headers.
+
+```yaml
+spec:
+  rules:
+  - filters:
+    - type: RequestHeaderModifier
+      set:
+      - name: foo
+        value: "yes"
+      add:
+      - name: bar
+        value: "yes"
+      remove:
+      - baz
+```
 
 ## TCPRoute
 
