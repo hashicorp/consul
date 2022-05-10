@@ -260,7 +260,7 @@ Use the following syntax to define a node identity:
   "NodeIdentities": [
     {
       "NodeName": "<node name>",
-      "Datacenters": ["<datacenter name>"]
+      "Datacenter": "<datacenter name>"
     }
   ]
 }
@@ -270,7 +270,7 @@ Use the following syntax to define a node identity:
 ```hcl
 NodeIdentities = {
   NodeName = "<node name>"
-  Datacenters = ["<datacenter name>"]
+  Datacenter = "<datacenter name>"
 }
 ```
 
@@ -278,7 +278,7 @@ NodeIdentities = {
 
 - `NodeIdentities`: Declares a node identity block.
 - `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
-- `NodeIdentities.Datacenters`: Array that specifies the names of datacenters in which the node identity applies. This field is optional.
+- `NodeIdentities.Datacenter`: String value that specifies the name of the datacenter in which the node identity applies.
 
 Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payload) for additional information and examples.
 
