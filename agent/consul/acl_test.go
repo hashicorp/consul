@@ -3944,14 +3944,14 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken)
 	require.NoError(t, err)
 
-	runStep(t, "first resolve", func(t *testing.T) {
+	testutil.RunStep(t, "first resolve", func(t *testing.T) {
 		authz, err := srv.ACLResolver.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
 	})
 
-	runStep(t, "update the policy and resolve again", func(t *testing.T) {
+	testutil.RunStep(t, "update the policy and resolve again", func(t *testing.T) {
 		reqPolicy := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
@@ -3970,7 +3970,7 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
 	})
 
-	runStep(t, "delete the token", func(t *testing.T) {
+	testutil.RunStep(t, "delete the token", func(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      respToken.AccessorID,

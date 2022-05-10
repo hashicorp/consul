@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
@@ -85,7 +86,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		},
 	}
 
-	runStep(t, "registering exported service instance yields update", func(t *testing.T) {
+	testutil.RunStep(t, "registering exported service instance yields update", func(t *testing.T) {
 
 		lastIdx++
 		require.NoError(t, store.EnsureNode(lastIdx, mysql1.Node))
@@ -125,7 +126,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		},
 	}
 
-	runStep(t, "additional instances are returned when registered", func(t *testing.T) {
+	testutil.RunStep(t, "additional instances are returned when registered", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.EnsureNode(lastIdx, mysql2.Node))
 
@@ -161,7 +162,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		})
 	})
 
-	runStep(t, "no updates are received for services not exported to my-peering", func(t *testing.T) {
+	testutil.RunStep(t, "no updates are received for services not exported to my-peering", func(t *testing.T) {
 		mongo := &structs.CheckServiceNode{
 			Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
 			Service: &structs.NodeService{ID: "mongo", Service: "mongo", Port: 5000},
@@ -193,7 +194,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		}
 	})
 
-	runStep(t, "deregister an instance and it gets removed from the output", func(t *testing.T) {
+	testutil.RunStep(t, "deregister an instance and it gets removed from the output", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.DeleteService(lastIdx, "foo", mysql1.Service.ID, nil, ""))
 
@@ -215,7 +216,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		}
 	})
 
-	runStep(t, "deregister the last instance and the output is empty", func(t *testing.T) {
+	testutil.RunStep(t, "deregister the last instance and the output is empty", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.DeleteService(lastIdx, "bar", mysql2.Service.ID, nil, ""))
 
@@ -295,7 +296,7 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		// Expect this to fire
 	}
 
-	runStep(t, "exporting the two services yields an update for both", func(t *testing.T) {
+	testutil.RunStep(t, "exporting the two services yields an update for both", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{

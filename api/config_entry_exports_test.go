@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 
 	entries := c.ConfigEntries()
 
-	runStep(t, "set and get", func(t *testing.T) {
+	testutil.RunStep(t, "set and get", func(t *testing.T) {
 		exports := &ExportedServicesConfigEntry{
 			Name:      PartitionDefaultName,
 			Partition: defaultPartition,
@@ -41,7 +42,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 		require.Equal(t, exports, result)
 	})
 
-	runStep(t, "update", func(t *testing.T) {
+	testutil.RunStep(t, "update", func(t *testing.T) {
 		updated := &ExportedServicesConfigEntry{
 			Name: PartitionDefaultName,
 			Services: []ExportedService{
@@ -81,7 +82,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 		require.Equal(t, updated, result)
 	})
 
-	runStep(t, "list", func(t *testing.T) {
+	testutil.RunStep(t, "list", func(t *testing.T) {
 		entries, qm, err := entries.List(ExportedServices, nil)
 		require.NoError(t, err)
 		require.NotNil(t, qm)
@@ -89,7 +90,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 		require.Len(t, entries, 1)
 	})
 
-	runStep(t, "delete", func(t *testing.T) {
+	testutil.RunStep(t, "delete", func(t *testing.T) {
 		wm, err := entries.Delete(ExportedServices, PartitionDefaultName, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
