@@ -204,9 +204,13 @@ $ kubectl delete gateway example-gatewat
 $ kubectl apply -f example.yaml
 ```
 
-If that doesn't work, try uninstalling and reinstalling consul. Likely you had values in your values.yaml that do not match
-your kubernetes infrastructure. For example, the default number of Consul server replicas is 3, but if you only have two nodes
-running Consul will never successfully elect a leader and your Gateway will never reconcile and report a status.
+If that doesn't work, try uninstalling and reinstalling consul.
+
+If that doesn't work, it's possible that you had values in your values.yaml that do not match your kubernetes infrastructure.
+For example, the default number of Consul server replicas is 3, but if you only have 2 nodes on your cluster
+running Consul will never successfully elect a leader and your Gateway will never reconcile and report a status. If you reinstall
+consul on a cluster with three nodes available, it should install successfully.
+
 
 ### Not found errors
 
@@ -215,7 +219,7 @@ running Consul will never successfully elect a leader and your Gateway will neve
 'k8s: service default/example-service not found'
 ```
 
-Usually this happens when the route was created before the service. Make sure that the service exists by running the following command>
+Usually this happens when the route was created before the service. Make sure that the service exists by running the following command.
 
 ```shell-session
 $ kubectl get service example-service
