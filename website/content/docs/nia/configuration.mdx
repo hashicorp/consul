@@ -61,7 +61,7 @@ tls {
 
 The `consul` block is used to configure CTS connection with a Consul agent to perform queries to the Consul Catalog and Consul KV pertaining to task execution.
 
--> **Note:** Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/docs/agent/config/config-files) must be configured for the local Consul with the [cert_file](/docs/agent/config/config-filess#cert_file) and [key_file](/docs/agent/config/config-files#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
+-> **Note:** Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/docs/agent/config/config-files) must be configured for the local Consul with the [cert_file](/docs/agent/config/config-files#cert_file) and [key_file](/docs/agent/config/config-files#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
 To read more on suggestions for configuring the Consul agent, see [run an agent](/docs/nia/installation/requirements#run-an-agent).
 
