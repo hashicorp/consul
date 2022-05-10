@@ -47,7 +47,6 @@ func (c *Client) ServiceNodes(
 			return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, err
 		}
 		meta := cache.ResultMeta{Index: result.Index, Hit: result.Cached}
-
 		return *result.Value.(*structs.IndexedCheckServiceNodes), meta, err
 	}
 

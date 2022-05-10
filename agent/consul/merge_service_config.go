@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
-// mergeServiceNodesWithCentralConfig merges a service instance (NodeService) with the
+// mergeNodeServiceWithCentralConfig merges a service instance (NodeService) with the
 // proxy-defaults/global and service-defaults/:service config entries.
 // This a common helper is used by the blocking query function of differnet RPC endpoints
 // that need to return a fully resolved service defintion.
