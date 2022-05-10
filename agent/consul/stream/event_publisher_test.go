@@ -495,12 +495,6 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 	})
 }
 
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}
-
 func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
 	req := &SubscribeRequest{
 		Topic:   testTopic,

@@ -92,9 +92,3 @@ func testMessage(t *testing.T, ch <-chan struct{}) {
 		t.Fatal("should have a message")
 	}
 }
-
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}

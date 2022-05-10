@@ -4,14 +4,12 @@ import (
 	"context"
 	"io"
 	"sync"
-	"testing"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // same certificate that appears in our connect tests
@@ -191,10 +189,4 @@ type incrementalTime struct {
 func (t *incrementalTime) Now() time.Time {
 	t.next++
 	return t.base.Add(time.Duration(t.next) * time.Second)
-}
-
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
 }
