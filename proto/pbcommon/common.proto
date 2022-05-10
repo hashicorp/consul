@@ -64,7 +64,7 @@ message ReadRequest {
 // target=github.com/hashicorp/consul/agent/structs.QueryOptions
 // output=common.gen.go
 // name=Structs
-// ignore-fields=StaleIfError,AllowNotModifiedResponse,state,sizeCache,unknownFields,MergeCentralConfig
+// ignore-fields=StaleIfError,AllowNotModifiedResponse,state,sizeCache,unknownFields
 message QueryOptions {
    // Token is the ACL token ID. If not provided, the 'anonymous'
    // token is assumed for backwards compatibility.
@@ -128,6 +128,12 @@ message QueryOptions {
    // Filter specifies the go-bexpr filter expression to be used for
    // filtering the data prior to returning a response
    string Filter = 11;
+
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+   bool MergeCentralConfig = 12;
 }
 
 // QueryMeta allows a query response to include potentially
