@@ -16,7 +16,13 @@ In this example, we will use two Kubernetes clusters, but this approach could be
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
-## Deploying Consul servers and clients in the first cluster
+~> **Note:** The Helm release name must be unique for each Kubernetes cluster.
+That is because the Helm chart will use the Helm release name as a prefix for the
+ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
+are the same, the Helm installation in subsequent Kubernetes clusters will clobber existing ACL resources.
+
+
+## Deploying Consul sOervers and clients in the first cluster
 
 First, we will deploy the Consul servers with Consul clients in the first cluster.
 For that, we will use the following Helm configuration:
@@ -60,14 +66,11 @@ $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=
 ```
 
 Now we can install our Consul cluster with Helm:
-```shell
+```shell-session
 $ helm install cluster1 --values cluster1-config.yaml hashicorp/consul
 ```
 
-~> **Note:** The Helm release name must be unique for each Kubernetes cluster.
-That is because the Helm chart will use the Helm release name as a prefix for the
-ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
-are the same, the Helm installation in subsequent clusters will clobber existing ACL resources.
+~> **Reminder:** The Helm release name must be unique for each Kubernetes cluster.
 
 Once the installation finishes and all components are running and ready,
 we need to extract the gossip encryption key we've created, the CA certificate
