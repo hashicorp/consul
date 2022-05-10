@@ -15,6 +15,7 @@ description: >-
 - New CLI Autocompletion
 - Addition of Features to Support HCP Consul <EnterpriseAlert inline />
 - Addition of Features to Support Terraform Cloud Agents <EnterpriseAlert inline />
+- Get all tasks API endpoint
 
 ## Introduction of CLI Start Command
 ~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0. The feature will be removed at a much later date in a major release. The preferred way to run CTS is to use the `start` command.
@@ -172,3 +173,70 @@ The configuration options are:
 | `agent_pool_id` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Optional | string | The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent". | none |
 | `agent_pool_name` | Optional | string | The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided. | none |
 | `terraform_version` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. | none |
+
+## Get All Tasks Endpoint
+
+The Get `/tasks` endpoint returns information about all existing tasks in CTS.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/tasks` | `application/json` |
+
+### Response Statuses
+
+| Status | Reason                                               |
+| ------ | ---------------------------------------------------- |
+| 200    | Successfully retrieved and returned a list of tasks |
+
+### Response Fields
+
+| Name         | Type   | Description                                                                               |
+| ------------ | ------------- | ---------------------------------------------------------------------------------- |
+| `request_id` | string        | The ID of the request. Used for auditing and debugging purposes.                    |
+| `tasks`      | list[[Task](/docs/nia/api/tasks#task-object)]  | A list of Tasks  |
+
+### Example: Retrieve all tasks
+
+In this example, CTS contains a single task
+
+Request:
+
+```shell-session
+$ curl --request GET \
+  localhost:8558/v1/tasks
+```
+
+Response:
+
+```json
+{
+  "request_id": "0e0290f9-94df-3a4a-fd17-72467a16083c",
+  "tasks": [
+    {
+      "buffer_period": {
+        "enabled": true,
+        "max": "25s",
+        "min": "5s"
+      },
+      "condition": {
+        "services": {
+          "cts_user_defined_meta": {},
+          "datacenter": "",
+          "filter": "",
+          "names": ["api", "web"],
+          "namespace": "",
+          "use_as_module_input": true
+        }
+      },
+      "description": "Writes the service name, id, and IP address to a file",
+      "enabled": true,
+      "module": "path/to/module",
+      "module_input": {},
+      "name": "task_a",
+      "providers": ["my-provider"],
+      "variables": {},
+      "version": ""
+    }
+  ]
+}
+```
