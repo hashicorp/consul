@@ -143,10 +143,12 @@ There are two scenarios where the `ReferencePolicy` comes into play:
 
 In either case, the object that's being referenced must be accompanied by a `ReferencePolicy` in the same namespace granting access to the referencing object and its namespace.
 
-For example, the `HTTPRoute` below in `namespace1` needs to reference a backend in `namespace2`. The accompanying `ReferencePolicy` in `namespace2` explicitly grants
-access to `HTTPRoutes` from `namespace1` to any `Service` in `namespace2`:
+### Route References Backend in Different Namespace
 
-<CodeBlockConfig filename="example.yaml">
+The `HTTPRoute` below in `namespace1` needs to reference a backend in `namespace2`. The accompanying `ReferencePolicy` in `namespace2` explicitly grants
+access to `HTTPRoutes` from `namespace1` to any `Service` in `namespace2`.
+
+<CodeBlockConfig filename="example-cross-namespace-route.yaml">
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -183,5 +185,51 @@ spec:
   to:
     - group: ""
       kind: Service
+```
+</CodeBlockConfig>
+
+### Gateway References Secret in Different Namespace
+
+The `Gateway` below in `namespace1` needs to reference a `Secret` in `namespace2`. The accompanying ReferencePolicy` in `namespace2` explicitly grants
+access to `Gateways` from `namespace1` to the specific `Secret` in `namespace2`.
+
+<CodeBlockConfig filename="example-cross-namespace-gateway.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: namespace1
+spec:
+  gatewayClassName: consul-api-gateway
+  listeners:
+  - protocol: HTTPS
+    port: 443
+    name: https
+    allowedRoutes:
+      namespaces:
+        from: Same
+    tls:
+      certificateRefs:
+        - name: certificate
+          namespace: namespace2  # References a Secret in another namespace
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: example-reference-policy
+  namespace: namespace2
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: namespace1  # Matches the namespace containing the Gateway
+  to:
+    - group: ""
+      kind: Secret
+      name: certificate  # Optionally scopes access to a specific Secret
 ```
 </CodeBlockConfig>
