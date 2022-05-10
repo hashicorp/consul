@@ -505,9 +505,3 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	require.Len(t, store.byKey, 0)
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
 }
-
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}

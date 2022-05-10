@@ -2344,12 +2344,6 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 	require.Equal(t, expose, proxyConf.Expose)
 }
 
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}
-
 func Test_gateWriteToSecondary(t *testing.T) {
 	type args struct {
 		targetDC  string

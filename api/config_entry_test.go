@@ -283,12 +283,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 	})
 }
 
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}
-
 func TestDecodeConfigEntry(t *testing.T) {
 	t.Parallel()
 

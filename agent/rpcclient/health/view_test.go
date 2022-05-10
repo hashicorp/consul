@@ -667,12 +667,6 @@ func validateNamespace(ns string) func(request *pbsubscribe.SubscribeRequest) er
 	}
 }
 
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}
-
 func TestNewFilterEvaluator(t *testing.T) {
 	type testCase struct {
 		name     string

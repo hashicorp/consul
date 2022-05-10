@@ -8146,12 +8146,6 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	require.Empty(t, got)
 }
 
-// TODO: remove this function after all usages have been switched over
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	testutil.RunStep(t, name, fn)
-}
-
 func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {
 	t.Helper()
 
