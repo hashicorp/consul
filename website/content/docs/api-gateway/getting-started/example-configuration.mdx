@@ -17,9 +17,17 @@ $ kubectl get gatewayClassConfig consul-api-gateway -o yaml
 
 The following example shows how to utilize the newly created `gatewayClass` and deploy a gateway object in the default namespace.
 
+## Pre-requisites
+- Consul and Consul-API-Gateway have been sucesfully installed on your cluster
+- `connectInject` was set to true when Consul was installed
+- Your firewall rules have been configured so HTTP and HTTPS is allowed
+
+
 Note: If you want to run HTTPS you will need to follow the [instructions](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/)
 to create a tls secret and update <YOUR_CERTIFICATE> and <YOUR_CERTIFICATE_NAMESPACE> with the values you created. If you don't
 want to run https, simply delete the HTTPS `listener` from `example-gateway` and the `https` port from `example-service`.
+
+## Configuration
 
 <CodeBlockConfig filename="example.yaml">
 
@@ -126,9 +134,10 @@ spec:
 ```
 </CodeBlockConfig>
 
-The above gateway configuration creates a gateway that explicitly allows routes from `All namespaces` to connect to the gateway. Additionally, it also creates a service named `example-http-service` that routes to any pod with the `app: example-service` label, and a `hashicorp/echo-service` pod for the service to route to. Finally, it creates an`HTTPRoute` named `example-route` to attach to `example-gateway`.
+The above gateway configuration creates a gateway that explicitly allows routes from `All namespaces` to connect to the gateway. Additionally, it also creates a service named `example-http-service` that routes to any pod with the `app: example-service` label, a deployment that serves a `hashicorp/echo-service` pod for the service to route to, and a `ServiceDefaults` object to configure the service to serve http.
+Finally, it creates an`HTTPRoute` named `example-route` to attach to `example-gateway`.
 
-In order to apply this stack to your cluster save the above command to your local machine, and run the following command.
+In order to apply this stack to your cluster save the above file to your local machine, and run the following command.
 
 ```shell-session
 $ kubectl apply -f example.yaml
@@ -143,6 +152,7 @@ $ kubectl get gateway example-gateway
 When the output looks as follows your gateway is ready.
 
 ```log
+NAME              CLASS                ADDRESS                  READY   AGE
 example-gateway   consul-api-gateway   <YOUR_GATEWAY_ADDRESS>   True    24m
 ```
 
@@ -171,12 +181,36 @@ If the status looks as follows
 ```
 
 Your route bound successfully and you should be able to access your gateway by copy pasting the address populated into <YOUR_GATEWAY_ADDRESS>
-in the previous step.
+in the previous step into the browser.
 
 
 ## Gotchas
 
+### Gateway never gets a status
+
+Sometimes its possible to create a gateway that never reports a status, and will be stuck
+without an address assigned, as follows.
+
+```log
+NAME              CLASS                ADDRESS                  READY   AGE
+example-gateway   consul-api-gateway                                    24m
+```
+
+Usually this happens because consul wasn't installed properly, or because the Gateway was created
+before the controller was ready. Try deleting and recreating your gateway...
+
+```shell-session
+$ kubectl delete gateway example-gatewat
+$ kubectl apply -f example.yaml
+```
+
+If that doesn't work, try uninstalling and reinstalling consul. Likely you had values in your values.yaml that do not match
+your kubernetes infrastructure. For example, the default number of Consul server replicas is 3, but if you only have two nodes
+running Consul will never successfully elect a leader and your Gateway will never reconcile and report a status.
+
 ### Not found errors
+
+#### k8s: not found
 ```log
 'k8s: service default/example-service not found'
 ```
@@ -193,6 +227,7 @@ $ kubectl delete httproute example-route
 $ kubectl apply -f example.yaml
 ```
 
+#### consu;: not found
 ```log
 'consul: service default/example-service not found'
 ```
