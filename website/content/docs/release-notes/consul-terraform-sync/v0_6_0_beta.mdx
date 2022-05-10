@@ -16,6 +16,8 @@ description: >-
 - Addition of Features to Support HCP Consul <EnterpriseAlert inline />
 - Addition of Features to Support Terraform Cloud Agents <EnterpriseAlert inline />
 - Get All Tasks API Endpoint
+- Health API Endpoint
+- CTS Service Registration with Consul
 
 ## Introduction of CLI Start Command
 ~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0. The feature will be removed at a much later date in a major release. The preferred way to run CTS is to use the `start` command.
@@ -138,7 +140,7 @@ In v0.6.0, CTS officially supports [Terraform Cloud agents](https://www.terrafor
 
 To help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration object to the [`Task`](/docs/nia/configuration#task) object. You can use `terraform_cloud_workspace` to set options like Terraform version, execution mode, and relevant agent pools. CTS also uses any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
 
-~> For a task to use Terraform Cloud agents, `terraform_cloud_workspace.execution_mode` must be set to "agent" and either `terraform_cloud_workspace.agent_pool_id` or `terraform_cloud_workspace.agent_pool_name` must be specified.
+For a task to use Terraform Cloud agents, `terraform_cloud_workspace.execution_mode` must be set to "agent" and either `terraform_cloud_workspace.agent_pool_id` or `terraform_cloud_workspace.agent_pool_name` must be specified.
 
 #### Terraform Cloud Workspace Configuration
 ~> Configuring [`terraform_version`](/docs/nia/configuration#terraform_version) <EnterpriseAlert inline /> is deprecated as of v0.6.0. Use `terraform_cloud_workspace.terraform_version` instead.
@@ -240,3 +242,82 @@ Response:
   ]
 }
 ```
+
+## Health Endpoint
+The `/health` endpoint returns a successful response if Consul-Terraform-Sync (CTS) is available and running. Requests to this endpoint are not logged, which makes it suitable for health checks that constantly poll CTS.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/health` | `application/json` |
+
+### Response Statuses
+
+| Status | Reason                                               |
+| ------ | ---------------------------------------------------- |
+| 200    | CTS is healthy                                       |
+
+### Response Fields
+
+| Name         | Type   | Description                                                                        |
+| ------------ | ------ | ---------------------------------------------------------------------------------- |
+| `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
+
+### Example
+
+The following request makes a `GET` call to the `health` endpoint:
+
+```shell-session
+$ curl --request GET \
+  localhost:8558/v1/health
+```
+
+Response:
+
+```json
+{
+  "request_id": "b7559ab0-5111-381b-367a-0dfb7e216d41"
+}
+```
+
+## CTS Service Registration With Consul
+By default, CTS automatically registers itself as a service in Consul with a health check. The default health check is an HTTP check to the [health API endpoint](#health-endpoint). CTS deregisters itself with Consul when it is stopped.
+
+If ACLs are enabled in Consul, then the [Consul token](/docs/nia/configuration#token) must have the policy `service:write` for service registration to succeed. Previously, CTS only required read access for services, so tokens used prior to 0.6.0 may not work with service registration.
+
+If CTS is unable to register with Consul, then it will log the error and continue without exiting.
+
+### Configuration
+Specify the global configuration `id` to assign instances of CTS an ID, which is used as the service ID for CTS if service registration is enabled. Configure the `service_registration` block in the `consul` configuration to configure the registration details. All configurations are optional.
+
+```hcl
+id = "cts-01"
+
+consul {
+  service_registration {
+    enabled = true
+    service_name = "cts"
+    namespace = "ns-1"
+    default_check {
+      enabled = true
+      address = "http://172.22.0.2:8558"
+    }
+  }
+}
+```
+
+The following table describes the options for the `id` global configuration:
+
+| Name            | Required | Type    | Description                     |Default                  |
+| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
+| `id ` | Optional | string | The ID of the CTS instance. Used as the service ID for CTS if service registration is enabled. | Generated ID with the format `cts-<uuid>` |
+
+
+The following table describes configuration options for `consul.service_registration`:
+
+| Name            | Required | Type    | Description                     |Default                  |
+| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
+| `enabled ` | Optional | boolean | Enables CTS to register itself as a service with Consul. | `true` |
+| `service_name` | Optional | string | The service name for CTS. | `Consul-Terraform-Sync` |
+| `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
+| `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
+| `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port (if necessary). | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/docs/nia/configuration#port) and whether [TLS is enabled](/docs/nia/configuration#enabled-2) on the CTS API. |
