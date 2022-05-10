@@ -267,7 +267,7 @@ func (x *ReadRequest) GetRequireConsistent() bool {
 // target=github.com/hashicorp/consul/agent/structs.QueryOptions
 // output=common.gen.go
 // name=Structs
-// ignore-fields=StaleIfError,AllowNotModifiedResponse,state,sizeCache,unknownFields
+// ignore-fields=StaleIfError,AllowNotModifiedResponse,state,sizeCache,unknownFields,MergeCentralConfig
 type QueryOptions struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
