@@ -38,7 +38,8 @@ func (c *Client) ServiceNodes(
 	ctx context.Context,
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) {
+	// Note: if MergeCentralConfig is requested, default to using the RPC backend for now.
+	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) && !req.MergeCentralConfig {
 		c.QueryOptionDefaults(&req.QueryOptions)
 
 		result, err := c.ViewStore.Get(ctx, c.newServiceRequest(req))
@@ -46,8 +47,6 @@ func (c *Client) ServiceNodes(
 			return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, err
 		}
 		meta := cache.ResultMeta{Index: result.Index, Hit: result.Cached}
-		// RIDDHI: Option 2 - if using streaming, and merge specified, merge here by directly making RPC call to resolve for each service.
-		// Only issue with that is we would not get notified on changes to service defaults.
 
 		return *result.Value.(*structs.IndexedCheckServiceNodes), meta, err
 	}

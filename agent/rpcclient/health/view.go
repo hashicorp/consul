@@ -22,7 +22,6 @@ type MaterializerDeps struct {
 }
 
 func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
-	// RIDDHI: pass the merge config request here.
 	return func(index uint64) *pbsubscribe.SubscribeRequest {
 		req := &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,

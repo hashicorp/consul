@@ -252,7 +252,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 					if err != nil {
 						return err
 					}
-					node.Service = mergedns
+					*node.Service = *mergedns
 					if cfgIndex > index {
 						index = cfgIndex
 					}
