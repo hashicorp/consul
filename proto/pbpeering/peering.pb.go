@@ -385,6 +385,7 @@ func (x *PeeringTrustBundle) GetModifyIndex() uint64 {
 	return 0
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 type PeeringReadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -495,6 +496,7 @@ func (x *PeeringReadResponse) GetPeering() *Peering {
 	return nil
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 type PeeringListRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -597,6 +599,7 @@ func (x *PeeringListResponse) GetPeerings() []*Peering {
 	return nil
 }
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 type PeeringWriteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -701,6 +704,7 @@ func (*PeeringWriteResponse) Descriptor() ([]byte, []int) {
 	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{7}
 }
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 type PeeringDeleteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -888,6 +892,7 @@ func (*PeeringTerminateByIDResponse) Descriptor() ([]byte, []int) {
 	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{11}
 }
 
+// @consul-rpc-glue: Datacenter
 type PeeringTrustBundleWriteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -982,6 +987,7 @@ func (*PeeringTrustBundleWriteResponse) Descriptor() ([]byte, []int) {
 	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{13}
 }
 
+// @consul-rpc-glue: Datacenter
 type PeeringTrustBundleDeleteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1217,6 +1223,7 @@ func (x *GenerateTokenResponse) GetPeeringToken() string {
 	return ""
 }
 
+// @consul-rpc-glue: Datacenter
 type InitiateRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
