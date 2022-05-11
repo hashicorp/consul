@@ -108,6 +108,7 @@ message PeeringTrustBundle {
   uint64 ModifyIndex = 6;
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
@@ -123,6 +124,7 @@ message PeeringReadResponse {
   //TODO(peering) query metadata
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 message PeeringListRequest {
   string Partition = 1;
 
@@ -137,6 +139,7 @@ message PeeringListResponse {
   //TODO(peering) query metadata
 }
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringWriteRequest {
   Peering Peering = 1;
 
@@ -150,6 +153,7 @@ message PeeringWriteRequest {
 // TODO(peering): Consider returning Peering if we keep this endpoint around
 message PeeringWriteResponse{}
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringDeleteRequest {
   string Name = 1;
 
@@ -167,6 +171,7 @@ message PeeringTerminateByIDRequest {
 
 message PeeringTerminateByIDResponse {}
 
+// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleWriteRequest {
   PeeringTrustBundle PeeringTrustBundle = 1;
 
@@ -176,6 +181,7 @@ message PeeringTrustBundleWriteRequest {
 
 message PeeringTrustBundleWriteResponse{}
 
+// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleDeleteRequest {
   string Name = 1;
 
@@ -209,6 +215,7 @@ message GenerateTokenResponse {
   string PeeringToken = 1;
 }
 
+// @consul-rpc-glue: Datacenter
 message InitiateRequest {
   // Name of the remote peer.
   string PeerName = 1;
