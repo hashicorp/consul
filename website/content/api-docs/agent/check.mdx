@@ -101,7 +101,7 @@ the following selectors and filter operations being supported:
 ## Register Check
 
 This endpoint adds a new check to the local agent. Checks may be of script,
-HTTP, TCP, or TTL type. The agent is responsible for managing the status of the
+HTTP, TCP, UDP, or TTL type. The agent is responsible for managing the status of the
 check and keeping the Catalog in sync.
 
 | Method | Path                    | Produces           |
@@ -134,7 +134,7 @@ The table below shows this endpoint's support for
   to the `default` namespace. Added in Consul 1.7.0.
 
 - `Interval` `(string: "")` - Specifies the frequency at which to run this
-  check. This is required for HTTP and TCP checks.
+  check. This is required for HTTP, TCP and UDP checks.
 
 - `Notes` `(string: "")` - Specifies arbitrary information for humans. This is
   not used by Consul internally.
@@ -213,7 +213,7 @@ The table below shows this endpoint's support for
   be set for `HTTP` checks. Each header can have multiple values.
 
 - `Timeout` `(duration: 10s)` - Specifies a timeout for outgoing connections in the
-  case of a Script, HTTP, TCP, or gRPC check. Can be specified in the form of "10s"
+  case of a Script, HTTP, TCP, UDP, or gRPC check. Can be specified in the form of "10s"
   or "5m" (i.e., 10 seconds or 5 minutes, respectively).
 
 - `OutputMaxSize` `(positive int: 4096)` - Allow to put a maximum size of text
@@ -237,6 +237,11 @@ The table below shows this endpoint's support for
   hostname that resolves to both IPv4 and IPv6 addresses, an attempt will be
   made to both addresses, and the first successful connection attempt will
   result in a successful check.
+
+- `UDP` `(string: "")` - Specifies a `UDP` to send datagrams against the value of `UDP`
+  (expected to be an IP or hostname plus port combination) every `Interval`. If
+  the datagram sending is successful or gets a timeout, the check is `passing`. 
+  Any other failing result is unsuccessful, the check is `critical`.
 
 - `TTL` `(duration: 10s)` - Specifies this is a TTL check, and the TTL endpoint
   must be used periodically to update the state of the check. If the check is not
