@@ -62,8 +62,7 @@ global:
   # Gossip encryption secures the protocol Consul uses to quickly
   # discover new nodes and detect failure.
   gossipEncryption:
-    secretName: consul-gossip-encryption-key
-    secretKey: key
+    autoGenerate: true
 
 connectInject:
   # Consul Connect service mesh must be enabled for federation.
@@ -103,18 +102,12 @@ Modifications:
    ```yaml
    global:
      # gossipEncryption:
-     #   secretName: consul-gossip-encryption-key
-     #   secretKey: key
+     #   autoGenerate: true
    ```
 
    Gossip encryption encrypts the communication layer used to discover other
    nodes in the cluster and report on failure. If you are only testing Consul,
    this is not required.
-
-   **NOTE:** This config assumes you've already
-   created a Kubernetes secret called `consul-gossip-encryption-key`. See
-   [the docs for this setting](/docs/k8s/helm#v-global-gossipencryption) for
-   more information on how to create this secret.
 
 1. The default mesh gateway configuration
    creates a Kubernetes Load Balancer service. If you wish to customize the
@@ -224,7 +217,7 @@ After the installation into your primary cluster you will need to export
 this secret:
 
 ```shell-session
-$ kubectl get secret consul-federation --output yaml > consul-federation-secret.yaml
+$ kubectl get secret consul-federation --namespace consul --output yaml > consul-federation-secret.yaml
 ```
 
 !> **Security note:** The federation secret makes it possible to gain
@@ -234,7 +227,8 @@ cluster and you should use RBAC permissions to ensure only administrators
 can read it from Kubernetes.
 
 ~> **Secret doesn't exist?** If you haven't set `global.name` to `consul` then the name of the secret will
-be your Helm release name suffixed with `-consul-federation` e.g. `helm-release-consul-federation`.
+be your Helm release name suffixed with `-consul-federation` e.g. `helm-release-consul-federation`. Also ensure you're
+using the namespace Consul was installed into.
 
 Now you're ready to import the secret into your secondary cluster(s).
 
@@ -293,6 +287,30 @@ The automatically generated federation secret contains:
   !> **Security note:** This gossip encryption key would enable an attacker to compromise Consul,
   it should be kept securely.
 
+## Kubernetes API URL
+
+If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
+must be specified in the config files for all secondary clusters because secondary clusters need
+to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
+by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
+in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
+to retrieve global Consul ACL tokens from the primary.
+
+To determine the Kubernetes API URL, first get the cluster name in your kubeconfig:
+
+```shell-session
+$ export CLUSTER=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$(kubectl config current-context)\")].context.cluster}")
+```
+
+Then get the API URL:
+
+```shell-session
+$ kubectl config view -o jsonpath="{.clusters[?(@.name == \"$CLUSTER\")].cluster.server}"
+https://<some-url>
+```
+
+Keep track of this URL, you'll need it in the next section.
+
 ## Secondary Cluster(s)
 
 With the primary cluster up and running, and the [federation secret](#federation-secret) imported
@@ -300,7 +318,7 @@ into the secondary cluster, we can now install Consul into the secondary
 cluster.
 
 You will need to use the following `config.yaml` file for your secondary cluster(s),
-with the possible modifications listed below.
+with the modifications listed below.
 
 -> **NOTE: ** You must use a separate Helm config file for each cluster (primary and secondaries) since their
 settings are different.
@@ -334,6 +352,8 @@ global:
 
   federation:
     enabled: true
+    k8sAuthMethodHost: <kubernetes-api-url>
+    primaryDatacenter: dc1
   gossipEncryption:
     secretName: consul-federation
     secretKey: gossipEncryptionKey
@@ -360,8 +380,10 @@ server:
 
 Modifications:
 
-1. The Consul datacenter name is `dc2`. The primary datacenter's name was `dc1`.
-   The datacenter name in **each** federated cluster **must be unique**.
+1. If ACLs are enabled, change the value of `global.federation.k8sAuthMethodHost` to the full URL (including `https://`) of this cluster's
+   Kubernetes API.
+1. `global.federation.primaryDatacenter` must be set to the name of the primary datacenter.
+1. The Consul datacenter name for the datacenter in this example is `dc2`. The datacenter name in **each** federated cluster **must be unique**.
 1. ACLs are enabled in the above config file. They can be disabled by removing
    the whole `acls` block:
 
@@ -403,7 +425,7 @@ To verify that both datacenters are federated, run the
 `consul members -wan` command on one of the Consul server pods:
 
 ```shell-session
-$ kubectl exec statefulset/consul-server -- consul members -wan
+$ kubectl exec statefulset/consul-server --namespace consul -- consul members -wan
 Node                 Address              Status  Type    Build     Protocol  DC   Segment
 consul-server-0.dc1  10.32.4.216:8302     alive   server  1.8.0  2         dc1  <all>
 consul-server-0.dc2  192.168.2.173:8302   alive   server  1.8.0  2         dc2  <all>
@@ -421,7 +443,7 @@ each datacenter can read each other's services. In this example, our `kubectl`
 context is `dc1` and we're querying for the list of services in `dc2`:
 
 ```shell-session
-$ kubectl exec statefulset/consul-server -- consul catalog services -datacenter dc2
+$ kubectl exec statefulset/consul-server --namespace consul -- consul catalog services -datacenter dc2
 consul
 mesh-gateway
 ```
