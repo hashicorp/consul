@@ -70,7 +70,6 @@ Now we can install our Consul cluster with Helm:
 $ helm install cluster1 --values cluster1-config.yaml hashicorp/consul
 ```
 
-~> **Reminder:** The Helm release name must be unique for each Kubernetes cluster.
 
 Once the installation finishes and all components are running and ready,
 we need to extract the gossip encryption key we've created, the CA certificate
