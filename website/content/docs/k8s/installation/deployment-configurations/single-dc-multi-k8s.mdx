@@ -16,13 +16,12 @@ In this example, we will use two Kubernetes clusters, but this approach could be
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
-~> **Note:** The Helm release name must be unique for each Kubernetes cluster.
-That is because the Helm chart will use the Helm release name as a prefix for the
+## Deploying Consul servers and clients in the first cluster
+~> The Helm release name must be unique for each Kubernetes cluster.
+The Helm chart uses the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
-are the same, the Helm installation in subsequent Kubernetes clusters will clobber existing ACL resources.
+are identical, subsequent Kubernetes clusters drain existing ACL resources and slow performance.
 
-
-## Deploying Consul sOervers and clients in the first cluster
 
 First, we will deploy the Consul servers with Consul clients in the first cluster.
 For that, we will use the following Helm configuration:
