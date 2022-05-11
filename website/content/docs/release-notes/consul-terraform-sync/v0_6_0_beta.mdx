@@ -136,11 +136,11 @@ You can use the `auto_retrieval` block to configure the the automatic license re
 
 ## Additional Features to Support Terraform Cloud (TFC) Agents <EnterpriseAlert inline />
 
-In v0.6.0, CTS officially supports [Terraform Cloud agents](https://www.terraform.io/cloud-docs/agents).
+In v0.6.0, CTS officially supports [Terraform Cloud agents](https://www.terraform.io/cloud-docs/agents). Previously, CTS could use only existing workspaces that were manually configured with Terraform Cloud agents. CTS now supports creating new workspaces that use agents and updating existing workspaces to use agents.
 
 ### Terraform Cloud Remote Workspaces
 
-To help support TFC agents, CTS introduces the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration to the [`task`](/docs/nia/configuration#task) configuration block. You can use `terraform_cloud_workspace` to set options like Terraform version, execution mode, and relevant agent pools. CTS also uses any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
+Use the [`terraform_cloud_workspace`](/docs/release-notes/consul-terraform-sync/v0_6_0_beta#terraform-cloud-workspace-configuration) configuration in the [`task`](/docs/nia/configuration#task) configuration block to enable Terraform Cloud agents for a task's workspace. The `terraform_cloud_workspace` controls options for Terraform version, execution mode, and agent pools. Note that these options are different from the global workspace configurations set on the [`driver.workspaces`](/docs/nia/configuration#workspaces) configuration.
 
 For a task to use Terraform Cloud agents, `terraform_cloud_workspace.execution_mode` must be set to "agent" and either `terraform_cloud_workspace.agent_pool_id` or `terraform_cloud_workspace.agent_pool_name` must be specified.
 
