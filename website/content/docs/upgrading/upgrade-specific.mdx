@@ -26,6 +26,24 @@ to `true`. In prior Consul versions (1.10.x through 1.11.x), the config defaulte
 well as the flag will be removed in upcoming Consul 1.13. We recommend changing your instrumentation to use 1.10 and later
 style `consul.api.http...` metrics and removing the configuration flag from your setup.
 
+### TLS Configuration
+
+You can now configure TLS differently for each of Consul's exposed ports. As a
+result, the following top-level configuration fields are deprecated and should
+be replaced with the new [`tls` stanza](/docs/agent/config/config-files#tls-configuration-reference):
+
+- `cert_file`
+- `key_file`
+- `ca_file`
+- `ca_path`
+- `tls_min_version`
+- `tls_cipher_suites`
+- `verify_incoming`
+- `verify_incoming_rpc`
+- `verify_incoming_https`
+- `verify_outgoing`
+- `verify_server_hostname`
+
 ## Consul 1.11.0
 
 ### 1.10 Compatibility <EnterpriseAlert inline />
