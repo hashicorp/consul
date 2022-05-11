@@ -70,13 +70,13 @@ Your Consul configuration must meet the following requirements to use admin part
 
 ### General Networking Requirements
 
-All Consul clients must be able to communicate with the Consul servers in the `default` partition. All servers must also be able to communicate with the clients.
+All Consul clients must be able to initiate Gossip, HTTPS, and RPC connections to the servers. All servers must also be able to initiate Gossip connections to the clients.
 
 For Consul on Kubernetes, a dedicated `partition` Kubernetes `LoadBalancer` service is deployed to allow communication from clients to servers for admin partitions support (refer to [Kubernetes Requirements](#kubernetes-requirements) for additional information). 
 
 For other runtimes, refer to the documentation for your infrastructure environment for instructions on how to allow communication on the following ports:
 - 8300 (RPC)  
-- 8301 (gossip)
+- 8301 (Gossip)
 - 443 (HTTPS API requests)  
 
 ### Security Configurations
@@ -106,7 +106,7 @@ One of the primary use cases for admin partitions is for enabling a service mesh
 - A Consul Enterprise license must be installed on each Kubernetes cluster.
 - The helm chart for consul-k8s v0.39.0 or greater.
 - Consul 1.11.1-ent or greater.
-- A designated Kubernetes `LoadBalancer` service must be exposed on the Consul server cluster. This enable the following communication channels to the Consul servers and the `default` partition:
+- A designated Kubernetes `LoadBalancer` service must be exposed on the Consul server cluster. This enable the following communication channels to the Consul servers:
   - RPC on port 8300 
   - Gossip on port 8301
   - HTTPS API requests on port 443 API requests 
@@ -136,29 +136,19 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ export SERVER_CONTEXT=<context for server, run `kubectl config current-context` for cluster provisioned for servers>
   $ export CLIENT_CONTEXT=<context for workload partition, run `kubectl config current-context` for cluster provisioned for workload partition>
   ```
-1. Set your context to the server cluster. 
-
-  ```shell-session
-  $ kubectl config use-context ${SERVER_CONTEXT}
-  ```
   
 1. Create the license secret in server cluster.
 
   ```shell-session
-  $ kubectl create secret --namespace consul generic license --from-file=key=./path/to/license.hclic
-  ```
-  
-1. Set your context to the workload client cluster. 
-
-  ```shell-session
-  $ kubectl config use-context ${CLIENT_CONTEXT}
+  $ kubectl create --context ${SERVER_CONTEXT} ns consul 
+  $ kubectl create secret --context ${SERVER_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
 
 1. Create the license secret in the workload client cluster. This step must be repeated for every additional workload client cluster. 
 
   ```shell-session
-  $ kubectl create ns consul 
-  $ kubectl create secret --namespace consul generic license --from-file=key=./path/to/license.hclic
+  $ kubectl create --context ${CLIENT_CONTEXT} ns consul 
+  $ kubectl create secret --context ${CLIENT_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
   
 #### Install the Consul server cluster
