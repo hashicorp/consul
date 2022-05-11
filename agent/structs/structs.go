@@ -2127,6 +2127,14 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 
 type ServiceList []ServiceName
 
+// Len implements sort.Interface.
+func (s ServiceList) Len() int { return len(s) }
+
+// Swap implements sort.Interface.
+func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s ServiceList) Sort() { sort.Sort(s) }
+
 type IndexedServiceList struct {
 	Services ServiceList
 	QueryMeta

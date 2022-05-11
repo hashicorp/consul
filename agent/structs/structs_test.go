@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"testing"
@@ -2854,5 +2855,84 @@ func TestGatewayService_IsSame(t *testing.T) {
 
 	if !g.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)
+	}
+}
+
+func TestServiceList_Sort(t *testing.T) {
+	type testcase struct {
+		name   string
+		list   []ServiceName
+		expect []ServiceName
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		t.Run("written order", func(t *testing.T) {
+			ServiceList(tc.list).Sort()
+			require.Equal(t, tc.expect, tc.list)
+		})
+		t.Run("random order", func(t *testing.T) {
+			rand.Shuffle(len(tc.list), func(i, j int) {
+				tc.list[i], tc.list[j] = tc.list[j], tc.list[i]
+			})
+			ServiceList(tc.list).Sort()
+			require.Equal(t, tc.expect, tc.list)
+		})
+	}
+
+	sn := func(name string) ServiceName {
+		return NewServiceName(name, nil)
+	}
+
+	cases := []testcase{
+		{
+			name:   "nil",
+			list:   nil,
+			expect: nil,
+		},
+		{
+			name:   "empty",
+			list:   []ServiceName{},
+			expect: []ServiceName{},
+		},
+		{
+			name:   "one",
+			list:   []ServiceName{sn("foo")},
+			expect: []ServiceName{sn("foo")},
+		},
+		{
+			name: "multiple",
+			list: []ServiceName{
+				sn("food"),
+				sn("zip"),
+				sn("Bar"),
+				sn("ba"),
+				sn("foo"),
+				sn("bar"),
+				sn("Foo"),
+				sn("Zip"),
+				sn("foo"),
+				sn("bar"),
+				sn("barrier"),
+			},
+			expect: []ServiceName{
+				sn("Bar"),
+				sn("Foo"),
+				sn("Zip"),
+				sn("ba"),
+				sn("bar"),
+				sn("bar"),
+				sn("barrier"),
+				sn("foo"),
+				sn("foo"),
+				sn("food"),
+				sn("zip"),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
