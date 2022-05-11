@@ -16,12 +16,23 @@ In this example, we will use two Kubernetes clusters, but this approach could be
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
-## Deploying Consul servers and clients in the first cluster
+## Prepare Helm release name ahead of installs
+
 ~> The Helm release name must be unique for each Kubernetes cluster.
 The Helm chart uses the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are identical, subsequent Kubernetes clusters drain existing ACL resources and slow performance.
 
+Prepare the Helm release names as environment variables for both the server and client installs for use in the proceeding install instructions. 
+
+```shell-session
+  $ export HELM_RELEASE_SERVER=server
+  $ export HELM_RELEASE_CLIENT=client
+  ...
+  $ export HELM_RELEASE_CLIENT2=client2
+```
+
+## Deploying Consul servers and clients in the first cluster
 
 First, we will deploy the Consul servers with Consul clients in the first cluster.
 For that, we will use the following Helm configuration:
@@ -66,7 +77,7 @@ $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=
 
 Now we can install our Consul cluster with Helm:
 ```shell-session
-$ helm install cluster1 --values cluster1-config.yaml hashicorp/consul
+$ helm install ${HELM_RELEASE_SERVER} --values cluster1-config.yaml hashicorp/consul
 ```
 
 
@@ -76,7 +87,7 @@ and the ACL bootstrap token generated during installation,
 so that we can apply them to our second Kubernetes cluster.
 
 ```shell-session
-$ kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
+$ kubectl get secret consul-gossip-encryption-key ${HELM_RELEASE_SERVER}-consul-ca-cert ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
 ```
 
 ## Deploying Consul clients in the second cluster
@@ -184,7 +195,7 @@ for more details.
 Now we're ready to install!
 
 ```shell-session
-$ helm install cluster2 --values cluster2-config.yaml hashicorp/consul
+$ helm install ${HELM_RELEASE_CLIENT} --values cluster2-config.yaml hashicorp/consul
 ```
 
 ## Verifying the Consul Service Mesh works
