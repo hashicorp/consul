@@ -28,7 +28,6 @@ This section describes about how to assemble rules into policies. Refer to the [
 A rule is composed of a resource declaration and an access level defined with the `policy` keyword and a [policy disposition](#policy-dispositions). The following syntax describes the basic structure of a rule:
 
 <CodeTabs heading="Basic syntax for configuring an ACL rule">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 <resource> {
@@ -36,16 +35,12 @@ A rule is composed of a resource declaration and an access level defined with th
   }
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
-
 ```json
 "<resource>": [{
   "policy": "<policy disposition>"
   }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 Access to the specified resource is granted or denied based on the policy disposition.
@@ -57,16 +52,12 @@ Many resources take an additional value that limits the scope of the rule to res
 The following syntax describes how to include a resource label in the rule:
 
 <CodeTabs heading="Syntax for applying an ACL rule to named resources">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 <resource> "<label>" {
   policy = "<policy disposition>"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 "<resource>": [{
@@ -76,7 +67,6 @@ The following syntax describes how to include a resource label in the rule:
 }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 Labels provide operators with more granular control over access to the resource, but the following resource types do not take a label:
@@ -89,20 +79,15 @@ Labels provide operators with more granular control over access to the resource,
 Use the following syntax to create rules for these resources:
 
 <CodeTabs heading="Syntax for resources that take ACL rule configurations directly">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 <resource> = "<policy disposition>"
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
-
 ```json
 "<resource>": "<policy disposition>"
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Policy Dispositions
@@ -122,16 +107,12 @@ You can define rules for labeled resources based on exact matches or by using re
 The following example rule is an exact match that denies access to services labeled `web-prod`:
 
 <CodeTabs heading="Example rule that denies access to services named 'web-prod'">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 service "web-prod" {
   policy = "deny"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 "service": [{
@@ -141,22 +122,17 @@ service "web-prod" {
 }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 You can append the resource with `_prefix` to match all resource labels beginning with the same value. The following example rule allows `write` access to all services with labels that begin with "web":
 
 <CodeTabs heading="Example rule that grants read and write access to services with names beginning with 'web'">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 service_prefix "web" {
   policy = "write"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 "service_prefix": [{
@@ -166,22 +142,17 @@ service_prefix "web" {
 }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 Prefix-based resource labels can also contain an empty string, which configures the rule to apply to all resources of the declared type. The following example rule allows `read` access to all `service` resources:
 
 <CodeTabs heading="Example rule that grants read access to all services">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 service_prefix "" {
   policy = "read"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 "service_prefix" : [{
@@ -191,7 +162,6 @@ service_prefix "" {
 }]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 When using prefix-based rules, the most specific prefix match determines the action. In a real-world scenario, a combination of rules would be combined to create a flexible policy. Each team or business unit would use tokens based on policies that enforce several rules, for example:
@@ -216,7 +186,6 @@ HCL is human readable and interoperable with JSON, making it easy to automate po
 The following examples show the same policy formatted in HCL and JSON:
 
 <CodeTabs heading="Example rules">
-<CodeBlockConfig lineNumbers>
 
 ```hcl
 # These control access to the key/value store.
@@ -237,9 +206,6 @@ key "foo/bar/secret" {
 # This controls access to cluster-wide Consul operator information.
 operator = "read"
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig lineNumbers>
 
 ```json
 {
@@ -279,7 +245,6 @@ operator = "read"
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## Rule Scope
@@ -488,16 +453,16 @@ service "consul-snapshot" {
 
 </CodeTabs>
 
-### Enable Vault to Access the Consul Storage Backend 
+### Enable Vault to Access the Consul Storage Backend
 
-If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.   
+If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
 
 In the following example, Vault is registered as a service and provided access to Consul's KV store.
 
 <CodeTabs>
 
 ```hcl
-# Provide KV visibility to all agents.   
+# Provide KV visibility to all agents.
 agent_prefix "" {
   "policy" = "read"
 }
@@ -538,6 +503,6 @@ session_prefix "" {
     }
   }
 }
-
 ```
+
 </CodeTabs>
