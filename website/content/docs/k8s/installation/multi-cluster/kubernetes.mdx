@@ -197,28 +197,6 @@ Its `SYNCED` status should be `True`.
 we recommend creating it in the same namespace that Consul is installed in.
 Its name must be `global`.
 
-## Kubernetes API URL
-
-If ACLs are enabled, you must next determine the Kubernetes API URL of your _primary_ cluster. The API URL of the
-primary cluster must be specified in the config files for all secondary clusters because secondary clusters need
-to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
-by the primary datacenter.
-
-To determine the Kubernetes API URL, first get the cluster name in your kubeconfig:
-
-```shell-session
-$ export CLUSTER=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$(kubectl config current-context)\")].context.cluster}")
-```
-
-Then get the API URL:
-
-```shell-session
-$ kubectl config view -o jsonpath="{.clusters[?(@.name == \"$CLUSTER\")].cluster.server}"
-https://<some-url>
-```
-
-Keep track of this URL, you'll need it later.
-
 ## Federation Secret
 
 The federation secret is a Kubernetes secret containing information needed
@@ -239,7 +217,7 @@ After the installation into your primary cluster you will need to export
 this secret:
 
 ```shell-session
-$ kubectl get secret consul-federation -n consul --output yaml > consul-federation-secret.yaml
+$ kubectl get secret consul-federation --namespace consul --output yaml > consul-federation-secret.yaml
 ```
 
 !> **Security note:** The federation secret makes it possible to gain
@@ -309,6 +287,30 @@ The automatically generated federation secret contains:
   !> **Security note:** This gossip encryption key would enable an attacker to compromise Consul,
   it should be kept securely.
 
+## Kubernetes API URL
+
+If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
+must be specified in the config files for all secondary clusters because secondary clusters need
+to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
+by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
+in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
+to retrieve global Consul ACL tokens from the primary.
+
+To determine the Kubernetes API URL, first get the cluster name in your kubeconfig:
+
+```shell-session
+$ export CLUSTER=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$(kubectl config current-context)\")].context.cluster}")
+```
+
+Then get the API URL:
+
+```shell-session
+$ kubectl config view -o jsonpath="{.clusters[?(@.name == \"$CLUSTER\")].cluster.server}"
+https://<some-url>
+```
+
+Keep track of this URL, you'll need it in the next section.
+
 ## Secondary Cluster(s)
 
 With the primary cluster up and running, and the [federation secret](#federation-secret) imported
@@ -350,7 +352,7 @@ global:
 
   federation:
     enabled: true
-    k8sAuthMethodHost: <primary-kubernetes-api-url>
+    k8sAuthMethodHost: <kubernetes-api-url>
     primaryDatacenter: dc1
   gossipEncryption:
     secretName: consul-federation
@@ -378,7 +380,7 @@ server:
 
 Modifications:
 
-1. If ACLs are enabled, change the value of `global.federation.k8sAuthMethodHost` to the full URL (including `https://`) of the primary
+1. If ACLs are enabled, change the value of `global.federation.k8sAuthMethodHost` to the full URL (including `https://`) of this cluster's
    Kubernetes API.
 1. `global.federation.primaryDatacenter` must be set to the name of the primary datacenter.
 1. The Consul datacenter name for the datacenter in this example is `dc2`. The datacenter name in **each** federated cluster **must be unique**.
@@ -423,7 +425,7 @@ To verify that both datacenters are federated, run the
 `consul members -wan` command on one of the Consul server pods:
 
 ```shell-session
-$ kubectl exec statefulset/consul-server -n consul -- consul members -wan
+$ kubectl exec statefulset/consul-server --namespace consul -- consul members -wan
 Node                 Address              Status  Type    Build     Protocol  DC   Segment
 consul-server-0.dc1  10.32.4.216:8302     alive   server  1.8.0  2         dc1  <all>
 consul-server-0.dc2  192.168.2.173:8302   alive   server  1.8.0  2         dc2  <all>
@@ -441,7 +443,7 @@ each datacenter can read each other's services. In this example, our `kubectl`
 context is `dc1` and we're querying for the list of services in `dc2`:
 
 ```shell-session
-$ kubectl exec statefulset/consul-server -n consul -- consul catalog services -datacenter dc2
+$ kubectl exec statefulset/consul-server --namespace consul -- consul catalog services -datacenter dc2
 consul
 mesh-gateway
 ```
