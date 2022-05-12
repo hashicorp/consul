@@ -289,7 +289,7 @@ The automatically generated federation secret contains:
 
 ## Kubernetes API URL
 
-If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
+If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the primary cluster
 must be specified in the config files for all secondary clusters because secondary clusters need
 to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
 by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
