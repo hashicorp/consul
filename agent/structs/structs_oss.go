@@ -114,6 +114,12 @@ func ServiceNameFromString(input string) ServiceName {
 	return ServiceName{Name: id}
 }
 
+// Less implements sort.Interface.
+func (s ServiceList) Less(i, j int) bool {
+	a, b := s[i], s[j]
+	return a.Name < b.Name
+}
+
 func (cid CheckID) String() string {
 	return string(cid.ID)
 }
