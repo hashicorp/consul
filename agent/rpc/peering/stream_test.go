@@ -32,11 +32,12 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		store := state.NewStateStoreWithEventPublisher(nil)
+		publisher := stream.NewEventPublisher(10 * time.Second)
+		store := newStateStore(t, publisher)
 
 		srv := NewService(testutil.Logger(t), &testStreamBackend{
 			store: store,
-			pub:   store.EventPublisher(),
+			pub:   publisher,
 		})
 
 		client := NewMockClient(context.Background())
@@ -727,10 +728,11 @@ func Test_processResponse_Validation(t *testing.T) {
 		wantErr bool
 	}
 
-	store := state.NewStateStoreWithEventPublisher(nil)
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
 	srv := NewService(testutil.Logger(t), &testStreamBackend{
 		store: store,
-		pub:   store.EventPublisher(),
+		pub:   publisher,
 	})
 
 	run := func(t *testing.T, tc testCase) {
