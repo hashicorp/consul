@@ -740,7 +740,11 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 
 	// Add any configured headers
 	for _, h := range cfg.AddHeaders {
-		req.Header.Set(h.Name, h.Value)
+		if strings.ToLower(h.Name) == "host" {
+			req.Host = h.Value
+		} else {
+			req.Header.Set(h.Name, h.Value)
+		}
 	}
 
 	log.Debug("proxying request", "to", u.String())
