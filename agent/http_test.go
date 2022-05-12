@@ -1239,7 +1239,6 @@ func TestParseMergeCentralConfig(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }
 
 // Test ACL token is resolved in correct order

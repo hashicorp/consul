@@ -1522,6 +1522,7 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 	}
 }
 
+// RIDDHI example of test blocking call
 func TestCatalog_ListServices_Blocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2848,6 +2849,98 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 	// that we respect the version 8 ACL flag, since the test server sets
 	// that to false (the regression value of *not* changing this is better
 	// for now until we change the sense of the version 8 ACL flag).
+}
+
+func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := structs.TestRegisterRequest(t)
+	var out struct{}
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", registerServiceReq, &out))
+
+	// Register proxy-defaults
+	proxyGlobalEntry := structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Mode: structs.ProxyModeDirect,
+		Config: map[string]interface{}{
+			"local_connect_timeout_ms": uint64(1000),
+			"handshake_timeout_ms":     uint64(1000),
+		},
+	}
+	proxyDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &proxyGlobalEntry,
+	}
+	var proxyDefaultsConfigEntryResp bool
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+
+	// Register service-defaults
+	limits := 512
+	serviceDefaultsConfigEntry := structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: registerServiceReq.Service.Service,
+		Mode: structs.ProxyModeTransparent,
+		UpstreamConfig: &structs.UpstreamConfiguration{
+			Defaults: &structs.UpstreamConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeLocal,
+				},
+				Limits: &structs.UpstreamLimits{
+					MaxConnections: &limits,
+				},
+			},
+		},
+	}
+	serviceDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &serviceDefaultsConfigEntry,
+	}
+	var serviceDefaultsConfigEntryResp bool
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+
+	// List service nodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  registerServiceReq.Service.Service,
+		QueryOptions: structs.QueryOptions{MergeCentralConfig: true},
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+
+	// validate response
+	assert.Len(t, resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
+	// validate proxy global defaults are resolved in the merged service config
+	assert.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
+	// validate service defaults override proxy-defaults/global
+	assert.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
+	assert.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
+	// validate service defaults are resolved in the merged service config
+	assert.Equal(t, 1, len(v.ServiceProxy.Upstreams))
+	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config, "limits")
+	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config["limits"], "MaxConnections")
+	upstreamLimits := v.ServiceProxy.Upstreams[0].Config["limits"].(map[string]interface{})
+	assert.Equal(t, uint64(*serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections), upstreamLimits["MaxConnections"])
+	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config, "mesh_gateway")
+	meshGw := v.ServiceProxy.Upstreams[0].Config["mesh_gateway"].(map[string]interface{})
+	assert.Equal(t, string(serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode), meshGw["Mode"])
 }
 
 func TestCatalog_NodeServices_ACL(t *testing.T) {
