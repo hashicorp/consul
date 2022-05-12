@@ -197,6 +197,55 @@ func (msg *PeeringDeleteRequest) TokenSecret() string {
 }
 
 // RequestDatacenter implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) RequestDatacenter() string {
+	if msg == nil {
+		return ""
+	}
+	return msg.Datacenter
+}
+
+// IsRead implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) IsRead() bool {
+	// TODO(peering): figure out read semantics here
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) AllowStaleRead() bool {
+	// TODO(peering): figure out read semantics here
+	return false
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	// TODO(peering): figure out read semantics here
+	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	// TODO(peering): figure out read semantics here
+	return rpcHoldTimeout
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) SetTokenSecret(s string) {
+	// TODO(peering): figure out read semantics here
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) TokenSecret() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+
+// Token implements structs.RPCInfo
+func (msg *TrustBundleListByServiceRequest) Token() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+
+// RequestDatacenter implements structs.RPCInfo
 func (msg *PeeringTrustBundleWriteRequest) RequestDatacenter() string {
 	if msg == nil {
 		return ""

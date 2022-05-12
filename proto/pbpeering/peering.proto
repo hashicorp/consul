@@ -22,6 +22,9 @@ service PeeringService {
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
   rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse);
 
+  // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
+  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
+
   // StreamResources opens an event stream for resources to share between peers, such as services.
   // Events are streamed as they happen.
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
@@ -164,6 +167,20 @@ message PeeringDeleteRequest {
 }
 
 message PeeringDeleteResponse {}
+
+// @consul-rpc-glue: Datacenter,ReadTODO
+message TrustBundleListByServiceRequest{
+  string ServiceName = 1;
+  string Partition = 2;
+
+  // these are common fields required for implementing structs.RPCInfo methods
+  // that are used to forward requests
+  string Datacenter = 3;
+}
+
+message TrustBundleListByServiceResponse{
+  repeated PeeringTrustBundle Bundles = 1;
+}
 
 message PeeringTerminateByIDRequest {
   string ID = 1;

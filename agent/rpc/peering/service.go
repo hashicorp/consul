@@ -108,7 +108,9 @@ type Store interface {
 	PeeringRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.Peering, error)
 	PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
+	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, []structs.ServiceName, error)
+	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	AbandonCh() <-chan struct{}
 }
 
@@ -371,6 +373,51 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 		return nil, err
 	}
 	return &pbpeering.PeeringDeleteResponse{}, nil
+}
+
+func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
+	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+
+	var resp *pbpeering.TrustBundleListByServiceResponse
+	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+		var err error
+		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleListByService(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
+	}
+
+	defer metrics.MeasureSince([]string{"peering", "trust_bundle_list_by_service"}, time.Now())
+	// TODO(peering): ACL check request token
+
+	// TODO(peering): handle blocking queries
+
+	entMeta := *structs.NodeEnterpriseMetaInPartition(req.Partition)
+	// TODO(peering): we're throwing away the index here that would tell us how to execute a blocking query
+	_, peers, err := s.Backend.Store().PeeringsForService(nil, req.ServiceName, entMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get peers for service %s: %v", req.ServiceName, err)
+	}
+
+	trustBundles := []*pbpeering.PeeringTrustBundle{}
+	for _, peer := range peers {
+		q := state.Query{
+			Value:          strings.ToLower(peer.Name),
+			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+		}
+		_, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, q)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peer.Name, err)
+		}
+
+		if trustBundle != nil {
+			trustBundles = append(trustBundles, trustBundle)
+		}
+	}
+	return &pbpeering.TrustBundleListByServiceResponse{Bundles: trustBundles}, nil
 }
 
 type BidirectionalStream interface {
