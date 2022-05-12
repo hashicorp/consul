@@ -855,6 +855,20 @@ func (n *Node) BestAddress(wan bool) string {
 	return n.Address
 }
 
+func (n *Node) ToRegisterRequest() RegisterRequest {
+	return RegisterRequest{
+		ID:              n.ID,
+		Node:            n.Node,
+		Datacenter:      n.Datacenter,
+		Address:         n.Address,
+		TaggedAddresses: n.TaggedAddresses,
+		NodeMeta:        n.Meta,
+		RaftIndex:       n.RaftIndex,
+		EnterpriseMeta:  *n.GetEnterpriseMeta(),
+		PeerName:        n.PeerName,
+	}
+}
+
 type Nodes []*Node
 
 // IsSame return whether nodes are similar without taking into account

@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbstatus"
+	"github.com/hashicorp/consul/types"
 )
 
 var (
@@ -105,6 +106,7 @@ type Backend interface {
 // Store provides a read-only interface for querying Peering data.
 type Store interface {
 	PeeringRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.Peering, error)
+	PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, []structs.ServiceName, error)
 	AbandonCh() <-chan struct{}
@@ -115,6 +117,7 @@ type Apply interface {
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
+	CatalogRegister(req *structs.RegisterRequest) error
 }
 
 // GenerateToken implements the PeeringService RPC method to generate a
@@ -405,44 +408,75 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 		return grpcstatus.Error(codes.InvalidArgument, fmt.Sprintf("subscription request to unknown resource URL: %s", req.ResourceURL))
 	}
 
-	// TODO(peering): Validate that a peering exists for this peer
+	_, p, err := s.Backend.Store().PeeringReadByID(nil, req.PeerID)
+	if err != nil {
+		s.logger.Error("failed to look up peer", "peer_id", req.PeerID, "error", err)
+		return grpcstatus.Error(codes.Internal, "failed to find PeerID: "+req.PeerID)
+	}
+	if p == nil {
+		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
+	}
+
 	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
 	// TODO(peering): Store subscription request so that an event publisher can separately handle pushing messages for it
 	s.logger.Info("accepted initial replication request from peer", "peer_id", req.PeerID)
 
 	// For server peers both of these ID values are the same, because we generated a token with a local ID,
 	// and the client peer dials using that same ID.
-	return s.HandleStream(req.PeerID, req.PeerID, stream)
+	return s.HandleStream(HandleStreamRequest{
+		LocalID:   req.PeerID,
+		RemoteID:  req.PeerID,
+		PeerName:  p.Name,
+		Partition: p.Partition,
+		Stream:    stream,
+	})
+}
+
+type HandleStreamRequest struct {
+	// LocalID is the UUID for the peering in the local Consul datacenter.
+	LocalID string
+
+	// RemoteID is the UUID for the peering from the perspective of the peer.
+	RemoteID string
+
+	// PeerName is the name of the peering.
+	PeerName string
+
+	// Partition is the local partition associated with the peer.
+	Partition string
+
+	// Stream is the open stream to the peer cluster.
+	Stream BidirectionalStream
 }
 
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStream) error {
-	logger := s.logger.Named("stream").With("peer_id", localID)
+func (s *Service) HandleStream(req HandleStreamRequest) error {
+	logger := s.logger.Named("stream").With("peer_id", req.LocalID)
 	logger.Trace("handling stream for peer")
 
-	status, err := s.streams.connected(localID)
+	status, err := s.streams.connected(req.LocalID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
 	}
 
 	// TODO(peering) Also need to clear subscriptions associated with the peer
-	defer s.streams.disconnected(localID)
+	defer s.streams.disconnected(req.LocalID)
 
-	mgr := newSubscriptionManager(stream.Context(), logger, s.Backend)
-	subCh := mgr.subscribe(stream.Context(), localID)
+	mgr := newSubscriptionManager(req.Stream.Context(), logger, s.Backend)
+	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID)
 
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
 				ResourceURL: pbpeering.TypeURLService,
-				PeerID:      remoteID,
+				PeerID:      req.RemoteID,
 			},
 		},
 	}
 	logTraceSend(logger, sub)
 
-	if err := stream.Send(sub); err != nil {
+	if err := req.Stream.Send(sub); err != nil {
 		if err == io.EOF {
 			logger.Info("stream ended by peer")
 			status.trackReceiveError(err.Error())
@@ -458,7 +492,7 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 	go func() {
 		defer close(recvChan)
 		for {
-			msg, err := stream.Recv()
+			msg, err := req.Stream.Recv()
 			if err == io.EOF {
 				logger.Info("stream ended by peer")
 				status.trackReceiveError(err.Error())
@@ -494,13 +528,13 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 			}
 			logTraceSend(logger, term)
 
-			if err := stream.Send(term); err != nil {
+			if err := req.Stream.Send(term); err != nil {
 				status.trackSendError(err.Error())
 				return fmt.Errorf("failed to send to stream: %v", err)
 			}
 
 			logger.Trace("deleting stream status")
-			s.streams.deleteStatus(localID)
+			s.streams.deleteStatus(req.LocalID)
 
 			return nil
 
@@ -528,7 +562,8 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 			}
 
 			if resp := msg.GetResponse(); resp != nil {
-				req, err := processResponse(resp)
+				// TODO(peering): Ensure there's a nonce
+				reply, err := s.processResponse(req.PeerName, req.Partition, resp)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.trackReceiveError(err.Error())
@@ -536,8 +571,8 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 					status.trackReceiveSuccess()
 				}
 
-				logTraceSend(logger, req)
-				if err := stream.Send(req); err != nil {
+				logTraceSend(logger, reply)
+				if err := req.Stream.Send(reply); err != nil {
 					status.trackSendError(err.Error())
 					return fmt.Errorf("failed to send to stream: %v", err)
 				}
@@ -549,7 +584,7 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 				logger.Info("received peering termination message, cleaning up imported resources")
 
 				// Once marked as terminated, a separate deferred deletion routine will clean up imported resources.
-				if err := s.Backend.Apply().PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: localID}); err != nil {
+				if err := s.Backend.Apply().PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: req.LocalID}); err != nil {
 					return err
 				}
 				return nil
@@ -558,7 +593,7 @@ func (s *Service) HandleStream(localID, remoteID string, stream BidirectionalStr
 		case update := <-subCh:
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				if err := pushServiceResponse(logger, stream, status, update); err != nil {
+				if err := pushServiceResponse(logger, req.Stream, status, update); err != nil {
 					return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 				}
 
@@ -667,7 +702,7 @@ func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbp
 	return msg
 }
 
-func processResponse(resp *pbpeering.ReplicationMessage_Response) (*pbpeering.ReplicationMessage, error) {
+func (s *Service) processResponse(peerName string, partition string, resp *pbpeering.ReplicationMessage_Response) (*pbpeering.ReplicationMessage, error) {
 	var (
 		err     error
 		errCode code.Code
@@ -682,7 +717,10 @@ func processResponse(resp *pbpeering.ReplicationMessage_Response) (*pbpeering.Re
 
 	switch resp.Operation {
 	case pbpeering.ReplicationMessage_Response_UPSERT:
-		err = handleUpsert(resp.ResourceURL, resp.Resource)
+		if resp.Resource == nil {
+			break
+		}
+		err = s.handleUpsert(peerName, partition, resp.ResourceURL, resp.ResourceID, resp.Resource)
 		if err != nil {
 			errCode = code.Code_INTERNAL
 			errMsg = err.Error()
@@ -710,8 +748,90 @@ func processResponse(resp *pbpeering.ReplicationMessage_Response) (*pbpeering.Re
 	return makeReply(resp.ResourceURL, resp.Nonce, errCode, errMsg), err
 }
 
-func handleUpsert(resourceURL string, resource *anypb.Any) error {
-	// TODO(peering): implement
+func (s *Service) handleUpsert(peerName string, partition string, resourceURL string, resourceID string, resource *anypb.Any) error {
+	csn := &pbservice.IndexedCheckServiceNodes{}
+	err := ptypes.UnmarshalAny(resource, csn)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal resource, ResourceURL: %q, ResourceID: %q, err: %w", resourceURL, resourceID, err)
+	}
+	if csn == nil || len(csn.Nodes) == 0 {
+		return nil
+	}
+
+	type checkTuple struct {
+		checkID   types.CheckID
+		serviceID string
+		nodeID    types.NodeID
+
+		acl.EnterpriseMeta
+	}
+
+	var (
+		nodes    = make(map[types.NodeID]*structs.Node)
+		services = make(map[types.NodeID][]*structs.NodeService)
+		checks   = make(map[types.NodeID]map[checkTuple]*structs.HealthCheck)
+	)
+
+	for _, pbinstance := range csn.Nodes {
+		instance, err := pbservice.CheckServiceNodeToStructs(pbinstance)
+		if err != nil {
+			return fmt.Errorf("failed to convert instance, ResourceURL: %q, ResourceID: %q, err: %w", resourceURL, resourceID, err)
+		}
+
+		nodes[instance.Node.ID] = instance.Node
+		services[instance.Node.ID] = append(services[instance.Node.ID], instance.Service)
+
+		if _, ok := checks[instance.Node.ID]; !ok {
+			checks[instance.Node.ID] = make(map[checkTuple]*structs.HealthCheck)
+		}
+		for _, c := range instance.Checks {
+			tuple := checkTuple{
+				checkID:        c.CheckID,
+				serviceID:      c.ServiceID,
+				nodeID:         instance.Node.ID,
+				EnterpriseMeta: c.EnterpriseMeta,
+			}
+			checks[instance.Node.ID][tuple] = c
+		}
+	}
+
+	for nodeID, node := range nodes {
+		// For all nodes, services, and checks we override the peer name and partition to be
+		// the local partition and local name for the peer.
+		node.PeerName, node.Partition = peerName, partition
+
+		// First register the node
+		req := node.ToRegisterRequest()
+		if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+			return fmt.Errorf("failed to register, ResourceURL: %q, ResourceID: %q, err: %w", resourceURL, resourceID, err)
+		}
+
+		// Then register all services on that node
+		for _, svc := range services[nodeID] {
+			svc.PeerName = peerName
+			svc.OverridePartition(partition)
+
+			req.Service = svc
+			if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+				return fmt.Errorf("failed to register, ResourceURL: %q, ResourceID: %q, err: %w", resourceURL, resourceID, err)
+			}
+		}
+		req.Service = nil
+
+		// Then register all checks on that node
+		var chks structs.HealthChecks
+		for _, c := range checks[nodeID] {
+			c.PeerName = peerName
+			c.OverridePartition(partition)
+
+			chks = append(chks, c)
+		}
+
+		req.Checks = chks
+		if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+			return fmt.Errorf("failed to register, ResourceURL: %q, ResourceID: %q, err: %w", resourceURL, resourceID, err)
+		}
+	}
 	return nil
 }
 
