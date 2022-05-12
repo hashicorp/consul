@@ -221,7 +221,7 @@ func genVerifyLeafWatch(expectedService string, expectedDatacenter string) verif
 
 func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind string) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
-		require.Equal(t, cachetype.ConfigEntriesName, cacheType)
+		require.Equal(t, cachetype.ConfigEntryName, cacheType)
 
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
 		require.True(t, ok)
@@ -718,16 +718,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		},
 	}
 
-	dbResolver := &structs.IndexedConfigEntries{
-		Kind: structs.ServiceResolver,
-		Entries: []structs.ConfigEntry{
-			&structs.ServiceResolverConfigEntry{
-				Name: "db",
-				Kind: structs.ServiceResolver,
-				Redirect: &structs.ServiceResolverRedirect{
-					Service:    "db",
-					Datacenter: "dc2",
-				},
+	dbResolver := &structs.ConfigEntryResponse{
+		Entry: &structs.ServiceResolverConfigEntry{
+			Name: "db",
+			Kind: structs.ServiceResolver,
+			Redirect: &structs.ServiceResolverRedirect{
+				Service:    "db",
+				Datacenter: "dc2",
 			},
 		},
 	}
@@ -1641,7 +1638,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.TerminatingGateway.ServiceResolversSet[db])
 
 						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 1)
-						require.Equal(t, dbResolver.Entries[0], snap.TerminatingGateway.ServiceResolvers[db])
+						require.Equal(t, dbResolver.Entry, snap.TerminatingGateway.ServiceResolvers[db])
 					},
 				},
 				{

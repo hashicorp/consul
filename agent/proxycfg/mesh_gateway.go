@@ -47,7 +47,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	// Watch service-resolvers so we can setup service subset clusters
-	err = s.cache.Notify(ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryListName, &structs.ConfigEntryQuery{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Kind:           structs.ServiceResolver,

@@ -47,6 +47,8 @@ func (e *exportedServiceRequest) CacheInfo() cache.RequestInfo {
 // NewMaterializer implements submatview.Request
 func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, error) {
 	reqFn := func(index uint64) *pbsubscribe.SubscribeRequest {
+		// TODO(peering): We need to be able to receive both connect proxies and typical service instances for a given name.
+		//                Using the Topic_ServiceHealth will ignore proxies unless the ServiceName is a proxy name.
 		r := &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        e.req.ServiceName,
