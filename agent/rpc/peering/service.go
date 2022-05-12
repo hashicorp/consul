@@ -392,10 +392,9 @@ func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.T
 
 	// TODO(peering): handle blocking queries
 
-	serviceName := strings.ToLower(req.ServiceName)
 	entMeta := *structs.NodeEnterpriseMetaInPartition(req.Partition)
 	// TODO(peering): we're throwing away the index here that would tell us how to execute a blocking query
-	_, peers, err := s.Backend.Store().PeeringsForService(nil, serviceName, entMeta)
+	_, peers, err := s.Backend.Store().PeeringsForService(nil, req.ServiceName, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peers for service %s: %v", req.ServiceName, err)
 	}
