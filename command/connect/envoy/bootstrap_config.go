@@ -505,6 +505,7 @@ func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDepreca
 	)
 
 	for _, tag := range initialTags {
+		tag := os.ExpandEnv(tag)
 		parts := strings.SplitN(tag, "=", 2)
 		// If there is no equals, treat it as a boolean tag and just assign value of
 		// 1 e.g. "canary" will out put the tag "canary: 1"
