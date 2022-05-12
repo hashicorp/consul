@@ -50,6 +50,7 @@ const (
 	Sentinel           string = "sentinel"
 	Snapshot           string = "snapshot"
 	Partition          string = "partition"
+	Peering            string = "peering"
 	TerminatingGateway string = "terminating_gateway"
 	TLSUtil            string = "tlsutil"
 	Transaction        string = "txn"

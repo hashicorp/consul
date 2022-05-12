@@ -16,19 +16,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/rpc/middleware"
-
-	"github.com/hashicorp/go-version"
-	"go.etcd.io/bbolt"
-
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"github.com/hashicorp/serf/serf"
+	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
@@ -39,20 +36,26 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
+	aclgrpc "github.com/hashicorp/consul/agent/grpc/public/services/acl"
 	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
+	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -122,6 +125,7 @@ const (
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
+	peeringStreamsRoutineName             = "streaming peering resources"
 )
 
 var (
@@ -237,6 +241,16 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
+	// publicACLServer serves the ACL service exposed on the public gRPC port.
+	// It is also exposed on the private multiplexed "server" port to enable
+	// RPC forwarding.
+	publicACLServer *aclgrpc.Server
+
+	// publicConnectCAServer serves the Connect CA service exposed on the public
+	// gRPC port. It is also exposed on the private multiplexed "server" port to
+	// enable RPC forwarding.
+	publicConnectCAServer *connectca.Server
+
 	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	publicGRPCServer *grpc.Server
@@ -343,6 +357,15 @@ type Server struct {
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *routine.Manager
 
+	// publisher is the EventPublisher to be shared amongst various server components. Events from
+	// modifications to the FSM, autopilot and others will flow through here. If in the future we
+	// need Events generated outside of the Server and all its components, then we could move
+	// this into the Deps struct and created it much earlier on.
+	publisher *stream.EventPublisher
+
+	// peering is a service used to handle peering streams.
+	peeringService *peering.Service
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
@@ -379,24 +402,29 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	recorder := middleware.NewRequestRecorder(serverLogger)
+	eventPublisher := stream.NewEventPublisher(10 * time.Second)
+
+	fsmDeps := fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, eventPublisher)
+		},
+		Publisher: eventPublisher,
+	}
+
 	// Create server.
 	s := &Server{
-		config:       config,
-		tokens:       flat.Tokens,
-		connPool:     flat.ConnPool,
-		grpcConnPool: flat.GRPCConnPool,
-		eventChLAN:   make(chan serf.Event, serfEventChSize),
-		eventChWAN:   make(chan serf.Event, serfEventChSize),
-		logger:       serverLogger,
-		loggers:      loggers,
-		leaveCh:      make(chan struct{}),
-		reconcileCh:  make(chan serf.Member, reconcileChSize),
-		router:       flat.Router,
-		rpcRecorder:  recorder,
-		// TODO(rpc-metrics-improv): consider pulling out the interceptor from config in order to isolate testing
-		rpcServer:               rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
-		insecureRPCServer:       rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(middleware.GetNetRPCInterceptor(recorder))),
+		config:                  config,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
+		grpcConnPool:            flat.GRPCConnPool,
+		eventChLAN:              make(chan serf.Event, serfEventChSize),
+		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		logger:                  serverLogger,
+		loggers:                 loggers,
+		leaveCh:                 make(chan struct{}),
+		reconcileCh:             make(chan serf.Member, reconcileChSize),
+		router:                  flat.Router,
 		tlsConfigurator:         flat.TLSConfigurator,
 		publicGRPCServer:        publicGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
@@ -406,8 +434,31 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
-		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
+		fsm:                     fsm.NewFromDeps(fsmDeps),
+		publisher:               eventPublisher,
 	}
+
+	var recorder *middleware.RequestRecorder
+	if flat.NewRequestRecorderFunc != nil {
+		recorder = flat.NewRequestRecorderFunc(serverLogger, s.IsLeader, s.config.Datacenter)
+	} else {
+		return nil, fmt.Errorf("cannot initialize server without an RPC request recorder provider")
+	}
+	if recorder == nil {
+		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
+	}
+
+	if flat.GetNetRPCInterceptorFunc == nil {
+		s.rpcServer = rpc.NewServer()
+		s.insecureRPCServer = rpc.NewServer()
+	} else {
+		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcRecorder = recorder
+
+	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
 		s.gatewayLocator = NewGatewayLocator(
@@ -622,6 +673,55 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	// Initialize public gRPC server - register services on public gRPC server.
+	s.publicACLServer = aclgrpc.NewServer(aclgrpc.Config{
+		ACLsEnabled: s.config.ACLsEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		InPrimaryDatacenter: s.InPrimaryDatacenter(),
+		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
+			return s.loadAuthMethod(methodName, entMeta)
+		},
+		LocalTokensEnabled:        s.LocalTokensEnabled,
+		Logger:                    logger.Named("grpc-api.acl"),
+		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
+		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
+		PrimaryDatacenter:         s.config.PrimaryDatacenter,
+		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
+	})
+	s.publicACLServer.Register(s.publicGRPCServer)
+
+	s.publicConnectCAServer = connectca.NewServer(connectca.Config{
+		Publisher:   s.publisher,
+		GetStore:    func() connectca.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.connect-ca"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		CAManager:   s.caManager,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		ConnectEnabled: s.config.ConnectEnabled,
+	})
+	s.publicConnectCAServer.Register(s.publicGRPCServer)
+
+	dataplane.NewServer(dataplane.Config{
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		Datacenter:  s.config.Datacenter,
+	}).Register(s.publicGRPCServer)
+
+	serverdiscovery.NewServer(serverdiscovery.Config{
+		Publisher:   s.publisher,
+		ACLResolver: plainACLResolver{s.ACLResolver},
+		Logger:      logger.Named("grpc-api.server-discovery"),
+	}).Register(s.publicGRPCServer)
+
+	// Initialize private gRPC server.
+	//
+	// Note: some "public" gRPC services are also exposed on the private gRPC server
+	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
@@ -633,17 +733,6 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
-
-	// Initialize public gRPC server - register services on public gRPC server.
-	connectca.NewServer(connectca.Config{
-		GetStore:    func() connectca.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
-	}).Register(s.publicGRPCServer)
-	dataplane.NewServer(dataplane.Config{
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
-	}).Register(s.publicGRPCServer)
 
 	// Start listening for RPC requests.
 	go func() {
@@ -658,35 +747,36 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		go s.listen(listener)
 	}
 
+	// start autopilot - this must happen after the RPC listeners get setup
+	// or else it may block
+	s.autopilot.Start(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
 	// Start the metrics handlers.
 	go s.updateMetrics()
 
 	return s, nil
 }
 
-func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config) *fsm.FSM {
-	deps := fsm.Deps{Logger: logger}
-	if config.RPCConfig.EnableStreaming {
-		deps.NewStateStore = func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc)
-		}
-		return fsm.NewFromDeps(deps)
-	}
-
-	deps.NewStateStore = func() *state.Store {
-		return state.NewStateStore(gc)
-	}
-	return fsm.NewFromDeps(deps)
-}
-
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
+	p := peering.NewService(
+		deps.Logger.Named("grpc-api.peering"),
+		NewPeeringBackend(s, deps.GRPCConnPool),
+	)
+	s.peeringService = p
+
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
 				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
 				deps.Logger.Named("grpc-api.subscription")))
 		}
+		pbpeering.RegisterPeeringServiceServer(srv, s.peeringService)
 		s.registerEnterpriseGRPCServices(deps, srv)
+
+		// Note: these public gRPC services are also exposed on the private server to
+		// enable RPC forwarding.
+		s.publicACLServer.Register(srv)
+		s.publicConnectCAServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
@@ -729,7 +819,7 @@ func (s *Server) setupRaft() error {
 	}()
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
-	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
+	if s.config.RaftConfig.ProtocolVersion >= 3 { // ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
 		serverAddressProvider = s.serverLookup
 	}
 
@@ -1230,7 +1320,7 @@ func (s *Server) WANMembers() []serf.Member {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster.
-func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
@@ -1250,7 +1340,7 @@ func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.Ente
 }
 
 // RemoveFailedNodeWAN is used to remove a failed node from the WAN cluster.
-func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (s *Server) RemoveFailedNodeWAN(wanNode string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
@@ -1283,7 +1373,7 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
 }
 
-func (s *Server) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 	return s.config.AgentEnterpriseMeta()
 }
 
@@ -1509,6 +1599,8 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 		TrailingLogs:      defaultConf.RaftConfig.TrailingLogs,
 		SnapshotInterval:  defaultConf.RaftConfig.SnapshotInterval,
 		SnapshotThreshold: defaultConf.RaftConfig.SnapshotThreshold,
+		ElectionTimeout:   defaultConf.RaftConfig.ElectionTimeout,
+		HeartbeatTimeout:  defaultConf.RaftConfig.HeartbeatTimeout,
 	}
 	if config.RaftSnapshotThreshold != 0 {
 		raftCfg.SnapshotThreshold = uint64(config.RaftSnapshotThreshold)
@@ -1518,6 +1610,12 @@ func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig 
 	}
 	if config.RaftTrailingLogs != 0 {
 		raftCfg.TrailingLogs = uint64(config.RaftTrailingLogs)
+	}
+	if config.HeartbeatTimeout >= 5*time.Millisecond {
+		raftCfg.HeartbeatTimeout = config.HeartbeatTimeout
+	}
+	if config.ElectionTimeout >= 5*time.Millisecond {
+		raftCfg.ElectionTimeout = config.ElectionTimeout
 	}
 	return raftCfg
 }
@@ -1556,7 +1654,7 @@ func (s *Server) trackLeaderChanges() {
 				continue
 			}
 
-			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.Leader))
+			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
@@ -1571,7 +1669,7 @@ const peersInfoContent = `
 As of Consul 0.7.0, the peers.json file is only used for recovery
 after an outage. The format of this file depends on what the server has
 configured for its Raft protocol version. Please see the agent configuration
-page at https://www.consul.io/docs/agent/options.html#_raft_protocol for more
+page at https://www.consul.io/docs/agent/config/cli-flags#_raft_protocol for more
 details about this parameter.
 
 For Raft protocol version 2 and earlier, this should be formatted as a JSON

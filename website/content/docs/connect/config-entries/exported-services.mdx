@@ -28,7 +28,7 @@ You can configure the settings defined in the `exported-services` configuration 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/options#config_entries)) as described in [Configuration](#configuration).
+1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
 1. Apply the configuration using one of the following methods:
    - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
    - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
@@ -38,7 +38,6 @@ You can configure the settings defined in the `exported-services` configuration 
 Configure the following parameters to define a `exported-services` configuration entry:
 
 <CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind = "exported-services"
@@ -57,9 +56,6 @@ Services = [
 ]
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ExportedServices
@@ -72,9 +68,6 @@ spec:
       consumers:
         - partition: <name of the partition that will dial the exported service>
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 "Kind": "exported-services",
@@ -93,7 +86,6 @@ spec:
 ]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Configuration Parameters
@@ -120,8 +112,7 @@ The `Services` parameter contains one or more lists of parameters that specify w
 
 The following example configures the agent to export the `billing` service from the `default` namespace of the `finance` admin partition to the `frontend` and `backend` partitions. Additionally, all services in all namespaces within the `finance` partition will be exported to the `monitoring` partition.
 
-<CodeTabs heading="" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
+<CodeTabs heading="Example exported services configuration" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "exported-services"
@@ -153,9 +144,6 @@ Services = [
 ]
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
@@ -173,9 +161,6 @@ spec:
         - partition: frontend
         - partition: backend
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 "Kind": "exported-services",
@@ -206,7 +191,6 @@ spec:
   ]
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## Reading Services

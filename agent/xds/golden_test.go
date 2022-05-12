@@ -35,7 +35,11 @@ func goldenEnvoy(t *testing.T, name, envoyVersion, latestEnvoyVersion, got strin
 	// coalescing works below when there is no xDS generated skew across envoy
 	// versions.
 	subname := goldenEnvoyVersionName(t, envoyVersion)
-	latestSubname := goldenEnvoyVersionName(t, latestEnvoyVersion)
+
+	latestSubname := "latest"
+	if envoyVersion == latestEnvoyVersion {
+		subname = "latest"
+	}
 
 	return golden(t, name, subname, latestSubname, got)
 }
@@ -85,7 +89,7 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	if latestSubname != "" && subname != latestSubname {
 		latestGolden := filepath.Join("testdata", fmt.Sprintf("%s.%s.golden", name, latestSubname))
 		raw, err := ioutil.ReadFile(latestGolden)
-		require.NoError(t, err)
+		require.NoError(t, err, "%q %q %q", name, subname, latestSubname)
 		latestExpected = string(raw)
 	}
 

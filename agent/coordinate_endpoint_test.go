@@ -39,10 +39,14 @@ func TestCoordinate_Disabled_Response(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
 			resp := httptest.NewRecorder()
 			obj, err := tt(resp, req)
-			err, ok := err.(UnauthorizedError)
-			if !ok {
-				t.Fatalf("expected unauthorized error but got %v", err)
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 401 {
+					t.Fatalf("expected status 401 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("expected HTTP error but got %v", err)
 			}
+
 			if obj != nil {
 				t.Fatalf("bad: %#v", obj)
 			}

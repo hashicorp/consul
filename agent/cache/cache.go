@@ -33,7 +33,7 @@ import (
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
-//go:generate mockery -all -inpkg
+//go:generate mockery --all --inpackage
 
 // TODO(kit): remove the namespace from these once the metrics themselves change
 var Gauges = []prometheus.GaugeDefinition{
@@ -91,7 +91,7 @@ const (
 // struct in agent/structs.  This API makes cache usage a mostly drop-in
 // replacement for non-cached RPC calls.
 //
-// The cache is partitioned by ACL and datacenter. This allows the cache
+// The cache is partitioned by ACL and datacenter/peer. This allows the cache
 // to be safe for multi-DC queries and for queries where the data is modified
 // due to ACLs all without the cache having to have any clever logic, at
 // the slight expense of a less perfect cache.
@@ -376,6 +376,13 @@ func (c *Cache) getEntryLocked(
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
+		if entry.Fetching {
+			// There is an active blocking query for this data, which has not
+			// returned. We can logically deduce that the contents of the cache
+			// are actually current, and we can simply return this while
+			// leaving the blocking query alone.
+			return true, true, entry
+		}
 		return true, false, entry
 	}
 
@@ -399,7 +406,7 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 		return result.Value, ResultMeta{}, err
 	}
 
-	key := makeEntryKey(r.TypeEntry.Name, r.Info.Datacenter, r.Info.Token, r.Info.Key)
+	key := makeEntryKey(r.TypeEntry.Name, r.Info.Datacenter, r.Info.PeerName, r.Info.Token, r.Info.Key)
 
 	// First time through
 	first := true
@@ -519,7 +526,11 @@ RETRY_GET:
 	}
 }
 
-func makeEntryKey(t, dc, token, key string) string {
+func makeEntryKey(t, dc, peerName, token, key string) string {
+	// TODO(peering): figure out if this is the desired format
+	if peerName != "" {
+		return fmt.Sprintf("%s/%s/%s/%s", t, "peer:"+peerName, token, key)
+	}
 	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
@@ -877,8 +888,8 @@ func (c *Cache) Close() error {
 // on startup. It is used to set the ConnectRootCA and AgentLeafCert when
 // AutoEncrypt.TLS is turned on. The cache itself cannot fetch that the first
 // time because it requires a special RPCType. Subsequent runs are fine though.
-func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
-	key := makeEntryKey(t, dc, token, k)
+func (c *Cache) Prepopulate(t string, res FetchResult, dc, peerName, token, k string) error {
+	key := makeEntryKey(t, dc, peerName, token, k)
 	newEntry := cacheEntry{
 		Valid:     true,
 		Value:     res.Value,

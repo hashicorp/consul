@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/coordinate"
@@ -3931,9 +3934,11 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
+
 	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 
 	hcl = `
 		data_dir = "` + dataDir + `"
@@ -3946,9 +3951,11 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
+
 	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.ClientCAs, cmpCertPool)
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
@@ -4018,8 +4025,9 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tlsConf)
 	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 
 	hcl = `
 		data_dir = "` + dataDir + `"
@@ -4034,8 +4042,9 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByDir, tlsConf.ClientCAs, cmpCertPool)
 }
 
 func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
@@ -4066,8 +4075,10 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	expectedCaPoolByFile := getExpectedCaPoolByFile(t)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.RootCAs, cmpCertPool)
+	assertDeepEqual(t, expectedCaPoolByFile, tlsConf.ClientCAs, cmpCertPool)
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
@@ -5844,4 +5855,46 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 		require.NotEqual(r, cert1Key, srv.tlsConfigurator.Cert().PrivateKey)
 	})
 
+}
+
+func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	require.NoError(t, err)
+	if !pool.AppendCertsFromPEM(data) {
+		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
+	}
+	return pool
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		require.NoError(t, err)
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

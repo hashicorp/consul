@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -1693,6 +1694,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1721,6 +1725,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1748,6 +1755,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					},
 				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
+				},
 			},
 		},
 		{
@@ -1769,6 +1779,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -1800,6 +1813,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -1830,6 +1846,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								PeerName: "flarm",
 							},
 						},
 					},
@@ -2750,7 +2769,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
 				opts := cmp.Options{
-					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+					cmp.Comparer(func(a, b acl.EnterpriseMeta) bool {
 						return a.IsSame(&b)
 					}),
 				}

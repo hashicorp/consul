@@ -20,6 +20,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -164,16 +165,16 @@ type delegate interface {
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
 	// should be another node inside the DC listening on the Serf LAN address
-	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error)
+	JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error)
 
 	// RemoveFailedNode is used to remove a failed node from the cluster.
-	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
+	RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error
 
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -357,6 +358,8 @@ type Agent struct {
 	// into Agent, which will allow us to remove this field.
 	rpcClientHealth *health.Client
 
+	rpcClientPeering pbpeering.PeeringServiceClient
+
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
 	routineManager *routine.Manager
@@ -433,6 +436,8 @@ func New(bd BaseDeps) (*Agent, error) {
 		UseStreamingBackend: a.config.UseStreamingBackend,
 		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
+
+	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -715,7 +720,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// consul version metric with labels
 	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.Version},
+		{Name: "version", Value: a.config.VersionWithMetadata()},
 		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
 
@@ -1267,7 +1272,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
+	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.VersionWithMetadata(), runtimeCfg.VersionPrerelease, revision)
 
 	cfg.TLSConfig = runtimeCfg.TLS
 
@@ -1536,7 +1541,7 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 }
 
 // JoinLAN is used to have the agent join a LAN cluster
-func (a *Agent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
+func (a *Agent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n int, err error) {
 	a.logger.Info("(LAN) joining", "lan_addresses", addrs)
 	n, err = a.delegate.JoinLAN(addrs, entMeta)
 	if err == nil {
@@ -1603,7 +1608,7 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	a.logger.Info("Force leaving node", "node", node)
 
 	err := a.delegate.RemoveFailedNode(node, prune, entMeta)
@@ -1617,7 +1622,7 @@ func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseM
 }
 
 // ForceLeaveWAN is used to remove a failed node from the WAN cluster
-func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+func (a *Agent) ForceLeaveWAN(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	a.logger.Info("(WAN) Force leaving node", "node", node)
 
 	srv, ok := a.delegate.(*consul.Server)
@@ -1813,14 +1818,17 @@ func (a *Agent) reapServicesInternal() {
 		if timeout > 0 && cs.CriticalFor() > timeout {
 			reaped[serviceID] = true
 			if err := a.RemoveService(serviceID); err != nil {
-				a.logger.Error("unable to deregister service after check has been critical for too long",
+				a.logger.Error("failed to deregister service with critical health that exceeded health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
-					"error", err)
+					"timeout", timeout.String(),
+					"error", err,
+				)
 			} else {
-				a.logger.Info("Check for service has been critical for too long; deregistered service",
+				a.logger.Info("deregistered service with critical health due to exceeding health check's 'deregister_critical_service_after' timeout",
 					"service", serviceID.String(),
 					"check", checkID.String(),
+					"timeout", timeout.String(),
 				)
 			}
 		}
@@ -1923,7 +1931,7 @@ func (a *Agent) purgeCheck(checkID structs.CheckID) error {
 type persistedServiceConfig struct {
 	ServiceID string
 	Defaults  *structs.ServiceConfigResponse
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (a *Agent) makeServiceConfigFilePath(serviceID structs.ServiceID) string {
@@ -2017,7 +2025,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -2685,18 +2693,19 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 
 			http := &checks.CheckHTTP{
-				CheckID:         cid,
-				ServiceID:       sid,
-				HTTP:            chkType.HTTP,
-				Header:          chkType.Header,
-				Method:          chkType.Method,
-				Body:            chkType.Body,
-				Interval:        chkType.Interval,
-				Timeout:         chkType.Timeout,
-				Logger:          a.logger,
-				OutputMaxSize:   maxOutputSize,
-				TLSClientConfig: tlsClientConfig,
-				StatusHandler:   statusHandler,
+				CheckID:          cid,
+				ServiceID:        sid,
+				HTTP:             chkType.HTTP,
+				Header:           chkType.Header,
+				Method:           chkType.Method,
+				Body:             chkType.Body,
+				DisableRedirects: chkType.DisableRedirects,
+				Interval:         chkType.Interval,
+				Timeout:          chkType.Timeout,
+				Logger:           a.logger,
+				OutputMaxSize:    maxOutputSize,
+				TLSClientConfig:  tlsClientConfig,
+				StatusHandler:    statusHandler,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
@@ -3203,9 +3212,10 @@ func (a *Agent) Stats() map[string]map[string]string {
 		revision = revision[:8]
 	}
 	stats["build"] = map[string]string{
-		"revision":   revision,
-		"version":    a.config.Version,
-		"prerelease": a.config.VersionPrerelease,
+		"revision":         revision,
+		"version":          a.config.Version,
+		"version_metadata": a.config.VersionMetadata,
+		"prerelease":       a.config.VersionPrerelease,
 	}
 
 	for outerKey, outerValue := range a.enterpriseStats() {
@@ -3390,7 +3400,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
@@ -3546,7 +3556,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 			}
 		}
 
-		if !structs.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
+		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Check.PartitionOrDefault()) {
 			a.logger.Info("Purging check file in wrong partition",
 				"file", file,
 				"partition", p.Check.PartitionOrDefault(),
@@ -3897,6 +3907,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
 		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
 		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,
+		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
+		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
 		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {

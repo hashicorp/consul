@@ -47,9 +47,9 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 			var checks structs.HealthChecks
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, checks, err = state.ChecksInStateByNodeMeta(ws, args.State, args.NodeMetaFilters, &args.EnterpriseMeta)
+				index, checks, err = state.ChecksInStateByNodeMeta(ws, args.State, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				index, checks, err = state.ChecksInState(ws, args.State, &args.EnterpriseMeta)
+				index, checks, err = state.ChecksInState(ws, args.State, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -98,7 +98,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, checks, err := state.NodeChecks(ws, args.Node, &args.EnterpriseMeta)
+			index, checks, err := state.NodeChecks(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -157,9 +157,9 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 			var checks structs.HealthChecks
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, checks, err = state.ServiceChecksByNodeMeta(ws, args.ServiceName, args.NodeMetaFilters, &args.EnterpriseMeta)
+				index, checks, err = state.ServiceChecksByNodeMeta(ws, args.ServiceName, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				index, checks, err = state.ServiceChecks(ws, args.ServiceName, &args.EnterpriseMeta)
+				index, checks, err = state.ServiceChecks(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -236,30 +236,38 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			var thisReply structs.IndexedCheckServiceNodes
+
 			index, nodes, err := f(ws, state, args)
 			if err != nil {
 				return err
 			}
 
-			reply.Index, reply.Nodes = index, nodes
+			thisReply.Index, thisReply.Nodes = index, nodes
+
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
+				thisReply.Nodes = nodeMetaFilter(args.NodeMetaFilters, thisReply.Nodes)
 			}
 
-			raw, err := filter.Execute(reply.Nodes)
+			raw, err := filter.Execute(thisReply.Nodes)
 			if err != nil {
 				return err
 			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = raw.(structs.CheckServiceNodes)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
 			// results that would be filtered out even if the user did have permission.
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
+			if err := h.srv.filterACL(args.Token, &thisReply); err != nil {
 				return err
 			}
 
-			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
+			if err := h.srv.sortNodesByDistanceFrom(args.Source, thisReply.Nodes); err != nil {
+				return err
+			}
+
+			*reply = thisReply
+			return nil
 		})
 
 	// Provide some metrics
@@ -304,7 +312,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 // can be used by the ServiceNodes endpoint.
 
 func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.CheckConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+	return s.CheckConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 }
 
 func (h *Health) serviceNodesIngress(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
@@ -317,11 +325,11 @@ func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *
 	// Agents < v1.3.0 populate the ServiceTag field. In this case,
 	// use ServiceTag instead of the ServiceTags field.
 	if args.ServiceTag != "" {
-		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag}, &args.EnterpriseMeta)
+		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag}, &args.EnterpriseMeta, args.PeerName)
 	}
-	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags, &args.EnterpriseMeta)
+	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags, &args.EnterpriseMeta, args.PeerName)
 }
 
 func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.CheckServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+	return s.CheckServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 }

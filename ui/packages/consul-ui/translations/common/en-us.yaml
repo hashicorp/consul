@@ -5,6 +5,7 @@ brand:
   nomad: Nomad
   vault: Vault
   aws: AWS
+  aws-iam: AWS IAM
   kubernetes: Kubernetes
   jwt: JWT
   oidc: OIDC

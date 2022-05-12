@@ -118,7 +118,7 @@ to update to the new version.
 1. Ensure you've read the [Upgrading Consul](/docs/upgrading) documentation.
 1. Ensure you've read any [specific instructions](/docs/upgrading/upgrade-specific) for the version you're upgrading
    to and the Consul [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md) for that version.
-1. Read our [Compatibility Matrix](/docs/k8s/upgrade/compatibility) to ensure
+1. Read our [Compatibility Matrix](/docs/k8s/installation/compatibility) to ensure
    your current Helm chart version supports this Consul version. If it does not,
    you may need to also upgrade your Helm chart version at the same time.
 1. Set `global.image` in your `values.yaml` to the desired version:
@@ -201,7 +201,7 @@ that can be used.
 If you are using Consul's service mesh features, as opposed to the [service sync](/docs/k8s/service-sync)
 functionality, you must be aware of the behavior of the service mesh during upgrades.
 
-Consul clients operate as a daemonset across all Kubernernetes nodes. During an upgrade,
+Consul clients operate as a daemonset across all Kubernetes nodes. During an upgrade,
 if the Consul client daemonset has changed, the client pods will need to be restarted
 because their spec has changed.
 

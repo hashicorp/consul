@@ -47,12 +47,22 @@ module.exports = [
   },
   {
     source: '/docs/agent/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
     permanent: true,
   },
   {
     source: '/docs/acl/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/roles',
+    destination: '/docs/security/acl/acl-roles',
     permanent: true,
   },
   { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
@@ -1093,6 +1103,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/installation/compatibility',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role',
     destination: '/commands/acl/role',
     permanent: true,
@@ -1241,22 +1256,57 @@ module.exports = [
   },
   {
     source: '/docs/release-notes/1-11-0',
-    destination: '/docs/releases/release-notes/v1_11_0',
+    destination: '/docs/release-notes/consul/v1_11_x',
     permanent: true,
   },
   {
     source: '/docs/release-notes/1-10-0',
-    destination: '/docs/releases/release-notes/v1_10_0',
+    destination: '/docs/release-notes/consul/v1_10_x',
     permanent: true,
   },
   {
     source: '/docs/release-notes/1-9-0',
-    destination: '/docs/releases/release-notes/v1_9_0',
+    destination: '/docs/release-notes/consul/v1_9_x',
     permanent: true,
   },
   {
     source: '/api/:path*',
     destination: '/api-docs/:path*',
+    permanent: true,
+  },
+  {
+    source: '/docs/agent/options',
+    destination: '/docs/agent/config/config-files',
+    permanent: true,
+  },
+  {
+    source: '/docs/releases/release-notes/v1_11_0',
+    destination: '/docs/release-notes/consul/v1_11_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/release-notes/consul/v1_10_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/release-notes/consul/v1_9_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/release-notes/0-5-0',
+    destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/api-gateway-usage',
+    destination: '/docs/api-gateway/consul-api-gateway-install',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/vault/connect-ca',
+    destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
     permanent: true,
   },
 ]

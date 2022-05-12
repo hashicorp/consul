@@ -196,7 +196,7 @@ func TestStateStore_Txn_Node(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Nodes(nil, nil)
+	idx, actual, err := s.Nodes(nil, nil, "")
 	require.NoError(t, err)
 	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
@@ -311,7 +311,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeServices(nil, "node1", nil)
+	idx, actual, err := s.NodeServices(nil, "node1", nil, "")
 	require.NoError(t, err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -464,7 +464,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeChecks(nil, "node1", nil)
+	idx, actual, err := s.NodeChecks(nil, "node1", nil, "")
 	require.NoError(t, err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)

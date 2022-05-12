@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
@@ -151,6 +152,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
+	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
+	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
+
 	return d, nil
 }
 
@@ -165,11 +169,14 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 	}
 
 	pool := &pool.ConnPool{
-		Server:          config.ServerMode,
-		SrcAddr:         rpcSrcAddr,
-		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		TLSConfigurator: tls,
-		Datacenter:      config.Datacenter,
+		Server:           config.ServerMode,
+		SrcAddr:          rpcSrcAddr,
+		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		TLSConfigurator:  tls,
+		Datacenter:       config.Datacenter,
+		Timeout:          config.RPCHoldTimeout,
+		MaxQueryTime:     config.MaxQueryTime,
+		DefaultQueryTime: config.DefaultQueryTime,
 	}
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute

@@ -3,22 +3,26 @@ package dataplane
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	acl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc/public"
 	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-func (d *Server) SupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.SupportedDataplaneFeaturesRequest) (*pbdataplane.SupportedDataplaneFeaturesResponse, error) {
-	d.Logger.Trace("Received request for supported dataplane features")
+func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
+	logger := s.Logger.Named("get-supported-dataplane-features").With("request_id", public.TraceID())
+
+	logger.Trace("Started processing request")
+	defer logger.Trace("Finished processing request")
 
 	// Require the given ACL token to have `service:write` on any service
 	token := public.TokenFromContext(ctx)
 	var authzContext acl.AuthorizerContext
 	entMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	authz, err := d.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, &authzContext)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, &authzContext)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
@@ -41,5 +45,5 @@ func (d *Server) SupportedDataplaneFeatures(ctx context.Context, req *pbdataplan
 		},
 	}
 
-	return &pbdataplane.SupportedDataplaneFeaturesResponse{SupportedDataplaneFeatures: supportedFeatures}, nil
+	return &pbdataplane.GetSupportedDataplaneFeaturesResponse{SupportedDataplaneFeatures: supportedFeatures}, nil
 }

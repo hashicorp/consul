@@ -22,8 +22,8 @@
         }
     ],
     "ExpandedRoles": null,
-    "NamespaceDefaultPolicies": null,
-    "NamespaceDefaultRoles": null,
+    "NamespaceDefaultPolicyIDs": null,
+    "NamespaceDefaultRoleIDs": null,
     "AgentACLDefaultPolicy": "allow",
     "AgentACLDownPolicy": "deny",
     "ResolvedByAgent": "leader",

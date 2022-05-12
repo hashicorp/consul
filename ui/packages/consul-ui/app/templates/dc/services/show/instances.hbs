@@ -75,9 +75,10 @@ as |sort filters items proxyMeta|}}
       <collection.Empty>
         <EmptyState>
           <BlockSlot @name="body">
-            <p>
-              There are no instances{{#if (gt items.length 0)}} matching that search{{/if}}.
-            </p>
+            {{t "routes.dc.services.show.instances.empty"
+              items=items.length
+              htmlSafe=true
+            }}
           </BlockSlot>
         </EmptyState>
       </collection.Empty>

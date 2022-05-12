@@ -11,10 +11,10 @@ project "consul" {
     repository = "consul"
     release_branches = [
       "main",
-      "release/1.8.x",
       "release/1.9.x",
       "release/1.10.x",
-      "release/1.11.x"
+      "release/1.11.x",
+      "release/1.12.x",
     ]
   }
 }
@@ -84,8 +84,21 @@ event "notarize-darwin-amd64" {
   }
 }
 
-event "notarize-windows-386" {
+event "notarize-darwin-arm64" {
   depends = ["notarize-darwin-amd64"]
+  action "notarize-darwin-arm64" {
+    organization = "hashicorp"
+    repository   = "crt-workflows-common"
+    workflow     = "notarize-darwin-arm64"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
+event "notarize-windows-386" {
+  depends = ["notarize-darwin-arm64"]
   action "notarize-windows-386" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
@@ -165,6 +178,7 @@ event "promote-staging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "promote-staging"
+    config = "release-metadata.hcl"
   }
 
   notification {

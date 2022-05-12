@@ -22,7 +22,7 @@ section[data-route='dc.show.serverstatus'] {
   @extend %panel;
   box-shadow: var(--decor-elevation-000);
   padding: var(--padding-y) var(--padding-x);
-  width: 770px;
+  max-width: 770px;
   display: flex;
   flex-wrap: wrap;
 }
@@ -32,6 +32,11 @@ section[data-route='dc.show.serverstatus'] {
   margin-bottom: 1rem; /* 16px */
   border-bottom: var(--decor-border-100);
   border-color: rgb(var(--tone-border));
+}
+%server-failure-tolerance > header a {
+  float: right;
+  margin-top: 4px;
+  font-weight: var(--typo-weight-semibold);
 }
 %server-failure-tolerance header em {
   @extend %pill-200;

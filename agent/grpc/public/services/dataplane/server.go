@@ -1,11 +1,13 @@
 package dataplane
 
 import (
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"github.com/hashicorp/go-hclog"
-	"google.golang.org/grpc"
 )
 
 type Server struct {
@@ -13,13 +15,20 @@ type Server struct {
 }
 
 type Config struct {
+	GetStore    func() StateStore
 	Logger      hclog.Logger
 	ACLResolver ACLResolver
+	// Datacenter of the Consul server this gRPC server is hosted on
+	Datacenter string
 }
 
-//go:generate mockery -name ACLResolver -inpkg
+type StateStore interface {
+	ServiceNode(string, string, string, *acl.EnterpriseMeta, string) (uint64, *structs.ServiceNode, error)
+}
+
+//go:generate mockery --name ACLResolver --inpackage
 type ACLResolver interface {
-	ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
 }
 
 func NewServer(cfg Config) *Server {

@@ -1,6 +1,7 @@
 package pbconnect
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbcommon"
 )
@@ -29,14 +30,14 @@ func RaftIndexTo(f *pbcommon.RaftIndex) structs.RaftIndex {
 	return *t
 }
 
-func EnterpriseMetaFrom(f structs.EnterpriseMeta) *pbcommon.EnterpriseMeta {
+func EnterpriseMetaFrom(f acl.EnterpriseMeta) *pbcommon.EnterpriseMeta {
 	t := new(pbcommon.EnterpriseMeta)
 	pbcommon.EnterpriseMetaFromStructs(&f, t)
 	return t
 }
 
-func EnterpriseMetaTo(f *pbcommon.EnterpriseMeta) structs.EnterpriseMeta {
-	t := new(structs.EnterpriseMeta)
+func EnterpriseMetaTo(f *pbcommon.EnterpriseMeta) acl.EnterpriseMeta {
+	t := new(acl.EnterpriseMeta)
 	pbcommon.EnterpriseMetaToStructs(f, t)
 	return *t
 }

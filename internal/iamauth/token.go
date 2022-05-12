@@ -13,9 +13,7 @@ import (
 )
 
 const (
-	amzHeaderPrefix    = "X-Amz-"
-	defaultIAMEndpoint = "https://iam.amazonaws.com"
-	defaultSTSEndpoint = "https://sts.amazonaws.com"
+	amzHeaderPrefix = "X-Amz-"
 )
 
 var defaultAllowedSTSRequestHeaders = []string{
@@ -98,6 +96,10 @@ func NewBearerToken(loginToken string, config *Config) (*BearerToken, error) {
 		token.getIAMEntityHeader = header
 		token.parsedIAMEntityURL = parsedUrl
 
+		if err := token.validateIAMHostname(); err != nil {
+			return nil, err
+		}
+
 		reqType, err := token.validateIAMEntityBody()
 		if err != nil {
 			return nil, err
@@ -112,6 +114,9 @@ func (t *BearerToken) validate() error {
 	if t.getCallerIdentityMethod != "POST" {
 		return fmt.Errorf("iam_http_request_method must be POST")
 	}
+	if err := t.validateSTSHostname(); err != nil {
+		return err
+	}
 	if err := t.validateGetCallerIdentityBody(); err != nil {
 		return err
 	}
@@ -119,6 +124,62 @@ func (t *BearerToken) validate() error {
 		return err
 	}
 	return nil
+}
+
+// validateSTSHostname checks the CallerIdentityURL in the BearerToken
+// either matches the admin configured STSEndpoint or, if STSEndpoint is not set,
+// that the URL matches a known Amazon AWS hostname for the STS service, one of:
+//
+//    sts.amazonaws.com
+//    sts.*.amazonaws.com
+//    sts-fips.amazonaws.com
+//    sts-fips.*.amazonaws.com
+//
+// See https://docs.aws.amazon.com/general/latest/gr/sts.html
+func (t *BearerToken) validateSTSHostname() error {
+	if t.config.STSEndpoint != "" {
+		// If an STS endpoint is configured, we (elsewhere) send the request to that endpoint.
+		return nil
+	}
+	if t.parsedCallerIdentityURL == nil {
+		return fmt.Errorf("invalid GetCallerIdentity URL: %v", t.getCallerIdentityURL)
+	}
+
+	// Otherwise, validate the hostname looks like a known STS endpoint.
+	host := t.parsedCallerIdentityURL.Hostname()
+	if strings.HasSuffix(host, ".amazonaws.com") &&
+		(strings.HasPrefix(host, "sts.") || strings.HasPrefix(host, "sts-fips.")) {
+		return nil
+	}
+	return fmt.Errorf("invalid STS hostname: %q", host)
+}
+
+// validateIAMHostname checks the IAMEntityURL in the BearerToken
+// either matches the admin configured IAMEndpoint or, if IAMEndpoint is not set,
+// that the URL matches a known Amazon AWS hostname for the IAM service, one of:
+//
+//    iam.amazonaws.com
+//    iam.*.amazonaws.com
+//    iam-fips.amazonaws.com
+//    iam-fips.*.amazonaws.com
+//
+// See https://docs.aws.amazon.com/general/latest/gr/iam-service.html
+func (t *BearerToken) validateIAMHostname() error {
+	if t.config.IAMEndpoint != "" {
+		// If an IAM endpoint is configured, we (elsewhere) send the request to that endpoint.
+		return nil
+	}
+	if t.parsedIAMEntityURL == nil {
+		return fmt.Errorf("invalid IAM URL: %v", t.getIAMEntityURL)
+	}
+
+	// Otherwise, validate the hostname looks like a known IAM endpoint.
+	host := t.parsedIAMEntityURL.Hostname()
+	if strings.HasSuffix(host, ".amazonaws.com") &&
+		(strings.HasPrefix(host, "iam.") || strings.HasPrefix(host, "iam-fips.")) {
+		return nil
+	}
+	return fmt.Errorf("invalid IAM hostname: %q", host)
 }
 
 // https://github.com/hashicorp/vault/blob/b17e3256dde937a6248c9a2fa56206aac93d07de/builtin/credential/aws/path_login.go#L1439
@@ -265,7 +326,7 @@ func parseUrl(s string) (*url.URL, error) {
 		return nil, err
 	}
 	// url.Parse doesn't error on empty string
-	if u == nil || u.Scheme == "" || u.Host == "" || u.Path == "" {
+	if u == nil || u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("url is invalid: %q", s)
 	}
 	return u, nil
@@ -275,10 +336,9 @@ func parseUrl(s string) (*url.URL, error) {
 // from the bearer token.
 func (t *BearerToken) GetCallerIdentityRequest() (*http.Request, error) {
 	// NOTE: We need to ensure we're calling STS, instead of acting as an unintended network proxy
-	// The protection against this is that this method will only call the endpoint specified in the
-	// client config (defaulting to sts.amazonaws.com), so it would require an admin to override
-	// the endpoint to talk to alternate web addresses
-	endpoint := defaultSTSEndpoint
+	// We validate up-front that t.getCallerIdentityURL is a known AWS STS hostname.
+	// Otherwise, we send to the admin-configured STSEndpoint.
+	endpoint := t.getCallerIdentityURL
 	if t.config.STSEndpoint != "" {
 		endpoint = t.config.STSEndpoint
 	}
@@ -295,7 +355,7 @@ func (t *BearerToken) GetCallerIdentityRequest() (*http.Request, error) {
 // GetEntityRequest returns the iam:GetUser or iam:GetRole request from the request details,
 // if present, embedded in the headers of the sts:GetCallerIdentity request.
 func (t *BearerToken) GetEntityRequest() (*http.Request, error) {
-	endpoint := defaultIAMEndpoint
+	endpoint := t.getIAMEntityURL
 	if t.config.IAMEndpoint != "" {
 		endpoint = t.config.IAMEndpoint
 	}

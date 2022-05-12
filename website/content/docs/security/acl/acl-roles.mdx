@@ -11,7 +11,7 @@ description: >-
 A role is a collection of policies that your ACL administrator can link to a token.
 They enable you to reuse policies by decoupling the policies from the token distributed to team members.
 Instead, the token is linked to the role, which is able to hold several policies that can be updated asynchronously without distributing new tokens to users.
-As a result, roles can provide a more convenient authentication infrastrcture than creating unique policies and tokens for each requester.
+As a result, roles can provide a more convenient authentication infrastructure than creating unique policies and tokens for each requester.
 
 ## Workflow Overview
 
@@ -19,7 +19,7 @@ Roles are configurations linking several policies to a token. The following proc
 
 1. Assemble rules into policies (see [Policies](/docs/security/acl/acl-policies)) and register them in Consul.
 1. Define a role and include the policy IDs or names.
-1. Register the role in Consule and link it to a token.
+1. Register the role in Consul and link it to a token.
 1. Distribute the tokens to users for implementation.
 
 ## Creating Roles
@@ -73,7 +73,7 @@ Roles may contain the following attributes:
 
 You can specify a service identity when configuring roles or linking tokens to policies. Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
-Service identities are used during the authorization process to automatically generate a policy for the service(s) specifed. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh. Refer to the [service mesh](/docs/connect) topic for additional information about Consul service mesh. 
+Service identities are used during the authorization process to automatically generate a policy for the service(s) specified. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh. Refer to the [service mesh](/docs/connect) topic for additional information about Consul service mesh.
 
 ### Service Identity Specification
 
@@ -104,7 +104,7 @@ Use the following syntax to define a service identity:
 
 - `ServiceIdentities`: Declares a service identity block.
 - `ServiceIdentities.ServiceName`: String value that specifies the name of the service you want to associate with the policy.
-- `ServiceIdentitites.Datacenters`: Array that specifies the names of datacenters in which the service identity applies. This field is optional.
+- `ServiceIdentities.Datacenters`: Array that specifies the names of datacenters in which the service identity applies. This field is optional.
 
 Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payload) for additional information and examples.
 
@@ -217,7 +217,7 @@ node_prefix "" {
 
 </CodeBlockConfig>
 
-Per the `ServiceIdentitites.Datacenters` configuration, the `db` policy is scoped to resources in the `dc1` datacenter.
+Per the `ServiceIdentities.Datacenters` configuration, the `db` policy is scoped to resources in the `dc1` datacenter.
 
 <CodeBlockConfig filename="db-policy.hcl">
 
@@ -247,7 +247,7 @@ node_prefix "" {
 
 You can specify a node identity when configuring roles or linking tokens to policies. _Node_ commonly refers to a Consul agent, but a node can also be a physical server, cloud instance, virtual machine, or container. 
 
-Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specifed. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent. 
+Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
 
 ### Node Identity Specification
 
@@ -260,7 +260,7 @@ Use the following syntax to define a node identity:
   "NodeIdentities": [
     {
       "NodeName": "<node name>",
-      "Datacenters": ["<datacenter name>"]
+      "Datacenter": "<datacenter name>"
     }
   ]
 }
@@ -270,7 +270,7 @@ Use the following syntax to define a node identity:
 ```hcl
 NodeIdentities = {
   NodeName = "<node name>"
-  Datacenters = ["<datacenter name>"]
+  Datacenter = "<datacenter name>"
 }
 ```
 
@@ -278,7 +278,7 @@ NodeIdentities = {
 
 - `NodeIdentities`: Declares a node identity block.
 - `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
-- `NodeIdentitites.Datacenters`: Array that specifies the names of datacenters in which the node identity applies. This field is optional.
+- `NodeIdentities.Datacenter`: String value that specifies the name of the datacenter in which the node identity applies.
 
 Refer to the the [API documentation for roles](/api-docs/acl/roles#sample-payload) for additional information and examples.
 

@@ -7,10 +7,15 @@ as |route|>
         <TagList @item={{hash Tags=tags}} />
     {{else}}
         <EmptyState>
+          <BlockSlot @name="header">
+            <h2>
+              {{t 'routes.dc.services.show.tags.empty.header'}}
+            </h2>
+          </BlockSlot>
           <BlockSlot @name="body">
-            <p>
-              There are no tags.
-            </p>
+            {{t 'routes.dc.services.show.tags.empty.body'
+              htmlSafe=true
+            }}
           </BlockSlot>
         </EmptyState>
     {{/if}}

@@ -108,7 +108,7 @@ func (id *missingIdentity) IsLocal() bool {
 	return false
 }
 
-func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
+func (id *missingIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
@@ -182,7 +182,7 @@ type ACLResolverSettings struct {
 	ACLsEnabled    bool
 	Datacenter     string
 	NodeName       string
-	EnterpriseMeta structs.EnterpriseMeta
+	EnterpriseMeta acl.EnterpriseMeta
 
 	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
@@ -264,7 +264,7 @@ type ACLResolver struct {
 	agentRecoveryAuthz acl.Authorizer
 }
 
-func agentRecoveryAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
+func agentRecoveryAuthorizer(nodeName string, entMeta *acl.EnterpriseMeta, aclConf *acl.Config) (acl.Authorizer, error) {
 	var conf acl.Config
 	if aclConf != nil {
 		conf = *aclConf
@@ -344,8 +344,6 @@ func (r *ACLResolver) Close() {
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
-	cacheID := tokenSecretCacheID(token)
-
 	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.backend.ACLDatacenter(),
 		TokenID:     token,
@@ -360,20 +358,20 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	err := r.backend.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
 		if resp.Token == nil {
-			r.cache.PutIdentity(cacheID, nil)
+			r.cache.RemoveIdentityWithSecretToken(token)
 			return nil, acl.ErrNotFound
 		} else if resp.Token.Local && r.config.Datacenter != resp.SourceDatacenter {
-			r.cache.PutIdentity(cacheID, nil)
+			r.cache.RemoveIdentityWithSecretToken(token)
 			return nil, acl.PermissionDeniedError{Cause: fmt.Sprintf("This is a local token in datacenter %q", resp.SourceDatacenter)}
 		} else {
-			r.cache.PutIdentity(cacheID, resp.Token)
+			r.cache.PutIdentityWithSecretToken(token, resp.Token)
 			return resp.Token, nil
 		}
 	}
 
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
-		r.cache.PutIdentity(cacheID, nil)
+		r.cache.RemoveIdentityWithSecretToken(token)
 		return nil, acl.ErrNotFound
 
 	}
@@ -381,11 +379,11 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	// some other RPC error
 	if cached != nil && (r.config.ACLDownPolicy == "extend-cache" || r.config.ACLDownPolicy == "async-cache") {
 		// extend the cache
-		r.cache.PutIdentity(cacheID, cached.Identity)
+		r.cache.PutIdentityWithSecretToken(token, cached.Identity)
 		return cached.Identity, nil
 	}
 
-	r.cache.PutIdentity(cacheID, nil)
+	r.cache.RemoveIdentityWithSecretToken(token)
 	return nil, err
 }
 
@@ -399,7 +397,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	}
 
 	// Check the cache before making any RPC requests
-	cacheEntry := r.cache.GetIdentity(tokenSecretCacheID(token))
+	cacheEntry := r.cache.GetIdentityWithSecretToken(token)
 	if cacheEntry != nil && cacheEntry.Age() <= r.config.ACLTokenTTL {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
 		return cacheEntry.Identity, nil
@@ -549,7 +547,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 	if acl.IsErrNotFound(err) {
 		// make sure to indicate that this identity is no longer valid within
 		// the cache
-		r.cache.PutIdentity(tokenSecretCacheID(identity.SecretToken()), nil)
+		r.cache.RemoveIdentityWithSecretToken(identity.SecretToken())
 
 		// Do not touch the cache. Getting a top level ACL not found error
 		// only indicates that the secret token used in the request
@@ -560,7 +558,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 	if acl.IsErrPermissionDenied(err) {
 		// invalidate our ID cache so that identity resolution will take place
 		// again in the future
-		r.cache.RemoveIdentity(tokenSecretCacheID(identity.SecretToken()))
+		r.cache.RemoveIdentityWithSecretToken(identity.SecretToken())
 
 		// Do not remove from the cache for permission denied
 		// what this does indicate is that our view of the token is out of date
@@ -593,8 +591,8 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	var (
 		policyIDs         = identity.PolicyIDs()
 		roleIDs           = identity.RoleIDs()
-		serviceIdentities = identity.ServiceIdentityList()
-		nodeIdentities    = identity.NodeIdentityList()
+		serviceIdentities = structs.ACLServiceIdentities(identity.ServiceIdentityList())
+		nodeIdentities    = structs.ACLNodeIdentities(identity.NodeIdentityList())
 	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
@@ -619,8 +617,8 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	// Now deduplicate any policies or service identities that occur more than once.
 	policyIDs = dedupeStringSlice(policyIDs)
-	serviceIdentities = dedupeServiceIdentities(serviceIdentities)
-	nodeIdentities = dedupeNodeIdentities(nodeIdentities)
+	serviceIdentities = serviceIdentities.Deduplicate()
+	nodeIdentities = nodeIdentities.Deduplicate()
 
 	// Generate synthetic policies for all service identities in effect.
 	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities, identity.EnterpriseMetadata())
@@ -638,7 +636,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	return filtered, nil
 }
 
-func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(serviceIdentities) == 0 {
 		return nil
 	}
@@ -651,7 +649,7 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
-func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(nodeIdentities) == 0 {
 		return nil
 	}
@@ -676,78 +674,12 @@ type plainACLResolver struct {
 
 func (r plainACLResolver) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	// ACLResolver.ResolveTokenAndDefaultMeta returns a ACLResolveResult which
 	// can't be used in other packages, but it embeds acl.Authorizer which can.
 	return r.resolver.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
-}
-
-func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLServiceIdentity {
-	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
-
-	if len(in) <= 1 {
-		return in
-	}
-
-	sort.Slice(in, func(i, j int) bool {
-		return in[i].ServiceName < in[j].ServiceName
-	})
-
-	j := 0
-	for i := 1; i < len(in); i++ {
-		if in[j].ServiceName == in[i].ServiceName {
-			// Prefer increasing scope.
-			if len(in[j].Datacenters) == 0 || len(in[i].Datacenters) == 0 {
-				in[j].Datacenters = nil
-			} else {
-				in[j].Datacenters = mergeStringSlice(in[j].Datacenters, in[i].Datacenters)
-			}
-			continue
-		}
-		j++
-		in[j] = in[i]
-	}
-
-	// Discard the skipped items.
-	for i := j + 1; i < len(in); i++ {
-		in[i] = nil
-	}
-
-	return in[:j+1]
-}
-
-func dedupeNodeIdentities(in []*structs.ACLNodeIdentity) []*structs.ACLNodeIdentity {
-	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
-
-	if len(in) <= 1 {
-		return in
-	}
-
-	sort.Slice(in, func(i, j int) bool {
-		if in[i].NodeName < in[j].NodeName {
-			return true
-		}
-
-		return in[i].Datacenter < in[j].Datacenter
-	})
-
-	j := 0
-	for i := 1; i < len(in); i++ {
-		if in[j].NodeName == in[i].NodeName && in[j].Datacenter == in[i].Datacenter {
-			continue
-		}
-		j++
-		in[j] = in[i]
-	}
-
-	// Discard the skipped items.
-	for i := j + 1; i < len(in); i++ {
-		in[i] = nil
-	}
-
-	return in[:j+1]
 }
 
 func mergeStringSlice(a, b []string) []string {
@@ -1174,21 +1106,45 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	return true
 }
 
-func (r *ACLResolver) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (ACLResolveResult, error) {
+// TODO(peering): fix all calls to use the new signature and rename it back
+func (r *ACLResolver) ResolveTokenAndDefaultMeta(
+	token string,
+	entMeta *acl.EnterpriseMeta,
+	authzContext *acl.AuthorizerContext,
+) (ACLResolveResult, error) {
+	return r.ResolveTokenAndDefaultMetaWithPeerName(token, entMeta, structs.DefaultPeerKeyword, authzContext)
+}
+
+func (r *ACLResolver) ResolveTokenAndDefaultMetaWithPeerName(
+	token string,
+	entMeta *acl.EnterpriseMeta,
+	peerName string,
+	authzContext *acl.AuthorizerContext,
+) (ACLResolveResult, error) {
 	result, err := r.ResolveToken(token)
 	if err != nil {
 		return ACLResolveResult{}, err
 	}
 
 	if entMeta == nil {
-		entMeta = &structs.EnterpriseMeta{}
+		entMeta = &acl.EnterpriseMeta{}
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
-	if result.ACLIdentity != nil {
+	switch {
+	case peerName == "" && result.ACLIdentity != nil:
 		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
-	} else {
+	case result.ACLIdentity != nil:
+		// We _do not_ normalize the enterprise meta from the token when a peer
+		// name was specified because namespaces across clusters are not
+		// equivalent. A local namespace is _never_ correct for a remote query.
+		entMeta.Merge(
+			structs.DefaultEnterpriseMetaInPartition(
+				result.ACLIdentity.EnterpriseMetadata().PartitionOrDefault(),
+			),
+		)
+	default:
 		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
@@ -1279,7 +1235,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 
 // filterServices is used to filter a set of services based on ACLs. Returns
 // true if any elements were removed.
-func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) bool {
+func (f *aclFilter) filterServices(services structs.Services, entMeta *acl.EnterpriseMeta) bool {
 	var authzContext acl.AuthorizerContext
 	entMeta.FillAuthzContext(&authzContext)
 

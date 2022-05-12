@@ -7,10 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
 )
 
 type OverviewManager struct {
@@ -69,7 +71,7 @@ func getCatalogOverview(catalog *structs.CatalogContents) *structs.CatalogSummar
 	serviceInstanceChecks := make(map[string][]*structs.HealthCheck)
 	checkSummaries := make(map[string]structs.HealthSummary)
 
-	entMetaIDString := func(id string, entMeta structs.EnterpriseMeta) string {
+	entMetaIDString := func(id string, entMeta acl.EnterpriseMeta) string {
 		return fmt.Sprintf("%s/%s/%s", id, entMeta.PartitionOrEmpty(), entMeta.NamespaceOrEmpty())
 	}
 

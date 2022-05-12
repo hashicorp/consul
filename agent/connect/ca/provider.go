@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-//go:generate mockery -name Provider -inpkg
+//go:generate mockery --name Provider --inpackage
 
 // ErrRateLimited is a sentinel error value Providers may return from any method
 // to indicate that the operation can't complete due to a temporary rate limit.
@@ -94,7 +94,7 @@ type Provider interface {
 	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
 	// returned should include only the leaf certificate as all Intermediates
 	// needed to validate it will be added by Consul based on the active
-	// intemediate and any cross-signed intermediates managed by Consul. Note that
+	// intermediate and any cross-signed intermediates managed by Consul. Note that
 	// providers should return ErrRateLimited if they are unable to complete the
 	// operation due to upstream rate limiting so that clients can intelligently
 	// backoff.

@@ -150,7 +150,7 @@ func areIntentionsInConfigEntries(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
 
 // LegacyIntentions is like Intentions() but only returns legacy intentions.
 // This is exposed for migration purposes.
-func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -159,7 +159,7 @@ func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseM
 }
 
 // Intentions returns the list of all intentions. The boolean response value is true if it came from config entries.
-func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func (s *Store) Intentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -173,7 +173,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 	return configIntentionsListTxn(tx, ws, entMeta)
 }
 
-func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
@@ -997,8 +997,9 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 
 	// TODO(tproxy): One remaining improvement is that this includes non-Connect services (typical services without a proxy)
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
-	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-proxy, terminating)
-	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical)
+	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
+	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
+	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 	}
@@ -1008,7 +1009,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 
 	if downstreams {
 		// Ingress gateways can only ever be downstreams, since mesh services don't dial them.
-		index, ingress, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindIngressGateway)
+		index, ingress, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindIngressGateway, *wildcardMeta)
 		if err != nil {
 			return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 		}

@@ -4,10 +4,12 @@
 package consul
 
 import (
+	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 func (a *ACL) tokenUpsertValidateEnterprise(token *structs.ACLToken, existing *structs.ACLToken) error {
@@ -25,21 +27,10 @@ func (a *ACL) roleUpsertValidateEnterprise(role *structs.ACLRole, existing *stru
 	return state.ACLRoleUpsertValidateEnterprise(role, existing)
 }
 
-func (a *ACL) enterpriseAuthMethodTypeValidation(authMethodType string) error {
-	return nil
-}
-
 func enterpriseAuthMethodValidation(method *structs.ACLAuthMethod, validator authmethod.Validator) error {
 	return nil
 }
 
-func computeTargetEnterpriseMeta(
-	method *structs.ACLAuthMethod,
-	verifiedIdentity *authmethod.Identity,
-) (*structs.EnterpriseMeta, error) {
-	return &structs.EnterpriseMeta{}, nil
-}
-
-func getTokenNamespaceDefaults(ws memdb.WatchSet, state *state.Store, entMeta *structs.EnterpriseMeta) ([]string, []string, error) {
+func getTokenNamespaceDefaults(ws memdb.WatchSet, state *state.Store, entMeta *acl.EnterpriseMeta) ([]string, []string, error) {
 	return nil, nil, nil
 }

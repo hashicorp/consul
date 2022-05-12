@@ -206,6 +206,9 @@ The table below shows this endpoint's support for
 
 - `Body` `(string: "")` - Specifies a body that should be sent with `HTTP` checks.
 
+- `DisableRedirects` `(bool: false)` - Specifies whether to disable following HTTP
+  redirects when performing an HTTP check.
+
 - `Header` `(map[string][]string: {})` - Specifies a set of headers that should
   be set for `HTTP` checks. Each header can have multiple values.
 
@@ -273,6 +276,7 @@ The table below shows this endpoint's support for
   "Method": "POST",
   "Header": { "Content-Type": ["application/json"] },
   "Body": "{\"check\":\"mem\"}",
+  "DisableRedirects": true,
   "TCP": "example.com:22",
   "Interval": "10s",
   "Timeout": "5s",

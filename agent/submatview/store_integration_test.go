@@ -43,10 +43,8 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 	}
 
 	sh := snapshotHandler{producers: producers}
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealth: sh.Snapshot,
-	}
-	pub := stream.NewEventPublisher(handlers, 10*time.Millisecond)
+	pub := stream.NewEventPublisher(10 * time.Millisecond)
+	pub.RegisterHandler(pbsubscribe.Topic_ServiceHealth, sh.Snapshot)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -142,7 +140,7 @@ type backend struct {
 	pub *stream.EventPublisher
 }
 
-func (b backend) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (b backend) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
 	return acl.AllowAll(), nil
 }
 
@@ -255,7 +253,6 @@ func (e *eventProducer) Produce(ctx context.Context, pub *stream.EventPublisher)
 					},
 				},
 			}
-
 		}
 
 		e.nodesLock.Lock()

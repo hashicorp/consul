@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1801,7 +1802,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other", 0)
 	})
 
@@ -1829,7 +1830,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		}
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other", 2)
 	})
 }

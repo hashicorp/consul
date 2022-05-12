@@ -124,6 +124,14 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 			if us.DestinationNamespace == "" {
 				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
 			}
+
+			// If PeerName is not empty, the DestinationPartition refers
+			// to the local Partition in which the Peer exists and the
+			// DestinationNamespace refers to the Namespace residing in
+			// the remote peer
+			if us.DestinationPeer == "" {
+				proxyCfg.Upstreams[idx].DestinationPeer = ns.PeerName
+			}
 		}
 	}
 

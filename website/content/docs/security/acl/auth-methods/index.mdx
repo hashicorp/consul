@@ -39,6 +39,7 @@ service mesh with minimal operator intervention.
 | [`kubernetes`](/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
 | [`jwt`](/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
 | [`oidc`](/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
+| [`aws-iam`](/docs/security/acl/auth-methods/aws-iam)       | 1.12.0+                           |
 
 ## Operator Configuration
 
@@ -60,7 +61,7 @@ using the API or command line before they can be used by applications.
   endpoints](/api-docs/acl/binding-rules).
 
 -> **Note** - To configure auth methods in any connected secondary datacenter,
-[ACL token replication](/docs/agent/options#acl_enable_token_replication)
+[ACL token replication](/docs/agent/config/config-files#acl_enable_token_replication)
 must be enabled. Auth methods require the ability to create local tokens which
 is restricted to the primary datacenter and any secondary datacenters with ACL
 token replication enabled.
@@ -68,8 +69,8 @@ token replication enabled.
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically
-linking [roles](/docs/security/acl/acl-system#acl-roles) and [service
-identities](/docs/security/acl/acl-system#acl-service-identities) to newly created
+linking [roles](/docs/security/acl/acl-roles) and [service
+identities](/docs/security/acl/acl-roles#service-identities) to newly created
 tokens without operator intervention.
 
 Successful authentication with an auth method returns a set of trusted
@@ -87,8 +88,8 @@ Each binding rule is composed of two portions:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a
-  [role](/docs/security/acl/acl-system#acl-roles) or to a [service
-  identity](/docs/security/acl/acl-system#acl-service-identities) by name. The name
+  [role](/docs/security/acl/acl-roles) or to a [service
+  identity](/docs/security/acl/acl-roles#service-identities) by name. The name
   can be specified with a plain string or the bind name can be lightly
   templated using [HIL syntax](https://github.com/hashicorp/hil) to interpolate
   the same values that are usable by the `Selector` syntax. For example:

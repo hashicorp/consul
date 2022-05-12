@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -233,7 +234,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	_, n, err := state.GetNode("foo", nil)
+	_, n, err := state.GetNode("foo", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -241,7 +242,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, s, err := state.NodeService("foo", "svc-foo", nil)
+	_, s, err := state.NodeService("foo", "svc-foo", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -249,7 +250,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil)
+	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

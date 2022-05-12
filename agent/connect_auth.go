@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -23,7 +24,7 @@ import (
 // The ACL token and the auth request are provided and the auth decision (true
 // means authorized) and reason string are returned.
 //
-// If the request input is invalid the error returned will be a BadRequestError,
+// If the request input is invalid the error returned will be a BadRequest HTTPError,
 // if the token doesn't grant necessary access then an acl.ErrPermissionDenied
 // error is returned, otherwise error indicates an unexpected server failure. If
 // access is denied, no error is returned but the first return value is false.
@@ -37,23 +38,23 @@ func (a *Agent) ConnectAuthorize(token string,
 	}
 
 	if req == nil {
-		return returnErr(BadRequestError{"Invalid request"})
+		return returnErr(HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid request"})
 	}
 
 	// We need to have a target to check intentions
 	if req.Target == "" {
-		return returnErr(BadRequestError{"Target service must be specified"})
+		return returnErr(HTTPError{StatusCode: http.StatusBadRequest, Reason: "Target service must be specified"})
 	}
 
 	// Parse the certificate URI from the client ID
 	uri, err := connect.ParseCertURIFromString(req.ClientCertURI)
 	if err != nil {
-		return returnErr(BadRequestError{"ClientCertURI not a valid Connect identifier"})
+		return returnErr(HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Connect identifier"})
 	}
 
 	uriService, ok := uri.(*connect.SpiffeIDService)
 	if !ok {
-		return returnErr(BadRequestError{"ClientCertURI not a valid Service identifier"})
+		return returnErr(HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Service identifier"})
 	}
 
 	// We need to verify service:write permissions for the given token.
@@ -72,7 +73,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	if !uriService.MatchesPartition(req.TargetPartition()) {
 		reason = fmt.Sprintf("Mismatched partitions: %q != %q",
 			uriService.PartitionOrDefault(),
-			structs.PartitionOrDefault(req.TargetPartition()))
+			acl.PartitionOrDefault(req.TargetPartition()))
 		return false, reason, nil, nil
 	}
 

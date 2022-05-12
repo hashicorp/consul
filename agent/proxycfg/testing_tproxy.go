@@ -1,6 +1,8 @@
 package proxycfg
 
 import (
+	"time"
+
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -322,7 +324,11 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 
 		mongo      = structs.NewServiceName("mongo", nil)
 		mongoUID   = NewUpstreamIDFromServiceName(mongo)
-		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "mongo",
+			ConnectTimeout: 33 * time.Second,
+		})
 
 		db = structs.NewServiceName("db", nil)
 	)

@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"testing"
@@ -678,6 +679,10 @@ func TestStructs_NodeService_ValidateTerminatingGateway(t *testing.T) {
 			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{{}} },
 			"Proxy.Upstreams configuration is invalid",
 		},
+		"port": {
+			func(x *NodeService) { x.Port = 0 },
+			"Port must be non-zero",
+		},
 	}
 
 	for name, tc := range cases {
@@ -845,7 +850,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			"port or socketpath must",
+			fmt.Sprintf("Port or SocketPath must be set for a %s", ServiceKindConnectProxy),
 		},
 
 		{
@@ -1120,6 +1125,20 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			},
 			"upstreams cannot contain duplicates",
 		},
+		{
+			"connect-proxy: valid Upstream.PeerDestination",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationPeer: "peer1",
+						LocalBindPort:   5000,
+					},
+				}
+			},
+			"",
+		},
 	}
 
 	for _, tc := range cases {
@@ -1173,6 +1192,36 @@ func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 						DestinationName:      "foo",
 						DestinationPartition: "foo",
 						LocalBindPort:        5000,
+					},
+				}
+			},
+			"",
+		},
+		{
+			"connect-proxy: Upstream with peer targets partition different from NodeService",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "part1",
+						DestinationPeer:      "peer1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams must target peers in the same partition as the service",
+		},
+		{
+			"connect-proxy: Upstream with peer defaults to NodeService's peer",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						// No DestinationPartition here but we assert that it defaults to "bar" and not "default"
+						DestinationPeer: "peer1",
+						LocalBindPort:   5000,
 					},
 				}
 			},
@@ -1239,6 +1288,15 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 			assert.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
+}
+
+func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
+	ns := TestNodeService(t)
+	ns.Connect.Native = true
+	ns.Port = 0
+	err := ns.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Port or SocketPath must be set for a Connect native service.")
 }
 
 func TestStructs_NodeService_IsSame(t *testing.T) {
@@ -1908,6 +1966,8 @@ func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
 var cacheInfoIgnoredFields = map[string]bool{
 	// Datacenter is part of the cache key added by the cache itself.
 	"Datacenter": true,
+	// PeerName is part of the cache key added by the cache itself.
+	"PeerName": true,
 	// QuerySource is always the same for every request from a single agent, so it
 	// is excluded from the key.
 	"Source": true,
@@ -2795,5 +2855,84 @@ func TestGatewayService_IsSame(t *testing.T) {
 
 	if !g.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)
+	}
+}
+
+func TestServiceList_Sort(t *testing.T) {
+	type testcase struct {
+		name   string
+		list   []ServiceName
+		expect []ServiceName
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		t.Run("written order", func(t *testing.T) {
+			ServiceList(tc.list).Sort()
+			require.Equal(t, tc.expect, tc.list)
+		})
+		t.Run("random order", func(t *testing.T) {
+			rand.Shuffle(len(tc.list), func(i, j int) {
+				tc.list[i], tc.list[j] = tc.list[j], tc.list[i]
+			})
+			ServiceList(tc.list).Sort()
+			require.Equal(t, tc.expect, tc.list)
+		})
+	}
+
+	sn := func(name string) ServiceName {
+		return NewServiceName(name, nil)
+	}
+
+	cases := []testcase{
+		{
+			name:   "nil",
+			list:   nil,
+			expect: nil,
+		},
+		{
+			name:   "empty",
+			list:   []ServiceName{},
+			expect: []ServiceName{},
+		},
+		{
+			name:   "one",
+			list:   []ServiceName{sn("foo")},
+			expect: []ServiceName{sn("foo")},
+		},
+		{
+			name: "multiple",
+			list: []ServiceName{
+				sn("food"),
+				sn("zip"),
+				sn("Bar"),
+				sn("ba"),
+				sn("foo"),
+				sn("bar"),
+				sn("Foo"),
+				sn("Zip"),
+				sn("foo"),
+				sn("bar"),
+				sn("barrier"),
+			},
+			expect: []ServiceName{
+				sn("Bar"),
+				sn("Foo"),
+				sn("Zip"),
+				sn("ba"),
+				sn("bar"),
+				sn("bar"),
+				sn("barrier"),
+				sn("foo"),
+				sn("foo"),
+				sn("food"),
+				sn("zip"),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }

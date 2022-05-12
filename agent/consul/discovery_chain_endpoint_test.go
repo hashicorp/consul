@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -58,6 +60,12 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
+		t.ConnectTimeout = 5 * time.Second // default
+		return t
+	}
+
+	targetWithConnectTimeout := func(t *structs.DiscoveryTarget, connectTimeout time.Duration) *structs.DiscoveryTarget {
+		t.ConnectTimeout = connectTimeout
 		return t
 	}
 
@@ -236,7 +244,10 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
+					"web.default.default.dc1": targetWithConnectTimeout(
+						newTarget("web", "", "default", "default", "dc1"),
+						33*time.Second,
+					),
 				},
 			},
 		}
@@ -303,7 +314,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other")
 	})
 
@@ -319,7 +330,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		require.True(t, out)
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other")
 	})
 }

@@ -64,6 +64,9 @@ mesh gateway, the load balancer IP must be routable from the other mesh gateway 
 If using a public load balancer, this is guaranteed. If using a private load balancer
 then you'll need to make sure that its IP is routable from your other clusters.
 
+In addition, if ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URL of
+secondary clusters.
+
 ## Next Steps
 
 Now that you have an overview of federation, proceed to either the

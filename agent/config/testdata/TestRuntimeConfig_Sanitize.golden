@@ -91,6 +91,7 @@
             "AliasService": "",
             "Body": "",
             "DeregisterCriticalServiceAfter": "0s",
+            "DisableRedirects": false,
             "DockerContainerID": "",
             "EnterpriseMeta": {},
             "FailuresBeforeCritical": 0,
@@ -298,6 +299,7 @@
                 "Body": "",
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
+                "DisableRedirects": false,
                 "DockerContainerID": "",
                 "FailuresBeforeCritical": 0,
                 "FailuresBeforeWarning": 0,
@@ -436,6 +438,7 @@
         "DashboardURLTemplates": {},
         "Dir": "",
         "Enabled": false,
+        "HCPEnabled": false,
         "MetricsProvider": "",
         "MetricsProviderFiles": [],
         "MetricsProviderOptionsJSON": "",
@@ -455,6 +458,7 @@
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
     "Version": "",
+    "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": []
 }

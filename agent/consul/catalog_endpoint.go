@@ -133,7 +133,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	_, ns, err := state.NodeServices(nil, args.Node, entMeta)
+	_, ns, err := state.NodeServices(nil, args.Node, entMeta, args.PeerName)
 	if err != nil {
 		return fmt.Errorf("Node lookup failed: %v", err)
 	}
@@ -367,7 +367,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var ns *structs.NodeService
 	if args.ServiceID != "" {
-		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
+		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Service lookup failed: %v", err)
 		}
@@ -375,7 +375,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var nc *structs.HealthCheck
 	if args.CheckID != "" {
-		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
+		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Check lookup failed: %v", err)
 		}
@@ -486,9 +486,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -546,9 +546,9 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -584,7 +584,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta)
+			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -611,13 +611,13 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	switch {
 	case args.Connect:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
-			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 
 	default:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
 			if args.ServiceAddress != "" {
-				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta)
+				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta, args.PeerName)
 			}
 
 			if args.TagFilter {
@@ -630,10 +630,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					tags = []string{args.ServiceTag}
 				}
 
-				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta)
+				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta, args.PeerName)
 			}
 
-			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 	}
 
@@ -768,7 +768,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -824,7 +824,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}

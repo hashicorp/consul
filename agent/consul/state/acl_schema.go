@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -227,12 +228,32 @@ func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
 
 func prefixIndexFromUUIDQuery(arg interface{}) ([]byte, error) {
 	switch v := arg.(type) {
-	case *structs.EnterpriseMeta:
+	case *acl.EnterpriseMeta:
 		return nil, nil
-	case structs.EnterpriseMeta:
+	case acl.EnterpriseMeta:
 		return nil, nil
 	case Query:
 		return variableLengthUUIDStringToBytes(v.Value)
+	}
+
+	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
+}
+
+func prefixIndexFromUUIDWithPeerQuery(arg interface{}) ([]byte, error) {
+	switch v := arg.(type) {
+	case Query:
+		var b indexBuilder
+		peername := v.PeerOrEmpty()
+		if peername == "" {
+			b.String(structs.LocalPeerKeyword)
+		} else {
+			b.String(strings.ToLower(peername))
+		}
+		uuidBytes, err := variableLengthUUIDStringToBytes(v.Value)
+		if err != nil {
+			return nil, err
+		}
+		return append(b.Bytes(), uuidBytes...), nil
 	}
 
 	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)

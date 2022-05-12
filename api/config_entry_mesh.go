@@ -1,6 +1,8 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // MeshConfigEntry manages the global configuration for all service mesh
 // proxies.
@@ -18,6 +20,8 @@ type MeshConfigEntry struct {
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
 
 	TLS *MeshTLSConfig `json:",omitempty"`
+
+	HTTP *MeshHTTPConfig `json:",omitempty"`
 
 	Meta map[string]string `json:",omitempty"`
 
@@ -44,6 +48,10 @@ type MeshDirectionalTLSConfig struct {
 	TLSMinVersion string   `json:",omitempty" alias:"tls_min_version"`
 	TLSMaxVersion string   `json:",omitempty" alias:"tls_max_version"`
 	CipherSuites  []string `json:",omitempty" alias:"cipher_suites"`
+}
+
+type MeshHTTPConfig struct {
+	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
 }
 
 func (e *MeshConfigEntry) GetKind() string            { return MeshConfig }

@@ -9,9 +9,11 @@ description: >-
 # Enhanced Read Scalability with Read Replicas
 
 <EnterpriseAlert>
-  This feature requires{' '}
-  <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}
-  with the Global Visibility, Routing, and Scale module.
+  This feature requires
+  HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+  Refer to the{' '}
+  <a href="/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
+  {' '}for additional information.
 </EnterpriseAlert>
 
 Consul Enterprise provides the ability to scale clustered Consul servers
@@ -19,6 +21,6 @@ to include voting servers and read replicas. Read replicas still receive data fr
 however, they do not take part in quorum election operations. Expanding your Consul cluster in this way can scale
 reads without impacting write latency.
 
-For more details, review the [Consul server configuration](/docs/agent/options)
-documentation and the [-read-replica](/docs/agent/options#_read_replica)
+For more details, review the [Consul server configuration](/docs/agent/config)
+documentation and the [-read-replica](/docs/agent/config/cli-flags#_read_replica)
 configuration flag.

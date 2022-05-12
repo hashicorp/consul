@@ -28,12 +28,12 @@ import (
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
 
 func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 
@@ -59,13 +59,12 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	ids := newCounter()
 
 	var req *structs.RegisterRequest
-	runStep(t, "register two instances of the redis service", func(t *testing.T) {
+	testutil.RunStep(t, "register two instances of the redis service", func(t *testing.T) {
 		req = &structs.RegisterRequest{
 			Node:       "node1",
 			Address:    "3.4.5.6",
@@ -93,7 +92,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		require.NoError(t, backend.store.EnsureRegistration(ids.Next("reg3"), req))
 	})
 
-	runStep(t, "register a service by a different name", func(t *testing.T) {
+	testutil.RunStep(t, "register a service by a different name", func(t *testing.T) {
 		req := &structs.RegisterRequest{
 			Node:       "other",
 			Address:    "2.3.4.5",
@@ -118,7 +117,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	chEvents := make(chan eventOrError, 0)
 	var snapshotEvents []*pbsubscribe.Event
 
-	runStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
+	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:     pbsubscribe.Topic_ServiceHealth,
@@ -133,7 +132,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		}
 	})
 
-	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
+	testutil.RunStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
 				Index: ids.For("reg3"),
@@ -209,7 +208,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
-	runStep(t, "update the registration by adding a check", func(t *testing.T) {
+	testutil.RunStep(t, "update the registration by adding a check", func(t *testing.T) {
 		req.Check = &structs.HealthCheck{
 			Node:        "node2",
 			CheckID:     "check1",
@@ -312,14 +311,15 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 }
 
 type testBackend struct {
+	publisher   *stream.EventPublisher
 	store       *state.Store
-	authorizer  func(token string, entMeta *structs.EnterpriseMeta) acl.Authorizer
+	authorizer  func(token string, entMeta *acl.EnterpriseMeta) acl.Authorizer
 	forwardConn *gogrpc.ClientConn
 }
 
 func (b testBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	_ *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	return b.authorizer(token, entMeta), nil
@@ -333,19 +333,33 @@ func (b testBackend) Forward(_ structs.RPCInfo, fn func(*gogrpc.ClientConn) erro
 }
 
 func (b testBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return b.store.EventPublisher().Subscribe(req)
+	return b.publisher.Subscribe(req)
 }
 
-func newTestBackend() (*testBackend, error) {
+func newTestBackend(t *testing.T) *testBackend {
+	t.Helper()
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
-	if err != nil {
-		return nil, err
-	}
-	store := state.NewStateStoreWithEventPublisher(gc)
-	allowAll := func(string, *structs.EnterpriseMeta) acl.Authorizer {
+	require.NoError(t, err)
+
+	publisher := stream.NewEventPublisher(10 * time.Second)
+
+	store := state.NewStateStoreWithEventPublisher(gc, publisher)
+
+	// normally the handlers are registered on the FSM as state stores may come
+	// and go during snapshot restores. For the purposes of this test backend though we
+	// just register them directly to
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go publisher.Run(ctx)
+	t.Cleanup(cancel)
+
+	allowAll := func(string, *acl.EnterpriseMeta) acl.Authorizer {
 		return acl.AllowAll()
 	}
-	return &testBackend{store: store, authorizer: allowAll}, nil
+	return &testBackend{publisher: publisher, store: store, authorizer: allowAll}
 }
 
 var _ Backend = (*testBackend)(nil)
@@ -409,12 +423,10 @@ func raftIndex(ids *counter, created, modified string) *pbcommon.RaftIndex {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
-	backendLocal, err := newTestBackend()
-	require.NoError(t, err)
+	backendLocal := newTestBackend(t)
 	addrLocal := runTestServer(t, NewServer(backendLocal, hclog.New(nil)))
 
-	backendRemoteDC, err := newTestBackend()
-	require.NoError(t, err)
+	backendRemoteDC := newTestBackend(t)
 	srvRemoteDC := NewServer(backendRemoteDC, hclog.New(nil))
 	addrRemoteDC := runTestServer(t, srvRemoteDC)
 
@@ -429,7 +441,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	ids := newCounter()
 
 	var req *structs.RegisterRequest
-	runStep(t, "register three services", func(t *testing.T) {
+	testutil.RunStep(t, "register three services", func(t *testing.T) {
 		req = &structs.RegisterRequest{
 			Node:       "other",
 			Address:    "2.3.4.5",
@@ -475,7 +487,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	chEvents := make(chan eventOrError, 0)
 	var snapshotEvents []*pbsubscribe.Event
 
-	runStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
+	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(connLocal)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
@@ -491,7 +503,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		}
 	})
 
-	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
+	testutil.RunStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
 				Index: ids.Last(),
@@ -567,7 +579,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 		prototest.AssertDeepEqual(t, expected, snapshotEvents)
 	})
 
-	runStep(t, "update the registration by adding a check", func(t *testing.T) {
+	testutil.RunStep(t, "update the registration by adding a check", func(t *testing.T) {
 		req.Check = &structs.HealthCheck{
 			Node:        "node2",
 			CheckID:     types.CheckID("check1"),
@@ -642,12 +654,11 @@ func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testi
 		t.Skip("too slow for -short run")
 	}
 
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
-	runStep(t, "create an ACL policy", func(t *testing.T) {
+	testutil.RunStep(t, "create an ACL policy", func(t *testing.T) {
 		rules := `
 service "foo" {
 	policy = "write"
@@ -663,7 +674,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *acl.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -674,7 +685,7 @@ node "node1" {
 	ids := newCounter()
 	var req *structs.RegisterRequest
 
-	runStep(t, "register services", func(t *testing.T) {
+	testutil.RunStep(t, "register services", func(t *testing.T) {
 		req = &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "node1",
@@ -733,7 +744,7 @@ node "node1" {
 
 	chEvents := make(chan eventOrError, 0)
 
-	runStep(t, "setup a client, subscribe to a topic, and receive a snapshot", func(t *testing.T) {
+	testutil.RunStep(t, "setup a client, subscribe to a topic, and receive a snapshot", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic:     pbsubscribe.Topic_ServiceHealth,
 			Key:       "foo",
@@ -751,7 +762,7 @@ node "node1" {
 		require.True(t, getEvent(t, chEvents).GetEndOfSnapshot())
 	})
 
-	runStep(t, "update the service to receive an event", func(t *testing.T) {
+	testutil.RunStep(t, "update the service to receive an event", func(t *testing.T) {
 		req = &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "node1",
@@ -778,7 +789,7 @@ node "node1" {
 		require.Equal(t, int32(1234), service.Port)
 	})
 
-	runStep(t, "updates to the service on the denied node, should not send an event", func(t *testing.T) {
+	testutil.RunStep(t, "updates to the service on the denied node, should not send an event", func(t *testing.T) {
 		req = &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "denied",
@@ -802,7 +813,7 @@ node "node1" {
 		assertNoEvents(t, chEvents)
 	})
 
-	runStep(t, "subscribe to a topic where events are not visible", func(t *testing.T) {
+	testutil.RunStep(t, "subscribe to a topic where events are not visible", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic: pbsubscribe.Topic_ServiceHealth,
 			Key:   "bar",
@@ -839,12 +850,11 @@ node "node1" {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_ACLUpdate(t *testing.T) {
-	backend, err := newTestBackend()
-	require.NoError(t, err)
+	backend := newTestBackend(t)
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
 	token := "this-token-is-good"
 
-	runStep(t, "create an ACL policy", func(t *testing.T) {
+	testutil.RunStep(t, "create an ACL policy", func(t *testing.T) {
 		rules := `
 service "foo" {
 	policy = "write"
@@ -859,7 +869,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *acl.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -877,7 +887,7 @@ node "node1" {
 
 	chEvents := make(chan eventOrError, 0)
 
-	runStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
+	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic: pbsubscribe.Topic_ServiceHealth,
@@ -890,7 +900,7 @@ node "node1" {
 		require.True(t, getEvent(t, chEvents).GetEndOfSnapshot())
 	})
 
-	runStep(t, "updates to the token should close the stream", func(t *testing.T) {
+	testutil.RunStep(t, "updates to the token should close the stream", func(t *testing.T) {
 		tokenID, err := uuid.GenerateUUID()
 		require.NoError(t, err)
 
@@ -931,13 +941,6 @@ func logError(t *testing.T, f func() error) func() {
 	}
 }
 
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
-}
-
 func TestNewEventFromSteamEvent(t *testing.T) {
 	type testCase struct {
 		name     string
@@ -947,7 +950,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
-		actual := newEventFromStreamEvent(tc.event)
+		actual := tc.event.Payload.ToSubscriptionEvent(tc.event.Index)
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 
@@ -1100,12 +1103,12 @@ func newPayloadEvents(items ...stream.Event) *stream.PayloadEvents {
 func newEventFromSubscription(t *testing.T, index uint64) stream.Event {
 	t.Helper()
 
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealthConnect: func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
-			return 1, nil
-		},
+	serviceHealthConnectHandler := func(stream.SubscribeRequest, stream.SnapshotAppender) (index uint64, err error) {
+		return 1, nil
 	}
-	ep := stream.NewEventPublisher(handlers, 0)
+
+	ep := stream.NewEventPublisher(0)
+	ep.RegisterHandler(pbsubscribe.Topic_ServiceHealthConnect, serviceHealthConnectHandler)
 	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Subject: stream.SubjectNone, Index: index}
 
 	sub, err := ep.Subscribe(req)

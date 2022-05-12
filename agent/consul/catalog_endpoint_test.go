@@ -9,10 +9,11 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1649,6 +1650,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 		c.ACLsEnabled = true
 		c.Bootstrap = false // Disable bootstrap
+		c.RPCHoldTimeout = 10 * time.Millisecond
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

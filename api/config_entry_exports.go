@@ -16,7 +16,7 @@ type ExportedServicesConfigEntry struct {
 
 	// Services is a list of services to be exported and the list of partitions
 	// to expose them to.
-	Services []ExportedService
+	Services []ExportedService `json:",omitempty"`
 
 	Meta map[string]string `json:",omitempty"`
 
@@ -40,13 +40,18 @@ type ExportedService struct {
 	Namespace string `json:",omitempty"`
 
 	// Consumers is a list of downstream consumers of the service to be exported.
-	Consumers []ServiceConsumer
+	Consumers []ServiceConsumer `json:",omitempty"`
 }
 
 // ServiceConsumer represents a downstream consumer of the service to be exported.
+// At most one of Partition or PeerName must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
-	Partition string
+	// Deprecated: PeerName should be used for both remote peers and local partitions.
+	Partition string `json:",omitempty"`
+
+	// PeerName is the name of the peer to export the service to.
+	PeerName string `json:",omitempty" alias:"peer_name"`
 }
 
 func (e *ExportedServicesConfigEntry) GetKind() string            { return ExportedServices }

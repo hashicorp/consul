@@ -30,7 +30,7 @@ type AutoConfigOptions struct {
 }
 
 func (opts AutoConfigOptions) PartitionOrDefault() string {
-	return structs.PartitionOrDefault(opts.Partition)
+	return acl.PartitionOrDefault(opts.Partition)
 }
 
 type AutoConfigAuthorizer interface {
@@ -99,7 +99,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 			return AutoConfigOptions{}, err
 		}
 
-		if id.Agent != req.Node || !structs.EqualPartitions(id.Partition, req.Partition) {
+		if id.Agent != req.Node || !acl.EqualPartitions(id.Partition, req.Partition) {
 			return AutoConfigOptions{},
 				fmt.Errorf("Spiffe ID agent name (%s) of the certificate signing request is not for the correct node (%s)",
 					printNodeName(id.Agent, id.Partition),
@@ -392,7 +392,7 @@ func parseAutoConfigCSR(csr string) (*x509.CertificateRequest, *connect.SpiffeID
 }
 
 func printNodeName(nodeName, partition string) string {
-	if structs.IsDefaultPartition(partition) {
+	if acl.IsDefaultPartition(partition) {
 		return nodeName
 	}
 	return partition + "/" + nodeName

@@ -142,7 +142,7 @@
         "path": "connect"
       },
       {
-        "title": "How Connect Works",
+        "title": "How Service Mesh Works",
         "path": "connect/connect-internals"
       },
       {
@@ -382,8 +382,8 @@
         "path": "api-gateway"
       },
       {
-        "title": "Usage",
-        "path": "api-gateway/api-gateway-usage"
+        "title": "Installation",
+        "path": "api-gateway/consul-api-gateway-install"
       },
       {
         "title": "Technical Specifications",
@@ -392,6 +392,10 @@
       {
         "title": "Common Errors",
         "path": "api-gateway/common-errors"
+      },
+      {
+        "title": "Upgrades",
+        "path": "api-gateway/upgrade-specific-versions"
       }
     ]
   },
@@ -496,20 +500,53 @@
                 "path": "k8s/installation/vault"
               },
               {
-                "title": "Gossip Encryption Key",
-                "path": "k8s/installation/vault/gossip"
+                "title": "Systems Integration",
+                "path": "k8s/installation/vault/systems-integration"
               },
               {
-                "title": "Enterprise License",
-                "path": "k8s/installation/vault/enterprise-license"
+                "title": "Data Integration",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "k8s/installation/vault/data-integration"
+                  },
+                  {
+                    "title": "Bootstrap Token",
+                    "path": "k8s/installation/vault/data-integration/bootstrap-token"
+                  },
+                  {
+                    "title": "Enterprise License",
+                    "path": "k8s/installation/vault/data-integration/enterprise-license"
+                  },
+                  {
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/data-integration/gossip"
+                  },
+                  {
+                    "title": "Partition Token",
+                    "path": "k8s/installation/vault/data-integration/partition-token"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/data-integration/replication-token"
+                  },
+                  {
+                    "title": "Server TLS",
+                    "path": "k8s/installation/vault/data-integration/server-tls"
+                  },
+                  {
+                    "title": "Service Mesh Certificates",
+                    "path": "k8s/installation/vault/data-integration/connect-ca"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  }
+                ]
               },
               {
-                "title": "Server TLS",
-                "path": "k8s/installation/vault/server-tls"
-              },
-              {
-                "title": "Service Mesh Certificates",
-                "path": "k8s/installation/vault/connect-ca"
+                "title": "WAN Federation",
+                "path": "k8s/installation/vault/wan-federation"
               }
             ]
           },
@@ -791,7 +828,6 @@
             "title": "Overview",
             "path": "nia/enterprise"
           },
-
           {
             "title": "License",
             "path": "nia/enterprise/license"
@@ -822,19 +858,6 @@
       {
         "title": "Compatibility",
         "path": "nia/compatibility"
-      },
-      {
-        "title": "Release Notes",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "nia/release-notes"
-          },
-          {
-            "title": "v0.5.0",
-            "path": "nia/release-notes/0-5-0"
-          }
-        ]
       }
     ]
   },
@@ -864,7 +887,20 @@
       },
       {
         "title": "Configuration",
-        "path": "agent/options"
+        "routes": [
+          {
+            "title": "General",
+            "path": "agent/config"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "agent/config/cli-flags"
+          },
+          {
+            "title": "Configuration Reference",
+            "path": "agent/config/config-files"
+          }
+        ]
       },
       {
         "title": "Configuration Entries",
@@ -945,6 +981,10 @@
               {
                 "title": "OIDC",
                 "path": "security/acl/auth-methods/oidc"
+              },
+              {
+                "title": "AWS IAM",
+                "path": "security/acl/auth-methods/aws-iam"
               }
             ]
           }
@@ -1049,6 +1089,10 @@
       {
         "title": "Overview",
         "path": "architecture"
+      },
+      {
+        "title": "Improving Consul Resilience",
+        "path": "architecture/improving-consul-resilience"
       },
       {
         "title": "Anti-Entropy",
@@ -1157,30 +1201,69 @@
     ]
   },
   {
-    "title": "Releases",
+    "title": "Release Notes",
     "routes": [
       {
         "title": "Overview",
-        "path": "releases"
+        "path": "release-notes"
       },
       {
-        "title": "Release Notes",
+        "title": "Consul",
         "routes": [
           {
-            "title": "Overview",
-            "path": "releases/release-notes"
+            "title": "v1.11.x",
+            "path": "release-notes/consul/v1_11_x"
           },
           {
-            "title": "v1.11.0",
-            "path": "releases/release-notes/v1_11_0"
+            "title": "v1.10.x",
+            "path": "release-notes/consul/v1_10_x"
           },
           {
-            "title": "v1.10.0",
-            "path": "releases/release-notes/v1_10_0"
+            "title": "v1.9.x",
+            "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul API Gateway",
+        "routes": [
+          {
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
           },
           {
-            "title": "v1.9.0",
-            "path": "releases/release-notes/v1_9_0"
+            "title": "v0.2.x",
+            "path": "release-notes/consul-api-gateway/v0_2_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul ECS",
+        "routes": [
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-ecs/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-ecs/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-ecs/v0_2_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul Terraform Sync",
+        "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-terraform-sync/v0_5_x"
+          },
+          {
+            "title": "v0.6.0-beta",
+            "path": "release-notes/consul-terraform-sync/v0_6_0_beta"
           }
         ]
       }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
@@ -295,9 +296,11 @@ func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 
 // cmpCertPool is a custom comparison for x509.CertPool, because CertPool.lazyCerts
 // has a func field which can't be compared.
-var cmpCertPool = cmp.Comparer(func(x, y *x509.CertPool) bool {
-	return cmp.Equal(x.Subjects(), y.Subjects())
-})
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
 
 // requireCorrectVerifier invokes got.VerifyPeerCertificate and expects the
 // tls.Config arg to be returned on the provided channel. This ensures the

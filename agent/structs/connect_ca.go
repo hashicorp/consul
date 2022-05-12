@@ -9,6 +9,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -229,7 +230,7 @@ type IssuedCert struct {
 	ValidBefore time.Time
 
 	// EnterpriseMeta is the Consul Enterprise specific metadata
-	EnterpriseMeta
+	acl.EnterpriseMeta
 
 	RaftIndex
 }
@@ -516,11 +517,13 @@ type CAConsulProviderState struct {
 type VaultCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	Address             string
-	Token               string
-	RootPKIPath         string
-	IntermediatePKIPath string
-	Namespace           string
+	Address                  string
+	Token                    string
+	RootPKIPath              string
+	RootPKINamespace         string
+	IntermediatePKIPath      string
+	IntermediatePKINamespace string
+	Namespace                string
 
 	CAFile        string
 	CAPath        string

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -523,7 +524,7 @@ func (m *mockAliasNotify) AddAliasCheck(chkID structs.CheckID, serviceID structs
 func (m *mockAliasNotify) RemoveAliasCheck(chkID structs.CheckID, serviceID structs.ServiceID) {
 }
 
-func (m *mockAliasNotify) Checks(*structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+func (m *mockAliasNotify) Checks(*acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	return nil
 }
 

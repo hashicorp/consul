@@ -10,8 +10,10 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 DEBUG=${DEBUG:-}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.20.2"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.22.0"}
 export ENVOY_VERSION
+
+export DOCKER_BUILDKIT=1
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -414,6 +416,13 @@ function suite_setup {
     echo "Rebuilding 'bats-verify' image..."
     docker build -t bats-verify -f Dockerfile-bats .
 
+    # if this fails on CircleCI your first thing to try would be to upgrade
+    # the machine image to the latest version using this listing:
+    #
+    # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
+    echo "Checking bats image..."
+    docker run --rm -t bats-verify -v
+
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
     docker build -t consul-dev-envoy:${ENVOY_VERSION} \
@@ -422,7 +431,7 @@ function suite_setup {
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    docker build -t test-sds-server -f Dockerfile-test-sds-server .
+    docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
 }
 
 function suite_teardown {

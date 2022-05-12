@@ -1,0 +1,153 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/license'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )
+    }}
+  as |loader|>
+
+{{#let
+  loader.data
+as |item|}}
+    <BlockSlot @name="error">
+      <ErrorState
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="disconnected" as |after|>
+      {{#if (eq loader.error.status "404")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{else if (eq loader.error.status "403")}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="error"
+        as |notice|>
+          <notice.Header>
+            <strong>Error!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              You no longer have access to this service
+            </p>
+          </notice.Body>
+        </Notice>
+      {{else}}
+        <Notice
+          {{notification
+            sticky=true
+          }}
+          class="notification-update"
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <strong>Warning!</strong>
+          </notice.Header>
+          <notice.Body>
+            <p>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </notice.Body>
+        </Notice>
+      {{/if}}
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+      <div class="tab-section">
+        <section
+          class={{class-map
+            'validity'
+            (array 'valid' item.Valid)
+          }}
+        >
+          <header>
+            <h2>
+              {{compute (fn route.t 'expiry.header')}}
+            </h2>
+          </header>
+
+          <p>
+            {{compute (fn route.t 'expiry.${type}.body'
+              (hash
+                type=(if item.Valid 'valid' 'expired')
+                date=(format-time item.License.expiration_time
+                  year='numeric'
+                  month='long'
+                  day='numeric'
+                )
+                time=(format-time item.License.expiration_time
+                  hour12=true
+                  hour='numeric'
+                  hourCycle='h12'
+                  minute='numeric'
+                  second='numeric'
+                  timeZoneName='short'
+                )
+                htmlSafe=true
+              )
+            )}}
+          </p>
+
+          <dl>
+            <dt class={{class-map
+                (array 'valid' item.Valid)
+                (array 'expired' (not item.Valid))
+                (array 'warning' (temporal-within item.License.expiration_time 2629800000))
+              }}
+            >
+              {{compute (fn route.t 'expiry.${type}.header'
+                (hash
+                  type=(if item.Valid 'valid' 'expired')
+                )
+              )}}
+            </dt>
+            <dd>
+              {{temporal-format item.License.expiration_time}}
+            </dd>
+          </dl>
+
+          <aside>
+            <header>
+              <h3>
+                {{compute (fn route.t 'documentation.title')}}
+              </h3>
+            </header>
+            {{compute (fn route.t 'documentation.body'
+              (hash
+                htmlSafe=true
+              )
+            )}}
+          </aside>
+
+        </section>
+      </div>
+    </BlockSlot>
+{{/let}}
+  </DataLoader>
+</Route>
+

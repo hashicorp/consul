@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -482,7 +483,7 @@ func TestIntentionSpecificGet(t *testing.T) {
 		obj, err := a.srv.IntentionSpecific(resp, req)
 		require.Nil(t, obj)
 		require.Error(t, err)
-		require.IsType(t, BadRequestError{}, err)
+		require.True(t, isHTTPBadRequest(err))
 		require.Contains(t, err.Error(), "UUID")
 	})
 
@@ -786,7 +787,7 @@ func TestParseIntentionStringComponent(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.TestName, func(t *testing.T) {
-			var entMeta structs.EnterpriseMeta
+			var entMeta acl.EnterpriseMeta
 			ap, ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
 			if tc.Err {
 				require.Error(t, err)

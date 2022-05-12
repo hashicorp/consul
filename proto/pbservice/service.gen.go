@@ -185,6 +185,7 @@ func UpstreamToStructs(s *Upstream, t *structs.Upstream) {
 	t.DestinationType = s.DestinationType
 	t.DestinationNamespace = s.DestinationNamespace
 	t.DestinationPartition = s.DestinationPartition
+	t.DestinationPeer = s.DestinationPeer
 	t.DestinationName = s.DestinationName
 	t.Datacenter = s.Datacenter
 	t.LocalBindAddress = s.LocalBindAddress
@@ -204,6 +205,7 @@ func UpstreamFromStructs(t *structs.Upstream, s *Upstream) {
 	s.DestinationType = t.DestinationType
 	s.DestinationNamespace = t.DestinationNamespace
 	s.DestinationPartition = t.DestinationPartition
+	s.DestinationPeer = t.DestinationPeer
 	s.DestinationName = t.DestinationName
 	s.Datacenter = t.Datacenter
 	s.LocalBindAddress = t.LocalBindAddress

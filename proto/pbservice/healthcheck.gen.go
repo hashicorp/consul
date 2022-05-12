@@ -19,6 +19,7 @@ func CheckTypeToStructs(s *CheckType, t *structs.CheckType) {
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
+	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.AliasNode = s.AliasNode
@@ -54,6 +55,7 @@ func CheckTypeFromStructs(t *structs.CheckType, s *CheckType) {
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
+	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.AliasNode = t.AliasNode
@@ -91,6 +93,7 @@ func HealthCheckToStructs(s *HealthCheck, t *structs.HealthCheck) {
 	t.Interval = s.Interval
 	t.Timeout = s.Timeout
 	t.ExposedPort = int(s.ExposedPort)
+	t.PeerName = s.PeerName
 	if s.Definition != nil {
 		HealthCheckDefinitionToStructs(s.Definition, &t.Definition)
 	}
@@ -114,6 +117,7 @@ func HealthCheckFromStructs(t *structs.HealthCheck, s *HealthCheck) {
 	s.Interval = t.Interval
 	s.Timeout = t.Timeout
 	s.ExposedPort = int32(t.ExposedPort)
+	s.PeerName = t.PeerName
 	{
 		var x HealthCheckDefinition
 		HealthCheckDefinitionFromStructs(&t.Definition, &x)
@@ -132,6 +136,7 @@ func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthC
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
+	t.DisableRedirects = s.DisableRedirects
 	t.TCP = s.TCP
 	t.H2PING = s.H2PING
 	t.H2PingUseTLS = s.H2PingUseTLS
@@ -158,6 +163,7 @@ func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *Healt
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
+	s.DisableRedirects = t.DisableRedirects
 	s.TCP = t.TCP
 	s.H2PING = t.H2PING
 	s.H2PingUseTLS = t.H2PingUseTLS

@@ -59,8 +59,8 @@ Each terminating gateway needs:
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [Connect](/docs/agent/options#connect) must be enabled on the datacenter's Consul servers.
-- [gRPC](/docs/agent/options#grpc_port) must be enabled on all client agents.
+- Consul [Connect](/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
+- [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminating gateway capabilities in Consul.
 

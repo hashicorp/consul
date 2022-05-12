@@ -5660,6 +5660,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
 		VersionPrerelease: "ZT1JOQLn",
+		VersionMetadata:   "GtTCa13",
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  128,
@@ -5743,6 +5744,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "aldrIQ4l",
 				Body:                           "wSjTy7dg",
+				DisableRedirects:               true,
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
@@ -5770,6 +5772,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "gLrztrNw",
 				Body:                           "0jkKgGUC",
+				DisableRedirects:               false,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
@@ -5797,6 +5800,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "Dou0nGT5",
 				Body:                           "5PBQd2OT",
+				DisableRedirects:               true,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
@@ -6008,6 +6012,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "X5DrovFc",
 						Body:                           "WeikigLh",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
@@ -6204,6 +6209,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "T66MFBfR",
 						Body:                           "OwGjTFQi",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
@@ -6229,6 +6235,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "ciYHWors",
 						Body:                           "lUVLGYU7",
+						DisableRedirects:               false,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
@@ -6254,6 +6261,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "9afLm3Mj",
 						Body:                           "wVVL2V6f",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
@@ -6438,7 +6446,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				ConfigFiles: []string{"testdata/full-config." + format},
 				HCL:         []string{fmt.Sprintf(`data_dir = "%s"`, dataDir)},
 			}
-			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
+			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn", "GtTCa13"))
 			r, err := Load(opts)
 			require.NoError(t, err)
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)

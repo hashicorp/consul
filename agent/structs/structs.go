@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -17,12 +15,15 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
-	ptypes "github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
@@ -77,6 +78,29 @@ const (
 	ServiceVirtualIPRequestType                 = 32
 	FreeVirtualIPRequestType                    = 33
 	KindServiceNamesType                        = 34
+	PeeringWriteType                            = 35
+	PeeringDeleteType                           = 36
+	PeeringTerminateByIDType                    = 37
+	PeeringTrustBundleWriteType                 = 38
+	PeeringTrustBundleDeleteType                = 39
+)
+
+const (
+	// LocalPeerKeyword is a reserved keyword used for indexing in the state store for objects in the local peer.
+	LocalPeerKeyword = "internal"
+
+	// DefaultPeerKeyword is the PeerName to use to refer to the local
+	// cluster's own data, rather than replicated peered data.
+	//
+	// This may internally be converted into LocalPeerKeyword, but external
+	// uses should not use that symbol directly in most cases.
+	DefaultPeerKeyword = ""
+
+	// TODOPeerKeyword is the peer keyword to use if you aren't sure if the
+	// usage SHOULD be peering-aware yet.
+	//
+	// TODO(peering): remove this in the future
+	TODOPeerKeyword = ""
 )
 
 // if a new request type is added above it must be
@@ -120,6 +144,10 @@ var requestTypeStrings = map[MessageType]string{
 	ServiceVirtualIPRequestType:     "ServiceVirtualIP",
 	FreeVirtualIPRequestType:        "FreeVirtualIP",
 	KindServiceNamesType:            "KindServiceName",
+	PeeringWriteType:                "Peering",
+	PeeringDeleteType:               "PeeringDelete",
+	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
+	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 }
 
 const (
@@ -214,6 +242,7 @@ type RPCInfo interface {
 	TokenSecret() string
 	SetTokenSecret(string)
 	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error)
+	Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -312,18 +341,24 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
 		} else if q.MaxQueryTime <= 0 {
 			q.MaxQueryTime = defaultQueryTime
 		}
+		// Timeout after maximum jitter has elapsed.
 		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
 
-		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout), nil
+		return q.MaxQueryTime + rpcHoldTimeout
 	}
-	return time.Since(start) > rpcHoldTimeout, nil
+	return rpcHoldTimeout
+}
+
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
 }
 
 type WriteRequest struct {
@@ -350,7 +385,11 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 }
 
 func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+func (w WriteRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 type QueryBackend int
@@ -359,6 +398,8 @@ const (
 	QueryBackendBlocking QueryBackend = iota
 	QueryBackendStreaming
 )
+
+func (q QueryBackend) GoString() string { return q.String() }
 
 func (q QueryBackend) String() string {
 	switch q {
@@ -428,8 +469,10 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
+	PeerName string
+
 	// EnterpriseMeta is the embedded enterprise metadata
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
 	RaftIndex `bexpr:"-"`
@@ -458,6 +501,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	if r.ID != node.ID ||
 		!strings.EqualFold(r.Node, node.Node) ||
 		r.PartitionOrDefault() != node.PartitionOrDefault() ||
+		r.PeerName != node.PeerName ||
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
@@ -474,11 +518,12 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // If a ServiceID is provided, any associated Checks with that service
 // are also deregistered.
 type DeregisterRequest struct {
-	Datacenter     string
-	Node           string
-	ServiceID      string
-	CheckID        types.CheckID
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	ServiceID          string
+	CheckID            types.CheckID
+	PeerName           string
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
@@ -512,12 +557,12 @@ type QuerySource struct {
 	Ip            string
 }
 
-func (s QuerySource) NodeEnterpriseMeta() *EnterpriseMeta {
+func (s QuerySource) NodeEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(s.NodePartition)
 }
 
 func (s QuerySource) NodePartitionOrDefault() string {
-	return PartitionOrDefault(s.NodePartition)
+	return acl.PartitionOrDefault(s.NodePartition)
 }
 
 type DatacentersRequest struct {
@@ -538,10 +583,11 @@ func (r *DatacentersRequest) CacheInfo() cache.RequestInfo {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter      string
-	NodeMetaFilters map[string]string
-	Source          QuerySource
-	EnterpriseMeta  `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	NodeMetaFilters    map[string]string
+	Source             QuerySource
+	PeerName           string
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -553,6 +599,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,
 		Datacenter:     r.Datacenter,
+		PeerName:       r.PeerName,
 		MinIndex:       r.MinQueryIndex,
 		Timeout:        r.MaxQueryTime,
 		MaxAge:         r.MaxAge,
@@ -582,11 +629,12 @@ func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 }
 
 type ServiceDumpRequest struct {
-	Datacenter     string
-	ServiceKind    ServiceKind
-	UseServiceKind bool
-	Source         QuerySource
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	ServiceKind        ServiceKind
+	UseServiceKind     bool
+	Source             QuerySource
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	PeerName           string
 	QueryOptions
 }
 
@@ -598,6 +646,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,
 		Datacenter:     r.Datacenter,
+		PeerName:       r.PeerName,
 		MinIndex:       r.MinQueryIndex,
 		Timeout:        r.MaxQueryTime,
 		MaxAge:         r.MaxAge,
@@ -634,7 +683,11 @@ func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
 
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
-	Datacenter      string
+	Datacenter string
+
+	// The name of the peer that the requested service was imported from.
+	PeerName string
+
 	NodeMetaFilters map[string]string
 	ServiceName     string
 	ServiceKind     ServiceKind
@@ -652,7 +705,7 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -695,6 +748,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Connect,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.PeerName,
 		r.Ingress,
 		r.ServiceKind,
 	}, nil)
@@ -714,9 +768,10 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter     string
-	Node           string
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	PeerName           string
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -749,14 +804,15 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 	return info
 }
 
-// ChecksInStateRequest is used to query for nodes in a state
+// ChecksInStateRequest is used to query for checks in a state
 type ChecksInStateRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	State           string
 	Source          QuerySource
 
-	EnterpriseMeta `mapstructure:",squash"`
+	PeerName           string
+	acl.EnterpriseMeta `mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -771,18 +827,23 @@ type Node struct {
 	Address         string
 	Datacenter      string
 	Partition       string `json:",omitempty"`
+	PeerName        string `json:",omitempty"`
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
 	RaftIndex `bexpr:"-"`
 }
 
-func (n *Node) GetEnterpriseMeta() *EnterpriseMeta {
+func (n *Node) PeerOrEmpty() string {
+	return n.PeerName
+}
+
+func (n *Node) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(n.Partition)
 }
 
 func (n *Node) PartitionOrDefault() string {
-	return PartitionOrDefault(n.Partition)
+	return acl.PartitionOrDefault(n.Partition)
 }
 
 func (n *Node) BestAddress(wan bool) string {
@@ -802,6 +863,7 @@ func (n *Node) IsSame(other *Node) bool {
 	return n.ID == other.ID &&
 		strings.EqualFold(n.Node, other.Node) &&
 		n.PartitionOrDefault() == other.PartitionOrDefault() &&
+		strings.EqualFold(n.PeerName, other.PeerName) &&
 		n.Address == other.Address &&
 		n.Datacenter == other.Datacenter &&
 		reflect.DeepEqual(n.TaggedAddresses, other.TaggedAddresses) &&
@@ -823,6 +885,11 @@ func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowCons
 	default:
 		return validateMetadata(meta, allowConsulPrefix, nil)
 	}
+}
+
+// ValidateMetaTags validates arbitrary key/value pairs from the agent_endpoints
+func ValidateMetaTags(metaTags map[string]string) error {
+	return validateMetadata(metaTags, false, nil)
 }
 
 func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
@@ -920,9 +987,16 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
+	PeerName string `json:",omitempty"`
+
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (s *ServiceNode) PeerOrEmpty() string {
+	return s.PeerName
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -966,6 +1040,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 			ModifyIndex: s.ModifyIndex,
 		},
 		EnterpriseMeta: s.EnterpriseMeta,
+		PeerName:       s.PeerName,
 	}
 }
 
@@ -985,6 +1060,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
+		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -1128,7 +1204,10 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
+	// If not empty, PeerName represents the peer that the NodeService was imported from.
+	PeerName string
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1261,8 +1340,7 @@ func (s *NodeService) Validate() error {
 		}
 
 		if s.Port == 0 && s.SocketPath == "" {
-			result = multierror.Append(result, fmt.Errorf(
-				"Port or SocketPath must be set for a Connect proxy"))
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -1276,17 +1354,34 @@ func (s *NodeService) Validate() error {
 			bindAddrs    = make(map[string]struct{})
 		)
 		for _, u := range s.Proxy.Upstreams {
+
 			destinationPartition := u.DestinationPartition
 			if destinationPartition == "" {
-				destinationPartition = acl.DefaultPartitionName
+
+				// If we have a set DestinationPeer, then DestinationPartition
+				// must match the NodeService's Partition
+				if u.DestinationPeer != "" {
+					destinationPartition = s.PartitionOrDefault()
+				} else {
+					destinationPartition = acl.DefaultPartitionName
+				}
 			}
 
-			// cross DC Upstreams are only allowed for non "default" partitions
-			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
-				result = multierror.Append(result, fmt.Errorf(
-					"upstreams cannot target another datacenter in non default partition"))
-				continue
+			if u.DestinationPeer == "" {
+				// cross DC Upstreams are only allowed for non "default" partitions
+				if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams cannot target another datacenter in non default partition"))
+					continue
+				}
+			} else {
+				if destinationPartition != s.PartitionOrDefault() {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams must target peers in the same partition as the service"))
+					continue
+				}
 			}
+
 			if err := u.Validate(); err != nil {
 				result = multierror.Append(result, err)
 				continue
@@ -1393,6 +1488,11 @@ func (s *NodeService) Validate() error {
 		}
 	}
 
+	if s.Connect.Native && s.Port == 0 && s.SocketPath == "" {
+		result = multierror.Append(result, fmt.Errorf(
+			"Port or SocketPath must be set for a Connect native service."))
+	}
+
 	return result
 }
 
@@ -1414,6 +1514,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
 		s.Connect != other.Connect ||
+		s.PeerName != other.PeerName ||
 		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
@@ -1485,6 +1586,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
 		EnterpriseMeta:           s.EnterpriseMeta,
+		PeerName:                 s.PeerName,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1526,11 +1628,19 @@ type HealthCheck struct {
 	// HTTP or GRPC health check of the service.
 	ExposedPort int
 
+	// PeerName is the name of the peer the check was imported from.
+	// It is empty if the check was registered locally.
+	PeerName string `json:",omitempty"`
+
 	Definition HealthCheckDefinition `bexpr:"-"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (hc *HealthCheck) PeerOrEmpty() string {
+	return hc.PeerName
 }
 
 func (hc *HealthCheck) NodeIdentity() Identity {
@@ -1572,6 +1682,7 @@ type HealthCheckDefinition struct {
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
 	Body                           string              `json:",omitempty"`
+	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
@@ -1689,6 +1800,7 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.ServiceName != other.ServiceName ||
 		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
 		!reflect.DeepEqual(c.Definition, other.Definition) ||
+		c.PeerName != other.PeerName ||
 		!c.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
@@ -1720,6 +1832,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Header:                         c.Definition.Header,
 		Method:                         c.Definition.Method,
 		Body:                           c.Definition.Body,
+		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
@@ -1862,6 +1975,7 @@ type NodeInfo struct {
 	ID              types.NodeID
 	Node            string
 	Partition       string `json:",omitempty"`
+	PeerName        string `json:",omitempty"`
 	Address         string
 	TaggedAddresses map[string]string
 	Meta            map[string]string
@@ -1869,12 +1983,12 @@ type NodeInfo struct {
 	Checks          HealthChecks
 }
 
-func (n *NodeInfo) GetEnterpriseMeta() *EnterpriseMeta {
+func (n *NodeInfo) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(n.Partition)
 }
 
 func (n *NodeInfo) PartitionOrDefault() string {
-	return PartitionOrDefault(n.Partition)
+	return acl.PartitionOrDefault(n.Partition)
 }
 
 // NodeDump is used to dump all the nodes with all their
@@ -1893,22 +2007,22 @@ type ServiceDump []*ServiceInfo
 
 type CheckID struct {
 	ID types.CheckID
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// NamespaceOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) NamespaceOrDefault() string {
 	return c.EnterpriseMeta.NamespaceOrDefault()
 }
 
-// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// PartitionOrDefault exists because acl.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (c CheckID) PartitionOrDefault() string {
 	return c.EnterpriseMeta.PartitionOrDefault()
 }
 
-func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
+func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
 	if entMeta == nil {
@@ -1926,7 +2040,7 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.addToHash(hasher, true)
+	cid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -1935,16 +2049,16 @@ func (cid CheckID) StringHashMD5() string {
 func (cid CheckID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.addToHash(hasher, true)
+	cid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
 type ServiceID struct {
 	ID string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
+func NewServiceID(id string, entMeta *acl.EnterpriseMeta) ServiceID {
 	var sid ServiceID
 	sid.ID = id
 	if entMeta == nil {
@@ -1965,7 +2079,7 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 func (sid ServiceID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
-	sid.EnterpriseMeta.addToHash(hasher, true)
+	sid.EnterpriseMeta.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -1978,16 +2092,16 @@ type IndexedServices struct {
 	Services Services
 	// In various situations we need to know the meta that the services are for - in particular
 	// this is needed to be able to properly filter the list based on ACLs
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryMeta
 }
 
 type ServiceName struct {
 	Name string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
-func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
+func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
 	if entMeta == nil {
@@ -2012,6 +2126,14 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 }
 
 type ServiceList []ServiceName
+
+// Len implements sort.Interface.
+func (s ServiceList) Len() int { return len(s) }
+
+// Swap implements sort.Interface.
+func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList
@@ -2252,7 +2374,7 @@ type DirEntry struct {
 	Value     []byte
 	Session   string `json:",omitempty"`
 
-	EnterpriseMeta `bexpr:"-"`
+	acl.EnterpriseMeta `bexpr:"-"`
 	RaftIndex
 }
 
@@ -2303,7 +2425,7 @@ func (r *KVSRequest) RequestDatacenter() string {
 type KeyRequest struct {
 	Datacenter string
 	Key        string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -2317,7 +2439,7 @@ type KeyListRequest struct {
 	Prefix     string
 	Seperator  string
 	QueryOptions
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (r *KeyListRequest) RequestDatacenter() string {
@@ -2363,7 +2485,7 @@ type Session struct {
 	// Deprecated v1.7.0.
 	Checks []types.CheckID `json:",omitempty"`
 
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	RaftIndex
 }
 
@@ -2432,7 +2554,7 @@ type SessionSpecificRequest struct {
 	SessionID  string
 	// DEPRECATED in 1.7.0
 	Session string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -2453,12 +2575,12 @@ type Coordinate struct {
 	Coord     *coordinate.Coordinate
 }
 
-func (c *Coordinate) GetEnterpriseMeta() *EnterpriseMeta {
+func (c *Coordinate) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return NodeEnterpriseMetaInPartition(c.Partition)
 }
 
 func (c *Coordinate) PartitionOrDefault() string {
-	return PartitionOrDefault(c.Partition)
+	return acl.PartitionOrDefault(c.Partition)
 }
 
 type Coordinates []*Coordinate
@@ -2489,11 +2611,11 @@ type DatacenterMap struct {
 // CoordinateUpdateRequest is used to update the network coordinate of a given
 // node.
 type CoordinateUpdateRequest struct {
-	Datacenter     string
-	Node           string
-	Segment        string
-	Coord          *coordinate.Coordinate
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Datacenter         string
+	Node               string
+	Segment            string
+	Coord              *coordinate.Coordinate
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
@@ -2643,7 +2765,7 @@ type KeyringResponse struct {
 }
 
 func (r *KeyringResponse) PartitionOrDefault() string {
-	return PartitionOrDefault(r.Partition)
+	return acl.PartitionOrDefault(r.Partition)
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

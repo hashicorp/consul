@@ -126,6 +126,9 @@ meta {
 transparent_proxy {
 	mesh_destinations_only = true
 }
+http {
+    sanitize_x_forwarded_client_cert = true
+}
 `)
 
 		ui := cli.NewMockUi()
@@ -143,6 +146,9 @@ transparent_proxy {
 		proxy, ok := entry.(*api.MeshConfigEntry)
 		require.True(t, ok)
 		require.Equal(t, map[string]string{"foo": "bar", "gir": "zim"}, proxy.Meta)
+		require.True(t, proxy.TransparentProxy.MeshDestinationsOnly)
+
+		require.True(t, proxy.HTTP.SanitizeXForwardedClientCert)
 	})
 }
 
@@ -2891,6 +2897,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -2922,6 +2931,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -2954,6 +2966,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								"partition": "baz"
+							},
+							{
+								"peer_name": "flarm"
 							}
 						]
 					},
@@ -2987,6 +3002,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								"Partition": "baz"
+							},
+							{
+								"PeerName": "flarm"
 							}
 						]
 					},
@@ -3018,6 +3036,9 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								PeerName: "flarm",
 							},
 						},
 					},

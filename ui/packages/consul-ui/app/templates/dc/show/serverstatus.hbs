@@ -87,6 +87,9 @@ as |item|}}
           >
 
             <header>
+              {{compute (fn route.t 'tolerance.link' (hash
+                htmlSafe=true
+              ))}}
               <h2>
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
@@ -119,6 +122,7 @@ as |item|}}
               </dl>
             </section>
 
+              {{#if (can 'read zones')}}
             <section
               class={{class-map
                 (array 'optimistic-tolerance')
@@ -127,11 +131,6 @@ as |item|}}
               <header>
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
-              {{#if (not (can 'read zones'))}}
-                  <em>
-                    {{t 'common.ui.enterprisefeature'}}
-                  </em>
-              {{/if}}
                   <span
                     {{tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.'}}
                   >
@@ -152,7 +151,7 @@ as |item|}}
               </dl>
 
             </section>
-
+              {{/if}}
           </section>
 
     {{#if (gt item.RedundancyZones.length 0)}}
