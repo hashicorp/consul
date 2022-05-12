@@ -95,7 +95,7 @@ You can use the `auto_retrieval` block to configure the the automatic license re
 
 ## Consul
 
-The `consul` block is used to configure the CTS connection with a Consul agent to perform queries to pertaining to task execution. It also configures the automatic registration of CTS as a service with Consul.
+The `consul` block configures the CTS connection with a Consul agent so that CTS can perform queries for task execution. It also configures the automatic registration of CTS as a service with Consul.
 
 -> **Note:** Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/docs/agent/config/config-files) must be configured for the local Consul with the [cert_file](/docs/agent/config/config-files#cert_file) and [key_file](/docs/agent/config/config-files#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
@@ -142,13 +142,13 @@ consul {
     - To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks.
     - This value should be lower than the configured [`http_max_conns_per_client`](/docs/agent/config/config-files#http_max_conns_per_client) for the Consul agent. If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, Consul-Terraform-Sync may error due to connection limits (status code 429). You may increase the agent limit with caution. _Note: requests to the Consul agent made by Terraform subprocesses or any other process on the same host as Consul-Terraform-Sync will contribute to the Consul agent connection limit._
   - `tls_handshake_timeout` - (string: "10s") amount of time to wait to complete the TLS handshake.
-- `service_registration` - Configures CTS registering itself as a service with a health check to Consul.
+- `service_registration` - Configures CTS to register itself as a service with Consul and to register a health check.
   - `enabled` - (bool: true) Enables CTS to register itself as a service with Consul.
   - `service_name` - (string: "Consul-Terraform-Sync") The service name for CTS.
-  - `namespace` <EnterpriseAlert inline /> - (string: "default") The namespace to register CTS in. If not provided, the namespace will be inferred from the CTS ACL token or default to the `default` namespace.
-  - `default_check` - Configures the default health check of the registered CTS service
+  - `namespace` <EnterpriseAlert inline /> - (string: "default") The namespace to register CTS in. If not provided, the namespace is inferred from the CTS ACL token or default to the `default` namespace.
+  - `default_check` - Configures the default health check of the registered CTS service.
     - `enabled` - (bool: true) Enables CTS to create the default health check.
-    - `address` - (string: `http://localhost:<port>` or `https://localhost:<port>`) The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port (if necessary). The default value is determined from the [port configuration](/docs/nia/configuration#port) and whether [TLS is enabled](/docs/nia/configuration#enabled-2) on the CTS API.
+    - `address` - (string: `http://localhost:<port>` or `https://localhost:<port>`) The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. The default value is determined from the [port configuration](/docs/nia/configuration#port) and whether [TLS is enabled](/docs/nia/configuration#enabled-2) on the CTS API.
 
 ## Service
 
