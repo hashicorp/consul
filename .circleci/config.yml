@@ -6,7 +6,7 @@ parameters:
     type: string
     default: ""
     description: "Commit to run load tests against"
-  trigger-load-test:
+  trigger_load_test:
     type: boolean
     default: false
     description: "Boolean whether to run the load test workflow"
@@ -1041,7 +1041,7 @@ workflows:
     jobs: [ noop ]
 
   go-tests:
-    unless: << pipeline.parameters.trigger-load-test >>
+    unless: << pipeline.parameters.trigger_load_test >>
     jobs:
       - check-go-mod: &filter-ignore-non-go-branches
           filters:
@@ -1085,7 +1085,7 @@ workflows:
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
   build-distros:
-    unless: << pipeline.parameters.trigger-load-test >>
+    unless: << pipeline.parameters.trigger_load_test >>
     jobs:
       - check-go-mod: *filter-ignore-non-go-branches
       - build-386: &require-check-go-mod
@@ -1124,7 +1124,7 @@ workflows:
             - dev-build
           context: consul-ci
   test-integrations:
-    unless: << pipeline.parameters.trigger-load-test >>
+    unless: << pipeline.parameters.trigger_load_test >>
     jobs:
       - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
@@ -1161,7 +1161,7 @@ workflows:
             - dev-build
 
   frontend:
-    unless: << pipeline.parameters.trigger-load-test >>
+    unless: << pipeline.parameters.trigger_load_test >>
     jobs:
       - frontend-cache:
           filters:
@@ -1193,7 +1193,7 @@ workflows:
           requires:
             - ember-build-ent
   workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
+    unless: << pipeline.parameters.trigger_load_test >>
     jobs:
       - trigger-oss-merge:
           context: team-consul
@@ -1210,7 +1210,7 @@ workflows:
                 - main
                 - /release\/\d+\.\d+\.x$/
   load-test:
-    when: << pipeline.parameters.trigger-load-test >>
+    when: << pipeline.parameters.trigger_load_test >>
     jobs:
       - load-test
 
