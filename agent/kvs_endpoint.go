@@ -20,7 +20,7 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	//nightnight
-	time.Sleep(10000 * time.Second)
+	time.Sleep(10 * time.Microsecond)
 
 	// Pull out the key name, validation left to each sub-handler
 	var err error
