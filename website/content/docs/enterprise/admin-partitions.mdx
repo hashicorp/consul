@@ -37,8 +37,10 @@ Any resource created without specifying an admin partition will inherit the part
 
 ### Naming Admin Partitions
 
+~> **NOTE:** Admin partition names are static, and an admin partition cannot be renamed once they have been created as admin partition names are utilized for DNS names for all its services. If an admin partition needs to be renamed, the recommendation is to deploy a new admin partition and redeploy services onto it. 
+
 Only characters that are valid in DNS names can be used to name admin partitions.
-Names must also begin with a lowercase letter.
+Names must also begin with a lowercase letter. 
 
 ### Namespaces
 
