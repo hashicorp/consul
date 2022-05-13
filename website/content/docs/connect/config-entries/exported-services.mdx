@@ -151,6 +151,10 @@ metadata:
   name: finance
 spec:
   services:
+    - name: mesh-gateway
+      namespace: default
+      consumers:
+        - partition: default
     - name: billing
       namespace: default
       consumers:
