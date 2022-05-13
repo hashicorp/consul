@@ -186,7 +186,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 				PeerName:     "peer1-usw1",
 				PeeringToken: "e30K", // base64 of "{}"
 			},
-			expectErr: "peering token CA value is empty",
+			expectErr: "peering token server addresses value is empty",
 		},
 		{
 			name: "too many meta tags",

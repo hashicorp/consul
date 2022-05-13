@@ -34,7 +34,6 @@ import (
 )
 
 var (
-	errPeeringTokenEmptyCA              = errors.New("peering token CA value is empty")
 	errPeeringTokenInvalidCA            = errors.New("peering token CA value is invalid")
 	errPeeringTokenEmptyServerAddresses = errors.New("peering token server addresses value is empty")
 	errPeeringTokenEmptyServerName      = errors.New("peering token server name value is empty")
