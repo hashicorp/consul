@@ -214,7 +214,7 @@ message GenerateTokenRequest {
   // Name of the remote peer.
   string PeerName = 1;
 
-  // Partition to to be peered.
+  // Partition is the local partition being peered.
   string Partition = 2;
 
   // these are common fields required for implementing structs.RPCInfo methods
@@ -240,13 +240,16 @@ message InitiateRequest {
   // The peering token returned from the peer's GenerateToken endpoint.
   string PeeringToken = 2;
 
+  // Partition is the local partition being peered.
+  string Partition = 3;
+
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 3;
-  string Token = 4;
+  string Datacenter = 4;
+  string Token = 5;
 
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 5;
+  map<string, string> Meta = 6;
 }
 
 message InitiateResponse {
