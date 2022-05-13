@@ -1164,9 +1164,6 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
-  workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
 
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
