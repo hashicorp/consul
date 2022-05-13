@@ -331,8 +331,10 @@ func (c *cmd) run(args []string) int {
 
 			gracefulTimeout := 15 * time.Second
 			select {
-			case <-signalCh:
-				c.logger.Info("Caught second signal, Exiting", "signal", sig)
+			case s := <-signalCh:
+				var secondSignal os.Signal
+				secondSignal = s
+				c.logger.Info("Caught second signal, Exiting", "signal", secondSignal)
 				return 1
 			case <-time.After(gracefulTimeout):
 				c.logger.Info("Timeout on graceful leave. Exiting")
