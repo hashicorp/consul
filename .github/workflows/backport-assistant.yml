@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Run Backport Assistant for stable-website
         run: |
-          backport-assistant backport -merge-method=rebase -auto-merge
+          backport-assistant backport -merge-method=rebase -automerge
         env:
           BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
           BACKPORT_TARGET_TEMPLATE: "stable-website"
@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       - name: Run Backport Assistant for release branches
         run: |
-          backport-assistant backport -merge-method=rebase -auto-merge
+          backport-assistant backport -merge-method=rebase -automerge
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
