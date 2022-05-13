@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Comment on PR
         run: |
-          github_message="After merging, confirm that you see messages like: 🍒✅ Cherry pick of commit ... onto ... succeeded!"
+          github_message="After merging, confirm that you see linked PRs AND check that them for CI errors."
           curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
             -X POST \
             -d "{ \"body\": \"${github_message}\"}" \
