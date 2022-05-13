@@ -153,11 +153,12 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	var token1 string
 	// Generate a token happy path
 	resp, wm, err := peerings.GenerateToken(ctx, p1, options)
-	token1 = resp.PeeringToken
 
 	require.NoError(t, err)
 	require.NotEmpty(t, wm)
 	require.NotEmpty(t, resp)
+
+	token1 = resp.PeeringToken
 
 	// Read token generated on server
 	resp2, qm, err2 := peerings.Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
