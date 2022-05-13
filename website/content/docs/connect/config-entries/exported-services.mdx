@@ -151,15 +151,15 @@ metadata:
   name: finance
 spec:
   services:
-    - name: mesh-gateway
-      namespace: default
-      consumers:
-        - partition: default
     - name: billing
       namespace: default
       consumers:
         - partition: frontend
         - partition: backend
+    - name: *
+      namespace: *
+      consumers:
+        - partition: monitoring 
 ```
 
 ```json
