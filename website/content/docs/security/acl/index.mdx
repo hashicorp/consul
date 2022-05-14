@@ -69,7 +69,7 @@ Refer to the [Roles](/docs/security/acl/acl-roles) topic for additional informat
 
 ## Service Identities
 
-Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. They are used during the authorization process to automatically generate a policy for the service(s) specified. The policy will be linked to the role or token so that the service(s) can _be discovered_ and _discover other healthy service instances_ in a service mesh.
+Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific services. The policy is linked to the role or token, allowing the services to be discovered and to discover other healthy service instances in a service mesh.
 
 Service identities enable you to quickly construct policies for services, rather than creating identical polices for each service.
 
