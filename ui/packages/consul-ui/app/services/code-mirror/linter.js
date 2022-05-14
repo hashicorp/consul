@@ -26,6 +26,7 @@ const MODES = [
     ext: ['xml'],
     alias: ['xml'],
   },
+  { name: 'TOML', mime: 'text/x-toml', mode: 'toml', ext: ['toml'], alias: ['toml'] },
 ];
 
 export default class LinterService extends Service {
