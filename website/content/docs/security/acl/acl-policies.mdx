@@ -32,13 +32,15 @@ A rule is composed of a resource declaration and an access level defined with th
 ```hcl
 <resource> {
   policy = "<policy disposition>"
-  }
+}
 ```
 
 ```json
-"<resource>": [{
-  "policy": "<policy disposition>"
-  }]
+{
+  "<resource>": {
+    "policy": "<policy disposition>"
+  }
+}
 ```
 
 </CodeTabs>
@@ -60,11 +62,13 @@ The following syntax describes how to include a resource label in the rule:
 ```
 
 ```json
-"<resource>": [{
-  "<label>": [{
-    "policy": "<policy disposition>"
-  }]
-}]
+{
+  "<resource>": {
+    "<label>": {
+      "policy": "<policy disposition>"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -85,7 +89,9 @@ Use the following syntax to create rules for these resources:
 ```
 
 ```json
-"<resource>": "<policy disposition>"
+{
+  "<resource>": "<policy disposition>"
+}
 ```
 
 </CodeTabs>
@@ -115,11 +121,13 @@ service "web-prod" {
 ```
 
 ```json
-"service": [{
-  "web-prod" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "service": {
+    "web-prod": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -135,11 +143,13 @@ service_prefix "web" {
 ```
 
 ```json
-"service_prefix": [{
-  "web" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "service_prefix": {
+    "web": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -155,11 +165,13 @@ service_prefix "" {
 ```
 
 ```json
-"service_prefix" : [{
-  "" : [{
-  "policy" :"read"
-  }]
-}]
+{
+  "service_prefix": {
+    "": {
+      "policy":"read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -209,38 +221,22 @@ operator = "read"
 
 ```json
 {
-  "key": [
-    {
-      "foo/bar/secret": [
-        {
-          "policy": "deny"
-        }
-      ]
-    }
-  ],
-  "key_prefix": [
-    {
-      "": [
-        {
-          "policy": "read"
-        }
-      ]
+  "key_prefix": {
+    "": {
+      "policy": "read"
     },
-    {
-      "foo/": [
-        {
-          "policy": "write"
-        }
-      ]
+    "foo/": {
+      "policy": "write"
     },
-    {
-      "foo/private/": [
-        {
-          "policy": "deny"
-        }
-      ]
+    "foo/private/": {
+      "policy": "deny"
     }
-  ],
+  },
+  "key": {
+    "foo/bar/secret": {
+      "policy": "deny"
+    }
+  },
   "operator": "read"
 }
 ```
@@ -283,7 +279,7 @@ You can can define several attributes that attach additional metadata and specif
 
 ### HTTP API Endpoint
 
-The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api-docs/acl/acl) for details about the API.
+The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api-docs/acl) for details about the API.
 
 The following example adds a set of rules to a policy called `my-app-policy`. The policy defines access to the `key` resource (Consul K/V). The rules are formatted in HCL, but they are wrapped in JSON so that the data can be sent using cURL:
 
@@ -457,31 +453,37 @@ service "consul-snapshot" {
 
 If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
 
-In the following example, Vault is registered as a service and provided access to Consul's KV store.
+In the following example, the ACL policy enables Vault to register as a service
+and provides access to the `vault/` path in Consul's KV store.
 
 <CodeTabs>
 
 ```hcl
 # Provide KV visibility to all agents.
 agent_prefix "" {
-  "policy" = "read"
+  policy = "read"
 }
 # Enable resources prefixed with 'vault/' to write to the KV
 key_prefix "vault/" {
-  "policy" = "write"
+  policy = "write"
 }
 # Enable the vault service to write to the KV
 service "vault" {
-  "policy" = "write"
+  policy = "write"
 }
 # Enable the agent to initialize a new session.
 session_prefix "" {
-  "policy" = "write"
+  policy = "write"
 }
 ```
 
 ```json
 {
+  "agent_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
   "key_prefix": {
     "vault/": {
       "policy": "write"
@@ -490,11 +492,6 @@ session_prefix "" {
   "service": {
     "vault": {
       "policy": "write"
-    }
-  },
-  "agent_prefix": {
-    "": {
-      "policy": "read"
     }
   },
   "session_prefix": {
