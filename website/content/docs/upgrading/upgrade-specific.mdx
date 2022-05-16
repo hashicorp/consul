@@ -26,6 +26,12 @@ to `true`. In prior Consul versions (1.10.x through 1.11.x), the config defaulte
 well as the flag will be removed in upcoming Consul 1.13. We recommend changing your instrumentation to use 1.10 and later
 style `consul.api.http...` metrics and removing the configuration flag from your setup.
 
+### Nomad Namespace Incompatibility
+
+Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0. 
+
+Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
+
 ### TLS Configuration
 
 You can now configure TLS differently for each of Consul's exposed ports. As a
