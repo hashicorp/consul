@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"errors"
 	"net"
 	"time"
 
@@ -326,10 +327,12 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		return nil, err
 	}
 	if err := addSink(dogstatdSink); err != nil {
-		if _, ok := err.(net.Error); !ok || cfg.DogstatsdExitBadConnection {
+		var dnsError *net.DNSError
+		if errors.As(err, &dnsError) && dnsError.IsNotFound && !cfg.DogstatsdExitBadConnection {
+			logger.Error("failed connection to datadog sink", "error", err)
+		} else {
 			return nil, err
 		}
-		logger.Error("failed connection to datadog sink", "error", err)
 	}
 	if err := addSink(circonusSink); err != nil {
 		return nil, err
