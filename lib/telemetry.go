@@ -1,12 +1,14 @@
 package lib
 
 import (
+	"net"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
 )
 
 // TelemetryConfig is embedded in config.RuntimeConfig and holds the
@@ -153,6 +155,11 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
+	// DogstatsdExitBadConnection verify connection to dogstatsd server
+	//
+	// hcl: telemetry { dogstatsd_exit_bad_connection = (true|false)
+	DogstatsdExitBadConnection bool `json:"dogstatsd_exit_bad_connection,omitempty" mapstructure:"dogstatsd_exit_bad_connection"`
+
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
 	//
@@ -285,7 +292,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
 	if cfg.Disable {
 		return nil, nil
 	}
@@ -319,7 +326,10 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil, err
 	}
 	if err := addSink(dogstatdSink); err != nil {
-		return nil, err
+		if _, ok := err.(net.Error); !ok || cfg.DogstatsdExitBadConnection {
+			return nil, err
+		}
+		logger.Error("failed connection to datadog sink", "error", err)
 	}
 	if err := addSink(circonusSink); err != nil {
 		return nil, err
