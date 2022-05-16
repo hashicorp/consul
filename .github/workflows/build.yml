@@ -91,7 +91,7 @@ jobs:
           go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3.2.0
         with:
           node-version: '14'
           cache: 'yarn'
@@ -191,7 +191,7 @@ jobs:
           go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3.2.0
         with:
           node-version: '14'
           cache: 'yarn'

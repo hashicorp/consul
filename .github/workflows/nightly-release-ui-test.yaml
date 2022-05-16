@@ -20,7 +20,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -44,7 +44,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -81,7 +81,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -121,7 +121,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -161,7 +161,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -201,7 +201,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
@@ -238,7 +238,7 @@ jobs:
           ref: ${{ matrix.branch }}
 
       # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.2.0
         with:
           node-version: 14
           cache: 'yarn'
