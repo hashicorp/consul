@@ -677,15 +677,19 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			if args.MergeCentralConfig {
 				var mergedServiceNodes structs.ServiceNodes
 				for _, sn := range services {
+					mergedsn := sn
 					ns := sn.ToNodeService()
-					cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
-					if err != nil {
-						return err
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+						mergedsn = mergedns.ToServiceNode(sn.Node)
 					}
-					mergedServiceNodes = append(mergedServiceNodes, mergedns.ToServiceNode(sn.Node))
-					if cfgIndex > index {
-						index = cfgIndex
-					}
+					mergedServiceNodes = append(mergedServiceNodes, mergedsn)
 				}
 				if len(mergedServiceNodes) > 0 {
 					mergedServices = mergedServiceNodes

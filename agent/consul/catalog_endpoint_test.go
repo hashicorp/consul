@@ -2852,6 +2852,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
+	// ADD TEST CASES = CONNECT AND NON-CONNECT
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2867,7 +2868,7 @@ func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequest(t)
+	registerServiceReq := structs.TestRegisterRequestProxy(t)
 	var out struct{}
 	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", registerServiceReq, &out))
 
@@ -2893,7 +2894,7 @@ func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
 	limits := 512
 	serviceDefaultsConfigEntry := structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
-		Name: registerServiceReq.Service.Service,
+		Name: registerServiceReq.Service.Proxy.DestinationServiceName,
 		Mode: structs.ProxyModeTransparent,
 		UpstreamConfig: &structs.UpstreamConfiguration{
 			Defaults: &structs.UpstreamConfig{
@@ -2914,33 +2915,66 @@ func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
 	var serviceDefaultsConfigEntryResp bool
 	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
 
-	// List service nodes
-	req := structs.ServiceSpecificRequest{
-		Datacenter:   "dc1",
-		ServiceName:  registerServiceReq.Service.Service,
-		QueryOptions: structs.QueryOptions{MergeCentralConfig: true},
+	type testCase struct {
+		testCaseName string
+		queryOpts    structs.QueryOptions
+		serviceName  string
+		connect      bool
 	}
-	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 
-	// validate response
-	assert.Len(t, resp.ServiceNodes, 1)
-	v := resp.ServiceNodes[0]
-	assert.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
-	// validate proxy global defaults are resolved in the merged service config
-	assert.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
-	// validate service defaults override proxy-defaults/global
-	assert.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
-	assert.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
-	// validate service defaults are resolved in the merged service config
-	assert.Equal(t, 1, len(v.ServiceProxy.Upstreams))
-	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config, "limits")
-	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config["limits"], "MaxConnections")
-	upstreamLimits := v.ServiceProxy.Upstreams[0].Config["limits"].(map[string]interface{})
-	assert.Equal(t, uint64(*serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections), upstreamLimits["MaxConnections"])
-	assert.Contains(t, v.ServiceProxy.Upstreams[0].Config, "mesh_gateway")
-	meshGw := v.ServiceProxy.Upstreams[0].Config["mesh_gateway"].(map[string]interface{})
-	assert.Equal(t, string(serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode), meshGw["Mode"])
+	run := func(t *testing.T, tc testCase) { // List service nodes
+		req := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  tc.serviceName,
+			Connect:      tc.connect,
+			QueryOptions: tc.queryOpts,
+		}
+		var resp structs.IndexedServiceNodes
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+
+		// validate response
+		assert.Len(t, resp.ServiceNodes, 1)
+		v := resp.ServiceNodes[0]
+
+		assert.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
+		// validate proxy global defaults are resolved in the merged service config
+		assert.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
+		// validate service defaults override proxy-defaults/global
+		assert.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
+		assert.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
+		// validate service defaults are resolved in the merged service config
+		// expected number of upstreams = (number of upstreams defined in the register request proxy config +
+		//	1 default from service defaults)
+		assert.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+		for _, up := range v.ServiceProxy.Upstreams {
+			if up.DestinationType != "" {
+				continue
+			}
+			assert.Contains(t, up.Config, "limits")
+			assert.Contains(t, up.Config["limits"], "MaxConnections")
+			upstreamLimits := up.Config["limits"].(map[string]interface{})
+			assert.Equal(t, uint64(*serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections), upstreamLimits["MaxConnections"])
+			assert.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode, up.MeshGateway.Mode)
+		}
+	}
+	testCases := []testCase{
+		{
+			testCaseName: "List service instances with merge-central-config",
+			queryOpts:    structs.QueryOptions{MergeCentralConfig: true},
+			serviceName:  registerServiceReq.Service.Service,
+		},
+		{
+			testCaseName: "List connect capable service instances with merge-central-config",
+			queryOpts:    structs.QueryOptions{MergeCentralConfig: true},
+			serviceName:  registerServiceReq.Service.Proxy.DestinationServiceName,
+			connect:      true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestCatalog_NodeServices_ACL(t *testing.T) {

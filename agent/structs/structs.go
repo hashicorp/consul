@@ -1312,7 +1312,8 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
-	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
+	return s.Kind == ServiceKindConnectProxy &&
+		(s.Proxy.DestinationServiceID != "" || s.Proxy.DestinationServiceName != "")
 }
 
 func (s *NodeService) IsGateway() bool {

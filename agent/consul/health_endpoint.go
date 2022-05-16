@@ -248,13 +248,16 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			resolvedNodes := nodes
 			if args.MergeCentralConfig {
 				for _, node := range resolvedNodes {
-					cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, node.Service, h.logger)
-					if err != nil {
-						return err
-					}
-					*node.Service = *mergedns
-					if cfgIndex > index {
-						index = cfgIndex
+					ns := node.Service
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+						*node.Service = *mergedns
 					}
 				}
 			}
