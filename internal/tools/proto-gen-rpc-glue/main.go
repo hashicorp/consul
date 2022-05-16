@@ -102,6 +102,15 @@ func processFile(path string) error {
 			if ann.QueryMeta != "" {
 				log.Printf("    QueryMeta from %s", ann.QueryMeta)
 			}
+			if ann.Datacenter != "" {
+				log.Printf("    Datacenter from %s", ann.Datacenter)
+			}
+			if ann.ReadTODO != "" {
+				log.Printf("    ReadTODO from %s", ann.ReadTODO)
+			}
+			if ann.WriteTODO != "" {
+				log.Printf("    WriteTODO from %s", ann.WriteTODO)
+			}
 		}
 	}
 
@@ -126,6 +135,7 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ structs.RPCInfo
+var _ time.Month
 
 `)
 	for _, typ := range v.Types {
@@ -143,6 +153,15 @@ var _ structs.RPCInfo
 		}
 		if typ.Annotation.QueryMeta != "" {
 			buf.WriteString(fmt.Sprintf(tmplQueryMeta, typ.Name, typ.Annotation.QueryMeta))
+		}
+		if typ.Annotation.Datacenter != "" {
+			buf.WriteString(fmt.Sprintf(tmplDatacenter, typ.Name, typ.Annotation.Datacenter))
+		}
+		if typ.Annotation.ReadTODO != "" {
+			buf.WriteString(fmt.Sprintf(tmplReadTODO, typ.Name, typ.Annotation.ReadTODO))
+		}
+		if typ.Annotation.WriteTODO != "" {
+			buf.WriteString(fmt.Sprintf(tmplWriteTODO, typ.Name, typ.Annotation.WriteTODO))
 		}
 	}
 
@@ -245,6 +264,9 @@ type Annotation struct {
 	ReadRequest      string
 	WriteRequest     string
 	TargetDatacenter string
+	Datacenter       string
+	ReadTODO         string
+	WriteTODO        string
 }
 
 func (a Annotation) IsZero() bool {
@@ -287,6 +309,16 @@ func getAnnotation(doc []*ast.Comment) (Annotation, error) {
 			ann.QueryMeta = "QueryMeta"
 		case strings.HasPrefix(part, "QueryMeta="):
 			ann.QueryMeta = strings.TrimPrefix(part, "QueryMeta=")
+
+		case part == "Datacenter":
+			ann.Datacenter = "Datacenter"
+		case strings.HasPrefix(part, "Datacenter="):
+			ann.Datacenter = strings.TrimPrefix(part, "Datacenter=")
+
+		case part == "ReadTODO":
+			ann.ReadTODO = "ReadTODO"
+		case part == "WriteTODO":
+			ann.WriteTODO = "WriteTODO"
 
 		default:
 			return Annotation{}, fmt.Errorf("unexpected annotation part: %s", part)
@@ -431,6 +463,86 @@ func (msg *%[1]s) Token() string {
 }
 `
 
+const tmplReadTODO = `
+// IsRead implements structs.RPCInfo
+func (msg *%[1]s) IsRead() bool {
+	// TODO(peering): figure out read semantics here
+	return true
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *%[1]s) AllowStaleRead() bool {
+	// TODO(peering): figure out read semantics here
+	return false
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	// TODO(peering): figure out read semantics here
+	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *%[1]s) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	// TODO(peering): figure out read semantics here
+	return rpcHoldTimeout
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *%[1]s) SetTokenSecret(s string) {
+	// TODO(peering): figure out read semantics here
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *%[1]s) TokenSecret() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+
+// Token implements structs.RPCInfo
+func (msg *%[1]s) Token() string {
+	// TODO(peering): figure out read semantics here
+	return ""
+}
+`
+
+const tmplWriteTODO = `
+// IsRead implements structs.RPCInfo
+func (msg *%[1]s) IsRead() bool {
+	// TODO(peering): figure out write semantics here
+	return false
+}
+
+// AllowStaleRead implements structs.RPCInfo
+func (msg *%[1]s) AllowStaleRead() bool {
+	// TODO(peering): figure out write semantics here
+	return false
+}
+
+// HasTimedOut implements structs.RPCInfo
+func (msg *%[1]s) HasTimedOut(start time.Time, rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) (bool, error) {
+	// TODO(peering): figure out write semantics here
+	return time.Since(start) > rpcHoldTimeout, nil
+}
+
+// Timeout implements structs.RPCInfo
+func (msg *%[1]s) Timeout(rpcHoldTimeout time.Duration, a time.Duration, b time.Duration) time.Duration {
+	// TODO(peering): figure out write semantics here
+	return rpcHoldTimeout
+}
+
+// SetTokenSecret implements structs.RPCInfo
+func (msg *%[1]s) SetTokenSecret(s string) {
+	// TODO(peering): figure out write semantics here
+}
+
+// TokenSecret implements structs.RPCInfo
+func (msg *%[1]s) TokenSecret() string {
+	// TODO(peering): figure out write semantics here
+	return ""
+}
+`
+
 const tmplTargetDatacenter = `
 // RequestDatacenter implements structs.RPCInfo
 func (msg *%[1]s) RequestDatacenter() string {
@@ -438,6 +550,16 @@ func (msg *%[1]s) RequestDatacenter() string {
 		return ""
 	}
 	return msg.%[2]s.GetDatacenter()
+}
+`
+
+const tmplDatacenter = `
+// RequestDatacenter implements structs.RPCInfo
+func (msg *%[1]s) RequestDatacenter() string {
+	if msg == nil {
+		return ""
+	}
+	return msg.Datacenter
 }
 `
 

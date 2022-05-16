@@ -83,7 +83,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					require.Equal(r, src.keyBits, caRoot.PrivateKeyBits)
 				})
 
-				runStep(t, "sign leaf cert and make sure chain is correct", func(t *testing.T) {
+				testutil.RunStep(t, "sign leaf cert and make sure chain is correct", func(t *testing.T) {
 					spiffeService := &connect.SpiffeIDService{
 						Host:       "node1",
 						Namespace:  "default",
@@ -103,14 +103,14 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					require.NoError(t, connect.ValidateLeaf(caRoot.RootCert, leafPEM, []string{}))
 				})
 
-				runStep(t, "verify persisted state is correct", func(t *testing.T) {
+				testutil.RunStep(t, "verify persisted state is correct", func(t *testing.T) {
 					state := srv.fsm.State()
 					_, caConfig, err := state.CAConfig(nil)
 					require.NoError(t, err)
 					require.Equal(t, providerState, caConfig.State)
 				})
 
-				runStep(t, "change roots", func(t *testing.T) {
+				testutil.RunStep(t, "change roots", func(t *testing.T) {
 					// Update a config value
 					newConfig := &structs.CAConfiguration{
 						Provider: "consul",
@@ -145,7 +145,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					require.Equal(r, dst.keyBits, newCaRoot.PrivateKeyBits)
 				})
 
-				runStep(t, "sign leaf cert and make sure NEW chain is correct", func(t *testing.T) {
+				testutil.RunStep(t, "sign leaf cert and make sure NEW chain is correct", func(t *testing.T) {
 					spiffeService := &connect.SpiffeIDService{
 						Host:       "node1",
 						Namespace:  "default",
@@ -165,7 +165,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					require.NoError(t, connect.ValidateLeaf(newCaRoot.RootCert, leafPEM, []string{}))
 				})
 
-				runStep(t, "verify persisted state is still correct", func(t *testing.T) {
+				testutil.RunStep(t, "verify persisted state is still correct", func(t *testing.T) {
 					state := srv.fsm.State()
 					_, caConfig, err := state.CAConfig(nil)
 					require.NoError(t, err)

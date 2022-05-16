@@ -25,7 +25,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 	if event.Name == "" {
-		return nil, BadRequestError{Reason: "Missing name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing name"}
 	}
 
 	// Get the ACL token
@@ -55,7 +55,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if acl.IsErrPermissionDenied(err) {
-			return nil, ForbiddenError{Reason: acl.ErrPermissionDenied.Error()}
+			return nil, HTTPError{StatusCode: http.StatusForbidden, Reason: acl.ErrPermissionDenied.Error()}
 		}
 		resp.WriteHeader(http.StatusInternalServerError)
 		return nil, err

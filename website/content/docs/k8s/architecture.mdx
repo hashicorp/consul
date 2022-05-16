@@ -23,7 +23,7 @@ are configured with
 rules so that they are placed on different nodes. A readiness probe is
 configured that marks the pod as ready only when it has established a leader.
 
-A Kubernetes `Service` is registered to represent the servers and exposes ports that are requried to communicate to the Consul server pods. 
+A Kubernetes `Service` is registered to represent the servers and exposes ports that are required to communicate to the Consul server pods.
 The servers utilize the DNS address of this service to join a Consul cluster, without requiring any other access to the Kubernetes cluster. Additional consul servers may also utilize non-ready endpoints which are published by the Kubernetes service, so that servers can utilize the service for joining during bootstrap and upgrades.
 
 Additionally, a **PodDisruptionBudget** is configured so the Consul server

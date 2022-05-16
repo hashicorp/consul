@@ -14,10 +14,6 @@ import (
 
 // validatePeeringToken ensures that the token has valid values.
 func validatePeeringToken(tok *structs.PeeringToken) error {
-	if len(tok.CA) == 0 {
-		return errPeeringTokenEmptyCA
-	}
-
 	// the CA values here should be valid x509 certs
 	for _, certStr := range tok.CA {
 		// TODO(peering): should we put these in a cert pool on the token?

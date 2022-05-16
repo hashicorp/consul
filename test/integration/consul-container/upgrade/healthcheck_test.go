@@ -1,8 +1,7 @@
-package consul_container
+package upgrade
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"testing"
 	"time"
@@ -18,22 +17,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var targetImage = flag.String("target-version", "local", "docker image to be used as UUT (unit under test)")
-var latestImage = flag.String("latest-version", "latest", "docker image to be used as latest")
-
-const retryTimeout = 10 * time.Second
+const retryTimeout = 20 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
-// Test health check GRPC call using Current Servers and Latest GA Clients
-func TestCurrentServersWithLatestGAClients(t *testing.T) {
-	t.Parallel()
+// Test health check GRPC call using Target Servers and Latest GA Clients
+func TestTargetServersWithLatestGAClients(t *testing.T) {
 	numServers := 3
 	cluster, err := serversCluster(t, numServers, *targetImage)
 	require.NoError(t, err)
 	defer Terminate(t, cluster)
 	numClients := 1
 
-	clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients, *latestImage)
+	require.NoError(t, err)
 	client := cluster.Nodes[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -76,7 +72,6 @@ func TestCurrentServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	t.Parallel()
 	var configs []node.Config
 	configs = append(configs,
 		node.Config{
@@ -105,7 +100,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients, *latestImage)
 	client := clients[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -146,9 +141,8 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	}
 }
 
-// Test health check GRPC call using Mixed (majority current) Servers and Latest GA Clients
-func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
-	t.Parallel()
+// Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
+func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	var configs []node.Config
 	for i := 0; i < 2; i++ {
 		configs = append(configs,
@@ -176,7 +170,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	defer Terminate(t, cluster)
 
 	numClients := 1
-	clients, err := clientsCreate(numClients)
+	clients, err := clientsCreate(numClients, *latestImage)
 	client := clients[0].GetClient()
 	err = cluster.AddNodes(clients)
 	retry.RunWith(&retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}, t, func(r *retry.R) {
@@ -217,7 +211,7 @@ func TestMixedServersMajorityCurrentGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(numClients int) ([]node.Node, error) {
+func clientsCreate(numClients int, version string) ([]node.Node, error) {
 	clients := make([]node.Node, numClients)
 	var err error
 	for i := 0; i < numClients; i++ {
@@ -226,7 +220,7 @@ func clientsCreate(numClients int) ([]node.Node, error) {
 				HCL: `node_name="` + utils.RandName("consul-client") + `"
 					log_level="TRACE"`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: version,
 			})
 	}
 	return clients, err
@@ -243,7 +237,7 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) (error,
 	return err, meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, image string) (*cluster.Cluster, error) {
+func serversCluster(t *testing.T, numServers int, version string) (*cluster.Cluster, error) {
 	var err error
 	var configs []node.Config
 	for i := 0; i < numServers; i++ {
@@ -253,7 +247,7 @@ func serversCluster(t *testing.T, numServers int, image string) (*cluster.Cluste
 					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: image,
+			Version: version,
 		})
 	}
 	cluster, err := cluster.New(configs)

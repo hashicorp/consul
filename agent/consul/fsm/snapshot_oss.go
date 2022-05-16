@@ -112,17 +112,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		n := node.(*structs.Node)
 		nodeEntMeta := n.GetEnterpriseMeta()
 
-		req := structs.RegisterRequest{
-			ID:              n.ID,
-			Node:            n.Node,
-			Datacenter:      n.Datacenter,
-			Address:         n.Address,
-			TaggedAddresses: n.TaggedAddresses,
-			NodeMeta:        n.Meta,
-			RaftIndex:       n.RaftIndex,
-			EnterpriseMeta:  *nodeEntMeta,
-			PeerName:        n.PeerName,
-		}
+		req := n.ToRegisterRequest()
 
 		// Register the node itself
 		if _, err := sink.Write([]byte{byte(structs.RegisterRequestType)}); err != nil {

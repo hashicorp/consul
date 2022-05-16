@@ -22,6 +22,9 @@ service PeeringService {
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
   rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse);
 
+  // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
+  rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
+
   // StreamResources opens an event stream for resources to share between peers, such as services.
   // Events are streamed as they happen.
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
@@ -59,6 +62,9 @@ message Peering {
 
   // Partition is the local partition connecting to the peer.
   string Partition = 3;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 11;
 
   // State is one of the valid PeeringState values to represent the status of
   // peering relationship.
@@ -105,6 +111,7 @@ message PeeringTrustBundle {
   uint64 ModifyIndex = 6;
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
@@ -120,6 +127,7 @@ message PeeringReadResponse {
   //TODO(peering) query metadata
 }
 
+// @consul-rpc-glue: Datacenter,ReadTODO
 message PeeringListRequest {
   string Partition = 1;
 
@@ -134,16 +142,21 @@ message PeeringListResponse {
   //TODO(peering) query metadata
 }
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringWriteRequest {
   Peering Peering = 1;
 
   //TODO(peering): what to do with embedded write request?
   string Datacenter = 2;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 3;
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
 message PeeringWriteResponse{}
 
+// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringDeleteRequest {
   string Name = 1;
 
@@ -155,12 +168,27 @@ message PeeringDeleteRequest {
 
 message PeeringDeleteResponse {}
 
+// @consul-rpc-glue: Datacenter,ReadTODO
+message TrustBundleListByServiceRequest{
+  string ServiceName = 1;
+  string Partition = 2;
+
+  // these are common fields required for implementing structs.RPCInfo methods
+  // that are used to forward requests
+  string Datacenter = 3;
+}
+
+message TrustBundleListByServiceResponse{
+  repeated PeeringTrustBundle Bundles = 1;
+}
+
 message PeeringTerminateByIDRequest {
   string ID = 1;
 }
 
 message PeeringTerminateByIDResponse {}
 
+// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleWriteRequest {
   PeeringTrustBundle PeeringTrustBundle = 1;
 
@@ -170,6 +198,7 @@ message PeeringTrustBundleWriteRequest {
 
 message PeeringTrustBundleWriteResponse{}
 
+// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleDeleteRequest {
   string Name = 1;
 
@@ -185,13 +214,16 @@ message GenerateTokenRequest {
   // Name of the remote peer.
   string PeerName = 1;
 
-  // Partition to to be peered.
+  // Partition is the local partition being peered.
   string Partition = 2;
 
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
   string Datacenter = 3;
   string Token = 4;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 5;
 }
 
 message GenerateTokenResponse {
@@ -200,6 +232,7 @@ message GenerateTokenResponse {
   string PeeringToken = 1;
 }
 
+// @consul-rpc-glue: Datacenter
 message InitiateRequest {
   // Name of the remote peer.
   string PeerName = 1;
@@ -207,10 +240,16 @@ message InitiateRequest {
   // The peering token returned from the peer's GenerateToken endpoint.
   string PeeringToken = 2;
 
+  // Partition is the local partition being peered.
+  string Partition = 3;
+
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 3;
-  string Token = 4;
+  string Datacenter = 4;
+  string Token = 5;
+
+  // Meta is a mapping of some string value to any other string value
+  map<string, string> Meta = 6;
 }
 
 message InitiateResponse {

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +23,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 		err       error
 	)
 
-	runStep(t, "new stream", func(t *testing.T) {
+	testutil.RunStep(t, "new stream", func(t *testing.T) {
 		statusPtr, err = tracker.connected(peerID)
 		require.NoError(t, err)
 
@@ -35,7 +36,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.Equal(t, expect, status)
 	})
 
-	runStep(t, "duplicate gets rejected", func(t *testing.T) {
+	testutil.RunStep(t, "duplicate gets rejected", func(t *testing.T) {
 		_, err := tracker.connected(peerID)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `there is an active stream for the given PeerID "63b60245-c475-426b-b314-4588d210859d"`)
@@ -44,7 +45,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 	var sequence uint64
 	var lastSuccess time.Time
 
-	runStep(t, "stream updated", func(t *testing.T) {
+	testutil.RunStep(t, "stream updated", func(t *testing.T) {
 		statusPtr.trackAck()
 		sequence++
 
@@ -59,7 +60,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.Equal(t, expect, status)
 	})
 
-	runStep(t, "disconnect", func(t *testing.T) {
+	testutil.RunStep(t, "disconnect", func(t *testing.T) {
 		tracker.disconnected(peerID)
 		sequence++
 
@@ -73,7 +74,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.Equal(t, expect, status)
 	})
 
-	runStep(t, "re-connect", func(t *testing.T) {
+	testutil.RunStep(t, "re-connect", func(t *testing.T) {
 		_, err := tracker.connected(peerID)
 		require.NoError(t, err)
 
@@ -89,7 +90,7 @@ func TestStreamTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.Equal(t, expect, status)
 	})
 
-	runStep(t, "delete", func(t *testing.T) {
+	testutil.RunStep(t, "delete", func(t *testing.T) {
 		tracker.deleteStatus(peerID)
 
 		status, ok := tracker.streamStatus(peerID)

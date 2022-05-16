@@ -121,6 +121,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 			uid := NewUpstreamID(&u)
 
+			// TODO(peering): pipe destination_peer here
 			watchOpts := discoveryChainWatchOpts{
 				id:         uid,
 				name:       u.DestinationName,

@@ -34,7 +34,7 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 		return nil, err
 	}
 	if args.State == "" {
-		return nil, BadRequestError{Reason: "Missing check state"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing check state"}
 	}
 
 	// Make the RPC request
@@ -82,7 +82,7 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 		return nil, err
 	}
 	if args.Node == "" {
-		return nil, BadRequestError{Reason: "Missing node name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -132,7 +132,7 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing service name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	// Make the RPC request
@@ -224,7 +224,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing service name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
@@ -242,7 +242,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	// Filter to only passing if specified
 	filter, err := getBoolQueryParam(params, api.HealthPassing)
 	if err != nil {
-		return nil, BadRequestError{Reason: "Invalid value for ?passing"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid value for ?passing"}
 	}
 
 	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer

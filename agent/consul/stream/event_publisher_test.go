@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type intTopic int
@@ -254,7 +255,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 	// splicing the topic buffer onto the snapshot.
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
-	runStep(t, "start a subscription and unsub", func(t *testing.T) {
+	testutil.RunStep(t, "start a subscription and unsub", func(t *testing.T) {
 		sub, err := publisher.Subscribe(req)
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -269,7 +270,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 		require.Equal(t, uint64(1), next.Index)
 	})
 
-	runStep(t, "resume the subscription", func(t *testing.T) {
+	testutil.RunStep(t, "resume the subscription", func(t *testing.T) {
 		newReq := *req
 		newReq.Index = 1
 		sub, err := publisher.Subscribe(&newReq)
@@ -304,7 +305,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 	// Include the same event in the topicBuffer
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
-	runStep(t, "start a subscription and unsub", func(t *testing.T) {
+	testutil.RunStep(t, "start a subscription and unsub", func(t *testing.T) {
 		sub, err := publisher.Subscribe(req)
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -325,11 +326,11 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
-	runStep(t, "publish an event while unsubed", func(t *testing.T) {
+	testutil.RunStep(t, "publish an event while unsubed", func(t *testing.T) {
 		publisher.publishEvent([]Event{nextEvent})
 	})
 
-	runStep(t, "resume the subscription", func(t *testing.T) {
+	testutil.RunStep(t, "resume the subscription", func(t *testing.T) {
 		newReq := *req
 		newReq.Index = 1
 		sub, err := publisher.Subscribe(&newReq)
@@ -365,7 +366,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 	// splicing the topic buffer onto the snapshot.
 	publisher.publishEvent([]Event{testSnapshotEvent})
 
-	runStep(t, "start a subscription and unsub", func(t *testing.T) {
+	testutil.RunStep(t, "start a subscription and unsub", func(t *testing.T) {
 		sub, err := publisher.Subscribe(req)
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -386,7 +387,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
-	runStep(t, "publish an event while unsubed", func(t *testing.T) {
+	testutil.RunStep(t, "publish an event while unsubed", func(t *testing.T) {
 		publisher.publishEvent([]Event{nextEvent})
 	})
 
@@ -394,7 +395,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
-	runStep(t, "resume the subscription", func(t *testing.T) {
+	testutil.RunStep(t, "resume the subscription", func(t *testing.T) {
 		newReq := *req
 		newReq.Index = 1
 		sub, err := publisher.Subscribe(&newReq)
@@ -452,7 +453,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 	publisher.publishEvent([]Event{testSnapshotEvent})
 	publisher.publishEvent([]Event{nextEvent})
 
-	runStep(t, "start a subscription and unsub", func(t *testing.T) {
+	testutil.RunStep(t, "start a subscription and unsub", func(t *testing.T) {
 		sub, err := publisher.Subscribe(req)
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -476,7 +477,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
-	runStep(t, "resume the subscription", func(t *testing.T) {
+	testutil.RunStep(t, "resume the subscription", func(t *testing.T) {
 		newReq := *req
 		newReq.Index = 0
 		sub, err := publisher.Subscribe(&newReq)
@@ -492,13 +493,6 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot_WithCache(t *testi
 		next = getNextEvent(t, eventCh)
 		require.True(t, next.IsEndOfSnapshot())
 	})
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {

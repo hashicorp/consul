@@ -1,0 +1,3 @@
+```release-note:feature
+acl: It is now possible to login and logout using the gRPC API
+```

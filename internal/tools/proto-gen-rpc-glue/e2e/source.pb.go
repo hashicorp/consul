@@ -32,6 +32,22 @@ type ExampleQueryMeta struct {
 	QueryMeta *pbcommon.QueryMeta
 }
 
+// @consul-rpc-glue: Datacenter
+type ExampleDatacenter struct {
+	Value      string
+	Datacenter string
+}
+
+// @consul-rpc-glue: ReadTODO
+type ExampleReadTODO struct {
+	Value string
+}
+
+// @consul-rpc-glue: WriteTODO
+type ExampleWriteTODO struct {
+	Value string
+}
+
 // @consul-rpc-glue: WriteRequest=AltWriteRequest
 type AltExampleWriteRequest struct {
 	Value           int
@@ -53,4 +69,10 @@ type AltExampleQueryOptions struct {
 // @consul-rpc-glue: QueryMeta=AltQueryMeta
 type AltExampleQueryMeta struct {
 	AltQueryMeta *pbcommon.QueryMeta
+}
+
+// @consul-rpc-glue: Datacenter=AltDatacenter
+type AltExampleDatacenter struct {
+	Value         string
+	AltDatacenter string
 }

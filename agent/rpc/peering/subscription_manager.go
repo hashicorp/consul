@@ -134,7 +134,7 @@ func (m *subscriptionManager) syncSubscriptionsAndBlock(ctx context.Context, pee
 	}
 
 	// Block for any changes to the state store.
-	ws.WatchCh(ctx)
+	ws.WatchCtx(ctx)
 	return nil
 }
 

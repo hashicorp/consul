@@ -56,7 +56,7 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 	if _, ok := params["recurse"]; ok {
 		method = "KVS.List"
 	} else if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 
 	// Do not allow wildcard NS on GET reqs
@@ -157,7 +157,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 		return nil, err
 	}
 	if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
 		return nil, nil
@@ -208,7 +208,8 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 
 	// Check the content-length
 	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
-		return nil, EntityTooLargeError{
+		return nil, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, s.agent.config.KVMaxValueSize, "https://www.consul.io/docs/agent/config/config-files#kv_max_value_size"),
 		}
@@ -257,7 +258,7 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 	if _, ok := params["recurse"]; ok {
 		applyReq.Op = api.KVDeleteTree
 	} else if args.Key == "" {
-		return nil, BadRequestError{Reason: "Missing key name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
 
 	// Check for cas value

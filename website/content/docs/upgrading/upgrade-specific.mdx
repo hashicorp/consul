@@ -32,6 +32,24 @@ Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0.
 
 Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
 
+### TLS Configuration
+
+You can now configure TLS differently for each of Consul's exposed ports. As a
+result, the following top-level configuration fields are deprecated and should
+be replaced with the new [`tls` stanza](/docs/agent/config/config-files#tls-configuration-reference):
+
+- `cert_file`
+- `key_file`
+- `ca_file`
+- `ca_path`
+- `tls_min_version`
+- `tls_cipher_suites`
+- `verify_incoming`
+- `verify_incoming_rpc`
+- `verify_incoming_https`
+- `verify_outgoing`
+- `verify_server_hostname`
+
 ## Consul 1.11.0
 
 ### 1.10 Compatibility <EnterpriseAlert inline />

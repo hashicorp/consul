@@ -5660,6 +5660,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
 		VersionPrerelease: "ZT1JOQLn",
+		VersionMetadata:   "GtTCa13",
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  128,
@@ -6445,7 +6446,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				ConfigFiles: []string{"testdata/full-config." + format},
 				HCL:         []string{fmt.Sprintf(`data_dir = "%s"`, dataDir)},
 			}
-			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
+			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn", "GtTCa13"))
 			r, err := Load(opts)
 			require.NoError(t, err)
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -107,7 +108,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		},
 	}
 
-	runStep(t, "empty snapshot returned", func(t *testing.T) {
+	testutil.RunStep(t, "empty snapshot returned", func(t *testing.T) {
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
@@ -117,7 +118,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "blocks for timeout", func(t *testing.T) {
+	testutil.RunStep(t, "blocks for timeout", func(t *testing.T) {
 		// Subsequent fetch should block for the timeout
 		start := time.Now()
 		req.QueryOptions.MaxQueryTime = 200 * time.Millisecond
@@ -135,7 +136,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 
 	var lastResultValue structs.CheckServiceNodes
 
-	runStep(t, "blocks until update", func(t *testing.T) {
+	testutil.RunStep(t, "blocks until update", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -161,7 +162,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "reconnects and resumes after temporary error", func(t *testing.T) {
+	testutil.RunStep(t, "reconnects and resumes after temporary error", func(t *testing.T) {
 		streamClient.QueueErr(tempError("broken pipe"))
 
 		// Next fetch will continue to block until timeout and receive the same
@@ -200,7 +201,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "returns non-temporary error to watchers", func(t *testing.T) {
+	testutil.RunStep(t, "returns non-temporary error to watchers", func(t *testing.T) {
 		// Wait and send the error while fetcher is waiting
 		go func() {
 			time.Sleep(200 * time.Millisecond)
@@ -285,7 +286,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		streamClient: client,
 	}
 
-	runStep(t, "full snapshot returned", func(t *testing.T) {
+	testutil.RunStep(t, "full snapshot returned", func(t *testing.T) {
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
@@ -297,7 +298,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "blocks until deregistration", func(t *testing.T) {
+	testutil.RunStep(t, "blocks until deregistration", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -325,7 +326,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "server reload is respected", func(t *testing.T) {
+	testutil.RunStep(t, "server reload is respected", func(t *testing.T) {
 		// Simulates the server noticing the request's ACL token privs changing. To
 		// detect this we'll queue up the new snapshot as a different set of nodes
 		// to the first.
@@ -355,7 +356,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "reconnects and receives new snapshot when server state has changed", func(t *testing.T) {
+	testutil.RunStep(t, "reconnects and receives new snapshot when server state has changed", func(t *testing.T) {
 		client.QueueErr(tempError("temporary connection error"))
 
 		client.QueueEvents(
@@ -430,7 +431,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 		streamClient: client,
 	}
 
-	runStep(t, "full snapshot returned", func(t *testing.T) {
+	testutil.RunStep(t, "full snapshot returned", func(t *testing.T) {
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
@@ -442,7 +443,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "batched updates work too", func(t *testing.T) {
+	testutil.RunStep(t, "batched updates work too", func(t *testing.T) {
 		// Simulate multiple registrations happening in one Txn (so all have same
 		// index)
 		batchEv := newEventBatchWithEvents(
@@ -499,7 +500,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		batchEv,
 		newEndOfSnapshotEvent(5))
 
-	runStep(t, "filtered snapshot returned", func(t *testing.T) {
+	testutil.RunStep(t, "filtered snapshot returned", func(t *testing.T) {
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
@@ -511,7 +512,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
 
-	runStep(t, "filtered updates work too", func(t *testing.T) {
+	testutil.RunStep(t, "filtered updates work too", func(t *testing.T) {
 		// Simulate multiple registrations happening in one Txn (all have same index)
 		batchEv := newEventBatchWithEvents(
 			// Deregister an existing node
@@ -663,13 +664,6 @@ func validateNamespace(ns string) func(request *pbsubscribe.SubscribeRequest) er
 			return fmt.Errorf("expected request.Namespace %v, got %v", ns, request.Namespace)
 		}
 		return nil
-	}
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
 	}
 }
 

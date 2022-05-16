@@ -92,7 +92,7 @@ func TestLogoutCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied)")
+		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
 	testSessionID := testauth.StartSession()
@@ -222,7 +222,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied)")
+		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
 	// go to the trouble of creating a login token

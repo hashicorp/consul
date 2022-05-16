@@ -272,6 +272,7 @@ type Config struct {
 	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
 	Version                    *string  `mapstructure:"version"`
 	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
+	VersionMetadata            *string  `mapstructure:"version_metadata"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
@@ -505,6 +506,7 @@ type Upstream struct {
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
 	DestinationPartition *string `mapstructure:"destination_partition"`
+	DestinationPeer      *string `mapstructure:"destination_peer"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note

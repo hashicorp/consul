@@ -6,7 +6,7 @@ dc:
       unassigned: Unassigned Zones
       tolerance:
         link: |
-          <a href="{CONSUL_DOCS_URL}/architecture/consensus" target="_blank" rel="noopener noreferrer">Learn more</a>
+          <a href="{CONSUL_DOCS_URL}/architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance" target="_blank" rel="noopener noreferrer">Learn how to improve fault tolerance</a>
         header: Server fault tolerance
         immediate:
           header: Immediate

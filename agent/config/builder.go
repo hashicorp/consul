@@ -697,16 +697,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
-			"address":               "Address",
-			"token":                 "Token",
-			"root_pki_path":         "RootPKIPath",
-			"intermediate_pki_path": "IntermediatePKIPath",
-			"ca_file":               "CAFile",
-			"ca_path":               "CAPath",
-			"cert_file":             "CertFile",
-			"key_file":              "KeyFile",
-			"tls_server_name":       "TLSServerName",
-			"tls_skip_verify":       "TLSSkipVerify",
+			"address":                    "Address",
+			"token":                      "Token",
+			"root_pki_path":              "RootPKIPath",
+			"root_pki_namespace":         "RootPKINamespace",
+			"intermediate_pki_path":      "IntermediatePKIPath",
+			"intermediate_pki_namespace": "IntermediatePKINamespace",
+			"ca_file":                    "CAFile",
+			"ca_path":                    "CAPath",
+			"cert_file":                  "CertFile",
+			"key_file":                   "KeyFile",
+			"tls_server_name":            "TLSServerName",
+			"tls_skip_verify":            "TLSSkipVerify",
 
 			// AWS CA config
 			"existing_arn":   "ExistingARN",
@@ -801,6 +803,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
+		VersionMetadata:            stringVal(c.VersionMetadata),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
@@ -1697,6 +1700,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
 			DestinationPartition: stringVal(u.DestinationPartition),
+			DestinationPeer:      stringVal(u.DestinationPeer),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),

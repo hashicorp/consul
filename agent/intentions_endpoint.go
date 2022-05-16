@@ -56,8 +56,9 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
+
 	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
-		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot use a partition with this endpoint"}
 	}
 
 	args := structs.IntentionRequest{
@@ -70,10 +71,10 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 	}
 
 	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a destination partition with this endpoint"}
 	}
 	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a source partition with this endpoint"}
 	}
 
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)
@@ -324,7 +325,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -332,7 +333,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 		// to detect a parameter error and return a 400 response. The error
 		// is not a constant type or message, so we have to use strings.Contains
 		if strings.Contains(err.Error(), "UUID") {
-			return nil, BadRequestError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 
 		return nil, err
@@ -366,7 +367,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Explicitly CLEAR the old legacy ID field
@@ -520,7 +521,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -528,7 +529,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 		// to detect a parameter error and return a 400 response. The error
 		// is not a constant type or message, so we have to use strings.Contains
 		if strings.Contains(err.Error(), "UUID") {
-			return nil, BadRequestError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 
 		return nil, err
@@ -552,8 +553,9 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
+
 	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
-		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot use a partition with this endpoint"}
 	}
 
 	args := structs.IntentionRequest{
@@ -562,14 +564,14 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a destination partition with this endpoint"}
 	}
 	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a source partition with this endpoint"}
 	}
 
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)

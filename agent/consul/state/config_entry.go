@@ -1341,6 +1341,52 @@ func configEntryWithOverridesTxn(
 	return configEntryTxn(tx, ws, kind, name, entMeta)
 }
 
+// getExportedServicesConfigEntriesTxn fetches exported-service config entries and
+// filters their exported services to only those that match serviceName and entMeta.
+// Because the resulting config entries may have had their exported services modified,
+// they *should not* be used in subsequent writes.
+func getExportedServiceConfigEntriesTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *acl.EnterpriseMeta,
+) (uint64, []*structs.ExportedServicesConfigEntry, error) {
+	var exportedServicesEntries []*structs.ExportedServicesConfigEntry
+	// slice of names to match config entries against
+	matchCandidates := getExportedServicesMatchServiceNames(serviceName, entMeta)
+	// matcher func generator for currying the matcher func over EnterpriseMeta values
+	// from the associated config entry
+	matchFunc := func(matchMeta *acl.EnterpriseMeta) func(structs.ExportedService) bool {
+		return func(exportedService structs.ExportedService) bool {
+			matchSvcName := structs.NewServiceName(exportedService.Name, matchMeta)
+			for _, candidate := range matchCandidates {
+				if candidate.Matches(matchSvcName) {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	idx, entries, err := configEntriesByKindTxn(tx, ws, structs.ExportedServices, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	for _, entry := range entries {
+		esEntry, ok := entry.(*structs.ExportedServicesConfigEntry)
+		if !ok {
+			return 0, nil, fmt.Errorf("type %T is not a %s config entry", esEntry, structs.ExportedServices)
+		}
+		// get a copy of the config entry with Services filtered to match serviceName
+		newEntry := filterExportedServices(esEntry, matchFunc(entry.GetEnterpriseMeta()))
+		// the filter will return a new entry, so checking to see if its services is empty says that there
+		// were matches and that we should include it in the results
+		if len(newEntry.Services) > 0 {
+			exportedServicesEntries = append(exportedServicesEntries, newEntry)
+		}
+	}
+	return idx, exportedServicesEntries, nil
+}
+
 // protocolForService returns the service graph protocol associated to the
 // provided service, checking all relevant config entries.
 func protocolForService(
@@ -1381,6 +1427,23 @@ func protocolForService(
 		return 0, "", err
 	}
 	return maxIdx, chain.Protocol, nil
+}
+
+// filterExportedServices returns the slice of ExportedService that matc ffor matching service names
+// returning a copy of entry with only the services that match one of the
+// services in candidates.
+func filterExportedServices(
+	entry *structs.ExportedServicesConfigEntry,
+	testFunc func(structs.ExportedService) bool,
+) *structs.ExportedServicesConfigEntry {
+	newEntry := *entry
+	newEntry.Services = []structs.ExportedService{}
+	for _, ceSvc := range entry.Services {
+		if testFunc(ceSvc) {
+			newEntry.Services = append(newEntry.Services, ceSvc)
+		}
+	}
+	return &newEntry
 }
 
 func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {

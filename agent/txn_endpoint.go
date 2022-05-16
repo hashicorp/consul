@@ -88,7 +88,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 
 	// Check Content-Length first before decoding to return early
 	if req.ContentLength > maxTxnLen {
-		return nil, 0, EntityTooLargeError{
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
 		}
@@ -100,7 +101,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		if err.Error() == "http: request body too large" {
 			// The request size is also verified during decoding to double check
 			// if the Content-Length header was not set by the client.
-			return nil, 0, EntityTooLargeError{
+			return nil, 0, HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
 				Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
 					maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
 			}
@@ -108,15 +110,16 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 			// Note the body is in API format, and not the RPC format. If we can't
 			// decode it, we will return a 400 since we don't have enough context to
 			// associate the error with a given operation.
-			return nil, 0, BadRequestError{Reason: fmt.Sprintf("Failed to parse body: %v", err)}
+			return nil, 0, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to parse body: %v", err)}
 		}
 	}
 
 	// Enforce a reasonable upper limit on the number of operations in a
 	// transaction in order to curb abuse.
 	if size := len(ops); size > maxTxnOps {
-		return nil, 0, EntityTooLargeError{
-			Reason: fmt.Sprintf("Transaction contains too many operations (%d > %d)", size, maxTxnOps),
+		return nil, 0, HTTPError{
+			StatusCode: http.StatusRequestEntityTooLarge,
+			Reason:     fmt.Sprintf("Transaction contains too many operations (%d > %d)", size, maxTxnOps),
 		}
 	}
 
@@ -130,8 +133,9 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		case in.KV != nil:
 			size := len(in.KV.Value)
 			if int64(size) > kvMaxValueSize {
-				return nil, 0, EntityTooLargeError{
-					Reason: fmt.Sprintf("Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize),
+				return nil, 0, HTTPError{
+					StatusCode: http.StatusRequestEntityTooLarge,
+					Reason:     fmt.Sprintf("Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize),
 				}
 			}
 

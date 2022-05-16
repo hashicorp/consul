@@ -76,21 +76,17 @@ items which are reloaded include:
 - Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-  - To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](#_auto_reload_config) is enabled:
-    - [encrypt_verify_incoming](#encrypt_verify_incoming)
-    - [verify_incoming](#verify_incoming)
-    - [verify_incoming_rpc](#verify_incoming_rpc)
-    - [verify_incoming_https](#verify_incoming_https)
-    - [verify_outgoing](#verify_outgoing)
-    - [verify_server_hostname](#verify_server_hostname)
-    - [ca_file](#ca_file)
-    - [ca_path](#ca_path)
+  - To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/docs/agent/config/cli-flags#_auto_reload_config) is enabled:
+    - [encrypt_verify_incoming](/docs/agent/config/config-files#encrypt_verify_incoming)
+    - [verify_incoming](/docs/agent/config/config-files#verify_incoming)
+    - [verify_incoming_rpc](/docs/agent/config/config-files#verify_incoming_rpc)
+    - [verify_incoming_https](/docs/agent/config/config-files#verify_incoming_https)
+    - [verify_outgoing](/docs/agent/config/config-files#verify_outgoing)
+    - [verify_server_hostname](/docs/agent/config/config-files#verify_server_hostname)
+    - [ca_file](/docs/agent/config/config-files#ca_file)
+    - [ca_path](/docs/agent/config/config-files#ca_path)
 
-    If any of those configurations are changed while [-auto-reload-config](#_auto_reload_config) is enabled,
+    If any of those configurations are changed while [-auto-reload-config](/docs/agent/config/cli-flags#_auto_reload_config) is enabled,
     Consul will issue the following warning, `Static Runtime config has changed and need a manual config reload to be applied`.
     You must manually issue the `consul reload` command or send a `SIGHUP` to the Consul process to reload the new values.
 - Watches
-
-<!-- list of reference-style links -->
-
-[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

@@ -21,6 +21,7 @@ func UpstreamSNI(u *structs.Upstream, subset string, dc string, trustDomain stri
 	if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		return QuerySNI(u.DestinationName, dc, trustDomain)
 	}
+	// TODO(peering): account for peer here?
 	return ServiceSNI(u.DestinationName, subset, u.DestinationNamespace, u.DestinationPartition, dc, trustDomain)
 }
 

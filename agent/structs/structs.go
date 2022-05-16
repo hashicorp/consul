@@ -18,10 +18,11 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -854,6 +855,20 @@ func (n *Node) BestAddress(wan bool) string {
 	return n.Address
 }
 
+func (n *Node) ToRegisterRequest() RegisterRequest {
+	return RegisterRequest{
+		ID:              n.ID,
+		Node:            n.Node,
+		Datacenter:      n.Datacenter,
+		Address:         n.Address,
+		TaggedAddresses: n.TaggedAddresses,
+		NodeMeta:        n.Meta,
+		RaftIndex:       n.RaftIndex,
+		EnterpriseMeta:  *n.GetEnterpriseMeta(),
+		PeerName:        n.PeerName,
+	}
+}
+
 type Nodes []*Node
 
 // IsSame return whether nodes are similar without taking into account
@@ -884,6 +899,11 @@ func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowCons
 	default:
 		return validateMetadata(meta, allowConsulPrefix, nil)
 	}
+}
+
+// ValidateMetaTags validates arbitrary key/value pairs from the agent_endpoints
+func ValidateMetaTags(metaTags map[string]string) error {
+	return validateMetadata(metaTags, false, nil)
 }
 
 func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
@@ -1334,8 +1354,7 @@ func (s *NodeService) Validate() error {
 		}
 
 		if s.Port == 0 && s.SocketPath == "" {
-			result = multierror.Append(result, fmt.Errorf(
-				"Port or SocketPath must be set for a Connect proxy"))
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -1349,17 +1368,34 @@ func (s *NodeService) Validate() error {
 			bindAddrs    = make(map[string]struct{})
 		)
 		for _, u := range s.Proxy.Upstreams {
+
 			destinationPartition := u.DestinationPartition
 			if destinationPartition == "" {
-				destinationPartition = acl.DefaultPartitionName
+
+				// If we have a set DestinationPeer, then DestinationPartition
+				// must match the NodeService's Partition
+				if u.DestinationPeer != "" {
+					destinationPartition = s.PartitionOrDefault()
+				} else {
+					destinationPartition = acl.DefaultPartitionName
+				}
 			}
 
-			// cross DC Upstreams are only allowed for non "default" partitions
-			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
-				result = multierror.Append(result, fmt.Errorf(
-					"upstreams cannot target another datacenter in non default partition"))
-				continue
+			if u.DestinationPeer == "" {
+				// cross DC Upstreams are only allowed for non "default" partitions
+				if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams cannot target another datacenter in non default partition"))
+					continue
+				}
+			} else {
+				if destinationPartition != s.PartitionOrDefault() {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams must target peers in the same partition as the service"))
+					continue
+				}
 			}
+
 			if err := u.Validate(); err != nil {
 				result = multierror.Append(result, err)
 				continue
@@ -1464,6 +1500,11 @@ func (s *NodeService) Validate() error {
 					"A SidecarService cannot have a nested SidecarService"))
 			}
 		}
+	}
+
+	if s.Connect.Native && s.Port == 0 && s.SocketPath == "" {
+		result = multierror.Append(result, fmt.Errorf(
+			"Port or SocketPath must be set for a Connect native service."))
 	}
 
 	return result
@@ -2099,6 +2140,14 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 }
 
 type ServiceList []ServiceName
+
+// Len implements sort.Interface.
+func (s ServiceList) Len() int { return len(s) }
+
+// Swap implements sort.Interface.
+func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList

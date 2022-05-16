@@ -621,8 +621,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/query/not-there/execute", body)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.PreparedQuerySpecific(resp, req)
-		if err, ok := err.(NotFoundError); !ok {
-			t.Fatalf("Expected not found error but got %v", err)
+		if err, ok := err.(HTTPError); ok {
+			if err.StatusCode != 404 {
+				t.Fatalf("expected status 404 but got %d", err.StatusCode)
+			}
+		} else {
+			t.Fatalf("expected HTTP error but got %v", err)
 		}
 	})
 }
@@ -756,8 +760,12 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/query/not-there/explain", body)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.PreparedQuerySpecific(resp, req)
-		if err, ok := err.(NotFoundError); !ok {
-			t.Fatalf("Expected not found error but got %v", err)
+		if err, ok := err.(HTTPError); ok {
+			if err.StatusCode != 404 {
+				t.Fatalf("expected status 404 but got %d", err.StatusCode)
+			}
+		} else {
+			t.Fatalf("expected HTTP error but got %v", err)
 		}
 	})
 
@@ -845,8 +853,12 @@ func TestPreparedQuery_Get(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.PreparedQuerySpecific(resp, req)
-		if err, ok := err.(NotFoundError); !ok {
-			t.Fatalf("Expected not found error but got %v", err)
+		if err, ok := err.(HTTPError); ok {
+			if err.StatusCode != 404 {
+				t.Fatalf("expected status 404 but got %d", err.StatusCode)
+			}
+		} else {
+			t.Fatalf("expected HTTP error but got %v", err)
 		}
 	})
 }
