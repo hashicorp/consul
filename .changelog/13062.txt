@@ -1,3 +1,3 @@
 ```release-note:bug
-serf: upgrade serf to v0.9.8 which fix a bug that crash Consul when serf keyring are listed.
+serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed
 ```
