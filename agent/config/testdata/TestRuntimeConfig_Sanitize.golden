@@ -418,6 +418,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
+        "DogstatsdExitBadConnection": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {
