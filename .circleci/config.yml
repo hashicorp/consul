@@ -28,6 +28,7 @@ references:
     # workflows section for go-test-lib jobs.
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+    ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
 
@@ -241,7 +242,7 @@ jobs:
 
   go-test-arm64:
     machine:
-      image: ubuntu-2004:202101-01
+      image: *UBUNTU_CI_IMAGE
     resource_class: arm.large
     parallelism: 4
     environment:
@@ -803,7 +804,7 @@ jobs:
       
   compatibility-integration-test:
     machine:
-      image: ubuntu-2004:202101-01
+      image: *UBUNTU_CI_IMAGE
       docker_layer_caching: true
     parallelism: 1
     steps:
@@ -851,7 +852,7 @@ jobs:
       
   envoy-integration-test-1_19_3: &ENVOY_TESTS
     machine:
-      image: ubuntu-2004:202201-02
+      image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
     environment:
