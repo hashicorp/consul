@@ -96,6 +96,9 @@ func NewRouter(logger hclog.Logger, localDatacenter, serverName string, tracker 
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
+	if tracker == nil {
+		tracker = NoOpServerTracker{}
+	}
 
 	router := &Router{
 		logger:            logger.Named(logging.Router),
