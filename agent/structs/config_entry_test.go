@@ -1346,6 +1346,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 						key_file = "/etc/all/tls.key",
 						sni = "my-alt-domain",
 					},
+					{
+						name = "logging",
+						use_system_ca = true,
+						sni = "external.logging.com",
+					},
 				]
 			`,
 			camel: `
@@ -1370,6 +1375,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 						KeyFile = "/etc/all/tls.key",
 						SNI = "my-alt-domain",
 					},
+					{
+						Name = "logging",
+						UseSystemCA = true,
+						SNI = "external.logging.com",
+					},
 				]
 			`,
 			expect: &TerminatingGatewayConfigEntry{
@@ -1393,6 +1403,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 						CertFile: "/etc/all/cert.pem",
 						KeyFile:  "/etc/all/tls.key",
 						SNI:      "my-alt-domain",
+					},
+					{
+						Name:        "logging",
+						UseSystemCA: true,
+						SNI:         "external.logging.com",
 					},
 				},
 			},

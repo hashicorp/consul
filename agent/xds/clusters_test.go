@@ -3,6 +3,7 @@ package xds
 import (
 	"bytes"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"testing"
 	"text/template"
@@ -31,6 +32,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		name               string
 		create             func(t testinf.T) *proxycfg.ConfigSnapshot
 		overrideGoldenName string
+		skip               bool
 	}{
 		{
 			name: "defaults",
@@ -586,6 +588,20 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySNI,
 		},
 		{
+			name:   "terminating-gateway-system-ca-linux",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySystemCA,
+			skip:   runtime.GOOS != "linux", // Assumes Ubuntu
+		},
+		{
+			name:   "terminating-gateway-system-ca-darwin",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySystemCA,
+			skip:   runtime.GOOS != "darwin", // Assumes OpenSSL is installed
+		},
+		{
+			name:   "terminating-gateway-transparent-mode-with-ca",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayTransparentModeWithCA,
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
 		},
@@ -617,6 +633,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
+				if tt.skip {
+					continue
+				}
 				t.Run(tt.name, func(t *testing.T) {
 					// Sanity check default with no overrides first
 					snap := tt.create(t)

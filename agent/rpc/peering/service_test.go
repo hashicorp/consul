@@ -35,7 +35,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
@@ -69,8 +68,6 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	expectedAddr := s.Server.Listener.Addr().String()
-
 	// TODO(peering): for more failure cases, consider using a table test
 	// check meta tags
 	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: generateTooManyMetaKeys()}
@@ -89,7 +86,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	require.NoError(t, json.Unmarshal(tokenJSON, token))
 	require.Equal(t, "server.dc1.consul", token.ServerName)
 	require.Len(t, token.ServerAddresses, 1)
-	require.Equal(t, expectedAddr, token.ServerAddresses[0])
+	require.Equal(t, "127.0.0.1:2345", token.ServerAddresses[0])
 	require.Equal(t, []string{ca}, token.CA)
 
 	require.NotEmpty(t, token.PeerID)
@@ -1027,23 +1024,14 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf := consul.DefaultConfig()
 	dir := testutil.TempDir(t, "consul")
 
-	ports := freeport.GetN(t, 3) // {rpc, serf_lan, serf_wan}
-
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.DataDir = dir
-	conf.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[0]}
+	conf.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 2345}
 	conf.RaftConfig.ElectionTimeout = 200 * time.Millisecond
 	conf.RaftConfig.LeaderLeaseTimeout = 100 * time.Millisecond
 	conf.RaftConfig.HeartbeatTimeout = 200 * time.Millisecond
 	conf.TLSConfig.Domain = "consul"
-
-	conf.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	conf.SerfLANConfig.MemberlistConfig.BindPort = ports[1]
-	conf.SerfLANConfig.MemberlistConfig.AdvertisePort = ports[1]
-	conf.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	conf.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
-	conf.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {

@@ -5071,11 +5071,11 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 		Name: "gateway",
 		Services: []structs.LinkedService{
 			{
-				Name:     "api",
-				CAFile:   "api/ca.crt",
-				CertFile: "api/client.crt",
-				KeyFile:  "api/client.key",
-				SNI:      "my-domain",
+				Name:        "api",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				UseSystemCA: true,
+				SNI:         "my-domain",
 			},
 			{
 				Name: "db",
@@ -5103,10 +5103,10 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			Service:     structs.NewServiceName("api", nil),
 			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
-			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
 			SNI:         "my-domain",
+			UseSystemCA: true,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
 				ModifyIndex: 22,
@@ -5139,9 +5139,9 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			Service:     structs.NewServiceName("api", nil),
 			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
-			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			UseSystemCA: true,
 			SNI:         "my-domain",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,
@@ -5189,9 +5189,9 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 			Service:     structs.NewServiceName("api", nil),
 			Gateway:     structs.NewServiceName("gateway", nil),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
-			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
+			UseSystemCA: true,
 			SNI:         "my-domain",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 22,

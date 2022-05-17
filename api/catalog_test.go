@@ -1142,6 +1142,11 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 				KeyFile:  "client.key",
 				SNI:      "my-alt-domain",
 			},
+			{
+				Name:        "example",
+				UseSystemCA: true,
+				SNI:         "example.com",
+			},
 		},
 	}
 	retry.Run(t, func(r *retry.R) {
@@ -1159,6 +1164,13 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 			CertFile:    "api/client.crt",
 			KeyFile:     "api/client.key",
 			SNI:         "my-domain",
+		},
+		{
+			Service:     CompoundServiceName{Name: "example", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "terminating", Namespace: defaultNamespace, Partition: defaultPartition},
+			GatewayKind: ServiceKindTerminatingGateway,
+			UseSystemCA: true,
+			SNI:         "example.com",
 		},
 		{
 			Service:      CompoundServiceName{Name: "redis", Namespace: defaultNamespace, Partition: defaultPartition},

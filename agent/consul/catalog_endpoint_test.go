@@ -2986,6 +2986,16 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 		}
 		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
+		// Register a service "frontend"
+		args = structs.TestRegisterRequest(t)
+		args.Service.Service = "frontend"
+		args.Check = &structs.HealthCheck{
+			Name:      "frontend",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
 		// Register a gateway
 		args = &structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -3028,6 +3038,11 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 						KeyFile:  "client.key",
 						SNI:      "my-alt-domain",
 					},
+					{
+						Name:        "frontend",
+						UseSystemCA: true,
+						SNI:         "frontend-domain",
+					},
 				},
 			},
 		}
@@ -3043,7 +3058,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 		}
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
-		assert.Len(r, resp.Services, 3)
+		assert.Len(r, resp.Services, 4)
 
 		expect := structs.GatewayServices{
 			{
@@ -3053,6 +3068,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				CAFile:      "api/ca.crt",
 				CertFile:    "api/client.crt",
 				KeyFile:     "api/client.key",
+				UseSystemCA: false,
 				SNI:         "my-domain",
 			},
 			{
@@ -3062,6 +3078,17 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				CAFile:      "",
 				CertFile:    "",
 				KeyFile:     "",
+				UseSystemCA: false,
+			},
+			{
+				Service:     structs.NewServiceName("frontend", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "",
+				CertFile:    "",
+				KeyFile:     "",
+				UseSystemCA: true,
+				SNI:         "frontend-domain",
 			},
 			{
 				Service:      structs.NewServiceName("redis", nil),
@@ -3070,6 +3097,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				CAFile:       "ca.crt",
 				CertFile:     "client.crt",
 				KeyFile:      "client.key",
+				UseSystemCA:  false,
 				SNI:          "my-alt-domain",
 				FromWildcard: true,
 			},

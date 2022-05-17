@@ -189,6 +189,10 @@ type LinkedService struct {
 	// from the gateway to the linked service.
 	KeyFile string `json:",omitempty" alias:"key_file"`
 
+	// UseSystemCA tells the gateway to try and use the System CA certs for verifying
+	// upstream TLS connections.
+	UseSystemCA bool `json:",omitempty" alias:"use_system_ca"`
+
 	// SNI is the optional name to specify during the TLS handshake with a linked service.
 	SNI string `json:",omitempty"`
 }

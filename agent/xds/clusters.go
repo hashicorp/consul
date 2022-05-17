@@ -393,22 +393,34 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 		}
 	case structs.ServiceKindTerminatingGateway:
 		// Context used for TLS origination to the cluster
-		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
-			tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
-			}
-			if mapping.SNI != "" {
-				tlsContext.Sni = mapping.SNI
-				if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
-					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
+		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.TLSEnabled() && cfgSnap.Proxy.Mode != structs.ProxyModeTransparent {
+			// Default to service-specific file
+			if mapping.CAFile == "" {
+				// ideally this should warn, but there is no guarantee envoy will find the same file, so fail hard
+				ca, err := getSystemCAFile()
+				if err != nil {
+					return err
 				}
+				mapping.CAFile = ca
 			}
 
-			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
-			if err != nil {
-				return err
+			if mapping.CAFile != "" {
+				tlsContext := &envoy_tls_v3.UpstreamTlsContext{
+					CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+				}
+				if mapping.SNI != "" {
+					tlsContext.Sni = mapping.SNI
+					if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
+						return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
+					}
+				}
+
+				transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+				if err != nil {
+					return err
+				}
+				c.TransportSocket = transportSocket
 			}
-			c.TransportSocket = transportSocket
 		}
 		if err := injectLBToCluster(lb, c); err != nil {
 			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)

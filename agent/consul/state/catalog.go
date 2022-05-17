@@ -3490,6 +3490,7 @@ func terminatingConfigGatewayServices(
 			KeyFile:     svc.KeyFile,
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
+			UseSystemCA: svc.UseSystemCA,
 			SNI:         svc.SNI,
 		}
 

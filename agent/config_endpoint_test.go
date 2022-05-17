@@ -343,6 +343,11 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 		  },
 		  {
 			"Name": "api"
+		  },
+		  {
+			"Name": "db",
+			"UseSystemCA": true,
+			"SNI": "external.db.com"
 		  }
 		]
 	}`))
@@ -375,6 +380,12 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 			},
 			{
 				Name:           "api",
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			},
+			{
+				Name:           "db",
+				UseSystemCA:    true,
+				SNI:            "external.db.com",
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}

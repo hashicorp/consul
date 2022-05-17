@@ -1436,6 +1436,11 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 					KeyFile:  "client.key",
 					SNI:      "my-alt-domain",
 				},
+				{
+					Name:        "example",
+					UseSystemCA: true,
+					SNI:         "example.com",
+				},
 			},
 		},
 	}
@@ -1464,6 +1469,13 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 				CertFile:    "api/client.crt",
 				KeyFile:     "api/client.key",
 				SNI:         "my-domain",
+			},
+			{
+				Service:     structs.NewServiceName("example", nil),
+				Gateway:     structs.NewServiceName("terminating", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				UseSystemCA: true,
+				SNI:         "example.com",
 			},
 			{
 				Service:      structs.NewServiceName("redis", nil),

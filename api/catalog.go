@@ -106,6 +106,7 @@ type GatewayService struct {
 	CAFile       string   `json:",omitempty"`
 	CertFile     string   `json:",omitempty"`
 	KeyFile      string   `json:",omitempty"`
+	UseSystemCA  bool     `json:",omitempty"`
 	SNI          string   `json:",omitempty"`
 	FromWildcard bool     `json:",omitempty"`
 }

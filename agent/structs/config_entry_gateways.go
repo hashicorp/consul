@@ -461,6 +461,10 @@ type LinkedService struct {
 	// from the gateway to the linked service
 	KeyFile string `json:",omitempty" alias:"key_file"`
 
+	// UseSystemCA tells the gateway to try and use the System CA certs for verifying
+	// upstream TLS connections.
+	UseSystemCA bool `json:",omitempty" alias:"use_system_ca"`
+
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
 
@@ -531,12 +535,18 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		}
 		seen[cid] = true
 
+		// You can't specify a CA file and also try to use the System CA chain
+		if svc.UseSystemCA && svc.CAFile != "" {
+			return fmt.Errorf("Service %q must either have a CAFile provided or enable System CAs but not both", svc.Name)
+		}
+
 		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
 		// Specifying only a CAFile is allowed for one-way TLS
 		if (svc.CertFile != "" || svc.KeyFile != "") &&
-			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
+			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") &&
+			!(svc.UseSystemCA && svc.CertFile != "" && svc.KeyFile != "") {
 
-			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
+			return fmt.Errorf("Service %q must have a CertFile, KeyFile and authority source (CAFile or UseSystemCA) specified for TLS origination", svc.Name)
 		}
 	}
 	return nil
@@ -577,7 +587,7 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 
 	warnings := make([]string, 0)
 	for _, svc := range e.Services {
-		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") && svc.SNI == "" {
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "" || svc.UseSystemCA) && svc.SNI == "" {
 			warning := fmt.Sprintf("TLS is configured but SNI is not set for service %q. Enabling SNI is strongly recommended when using TLS.", svc.Name)
 			warnings = append(warnings, warning)
 		}
@@ -596,6 +606,7 @@ type GatewayService struct {
 	Hosts        []string `json:",omitempty"`
 	CAFile       string   `json:",omitempty"`
 	CertFile     string   `json:",omitempty"`
+	UseSystemCA  bool     `json:",omitempty"`
 	KeyFile      string   `json:",omitempty"`
 	SNI          string   `json:",omitempty"`
 	FromWildcard bool     `json:",omitempty"`
@@ -634,6 +645,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.CAFile == o.CAFile &&
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
+		g.UseSystemCA == o.UseSystemCA &&
 		g.SNI == o.SNI &&
 		g.FromWildcard == o.FromWildcard
 }
@@ -650,8 +662,13 @@ func (g *GatewayService) Clone() *GatewayService {
 		CAFile:       g.CAFile,
 		CertFile:     g.CertFile,
 		KeyFile:      g.KeyFile,
+		UseSystemCA:  g.UseSystemCA,
 		SNI:          g.SNI,
 		FromWildcard: g.FromWildcard,
 		RaftIndex:    g.RaftIndex,
 	}
+}
+
+func (g *GatewayService) TLSEnabled() bool {
+	return g.CAFile != "" || g.UseSystemCA
 }

@@ -1002,7 +1002,7 @@ func TestTerminatingGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "must have a CertFile, CAFile, and KeyFile",
+			validateErr: "must have a CertFile, KeyFile and authority source (CAFile or UseSystemCA)",
 		},
 		"not all TLS options provided-2": {
 			entry: &TerminatingGatewayConfigEntry{
@@ -1015,7 +1015,21 @@ func TestTerminatingGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "must have a CertFile, CAFile, and KeyFile",
+			validateErr: "must have a CertFile, KeyFile and authority source (CAFile or UseSystemCA)",
+		},
+		"mismatch TLS CA options": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:        "web",
+						CAFile:      "ca.crt",
+						UseSystemCA: true,
+					},
+				},
+			},
+			validateErr: "must either have a CAFile provided or enable System CAs",
 		},
 		"all TLS options provided": {
 			entry: &TerminatingGatewayConfigEntry{
@@ -1039,6 +1053,18 @@ func TestTerminatingGatewayConfigEntry(t *testing.T) {
 					{
 						Name:   "web",
 						CAFile: "ca.crt",
+					},
+				},
+			},
+		},
+		"only providing system certs is allowed": {
+			entry: &TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "terminating-gw-west",
+				Services: []LinkedService{
+					{
+						Name:        "web",
+						UseSystemCA: true,
 					},
 				},
 			},
