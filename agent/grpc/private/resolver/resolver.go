@@ -244,8 +244,6 @@ func (r *serverResolver) updateAddrs(addrs []resolver.Address) {
 // set of addrs. addrLock must be held by caller.
 func (r *serverResolver) updateAddrsLocked(addrs []resolver.Address) {
 	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
-
-	r.addrs = addrs
 }
 
 func (r *serverResolver) Close() {

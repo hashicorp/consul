@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -204,11 +205,10 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	server.tlsConfigurator.Update(newConf)
 
 	// Try the subscribe call again
-	retryFailedConn(t, conn)
-
-	streamClient = pbsubscribe.NewStateChangeSubscriptionClient(conn)
-	_, err = streamClient.Subscribe(ctx, req)
-	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		_, err = streamClient.Subscribe(ctx, req)
+		require.NoError(r, err)
+	})
 }
 
 func clientConfigVerifyOutgoing(config *Config) {
