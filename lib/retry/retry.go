@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-const (
-	defaultMinFailures = 0
-	defaultMaxWait     = 2 * time.Minute
-)
-
 // Jitter should return a new wait duration optionally with some time added or
 // removed to create some randomness in wait time.
 type Jitter func(baseTime time.Duration) time.Duration
