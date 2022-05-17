@@ -9,7 +9,8 @@ on:
 
 jobs:
   trigger-oss-merge:
-    if: github.event.pull_request.merged
+    # run this only on merge events in OSS repo
+    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Merge
