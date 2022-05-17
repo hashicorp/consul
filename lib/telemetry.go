@@ -12,6 +12,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 )
 
 // TelemetryConfig is embedded in config.RuntimeConfig and holds the
@@ -293,7 +294,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) error {
+func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) (metrics.FanoutSink, *multierror.Error) {
 	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 	metricsConf.EnableHostname = !cfg.DisableHostname
 	metricsConf.FilterDefault = cfg.FilterDefault
@@ -301,35 +302,24 @@ func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.Metric
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
+	var errors *multierror.Error
+	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
-			return err
+			errors = multierror.Append(errors, err)
+			return
 		}
 		if s != nil {
 			sinks = append(sinks, s)
 		}
-		return nil
 	}
 
-	if err := addSink(statsiteSink); err != nil {
-		return err
-	}
-	if err := addSink(statsdSink); err != nil {
-		return err
-	}
-	if err := addSink(dogstatdSink); err != nil {
-		return err
-	}
-	if err := addSink(circonusSink); err != nil {
-		return err
-	}
-	if err := addSink(circonusSink); err != nil {
-		return err
-	}
-	if err := addSink(prometheusSink); err != nil {
-		return err
-	}
+	addSink(statsiteSink)
+	addSink(statsdSink)
+	addSink(dogstatdSink)
+	addSink(circonusSink)
+	addSink(circonusSink)
+	addSink(prometheusSink)
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)
@@ -338,7 +328,7 @@ func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.Metric
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, memSink)
 	}
-	return nil
+	return sinks, errors
 }
 
 // InitTelemetry configures go-metrics based on map of telemetry config
@@ -360,8 +350,8 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		}
 
 		for {
-			logger.Warn("failed to configure metric sinks", "retries", waiter.Failures())
-			err := configureSinks(cfg, metricsConf.HostName, memSink)
+			logger.Warn("retrying configure metric sinks", "retries", waiter.Failures())
+			_, err := configureSinks(cfg, metricsConf.HostName, memSink)
 			if err == nil {
 				logger.Info("successfully configured metrics sinks")
 				return
@@ -371,7 +361,7 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 			// TODO: exit the retry routine on agent shutDownCh
 			// case <- done
 			default:
-				logger.Error("failed configure sinks", "error", err)
+				logger.Error("failed configure sinks", "error", multierror.Flatten(err))
 			}
 
 			if err := waiter.Wait(context.Background()); err != nil {
@@ -381,22 +371,24 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		}
 	}
 
-	if err := configureSinks(cfg, metricsConf.HostName, memSink); err != nil {
-		if isRetriableError(err) && cfg.RetryFailedConfiguration {
-			logger.Error("failed configure sinks", "error", err)
+	if _, errs := configureSinks(cfg, metricsConf.HostName, memSink); errs != nil {
+		if isRetriableError(errs) && cfg.RetryFailedConfiguration {
+			logger.Error("failed configure sinks", "error", multierror.Flatten(errs))
 			go retryWithBackoff()
 		} else {
-			return nil, err
+			return nil, errs.Unwrap()
 		}
 	}
 
 	return memSink, nil
 }
 
-func isRetriableError(err error) bool {
-	var dnsError *net.DNSError
-	if errors.As(err, &dnsError) && dnsError.IsNotFound {
-		return true
+func isRetriableError(errs *multierror.Error) bool {
+	for _, err := range errs.WrappedErrors() {
+		var dnsError *net.DNSError
+		if errors.As(err, &dnsError) && dnsError.IsNotFound {
+			return true
+		}
 	}
 	return false
 }
