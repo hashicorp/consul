@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"errors"
 	"net"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -156,10 +158,10 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
-	// DogstatsdExitBadConnection verify connection to dogstatsd server
+	// DogstatsdRetryBadConnection retries connection to dogstatsd server on initial bad connection
 	//
-	// hcl: telemetry { dogstatsd_exit_bad_connection = (true|false)
-	DogstatsdExitBadConnection bool `json:"dogstatsd_exit_bad_connection,omitempty" mapstructure:"dogstatsd_exit_bad_connection"`
+	// hcl: telemetry { dogstatsd_retry_bad_connection = (true|false)
+	DogstatsdRetryBadConnection bool `json:"dogstatsd_retry_bad_connection,omitempty" mapstructure:"dogstatsd_retry_bad_connection"`
 
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
@@ -320,6 +322,35 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		return nil
 	}
 
+	retryWithBackoff := func() {
+		w := &retry.Waiter{}
+		ctx := context.Background()
+
+	retryLoop:
+		for {
+			logger.Info("retry connecting to datadog sink")
+			err := addSink(dogstatdSink)
+
+			switch {
+			case err == nil:
+				logger.Info("connected to datadog sink")
+				break retryLoop
+			// TODO: exit the retry routine on agent exit
+			// case <- done
+			default:
+				logger.Error("failed connection to datadog sink", "error", err)
+			}
+
+			if err := w.Wait(ctx); err != nil {
+				logger.Error("waiting for retry", "error", err)
+				return
+			}
+		}
+
+		sinks = append(sinks, memSink)
+		metrics.NewGlobal(metricsConf, sinks)
+	}
+
 	if err := addSink(statsiteSink); err != nil {
 		return nil, err
 	}
@@ -328,8 +359,9 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 	}
 	if err := addSink(dogstatdSink); err != nil {
 		var dnsError *net.DNSError
-		if errors.As(err, &dnsError) && dnsError.IsNotFound && !cfg.DogstatsdExitBadConnection {
+		if errors.As(err, &dnsError) && dnsError.IsNotFound && cfg.DogstatsdRetryBadConnection {
 			logger.Error("failed connection to datadog sink", "error", err)
+			go retryWithBackoff()
 		} else {
 			return nil, err
 		}
