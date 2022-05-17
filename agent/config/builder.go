@@ -915,7 +915,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
-			DogstatsdExitBadConnection:         boolVal(c.Telemetry.DogstatsdExitBadConnection),
+			DogstatsdRetryBadConnection:        boolVal(c.Telemetry.DogstatsdRetryBadConnection),
 			FilterDefault:                      boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
