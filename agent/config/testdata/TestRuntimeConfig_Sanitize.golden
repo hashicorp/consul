@@ -418,7 +418,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
-        "DogstatsdRetryBadConnection": false,
+        "RetryFailedConfiguration": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {

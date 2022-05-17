@@ -158,10 +158,10 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
-	// DogstatsdRetryBadConnection retries connection to dogstatsd server on initial bad connection
+	// RetryFailedConfiguration retries connection to dogstatsd server on initial bad connection
 	//
-	// hcl: telemetry { dogstatsd_retry_bad_connection = (true|false)
-	DogstatsdRetryBadConnection bool `json:"dogstatsd_retry_bad_connection,omitempty" mapstructure:"dogstatsd_retry_bad_connection"`
+	// hcl: telemetry { retry_failed_connection = (true|false)
+	RetryFailedConfiguration bool `json:"retry_failed_connection,omitempty" mapstructure:"retry_failed_connection"`
 
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
@@ -293,17 +293,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-// InitTelemetry configures go-metrics based on map of telemetry config
-// values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
-	if cfg.Disable {
-		return nil, nil
-	}
-	// Setup telemetry
-	// Aggregate on 10 second intervals for 1 minute. Expose the
-	// metrics over stderr when there is a SIGUSR1 received.
-	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
-	metrics.DefaultInmemSignal(memSink)
+func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) error {
 	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 	metricsConf.EnableHostname = !cfg.DisableHostname
 	metricsConf.FilterDefault = cfg.FilterDefault
@@ -322,58 +312,23 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		return nil
 	}
 
-	retryWithBackoff := func() {
-		w := &retry.Waiter{}
-		ctx := context.Background()
-
-	retryLoop:
-		for {
-			logger.Info("retry connecting to datadog sink")
-			err := addSink(dogstatdSink)
-
-			switch {
-			case err == nil:
-				logger.Info("connected to datadog sink")
-				break retryLoop
-			// TODO: exit the retry routine on agent exit
-			// case <- done
-			default:
-				logger.Error("failed connection to datadog sink", "error", err)
-			}
-
-			if err := w.Wait(ctx); err != nil {
-				logger.Error("waiting for retry", "error", err)
-				return
-			}
-		}
-
-		sinks = append(sinks, memSink)
-		metrics.NewGlobal(metricsConf, sinks)
-	}
-
 	if err := addSink(statsiteSink); err != nil {
-		return nil, err
+		return err
 	}
 	if err := addSink(statsdSink); err != nil {
-		return nil, err
+		return err
 	}
 	if err := addSink(dogstatdSink); err != nil {
-		var dnsError *net.DNSError
-		if errors.As(err, &dnsError) && dnsError.IsNotFound && cfg.DogstatsdRetryBadConnection {
-			logger.Error("failed connection to datadog sink", "error", err)
-			go retryWithBackoff()
-		} else {
-			return nil, err
-		}
+		return err
 	}
 	if err := addSink(circonusSink); err != nil {
-		return nil, err
+		return err
 	}
 	if err := addSink(circonusSink); err != nil {
-		return nil, err
+		return err
 	}
 	if err := addSink(prometheusSink); err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(sinks) > 0 {
@@ -383,5 +338,65 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, memSink)
 	}
+	return nil
+}
+
+// InitTelemetry configures go-metrics based on map of telemetry config
+// values as returned by Runtimecfg.Config().
+// InitTelemetry retries configurating the sinks in case error is retriable
+// and retry_failed_connection is set to true.
+func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
+	if cfg.Disable {
+		return nil, nil
+	}
+
+	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
+	metrics.DefaultInmemSignal(memSink)
+	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
+
+	retryWithBackoff := func() {
+		waiter := &retry.Waiter{
+			MaxWait: 5 * time.Minute,
+		}
+
+		for {
+			logger.Warn("failed to configure metric sinks", "retries", waiter.Failures())
+			err := configureSinks(cfg, metricsConf.HostName, memSink)
+			if err == nil {
+				logger.Info("successfully configured metrics sinks")
+				return
+			}
+
+			switch {
+			// TODO: exit the retry routine on agent shutDownCh
+			// case <- done
+			default:
+				logger.Error("failed configure sinks", "error", err)
+			}
+
+			if err := waiter.Wait(context.Background()); err != nil {
+				logger.Error("waiting for retry", "error", err)
+				return
+			}
+		}
+	}
+
+	if err := configureSinks(cfg, metricsConf.HostName, memSink); err != nil {
+		if isRetriableError(err) && cfg.RetryFailedConfiguration {
+			logger.Error("failed configure sinks", "error", err)
+			go retryWithBackoff()
+		} else {
+			return nil, err
+		}
+	}
+
 	return memSink, nil
+}
+
+func isRetriableError(err error) bool {
+	var dnsError *net.DNSError
+	if errors.As(err, &dnsError) && dnsError.IsNotFound {
+		return true
+	}
+	return false
 }
