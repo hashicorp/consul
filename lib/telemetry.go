@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -160,9 +161,9 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
-	// RetryFailedConfiguration retries connection to dogstatsd server on initial bad connection
+	// RetryFailedConfiguration retries transient errors when setting up sinks (e.g. network errors when connecting to telemetry backends).
 	//
-	// hcl: telemetry { retry_failed_connection = (true|false)
+	// hcl: telemetry { retry_failed_connection = (true|false) }
 	RetryFailedConfiguration bool `json:"retry_failed_connection,omitempty" mapstructure:"retry_failed_connection"`
 
 	// FilterDefault is the default for whether to allow a metric that's not
@@ -218,9 +219,18 @@ type MetricsHandler interface {
 }
 
 type MetricsConfig struct {
-	Handler    MetricsHandler
-	IsRetrying bool
-	Cancel     context.CancelFunc
+	Handler  MetricsHandler
+	mu       sync.Mutex
+	cancelFn context.CancelFunc
+}
+
+func (cfg *MetricsConfig) Cancel() {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+
+	if fn := cfg.cancelFn; fn != nil {
+		fn()
+	}
 }
 
 func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
@@ -307,7 +317,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) (metrics.FanoutSink, *multierror.Error) {
+func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) (metrics.FanoutSink, error) {
 	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 	metricsConf.EnableHostname = !cfg.DisableHostname
 	metricsConf.FilterDefault = cfg.FilterDefault
@@ -315,7 +325,7 @@ func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.Metric
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	var errors *multierror.Error
+	var errors error
 	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
@@ -364,10 +374,6 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 	var cancel context.CancelFunc
 	var ctx context.Context
 	retryWithBackoff := func() {
-		defer func() {
-			metricsConfig.IsRetrying = false
-		}()
-
 		waiter := &retry.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
@@ -381,14 +387,8 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 			logger.Error("failed configure sinks", "error", multierror.Flatten(err))
 
 			if err := waiter.Wait(ctx); err != nil {
-				if errors.Is(err, context.Canceled) {
-					logger.Info("stop retrying configure metrics sinks")
-				} else {
-					logger.Error("waiting for retry", "error", err)
-				}
-				return
+				logger.Info("stop retrying configure metrics sinks")
 			}
-
 		}
 	}
 
@@ -396,23 +396,22 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 		if isRetriableError(errs) && cfg.RetryFailedConfiguration {
 			logger.Error("failed configure sinks", "error", multierror.Flatten(errs))
 			ctx, cancel = context.WithCancel(context.Background())
-			metricsConfig.IsRetrying = true
-			metricsConfig.Cancel = cancel
+
+			metricsConfig.mu.Lock()
+			metricsConfig.cancelFn = cancel
+			metricsConfig.mu.Unlock()
 			go retryWithBackoff()
 		} else {
-			return nil, errs.Unwrap()
+			return nil, errs
 		}
 	}
-
 	return metricsConfig, nil
 }
 
-func isRetriableError(errs *multierror.Error) bool {
-	for _, err := range errs.WrappedErrors() {
-		var dnsError *net.DNSError
-		if errors.As(err, &dnsError) && dnsError.IsNotFound {
-			return true
-		}
+func isRetriableError(errs error) bool {
+	var dnsError *net.DNSError
+	if errors.As(errs, &dnsError) && dnsError.IsNotFound {
+		return true
 	}
 	return false
 }
