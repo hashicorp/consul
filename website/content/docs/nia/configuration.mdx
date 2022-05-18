@@ -58,14 +58,14 @@ tls {
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
 - `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license-1) instead.**  Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. Review [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
-- `license` <EnterpriseAlert inline /> - (obj) The `license` block is used to configure how CTS attains a license, for more information review the [license block](/docs/nia/configuration#license) section
 
 ## License <EnterpriseAlert inline />
 
-To configure how CTS obtains a license, use the `license` block. You can:
-- Provide a path to a license file.
+The `license` block configures how CTS loads its license with options to:
 - Configure CTS to automatically retrieve a license from Consul.
-If a license block is not configured, 'license.auto_retrieval.enabled' defaults to true.
+- Provide a path to a license file.
+
+If a license block is not configured, CTS will use automatic license retrieval.
 
 ```hcl
 license {
@@ -76,14 +76,13 @@ license {
 }
 ```
 
-### License Config
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
 | `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/docs/nia/enterprise/license#setting-the-license). | none |
 | `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for details | Review [Auto-Retrieval Config](/docs/nia/configuration#auto-retrieval-config) for defaults. |
 
 
-### Auto-Retrieval Config
+#### Auto-Retrieval
 
 You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
 
