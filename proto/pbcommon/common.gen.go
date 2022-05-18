@@ -38,7 +38,6 @@ func QueryOptionsToStructs(s *QueryOptions, t *structs.QueryOptions) {
 	t.MaxAge = structs.DurationFromProto(s.MaxAge)
 	t.MustRevalidate = s.MustRevalidate
 	t.Filter = s.Filter
-	t.MergeCentralConfig = s.MergeCentralConfig
 }
 func QueryOptionsFromStructs(t *structs.QueryOptions, s *QueryOptions) {
 	if s == nil {
@@ -54,7 +53,6 @@ func QueryOptionsFromStructs(t *structs.QueryOptions, s *QueryOptions) {
 	s.MaxAge = structs.DurationToProto(t.MaxAge)
 	s.MustRevalidate = t.MustRevalidate
 	s.Filter = t.Filter
-	s.MergeCentralConfig = t.MergeCentralConfig
 }
 func RaftIndexToStructs(s *RaftIndex, t *structs.RaftIndex) {
 	if s == nil {

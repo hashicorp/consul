@@ -356,7 +356,9 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		args.TagFilter = true
 	}
 
-	s.parseMergeCentralConfig(req, &args.QueryOptions)
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
+	}
 
 	// Pull out the service name
 	var err error

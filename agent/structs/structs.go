@@ -311,12 +311,6 @@ type QueryOptions struct {
 	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
 	// will be set to true to indicate the result of the query has not changed.
 	AllowNotModifiedResponse bool
-
-	// MergeCentralConfig when set to true returns a service definition merged with
-	// the proxy-defaults/global and service-defaults/:service config entries.
-	// This can be used to ensure a full service definition is returned in the response
-	// especially when the service might not be written into the catalog that way.
-	MergeCentralConfig bool
 }
 
 // IsRead is always true for QueryOption.
@@ -710,6 +704,12 @@ type ServiceSpecificRequest struct {
 
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
+
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions

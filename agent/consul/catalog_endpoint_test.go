@@ -2852,7 +2852,6 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
-	// ADD TEST CASES = CONNECT AND NON-CONNECT
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2924,10 +2923,10 @@ func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) { // List service nodes
 		req := structs.ServiceSpecificRequest{
-			Datacenter:   "dc1",
-			ServiceName:  tc.serviceName,
-			Connect:      tc.connect,
-			QueryOptions: tc.queryOpts,
+			Datacenter:         "dc1",
+			ServiceName:        tc.serviceName,
+			Connect:            tc.connect,
+			MergeCentralConfig: true,
 		}
 		var resp structs.IndexedServiceNodes
 		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
@@ -2960,12 +2959,10 @@ func TestCatalog_ListServiceNodes_MergeCentralConfig(t *testing.T) {
 	testCases := []testCase{
 		{
 			testCaseName: "List service instances with merge-central-config",
-			queryOpts:    structs.QueryOptions{MergeCentralConfig: true},
 			serviceName:  registerServiceReq.Service.Service,
 		},
 		{
 			testCaseName: "List connect capable service instances with merge-central-config",
-			queryOpts:    structs.QueryOptions{MergeCentralConfig: true},
 			serviceName:  registerServiceReq.Service.Proxy.DestinationServiceName,
 			connect:      true,
 		},

@@ -14,7 +14,7 @@ import (
 
 // mergeNodeServiceWithCentralConfig merges a service instance (NodeService) with the
 // proxy-defaults/global and service-defaults/:service config entries.
-// This a common helper is used by the blocking query function of differnet RPC endpoints
+// This common helper is used by the blocking query function of different RPC endpoints
 // that need to return a fully resolved service defintion.
 func mergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
