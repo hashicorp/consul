@@ -71,7 +71,9 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		Output:     logBuffer,
 		TimeFormat: "04:05.000",
 	})
-	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	bd.MetricsConfig = &lib.MetricsConfig{
+		Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+	}
 
 	agent, err := New(bd)
 	require.NoError(t, err)

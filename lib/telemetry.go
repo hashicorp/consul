@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -210,6 +211,18 @@ type TelemetryConfig struct {
 	PrometheusOpts prometheus.PrometheusOpts
 }
 
+// MetricsHandler provides an http.Handler for displaying metrics.
+type MetricsHandler interface {
+	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+	Stream(ctx context.Context, encoder metrics.Encoder)
+}
+
+type MetricsConfig struct {
+	Handler    MetricsHandler
+	IsRetrying bool
+	Cancel     context.CancelFunc
+}
+
 func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
 	addr := cfg.StatsiteAddr
 	if addr == "" {
@@ -335,7 +348,7 @@ func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.Metric
 // values as returned by Runtimecfg.Config().
 // InitTelemetry retries configurating the sinks in case error is retriable
 // and retry_failed_connection is set to true.
-func InitTelemetry(ctx context.Context, cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, error) {
 	if cfg.Disable {
 		return nil, nil
 	}
@@ -344,7 +357,17 @@ func InitTelemetry(ctx context.Context, cfg TelemetryConfig, logger hclog.Logger
 	metrics.DefaultInmemSignal(memSink)
 	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 
+	metricsConfig := &MetricsConfig{
+		Handler: memSink,
+	}
+
+	var cancel context.CancelFunc
+	var ctx context.Context
 	retryWithBackoff := func() {
+		defer func() {
+			metricsConfig.IsRetrying = false
+		}()
+
 		waiter := &retry.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
@@ -372,13 +395,16 @@ func InitTelemetry(ctx context.Context, cfg TelemetryConfig, logger hclog.Logger
 	if _, errs := configureSinks(cfg, metricsConf.HostName, memSink); errs != nil {
 		if isRetriableError(errs) && cfg.RetryFailedConfiguration {
 			logger.Error("failed configure sinks", "error", multierror.Flatten(errs))
+			ctx, cancel = context.WithCancel(context.Background())
+			metricsConfig.IsRetrying = true
+			metricsConfig.Cancel = cancel
 			go retryWithBackoff()
 		} else {
 			return nil, errs.Unwrap()
 		}
 	}
 
-	return memSink, nil
+	return metricsConfig, nil
 }
 
 func isRetriableError(errs *multierror.Error) bool {

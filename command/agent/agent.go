@@ -179,14 +179,6 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	bd.MetricsHandler, err = lib.InitTelemetry(&lib.StopChannelContext{StopCh: agent.ShutdownCh()}, bd.RuntimeConfig.Telemetry, bd.Logger)
-	if err != nil {
-		err = fmt.Errorf("failed to initialize telemetry: %w", err)
-		ui.Error(err.Error())
-		return 1
-
-	}
-
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
 		// Hide all non-error output when JSON logging is enabled.
