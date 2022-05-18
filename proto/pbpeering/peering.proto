@@ -1,12 +1,10 @@
 syntax = "proto3";
 
-package pbpeering;
+package peering;
 
 import "google/protobuf/any.proto";
 // TODO(peering): Handle this some other way
 import "pbstatus/status.proto";
-
-option go_package = "github.com/hashicorp/consul/proto/pbpeering";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -26,6 +24,9 @@ service PeeringService {
 
   // StreamResources opens an event stream for resources to share between peers, such as services.
   // Events are streamed as they happen.
+  // buf:lint:ignore RPC_REQUEST_STANDARD_NAME
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
 }
 
