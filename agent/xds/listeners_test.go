@@ -681,6 +681,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+		},
+		{
 			name: "terminating-gateway-no-api-cert",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				api := structs.NewServiceName("api", nil)
