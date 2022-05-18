@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package autoconf;
 
-import "pbconfig/config.proto";
-import "pbconnect/connect.proto";
+import "proto/pbconfig/config.proto";
+import "proto/pbconnect/connect.proto";
 
 // AutoConfigRequest is the data structure to be sent along with the
 // AutoConfig.InitialConfiguration RPC

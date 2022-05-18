@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbpeering/peering.proto
+// source: proto/pbpeering/peering.proto
 
 package pbpeering
 
@@ -400,5 +400,5 @@ var PeeringService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "pbpeering/peering.proto",
+	Metadata: "proto/pbpeering/peering.proto",
 }

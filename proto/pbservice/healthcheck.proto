@@ -3,7 +3,7 @@ syntax = "proto3";
 package service;
 
 import "google/protobuf/duration.proto";
-import "pbcommon/common.proto";
+import "proto/pbcommon/common.proto";
 
 // HealthCheck represents a single check on a given node
 //

@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package subscribe;
 
-import "pbservice/node.proto";
+import "proto/pbservice/node.proto";
 
 // StateChangeSubscription service allows consumers to subscribe to topics of
 // state change events. Events are streamed as they happen.

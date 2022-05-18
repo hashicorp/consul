@@ -4,7 +4,7 @@ package peering;
 
 import "google/protobuf/any.proto";
 // TODO(peering): Handle this some other way
-import "pbstatus/status.proto";
+import "proto/pbstatus/status.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.

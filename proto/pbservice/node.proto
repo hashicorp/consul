@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package service;
 
-import "pbcommon/common.proto";
-import "pbservice/healthcheck.proto";
-import "pbservice/service.proto";
+import "proto/pbcommon/common.proto";
+import "proto/pbservice/healthcheck.proto";
+import "proto/pbservice/service.proto";
 
 // IndexedCheckServiceNodes is used to return multiple instances for a given service.
 message IndexedCheckServiceNodes {

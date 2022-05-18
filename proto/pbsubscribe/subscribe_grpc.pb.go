@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbsubscribe/subscribe.proto
+// source: proto/pbsubscribe/subscribe.proto
 
 package pbsubscribe
 
@@ -164,5 +164,5 @@ var StateChangeSubscription_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pbsubscribe/subscribe.proto",
+	Metadata: "proto/pbsubscribe/subscribe.proto",
 }
