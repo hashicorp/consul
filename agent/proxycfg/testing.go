@@ -1701,6 +1701,10 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 	return testConfigSnapshotIngressGateway(t, true, "http", "http-multiple-services")
 }
 
+func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, false, "grpc", "grpc-multiple-services")
+}
+
 func TestConfigSnapshotIngressExternalSNI(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotIngressGateway(t, true, "tcp", "external-sni")
 }

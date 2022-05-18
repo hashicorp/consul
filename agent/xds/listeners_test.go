@@ -510,6 +510,27 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "grpc", Port: 8080}: {
+						{
+							DestinationName: "foo",
+							LocalBindPort:   8080,
+						},
+						{
+							DestinationName: "bar",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "grpc", Port: 8080}: {},
+				}
+			},
+		},
+		{
 			name:   "terminating-gateway-no-api-cert",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
