@@ -870,4 +870,17 @@ type TLS struct {
 	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
 	HTTPS       TLSProtocolConfig `mapstructure:"https"`
 	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+
+	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
+	// modified by the deprecated field mapping (as apposed to a user-provided
+	// a grpc stanza). This prevents us from emitting a warning about an
+	// ineffectual grpc stanza when we modify GRPC to honor the legacy behaviour
+	// that setting `verify_incoming = true` at the top-level *does not* enable
+	// client certificate verification on the gRPC port.
+	//
+	// See: applyDeprecatedTLSConfig.
+	//
+	// Note: we use a *struct{} here because a simple bool isn't supported by our
+	// config merging logic.
+	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
 }

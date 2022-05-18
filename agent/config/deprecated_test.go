@@ -98,7 +98,7 @@ tls_prefer_server_cipher_suites = true
 
 	require.False(t, rt.TLS.InternalRPC.VerifyIncoming)
 	require.False(t, rt.TLS.HTTPS.VerifyIncoming)
-	require.True(t, rt.TLS.GRPC.VerifyIncoming)
+	require.False(t, rt.TLS.GRPC.VerifyIncoming)
 	require.True(t, rt.TLS.InternalRPC.VerifyOutgoing)
 	require.True(t, rt.TLS.HTTPS.VerifyOutgoing)
 	require.True(t, rt.TLS.InternalRPC.VerifyServerHostname)
