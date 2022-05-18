@@ -17,8 +17,12 @@ All CTS Enterprise features are available with a valid Consul Enterprise license
 
 To get a trial license for CTS, you can sign-up for the [trial license for Consul Enterprise](/docs/enterprise/license/faq#q-where-can-users-get-a-trial-license-for-consul-enterprise).
 
+## Automatic License Retrieval
+CTS automatically retrieves a license from Consul on startup and then attempts to retrieve a new license once a day. If the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
+
+~> Enabling automatic license retrieval is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you will have to restart CTS to load a new license.
+
 ## Setting the License Manually
-~> By default CTS is configured to automatically retrieve a license from its configured Consul Enterprise Backend, and also retrieve new licenses periodically. For more information review [License](/docs/nia/configuration#license-1) configuration.
 
 If a license needs to be manually set, choose one of the following methods (in order of precedence) to set the license:
 
@@ -52,9 +56,7 @@ If a license needs to be manually set, choose one of the following methods (in o
 Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 
 ### Updating the License Manually
-~> By default CTS will automatically retrieve a license from its configured Consul Enterprise Backend. If however this is disabled, the following information describes how to handle a manually set license.
-
-The previous section describes options for [setting the license](#setting-the-license) needed to start running CTS Enterprise. Use the following procedure to update the license when it expires or is near the expiration date:
+If automatic license retrieval is disabled, then use the following procedure to update the license when it expires or is near the expiration date:
 
 1. Update the license environment variable or configuration with the new license value or path to the new license file
 1. Stop and restart CTS Enterprise
