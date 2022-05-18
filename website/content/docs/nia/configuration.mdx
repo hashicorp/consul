@@ -86,7 +86,7 @@ license {
 
 You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
 
-~> `auto_retrieval` is an important feature to enable when you connect to HCP Consul. To ensure that CTS can work without restarting the service, it is important for CTS to have the ability to dynamically obtain fresh licenses from HCP Consul.
+~> Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you will have to restart CTS to load a new license.
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
