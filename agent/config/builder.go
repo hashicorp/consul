@@ -2522,7 +2522,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
 	// for historic and backwards-compatibility reasons.
-	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{}) {
+	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{} && t.GRPCModifiedByDeprecatedConfig == nil) {
 		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
 	}
 
