@@ -335,7 +335,7 @@ func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.Metric
 // values as returned by Runtimecfg.Config().
 // InitTelemetry retries configurating the sinks in case error is retriable
 // and retry_failed_connection is set to true.
-func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
+func InitTelemetry(ctx context.Context, cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink, error) {
 	if cfg.Disable {
 		return nil, nil
 	}
@@ -348,7 +348,6 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 		waiter := &retry.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
-
 		for {
 			logger.Warn("retrying configure metric sinks", "retries", waiter.Failures())
 			_, err := configureSinks(cfg, metricsConf.HostName, memSink)
@@ -356,18 +355,17 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*metrics.InmemSink
 				logger.Info("successfully configured metrics sinks")
 				return
 			}
+			logger.Error("failed configure sinks", "error", multierror.Flatten(err))
 
-			switch {
-			// TODO: exit the retry routine on agent shutDownCh
-			// case <- done
-			default:
-				logger.Error("failed configure sinks", "error", multierror.Flatten(err))
-			}
-
-			if err := waiter.Wait(context.Background()); err != nil {
-				logger.Error("waiting for retry", "error", err)
+			if err := waiter.Wait(ctx); err != nil {
+				if errors.Is(err, context.Canceled) {
+					logger.Info("stop retrying configure metrics sinks")
+				} else {
+					logger.Error("waiting for retry", "error", err)
+				}
 				return
 			}
+
 		}
 	}
 

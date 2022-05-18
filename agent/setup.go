@@ -90,10 +90,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
-	if err != nil {
-		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
-	}
+	/*
+		d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
+		if err != nil {
+			return d, fmt.Errorf("failed to initialize telemetry: %w", err)
+		}
+	*/
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
