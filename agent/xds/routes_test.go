@@ -213,6 +213,70 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "grpc", Port: 8080}: {
+						{
+							DestinationName: "foo",
+							LocalBindPort:   8080,
+							IngressHosts: []string{
+								"test1.example.com",
+								"test2.example.com",
+								"test2.example.com:8080",
+							},
+						},
+						{
+							DestinationName: "bar",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "grpc", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "foo",
+							},
+							{
+								Name: "bar",
+							},
+						},
+					},
+				}
+
+				// We do not add baz/qux here so that we test the chain.IsDefault() case
+				entries := []structs.ConfigEntry{
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+						},
+					},
+					&structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           "foo",
+						ConnectTimeout: 22 * time.Second,
+					},
+					&structs.ServiceResolverConfigEntry{
+						Kind:           structs.ServiceResolver,
+						Name:           "bar",
+						ConnectTimeout: 22 * time.Second,
+					},
+				}
+				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+
+				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
+					"foo": fooChain,
+					"bar": barChain,
+				}
+			},
+		},
+		{
 			name:   "ingress-with-chain-and-router-header-manip",
 			create: proxycfg.TestConfigSnapshotIngressWithRouter,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

@@ -1,0 +1,3 @@
+```release-note:bug
+fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services
+```
