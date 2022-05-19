@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Run Backport Assistant for stable-website
         run: |
-          backport-assistant backport -merge-method=rebase -automerge
+          backport-assistant backport -merge-method=squash -automerge
         env:
           BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
           BACKPORT_TARGET_TEMPLATE: "stable-website"
@@ -39,13 +39,13 @@ jobs:
           # set BACKPORT_TARGET_TEMPLATE for backport-assistant
           # trims backport/ from the beginning with parameter substitution
           export BACKPORT_TARGET_TEMPLATE="release/${latest_backport_label#backport/}.x"
-          backport-assistant backport -merge-method=rebase -automerge
+          backport-assistant backport -merge-method=squash -automerge
         env:
           BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       - name: Run Backport Assistant for release branches
         run: |
-          backport-assistant backport -merge-method=rebase -automerge
+          backport-assistant backport -merge-method=squash -automerge
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
