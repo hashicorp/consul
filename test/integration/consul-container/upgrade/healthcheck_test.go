@@ -24,13 +24,13 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	cluster := serversCluster(t, numServers, *targetImage)
 	defer Terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *latestImage)
+	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := cluster.Nodes[0].GetClient()
 
-	waitForLeader(t, cluster)
+	waitForLeader(t, cluster, client)
 	waitForMembers(t, client, 4)
 
 	serviceName := "api"
@@ -101,13 +101,13 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage)
+	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := clients[0].GetClient()
 
-	waitForLeader(t, cluster)
+	waitForLeader(t, cluster, client)
 	waitForMembers(t, client, 4)
 
 	serviceName := "api"
@@ -176,13 +176,13 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage)
+	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
 	client := clients[0].GetClient()
 
-	waitForLeader(t, cluster)
+	waitForLeader(t, cluster, client)
 	waitForMembers(t, client, 4)
 
 	serviceName := "api"
@@ -219,14 +219,16 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	}
 }
 
-func clientsCreate(t *testing.T, numClients int, version string) []node.Node {
+func clientsCreate(t *testing.T, numClients int, version string, serfKey string) []node.Node {
 	clients := make([]node.Node, numClients)
 	for i := 0; i < numClients; i++ {
 		var err error
 		clients[i], err = node.NewConsulContainer(context.Background(),
 			node.Config{
-				HCL: `node_name="` + utils.RandName("consul-client") + `"
-					log_level="TRACE"`,
+				HCL: fmt.Sprintf(`
+				node_name = %q
+				log_level = "TRACE"
+				encrypt = %q`, utils.RandName("consul-client"), serfKey),
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: version,
 			})
@@ -263,7 +265,7 @@ func serversCluster(t *testing.T, numServers int, version string) *cluster.Clust
 	cluster, err := cluster.New(configs)
 	require.NoError(t, err)
 
-	waitForLeader(t, cluster)
+	waitForLeader(t, cluster, nil)
 	waitForMembers(t, cluster.Nodes[0].GetClient(), numServers)
 
 	return cluster
