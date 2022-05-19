@@ -428,6 +428,48 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-defaults-with-endpoint",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				endpoint {
+					address = "1.2.3.4/24"
+					port = 8080
+					ca_file = "ca.pem"
+					cert_file = "cert.pem"
+					key_file = "key.pem"
+					sni = "external.com"
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Endpoint {
+					Address = "1.2.3.4/24"
+					Port = 8080
+					CAFile = "ca.pem"
+					CertFile = "cert.pem"
+					KeyFile = "key.pem"
+					SNI = "external.com"
+				}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address:  "1.2.3.4/24",
+					Port:     8080,
+					CAFile:   "ca.pem",
+					CertFile: "cert.pem",
+					KeyFile:  "key.pem",
+					SNI:      "external.com",
+				},
+			},
+		},
+		{
 			name: "service-router: kitchen sink",
 			snake: `
 				kind = "service-router"
@@ -2389,6 +2431,195 @@ func TestServiceConfigEntry(t *testing.T) {
 					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
 				},
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
+			},
+		},
+		"validate: missing endpoint address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: endpoint ipv4 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "1.2.3.4",
+					Port:    443,
+				},
+			},
+		},
+		"validate: endpoint ipv4 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "10.0.0.1/16",
+					Port:    8080,
+				},
+			},
+		},
+		"validate: endpoint ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
+					Port:    443,
+				},
+			},
+		},
+		"valid endpoint shortened ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:db8::8a2e:370:7334",
+					Port:    443,
+				},
+			},
+		},
+		"validate: endpoint ipv6 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+					Port:    443,
+				},
+			},
+		},
+		"validate: invalid endpoint port": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"validate: not all TLS options provided-1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address:  "2001:db8::8a2e:370:7334/64",
+					Port:     443,
+					CertFile: "client.crt",
+				},
+			},
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		"validate: not all TLS options provided-2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+					Port:    443,
+					KeyFile: "tls.key",
+				},
+			},
+			validateErr: "must have a CertFile, CAFile, and KeyFile",
+		},
+		"validate: all TLS options provided": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address:  "2001:db8::8a2e:370:7334/64",
+					Port:     443,
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "tls.key",
+				},
+			},
+		},
+		"validate: only providing ca file is allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+					Port:    443,
+					CAFile:  "ca.crt",
+				},
+			},
+		},
+		"validate: wildcard is allowed for hostname": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "*.external.com",
+					Port:    443,
+					CAFile:  "ca.crt",
+				},
+			},
+		},
+		"validate: hostname": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "api.external.com",
+					Port:    443,
+					CAFile:  "ca.crt",
+				},
+			},
+		},
+		"validate: invalid hostname 1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "*external.com",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: invalid hostname 2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Endpoint: &EndpointConfig{
+					Address: "..hello.",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: all web traffic allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Endpoint: &EndpointConfig{
+					Address: "*",
+					Port:    443,
+				},
 			},
 		},
 	}
