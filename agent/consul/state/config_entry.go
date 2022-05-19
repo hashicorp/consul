@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 type ConfigEntryLinkIndex struct {
@@ -135,6 +136,36 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *acl
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return configEntriesByKindTxn(tx, ws, kind, entMeta)
+}
+
+func listDiscoveryChainNamesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	// Get the index and watch for updates
+	idx := maxIndexWatchTxn(tx, ws, tableConfigEntries)
+
+	// List all discovery chain top nodes.
+	seen := make(map[structs.ServiceName]struct{})
+	for _, kind := range []string{
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+		structs.ServiceResolver,
+	} {
+		iter, err := getConfigEntryKindsWithTxn(tx, kind, &entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
+		}
+		ws.Add(iter.WatchCh())
+
+		for v := iter.Next(); v != nil; v = iter.Next() {
+			entry := v.(structs.ConfigEntry)
+			sn := structs.NewServiceName(entry.GetName(), entry.GetEnterpriseMeta())
+			seen[sn] = struct{}{}
+		}
+	}
+
+	results := maps.SliceOfKeys(seen)
+	structs.ServiceList(results).Sort()
+
+	return idx, results, nil
 }
 
 func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {

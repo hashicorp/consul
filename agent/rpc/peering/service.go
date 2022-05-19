@@ -101,8 +101,9 @@ type Store interface {
 	PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
-	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, []structs.ServiceName, error)
+	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
 	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
+	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	AbandonCh() <-chan struct{}
 }
 
@@ -503,7 +504,7 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 	defer s.streams.disconnected(req.LocalID)
 
 	mgr := newSubscriptionManager(req.Stream.Context(), logger, s.Backend)
-	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID)
+	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.Partition)
 
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
@@ -635,7 +636,8 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 				if err := pushServiceResponse(logger, req.Stream, status, update); err != nil {
 					return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 				}
-
+			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
+				//TODO(Peering): figure out how to sync this separately
 			default:
 				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
 				continue

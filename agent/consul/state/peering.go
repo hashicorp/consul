@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -140,7 +141,10 @@ func peeringReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, *pbpeering.
 func (s *Store) PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
+	return s.peeringListTxn(ws, tx, entMeta)
+}
 
+func (s *Store) peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	var (
 		iter memdb.ResultIterator
 		err  error
@@ -281,12 +285,16 @@ func (s *Store) PeeringTerminateByID(idx uint64, id string) error {
 	return tx.Commit()
 }
 
-// ExportedServicesForPeer returns the list of typical and proxy services exported to a peer.
-// TODO(peering): What to do about terminating gateways? Sometimes terminating gateways are the appropriate destination
-//                to dial for an upstream mesh service. However, that information is handled by observing the terminating gateway's
-//                config entry, which we wouldn't want to replicate. How would client peers know to route through terminating gateways
-//                when they're not dialing through a remote mesh gateway?
-func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, []structs.ServiceName, error) {
+// ExportedServicesForPeer returns the list of typical and proxy services
+// exported to a peer.
+//
+// TODO(peering): What to do about terminating gateways? Sometimes terminating
+// gateways are the appropriate destination to dial for an upstream mesh
+// service. However, that information is handled by observing the terminating
+// gateway's config entry, which we wouldn't want to replicate. How would
+// client peers know to route through terminating gateways when they're not
+// dialing through a remote mesh gateway?
+func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -295,9 +303,13 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 		return 0, nil, fmt.Errorf("failed to read peering: %w", err)
 	}
 	if peering == nil {
-		return 0, nil, nil
+		return 0, &structs.ExportedServiceList{}, nil
 	}
 
+	return s.exportedServicesForPeerTxn(ws, tx, peering)
+}
+
+func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peering *pbpeering.Peering) (uint64, *structs.ExportedServiceList, error) {
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
@@ -309,14 +321,28 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 		maxIdx = idx
 	}
 	if raw == nil {
-		return maxIdx, nil, nil
+		return maxIdx, &structs.ExportedServiceList{}, nil
 	}
+
 	conf, ok := raw.(*structs.ExportedServicesConfigEntry)
 	if !ok {
 		return 0, nil, fmt.Errorf("expected type *structs.ExportedServicesConfigEntry, got %T", raw)
 	}
 
-	set := make(map[structs.ServiceName]struct{})
+	var (
+		normalSet = make(map[structs.ServiceName]struct{})
+		discoSet  = make(map[structs.ServiceName]struct{})
+	)
+
+	// TODO(peering): filter the disco chain portion of the results to only be
+	// things reachable over the mesh to avoid replicating some clutter.
+	//
+	// At least one of the following should be true for a name for it to
+	// replicate:
+	//
+	// - are a discovery chain by definition (service-router, service-splitter, service-resolver)
+	// - have an explicit sidecar kind=connect-proxy
+	// - use connect native mode
 
 	for _, svc := range conf.Services {
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
@@ -325,7 +351,7 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 		for _, consumer := range svc.Consumers {
 			name := structs.NewServiceName(svc.Name, &svcMeta)
 
-			if _, ok := set[name]; ok {
+			if _, ok := normalSet[name]; ok {
 				// Service was covered by a wildcard that was already accounted for
 				continue
 			}
@@ -335,43 +361,47 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 			sawPeer = true
 
 			if svc.Name != structs.WildcardSpecifier {
-				set[name] = struct{}{}
+				normalSet[name] = struct{}{}
 			}
 		}
 
 		// If the target peer is a consumer, and all services in the namespace are exported, query those service names.
 		if sawPeer && svc.Name == structs.WildcardSpecifier {
-			var typicalServices []*KindServiceName
-			idx, typicalServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcMeta)
+			idx, typicalServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcMeta)
 			if err != nil {
-				return 0, nil, fmt.Errorf("failed to get service names: %w", err)
+				return 0, nil, fmt.Errorf("failed to get typical service names: %w", err)
 			}
 			if idx > maxIdx {
 				maxIdx = idx
 			}
 			for _, s := range typicalServices {
-				set[s.Service] = struct{}{}
+				normalSet[s.Service] = struct{}{}
 			}
 
-			var proxyServices []*KindServiceName
-			idx, proxyServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindConnectProxy, svcMeta)
+			// list all config entries of kind service-resolver, service-router, service-splitter?
+			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, svcMeta)
 			if err != nil {
-				return 0, nil, fmt.Errorf("failed to get service names: %w", err)
+				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
 			}
 			if idx > maxIdx {
 				maxIdx = idx
 			}
-			for _, s := range proxyServices {
-				set[s.Service] = struct{}{}
+			for _, sn := range discoChains {
+				discoSet[sn] = struct{}{}
 			}
 		}
 	}
 
-	var resp []structs.ServiceName
-	for svc := range set {
-		resp = append(resp, svc)
-	}
-	return maxIdx, resp, nil
+	normal := maps.SliceOfKeys(normalSet)
+	disco := maps.SliceOfKeys(discoSet)
+
+	structs.ServiceList(normal).Sort()
+	structs.ServiceList(disco).Sort()
+
+	return maxIdx, &structs.ExportedServiceList{
+		Services:    normal,
+		DiscoChains: disco,
+	}, nil
 }
 
 // PeeringsForService returns the list of peerings that are associated with the service name provided in the query.
