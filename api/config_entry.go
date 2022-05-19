@@ -179,6 +179,30 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
+// EndpointConfig represents a virtual service, i.e. one that is external to Consul
+type EndpointConfig struct {
+	// Address of the endpoint; hostname, IP, or CIDR
+	Address string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
+
+	// CAFile is the optional path to a CA certificate to use for TLS connections
+	// from the gateway to the linked service
+	CAFile string `json:",omitempty" alias:"ca_file"`
+
+	// CertFile is the optional path to a client certificate to use for TLS    connections
+	// from the gateway to the linked service
+	CertFile string `json:",omitempty" alias:"cert_file"`
+
+	// KeyFile is the optional path to a private key to use for TLS connections
+	// from the gateway to the linked service
+	KeyFile string `json:",omitempty" alias:"key_file"`
+
+	// SNI is the optional name to specify during the TLS handshake with a linked service.
+	SNI string `json:",omitempty"`
+}
+
 type PassiveHealthCheck struct {
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
@@ -220,10 +244,10 @@ type ServiceConfigEntry struct {
 	Expose           ExposeConfig            `json:",omitempty"`
 	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-
-	Meta        map[string]string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Endpoint         *EndpointConfig         `json:",omitempty"`
+	Meta             map[string]string       `json:",omitempty"`
+	CreateIndex      uint64
+	ModifyIndex      uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }
