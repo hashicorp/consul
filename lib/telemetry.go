@@ -228,8 +228,8 @@ func (cfg *MetricsConfig) Cancel() {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
 
-	if fn := cfg.cancelFn; fn != nil {
-		fn()
+	if cfg.cancelFn != nil {
+		cfg.cancelFn()
 	}
 }
 
@@ -387,14 +387,14 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 			logger.Error("failed configure sinks", "error", multierror.Flatten(err))
 
 			if err := waiter.Wait(ctx); err != nil {
-				logger.Info("stop retrying configure metrics sinks")
+				logger.Trace("stop retrying configure metrics sinks")
 			}
 		}
 	}
 
 	if _, errs := configureSinks(cfg, metricsConf.HostName, memSink); errs != nil {
 		if isRetriableError(errs) && cfg.RetryFailedConfiguration {
-			logger.Error("failed configure sinks", "error", multierror.Flatten(errs))
+			logger.Warn("failed configure sinks", "error", multierror.Flatten(errs))
 			ctx, cancel = context.WithCancel(context.Background())
 
 			metricsConfig.mu.Lock()
