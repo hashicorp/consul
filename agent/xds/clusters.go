@@ -508,6 +508,15 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 			return c, err
 		}
 	}
+	if cfg.MaxInboundConnections > 0 {
+		c.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
+			Thresholds: []*envoy_cluster_v3.CircuitBreakers_Thresholds{
+				{
+					MaxConnections: makeUint32Value(cfg.MaxInboundConnections),
+				},
+			},
+		}
+	}
 
 	return c, err
 }

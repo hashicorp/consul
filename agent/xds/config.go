@@ -58,6 +58,10 @@ type ProxyConfig struct {
 	// enable proxies in network namespaces to bind to a different port
 	// than the host port being advertised.
 	BindPort int `mapstructure:"bind_port"`
+
+	// MaxInboundConnections is the maximum number of inbound connections to
+	// the proxy. If not set, the default is 0 (no limit).
+	MaxInboundConnections int `mapstructure:"max_inbound_connections"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an
