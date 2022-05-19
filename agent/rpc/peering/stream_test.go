@@ -2,16 +2,22 @@ package peering
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -159,17 +165,13 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 		}
 	}()
 
-	peering := pbpeering.Peering{
-		Name: "my-peer",
-	}
-	require.NoError(t, store.PeeringWrite(0, &peering))
-
-	_, p, err := store.PeeringRead(nil, state.Query{Value: "my-peer"})
-	require.NoError(t, err)
+	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	var (
+		peerID       = p.ID     // for Send
+		remotePeerID = p.PeerID // for Recv
+	)
 
 	// Receive a subscription from a peer
-	peerID := p.ID
-
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
@@ -178,7 +180,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 			},
 		},
 	}
-	err = client.Send(sub)
+	err := client.Send(sub)
 	require.NoError(t, err)
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
@@ -197,7 +199,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
 				ResourceURL: pbpeering.TypeURLService,
-				PeerID:      peerID,
+				PeerID:      remotePeerID,
 			},
 		},
 	}
@@ -244,16 +246,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		errCh <- srv.StreamResources(client.ReplicationStream)
 	}()
 
-	peering := pbpeering.Peering{
-		Name: "my-peer",
-	}
-	require.NoError(t, store.PeeringWrite(0, &peering))
+	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	var (
+		peerID       = p.ID     // for Send
+		remotePeerID = p.PeerID // for Recv
+	)
 
-	_, p, err := store.PeeringRead(nil, state.Query{Value: "my-peer"})
-	require.NoError(t, err)
-
-	peerID := p.ID
-
+	// Receive a subscription from a peer
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
@@ -262,7 +261,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		},
 	}
-	err = client.Send(sub)
+	err := client.Send(sub)
 	require.NoError(t, err)
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
@@ -281,7 +280,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Payload: &pbpeering.ReplicationMessage_Request_{
 				Request: &pbpeering.ReplicationMessage_Request{
 					ResourceURL: pbpeering.TypeURLService,
-					PeerID:      peerID,
+					PeerID:      remotePeerID,
 					Nonce:       "",
 				},
 			},
@@ -370,6 +369,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 					ResourceID:  "api",
 					Nonce:       "21",
 					Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+					Resource:    makeAnyPB(t, &pbservice.IndexedCheckServiceNodes{}),
 				},
 			},
 		}
@@ -506,14 +506,11 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	err := store.PeeringWrite(lastIdx, &pbpeering.Peering{
-		Name: "my-peering",
-	})
-	require.NoError(t, err)
-
-	_, p, err := store.PeeringRead(nil, state.Query{Value: "my-peering"})
-	require.NoError(t, err)
-	require.NotNil(t, p)
+	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	var (
+		peerID       = p.ID     // for Send
+		remotePeerID = p.PeerID // for Recv
+	)
 
 	srv := NewService(testutil.Logger(t), &testStreamBackend{
 		store: store,
@@ -537,7 +534,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 	init := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
-				PeerID:      p.ID,
+				PeerID:      peerID,
 				ResourceURL: pbpeering.TypeURLService,
 			},
 		},
@@ -552,7 +549,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
 				ResourceURL: pbpeering.TypeURLService,
-				PeerID:      p.ID,
+				PeerID:      remotePeerID,
 			},
 		},
 	}
@@ -570,6 +567,13 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
+	var (
+		mongoSN      = structs.NewServiceName("mongo", nil).String()
+		mongoProxySN = structs.NewServiceName("mongo-sidecar-proxy", nil).String()
+		mysqlSN      = structs.NewServiceName("mysql", nil).String()
+		mysqlProxySN = structs.NewServiceName("mysql-sidecar-proxy", nil).String()
+	)
+
 	testutil.RunStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
@@ -577,36 +581,50 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-peering",
-						},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					// Mongo does not get pushed because it does not have instances registered.
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-peering",
-						},
+						{PeerName: "my-peering"},
 					},
 				},
 			},
 		}
 		lastIdx++
-		err = store.EnsureConfigEntry(lastIdx, entry)
-		require.NoError(t, err)
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
 
-		retry.Run(t, func(r *retry.R) {
-			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
-			require.NoError(r, err)
-			require.Equal(r, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
-			require.Equal(r, mysql.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlSN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
 
-			var nodes pbservice.IndexedCheckServiceNodes
-			require.NoError(r, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
-			require.Len(r, nodes.Nodes, 1)
-		})
+				var nodes pbservice.IndexedCheckServiceNodes
+				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				require.Len(t, nodes.Nodes, 1)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+		)
 	})
 
 	mongo := &structs.CheckServiceNode{
@@ -753,6 +771,7 @@ func Test_processResponse_Validation(t *testing.T) {
 				ResourceID:  "api",
 				Nonce:       "1",
 				Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+				Resource:    makeAnyPB(t, &pbservice.IndexedCheckServiceNodes{}),
 			},
 			expect: &pbpeering.ReplicationMessage{
 				Payload: &pbpeering.ReplicationMessage_Request_{
@@ -838,7 +857,7 @@ func Test_processResponse_Validation(t *testing.T) {
 						Nonce:       "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
-							Message: `unsupported operation: "100000"`,
+							Message: `unsupported operation: 100000`,
 						},
 					},
 				},
@@ -850,5 +869,102 @@ func Test_processResponse_Validation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
+	}
+}
+
+// writeInitiatedPeering creates a peering with the provided name and ensures
+// the PeerID field is set for the ID of the remote peer.
+func writeInitiatedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
+	remotePeerID, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	peering := pbpeering.Peering{
+		Name:   peerName,
+		PeerID: remotePeerID,
+	}
+	require.NoError(t, store.PeeringWrite(idx, &peering))
+
+	_, p, err := store.PeeringRead(nil, state.Query{Value: peerName})
+	require.NoError(t, err)
+
+	return p
+}
+
+func makeAnyPB(t *testing.T, pb proto.Message) *any.Any {
+	any, err := ptypes.MarshalAny(pb)
+	require.NoError(t, err)
+	return any
+}
+
+func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *testing.T, got *pbpeering.ReplicationMessage)) {
+	t.Helper()
+
+	num := len(checkFns)
+
+	if num == 0 {
+		// No updates should be received.
+		msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+		if err == io.EOF && msg == nil {
+			return
+		} else if err != nil {
+			t.Fatalf("received unexpected update error: %v", err)
+		} else {
+			t.Fatalf("received unexpected update: %+v", msg)
+		}
+	}
+
+	var out []*pbpeering.ReplicationMessage
+	for len(out) < num {
+		msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+		if err == io.EOF && msg == nil {
+			t.Fatalf("timed out with %d of %d events", len(out), num)
+		}
+		require.NoError(t, err)
+		out = append(out, msg)
+	}
+
+	if msg, err := client.RecvWithTimeout(100 * time.Millisecond); err != io.EOF || msg != nil {
+		t.Fatalf("expected only %d events but got more; prev %+v; next %+v", num, out, msg)
+	}
+
+	require.Len(t, out, num)
+
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+
+		typeA := fmt.Sprintf("%T", a.GetPayload())
+		typeB := fmt.Sprintf("%T", b.GetPayload())
+		if typeA != typeB {
+			return typeA < typeB
+		}
+
+		switch a.GetPayload().(type) {
+		case *pbpeering.ReplicationMessage_Request_:
+			reqA, reqB := a.GetRequest(), b.GetRequest()
+			if reqA.ResourceURL != reqB.ResourceURL {
+				return reqA.ResourceURL < reqB.ResourceURL
+			}
+			return reqA.Nonce < reqB.Nonce
+
+		case *pbpeering.ReplicationMessage_Response_:
+			respA, respB := a.GetResponse(), b.GetResponse()
+			if respA.ResourceURL != respB.ResourceURL {
+				return respA.ResourceURL < respB.ResourceURL
+			}
+			if respA.ResourceID != respB.ResourceID {
+				return respA.ResourceID < respB.ResourceID
+			}
+			return respA.Nonce < respB.Nonce
+
+		case *pbpeering.ReplicationMessage_Terminated_:
+			return false
+
+		default:
+			panic("unknown type")
+		}
+	})
+
+	for i := 0; i < num; i++ {
+		checkFns[i](t, out[i])
 	}
 }

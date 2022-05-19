@@ -58,9 +58,8 @@ func TestPeering(peerName string, state pbpeering.PeeringState, meta map[string]
 		PeerServerAddresses: []string{validAddress},
 		PeerServerName:      validServerName,
 		State:               state,
-		// uncomment once #1613 lands
-		// PeerID: validPeerID
-		Meta: meta,
+		PeerID:              validPeerID,
+		Meta:                meta,
 	}
 }
 

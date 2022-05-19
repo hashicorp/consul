@@ -3,13 +3,11 @@ package peering
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-
-	// TODO: replace this with net/netip when we upgrade to go1.18
-	"inet.af/netaddr"
 )
 
 // validatePeeringToken ensures that the token has valid values.
@@ -39,7 +37,7 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		if port < 1 || port > 65535 {
 			return &errPeeringInvalidServerAddress{addr}
 		}
-		if _, err := netaddr.ParseIP(host); err != nil {
+		if _, err := netip.ParseAddr(host); err != nil {
 			return &errPeeringInvalidServerAddress{addr}
 		}
 	}
