@@ -27,7 +27,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       - name: Backport changes to latest release branch
         run: |
-          resp=$(curl -f -s "https://api.github.com/repos/$GITHUB_REPOSITORY/labels?per_page=100")
+          # Use standard token here 
+          resp=$(curl -f -s -H 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' "https://api.github.com/repos/$GITHUB_REPOSITORY/labels?per_page=100")
           ret="$?"
           if [[ "$ret" -ne 0 ]]; then
               echo "The GitHub API returned $ret"
