@@ -18,9 +18,21 @@ func LongFailer() *retry.Timer {
 	return &retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}
 }
 
-func waitForLeader(t *testing.T, Cluster *cluster.Cluster) {
+func waitForLeader(t *testing.T, Cluster *cluster.Cluster, client *api.Client) {
 	retry.RunWith(LongFailer(), t, func(r *retry.R) {
 		leader, err := Cluster.Leader()
+		require.NoError(r, err)
+		require.NotEmpty(r, leader)
+	})
+
+	if client != nil {
+		waitForLeaderFromClient(t, client)
+	}
+}
+
+func waitForLeaderFromClient(t *testing.T, client *api.Client) {
+	retry.RunWith(LongFailer(), t, func(r *retry.R) {
+		leader, err := cluster.GetLeader(client)
 		require.NoError(r, err)
 		require.NotEmpty(r, leader)
 	})
