@@ -24,12 +24,10 @@ type exportedServiceRequest struct {
 	sub    Subscriber
 }
 
-func newExportedServiceRequest(logger hclog.Logger, svc structs.ServiceName, sub Subscriber) *exportedServiceRequest {
+func newExportedStandardServiceRequest(logger hclog.Logger, svc structs.ServiceName, sub Subscriber) *exportedServiceRequest {
 	req := structs.ServiceSpecificRequest{
-		// TODO(peering): Need to subscribe to both Connect and not
-		Connect: false,
-
 		ServiceName:    svc.Name,
+		Connect:        false,
 		EnterpriseMeta: svc.EnterpriseMeta,
 	}
 	return &exportedServiceRequest{
@@ -46,10 +44,12 @@ func (e *exportedServiceRequest) CacheInfo() cache.RequestInfo {
 
 // NewMaterializer implements submatview.Request
 func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, error) {
+	if e.req.Connect {
+		return nil, fmt.Errorf("connect views are not supported")
+	}
 	reqFn := func(index uint64) *pbsubscribe.SubscribeRequest {
-		// TODO(peering): We need to be able to receive both connect proxies and typical service instances for a given name.
-		//                Using the Topic_ServiceHealth will ignore proxies unless the ServiceName is a proxy name.
-		r := &pbsubscribe.SubscribeRequest{
+		return &pbsubscribe.SubscribeRequest{
+			// Using the Topic_ServiceHealth will ignore proxies unless the ServiceName is a proxy name.
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        e.req.ServiceName,
 			Token:      e.req.Token,
@@ -58,10 +58,6 @@ func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, err
 			Namespace:  e.req.EnterpriseMeta.NamespaceOrEmpty(),
 			Partition:  e.req.EnterpriseMeta.PartitionOrEmpty(),
 		}
-		if e.req.Connect {
-			r.Topic = pbsubscribe.Topic_ServiceHealthConnect
-		}
-		return r
 	}
 	deps := submatview.Deps{
 		View:    newExportedServicesView(),

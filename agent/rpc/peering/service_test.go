@@ -1005,16 +1005,9 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 		},
 	}
 	for _, tc := range tt {
-		runStep(t, tc.name, func(t *testing.T) {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
-	}
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
 	}
 }
 
