@@ -38,7 +38,7 @@ If a license needs to be manually set, choose one of the following methods (in o
    export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
    ```
 
-1. Configure the [`license`](/docs/nia/configuration#license-1) path option in the configuration file to point to the file containing the license.
+1. Configure the [`license`](/docs/nia/configuration#license) path option in the configuration file to point to the file containing the license.
 
    ```hcl
    license {
@@ -46,7 +46,7 @@ If a license needs to be manually set, choose one of the following methods (in o
    }
    ```
 
-1. Configure the [`license_path`](/docs/nia/configuration#license_path) option in the configuration file to point to the file containing the license. **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license-1) instead.**
+1. Configure the [`license_path`](/docs/nia/configuration#license_path) option in the configuration file to point to the file containing the license. **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license) instead.**
 
    ```hcl
    license_path = "<PATH>/<TO>/<FILE>"
