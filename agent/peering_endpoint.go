@@ -48,7 +48,7 @@ func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 	if result.Peering == nil {
-		return nil, HTTPError{StatusCode: http.StatusNotFound}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Peering not found for %q", name)}
 	}
 
 	// TODO(peering): replace with API types

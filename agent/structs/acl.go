@@ -169,6 +169,34 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPo
 	return policy
 }
 
+type ACLServiceIdentities []*ACLServiceIdentity
+
+// Deduplicate returns a new list of service identities without duplicates.
+// Identities with the same ServiceName but different datacenters will be
+// merged into a single identity with all datacenters.
+func (ids ACLServiceIdentities) Deduplicate() ACLServiceIdentities {
+	unique := make(map[string]*ACLServiceIdentity)
+
+	for _, id := range ids {
+		entry, ok := unique[id.ServiceName]
+		if ok {
+			dcs := stringslice.CloneStringSlice(id.Datacenters)
+			sort.Strings(dcs)
+			entry.Datacenters = stringslice.MergeSorted(dcs, entry.Datacenters)
+		} else {
+			entry = id.Clone()
+			sort.Strings(entry.Datacenters)
+			unique[id.ServiceName] = entry
+		}
+	}
+
+	results := make(ACLServiceIdentities, 0, len(unique))
+	for _, id := range unique {
+		results = append(results, id)
+	}
+	return results
+}
+
 // ACLNodeIdentity represents a high-level grant of all privileges
 // necessary to assume the identity of that node and manage it.
 type ACLNodeIdentity struct {
@@ -213,6 +241,27 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolic
 	return policy
 }
 
+type ACLNodeIdentities []*ACLNodeIdentity
+
+// Deduplicate returns a new list of node identities without duplicates.
+func (ids ACLNodeIdentities) Deduplicate() ACLNodeIdentities {
+	type mapKey struct {
+		nodeName, datacenter string
+	}
+	seen := make(map[mapKey]struct{})
+
+	var results ACLNodeIdentities
+	for _, id := range ids {
+		key := mapKey{id.NodeName, id.Datacenter}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		results = append(results, id.Clone())
+		seen[key] = struct{}{}
+	}
+	return results
+}
+
 type ACLToken struct {
 	// This is the UUID used for tracking and management purposes
 	AccessorID string
@@ -234,10 +283,10 @@ type ACLToken struct {
 	Roles []ACLTokenRoleLink `json:",omitempty"`
 
 	// List of services to generate synthetic policies for.
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
 
 	// The node identities that this token should be allowed to manage.
-	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
+	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
 	// Type is the V1 Token Type
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
@@ -497,10 +546,10 @@ type ACLTokenListStub struct {
 	AccessorID        string
 	SecretID          string
 	Description       string
-	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
-	Roles             []ACLTokenRoleLink    `json:",omitempty"`
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
-	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	Policies          []ACLTokenPolicyLink `json:",omitempty"`
+	Roles             []ACLTokenRoleLink   `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
+	NodeIdentities    ACLNodeIdentities    `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -808,10 +857,10 @@ type ACLRole struct {
 	Policies []ACLRolePolicyLink `json:",omitempty"`
 
 	// List of services to generate synthetic policies for.
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
 
 	// List of nodes to generate synthetic policies for.
-	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
+	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
 	// Hash of the contents of the role
 	// This does not take into account the ID (which is immutable)

@@ -259,8 +259,8 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
-func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn) {
-	_, srv, _ := testACLServerWithConfig(t, cb, false)
+func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn, rpc.ClientCodec) {
+	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
 	// Normally the gRPC server listener is created at the agent level and passed down into
 	// the Server creation. For our tests, we need to ensure
@@ -276,7 +276,7 @@ func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.C
 
 	t.Cleanup(func() { _ = conn.Close() })
 
-	return srv, conn
+	return srv, conn, codec
 }
 
 func newServer(t *testing.T, c *Config) (*Server, error) {

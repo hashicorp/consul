@@ -61,6 +61,7 @@ type RuntimeConfig struct {
 	Revision                   string
 	Version                    string
 	VersionPrerelease          string
+	VersionMetadata            string
 
 	// consul config
 	ConsulCoordinateUpdateMaxBatches int
@@ -1627,6 +1628,14 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 	}
 
 	return cfg, nil
+}
+
+func (c *RuntimeConfig) VersionWithMetadata() string {
+	version := c.Version
+	if c.VersionMetadata != "" {
+		version += "+" + c.VersionMetadata
+	}
+	return version
 }
 
 // Sanitized returns a JSON/HCL compatible representation of the runtime

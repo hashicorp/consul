@@ -2,6 +2,7 @@ package serverlessplugin
 
 import (
 	"fmt"
+	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -22,9 +23,9 @@ import (
 func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscommon.PluginConfiguration) (*xdscommon.IndexedResources, error) {
 	var resultErr error
 
-	// The serverless plugin only supports terminating gateays for now, but will
-	// likely add connect proxies soon.
-	if config.Kind != api.ServiceKindTerminatingGateway {
+	switch config.Kind {
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+	default:
 		return resources, resultErr
 	}
 
@@ -36,7 +37,7 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
 			case *envoy_cluster_v3.Cluster:
-				patcher := getPatcherBySNI(config, config.Kind, nameOrSNI)
+				patcher := getPatcherBySNI(config, nameOrSNI)
 				if patcher == nil {
 					continue
 				}
@@ -51,7 +52,7 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 				}
 
 			case *envoy_listener_v3.Listener:
-				newListener, patched, err := patchTerminatingGatewayListener(resource, config)
+				newListener, patched, err := patchListener(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
 					continue
@@ -61,7 +62,7 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 				}
 
 			case *envoy_route_v3.RouteConfiguration:
-				patcher := getPatcherBySNI(config, config.Kind, nameOrSNI)
+				patcher := getPatcherBySNI(config, nameOrSNI)
 				if patcher == nil {
 					continue
 				}
@@ -84,7 +85,17 @@ func MutateIndexedResources(resources *xdscommon.IndexedResources, config xdscom
 	return resources, resultErr
 }
 
-func patchTerminatingGatewayListener(l *envoy_listener_v3.Listener, config xdscommon.PluginConfiguration) (proto.Message, bool, error) {
+func patchListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+	switch config.Kind {
+	case api.ServiceKindTerminatingGateway:
+		return patchTerminatingGatewayListener(config, l)
+	case api.ServiceKindConnectProxy:
+		return patchConnectProxyListener(config, l)
+	}
+	return l, false, nil
+}
+
+func patchTerminatingGatewayListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 	patched := false
 	for _, filterChain := range l.FilterChains {
@@ -94,7 +105,7 @@ func patchTerminatingGatewayListener(l *envoy_listener_v3.Listener, config xdsco
 			continue
 		}
 
-		patcher := getPatcherBySNI(config, config.Kind, sni)
+		patcher := getPatcherBySNI(config, sni)
 
 		if patcher == nil {
 			continue
@@ -109,6 +120,42 @@ func patchTerminatingGatewayListener(l *envoy_listener_v3.Listener, config xdsco
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
 			}
+			if ok {
+				filters = append(filters, newFilter)
+				patched = true
+			}
+		}
+		filterChain.Filters = filters
+	}
+
+	return l, patched, resultErr
+}
+
+func patchConnectProxyListener(config xdscommon.PluginConfiguration, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+	var resultErr error
+
+	envoyID := ""
+	if i := strings.IndexByte(l.Name, ':'); i != -1 {
+		envoyID = l.Name[:i]
+	}
+
+	patcher := getPatcherByEnvoyID(config, envoyID)
+	if patcher == nil {
+		return l, false, nil
+	}
+
+	var patched bool
+
+	for _, filterChain := range l.FilterChains {
+		var filters []*envoy_listener_v3.Filter
+
+		for _, filter := range filterChain.Filters {
+			newFilter, ok, err := patcher.PatchFilter(filter)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
+				filters = append(filters, filter)
+			}
+
 			if ok {
 				filters = append(filters, newFilter)
 				patched = true

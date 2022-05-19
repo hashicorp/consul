@@ -179,6 +179,7 @@ func TestHTTP_Peering_Initiate(t *testing.T) {
 		body := &pbpeering.InitiateRequest{
 			PeerName:     "peering-a",
 			PeeringToken: tokenB64,
+			Meta:         map[string]string{"foo": "bar"},
 		}
 
 		bodyBytes, err := json.Marshal(body)
@@ -253,6 +254,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},
+			Meta:                map[string]string{"foo": "bar"},
 		},
 	}
 	_, err := a.rpcClientPeering.PeeringWrite(ctx, foo)
@@ -281,6 +283,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&pbresp))
 
 		require.Equal(t, foo.Peering.Name, pbresp.Name)
+		require.Equal(t, foo.Peering.Meta, pbresp.Meta)
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -289,6 +292,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusNotFound, resp.Code)
+		require.Equal(t, "Peering not found for \"baz\"", resp.Body.String())
 	})
 }
 
@@ -305,9 +309,6 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Insert peerings directly to state store.
-	// Note that the state store holds reference to the underlying
-	// variables; do not modify them after writing.
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
@@ -357,7 +358,6 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
-		// TODO(peering): it may be a security concern, but do we want to say 404 here?
 		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }

@@ -32,16 +32,23 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		srv := NewService(testutil.Logger(t), nil)
-		client := newMockClient(context.Background())
+		publisher := stream.NewEventPublisher(10 * time.Second)
+		store := newStateStore(t, publisher)
+
+		srv := NewService(testutil.Logger(t), &testStreamBackend{
+			store: store,
+			pub:   publisher,
+		})
+
+		client := NewMockClient(context.Background())
 
 		errCh := make(chan error, 1)
-		client.errCh = errCh
+		client.ErrCh = errCh
 
 		go func() {
-			// Pass errors from server handler into errCh so that they can be seen by the client on Recv().
+			// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
 			// This matches gRPC's behavior when an error is returned by a server.
-			err := srv.StreamResources(client.replicationStream)
+			err := srv.StreamResources(client.ReplicationStream)
 			if err != nil {
 				errCh <- err
 			}
@@ -103,6 +110,18 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 			},
 			wantErr: status.Error(codes.InvalidArgument, "subscription request to unknown resource URL: nomad.Job"),
 		},
+		{
+			name: "unknown peer",
+			input: &pbpeering.ReplicationMessage{
+				Payload: &pbpeering.ReplicationMessage_Request_{
+					Request: &pbpeering.ReplicationMessage_Request{
+						PeerID:      "63b60245-c475-426b-b314-4588d210859d",
+						ResourceURL: pbpeering.TypeURLService,
+					},
+				},
+			},
+			wantErr: status.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: 63b60245-c475-426b-b314-4588d210859d"),
+		},
 	}
 
 	for _, tc := range tt {
@@ -127,21 +146,30 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	}
 	srv.streams.timeNow = it.Now
 
-	client := newMockClient(context.Background())
+	client := NewMockClient(context.Background())
 
 	errCh := make(chan error, 1)
-	client.errCh = errCh
+	client.ErrCh = errCh
 
 	go func() {
-		// Pass errors from server handler into errCh so that they can be seen by the client on Recv().
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
 		// This matches gRPC's behavior when an error is returned by a server.
-		if err := srv.StreamResources(client.replicationStream); err != nil {
+		if err := srv.StreamResources(client.ReplicationStream); err != nil {
 			errCh <- err
 		}
 	}()
 
+	peering := pbpeering.Peering{
+		Name: "my-peer",
+	}
+	require.NoError(t, store.PeeringWrite(0, &peering))
+
+	_, p, err := store.PeeringRead(nil, state.Query{Value: "my-peer"})
+	require.NoError(t, err)
+
 	// Receive a subscription from a peer
-	peerID := "63b60245-c475-426b-b314-4588d210859d"
+	peerID := p.ID
+
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
@@ -150,10 +178,10 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 			},
 		},
 	}
-	err := client.Send(sub)
+	err = client.Send(sub)
 	require.NoError(t, err)
 
-	runStep(t, "new stream gets tracked", func(t *testing.T) {
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(peerID)
 			require.True(r, ok)
@@ -175,7 +203,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	}
 	prototest.AssertDeepEqual(t, expect, receivedSub)
 
-	runStep(t, "terminate the stream", func(t *testing.T) {
+	testutil.RunStep(t, "terminate the stream", func(t *testing.T) {
 		done := srv.ConnectedStreams()[peerID]
 		close(done)
 
@@ -209,14 +237,23 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	}
 	srv.streams.timeNow = it.Now
 
-	client := newMockClient(context.Background())
+	client := NewMockClient(context.Background())
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srv.StreamResources(client.replicationStream)
+		errCh <- srv.StreamResources(client.ReplicationStream)
 	}()
 
-	peerID := "63b60245-c475-426b-b314-4588d210859d"
+	peering := pbpeering.Peering{
+		Name: "my-peer",
+	}
+	require.NoError(t, store.PeeringWrite(0, &peering))
+
+	_, p, err := store.PeeringRead(nil, state.Query{Value: "my-peer"})
+	require.NoError(t, err)
+
+	peerID := p.ID
+
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
 			Request: &pbpeering.ReplicationMessage_Request{
@@ -225,10 +262,10 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			},
 		},
 	}
-	err := client.Send(sub)
+	err = client.Send(sub)
 	require.NoError(t, err)
 
-	runStep(t, "new stream gets tracked", func(t *testing.T) {
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(peerID)
 			require.True(r, ok)
@@ -236,7 +273,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	runStep(t, "client receives initial subscription", func(t *testing.T) {
+	testutil.RunStep(t, "client receives initial subscription", func(t *testing.T) {
 		ack, err := client.Recv()
 		require.NoError(t, err)
 
@@ -255,7 +292,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var sequence uint64
 	var lastSendSuccess time.Time
 
-	runStep(t, "ack tracked as success", func(t *testing.T) {
+	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
 		ack := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Request_{
 				Request: &pbpeering.ReplicationMessage_Request{
@@ -288,7 +325,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastNack time.Time
 	var lastNackMsg string
 
-	runStep(t, "nack tracked as error", func(t *testing.T) {
+	testutil.RunStep(t, "nack tracked as error", func(t *testing.T) {
 		nack := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Request_{
 				Request: &pbpeering.ReplicationMessage_Request{
@@ -325,7 +362,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 	var lastRecvSuccess time.Time
 
-	runStep(t, "response applied locally", func(t *testing.T) {
+	testutil.RunStep(t, "response applied locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
 				Response: &pbpeering.ReplicationMessage_Response{
@@ -373,7 +410,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastRecvError time.Time
 	var lastRecvErrorMsg string
 
-	runStep(t, "response fails to apply locally", func(t *testing.T) {
+	testutil.RunStep(t, "response fails to apply locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
 				Response: &pbpeering.ReplicationMessage_Response{
@@ -427,7 +464,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	runStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
+	testutil.RunStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
 		client.Close()
 
 		sequence++
@@ -483,15 +520,15 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		pub:   publisher,
 	})
 
-	client := newMockClient(context.Background())
+	client := NewMockClient(context.Background())
 
 	errCh := make(chan error, 1)
-	client.errCh = errCh
+	client.ErrCh = errCh
 
 	go func() {
-		// Pass errors from server handler into errCh so that they can be seen by the client on Recv().
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
 		// This matches gRPC's behavior when an error is returned by a server.
-		if err := srv.StreamResources(client.replicationStream); err != nil {
+		if err := srv.StreamResources(client.ReplicationStream); err != nil {
 			errCh <- err
 		}
 	}()
@@ -533,7 +570,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
-	runStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
+	testutil.RunStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
@@ -577,7 +614,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
 	}
 
-	runStep(t, "registering mongo instance leads to an UPSERT event", func(t *testing.T) {
+	testutil.RunStep(t, "registering mongo instance leads to an UPSERT event", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.EnsureNode(lastIdx, mongo.Node))
 
@@ -596,7 +633,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		})
 	})
 
-	runStep(t, "un-exporting mysql leads to a DELETE event for mysql", func(t *testing.T) {
+	testutil.RunStep(t, "un-exporting mysql leads to a DELETE event for mysql", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
@@ -623,7 +660,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		})
 	})
 
-	runStep(t, "deleting the config entry leads to a DELETE event for mongo", func(t *testing.T) {
+	testutil.RunStep(t, "deleting the config entry leads to a DELETE event for mongo", func(t *testing.T) {
 		lastIdx++
 		err = store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", nil)
 		require.NoError(t, err)
@@ -683,7 +720,7 @@ func (b *testStreamBackend) Apply() Apply {
 	return nil
 }
 
-func Test_processResponse(t *testing.T) {
+func Test_processResponse_Validation(t *testing.T) {
 	type testCase struct {
 		name    string
 		in      *pbpeering.ReplicationMessage_Response
@@ -691,8 +728,15 @@ func Test_processResponse(t *testing.T) {
 		wantErr bool
 	}
 
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store: store,
+		pub:   publisher,
+	})
+
 	run := func(t *testing.T, tc testCase) {
-		reply, err := processResponse(tc.in)
+		reply, err := srv.processResponse("", "", tc.in)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {

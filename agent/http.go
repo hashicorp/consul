@@ -875,7 +875,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b QueryOptio
 	return false
 }
 
-// parseConsistency is used to parse the ?stale and ?consistent query params.
+// parseConsistency is used to parse the ?stale, ?consistent, and ?leader query params.
 // Returns true on error
 func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b QueryOptionsCompat) bool {
 	query := req.URL.Query()
@@ -889,6 +889,9 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 		defaults = false
 	}
 	if _, ok := query["leader"]; ok {
+		// The leader query param forces use of the "default" consistency mode.
+		// This allows the "default" consistency mode to be used even the consistency mode is
+		// default to "stale" through use of the discovery_max_stale agent config option.
 		defaults = false
 	}
 	if _, ok := query["cached"]; ok && s.agent.config.HTTPUseCache {

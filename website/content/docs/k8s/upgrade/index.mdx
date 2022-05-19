@@ -201,7 +201,7 @@ that can be used.
 If you are using Consul's service mesh features, as opposed to the [service sync](/docs/k8s/service-sync)
 functionality, you must be aware of the behavior of the service mesh during upgrades.
 
-Consul clients operate as a daemonset across all Kubernernetes nodes. During an upgrade,
+Consul clients operate as a daemonset across all Kubernetes nodes. During an upgrade,
 if the Consul client daemonset has changed, the client pods will need to be restarted
 because their spec has changed.
 

@@ -340,7 +340,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			require.Equal(t, checks, out)
 		}
 
-		runStep(t, "add a node", func(t *testing.T) {
+		testutil.RunStep(t, "add a node", func(t *testing.T) {
 			req := makeReq(nil)
 			require.NoError(t, s.EnsureRegistration(1, req))
 
@@ -348,7 +348,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			verifyNode(t)
 		})
 
-		runStep(t, "add a node with invalid meta", func(t *testing.T) {
+		testutil.RunStep(t, "add a node with invalid meta", func(t *testing.T) {
 			// Add in a invalid service definition with too long Key value for Meta
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
@@ -365,7 +365,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		})
 
 		// Add in a service definition.
-		runStep(t, "add a service definition", func(t *testing.T) {
+		testutil.RunStep(t, "add a service definition", func(t *testing.T) {
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
 					ID:       "redis1",
@@ -385,7 +385,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		})
 
 		// Add in a top-level check.
-		runStep(t, "add a top level check", func(t *testing.T) {
+		testutil.RunStep(t, "add a top level check", func(t *testing.T) {
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
 					ID:       "redis1",
@@ -413,7 +413,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 		// Add a service check which should populate the ServiceName
 		// and ServiceTags fields in the response.
-		runStep(t, "add a service check", func(t *testing.T) {
+		testutil.RunStep(t, "add a service check", func(t *testing.T) {
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
 					ID:       "redis1",
@@ -449,7 +449,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		})
 
 		// Try to register a check for some other node (top-level check).
-		runStep(t, "try to register a check for some other node via the top level check", func(t *testing.T) {
+		testutil.RunStep(t, "try to register a check for some other node via the top level check", func(t *testing.T) {
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
 					ID:       "redis1",
@@ -482,7 +482,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			verifyChecks(t)
 		})
 
-		runStep(t, "try to register a check for some other node via the checks array", func(t *testing.T) {
+		testutil.RunStep(t, "try to register a check for some other node via the checks array", func(t *testing.T) {
 			// Try to register a check for some other node (checks array).
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
@@ -626,7 +626,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		s := testStateStore(t)
 
 		// Start with just a node.
-		runStep(t, "add a node", func(t *testing.T) {
+		testutil.RunStep(t, "add a node", func(t *testing.T) {
 			req := makeReq(nil)
 			restore := s.Restore()
 			require.NoError(t, restore.Registration(1, req))
@@ -638,7 +638,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		})
 
 		// Add in a service definition.
-		runStep(t, "add a service definition", func(t *testing.T) {
+		testutil.RunStep(t, "add a service definition", func(t *testing.T) {
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
 					ID:      "redis1",
@@ -664,7 +664,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			verifyService(t, s, nodeName)
 		})
 
-		runStep(t, "add a top-level check", func(t *testing.T) {
+		testutil.RunStep(t, "add a top-level check", func(t *testing.T) {
 			// Add in a top-level check.
 			//
 			// Verify that node name references in checks are case-insensitive during
@@ -705,7 +705,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			verifyCheck(t, s)
 		})
 
-		runStep(t, "add another check via the slice", func(t *testing.T) {
+		testutil.RunStep(t, "add another check via the slice", func(t *testing.T) {
 			// Add in another check via the slice.
 			req := makeReq(func(req *structs.RegisterRequest) {
 				req.Service = &structs.NodeService{
@@ -8144,13 +8144,6 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, idx, gotIdx)
 	require.Empty(t, got)
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {

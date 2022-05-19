@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -207,7 +208,13 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 			return err
 		}
 
-		err = s.peeringService.HandleStream(peer.ID, peer.PeerID, stream)
+		err = s.peeringService.HandleStream(peering.HandleStreamRequest{
+			LocalID:   peer.ID,
+			RemoteID:  peer.PeerID,
+			PeerName:  peer.Name,
+			Partition: peer.Partition,
+			Stream:    stream,
+		})
 		if err == nil {
 			// This will cancel the retry-er context, letting us break out of this loop when we want to shut down the stream.
 			cancel()
