@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -663,6 +664,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	err = c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -694,6 +700,25 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				if len(mergedServiceNodes) > 0 {
 					mergedServices = mergedServiceNodes
 				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
 			}
 
 			reply.Index, reply.ServiceNodes = index, mergedServices
