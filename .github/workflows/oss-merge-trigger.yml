@@ -5,7 +5,7 @@ on:
       - closed
     branches:
       - main
-      - 'releases/*.*.x'
+      - 'release/*.*.x'
 
 jobs:
   trigger-oss-merge:

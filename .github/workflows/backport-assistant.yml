@@ -10,7 +10,7 @@ on:
       - labeled
     branches:
       - main
-      - 'releases/*.*.x'
+      - 'release/*.*.x'
 
 jobs:
   backport:
