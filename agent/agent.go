@@ -626,8 +626,8 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		Cache:  a.cache,
-		Health: a.rpcClientHealth,
+		Cache:  &proxycfg.CacheWrapper{Cache: a.cache},
+		Health: &proxycfg.HealthWrapper{Health: a.rpcClientHealth},
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Tokens: a.baseDeps.Tokens,

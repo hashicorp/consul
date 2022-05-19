@@ -3,8 +3,6 @@ package proxycfg
 import (
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/agent/cache"
-	agentcache "github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -12,7 +10,7 @@ func TestConfigSnapshotTerminatingGateway(
 	t testing.T,
 	populateServices bool,
 	nsFn func(ns *structs.NodeService),
-	extraUpdates []agentcache.UpdateEvent,
+	extraUpdates []UpdateEvent,
 ) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 
@@ -23,7 +21,7 @@ func TestConfigSnapshotTerminatingGateway(
 		cache = structs.NewServiceName("cache", nil)
 	)
 
-	baseEvents := []agentcache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -158,7 +156,7 @@ func TestConfigSnapshotTerminatingGateway(
 			},
 		}
 
-		baseEvents = testSpliceEvents(baseEvents, []agentcache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -356,7 +354,7 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 		cache = structs.NewServiceName("cache", nil)
 	)
 
-	events := []agentcache.UpdateEvent{
+	events := []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -384,7 +382,7 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 	}
 
 	if alsoAdjustCache {
-		events = testSpliceEvents(events, []agentcache.UpdateEvent{
+		events = testSpliceEvents(events, []UpdateEvent{
 			{
 				CorrelationID: serviceResolverIDPrefix + cache.String(),
 				Result: &structs.ConfigEntryResponse{
@@ -414,7 +412,7 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 func TestConfigSnapshotTerminatingGatewayDefaultServiceSubset(t testing.T) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -498,7 +496,7 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 		return nil
 	}
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceConfigIDPrefix + web.String(),
 			Result: &structs.ServiceConfigResponse{
@@ -521,7 +519,7 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 }
 
 func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: "gateway-services",
 			Result: &structs.IndexedGatewayServices{
@@ -550,7 +548,7 @@ func TestConfigSnapshotTerminatingGatewayHostnameSubsets(t testing.T) *ConfigSna
 		cache = structs.NewServiceName("cache", nil)
 	)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + api.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -600,7 +598,7 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 		notfound = structs.NewServiceName("notfound", nil)
 	)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, []agentcache.UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -648,9 +646,9 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 	})
 }
 
-func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpdateEvents ...agentcache.UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpdateEvents ...UpdateEvent) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
-	updateEvents := append(extraUpdateEvents, agentcache.UpdateEvent{
+	updateEvents := append(extraUpdateEvents, UpdateEvent{
 		CorrelationID: serviceConfigIDPrefix + web.String(),
 		Result: &structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
@@ -669,7 +667,7 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t 
 	web := structs.NewServiceName("web", nil)
 
 	return TestConfigSnapshotTerminatingGatewayWithLambdaService(t,
-		agentcache.UpdateEvent{
+		UpdateEvent{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
 				Entry: &structs.ServiceResolverConfigEntry{
