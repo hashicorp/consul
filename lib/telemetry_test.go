@@ -12,12 +12,11 @@ import (
 )
 
 func newCfg() TelemetryConfig {
-	cfg := TelemetryConfig{
+	return TelemetryConfig{
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
 		DogstatsdAddr: "mydog.host:8125",
 	}
-	return cfg
 }
 
 func TestConfigureSinks(t *testing.T) {
