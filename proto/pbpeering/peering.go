@@ -79,3 +79,7 @@ func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime t
 func (p *Peering) ShouldDial() bool {
 	return len(p.PeerServerAddresses) > 0 && p.State != PeeringState_TERMINATED
 }
+
+func (x ReplicationMessage_Response_Operation) GoString() string {
+	return x.String()
+}

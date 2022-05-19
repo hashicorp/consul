@@ -77,6 +77,7 @@ func (s *HTTPHandlers) PeeringList(resp http.ResponseWriter, req *http.Request) 
 // PeeringGenerateToken handles POSTs to the /v1/peering/token endpoint. The request
 // will always be forwarded via RPC to the local leader.
 func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// TODO(peering): decode into api type
 	args := pbpeering.GenerateTokenRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -108,6 +109,7 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 // PeeringInitiate handles POSTs to the /v1/peering/initiate endpoint. The request
 // will always be forwarded via RPC to the local leader.
 func (s *HTTPHandlers) PeeringInitiate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// TODO(peering): decode into api type
 	args := pbpeering.InitiateRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}

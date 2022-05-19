@@ -239,17 +239,19 @@ func (s *Service) Initiate(
 	}
 
 	// as soon as a peering is written with a list of ServerAddresses that is
-	// non-empty, the leader routine will see the peering and attempt to establish
-	// a connection with the remote peer.
+	// non-empty, the leader routine will see the peering and attempt to
+	// establish a connection with the remote peer.
+	//
+	// This peer now has a record of both the LocalPeerID(ID) and
+	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                req.PeerName,
 			PeerCAPems:          tok.CA,
 			PeerServerAddresses: serverAddrs,
 			PeerServerName:      tok.ServerName,
-			// uncomment once #1613 lands
-			// PeerID: 			 tok.PeerID,
-			Meta: req.Meta,
+			PeerID:              tok.PeerID,
+			Meta:                req.Meta,
 		},
 	}
 	if err = s.Backend.Apply().PeeringWrite(writeReq); err != nil {
@@ -464,8 +466,8 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 	// For server peers both of these ID values are the same, because we generated a token with a local ID,
 	// and the client peer dials using that same ID.
 	return s.HandleStream(HandleStreamRequest{
-		LocalID:   req.PeerID,
-		RemoteID:  req.PeerID,
+		LocalID:   p.ID,
+		RemoteID:  p.PeerID,
 		PeerName:  p.Name,
 		Partition: p.Partition,
 		Stream:    stream,
