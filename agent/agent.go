@@ -1424,6 +1424,7 @@ func (a *Agent) ShutdownAgent() error {
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
 	a.baseDeps.AutoConfig.Stop()
+	a.baseDeps.MetricsConfig.Cancel()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()

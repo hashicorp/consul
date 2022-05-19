@@ -1,15 +1,12 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
@@ -41,18 +38,12 @@ import (
 type BaseDeps struct {
 	consul.Deps // TODO: un-embed
 
-	RuntimeConfig  *config.RuntimeConfig
-	MetricsHandler MetricsHandler
-	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
-	Cache          *cache.Cache
-	ViewStore      *submatview.Store
-	WatchedFiles   []string
-}
-
-// MetricsHandler provides an http.Handler for displaying metrics.
-type MetricsHandler interface {
-	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
-	Stream(ctx context.Context, encoder metrics.Encoder)
+	RuntimeConfig *config.RuntimeConfig
+	MetricsConfig *lib.MetricsConfig
+	AutoConfig    *autoconf.AutoConfig // TODO: use an interface
+	Cache         *cache.Cache
+	ViewStore     *submatview.Store
+	WatchedFiles  []string
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -90,7 +81,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
+
+	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}

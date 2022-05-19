@@ -128,6 +128,7 @@ func DefaultSource() Source {
 			metrics_prefix = "consul"
 			filter_default = true
 			prefix_filter = []
+			retry_failed_connection = true
 		}
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
