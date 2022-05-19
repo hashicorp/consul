@@ -39,6 +39,7 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1563,7 +1564,9 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
-	bd.MetricsHandler = sink
+	bd.MetricsConfig = &lib.MetricsConfig{
+		Handler: sink,
+	}
 	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
@@ -1590,7 +1593,9 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
-	bd.MetricsHandler = sink
+	bd.MetricsConfig = &lib.MetricsConfig{
+		Handler: sink,
+	}
 	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,

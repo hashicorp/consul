@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -216,7 +217,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 	bd.Logger = logger
 	// if we are not testing telemetry things, let's use a "mock" sink for metrics
 	if bd.RuntimeConfig.Telemetry.Disable {
-		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+		bd.MetricsConfig = &lib.MetricsConfig{
+			Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+		}
 	}
 
 	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {

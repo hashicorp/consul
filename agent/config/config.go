@@ -674,6 +674,7 @@ type Telemetry struct {
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
+	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection"`
 	FilterDefault                      *bool    `mapstructure:"filter_default"`
 	PrefixFilter                       []string `mapstructure:"prefix_filter"`
 	MetricsPrefix                      *string  `mapstructure:"metrics_prefix"`
