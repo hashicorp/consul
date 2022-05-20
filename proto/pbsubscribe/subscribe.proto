@@ -85,7 +85,7 @@ message SubscribeRequest {
     // Partition is an enterprise-only feature.
     string Partition = 7;
 
-    // TODO(peering): docs
+    // PeerName is the name of the peer that the requested service was imported from.
     string PeerName = 8;
 }
 

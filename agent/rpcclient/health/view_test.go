@@ -76,6 +76,16 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Run("local data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_WithEmptySnapshot(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_WithEmptySnapshot(t, "my-peer")
+	})
+}
+
+func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerName string) {
 	namespace := getNamespace(pbcommon.DefaultEnterpriseMeta.Namespace)
 	streamClient := newStreamClient(validateNamespace(namespace))
 
@@ -92,6 +102,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 	req := serviceRequestStub{
 		serviceRequest: serviceRequest{
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
+				PeerName:       peerName,
 				Datacenter:     "dc1",
 				ServiceName:    "web",
 				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
@@ -142,7 +153,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		start := time.Now()
 		go func() {
 			time.Sleep(200 * time.Millisecond)
-			streamClient.QueueEvents(newEventServiceHealthRegister(4, 1, "web"))
+			streamClient.QueueEvents(newEventServiceHealthRegister(4, 1, "web", peerName))
 		}()
 
 		req.QueryOptions.MaxQueryTime = time.Second
@@ -158,6 +169,9 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		lastResultValue = result.Value.(*structs.IndexedCheckServiceNodes).Nodes
 		require.Len(t, lastResultValue, 1,
 			"result value should contain the new registration")
+
+		require.Equal(t, peerName, lastResultValue[0].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[0].Service.PeerName)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -183,7 +197,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 
 		// But an update should still be noticed due to reconnection
-		streamClient.QueueEvents(newEventServiceHealthRegister(10, 2, "web"))
+		streamClient.QueueEvents(newEventServiceHealthRegister(10, 2, "web", peerName))
 
 		start = time.Now()
 		req.QueryOptions.MaxQueryTime = time.Second
@@ -197,6 +211,11 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		lastResultValue = result.Value.(*structs.IndexedCheckServiceNodes).Nodes
 		require.Len(t, lastResultValue, 2,
 			"result value should contain the new registration")
+
+		require.Equal(t, peerName, lastResultValue[0].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[0].Service.PeerName)
+		require.Equal(t, peerName, lastResultValue[1].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[1].Service.PeerName)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -225,7 +244,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		req.QueryOptions.MinQueryIndex = result.Index
 
 		// But an update should still be noticed due to reconnection
-		streamClient.QueueEvents(newEventServiceHealthRegister(req.QueryOptions.MinQueryIndex+5, 3, "web"))
+		streamClient.QueueEvents(newEventServiceHealthRegister(req.QueryOptions.MinQueryIndex+5, 3, "web", peerName))
 
 		req.QueryOptions.MaxQueryTime = time.Second
 		result, err = store.Get(ctx, req)
@@ -234,8 +253,16 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 		require.True(t, elapsed < time.Second, "Fetch should have returned before the timeout")
 
 		require.Equal(t, req.QueryOptions.MinQueryIndex+5, result.Index, "result index should not have changed")
-		require.Len(t, result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 3,
+		lastResultValue = result.Value.(*structs.IndexedCheckServiceNodes).Nodes
+		require.Len(t, lastResultValue, 3,
 			"result value should contain the new registration")
+
+		require.Equal(t, peerName, lastResultValue[0].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[0].Service.PeerName)
+		require.Equal(t, peerName, lastResultValue[1].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[1].Service.PeerName)
+		require.Equal(t, peerName, lastResultValue[2].Node.PeerName)
+		require.Equal(t, peerName, lastResultValue[2].Service.PeerName)
 
 		req.QueryOptions.MinQueryIndex = result.Index
 	})
@@ -256,6 +283,16 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Run("local data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_WithFullSnapshot(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_WithFullSnapshot(t, "my-peer")
+	})
+}
+
+func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName string) {
 	namespace := getNamespace("ns2")
 	client := newStreamClient(validateNamespace(namespace))
 
@@ -266,7 +303,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 
 	// Create an initial snapshot of 3 instances on different nodes
 	registerServiceWeb := func(index uint64, nodeNum int) *pbsubscribe.Event {
-		return newEventServiceHealthRegister(index, nodeNum, "web")
+		return newEventServiceHealthRegister(index, nodeNum, "web", peerName)
 	}
 	client.QueueEvents(
 		registerServiceWeb(5, 1),
@@ -277,6 +314,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 	req := serviceRequestStub{
 		serviceRequest: serviceRequest{
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
+				PeerName:       peerName,
 				Datacenter:     "dc1",
 				ServiceName:    "web",
 				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
@@ -291,7 +329,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(5), result.Index)
-		expected := newExpectedNodes("node1", "node2", "node3")
+		expected := newExpectedNodesInPeer(peerName, "node1", "node2", "node3")
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
@@ -306,7 +344,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			// Deregister instance on node1
-			client.QueueEvents(newEventServiceHealthDeregister(20, 1, "web"))
+			client.QueueEvents(newEventServiceHealthDeregister(20, 1, "web", peerName))
 		}()
 
 		req.QueryOptions.MaxQueryTime = time.Second
@@ -319,7 +357,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(20), result.Index)
-		expected := newExpectedNodes("node2", "node3")
+		expected := newExpectedNodesInPeer(peerName, "node2", "node3")
 		expected.Index = 20
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
@@ -349,7 +387,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(50), result.Index)
-		expected := newExpectedNodes("node3", "node4", "node5")
+		expected := newExpectedNodesInPeer(peerName, "node3", "node4", "node5")
 		expected.Index = 50
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
@@ -376,18 +414,21 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(50), result.Index)
-		expected := newExpectedNodes("node3", "node4", "node5")
+		expected := newExpectedNodesInPeer(peerName, "node3", "node4", "node5")
 		expected.Index = 50
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 	})
 }
 
-func newExpectedNodes(nodes ...string) *structs.IndexedCheckServiceNodes {
+func newExpectedNodesInPeer(peerName string, nodes ...string) *structs.IndexedCheckServiceNodes {
 	result := &structs.IndexedCheckServiceNodes{}
 	result.QueryMeta.Backend = structs.QueryBackendStreaming
 	for _, node := range nodes {
 		result.Nodes = append(result.Nodes, structs.CheckServiceNode{
-			Node: &structs.Node{Node: node},
+			Node: &structs.Node{
+				Node:     node,
+				PeerName: peerName,
+			},
 		})
 	}
 	return result
@@ -402,6 +443,16 @@ var cmpCheckServiceNodeNames = cmp.Options{
 }
 
 func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_EventBatches(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_EventBatches(t, "my-peer")
+	})
+}
+
+func testHealthView_IntegrationWithStore_EventBatches(t *testing.T, peerName string) {
 	namespace := getNamespace("ns3")
 	client := newStreamClient(validateNamespace(namespace))
 
@@ -412,9 +463,9 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 
 	// Create an initial snapshot of 3 instances but in a single event batch
 	batchEv := newEventBatchWithEvents(
-		newEventServiceHealthRegister(5, 1, "web"),
-		newEventServiceHealthRegister(5, 2, "web"),
-		newEventServiceHealthRegister(5, 3, "web"))
+		newEventServiceHealthRegister(5, 1, "web", peerName),
+		newEventServiceHealthRegister(5, 2, "web", peerName),
+		newEventServiceHealthRegister(5, 3, "web", peerName))
 	client.QueueEvents(
 		batchEv,
 		newEndOfSnapshotEvent(5))
@@ -422,6 +473,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 	req := serviceRequestStub{
 		serviceRequest: serviceRequest{
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
+				PeerName:       peerName,
 				Datacenter:     "dc1",
 				ServiceName:    "web",
 				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
@@ -437,7 +489,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 
 		require.Equal(t, uint64(5), result.Index)
 
-		expected := newExpectedNodes("node1", "node2", "node3")
+		expected := newExpectedNodesInPeer(peerName, "node1", "node2", "node3")
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 		req.QueryOptions.MinQueryIndex = result.Index
@@ -448,9 +500,9 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 		// index)
 		batchEv := newEventBatchWithEvents(
 			// Deregister an existing node
-			newEventServiceHealthDeregister(20, 1, "web"),
+			newEventServiceHealthDeregister(20, 1, "web", peerName),
 			// Register another
-			newEventServiceHealthRegister(20, 4, "web"),
+			newEventServiceHealthRegister(20, 4, "web", peerName),
 		)
 		client.QueueEvents(batchEv)
 		req.QueryOptions.MaxQueryTime = time.Second
@@ -458,7 +510,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(20), result.Index)
-		expected := newExpectedNodes("node2", "node3", "node4")
+		expected := newExpectedNodesInPeer(peerName, "node2", "node3", "node4")
 		expected.Index = 20
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
@@ -467,6 +519,16 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 }
 
 func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_Filtering(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthView_IntegrationWithStore_Filtering(t, "my-peer")
+	})
+}
+
+func testHealthView_IntegrationWithStore_Filtering(t *testing.T, peerName string) {
 	namespace := getNamespace("ns3")
 	streamClient := newStreamClient(validateNamespace(namespace))
 
@@ -479,6 +541,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 	req := serviceRequestStub{
 		serviceRequest: serviceRequest{
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
+				PeerName:       peerName,
 				Datacenter:     "dc1",
 				ServiceName:    "web",
 				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
@@ -493,9 +556,9 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 
 	// Create an initial snapshot of 3 instances but in a single event batch
 	batchEv := newEventBatchWithEvents(
-		newEventServiceHealthRegister(5, 1, "web"),
-		newEventServiceHealthRegister(5, 2, "web"),
-		newEventServiceHealthRegister(5, 3, "web"))
+		newEventServiceHealthRegister(5, 1, "web", peerName),
+		newEventServiceHealthRegister(5, 2, "web", peerName),
+		newEventServiceHealthRegister(5, 3, "web", peerName))
 	streamClient.QueueEvents(
 		batchEv,
 		newEndOfSnapshotEvent(5))
@@ -505,7 +568,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(5), result.Index)
-		expected := newExpectedNodes("node2")
+		expected := newExpectedNodesInPeer(peerName, "node2")
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
@@ -516,16 +579,16 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 		// Simulate multiple registrations happening in one Txn (all have same index)
 		batchEv := newEventBatchWithEvents(
 			// Deregister an existing node
-			newEventServiceHealthDeregister(20, 1, "web"),
+			newEventServiceHealthDeregister(20, 1, "web", peerName),
 			// Register another
-			newEventServiceHealthRegister(20, 4, "web"),
+			newEventServiceHealthRegister(20, 4, "web", peerName),
 		)
 		streamClient.QueueEvents(batchEv)
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(20), result.Index)
-		expected := newExpectedNodes("node2")
+		expected := newExpectedNodesInPeer(peerName, "node2")
 		expected.Index = 20
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 	})
@@ -551,7 +614,7 @@ func (r serviceRequestStub) NewMaterializer() (submatview.Materializer, error) {
 	return submatview.NewRPCMaterializer(r.streamClient, deps), nil
 }
 
-func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
+func newEventServiceHealthRegister(index uint64, nodeNum int, svc string, peerName string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 	nodeID := types.NodeID(fmt.Sprintf("11111111-2222-3333-4444-%012d", nodeNum))
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
@@ -567,15 +630,17 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 						Node:       node,
 						Address:    addr,
 						Datacenter: "dc1",
+						PeerName:   peerName,
 						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
 					},
 					Service: &pbservice.NodeService{
-						ID:      svc,
-						Service: svc,
-						Port:    8080,
+						ID:       svc,
+						Service:  svc,
+						PeerName: peerName,
+						Port:     8080,
 						RaftIndex: &pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
@@ -587,7 +652,7 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 	}
 }
 
-func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
+func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string, peerName string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 
 	return &pbsubscribe.Event{
@@ -597,12 +662,14 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 				Op: pbsubscribe.CatalogOp_Deregister,
 				CheckServiceNode: &pbservice.CheckServiceNode{
 					Node: &pbservice.Node{
-						Node: node,
+						Node:     node,
+						PeerName: peerName,
 					},
 					Service: &pbservice.NodeService{
-						ID:      svc,
-						Service: svc,
-						Port:    8080,
+						ID:       svc,
+						Service:  svc,
+						PeerName: peerName,
+						Port:     8080,
 						Weights: &pbservice.Weights{
 							Passing: 1,
 							Warning: 1,

@@ -770,6 +770,16 @@ func TestHealthServiceNodes(t *testing.T) {
 }
 
 func TestHealthServiceNodes_Blocking(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking(t, "my-peer")
+	})
+}
+
+func testHealthServiceNodes_Blocking(t *testing.T, peerName string) {
 	cases := []struct {
 		name         string
 		hcl          string
@@ -792,10 +802,30 @@ use_streaming_backend = true
 		},
 	}
 
+	suffix := func(peerName string) string {
+		if peerName == "" {
+			return ""
+		}
+		return "&peer=" + peerName
+	}
+
+	verify := func(t *testing.T, expectN int, nodes structs.CheckServiceNodes) {
+		require.Len(t, nodes, expectN)
+
+		for i, node := range nodes {
+			require.Equal(t, peerName, node.Node.PeerName)
+			if i == 2 {
+				require.Equal(t, "zoo", node.Node.Node)
+			} else {
+				require.Equal(t, "bar", node.Node.Node)
+			}
+			require.Equal(t, "test", node.Service.Service)
+		}
+	}
+
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-
 			sink := metrics.NewInmemSink(5*time.Second, time.Minute)
 			metrics.NewGlobal(&metrics.Config{
 				ServiceName:     "testing",
@@ -807,14 +837,17 @@ use_streaming_backend = true
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 			// Register some initial service instances
+			// TODO(peering): will have to seed this data differently in the future
 			for i := 0; i < 2; i++ {
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
 					Node:       "bar",
 					Address:    "127.0.0.1",
+					PeerName:   peerName,
 					Service: &structs.NodeService{
-						ID:      fmt.Sprintf("test%03d", i),
-						Service: "test",
+						ID:       fmt.Sprintf("test%03d", i),
+						Service:  "test",
+						PeerName: peerName,
 					},
 				}
 
@@ -823,13 +856,13 @@ use_streaming_backend = true
 			}
 
 			// Initial request should return two instances
-			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+suffix(peerName), nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.HealthServiceNodes(resp, req)
 			require.NoError(t, err)
 
 			nodes := obj.(structs.CheckServiceNodes)
-			require.Len(t, nodes, 2)
+			verify(t, 2, nodes)
 
 			idx := getIndex(t, resp)
 			require.True(t, idx > 0)
@@ -859,13 +892,16 @@ use_streaming_backend = true
 			go func() {
 				time.Sleep(sleep)
 
+				// TODO(peering): will have to seed this data differently in the future
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
 					Node:       "zoo",
 					Address:    "127.0.0.3",
+					PeerName:   peerName,
 					Service: &structs.NodeService{
-						ID:      "test",
-						Service: "test",
+						ID:       "test",
+						Service:  "test",
+						PeerName: peerName,
 					},
 				}
 
@@ -875,7 +911,7 @@ use_streaming_backend = true
 
 			{
 				timeout := 30 * time.Second
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s", idx, timeout)
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+suffix(peerName), idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -888,7 +924,7 @@ use_streaming_backend = true
 					" it timed out. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
-				require.Len(t, nodes, 3)
+				verify(t, 3, nodes)
 
 				newIdx := getIndex(t, resp)
 				require.True(t, idx < newIdx, "index should have increased."+
@@ -905,7 +941,7 @@ use_streaming_backend = true
 			start = time.Now()
 			{
 				timeout := 200 * time.Millisecond
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s",
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+suffix(peerName),
 					idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
@@ -918,7 +954,7 @@ use_streaming_backend = true
 					" least as long as timeout. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
-				require.Len(t, nodes, 3)
+				verify(t, 3, nodes)
 
 				newIdx := getIndex(t, resp)
 				require.Equal(t, idx, newIdx)
@@ -939,6 +975,16 @@ use_streaming_backend = true
 }
 
 func TestHealthServiceNodes_Blocking_withFilter(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking_withFilter(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking_withFilter(t, "my-peer")
+	})
+}
+
+func testHealthServiceNodes_Blocking_withFilter(t *testing.T, peerName string) {
 	cases := []struct {
 		name         string
 		hcl          string
@@ -959,16 +1005,26 @@ use_streaming_backend = true
 		},
 	}
 
+	suffix := func(peerName string) string {
+		if peerName == "" {
+			return ""
+		}
+		return "&peer=" + peerName
+	}
+
+	// TODO(peering): will have to seed this data differently in the future
 	register := func(t *testing.T, a *TestAgent, name, tag string) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			ID:         types.NodeID("43d419c0-433b-42c3-bf8a-193eba0b41a3"),
 			Node:       "node1",
 			Address:    "127.0.0.1",
+			PeerName:   peerName,
 			Service: &structs.NodeService{
-				ID:      name,
-				Service: name,
-				Tags:    []string{tag},
+				ID:       name,
+				Service:  name,
+				PeerName: peerName,
+				Tags:     []string{tag},
 			},
 		}
 
@@ -993,7 +1049,7 @@ use_streaming_backend = true
 			// Initial request with a filter should return one.
 			var lastIndex uint64
 			testutil.RunStep(t, "read original", func(t *testing.T) {
-				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart, nil)
+				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart+suffix(peerName), nil)
 				require.NoError(t, err)
 
 				resp := httptest.NewRecorder()
@@ -1026,7 +1082,7 @@ use_streaming_backend = true
 					errCh = make(chan error, 1)
 				)
 				go func() {
-					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s", lastIndex, timeout, filterUrlPart)
+					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s"+suffix(peerName), lastIndex, timeout, filterUrlPart)
 					req, err := http.NewRequest("GET", url, nil)
 					if err != nil {
 						errCh <- err
