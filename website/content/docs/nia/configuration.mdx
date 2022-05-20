@@ -44,7 +44,7 @@ tls {
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `log_level` - (string: "INFO") The log level to use for CTS logging. This defaults to "INFO". The available log levels are "TRACE", "DEBUG", "INFO", "WARN", and "ERR".
 - `port` - (int: 8558) The port for CTS to use to serve API requests.
-- `id` (string: Generated ID with the format `cts-<uuid>`) The ID of the CTS instance. Used as the service ID for CTS if service registration is enabled.
+- `id` (string: Generated ID with the format `cts-<hostname>`) The ID of the CTS instance. Used as the service ID for CTS if service registration is enabled.
 - `syslog` - Specifies the syslog server for logging.
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   - `facility` - (string: "local0") Name of the syslog facility to log to.
