@@ -207,13 +207,6 @@ func (e *ServiceConfigEntry) Validate() error {
 		if e.Endpoint.Port < 1 || e.Endpoint.Port > 65535 {
 			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Endpoint.Port))
 		}
-
-		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
-		// Specifying only a CAFile is allowed for one-way TLS
-		if (e.Endpoint.CertFile != "" || e.Endpoint.KeyFile != "") &&
-			!(e.Endpoint.CAFile != "" && e.Endpoint.CertFile != "" && e.Endpoint.KeyFile != "") {
-			validationErr = multierror.Append(validationErr, errors.New("Endpoint must have a CertFile, CAFile, and KeyFile specified for TLS origination"))
-		}
 	}
 
 	return validationErr
@@ -236,22 +229,6 @@ func validateEndpointAddress(address string) error {
 		return fmt.Errorf("Could not validate address %s as an IP, CIDR block or Hostname", address)
 	}
 	return nil
-}
-
-func (e *ServiceConfigEntry) Warnings() []string {
-	if e == nil {
-		return nil
-	}
-	warnings := make([]string, 0)
-
-	if e.Endpoint != nil {
-		if (e.Endpoint.CAFile != "" || e.Endpoint.CertFile != "" || e.Endpoint.KeyFile != "") && e.Endpoint.SNI == "" {
-			warning := fmt.Sprintf("TLS is configured but SNI is not set for the endpoint. Enabling SNI is strongly recommended when using TLS.")
-			warnings = append(warnings, warning)
-		}
-	}
-
-	return warnings
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -321,21 +298,6 @@ type EndpointConfig struct {
 
 	// Port allowed within this endpoint
 	Port int `json:",omitempty"`
-
-	// CAFile is the optional path to a CA certificate to use for TLS connections
-	// from the gateway to the linked service
-	CAFile string `json:",omitempty" alias:"ca_file"`
-
-	// CertFile is the optional path to a client certificate to use for TLS    connections
-	// from the gateway to the linked service
-	CertFile string `json:",omitempty" alias:"cert_file"`
-
-	// KeyFile is the optional path to a private key to use for TLS connections
-	// from the gateway to the linked service
-	KeyFile string `json:",omitempty" alias:"key_file"`
-
-	// SNI is the optional name to specify during the TLS handshake with a linked service.
-	SNI string `json:",omitempty"`
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.

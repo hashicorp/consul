@@ -532,11 +532,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"Protocol": "http",
 				"Endpoint": {
 					"Address": "1.2.3.4/24",
-					"Port": 443,
-					"CAFile": "ca.pem",
-					"CertFile": "crt.pem",
-					"KeyFile": "key.pem",
-					"SNI": "external.com"
+					"Port": 443
 				}
 			}
 			`,
@@ -545,12 +541,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name:     "external",
 				Protocol: "http",
 				Endpoint: &EndpointConfig{
-					Address:  "1.2.3.4/24",
-					Port:     443,
-					CAFile:   "ca.pem",
-					CertFile: "crt.pem",
-					KeyFile:  "key.pem",
-					SNI:      "external.com",
+					Address: "1.2.3.4/24",
+					Port:    443,
 				},
 			},
 		},
