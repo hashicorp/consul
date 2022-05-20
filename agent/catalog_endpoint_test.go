@@ -1052,24 +1052,10 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
-func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs.ProxyConfigEntry) {
+	t.Helper()
 	// Register proxy-defaults
-	proxyGlobalEntry := structs.ProxyConfigEntry{
+	proxyGlobalEntry = structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Mode: structs.ProxyModeDirect,
@@ -1085,12 +1071,15 @@ func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
 	}
 	var proxyDefaultsConfigEntryResp bool
 	assert.Nil(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+	return
+}
 
-	// Register service-defaults
+func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
+	t.Helper()
 	limits := 512
-	serviceDefaultsConfigEntry := structs.ServiceConfigEntry{
+	serviceDefaultsConfigEntry = structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
-		Name: registerServiceReq.Service.Proxy.DestinationServiceName,
+		Name: serviceName,
 		Mode: structs.ProxyModeTransparent,
 		UpstreamConfig: &structs.UpstreamConfiguration{
 			Defaults: &structs.UpstreamConfig{
@@ -1110,6 +1099,30 @@ func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
 	}
 	var serviceDefaultsConfigEntryResp bool
 	assert.Nil(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+	return
+}
+
+func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
+
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Register service-defaults
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
 
 	type testCase struct {
 		testCaseName string
