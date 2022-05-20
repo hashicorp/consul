@@ -66,7 +66,7 @@ ${
 {{if .NamespacesEnabled}}
   <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
-{{if .HcpEnabled}}
+{{if .HCPEnabled}}
   <script src="${rootURL}assets/consul-hcp/routes.js"></script>
 {{end}}
 `
