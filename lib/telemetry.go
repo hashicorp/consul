@@ -317,7 +317,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func configureSinks(cfg TelemetryConfig, hostName string, memSink metrics.MetricSink) (metrics.FanoutSink, error) {
+func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink) (metrics.FanoutSink, error) {
 	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 	metricsConf.EnableHostname = !cfg.DisableHostname
 	metricsConf.FilterDefault = cfg.FilterDefault
@@ -365,7 +365,6 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
-	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
 
 	metricsConfig := &MetricsConfig{
 		Handler: memSink,
@@ -379,7 +378,7 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 		}
 		for {
 			logger.Warn("retrying configure metric sinks", "retries", waiter.Failures())
-			_, err := configureSinks(cfg, metricsConf.HostName, memSink)
+			_, err := configureSinks(cfg, memSink)
 			if err == nil {
 				logger.Info("successfully configured metrics sinks")
 				return
@@ -392,7 +391,7 @@ func InitTelemetry(cfg TelemetryConfig, logger hclog.Logger) (*MetricsConfig, er
 		}
 	}
 
-	if _, errs := configureSinks(cfg, metricsConf.HostName, memSink); errs != nil {
+	if _, errs := configureSinks(cfg, memSink); errs != nil {
 		if isRetriableError(errs) && cfg.RetryFailedConfiguration {
 			logger.Warn("failed configure sinks", "error", multierror.Flatten(errs))
 			ctx, cancel = context.WithCancel(context.Background())
