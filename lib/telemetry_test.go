@@ -21,7 +21,7 @@ func newCfg() TelemetryConfig {
 
 func TestConfigureSinks(t *testing.T) {
 	cfg := newCfg()
-	sinks, err := configureSinks(cfg, "hostname", nil)
+	sinks, err := configureSinks(cfg, nil)
 	require.Error(t, err)
 	// 3 sinks: statsd, statsite, inmem
 	require.Equal(t, 3, len(sinks))
@@ -29,7 +29,7 @@ func TestConfigureSinks(t *testing.T) {
 	cfg = TelemetryConfig{
 		DogstatsdAddr: "",
 	}
-	_, err = configureSinks(cfg, "hostname", nil)
+	_, err = configureSinks(cfg, nil)
 	require.NoError(t, err)
 
 }
