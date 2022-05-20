@@ -228,9 +228,15 @@ function postprocess_protobuf_code {
     local build_tags
     build_tags="$(head -n 2 "${proto_path}" | grep '^//go:build\|// +build' || true)"
     if test -n "${build_tags}"; then
-        echo -e "${build_tags}\n" >> "${proto_go_bin_path}.new"
-        cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
-        mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"
+       for file in "${proto_go_bin_path}" "${proto_go_grpc_path}"
+       do
+            if test -f "${file}"
+            then
+                echo -e "${build_tags}\n" >> "${file}.new"
+                cat "${file}" >> "${file}.new"
+                mv "${file}.new" "${file}"
+            fi
+        done
     fi
 
     # NOTE: this has to run after we fix up the build tags above
