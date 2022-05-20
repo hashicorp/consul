@@ -1,6 +1,8 @@
 # This workflow sends a reminder comment to PRs that have labels starting with
 # `backport/` to check that the backport has run successfully.
 
+name: Backport Assistant Reminder
+
 on:
   pull_request:
     types: [ labeled ]
