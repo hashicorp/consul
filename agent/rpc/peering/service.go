@@ -31,6 +31,7 @@ var (
 	errPeeringTokenEmptyServerAddresses = errors.New("peering token server addresses value is empty")
 	errPeeringTokenEmptyServerName      = errors.New("peering token server name value is empty")
 	errPeeringTokenEmptyPeerID          = errors.New("peering token peer ID value is empty")
+	errPeeringBackendNil                = errors.New("peering backend was not initialized")
 )
 
 // errPeeringInvalidServerAddress is returned when an initiate request contains
@@ -90,6 +91,9 @@ type Backend interface {
 	EnterpriseCheckPartitions(partition string) error
 
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
+
+	// IsLeader indicates whether the consul server is a in a leader state or not
+	IsLeader() bool
 
 	Store() Store
 	Apply() Apply
@@ -423,6 +427,19 @@ type BidirectionalStream interface {
 
 // StreamResources handles incoming streaming connections.
 func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResourcesServer) error {
+	if s.Backend == nil {
+		s.logger.Error("cannot establish stream without a backend", "error", errPeeringBackendNil)
+		return errPeeringBackendNil
+	}
+
+	if !s.Backend.IsLeader() {
+		// we are not the leader so we will hang up on the dialer
+
+		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
+		s.logger.Error("cannot establish a peering stream on a follower node;")
+		return io.EOF
+	}
+
 	// Initial message on a new stream must be a new subscription request.
 	first, err := stream.Recv()
 	if err != nil {

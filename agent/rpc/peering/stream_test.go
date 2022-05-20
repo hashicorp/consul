@@ -30,6 +30,50 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
+func TestStreamResources_Server_Follower(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store: store,
+		pub:   publisher,
+		leader: func() bool {
+			return false
+		},
+	})
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	input := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Response_{
+			Response: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLService,
+				ResourceID:  "api-service",
+				Nonce:       "2",
+			},
+		},
+	}
+
+	err := client.Send(input)
+	require.NoError(t, err)
+
+	msg, err := client.Recv()
+	require.Nil(t, msg)
+	require.Error(t, err)
+	require.EqualError(t, err, "EOF")
+}
+
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
 	type testCase struct {
 		name    string
@@ -694,8 +738,16 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 }
 
 type testStreamBackend struct {
-	pub   state.EventPublisher
-	store *state.Store
+	pub    state.EventPublisher
+	store  *state.Store
+	leader func() bool
+}
+
+func (b *testStreamBackend) IsLeader() bool {
+	if b.leader != nil {
+		return b.leader()
+	}
+	return true
 }
 
 func (b *testStreamBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
