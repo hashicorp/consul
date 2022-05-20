@@ -613,16 +613,8 @@ func TestHealthServiceNodes(t *testing.T) {
 
 	testingPeerNames := []string{"", "my-peer"}
 
-	suffix := func(peerName string) string {
-		if peerName == "" {
-			return ""
-		}
-		// TODO(peering): after streaming works, remove the "&near=_agent" part
-		return "&peer=" + peerName + "&near=_agent"
-	}
-
 	for _, peerName := range testingPeerNames {
-		req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1"+suffix(peerName), nil)
+		req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1"+peerQuerySuffix(peerName), nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -639,7 +631,7 @@ func TestHealthServiceNodes(t *testing.T) {
 			require.Len(t, nodes, 0)
 		}
 
-		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+suffix(peerName), nil)
+		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+peerQuerySuffix(peerName), nil)
 		require.NoError(t, err)
 		resp = httptest.NewRecorder()
 		obj, err = a.srv.HealthServiceNodes(resp, req)
@@ -684,7 +676,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 
 	for _, peerName := range testingPeerNames {
-		req, err := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+suffix(peerName), nil)
+		req, err := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+peerQuerySuffix(peerName), nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -699,7 +691,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		// Test caching
 		{
 			// List instances with cache enabled
-			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
 			require.NoError(t, err)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -713,7 +705,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 		{
 			// List instances with cache enabled
-			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
 			require.NoError(t, err)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -742,7 +734,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		for _, peerName := range testingPeerNames {
 			retry.Run(t, func(r *retry.R) {
 				// List it again
-				req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+suffix(peerName), nil)
+				req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
 				require.NoError(r, err)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -802,13 +794,6 @@ use_streaming_backend = true
 		},
 	}
 
-	suffix := func(peerName string) string {
-		if peerName == "" {
-			return ""
-		}
-		return "&peer=" + peerName
-	}
-
 	verify := func(t *testing.T, expectN int, nodes structs.CheckServiceNodes) {
 		require.Len(t, nodes, expectN)
 
@@ -856,7 +841,7 @@ use_streaming_backend = true
 			}
 
 			// Initial request should return two instances
-			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+suffix(peerName), nil)
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+peerQuerySuffix(peerName), nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.HealthServiceNodes(resp, req)
 			require.NoError(t, err)
@@ -911,7 +896,7 @@ use_streaming_backend = true
 
 			{
 				timeout := 30 * time.Second
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+suffix(peerName), idx, timeout)
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+peerQuerySuffix(peerName), idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -941,7 +926,7 @@ use_streaming_backend = true
 			start = time.Now()
 			{
 				timeout := 200 * time.Millisecond
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+suffix(peerName),
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+peerQuerySuffix(peerName),
 					idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
@@ -1005,13 +990,6 @@ use_streaming_backend = true
 		},
 	}
 
-	suffix := func(peerName string) string {
-		if peerName == "" {
-			return ""
-		}
-		return "&peer=" + peerName
-	}
-
 	// TODO(peering): will have to seed this data differently in the future
 	register := func(t *testing.T, a *TestAgent, name, tag string) {
 		args := &structs.RegisterRequest{
@@ -1049,7 +1027,7 @@ use_streaming_backend = true
 			// Initial request with a filter should return one.
 			var lastIndex uint64
 			testutil.RunStep(t, "read original", func(t *testing.T) {
-				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart+suffix(peerName), nil)
+				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart+peerQuerySuffix(peerName), nil)
 				require.NoError(t, err)
 
 				resp := httptest.NewRecorder()
@@ -1082,7 +1060,7 @@ use_streaming_backend = true
 					errCh = make(chan error, 1)
 				)
 				go func() {
-					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s"+suffix(peerName), lastIndex, timeout, filterUrlPart)
+					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s"+peerQuerySuffix(peerName), lastIndex, timeout, filterUrlPart)
 					req, err := http.NewRequest("GET", url, nil)
 					if err != nil {
 						errCh <- err
@@ -1902,4 +1880,11 @@ func TestFilterNonPassing(t *testing.T) {
 	if len(out) != 1 && reflect.DeepEqual(out[0], nodes[2]) {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func peerQuerySuffix(peerName string) string {
+	if peerName == "" {
+		return ""
+	}
+	return "&peer=" + peerName
 }
