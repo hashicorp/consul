@@ -22,9 +22,8 @@
 }
 %more-popover-menu-trigger > *::after {
   @extend %with-more-horizontal-mask, %as-pseudo;
-  background-color: rgb(var(--tone-gray-900));
-  width: 16px;
-  height: 16px;
+  --icon-color: rgb(var(--tone-gray-900));
+  --icon-size: icon-300;
   position: absolute;
   top: 50%;
   left: 50%;
