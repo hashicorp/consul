@@ -1,0 +1,22 @@
+---
+layout: docs
+page_title: Registration - AWS Lambda
+description: >-
+  Registering AWS Lambdas into Consul Service Mesh.
+---
+
+# Registration
+
+Registering AWS Lambdas into Consul requires:
+1. Registering a service into Consul.
+2. Writing a service defaults configuration entry for the Lambda.
+
+Keeping these configurations up to date is a precise and error-prone process,
+so we build [Lambda registrator](/docs/lambda/registration/lambda-registrator)
+to automatically syncronize Lambda state into Consul. Lambda registrator
+automatically registers, reconfigures, and deregisters Lambdas based on the
+[Lambda's tags](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html).
+
+Lambdas can also be [manually registered into
+Consul](/docs/lambda/registration/manual) when using Lambda registrator is not
+possible.

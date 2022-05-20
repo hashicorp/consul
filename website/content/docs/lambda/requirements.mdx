@@ -1,0 +1,69 @@
+---
+layout: docs
+page_title: Requirements AWS Lambda
+description: >-
+  Requirements for invoking AWS Lambda services from Consul Service Mesh.
+---
+
+# Requirements
+
+## Enable the Serverless Plugin
+
+Lambda integration is only available in Consul 1.12.1 and later. It requires
+including `connect { enable_serverless_plugin = true }` in the configuration
+for all Consul clients.
+
+## Allow Envoy to Invoke the Lambda
+
+The Envoy proxy that invokes Lambda must have the `lambda:InvokeFunction` AWS IAM
+permissions to invoke the Lambda. The policy for invoking a Lambda will look
+like the following:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Invoke",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": "arn:aws:lambda:us-east-1:123456789012:function:example"
+        }
+    ]
+}
+```
+
+AWS IAM credentials should be defined in environment variables, EC2 metadata or
+ECS metadata. On Kubernetes, users must associate an IAM role with the proxy's
+ServiceAccount by following [these
+instructions](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
+
+
+## Optional: Run and Configure a Terminating Gateway
+
+When invoking Lambda services through a terminating gateway, a terminating
+gateway must be registered and running in the Consul datacenter. [This learn
+guide](https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services)
+describes how to manually set up a terminating gateway on VMs and [this
+guide](/docs/k8s/connect/terminating-gateways) describes how to run one on
+Kubernetes.
+
+A Lambda service can be registered to a terminating gateway by adding it to the
+`Services` field of the terminating gateway's `terminating-gateway`
+configuration entry. See the [invocation page](/docs/lambda/invocation) for
+more information about the ways Consul can invoke Lambdas.
+
+## Optional: Run a Mesh Gateway
+
+If a mesh gateway will be used to invoke a Lambda service across admin
+partitions or datacenters, a mesh gateway must be running and registered in
+relevant Consul datacenters and partitions. [This learn
+guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
+describes how to manually set up a mesh gateway and [this learn
+guide](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways?in=consul/kubernetes)
+describes how to run one on Kubernetes.
+
+When using admin partitions, Lambda services need to be added to the `Services`
+field of [the `exported-services` configuration
+entry](/docs/connect/config-entries/exported-services).
