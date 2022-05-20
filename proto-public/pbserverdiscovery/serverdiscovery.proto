@@ -1,37 +1,34 @@
-// Package serverdiscovery provides a service on Consul servers to discover the set of servers 
+// Package serverdiscovery provides a service on Consul servers to discover the set of servers
 // currently able to handle incoming requests.
 
 syntax = "proto3";
 
 package serverdiscovery;
 
-option go_package = "github.com/hashicorp/consul/proto-public/pbserverdiscovery";
-
 service ServerDiscoveryService {
-   // WatchServers will stream back sets of ready servers as they change such as
-   // when new servers are added or older ones removed. A ready server is one that
-   // should be considered ready for sending general RPC requests towards that would
-   // catalog queries, xDS proxy configurations and similar services.
-   rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {};
+  // WatchServers will stream back sets of ready servers as they change such as
+  // when new servers are added or older ones removed. A ready server is one that
+  // should be considered ready for sending general RPC requests towards that would
+  // catalog queries, xDS proxy configurations and similar services.
+  rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {}
 }
 
 message WatchServersRequest {
-   // Wan being set to true will cause WAN addresses to be sent in the response
-   // instead of the LAN addresses which are the default
-   bool wan = 1;
+  // Wan being set to true will cause WAN addresses to be sent in the response
+  // instead of the LAN addresses which are the default
+  bool wan = 1;
 }
 
-message WatchServersResponse{
-   // Servers is the list of server address information.
-   repeated Server servers = 1;
+message WatchServersResponse {
+  // Servers is the list of server address information.
+  repeated Server servers = 1;
 }
 
 message Server {
-   // id is the unique string identifying this server for all time.
-   string id = 1;
-   // address on the network of the server
-   string address = 2;
-   // the consul version of the server
-   string version = 3;
+  // id is the unique string identifying this server for all time.
+  string id = 1;
+  // address on the network of the server
+  string address = 2;
+  // the consul version of the server
+  string version = 3;
 }
-

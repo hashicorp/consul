@@ -239,6 +239,9 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
+      - run: 
+          name: "Protobuf Lint"
+          command: make proto-lint
 
   go-test-arm64:
     machine:
@@ -254,7 +257,7 @@ jobs:
     steps:
       - checkout
       - run:
-         command: |
+          command: |
             sudo rm -rf /usr/local/go
             wget https://dl.google.com/go/go${GO_VERSION}.linux-arm64.tar.gz
             sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
@@ -801,7 +804,7 @@ jobs:
           working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
       - run: *notify-slack-failure
-      
+
   compatibility-integration-test:
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -849,7 +852,7 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-      
+
   envoy-integration-test-1_19_3: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -1026,7 +1029,7 @@ workflows:
   # verify-ci is a no-op workflow that must run on every PR. It is used in a
   # branch protection rule to detect when CI workflows are not running.
   verify-ci:
-    jobs: [ noop ]
+    jobs: [noop]
 
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
@@ -1049,17 +1052,17 @@ workflows:
       - go-test-arm64: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-api go1.17"
           path: api
           go-version: "1.17"
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-api go1.18"
           path: api
           go-version: "1.18"
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.17"
           path: sdk

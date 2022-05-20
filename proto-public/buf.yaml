@@ -1,0 +1,13 @@
+version: v1
+lint:
+  use:
+    - DEFAULT
+  except:
+    # we want to enable our Go packages to have a pb prefix to make goimports more
+    # intelligently handle fixing up imports and hopefully getting it right.
+    - PACKAGE_DIRECTORY_MATCH
+    
+  service_suffix: Service
+breaking:
+  use:
+    - FILE

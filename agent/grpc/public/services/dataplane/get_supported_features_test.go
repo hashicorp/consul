@@ -35,11 +35,11 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 
 	for _, feature := range resp.SupportedDataplaneFeatures {
 		switch feature.GetFeatureName() {
-		case pbdataplane.DataplaneFeatures_EDGE_CERTIFICATE_MANAGEMENT:
+		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT:
 			require.True(t, feature.GetSupported())
-		case pbdataplane.DataplaneFeatures_WATCH_SERVERS:
+		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS:
 			require.True(t, feature.GetSupported())
-		case pbdataplane.DataplaneFeatures_ENVOY_BOOTSTRAP_CONFIGURATION:
+		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION:
 			require.True(t, feature.GetSupported())
 		default:
 			require.False(t, feature.GetSupported())
