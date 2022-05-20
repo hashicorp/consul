@@ -67,7 +67,7 @@ jobs:
         run: make build-ci
 
       - name: Upload OSS Frontend
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.0
         with:
           name: frontend-oss-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -139,7 +139,7 @@ jobs:
         run: make build-ci
 
       - name: Upload ENT Frontend
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.0
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
