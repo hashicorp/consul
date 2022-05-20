@@ -15,7 +15,7 @@ import (
 )
 
 type peeringBackend struct {
-	// TODO(peering): accept a smaller interface; maybe just funcs from the sever that we actually need: DC, IsLeader, etc
+	// TODO(peering): accept a smaller interface; maybe just funcs from the server that we actually need: DC, IsLeader, etc
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply

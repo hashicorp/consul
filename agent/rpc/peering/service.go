@@ -92,7 +92,7 @@ type Backend interface {
 
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 
-	// IsLeader indicates whether the consul server is a in a leader state or not
+	// IsLeader indicates whether the consul server is in a leader state or not.
 	IsLeader() bool
 
 	Store() Store
