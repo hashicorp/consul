@@ -44,7 +44,7 @@ Example:
 consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
 ```
 
-## Autocompletion
+### Autocompletion
 
 The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
 arguments (where supported).
@@ -59,8 +59,25 @@ $ consul-terraform-sync -autocomplete-install
 When you start typing a CTS command, press the `<tab>` key to show a
 list of available completions. To show available flag completes, type `-<tab>`.
 
-If the `CTS_*` environment variables are set, the autocompletion
-automatically queries the running CTS server and returns helpful argument suggestions.
+Autocompletion will query the running CTS server to return helpful argument suggestions. For example, for the `task disable` command, autocompletion will return the names of all enabled tasks that can be disabled.
+
+When autocompletion makes the query to the running CTS server, it will also use any CTS_* environment variables (for example CTS_ADDRESS) set on the CTS server.
+
+#### Example: Use autocomplete to discover how to disable a task
+
+assume a tab is typed at the end of each prompt line:
+
+```shell-session
+$ consul-terraform-sync
+start  task
+
+$ consul-terraform-sync task
+create   delete   disable   enable
+
+$ consul task disable
+task_name_a   task_name_b   task_name_c
+```
+
 ### General Options
 
 Below are options that can be used across all commands:
