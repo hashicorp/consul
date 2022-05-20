@@ -4,14 +4,13 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TestConfigSnapshot returns a fully populated snapshot
-func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []cache.UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
@@ -29,7 +28,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -94,7 +93,7 @@ func TestConfigSnapshotDiscoveryChain(
 	t testing.T,
 	variation string,
 	nsFn func(ns *structs.NodeService),
-	extraUpdates []cache.UpdateEvent,
+	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
@@ -108,7 +107,7 @@ func TestConfigSnapshotDiscoveryChain(
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := testSpliceEvents([]cache.UpdateEvent{
+	baseEvents := testSpliceEvents([]UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -171,7 +170,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -252,7 +251,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nil, nil, []cache.UpdateEvent{
+	}, nil, nil, []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
