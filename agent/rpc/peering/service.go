@@ -31,7 +31,6 @@ var (
 	errPeeringTokenEmptyServerAddresses = errors.New("peering token server addresses value is empty")
 	errPeeringTokenEmptyServerName      = errors.New("peering token server name value is empty")
 	errPeeringTokenEmptyPeerID          = errors.New("peering token peer ID value is empty")
-	errPeeringBackendNil                = errors.New("peering backend was not initialized")
 )
 
 // errPeeringInvalidServerAddress is returned when an initiate request contains
@@ -427,11 +426,6 @@ type BidirectionalStream interface {
 
 // StreamResources handles incoming streaming connections.
 func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResourcesServer) error {
-	if s.Backend == nil {
-		s.logger.Error("cannot establish stream without a backend", "error", errPeeringBackendNil)
-		return errPeeringBackendNil
-	}
-
 	if !s.Backend.IsLeader() {
 		// we are not the leader so we will hang up on the dialer
 
