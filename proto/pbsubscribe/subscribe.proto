@@ -9,6 +9,7 @@ import "proto/pbservice/node.proto";
 
 // StateChangeSubscription service allows consumers to subscribe to topics of
 // state change events. Events are streamed as they happen.
+// buf:lint:ignore SERVICE_SUFFIX
 service StateChangeSubscription {
   // Subscribe to a topic to receive events when there are changes to the topic.
   //
@@ -29,6 +30,7 @@ service StateChangeSubscription {
   // This error is used when the server can no longer correctly maintain the
   // stream, for example because the ACL permissions for the token changed, or
   // because the server state was restored from a snapshot.
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc Subscribe(SubscribeRequest) returns (stream Event) {}
 }
 

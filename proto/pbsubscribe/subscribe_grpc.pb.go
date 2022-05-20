@@ -41,6 +41,7 @@ type StateChangeSubscriptionClient interface {
 	// This error is used when the server can no longer correctly maintain the
 	// stream, for example because the ACL permissions for the token changed, or
 	// because the server state was restored from a snapshot.
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (StateChangeSubscription_SubscribeClient, error)
 }
 
@@ -107,6 +108,7 @@ type StateChangeSubscriptionServer interface {
 	// This error is used when the server can no longer correctly maintain the
 	// stream, for example because the ACL permissions for the token changed, or
 	// because the server state was restored from a snapshot.
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	Subscribe(*SubscribeRequest, StateChangeSubscription_SubscribeServer) error
 }
 
