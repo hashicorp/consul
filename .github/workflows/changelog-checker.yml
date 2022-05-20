@@ -1,6 +1,8 @@
 # This workflow checks that there is either a 'pr/no-changelog' label applied to a PR
 # or there is a .changelog/<pr number>.txt file associated with a PR for a changelog entry
 
+name: Changelog Checker
+
 on:
   pull_request:
     types: [opened, synchronize, labeled]
