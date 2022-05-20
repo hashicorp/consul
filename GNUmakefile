@@ -380,11 +380,12 @@ proto:
 			
 .PHONY: proto-format
 proto-format: proto-tools
-	@find . -name buf.gen.yaml -execdir buf format -w \;
+	@buf format -w
 	
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@find . -name buf.yaml -execdir buf lint \;
+	@buf lint --config proto/buf.yaml --path proto
+	@buf lint --config proto-public/buf.yaml --path proto-public
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)
