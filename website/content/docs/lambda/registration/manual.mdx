@@ -1,0 +1,62 @@
+---
+layout: docs
+page_title: Manually Configuring AWS Lambdas
+description: >-
+  Manually configure AWS Lambda services in Consul Service Mesh.
+---
+
+# Manual Configuration
+
+## Register the Service
+
+Store the following in `lambda.json`:
+```json
+{
+  "Node": "lambdas",
+  "SkipNodeUpdate": true,
+  "NodeMeta": {
+    "external-node": "true",
+    "external-probe": "true"
+  },
+  "Service": {
+    "ID": "lambda",
+    "Service": "lambda"
+  }
+}
+```
+
+Run `curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register`
+to register the service.
+
+## Store the `service-defaults` Config Entry
+
+Store the following in `lambda-service-defaults.hcl`:
+```hcl
+Kind = "service-defaults"
+Name = "lambda"
+Protocol  = "http"
+Meta = {
+  "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
+  "serverless.consul.hashicorp.com/v1alpha1/lambda/arn" = "<<INSERT ARN HERE>"
+  "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthroughgh" = "true"
+  "serverless.consul.hashicorp.com/v1alpha1/lambda/region" = "us-east-2"
+}
+```
+
+Store the configuration with `consul config write lambda-service-defaults.hcl`.
+
+### Supported `Meta` Fields
+
+* `serverless.consul.hashicorp.com/v1alpha1/lambda/enabled` - Determines if Consul
+  configures the service as an AWS Lambda.
+* `serverless.consul.hashicorp.com/v1alpha1/lambda/arn` - Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+  for the service’s Lambda.
+* `serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough` -
+  Determines if the body Envoy receives is converted to JSON or directly
+  passed to Lambda.
+* `serverless.consul.hashicorp.com/v1alpha1/lambda/region` - Specifies
+  the AWS region the Lambda is running in.
+* `serverless.consul.hashicorp.com/v1alpha1/lambda/invocation-mode` -
+  Determines if Consul configures the Lambda to be invoked using the
+  `synchronous` or `asynchronous` [invocation
+  mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html).
