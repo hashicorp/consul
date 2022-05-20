@@ -19,12 +19,6 @@ The `/health` endpoint returns a successful response when Consul-Terraform-Sync 
 | ------ | ---------------------------------------------------- |
 | 200    | CTS is healthy                                       |
 
-### Response Fields
-
-| Name         | Type   | Description                                                                        |
-| ------------ | ------ | ---------------------------------------------------------------------------------- |
-| `request_id` | string | The ID of the request. Used for auditing and debugging purposes.                   |
-
 ### Example
 
 The following request makes a `GET` call to the `health` endpoint:
@@ -37,7 +31,5 @@ $ curl --request GET \
 Response:
 
 ```json
-{
-  "request_id": "b7559ab0-5111-381b-367a-0dfb7e216d41"
-}
+{}
 ```
