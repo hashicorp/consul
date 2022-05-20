@@ -22,12 +22,14 @@ func (m *CheckServiceNode) UniqueID() string {
 	switch {
 	case m.Node != nil:
 		builder.WriteString(m.Node.Partition + "/")
+		builder.WriteString(m.Node.PeerName + "/")
 	case m.Service != nil:
 		partition := ""
 		if m.Service.EnterpriseMeta != nil {
 			partition = m.Service.EnterpriseMeta.Partition
 		}
 		builder.WriteString(partition + "/")
+		builder.WriteString(m.Service.PeerName + "/")
 	}
 
 	if m.Node != nil {

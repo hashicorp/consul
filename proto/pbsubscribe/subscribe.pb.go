@@ -170,7 +170,7 @@ type SubscribeRequest struct {
 	//
 	// Partition is an enterprise-only feature.
 	Partition string `protobuf:"bytes,7,opt,name=Partition,proto3" json:"Partition,omitempty"`
-	// TODO(peering): docs
+	// PeerName is the name of the peer that the requested service was imported from.
 	PeerName string `protobuf:"bytes,8,opt,name=PeerName,proto3" json:"PeerName,omitempty"`
 }
 
