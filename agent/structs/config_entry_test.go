@@ -436,10 +436,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				endpoint {
 					address = "1.2.3.4/24"
 					port = 8080
-					ca_file = "ca.pem"
-					cert_file = "cert.pem"
-					key_file = "key.pem"
-					sni = "external.com"
 				}
 			`,
 			camel: `
@@ -449,10 +445,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Endpoint {
 					Address = "1.2.3.4/24"
 					Port = 8080
-					CAFile = "ca.pem"
-					CertFile = "cert.pem"
-					KeyFile = "key.pem"
-					SNI = "external.com"
 				}
 			`,
 			expect: &ServiceConfigEntry{
@@ -460,12 +452,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name:     "external",
 				Protocol: "tcp",
 				Endpoint: &EndpointConfig{
-					Address:  "1.2.3.4/24",
-					Port:     8080,
-					CAFile:   "ca.pem",
-					CertFile: "cert.pem",
-					KeyFile:  "key.pem",
-					SNI:      "external.com",
+					Address: "1.2.3.4/24",
+					Port:    8080,
 				},
 			},
 		},
@@ -2510,82 +2498,6 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 			validateErr: "Invalid Port number",
-		},
-		"validate: not all TLS options provided-1": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address:  "2001:db8::8a2e:370:7334/64",
-					Port:     443,
-					CertFile: "client.crt",
-				},
-			},
-			validateErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		"validate: not all TLS options provided-2": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address: "2001:db8::8a2e:370:7334/64",
-					Port:    443,
-					KeyFile: "tls.key",
-				},
-			},
-			validateErr: "must have a CertFile, CAFile, and KeyFile",
-		},
-		"validate: all TLS options provided": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address:  "2001:db8::8a2e:370:7334/64",
-					Port:     443,
-					CAFile:   "ca.crt",
-					CertFile: "client.crt",
-					KeyFile:  "tls.key",
-				},
-			},
-		},
-		"validate: only providing ca file is allowed": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address: "2001:db8::8a2e:370:7334/64",
-					Port:    443,
-					CAFile:  "ca.crt",
-				},
-			},
-		},
-		"validate: wildcard is allowed for hostname": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address: "*.external.com",
-					Port:    443,
-					CAFile:  "ca.crt",
-				},
-			},
-		},
-		"validate: hostname": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
-					Address: "api.external.com",
-					Port:    443,
-					CAFile:  "ca.crt",
-				},
-			},
 		},
 		"validate: invalid hostname 1": {
 			entry: &ServiceConfigEntry{

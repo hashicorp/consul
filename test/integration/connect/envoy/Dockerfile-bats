@@ -1,6 +1,6 @@
 FROM docker.mirror.hashicorp.services/fortio/fortio AS fortio
 
-FROM docker.mirror.hashicorp.services/bats/bats:1.6.0
+FROM docker.mirror.hashicorp.services/bats/bats:1.7.0
 
 RUN apk add curl
 RUN apk add openssl
