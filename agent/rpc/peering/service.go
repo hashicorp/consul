@@ -597,6 +597,14 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 				return nil
 			}
 
+			if !s.Backend.IsLeader() {
+				// we are not the leader anymore so we will hang up on the dialer
+
+				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
+				logger.Error("cannot establish a peering stream on a follower node;")
+				return io.EOF
+			}
+
 			if req := msg.GetRequest(); req != nil {
 				switch {
 				case req.Nonce == "":

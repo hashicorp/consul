@@ -55,23 +55,80 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 			errCh <- err
 		}
 	}()
-	input := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_Response_{
-			Response: &pbpeering.ReplicationMessage_Response{
-				ResourceURL: pbpeering.TypeURLService,
-				ResourceID:  "api-service",
-				Nonce:       "2",
-			},
-		},
-	}
-
-	err := client.Send(input)
-	require.NoError(t, err)
 
 	msg, err := client.Recv()
 	require.Nil(t, msg)
 	require.Error(t, err)
 	require.EqualError(t, err, "EOF")
+}
+
+// TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
+// subscription request is sent but loses leadership status for subsequent messages.
+func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	first := true
+	leaderFunc := func() bool {
+		if first {
+			first = false
+			return true
+		}
+		return false
+	}
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store:  store,
+		pub:    publisher,
+		leader: leaderFunc,
+	})
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	peerID := p.ID
+
+	// Receive a subscription from a peer
+	sub := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				PeerID:      peerID,
+				ResourceURL: pbpeering.TypeURLService,
+			},
+		},
+	}
+	err := client.Send(sub)
+	require.NoError(t, err)
+
+	msg, err := client.Recv()
+	require.NoError(t, err)
+	require.NotEmpty(t, msg)
+
+	input2 := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				ResourceURL: pbpeering.TypeURLService,
+				Nonce:       "1",
+			},
+		},
+	}
+
+	err2 := client.Send(input2)
+	require.NoError(t, err2)
+
+	msg2, err2 := client.Recv()
+	require.Nil(t, msg2)
+	require.Error(t, err2)
+	require.EqualError(t, err2, "EOF")
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
@@ -454,6 +511,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastRecvError time.Time
 	var lastRecvErrorMsg string
 
+	// find me alex
 	testutil.RunStep(t, "response fails to apply locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
