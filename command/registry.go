@@ -142,7 +142,7 @@ func createCommands(ui cli.Ui, cmdEntries ...entry) map[string]mcli.CommandFacto
 // the CLI class can consume. This should be called after all registration is
 // complete.
 func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
-	return createCommands(ui,
+	registry := createCommands(ui,
 		entry{"acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil }},
 		entry{"acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil }},
 		entry{"acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil }},
@@ -251,6 +251,8 @@ func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},
 	)
+	registerEnterpriseCommands(registry)
+	return registry
 }
 
 // MakeShutdownCh returns a channel that can be used for shutdown notifications
