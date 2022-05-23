@@ -6,9 +6,9 @@ UI_BUILD_CONTAINER_DEFAULT="consul-build-ui"
 GO_BUILD_CONTAINER_DEFAULT="consul-build-go"
 
 # Whether to colorize shell output
-COLORIZE=${COLORIZE:-1}
-if ! tput reset &>/dev/null ; then
-   COLORIZE=""
+COLORIZE=0
+if tput reset &>/dev/null ; then
+   COLORIZE=${COLORIZE-1}
 fi
 
 # determine GOPATH and the first GOPATH to use for installing binaries

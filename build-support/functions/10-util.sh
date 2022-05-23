@@ -1,5 +1,5 @@
 function err {
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput bold
       tput setaf 1
@@ -7,14 +7,14 @@ function err {
 
    echo "$@" 1>&2
 
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput sgr0
    fi
 }
 
 function status {
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput bold
       tput setaf 4
@@ -22,14 +22,14 @@ function status {
 
    echo "$@"
 
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput sgr0
    fi
 }
 
 function status_stage {
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput bold
       tput setaf 2
@@ -37,7 +37,7 @@ function status_stage {
 
    echo "$@"
 
-   if test "${COLORIZE}" = '1'
+   if test "${COLORIZE}" -eq 1
    then
       tput sgr0
    fi
@@ -46,12 +46,12 @@ function status_stage {
 function debug {
    if is_set "${BUILD_DEBUG}"
    then
-      if test "${COLORIZE}" = '1'
+      if test "${COLORIZE}" -eq 1
       then
          tput setaf 6
       fi
       echo "$@"
-      if test "${COLORIZE}" = '1'
+      if test "${COLORIZE}" -eq 1
       then
          tput sgr0
       fi
