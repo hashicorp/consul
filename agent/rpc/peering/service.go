@@ -430,8 +430,8 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 		// we are not the leader so we will hang up on the dialer
 
 		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
-		s.logger.Error("cannot establish a peering stream on a follower node;")
-		return io.EOF
+		s.logger.Error("cannot establish a peering stream on a follower node")
+		return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
 	}
 
 	// Initial message on a new stream must be a new subscription request.
@@ -601,8 +601,8 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 				// we are not the leader anymore so we will hang up on the dialer
 
 				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
-				logger.Error("cannot establish a peering stream on a follower node;")
-				return io.EOF
+				logger.Error("node is not a follower anymore; cannot continue streaming")
+				return grpcstatus.Error(codes.FailedPrecondition, "node is not a follower anymore; cannot continue streaming")
 			}
 
 			if req := msg.GetRequest(); req != nil {

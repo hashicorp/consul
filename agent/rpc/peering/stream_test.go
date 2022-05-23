@@ -59,7 +59,7 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 	msg, err := client.Recv()
 	require.Nil(t, msg)
 	require.Error(t, err)
-	require.EqualError(t, err, "EOF")
+	require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
 }
 
 // TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
@@ -128,7 +128,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	msg2, err2 := client.Recv()
 	require.Nil(t, msg2)
 	require.Error(t, err2)
-	require.EqualError(t, err2, "EOF")
+	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a follower anymore; cannot continue streaming")
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
