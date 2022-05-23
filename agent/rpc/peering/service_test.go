@@ -359,24 +359,22 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 }
 
 func TestPeeringService_TrustBundleListByService(t *testing.T) {
-	// test executes the following scenario:
-	// 0 - initial setup test server, state store, RPC client, verify empty results
-	// 1 - create a service, verify results still empty
-	// 2 - create a peering, verify results still empty
-	// 3 - create a config entry, verify results still empty
-	// 4 - create trust bundles, verify bundles are returned
-	// 5 - delete the config entry, verify results empty
-	// 6 - restore config entry, verify bundles are returned
-	// 7 - add peering, trust bundles, wildcard config entry, verify updated results are present
-	// 8 - delete first config entry, verify bundles are returned
-	// 9 - delete the service, verify results empty
+	// Test executes the following scenario:
+	// 0 - Initial setup test server, state store, RPC client, verify empty results
+	// 1 - Create a service, verify results still empty
+	// 2 - Create a peering, verify results still empty
+	// 3 - Create a config entry, verify results still empty
+	// 4 - Create trust bundles, verify bundles are returned
+	// 5 - Delete the config entry, verify results empty
+	// 6 - Restore config entry, verify bundles are returned
+	// 7 - Add a second peering that the test service is not exported to
+	// 8 - Export the service to the new peering
+	// 9 - Delete the service
 	// Note: these steps are dependent on each other by design so that we can verify that
 	// combinations of services, peerings, trust bundles, and config entries all affect results
 
-	// fixed for the test
 	nodeName := "test-node"
 
-	// keep track of index across steps
 	var lastIdx uint64
 
 	// Create test server
@@ -445,6 +443,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		// Write any config entries
 		for _, entry := range deps.entries {
 			idx++
+			require.NoError(t, entry.Normalize())
 			require.NoError(t, store.EnsureConfigEntry(idx, entry))
 		}
 
@@ -460,6 +459,8 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	// TODO(peering): see note on newTestServer, once we have a better server mock,
 	// we should add functionality here to verify errors from backend
 	verify := func(t *testing.T, tc *testCase) {
+		t.Helper()
+
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
@@ -478,7 +479,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	// Execute scenario steps
 	// ----------------------
 
-	// 0 - initial empty state
+	// 0 - Initial empty state.
 	// -----------------------
 	verify(t, &testCase{
 		req: &pbpeering.TrustBundleListByServiceRequest{
@@ -489,7 +490,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 1 - create a service, verify results still empty
+	// 1 - Create a service, verify results still empty.
 	// ------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{services: []string{"foo"}})
 	verify(t, &testCase{
@@ -501,7 +502,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 2 - create a peering, verify results still empty
+	// 2 - Create a peering, verify results still empty.
 	// ------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{
 		peerings: []*pbpeering.Peering{
@@ -522,12 +523,12 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 3 - create a config entry, verify results still empty
+	// 3 - Create a config entry, verify results still empty.
 	// -----------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{
 		entries: []*structs.ExportedServicesConfigEntry{
 			{
-				Name: "export-foo",
+				Name: "default",
 				Services: []structs.ExportedService{
 					{
 						Name: "foo",
@@ -550,7 +551,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 4 - create trust bundles, verify bundles are returned
+	// 4 - Create trust bundles, verify bundles are returned.
 	// -----------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{
 		bundles: []*pbpeering.PeeringTrustBundle{
@@ -576,10 +577,10 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 5 - delete the config entry, verify results empty
+	// 5 - Delete the config entry, verify results empty.
 	// -------------------------------------------------
 	lastIdx++
-	require.NoError(t, store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "export-foo", nil))
+	require.NoError(t, store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", nil))
 	verify(t, &testCase{
 		req: &pbpeering.TrustBundleListByServiceRequest{
 			ServiceName: "foo",
@@ -589,12 +590,12 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 6 - restore config entry, verify bundles are returned
+	// 6 - Restore config entry, verify bundles are returned.
 	// -----------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{
 		entries: []*structs.ExportedServicesConfigEntry{
 			{
-				Name: "export-foo",
+				Name: "default",
 				Services: []structs.ExportedService{
 					{
 						Name: "foo",
@@ -621,30 +622,15 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		},
 	})
 
-	// 7 - add peering, trust bundles, wildcard config entry, verify updated results are present
+	// 7 - Add new peer and trust bundle. It should be ignored because foo is not exported to it.
 	// -----------------------------------------------------------------------------------------
 	lastIdx = setup(t, lastIdx, testDeps{
-		services: []string{"bar"},
 		peerings: []*pbpeering.Peering{
 			{
 				Name:                "peer2",
 				State:               pbpeering.PeeringState_ACTIVE,
 				PeerServerName:      "peer2-name",
 				PeerServerAddresses: []string{"peer2-addr"},
-			},
-		},
-		entries: []*structs.ExportedServicesConfigEntry{
-			{
-				Name: "export-all",
-				Services: []structs.ExportedService{
-					{
-						Name: structs.WildcardSpecifier,
-						Consumers: []structs.ServiceConsumer{
-							{PeerName: "peer1"},
-							{PeerName: "peer2"},
-						},
-					},
-				},
 			},
 		},
 		bundles: []*pbpeering.PeeringTrustBundle{
@@ -666,18 +652,28 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 					PeerName:    "peer1",
 					RootPEMs:    []string{"peer1-root-1"},
 				},
-				{
-					TrustDomain: "peer2.com",
-					PeerName:    "peer2",
-					RootPEMs:    []string{"peer2-root-1"},
-				},
 			},
 		},
 	})
 
-	// 8 - delete first config entry, verify bundles are returned
-	lastIdx++
-	require.NoError(t, store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "export-foo", nil))
+	// 8 - Replace config entry to export all services to both peers
+	// -----------------------------------------------------------------------------------------
+	lastIdx = setup(t, lastIdx, testDeps{
+		entries: []*structs.ExportedServicesConfigEntry{
+			{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: structs.WildcardSpecifier,
+						Consumers: []structs.ServiceConsumer{
+							{PeerName: "peer1"},
+							{PeerName: "peer2"},
+						},
+					},
+				},
+			},
+		},
+	})
 	verify(t, &testCase{
 		req: &pbpeering.TrustBundleListByServiceRequest{
 			ServiceName: "foo",

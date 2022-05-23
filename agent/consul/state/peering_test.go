@@ -907,7 +907,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 		name      string
 		services  []structs.ServiceName
 		peerings  []*pbpeering.Peering
-		entries   []*structs.ExportedServicesConfigEntry
+		entry     *structs.ExportedServicesConfigEntry
 		query     []string
 		expect    [][]*pbpeering.Peering
 		expectIdx uint64
@@ -945,9 +945,10 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 		}
 
 		// Write the config entries.
-		for _, entry := range tc.entries {
+		if tc.entry != nil {
 			lastIdx++
-			require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
+			require.NoError(t, tc.entry.Normalize())
+			require.NoError(t, s.EnsureConfigEntry(lastIdx, tc.entry))
 		}
 
 		// Query for peers.
@@ -976,7 +977,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "foo"},
 			},
 			peerings: []*pbpeering.Peering{},
-			entries:  []*structs.ExportedServicesConfigEntry{},
+			entry:    nil,
 			query:    []string{"foo"},
 			expect:   [][]*pbpeering.Peering{{}},
 		},
@@ -986,7 +987,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "foo"},
 			},
 			peerings:  []*pbpeering.Peering{},
-			entries:   []*structs.ExportedServicesConfigEntry{},
+			entry:     nil,
 			query:     []string{"bar"},
 			expect:    [][]*pbpeering.Peering{{}},
 			expectIdx: uint64(2), // catalog services max index
@@ -1001,24 +1002,22 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
 				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
 			},
-			entries: []*structs.ExportedServicesConfigEntry{
-				{
-					Name: "ce1",
-					Services: []structs.ExportedService{
-						{
-							Name: "foo",
-							Consumers: []structs.ServiceConsumer{
-								{
-									PeerName: "peer1",
-								},
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "foo",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "peer1",
 							},
 						},
-						{
-							Name: "bar",
-							Consumers: []structs.ServiceConsumer{
-								{
-									PeerName: "peer2",
-								},
+					},
+					{
+						Name: "bar",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "peer2",
 							},
 						},
 					},
@@ -1046,27 +1045,25 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
 				{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
 			},
-			entries: []*structs.ExportedServicesConfigEntry{
-				{
-					Name: "ce1",
-					Services: []structs.ExportedService{
-						{
-							Name: "*",
-							Consumers: []structs.ServiceConsumer{
-								{
-									PeerName: "peer1",
-								},
-								{
-									PeerName: "peer2",
-								},
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "*",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "peer1",
+							},
+							{
+								PeerName: "peer2",
 							},
 						},
-						{
-							Name: "bar",
-							Consumers: []structs.ServiceConsumer{
-								{
-									PeerName: "peer3",
-								},
+					},
+					{
+						Name: "bar",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "peer3",
 							},
 						},
 					},
@@ -1079,8 +1076,6 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
 				},
 				{
-					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
-					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
 					{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
 				},
 			},
