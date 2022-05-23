@@ -9,7 +9,17 @@ GOTOOLS = \
 	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2 \
 	github.com/hashicorp/lint-consul-retry@master
 
-PROTOC_VERSION=3.15.8
+###
+# BUF_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use what is currently installed locally.
+###
+BUF_VERSION='v1.4.0'
+
+###
+# PROTOC_GEN_GO_GRPC_VERSION can be either a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use what is currently installed locally.
+###
+PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 
 ###
 # MOG_VERSION can be either a valid string for "go install <module>@<version>"
@@ -299,7 +309,6 @@ tools: proto-tools
 
 proto-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
-		--protoc-version "$(PROTOC_VERSION)" \
 		--tools-only
 
 version:
@@ -367,8 +376,16 @@ endif
 
 .PHONY: proto
 proto:
-	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
-		--protoc-version "$(PROTOC_VERSION)"
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh 
+			
+.PHONY: proto-format
+proto-format: proto-tools
+	@buf format -w
+	
+.PHONY: proto-lint
+proto-lint: proto-tools
+	@buf lint --config proto/buf.yaml --path proto
+	@buf lint --config proto-public/buf.yaml --path proto-public
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)

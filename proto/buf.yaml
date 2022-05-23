@@ -1,0 +1,23 @@
+version: v1
+lint:
+  use:
+    - DEFAULT
+  allow_comment_ignores: true
+  except:
+    # we want to enable our Go packages to have a pb prefix to make goimports more
+    # intelligently handle fixing up imports and hopefully getting it right.
+    - PACKAGE_DIRECTORY_MATCH
+    # for internal protos we don't think we need proto versioning suffix for now
+    # also it would break the subscribe service if we change the proto package
+    - PACKAGE_VERSION_SUFFIX
+
+    # TODO - we should be able to remove these once we address the warnings
+    - FIELD_LOWER_SNAKE_CASE
+    - ENUM_VALUE_UPPER_SNAKE_CASE
+    - ENUM_ZERO_VALUE_SUFFIX
+    - ONEOF_LOWER_SNAKE_CASE
+    - ENUM_VALUE_PREFIX
+  service_suffix: ""
+breaking:
+  use:
+    - FILE

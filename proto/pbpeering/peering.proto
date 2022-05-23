@@ -1,11 +1,8 @@
 syntax = "proto3";
 
-package pbpeering;
-
-option go_package = "github.com/hashicorp/consul/proto/pbpeering";
+package peering;
 
 import "google/protobuf/any.proto";
-
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
 
@@ -27,6 +24,9 @@ service PeeringService {
 
   // StreamResources opens an event stream for resources to share between peers, such as services.
   // Events are streamed as they happen.
+  // buf:lint:ignore RPC_REQUEST_STANDARD_NAME
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
 }
 
@@ -118,13 +118,13 @@ message PeeringReadRequest {
 
   string Datacenter = 3;
 
-  //TODO(peering) query metadata
+//TODO(peering) query metadata
 }
 
 message PeeringReadResponse {
   Peering Peering = 1;
 
-  //TODO(peering) query metadata
+//TODO(peering) query metadata
 }
 
 // @consul-rpc-glue: Datacenter,ReadTODO
@@ -133,13 +133,13 @@ message PeeringListRequest {
 
   string Datacenter = 2;
 
-  //TODO(peering) query metadata
+//TODO(peering) query metadata
 }
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
 
-  //TODO(peering) query metadata
+//TODO(peering) query metadata
 }
 
 // @consul-rpc-glue: Datacenter,WriteTODO
@@ -154,7 +154,7 @@ message PeeringWriteRequest {
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
-message PeeringWriteResponse{}
+message PeeringWriteResponse {}
 
 // @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringDeleteRequest {
@@ -169,7 +169,7 @@ message PeeringDeleteRequest {
 message PeeringDeleteResponse {}
 
 // @consul-rpc-glue: Datacenter,ReadTODO
-message TrustBundleListByServiceRequest{
+message TrustBundleListByServiceRequest {
   string ServiceName = 1;
   string Partition = 2;
 
@@ -178,7 +178,7 @@ message TrustBundleListByServiceRequest{
   string Datacenter = 3;
 }
 
-message TrustBundleListByServiceResponse{
+message TrustBundleListByServiceResponse {
   repeated PeeringTrustBundle Bundles = 1;
 }
 
@@ -196,7 +196,7 @@ message PeeringTrustBundleWriteRequest {
   string Datacenter = 2;
 }
 
-message PeeringTrustBundleWriteResponse{}
+message PeeringTrustBundleWriteResponse {}
 
 // @consul-rpc-glue: Datacenter
 message PeeringTrustBundleDeleteRequest {
@@ -208,7 +208,7 @@ message PeeringTrustBundleDeleteRequest {
   string Datacenter = 3;
 }
 
-message PeeringTrustBundleDeleteResponse{}
+message PeeringTrustBundleDeleteResponse {}
 
 message GenerateTokenRequest {
   // Name of the remote peer.
