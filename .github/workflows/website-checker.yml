@@ -10,6 +10,8 @@
 # in the PR and if they need to be cherry-picked to the stable-website branch, the
 # 'type/docs-cherrypick' label needs to be applied.
 
+name: Website Checker
+
 on:
   pull_request_target:
     types: [opened]

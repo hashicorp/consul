@@ -23,6 +23,9 @@ type UpdateEvent struct {
 	Err           error
 }
 
+// Callback is the function type accepted by NotifyCallback.
+type Callback func(ctx context.Context, event UpdateEvent)
+
 // Notify registers a desire to be updated about changes to a cache result.
 //
 // It is a helper that abstracts code from performing their own "blocking" query
@@ -57,6 +60,24 @@ func (c *Cache) Notify(
 	correlationID string,
 	ch chan<- UpdateEvent,
 ) error {
+	return c.NotifyCallback(ctx, t, r, correlationID, func(ctx context.Context, event UpdateEvent) {
+		select {
+		case ch <- event:
+		case <-ctx.Done():
+		}
+	})
+}
+
+// NotifyCallback allows you to receive notifications about changes to a cache
+// result in the same way as Notify, but accepts a callback function instead of
+// a channel.
+func (c *Cache) NotifyCallback(
+	ctx context.Context,
+	t string,
+	r Request,
+	correlationID string,
+	cb Callback,
+) error {
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
@@ -65,7 +86,7 @@ func (c *Cache) Notify(
 	}
 
 	if tEntry.Opts.SupportsBlocking {
-		go c.notifyBlockingQuery(ctx, newGetOptions(tEntry, r), correlationID, ch)
+		go c.notifyBlockingQuery(ctx, newGetOptions(tEntry, r), correlationID, cb)
 		return nil
 	}
 
@@ -73,11 +94,11 @@ func (c *Cache) Notify(
 	if info.MaxAge == 0 {
 		return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 	}
-	go c.notifyPollingQuery(ctx, newGetOptions(tEntry, r), correlationID, ch)
+	go c.notifyPollingQuery(ctx, newGetOptions(tEntry, r), correlationID, cb)
 	return nil
 }
 
-func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlationID string, ch chan<- UpdateEvent) {
+func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlationID string, cb Callback) {
 	// Always start at 0 index to deliver the initial (possibly currently cached
 	// value).
 	index := uint64(0)
@@ -101,12 +122,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 		// Check the index of the value returned in the cache entry to be sure it
 		// changed
 		if index == 0 || index < meta.Index {
-			u := UpdateEvent{correlationID, res, meta, err}
-			select {
-			case ch <- u:
-			case <-ctx.Done():
-				return
-			}
+			cb(ctx, UpdateEvent{correlationID, res, meta, err})
 
 			// Update index for next request
 			index = meta.Index
@@ -143,7 +159,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 	}
 }
 
-func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlationID string, ch chan<- UpdateEvent) {
+func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlationID string, cb Callback) {
 	index := uint64(0)
 	failures := uint(0)
 
@@ -166,12 +182,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 
 		// Check for a change in the value or an index change
 		if index < meta.Index || !reflect.DeepEqual(lastValue, res) {
-			u := UpdateEvent{correlationID, res, meta, err}
-			select {
-			case ch <- u:
-			case <-ctx.Done():
-				return
-			}
+			cb(ctx, UpdateEvent{correlationID, res, meta, err})
 
 			// Update index and lastValue
 			lastValue = res

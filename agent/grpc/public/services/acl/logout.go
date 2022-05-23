@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/auth"
@@ -16,7 +15,7 @@ import (
 )
 
 // Logout destroys the given ACL token once the caller is done with it.
-func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*emptypb.Empty, error) {
+func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*pbacl.LogoutResponse, error) {
 	logger := s.Logger.Named("logout").With("request_id", public.TraceID())
 	logger.Trace("request received")
 
@@ -29,7 +28,7 @@ func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*emptypb
 	}
 
 	// Forward request to leader in the requested datacenter.
-	var rsp *emptypb.Empty
+	var rsp *pbacl.LogoutResponse
 	handled, err := s.forwardWriteDC(req.Datacenter, func(conn *grpc.ClientConn) error {
 		var err error
 		rsp, err = pbacl.NewACLServiceClient(conn).Logout(ctx, req)
@@ -57,7 +56,7 @@ func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*emptypb
 		return rsp, err
 	case errors.Is(err, acl.ErrNotFound):
 		// No token? Pretend the delete was successful (for idempotency).
-		return &emptypb.Empty{}, nil
+		return &pbacl.LogoutResponse{}, nil
 	case errors.Is(err, acl.ErrPermissionDenied):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
@@ -65,5 +64,5 @@ func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*emptypb
 		return nil, status.Error(codes.Internal, "failed to delete token")
 	}
 
-	return &emptypb.Empty{}, nil
+	return &pbacl.LogoutResponse{}, nil
 }

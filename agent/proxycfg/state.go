@@ -17,13 +17,21 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+// UpdateEvent contains new data for a resource we are subscribed to (e.g. an
+// agent cache entry).
+type UpdateEvent struct {
+	CorrelationID string
+	Result        interface{}
+	Err           error
+}
+
 type CacheNotifier interface {
 	Notify(ctx context.Context, t string, r cache.Request,
-		correlationID string, ch chan<- cache.UpdateEvent) error
+		correlationID string, ch chan<- UpdateEvent) error
 }
 
 type Health interface {
-	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- cache.UpdateEvent) error
+	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 const (
@@ -72,7 +80,7 @@ type state struct {
 	// in Watch.
 	cancel func()
 
-	ch     chan cache.UpdateEvent
+	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
 }
@@ -153,7 +161,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	// conservative to handle larger numbers of upstreams correctly but gives
 	// some head room for normal operation to be non-blocking in most typical
 	// cases.
-	ch := make(chan cache.UpdateEvent, 10)
+	ch := make(chan UpdateEvent, 10)
 
 	s, err := newServiceInstanceFromNodeService(ns, token)
 	if err != nil {
@@ -175,7 +183,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	}, nil
 }
 
-func newKindHandler(config stateConfig, s serviceInstance, ch chan cache.UpdateEvent) (kindHandler, error) {
+func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) (kindHandler, error) {
 	var handler kindHandler
 	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
 
@@ -228,7 +236,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 
 type kindHandler interface {
 	initialize(ctx context.Context) (ConfigSnapshot, error)
-	handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error
+	handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error
 }
 
 // Watch initialized watches on all necessary cache data for the current proxy
@@ -261,7 +269,7 @@ func (s *state) Close() error {
 type handlerState struct {
 	stateConfig     // TODO: un-embed
 	serviceInstance // TODO: un-embed
-	ch              chan cache.UpdateEvent
+	ch              chan UpdateEvent
 }
 
 func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig) ConfigSnapshot {
@@ -450,7 +458,7 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 
 type gatewayWatchOpts struct {
 	notifier   CacheNotifier
-	notifyCh   chan cache.UpdateEvent
+	notifyCh   chan UpdateEvent
 	source     structs.QuerySource
 	token      string
 	key        GatewayKey

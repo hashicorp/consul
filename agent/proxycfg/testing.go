@@ -672,7 +672,7 @@ type noopCacheNotifier struct{}
 
 var _ CacheNotifier = (*noopCacheNotifier)(nil)
 
-func (*noopCacheNotifier) Notify(_ context.Context, _ string, _ cache.Request, _ string, _ chan<- cache.UpdateEvent) error {
+func (*noopCacheNotifier) Notify(_ context.Context, _ string, _ cache.Request, _ string, _ chan<- UpdateEvent) error {
 	return nil
 }
 
@@ -680,7 +680,7 @@ type noopHealth struct{}
 
 var _ Health = (*noopHealth)(nil)
 
-func (*noopHealth) Notify(_ context.Context, _ structs.ServiceSpecificRequest, _ string, _ chan<- cache.UpdateEvent) error {
+func (*noopHealth) Notify(_ context.Context, _ structs.ServiceSpecificRequest, _ string, _ chan<- UpdateEvent) error {
 	return nil
 }
 
@@ -698,7 +698,7 @@ func testConfigSnapshotFixture(
 	ns *structs.NodeService,
 	nsFn func(ns *structs.NodeService),
 	serverSNIFn ServerSNIFunc,
-	updates []cache.UpdateEvent,
+	updates []UpdateEvent,
 ) *ConfigSnapshot {
 	const token = ""
 
@@ -750,15 +750,15 @@ func testConfigSnapshotFixture(
 	return &snap
 }
 
-func testSpliceEvents(base, extra []cache.UpdateEvent) []cache.UpdateEvent {
+func testSpliceEvents(base, extra []UpdateEvent) []UpdateEvent {
 	if len(extra) == 0 {
 		return base
 	}
 	var (
-		hasExtra      = make(map[string]cache.UpdateEvent)
+		hasExtra      = make(map[string]UpdateEvent)
 		completeExtra = make(map[string]struct{})
 
-		allEvents []cache.UpdateEvent
+		allEvents []UpdateEvent
 	)
 
 	for _, e := range extra {

@@ -6,11 +6,10 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []cache.UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 
 	var (
@@ -38,7 +37,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		useFederationStates = false
 		deleteCrossDCEntry = false
 	case "service-subsets":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -60,7 +59,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "service-subsets2": // TODO(rb): make this merge with 'service-subsets'
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -95,7 +94,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "default-service-subsets2": // TODO(rb): rename to strip the 2 when the prior is merged with 'service-subsets'
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -132,7 +131,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "ignore-extra-resolvers":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -169,7 +168,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "service-timeouts":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -192,7 +191,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "non-hash-lb-injected":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: "service-resolvers", // serviceResolversWatchID
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -220,7 +219,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "hash-lb-ignored":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: "service-resolvers", // serviceResolversWatchID
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -253,7 +252,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		return nil
 	}
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -278,7 +277,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 	}
 
 	if populateServices || useFederationStates {
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: datacentersWatchID,
 				Result:        &[]string{"dc1", "dc2", "dc4", "dc6"},
@@ -291,7 +290,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			foo = structs.NewServiceName("foo", nil)
 			bar = structs.NewServiceName("bar", nil)
 		)
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: "mesh-gateway:dc2",
 				Result: &structs.IndexedNodesWithGateways{
@@ -349,7 +348,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 
 		if deleteCrossDCEntry {
-			baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+			baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 				{
 					// Have the cross-dc query mechanism not work for dc2 so
 					// fedstates will infill.
@@ -399,7 +398,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			}
 		}
 
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: federationStateListGatewaysWatchID,
 				Result: &structs.DatacenterIndexedCheckServiceNodes{

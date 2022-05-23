@@ -5,7 +5,6 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -16,7 +15,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	variation string,
 	upstreams structs.Upstreams,
 	additionalEntries ...structs.ConfigEntry,
-) []cache.UpdateEvent {
+) []UpdateEvent {
 	var (
 		dbUpstream = upstreams[0]
 
@@ -25,7 +24,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 
 	dbChain := setupTestVariationDiscoveryChain(t, variation, additionalEntries...)
 
-	events := []cache.UpdateEvent{
+	events := []UpdateEvent{
 		{
 			CorrelationID: "discovery-chain:" + dbUID.String(),
 			Result: &structs.DiscoveryChainResponse{
@@ -46,14 +45,14 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "simple":
 	case "external-sni":
 	case "failover":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:fail.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesAlternate(t),
 			},
 		})
 	case "failover-through-remote-gateway-triggered":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
@@ -61,26 +60,26 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		fallthrough
 	case "failover-through-remote-gateway":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
@@ -88,26 +87,26 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		fallthrough
 	case "failover-through-double-remote-gateway":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc3:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC3(t),
 			},
 		})
 	case "failover-through-local-gateway-triggered":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
@@ -115,26 +114,26 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		fallthrough
 	case "failover-through-local-gateway":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
 	case "failover-through-double-local-gateway-triggered":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
@@ -142,26 +141,26 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		})
 		fallthrough
 	case "failover-through-double-local-gateway":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:db.default.default.dc3:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
 			Result: &structs.IndexedNodesWithGateways{
 				Nodes: TestGatewayNodesDC1(t),
 			},
 		})
 	case "splitter-with-resolver-redirect-multidc":
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodes(t, "db"),
 			},
 		})
-		events = append(events, cache.UpdateEvent{
+		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-target:v2.db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),

@@ -173,7 +173,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		handler.ServeHTTP(resp, req)
 		return nil, nil
 	}
-	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
+	return s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
 }
 
 func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -210,7 +210,7 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 		flusher: flusher,
 	}
 	enc.encoder.SetIndent("", "    ")
-	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
+	s.agent.baseDeps.MetricsConfig.Handler.Stream(req.Context(), enc)
 	return nil, nil
 }
 

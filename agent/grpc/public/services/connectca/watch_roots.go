@@ -7,7 +7,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/go-hclog"
@@ -24,7 +23,7 @@ import (
 // WatchRoots provides a stream on which you can receive the list of active
 // Connect CA roots. Current roots are sent immediately at the start of the
 // stream, and new lists will be sent whenever the roots are rotated.
-func (s *Server) WatchRoots(_ *emptypb.Empty, serverStream pbconnectca.ConnectCAService_WatchRootsServer) error {
+func (s *Server) WatchRoots(_ *pbconnectca.WatchRootsRequest, serverStream pbconnectca.ConnectCAService_WatchRootsServer) error {
 	if err := s.requireConnect(); err != nil {
 		return err
 	}

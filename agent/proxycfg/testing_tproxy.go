@@ -5,7 +5,6 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,7 +27,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -141,7 +140,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -245,7 +244,7 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -335,7 +334,7 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -473,7 +472,7 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{

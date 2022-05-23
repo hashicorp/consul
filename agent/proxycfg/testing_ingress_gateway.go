@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -21,7 +20,7 @@ func TestConfigSnapshotIngressGateway(
 	variation string,
 	nsFn func(ns *structs.NodeService),
 	configFn func(entry *structs.IngressGatewayConfigEntry),
-	extraUpdates []cache.UpdateEvent,
+	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, placeholderLeaf := TestCerts(t)
@@ -47,7 +46,7 @@ func TestConfigSnapshotIngressGateway(
 		configFn(entry)
 	}
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -71,7 +70,7 @@ func TestConfigSnapshotIngressGateway(
 	}
 
 	if populateServices {
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
@@ -155,7 +154,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -270,7 +269,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel_HTTP(t testing.
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -344,7 +343,7 @@ func TestConfigSnapshotIngressGatewaySDS_ServiceLevel(t testing.T) *ConfigSnapsh
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -434,7 +433,7 @@ func TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel(t testing.T) *C
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -519,7 +518,7 @@ func TestConfigSnapshotIngressGatewaySDS_MixedNoTLS(t testing.T) *ConfigSnapshot
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -601,7 +600,7 @@ func TestConfigSnapshotIngressGateway_MixedListeners(t testing.T) *ConfigSnapsho
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -717,7 +716,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -830,7 +829,7 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -893,7 +892,7 @@ func TestConfigSnapshotIngressGatewayWithChain(
 	}
 
 	var (
-		updates  []cache.UpdateEvent
+		updates  []UpdateEvent
 		configFn func(entry *structs.IngressGatewayConfigEntry)
 
 		populateServices                      bool
@@ -1088,7 +1087,7 @@ func TestConfigSnapshotIngressGatewayWithChain(
 			fooEntMeta.PartitionOrDefault(), "dc1",
 			connect.TestClusterID+".consul", nil, entries...)
 
-		updates = []cache.UpdateEvent{
+		updates = []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1218,7 +1217,7 @@ func TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults(t te
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1336,7 +1335,7 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener(t testing.T) *ConfigSnap
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1436,7 +1435,7 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{

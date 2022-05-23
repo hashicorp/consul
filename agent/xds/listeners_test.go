@@ -13,7 +13,6 @@ import (
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -46,7 +45,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -65,7 +64,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -84,7 +83,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -103,7 +102,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -173,7 +172,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					func(ns *structs.NodeService) {
 						ns.Proxy.Config["protocol"] = "http"
 					},
-					[]cache.UpdateEvent{
+					[]proxycfg.UpdateEvent{
 						{
 							CorrelationID: "mesh",
 							Result: &structs.ConfigEntryResponse{
@@ -580,7 +579,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -599,7 +598,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -618,7 +617,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -677,7 +676,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name: "terminating-gateway-no-api-cert",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				api := structs.NewServiceName("api", nil)
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
 						Result:        nil,                            // tombstone this

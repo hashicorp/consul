@@ -1,0 +1,5 @@
+```release-note:improvement
+config: introduce `telemetry.retry_failed_connection` in agent configuration to
+retry on failed connection to any telemetry backend. This prevents the agent from
+exiting if the given DogStatsD DNS name is unresolvable, for example.
+```

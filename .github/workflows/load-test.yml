@@ -1,3 +1,5 @@
+name: Load Test
+
 on:
   pull_request:
     branches:

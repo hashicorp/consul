@@ -2,23 +2,20 @@ syntax = "proto3";
 
 package connectca;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-
-option go_package = "github.com/hashicorp/consul/proto-public/pbconnectca";
 
 service ConnectCAService {
   // WatchRoots provides a stream on which you can receive the list of active
   // Connect CA roots. Current roots are sent immediately at the start of the
   // stream, and new lists will be sent whenever the roots are rotated.
-  rpc WatchRoots(google.protobuf.Empty) returns (stream WatchRootsResponse) {}
-
+  rpc WatchRoots(WatchRootsRequest) returns (stream WatchRootsResponse) {}
 
   // Sign a leaf certificate for the service or agent identified by the SPIFFE
   // ID in the given CSR's SAN.
   rpc Sign(SignRequest) returns (SignResponse) {}
-
 }
+
+message WatchRootsRequest {}
 
 message WatchRootsResponse {
   // active_root_id is the ID of a root in Roots that is the active CA root.

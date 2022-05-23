@@ -6306,6 +6306,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			DisableHostname:                    true,
 			DogstatsdAddr:                      "0wSndumK",
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
+			RetryFailedConfiguration:           true,
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
 			BlockedPrefixes:                    []string{"cazlEhGn", "ftO6DySn.rpc.server.call"},
