@@ -1,6 +1,5 @@
 *::before, *::after {
   display: inline-block;
-  animation-iteration-count: var(--icon-resolution, 1);
   vertical-align: text-top;
 
   background-repeat: no-repeat;
