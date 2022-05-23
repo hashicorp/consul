@@ -1,15 +1,9 @@
 @keyframes icon-token {
-  50% {
-
-    background-color: var(--icon-color, var(--color-token-500, currentColor));
-    -webkit-mask-image: var(--icon-token-24);
-    mask-image: var(--icon-token-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-token-500, currentColor));
     -webkit-mask-image: var(--icon-token-16);
     mask-image: var(--icon-token-16);
+    background-color: var(--icon-color, var(--color-token-500, currentColor));
+
   }
 }

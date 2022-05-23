@@ -1,15 +1,9 @@
 @keyframes icon-fast-forward {
-  50% {
-
-    background-color: var(--icon-color, var(--color-fast-forward-500, currentColor));
-    -webkit-mask-image: var(--icon-fast-forward-24);
-    mask-image: var(--icon-fast-forward-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-fast-forward-500, currentColor));
     -webkit-mask-image: var(--icon-fast-forward-16);
     mask-image: var(--icon-fast-forward-16);
+    background-color: var(--icon-color, var(--color-fast-forward-500, currentColor));
+
   }
 }

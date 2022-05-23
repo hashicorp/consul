@@ -1,15 +1,9 @@
 @keyframes icon-globe-private {
-  50% {
-
-    background-color: var(--icon-color, var(--color-globe-private-500, currentColor));
-    -webkit-mask-image: var(--icon-globe-private-24);
-    mask-image: var(--icon-globe-private-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-globe-private-500, currentColor));
     -webkit-mask-image: var(--icon-globe-private-16);
     mask-image: var(--icon-globe-private-16);
+    background-color: var(--icon-color, var(--color-globe-private-500, currentColor));
+
   }
 }

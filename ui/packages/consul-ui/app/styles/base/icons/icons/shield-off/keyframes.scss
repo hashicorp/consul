@@ -1,15 +1,9 @@
 @keyframes icon-shield-off {
-  50% {
-
-    background-color: var(--icon-color, var(--color-shield-off-500, currentColor));
-    -webkit-mask-image: var(--icon-shield-off-24);
-    mask-image: var(--icon-shield-off-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-shield-off-500, currentColor));
     -webkit-mask-image: var(--icon-shield-off-16);
     mask-image: var(--icon-shield-off-16);
+    background-color: var(--icon-color, var(--color-shield-off-500, currentColor));
+
   }
 }
