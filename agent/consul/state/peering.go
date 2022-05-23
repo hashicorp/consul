@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-memdb"
@@ -446,19 +447,12 @@ func (s *Store) PeeringsForService(ws memdb.WatchSet, serviceName string, entMet
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	// Short-circuit if the service does not exist in the context of the query -- this prevents "leaking" services
-	// when there are wildcard rules in place.
-	if svcIdx, svcExists, err := serviceExists(tx, ws, serviceName, &entMeta, ""); err != nil {
-		return 0, nil, fmt.Errorf("failed to check if service exists: %w", err)
+	return peeringsForServiceTxn(tx, ws, serviceName, entMeta)
+}
 
-	} else if !svcExists {
-		// If the service does not exist, return the max index for the services table so caller can watch for changes.
-		return svcIdx, nil, nil
-
-	}
-
+func peeringsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	// Return the idx of the config entry so the caller can watch for changes.
-	idx, peerNames, err := peersForServiceTxn(tx, ws, serviceName, &entMeta)
+	maxIdx, peerNames, err := peersForServiceTxn(tx, ws, serviceName, &entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to read peers for service name %q: %w", serviceName, err)
 	}
@@ -471,16 +465,49 @@ func (s *Store) PeeringsForService(ws memdb.WatchSet, serviceName string, entMet
 			Value:          name,
 			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(entMeta.PartitionOrDefault()),
 		}
-		_, peering, err := peeringReadTxn(tx, ws, readQuery)
+		idx, peering, err := peeringReadTxn(tx, ws, readQuery)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to read peering: %w", err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
 		}
 		if peering == nil {
 			continue
 		}
 		peerings = append(peerings, peering)
 	}
-	return idx, peerings, nil
+	return maxIdx, peerings, nil
+}
+
+// TrustBundleListByService returns the trust bundles for all peers that the given service is exported to.
+func (s *Store) TrustBundleListByService(ws memdb.WatchSet, service string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	maxIdx, peers, err := peeringsForServiceTxn(tx, ws, service, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get peers for service %s: %v", service, err)
+	}
+
+	var resp []*pbpeering.PeeringTrustBundle
+	for _, peer := range peers {
+		pq := Query{
+			Value:          strings.ToLower(peer.Name),
+			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(entMeta.PartitionOrDefault()),
+		}
+		idx, trustBundle, err := peeringTrustBundleReadTxn(tx, ws, pq)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peer.Name, err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if trustBundle != nil {
+			resp = append(resp, trustBundle)
+		}
+	}
+	return maxIdx, resp, nil
 }
 
 // PeeringTrustBundleRead returns the peering trust bundle for the peer name given as the query value.
@@ -488,6 +515,10 @@ func (s *Store) PeeringTrustBundleRead(ws memdb.WatchSet, q Query) (uint64, *pbp
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
+	return peeringTrustBundleReadTxn(tx, ws, q)
+}
+
+func peeringTrustBundleReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, *pbpeering.PeeringTrustBundle, error) {
 	watchCh, ptbRaw, err := tx.FirstWatch(tablePeeringTrustBundles, indexID, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed peering trust bundle lookup: %w", err)
@@ -643,10 +674,10 @@ func peersForServiceTxn(
 		case service.Namespace == structs.WildcardSpecifier:
 			wildcardNamespaceIdx = i
 
-		case service.Name == structs.WildcardSpecifier && service.Namespace == entMeta.NamespaceOrEmpty():
+		case service.Name == structs.WildcardSpecifier && acl.EqualNamespaces(service.Namespace, entMeta.NamespaceOrDefault()):
 			wildcardServiceIdx = i
 
-		case service.Name == serviceName && service.Namespace == entMeta.NamespaceOrEmpty():
+		case service.Name == serviceName && acl.EqualNamespaces(service.Namespace, entMeta.NamespaceOrDefault()):
 			exactMatchIdx = i
 		}
 	}

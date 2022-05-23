@@ -982,17 +982,6 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			expect:   [][]*pbpeering.Peering{{}},
 		},
 		{
-			name: "service does not exist",
-			services: []structs.ServiceName{
-				{Name: "foo"},
-			},
-			peerings:  []*pbpeering.Peering{},
-			entry:     nil,
-			query:     []string{"bar"},
-			expect:    [][]*pbpeering.Peering{{}},
-			expectIdx: uint64(2), // catalog services max index
-		},
-		{
 			name: "config entry with exact service name",
 			services: []structs.ServiceName{
 				{Name: "foo"},
@@ -1088,4 +1077,220 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestStore_TrustBundleListByService(t *testing.T) {
+	store := testStateStore(t)
+	entMeta := *acl.DefaultEnterpriseMeta()
+
+	var lastIdx uint64
+	ws := memdb.NewWatchSet()
+
+	testutil.RunStep(t, "no results on initial setup", func(t *testing.T) {
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 0)
+	})
+
+	testutil.RunStep(t, "registering service does not yield trust bundles", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureNode(lastIdx, &structs.Node{
+			Node:    "my-node",
+			Address: "127.0.0.1",
+		}))
+
+		lastIdx++
+		require.NoError(t, store.EnsureService(lastIdx, "my-node", &structs.NodeService{
+			ID:      "foo-1",
+			Service: "foo",
+			Port:    8000,
+		}))
+
+		require.False(t, watchFired(ws))
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Len(t, resp, 0)
+		require.Equal(t, lastIdx-2, idx)
+	})
+
+	testutil.RunStep(t, "creating peering does not yield trust bundles", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			Name: "peer1",
+		}))
+
+		// The peering is only watched after the service is exported via config entry.
+		require.False(t, watchFired(ws))
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, uint64(0), idx)
+		require.Len(t, resp, 0)
+	})
+
+	testutil.RunStep(t, "exporting the service does not yield trust bundles", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "foo",
+					Consumers: []structs.ServiceConsumer{
+						{
+							PeerName: "peer1",
+						},
+					},
+				},
+			},
+		}))
+
+		// The config entry is watched.
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 0)
+	})
+
+	testutil.RunStep(t, "trust bundles are returned after they are created", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+			TrustDomain: "peer1.com",
+			PeerName:    "peer1",
+			RootPEMs:    []string{"peer-root-1"},
+		}))
+
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 1)
+		require.Equal(t, []string{"peer-root-1"}, resp[0].RootPEMs)
+	})
+
+	testutil.RunStep(t, "trust bundles are not returned after unexporting service", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", &entMeta))
+
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 0)
+	})
+
+	testutil.RunStep(t, "trust bundles are returned after config entry is restored", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "foo",
+					Consumers: []structs.ServiceConsumer{
+						{
+							PeerName: "peer1",
+						},
+					},
+				},
+			},
+		}))
+
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 1)
+		require.Equal(t, []string{"peer-root-1"}, resp[0].RootPEMs)
+	})
+
+	testutil.RunStep(t, "bundles for other peers are ignored", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			Name: "peer2",
+		}))
+
+		lastIdx++
+		require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+			TrustDomain: "peer2.com",
+			PeerName:    "peer2",
+			RootPEMs:    []string{"peer-root-2"},
+		}))
+
+		// No relevant changes.
+		require.False(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx-2, idx)
+		require.Len(t, resp, 1)
+		require.Equal(t, []string{"peer-root-1"}, resp[0].RootPEMs)
+	})
+
+	testutil.RunStep(t, "second bundle is returned when service is exported to that peer", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "foo",
+					Consumers: []structs.ServiceConsumer{
+						{
+							PeerName: "peer1",
+						},
+						{
+							PeerName: "peer2",
+						},
+					},
+				},
+			},
+		}))
+
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 2)
+		require.Equal(t, []string{"peer-root-1"}, resp[0].RootPEMs)
+		require.Equal(t, []string{"peer-root-2"}, resp[1].RootPEMs)
+	})
+
+	testutil.RunStep(t, "deleting the peering excludes its trust bundle", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.PeeringDelete(lastIdx, Query{Value: "peer1"}))
+
+		require.True(t, watchFired(ws))
+		ws = memdb.NewWatchSet()
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx, idx)
+		require.Len(t, resp, 1)
+		require.Equal(t, []string{"peer-root-2"}, resp[0].RootPEMs)
+	})
+
+	testutil.RunStep(t, "deleting the service does not excludes its trust bundle", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.DeleteService(lastIdx, "my-node", "foo-1", &entMeta, ""))
+
+		require.False(t, watchFired(ws))
+
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		require.NoError(t, err)
+		require.Equal(t, lastIdx-1, idx)
+		require.Len(t, resp, 1)
+		require.Equal(t, []string{"peer-root-2"}, resp[0].RootPEMs)
+	})
 }

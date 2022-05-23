@@ -358,353 +358,98 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 	prototest.AssertDeepEqual(t, bundle, resp.Bundle)
 }
 
+// Setup:
+// - Peerings "foo" and "bar" with trust bundles saved
+// - "api" service exported to both "foo" and "bar"
+// - "web" service exported to "baz"
 func TestPeeringService_TrustBundleListByService(t *testing.T) {
-	// Test executes the following scenario:
-	// 0 - Initial setup test server, state store, RPC client, verify empty results
-	// 1 - Create a service, verify results still empty
-	// 2 - Create a peering, verify results still empty
-	// 3 - Create a config entry, verify results still empty
-	// 4 - Create trust bundles, verify bundles are returned
-	// 5 - Delete the config entry, verify results empty
-	// 6 - Restore config entry, verify bundles are returned
-	// 7 - Add a second peering that the test service is not exported to
-	// 8 - Export the service to the new peering
-	// 9 - Delete the service
-	// Note: these steps are dependent on each other by design so that we can verify that
-	// combinations of services, peerings, trust bundles, and config entries all affect results
+	s := newTestServer(t, nil)
+	store := s.Server.FSM().State()
 
-	nodeName := "test-node"
+	var lastIdx uint64 = 10
 
-	var lastIdx uint64
-
-	// Create test server
-	// TODO(peering): see note on newTestServer, refactor to not use this
-	srv := newTestServer(t, nil)
-	store := srv.Server.FSM().State()
-	client := pbpeering.NewPeeringServiceClient(srv.ClientConn(t))
-
-	// Create a node up-front so that we can assign services to it if needed
-	svcNode := &structs.Node{Node: nodeName, Address: "127.0.0.1"}
 	lastIdx++
-	require.NoError(t, store.EnsureNode(lastIdx, svcNode))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		Name:                "foo",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}))
 
-	type testDeps struct {
-		services []string
-		peerings []*pbpeering.Peering
-		entries  []*structs.ExportedServicesConfigEntry
-		bundles  []*pbpeering.PeeringTrustBundle
-	}
+	lastIdx++
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		Name:                "bar",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerServerName:      "test-bar",
+		PeerServerAddresses: []string{"addr2"},
+	}))
 
-	setup := func(t *testing.T, idx uint64, deps testDeps) uint64 {
-		// Create any services (and node)
-		if len(deps.services) >= 0 {
-			svcNode := &structs.Node{Node: nodeName, Address: "127.0.0.1"}
-			idx++
-			require.NoError(t, store.EnsureNode(idx, svcNode))
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "foo.com",
+		PeerName:    "foo",
+		RootPEMs:    []string{"foo-root-1"},
+	}))
 
-			// Create the test services
-			for _, svc := range deps.services {
-				idx++
-				require.NoError(t, store.EnsureService(idx, svcNode.Node, &structs.NodeService{
-					ID:      svc,
-					Service: svc,
-					Port:    int(8000 + idx),
-				}))
-			}
-		}
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "bar.com",
+		PeerName:    "bar",
+		RootPEMs:    []string{"bar-root-1"},
+	}))
 
-		// Insert any peerings
-		for _, peering := range deps.peerings {
-			idx++
-			require.NoError(t, store.PeeringWrite(idx, peering))
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, &structs.Node{
+		Node: "my-node", Address: "127.0.0.1",
+	}))
 
-			// make sure it got created
-			q := state.Query{Value: peering.Name}
-			_, p, err := store.PeeringRead(nil, q)
-			require.NoError(t, err)
-			require.NotNil(t, p)
-		}
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "my-node", &structs.NodeService{
+		ID:      "api",
+		Service: "api",
+		Port:    8000,
+	}))
 
-		// Insert any trust bundles
-		for _, bundle := range deps.bundles {
-			idx++
-			require.NoError(t, store.PeeringTrustBundleWrite(idx, bundle))
-
-			q := state.Query{
-				Value:          bundle.PeerName,
-				EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(bundle.Partition),
-			}
-			gotIdx, ptb, err := store.PeeringTrustBundleRead(nil, q)
-			require.NoError(t, err)
-			require.NotNil(t, ptb)
-			require.Equal(t, gotIdx, idx)
-		}
-
-		// Write any config entries
-		for _, entry := range deps.entries {
-			idx++
-			require.NoError(t, entry.Normalize())
-			require.NoError(t, store.EnsureConfigEntry(idx, entry))
-		}
-
-		return idx
-	}
-
-	type testCase struct {
-		req       *pbpeering.TrustBundleListByServiceRequest
-		expect    *pbpeering.TrustBundleListByServiceResponse
-		expectErr string
-	}
-
-	// TODO(peering): see note on newTestServer, once we have a better server mock,
-	// we should add functionality here to verify errors from backend
-	verify := func(t *testing.T, tc *testCase) {
-		t.Helper()
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		t.Cleanup(cancel)
-
-		resp, err := client.TrustBundleListByService(ctx, tc.req)
-		require.NoError(t, err)
-		// ignore raft fields
-		if resp.Bundles != nil {
-			for _, b := range resp.Bundles {
-				b.CreateIndex = 0
-				b.ModifyIndex = 0
-			}
-		}
-		prototest.AssertDeepEqual(t, tc.expect, resp)
-	}
-
-	// Execute scenario steps
-	// ----------------------
-
-	// 0 - Initial empty state.
-	// -----------------------
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: nil,
-		},
-	})
-
-	// 1 - Create a service, verify results still empty.
-	// ------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{services: []string{"foo"}})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{},
-		},
-	})
-
-	// 2 - Create a peering, verify results still empty.
-	// ------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		peerings: []*pbpeering.Peering{
+	entry := structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
 			{
-				Name:                "peer1",
-				State:               pbpeering.PeeringState_ACTIVE,
-				PeerServerName:      "peer1-name",
-				PeerServerAddresses: []string{"peer1-addr"},
-			},
-		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{},
-		},
-	})
-
-	// 3 - Create a config entry, verify results still empty.
-	// -----------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		entries: []*structs.ExportedServicesConfigEntry{
-			{
-				Name: "default",
-				Services: []structs.ExportedService{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
 					{
-						Name: "foo",
-						Consumers: []structs.ServiceConsumer{
-							{
-								PeerName: "peer1",
-							},
-						},
+						PeerName: "foo",
+					},
+					{
+						PeerName: "bar",
+					},
+				},
+			},
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{
+						PeerName: "baz",
 					},
 				},
 			},
 		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{},
-		},
-	})
+	}
+	require.NoError(t, entry.Normalize())
+	require.NoError(t, entry.Validate())
 
-	// 4 - Create trust bundles, verify bundles are returned.
-	// -----------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		bundles: []*pbpeering.PeeringTrustBundle{
-			{
-				TrustDomain: "peer1.com",
-				PeerName:    "peer1",
-				RootPEMs:    []string{"peer1-root-1"},
-			},
-		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{
-				{
-					TrustDomain: "peer1.com",
-					PeerName:    "peer1",
-					RootPEMs:    []string{"peer1-root-1"},
-				},
-			},
-		},
-	})
-
-	// 5 - Delete the config entry, verify results empty.
-	// -------------------------------------------------
 	lastIdx++
-	require.NoError(t, store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", nil))
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{},
-		},
-	})
+	require.NoError(t, store.EnsureConfigEntry(lastIdx, &entry))
 
-	// 6 - Restore config entry, verify bundles are returned.
-	// -----------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		entries: []*structs.ExportedServicesConfigEntry{
-			{
-				Name: "default",
-				Services: []structs.ExportedService{
-					{
-						Name: "foo",
-						Consumers: []structs.ServiceConsumer{
-							{PeerName: "peer1"},
-						},
-					},
-				},
-			},
-		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{
-				{
-					TrustDomain: "peer1.com",
-					PeerName:    "peer1",
-					RootPEMs:    []string{"peer1-root-1"},
-				},
-			},
-		},
-	})
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
-	// 7 - Add new peer and trust bundle. It should be ignored because foo is not exported to it.
-	// -----------------------------------------------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		peerings: []*pbpeering.Peering{
-			{
-				Name:                "peer2",
-				State:               pbpeering.PeeringState_ACTIVE,
-				PeerServerName:      "peer2-name",
-				PeerServerAddresses: []string{"peer2-addr"},
-			},
-		},
-		bundles: []*pbpeering.PeeringTrustBundle{
-			{
-				TrustDomain: "peer2.com",
-				PeerName:    "peer2",
-				RootPEMs:    []string{"peer2-root-1"},
-			},
-		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{
-				{
-					TrustDomain: "peer1.com",
-					PeerName:    "peer1",
-					RootPEMs:    []string{"peer1-root-1"},
-				},
-			},
-		},
-	})
-
-	// 8 - Replace config entry to export all services to both peers
-	// -----------------------------------------------------------------------------------------
-	lastIdx = setup(t, lastIdx, testDeps{
-		entries: []*structs.ExportedServicesConfigEntry{
-			{
-				Name: "default",
-				Services: []structs.ExportedService{
-					{
-						Name: structs.WildcardSpecifier,
-						Consumers: []structs.ServiceConsumer{
-							{PeerName: "peer1"},
-							{PeerName: "peer2"},
-						},
-					},
-				},
-			},
-		},
-	})
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{
-				{
-					TrustDomain: "peer1.com",
-					PeerName:    "peer1",
-					RootPEMs:    []string{"peer1-root-1"},
-				},
-				{
-					TrustDomain: "peer2.com",
-					PeerName:    "peer2",
-					RootPEMs:    []string{"peer2-root-1"},
-				},
-			},
-		},
-	})
-
-	// 9 - delete the service, verify results empty
-	lastIdx++
-	require.NoError(t, store.DeleteService(lastIdx, nodeName, "foo", nil, ""))
-	verify(t, &testCase{
-		req: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-		expect: &pbpeering.TrustBundleListByServiceResponse{
-			Bundles: []*pbpeering.PeeringTrustBundle{},
-		},
-	})
+	req := pbpeering.TrustBundleListByServiceRequest{
+		ServiceName: "api",
+	}
+	resp, err := client.TrustBundleListByService(context.Background(), &req)
+	require.NoError(t, err)
+	require.Len(t, resp.Bundles, 2)
+	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[0].RootPEMs)
+	require.Equal(t, []string{"bar-root-1"}, resp.Bundles[1].RootPEMs)
 }
 
 func Test_StreamHandler_UpsertServices(t *testing.T) {

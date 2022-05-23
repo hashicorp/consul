@@ -4103,6 +4103,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
 
+	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
+
 	a.registerEntCache()
 }
 
