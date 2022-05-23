@@ -44,12 +44,10 @@ function main {
                 bindata_install
                 return 0
                 ;;
-
             -lint )
                 lint_install
                 return 0
                 ;;
-
             -h | --help )
                 usage
                 return 0
