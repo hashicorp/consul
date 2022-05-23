@@ -263,3 +263,80 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ "386", "amd64", "arm", "arm64" ]
+      fail-fast: true
+    name: Verify ${{ matrix.arch }} linux zip
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download artifact
+        run: |
+          echo "TODO: download ${{ matrix.arch }} linux zip"
+
+      - name: Run verification for ${{ matrix.arch }} linux zip
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} linux zip"
+
+  verify-darwin:
+    needs: build-darwin
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [ "amd64", "arm64" ]
+      fail-fast: true
+    name: Verify ${{ matrix.arch }} darwin zip
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download artifact
+        run: |
+          echo "TODO: download ${{ matrix.arch }} darwin zip"
+
+      - name: Run verification for ${{ matrix.arch }} darwin zip
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} darwin zip"
+
+  verify-linux-packages-deb:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ "amd64", "arm", "arm64", "i386" ]
+      fail-fast: true
+
+    name: Verify ${{ matrix.arch }} debian package
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download ${{ matrix.arch }} debian package
+        run: |
+          echo "TODO: download ${{ matrix.arch }} debian package"
+
+      - name: Verify ${{ matrix.arch }} debian package
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} debian package"
+
+  verify-linux-packages-rpm:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ "aarch64", "arm", "i386", "x86_64" ]
+      fail-fast: true
+
+    name: Verify ${{ matrix.arch }} rpm package
+    steps:
+      - uses: actions/checkout@v2
+          -
+      - name: Download ${{ matrix.arch }} rpm package
+        run: |
+          echo "TODO: download ${{ matrix.arch }} rpm package"
+
+      - name: Verify ${{ matrix.arch }} rpm package
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} rpm package"
