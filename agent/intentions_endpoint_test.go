@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,9 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestIntentionList(t *testing.T) {
@@ -311,6 +316,93 @@ func TestIntentionCheck(t *testing.T) {
 		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.True(t, value.Allowed)
+	})
+}
+
+type testSrv struct{}
+
+func (s *testSrv) AgentLocalMember() serf.Member {
+	return serf.Member{}
+}
+func (second *testSrv) GetLANCoordinate() (lib.CoordinateSet, error) {
+	return lib.CoordinateSet{}, nil
+}
+
+func (s *testSrv) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (int, error) {
+	return 1, nil
+}
+
+func (s *testSrv) LANMembersInAgentPartition() []serf.Member {
+	return nil
+}
+
+func (s *testSrv) LANMembers(filter consul.LANMemberFilter) ([]serf.Member, error) {
+	return nil, nil
+}
+func (s *testSrv) Leave() error {
+	return nil
+}
+
+func (s *testSrv) RPC(method string, args interface{}, reply interface{}) error {
+	return fmt.Errorf("rpc error making call: %w", errors.New("Intention not found"))
+}
+
+func (s *testSrv) ReloadConfig(config consul.ReloadableConfig) error {
+	return nil
+}
+
+func (s *testSrv) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
+	return nil
+}
+
+func (s *testSrv) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+	return consul.ACLResolveResult{}, nil
+}
+
+func (s *testSrv) Shutdown() error {
+	return nil
+}
+
+func (c *testSrv) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
+	replyFn structs.SnapshotReplyFn) error {
+	return nil
+}
+
+func (c *testSrv) Stats() map[string]map[string]string {
+	return nil
+}
+
+func TestIntentionGetExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	notfound := func() {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		testutil.RequireErrorContains(t, err, "Intention not found")
+		httpErr, ok := err.(HTTPError)
+		require.True(t, ok)
+		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+		require.Nil(t, obj)
+	}
+
+	t.Run("not found locally", func(t *testing.T) {
+		notfound()
+	})
+
+	a.delegate = &testSrv{}
+	t.Run("not found by RPC", func(t *testing.T) {
+		notfound()
 	})
 }
 
