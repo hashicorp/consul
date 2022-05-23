@@ -1524,7 +1524,7 @@ func TestACLResolver_Client(t *testing.T) {
 		// then the policy will be resolved but resolution will return ACL not found
 		// resolution will stop with the not found error (even though we still have the
 		// policies within the cache)
-		authz, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
+		_, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
 		require.EqualError(t, err, acl.ErrNotFound.Error())
 
 		require.True(t, modified)
