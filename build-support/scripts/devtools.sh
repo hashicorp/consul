@@ -19,7 +19,7 @@ Description:
     Installs various supporting Go tools.
 
 Options:
-    -protobuf Just install tools for protobuf.
+    -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
     -bindata                 Just install tools for static assets.
     -h | --help              Print this help text.
