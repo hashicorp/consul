@@ -2,34 +2,16 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
-GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
-	github.com/hashicorp/go-bindata/go-bindata@master \
-	github.com/vektra/mockery/v2@latest \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2 \
-	github.com/hashicorp/lint-consul-retry@master
 
 ###
-# BUF_VERSION can be either a valid string for "go install <module>@<version>"
+# These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
+GOLANGCI_LINT_VERSION='v1.46.2'
+MOCKERY_VERSION='v2.12.2'
 BUF_VERSION='v1.4.0'
-
-###
-# PROTOC_GEN_GO_GRPC_VERSION can be either a valid string for "go install <module>@<version>"
-# or the string @DEV to imply use what is currently installed locally.
-###
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
-
-###
-# MOG_VERSION can be either a valid string for "go install <module>@<version>"
-# or the string @DEV to imply use whatever is currently installed locally.
-###
 MOG_VERSION='v0.3.0'
-###
-# PROTOC_GO_INJECT_TAG_VERSION can be either a valid string for "go install <module>@<version>"
-# or the string @DEV to imply use whatever is currently installed locally.
-###
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
@@ -283,33 +265,38 @@ other-consul:
 		exit 1 ; \
 	fi
 
-lint:
-	@echo "--> Running go golangci-lint"
+lint: lint-tools
+	@echo "--> Running golangci-lint"
 	@golangci-lint run --build-tags '$(GOTAGS)' && \
 		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
+	@echo "--> Running lint-consul-retry"
+	@lint-consul-retry
 
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
-static-assets:
+static-assets: bindata-tools
 	@go-bindata-assetfs -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
-
 
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-docker static-assets-docker
 
-tools: proto-tools
-	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
-	@for TOOL in $(GOTOOLS); do \
-		echo "=== TOOL: $$TOOL" ; \
-		go install -v $$TOOL ; \
-	done
+tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
 
+.PHONY: lint-tools
+lint-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
+
+.PHONY: bindata-tools
+bindata-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -bindata
+
+.PHONY: proto-tools
 proto-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
-		--tools-only
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
 
 version:
 	@echo -n "Version:                    "
@@ -326,7 +313,7 @@ docker-images: go-build-image ui-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) --build-arg 'GOTOOLS=$(GOTOOLS)' -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
 
 ui-build-image:
 	@echo "Building UI build container"
@@ -376,12 +363,12 @@ endif
 
 .PHONY: proto
 proto:
-	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh 
-			
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh
+
 .PHONY: proto-format
 proto-format: proto-tools
 	@buf format -w
-	
+
 .PHONY: proto-lint
 proto-lint: proto-tools
 	@buf lint --config proto/buf.yaml --path proto
@@ -412,6 +399,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version test-envoy-integ
