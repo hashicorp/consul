@@ -15,6 +15,7 @@ import (
 )
 
 type peeringBackend struct {
+	// TODO(peering): accept a smaller interface; maybe just funcs from the server that we actually need: DC, IsLeader, etc
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
@@ -31,6 +32,7 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 	}
 }
 
+// Forward should not be used to initiate forwarding over bidirectional streams
 func (b *peeringBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	// Only forward the request if the dc in the request matches the server's datacenter.
 	if info.RequestDatacenter() != "" && info.RequestDatacenter() != b.srv.config.Datacenter {
@@ -101,6 +103,10 @@ func (b *peeringBackend) Apply() peering.Apply {
 
 func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {
 	return b.enterpriseCheckPartitions(partition)
+}
+
+func (b *peeringBackend) IsLeader() bool {
+	return b.srv.IsLeader()
 }
 
 type peeringApply struct {

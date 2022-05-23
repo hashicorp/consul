@@ -91,6 +91,9 @@ type Backend interface {
 
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 
+	// IsLeader indicates whether the consul server is in a leader state or not.
+	IsLeader() bool
+
 	Store() Store
 	Apply() Apply
 }
@@ -423,6 +426,14 @@ type BidirectionalStream interface {
 
 // StreamResources handles incoming streaming connections.
 func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResourcesServer) error {
+	if !s.Backend.IsLeader() {
+		// we are not the leader so we will hang up on the dialer
+
+		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
+		s.logger.Error("cannot establish a peering stream on a follower node")
+		return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+	}
+
 	// Initial message on a new stream must be a new subscription request.
 	first, err := stream.Recv()
 	if err != nil {
@@ -584,6 +595,14 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			if !open {
 				// No longer receiving data on the stream.
 				return nil
+			}
+
+			if !s.Backend.IsLeader() {
+				// we are not the leader anymore so we will hang up on the dialer
+
+				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
+				logger.Error("node is not a leader anymore; cannot continue streaming")
+				return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
 			}
 
 			if req := msg.GetRequest(); req != nil {

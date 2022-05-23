@@ -30,6 +30,107 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
+func TestStreamResources_Server_Follower(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store: store,
+		pub:   publisher,
+		leader: func() bool {
+			return false
+		},
+	})
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	msg, err := client.Recv()
+	require.Nil(t, msg)
+	require.Error(t, err)
+	require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
+}
+
+// TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
+// subscription request is sent but loses leadership status for subsequent messages.
+func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	first := true
+	leaderFunc := func() bool {
+		if first {
+			first = false
+			return true
+		}
+		return false
+	}
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store:  store,
+		pub:    publisher,
+		leader: leaderFunc,
+	})
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	peerID := p.ID
+
+	// Receive a subscription from a peer
+	sub := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				PeerID:      peerID,
+				ResourceURL: pbpeering.TypeURLService,
+			},
+		},
+	}
+	err := client.Send(sub)
+	require.NoError(t, err)
+
+	msg, err := client.Recv()
+	require.NoError(t, err)
+	require.NotEmpty(t, msg)
+
+	input2 := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				ResourceURL: pbpeering.TypeURLService,
+				Nonce:       "1",
+			},
+		},
+	}
+
+	err2 := client.Send(input2)
+	require.NoError(t, err2)
+
+	msg2, err2 := client.Recv()
+	require.Nil(t, msg2)
+	require.Error(t, err2)
+	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+}
+
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
 	type testCase struct {
 		name    string
@@ -694,8 +795,16 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 }
 
 type testStreamBackend struct {
-	pub   state.EventPublisher
-	store *state.Store
+	pub    state.EventPublisher
+	store  *state.Store
+	leader func() bool
+}
+
+func (b *testStreamBackend) IsLeader() bool {
+	if b.leader != nil {
+		return b.leader()
+	}
+	return true
 }
 
 func (b *testStreamBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
