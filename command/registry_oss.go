@@ -1,5 +1,8 @@
 package command
 
-import mcli "github.com/mitchellh/cli"
+import (
+	"github.com/hashicorp/consul/command/cli"
+	mcli "github.com/mitchellh/cli"
+)
 
-func registerEnterpriseCommands(_ map[string]mcli.CommandFactory) {}
+func registerEnterpriseCommands(_ cli.Ui, _ map[string]mcli.CommandFactory) {}

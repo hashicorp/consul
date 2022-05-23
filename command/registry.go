@@ -251,7 +251,7 @@ func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},
 	)
-	registerEnterpriseCommands(registry)
+	registerEnterpriseCommands(ui, registry)
 	return registry
 }
 
