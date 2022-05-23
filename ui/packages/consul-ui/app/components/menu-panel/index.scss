@@ -11,9 +11,6 @@
 %menu-panel {
   @extend %panel;
 }
-%menu-panel-item span {
-  @extend %menu-panel-badge;
-}
 %menu-panel [role='separator'] {
   @extend %panel-separator;
   @extend %menu-panel-separator;
