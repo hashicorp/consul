@@ -283,7 +283,7 @@ static-assets: bindata-tools
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-docker static-assets-docker
 
-tools: proto-tools
+tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
 
 .PHONY: lint-tools
@@ -294,9 +294,9 @@ lint-tools:
 bindata-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -bindata
 
+.PHONY: proto-tools
 proto-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh \
-		--tools-only
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
 
 version:
 	@echo -n "Version:                    "
@@ -399,6 +399,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools proto-tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version test-envoy-integ
