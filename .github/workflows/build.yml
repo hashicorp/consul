@@ -85,11 +85,6 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install project dependencies
-        run: |
-          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
-
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
@@ -184,11 +179,6 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
-
-      - name: Install project dependencies
-        run: |
-          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
 
       - name: Setup with node and yarn
         uses: actions/setup-node@v2

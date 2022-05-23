@@ -185,9 +185,7 @@ jobs:
       - run: go env
       - run:
           name: Install golangci-lint
-          command: |
-            download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -x -s -- -d -b /home/circleci/go/bin v1.46.2
+          command: make lint-tools
       - run: go mod download
       - run:
           name: lint
@@ -675,7 +673,6 @@ jobs:
       - attach_workspace:
           at: ./pkg
       - run: mv pkg/packages/consul-ui/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
-      - run: make tools
       - run: make static-assets
       - persist_to_workspace:
           root: .
