@@ -601,8 +601,8 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 				// we are not the leader anymore so we will hang up on the dialer
 
 				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
-				logger.Error("node is not a follower anymore; cannot continue streaming")
-				return grpcstatus.Error(codes.FailedPrecondition, "node is not a follower anymore; cannot continue streaming")
+				logger.Error("node is not a leader anymore; cannot continue streaming")
+				return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
 			}
 
 			if req := msg.GetRequest(); req != nil {

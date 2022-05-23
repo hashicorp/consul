@@ -128,7 +128,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	msg2, err2 := client.Recv()
 	require.Nil(t, msg2)
 	require.Error(t, err2)
-	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a follower anymore; cannot continue streaming")
+	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
@@ -511,7 +511,6 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	var lastRecvError time.Time
 	var lastRecvErrorMsg string
 
-	// find me alex
 	testutil.RunStep(t, "response fails to apply locally", func(t *testing.T) {
 		resp := &pbpeering.ReplicationMessage{
 			Payload: &pbpeering.ReplicationMessage_Response_{
