@@ -6,6 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
+      - CTIA-8-verify-builds
 
 env:
   PKG_NAME: consul
@@ -246,42 +247,52 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
 
   verify:
-    needs: build
+    needs:
+      - get-product-version
+      - build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [ "386", "amd64", "arm", "arm64" ]
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
     name: Verify ${{ matrix.arch }} linux zip
     steps:
       - uses: actions/checkout@v2
-
       - name: Download artifact
-        run: |
-          echo "TODO: download ${{ matrix.arch }} linux zip"
-
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
       - name: Run verification for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'amd64' || matrix.arch == '386' }}
         run: |
-          echo "TODO: run verification for ${{ matrix.arch }} linux zip"
+          unzip ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
+          ./consul version
 
   verify-darwin:
-    needs: build-darwin
+    needs:
+      - get-product-version
+      - build-darwin
     runs-on: macos-latest
     strategy:
       matrix:
-        arch: [ "amd64", "arm64" ]
+        arch: ["amd64", "arm64"]
       fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
     name: Verify ${{ matrix.arch }} darwin zip
     steps:
       - uses: actions/checkout@v2
-
       - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
+      - name: Run verification for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'amd64' }}
         run: |
-          echo "TODO: download ${{ matrix.arch }} darwin zip"
-
-      - name: Run verification for ${{ matrix.arch }} darwin zip
-        run: |
-          echo "TODO: run verification for ${{ matrix.arch }} darwin zip"
+          unzip ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
+          ./consul version
 
   verify-linux-packages-deb:
     needs: build
@@ -314,7 +325,7 @@ jobs:
     name: Verify ${{ matrix.arch }} rpm package
     steps:
       - uses: actions/checkout@v2
-          -
+
       - name: Download ${{ matrix.arch }} rpm package
         run: |
           echo "TODO: download ${{ matrix.arch }} rpm package"
