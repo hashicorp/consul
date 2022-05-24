@@ -802,6 +802,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 		},
+		{
+			name: "transparent-proxy-terminating-gateway-destinations-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]

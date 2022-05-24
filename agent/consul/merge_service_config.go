@@ -155,6 +155,9 @@ func computeResolvedServiceConfig(
 		if serviceConf.Mode != structs.ProxyModeDefault {
 			thisReply.Mode = serviceConf.Mode
 		}
+		if serviceConf.Destination != nil {
+			thisReply.Destination = *serviceConf.Destination
+		}
 
 		thisReply.Meta = serviceConf.Meta
 	}
