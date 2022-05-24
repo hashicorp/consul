@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"net"
 	"net/url"
 	"regexp"
@@ -46,6 +47,12 @@ import (
 )
 
 const virtualIPTag = "virtual"
+
+var crc32q *crc32.Table
+
+func init() {
+	crc32q = crc32.MakeTable(crc32.IEEE)
+}
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -1035,13 +1042,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		clusterChain, err := s.makeFilterChainTerminatingGateway(
-			cfgSnap,
-			clusterName,
-			svc,
-			intentions,
-			cfg.Protocol,
-		)
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -1053,19 +1054,41 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			for subsetName := range resolver.Subsets {
 				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
-					cfgSnap,
-					subsetClusterName,
-					svc,
-					intentions,
-					cfg.Protocol,
-				)
+				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, subsetClusterName, svc, intentions, cfg.Protocol, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", subsetClusterName, err)
 				}
 				l.FilterChains = append(l.FilterChains, subsetClusterChain)
 			}
 		}
+	}
+
+	for _, svc := range cfgSnap.TerminatingGateway.ValidEndpoints() {
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn(
+				"failed to parse Connect.Proxy.Config for linked service",
+				"service", svc.String(),
+				"error", err,
+			)
+		}
+
+		var endpoint *structs.EndpointConfig
+		if cfgSnap.TerminatingGateway.EndpointServices[svc].IsEndpoint {
+			endpoint = &svcConfig.Endpoint
+		}
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+		}
+		l.FilterChains = append(l.FilterChains, clusterChain)
 	}
 
 	// Before we add the fallback, sort these chains by the matched name. All
@@ -1075,7 +1098,13 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	// effect on how they operate, but it does mean that we won't churn
 	// listeners at idle.
 	sort.Slice(l.FilterChains, func(i, j int) bool {
-		return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		outI, _ := proto.Marshal(l.FilterChains[i].FilterChainMatch)
+		crcI := crc32.Checksum(outI, crc32q)
+
+		outJ, _ := proto.Marshal(l.FilterChains[j].FilterChainMatch)
+		crcJ := crc32.Checksum(outJ, crc32q)
+
+		return crcI < crcJ
 	})
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
@@ -1101,13 +1130,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	cluster string,
-	service structs.ServiceName,
-	intentions structs.Intentions,
-	protocol string,
-) (*envoy_listener_v3.FilterChain, error) {
+func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, endpoint *structs.EndpointConfig) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContextFromLeaf(
 			cfgSnap,
@@ -1121,10 +1144,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		return nil, err
 	}
 
-	filterChain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: makeSNIFilterChainMatch(cluster),
-		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
-		TransportSocket:  transportSocket,
+	var filterChain *envoy_listener_v3.FilterChain
+	if endpoint != nil {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeEndpointFilterChainMatch(endpoint),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
+	} else {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(cluster),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
 	}
 
 	// This controls if we do L4 or L7 intention checks.
@@ -1181,6 +1213,50 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	filterChain.Filters = append(filterChain.Filters, filter)
 
 	return filterChain, nil
+}
+
+func makeEndpointFilterChainMatch(endpoint *structs.EndpointConfig) *envoy_listener_v3.FilterChainMatch {
+	// IP
+	ip := net.ParseIP(endpoint.Address)
+	if ip != nil {
+
+		pfxLen := uint32(32)
+		if ip.To4() == nil {
+			pfxLen = 128
+		}
+
+		return &envoy_listener_v3.FilterChainMatch{
+			PrefixRanges: []*envoy_core_v3.CidrRange{
+				{
+					AddressPrefix: endpoint.Address,
+					PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+				},
+			},
+			DestinationPort: &wrappers.UInt32Value{Value: uint32(endpoint.Port)},
+		}
+	}
+
+	// CIDR
+	ip, ipNet, err := net.ParseCIDR(endpoint.Address)
+	if err == nil {
+		ipSize, _ := ipNet.Mask.Size()
+		pfxLen := uint32(ipSize)
+
+		return &envoy_listener_v3.FilterChainMatch{
+			PrefixRanges: []*envoy_core_v3.CidrRange{
+				{
+					AddressPrefix: ip.String(),
+					PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+				},
+			},
+			DestinationPort: &wrappers.UInt32Value{Value: uint32(endpoint.Port)},
+		}
+	}
+
+	// Hostname or Wildcard
+	return &envoy_listener_v3.FilterChainMatch{
+		ServerNames: []string{endpoint.Address},
+	}
 }
 
 func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_listener_v3.Listener, error) {

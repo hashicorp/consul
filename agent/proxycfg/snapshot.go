@@ -206,7 +206,13 @@ type configSnapshotTerminatingGateway struct {
 	// GatewayServices is a map of service name to the config entry association
 	// between the gateway and a service. TLS configuration stored here is
 	// used for TLS origination from the gateway to the linked service.
+	// This map does not include GatewayServices that represent Endpoints to external
+	// destinations.
 	GatewayServices map[structs.ServiceName]structs.GatewayService
+
+	// EndpointServices is a map of service name to GatewayServices that represent
+	// an Endpoint to an external destination of the service mesh.
+	EndpointServices map[structs.ServiceName]structs.GatewayService
 
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -245,6 +251,34 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
+// ValidEndpoints returns the list of service keys (that represent exclusively endpoints) that have enough data to be emitted.
+func (c *configSnapshotTerminatingGateway) ValidEndpoints() []structs.ServiceName {
+	out := make([]structs.ServiceName, 0, len(c.EndpointServices))
+	for svc := range c.EndpointServices {
+		// It only counts if ALL of our watches have come back (with data or not).
+
+		// TODO (dans): there's still mTLS between connect proxies in transparent mode, so we need this, right?
+		// Skip the service if we don't have a cert to present for mTLS.
+		if cert, ok := c.ServiceLeaves[svc]; !ok || cert == nil {
+			continue
+		}
+
+		// Skip the service if we haven't gotten our intentions yet.
+		if _, intentionsSet := c.Intentions[svc]; !intentionsSet {
+			continue
+		}
+
+		// Skip the service if we haven't gotten our service config yet to know
+		// the protocol.
+		if _, ok := c.ServiceConfigs[svc]; !ok || c.ServiceConfigs[svc].Endpoint.Address == "" {
+			continue
+		}
+
+		out = append(out, svc)
+	}
+	return out
+}
+
 // isEmpty is a test helper
 func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 	if c == nil {
@@ -262,6 +296,7 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		len(c.ServiceConfigs) == 0 &&
 		len(c.WatchedConfigs) == 0 &&
 		len(c.GatewayServices) == 0 &&
+		len(c.EndpointServices) == 0 &&
 		len(c.HostnameServices) == 0 &&
 		!c.MeshConfigSet
 }

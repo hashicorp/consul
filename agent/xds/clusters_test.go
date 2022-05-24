@@ -571,13 +571,13 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, false, nil, nil)
 			},
 		},
 		{
 			name: "terminating-gateway-no-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, false, nil, nil)
 			},
 		},
 		{

@@ -17,6 +17,7 @@ type ResolvedServiceConfig struct {
 	RPC RPC
 }
 
+// TODO (dans): This is what queries for services
 func (c *ResolvedServiceConfig) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
