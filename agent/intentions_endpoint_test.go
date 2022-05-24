@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -311,6 +312,52 @@ func TestIntentionCheck(t *testing.T) {
 		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.True(t, value.Allowed)
+	})
+}
+
+type testSrv struct {
+	delegate
+}
+
+func (s *testSrv) RPC(method string, args interface{}, reply interface{}) error {
+	return fmt.Errorf("rpc error making call: %w", errors.New("Intention not found"))
+}
+func (s *testSrv) Shutdown() error {
+	return nil
+}
+
+func TestIntentionGetExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	notfound := func(t *testing.T) {
+		t.Helper()
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		testutil.RequireErrorContains(t, err, "Intention not found")
+		httpErr, ok := err.(HTTPError)
+		require.True(t, ok)
+		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+		require.Nil(t, obj)
+	}
+
+	t.Run("not found locally", func(t *testing.T) {
+		notfound(t)
+	})
+
+	t.Run("not found by RPC", func(t *testing.T) {
+		a.delegate = &testSrv{}
+		notfound(t)
 	})
 }
 
