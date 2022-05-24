@@ -46,7 +46,12 @@ func pushServiceResponse(
 		return nil
 	}
 
-	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
+	var serviceName string
+	if strings.HasPrefix(update.CorrelationID, subExportedService) {
+		serviceName = strings.TrimPrefix(update.CorrelationID, subExportedService)
+	} else {
+		serviceName = strings.TrimPrefix(update.CorrelationID, subExportedProxyService) + syntheticProxyNameSuffix
+	}
 
 	// If no nodes are present then it's due to one of:
 	// 1. The service is newly registered or exported and yielded a transient empty update.

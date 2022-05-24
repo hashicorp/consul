@@ -50,14 +50,19 @@ type Service struct {
 	Backend Backend
 	logger  hclog.Logger
 	streams *streamTracker
+
+	// TODO(peering): remove this when we're ready
+	DisableMeshGatewayMode bool
 }
 
 func NewService(logger hclog.Logger, backend Backend) *Service {
-	return &Service{
+	srv := &Service{
 		Backend: backend,
 		logger:  logger,
 		streams: newStreamTracker(),
 	}
+	srv.DisableMeshGatewayMode = true
+	return srv
 }
 
 var _ pbpeering.PeeringServiceServer = (*Service)(nil)
@@ -517,6 +522,7 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 	defer s.streams.disconnected(req.LocalID)
 
 	mgr := newSubscriptionManager(req.Stream.Context(), logger, s.Backend)
+	mgr.DisableMeshGatewayMode = s.DisableMeshGatewayMode
 	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.Partition)
 
 	sub := &pbpeering.ReplicationMessage{
@@ -653,7 +659,8 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 
 		case update := <-subCh:
 			switch {
-			case strings.HasPrefix(update.CorrelationID, subExportedService):
+			case strings.HasPrefix(update.CorrelationID, subExportedService),
+				strings.HasPrefix(update.CorrelationID, subExportedProxyService):
 				if err := pushServiceResponse(logger, req.Stream, status, update); err != nil {
 					return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 				}
