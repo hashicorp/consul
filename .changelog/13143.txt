@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance.
+```
