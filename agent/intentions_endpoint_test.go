@@ -342,7 +342,7 @@ func TestIntentionGetExact(t *testing.T) {
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.IntentionExact(resp, req)
+		obj, _ := a.srv.IntentionExact(resp, req)
 		require.Equal(t, http.StatusNotFound, resp.Code)
 		require.Nil(t, obj)
 	}
