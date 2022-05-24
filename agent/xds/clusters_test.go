@@ -620,6 +620,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-dial-instances-directly",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
+		{
+			name: "transparent-proxy-terminating-gateway-destinations-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
