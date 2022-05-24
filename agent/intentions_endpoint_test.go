@@ -383,7 +383,8 @@ func TestIntentionGetExact(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	notfound := func() {
+	notfound := func(t *testing.T) {
+	        t.Helper()
 		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
 		require.NoError(t, err)
 
@@ -400,8 +401,9 @@ func TestIntentionGetExact(t *testing.T) {
 		notfound()
 	})
 
-	a.delegate = &testSrv{}
+	
 	t.Run("not found by RPC", func(t *testing.T) {
+	        a.delegate = &testSrv{}
 		notfound()
 	})
 }
