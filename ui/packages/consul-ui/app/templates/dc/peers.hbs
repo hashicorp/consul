@@ -1,4 +1,15 @@
-<div>
-  Peers UI goes here
+<Route @name={{route}} as |route|>
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title="Peers" />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <div>
+        Peers UI goes here
+      </div>
+    </BlockSlot>
 
-</div>
+  </AppView>
+</Route>
