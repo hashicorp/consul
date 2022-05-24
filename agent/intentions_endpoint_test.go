@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -311,6 +312,17 @@ func TestIntentionCheck(t *testing.T) {
 		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.True(t, value.Allowed)
 	})
+}
+
+type testSrv struct {
+	delegate
+}
+
+func (s *testSrv) RPC(method string, args interface{}, reply interface{}) error {
+	return fmt.Errorf("rpc error making call: %w", errors.New("Intention not found"))
+}
+func (s *testSrv) Shutdown() error {
+	return nil
 }
 
 func TestIntentionPutExact(t *testing.T) {
