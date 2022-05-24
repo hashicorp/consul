@@ -233,6 +233,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Download artifact for arm verification
+        uses: actions/download-artifact@v2
+        if: ${{ matrix.arch == 'arm64' }}
+        with:
+          name: ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
+      - name: Unzip for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          unzip ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
+          ls
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
@@ -245,6 +255,12 @@ jobs:
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
+      - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          ls
+          docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
+            arm64v8/debian ./consul version
 
   build-docker-redhat:
     name: Docker Build UBI Image for RedHat
