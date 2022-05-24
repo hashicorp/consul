@@ -34,6 +34,9 @@
           },
         },
       },
+      peers: {
+        _options: { path: '/peers' },
+      },
       services: {
         _options: { path: '/services' },
         index: {
