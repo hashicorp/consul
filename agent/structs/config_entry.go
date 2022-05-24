@@ -301,6 +301,16 @@ type DestinationConfig struct {
 	Port int `json:",omitempty"`
 }
 
+func (d *DestinationConfig) HasHostname() bool {
+	ip := net.ParseIP(d.Address)
+	return ip == nil
+}
+
+func (d *DestinationConfig) HasIP() bool {
+	ip := net.ParseIP(d.Address)
+	return ip != nil
+}
+
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
 	Kind             string
@@ -1043,6 +1053,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Destination       DestinationConfig      `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }

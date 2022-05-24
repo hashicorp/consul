@@ -22,6 +22,7 @@ import (
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
+	envoy_sni_dynamic_forward_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_dynamic_forward_proxy/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -1185,13 +1186,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		clusterChain, err := s.makeFilterChainTerminatingGateway(
-			cfgSnap,
-			clusterName,
-			svc,
-			intentions,
-			cfg.Protocol,
-		)
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -1203,19 +1198,43 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			for subsetName := range resolver.Subsets {
 				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
-					cfgSnap,
-					subsetClusterName,
-					svc,
-					intentions,
-					cfg.Protocol,
-				)
+				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, subsetClusterName, svc, intentions, cfg.Protocol, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", subsetClusterName, err)
 				}
 				l.FilterChains = append(l.FilterChains, subsetClusterChain)
 			}
 		}
+	}
+
+	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn(
+				"failed to parse Connect.Proxy.Config for linked destination",
+				"destination", svc.String(),
+				"error", err,
+			)
+		}
+
+		var dest *structs.DestinationConfig
+		if cfgSnap.TerminatingGateway.DestinationServices[svc].ServiceKind == structs.GatewayServiceKindDestination {
+			dest = &svcConfig.Destination
+		} else {
+			return nil, fmt.Errorf("invalid gateway service for destination %s", svc.Name)
+		}
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, dest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+		}
+		l.FilterChains = append(l.FilterChains, clusterChain)
 	}
 
 	// Before we add the fallback, sort these chains by the matched name. All
@@ -1251,13 +1270,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	cluster string,
-	service structs.ServiceName,
-	intentions structs.Intentions,
-	protocol string,
-) (*envoy_listener_v3.FilterChain, error) {
+func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, dest *structs.DestinationConfig) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[service],
@@ -1271,10 +1284,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		return nil, err
 	}
 
-	filterChain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: makeSNIFilterChainMatch(cluster),
-		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
-		TransportSocket:  transportSocket,
+	var filterChain *envoy_listener_v3.FilterChain
+	if dest != nil {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeDestinationFilterChainMatch(cluster, dest),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
+	} else {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(cluster),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
 	}
 
 	// This controls if we do L4 or L7 intention checks.
@@ -1293,16 +1315,28 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		filterChain.Filters = append(filterChain.Filters, authFilter)
 	}
 
+	// For Destinations of Hostname types, we use the dynamic forward proxy filter since this could be
+	// a wildcard match. We also send to the dynamic forward cluster
+	if dest != nil && dest.HasHostname() {
+		dynamicFilter, err := makeSNIDynamicForwardProxyFilter(dest.Port)
+		if err != nil {
+			return nil, err
+		}
+		filterChain.Filters = append(filterChain.Filters, dynamicFilter)
+		cluster = dynamicForwardProxyClusterName
+	}
+
 	// Lastly we setup the actual proxying component. For L4 this is a straight
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
-		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
-		routeName:  cluster, // Set cluster name for route config since each will have its own
-		cluster:    cluster,
-		statPrefix: "upstream.",
-		routePath:  "",
+		protocol:               protocol,
+		filterName:             fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
+		routeName:              cluster, // Set cluster name for route config since each will have its own
+		cluster:                cluster,
+		statPrefix:             "upstream.",
+		routePath:              "",
+		useDynamicForwardProxy: dest != nil && dest.HasHostname(),
 	}
 
 	if useHTTPFilter {
@@ -1333,6 +1367,23 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	filterChain.Filters = append(filterChain.Filters, filter)
 
 	return filterChain, nil
+}
+
+func makeDestinationFilterChainMatch(cluster string, dest *structs.DestinationConfig) *envoy_listener_v3.FilterChainMatch {
+	// For hostname and wildcard destinations, we match on the address.
+
+	// For IP Destinations, use the alias SNI name to match
+	ip := net.ParseIP(dest.Address)
+	if ip != nil {
+		return &envoy_listener_v3.FilterChainMatch{
+			ServerNames: []string{cluster},
+		}
+	}
+
+	// For hostname and wildcard destinations, we match on the address in the Destination
+	return &envoy_listener_v3.FilterChainMatch{
+		ServerNames: []string{dest.Address},
+	}
 }
 
 func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_listener_v3.Listener, error) {
@@ -1658,18 +1709,19 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 }
 
 type listenerFilterOpts struct {
-	useRDS               bool
-	protocol             string
-	filterName           string
-	routeName            string
-	cluster              string
-	statPrefix           string
-	routePath            string
-	requestTimeoutMs     *int
-	ingressGateway       bool
-	httpAuthzFilter      *envoy_http_v3.HttpFilter
-	forwardClientDetails bool
-	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	useRDS                 bool
+	protocol               string
+	filterName             string
+	routeName              string
+	cluster                string
+	statPrefix             string
+	routePath              string
+	requestTimeoutMs       *int
+	ingressGateway         bool
+	httpAuthzFilter        *envoy_http_v3.HttpFilter
+	forwardClientDetails   bool
+	forwardClientPolicy    envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	useDynamicForwardProxy bool
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -1700,6 +1752,13 @@ func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChai
 
 func makeSNIClusterFilter() (*envoy_listener_v3.Filter, error) {
 	return makeFilter("envoy.filters.network.sni_cluster", &envoy_sni_cluster_v3.SniCluster{})
+}
+
+func makeSNIDynamicForwardProxyFilter(upstreamPort int) (*envoy_listener_v3.Filter, error) {
+	return makeFilter("envoy.filters.network.sni_dynamic_forward_proxy", &envoy_sni_dynamic_forward_proxy_v3.FilterConfig{
+		DnsCacheConfig: getCommonDNSCacheConfiguration(),
+		PortSpecifier:  &envoy_sni_dynamic_forward_proxy_v3.FilterConfig_PortValue{PortValue: uint32(upstreamPort)},
+	})
 }
 
 func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener_v3.Filter, error) {
