@@ -19,3 +19,7 @@ func (s *Server) validateEnterpriseToken(identity structs.ACLIdentity) error {
 func (s *Server) aclBootstrapAllowed() error {
 	return nil
 }
+
+func (*Server) enterpriseAuthMethodTypeValidation(authMethodType string) error {
+	return nil
+}

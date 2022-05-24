@@ -51,6 +51,7 @@ func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
 	return EventSubjectService{
 		Key:            e.Value.Service.Service,
 		EnterpriseMeta: e.Value.Service.EnterpriseMeta,
+		PeerName:       e.Value.Service.PeerName,
 
 		overrideKey:       e.overrideKey,
 		overrideNamespace: e.overrideNamespace,

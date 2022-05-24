@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package acl;
+
+service ACLService {
+  // Login exchanges the presented bearer token for a Consul ACL token using a
+  // configured auth method.
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+
+  // Logout destroys the given ACL token once the caller is done with it.
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {}
+}
+
+message LogoutResponse {}
+
+message LoginRequest {
+  // auth_method is the name of the configured auth method that will be used to
+  // validate the presented bearer token.
+  string auth_method = 1;
+
+  // bearer_token is a token produced by a trusted identity provider as
+  // configured by the auth method.
+  string bearer_token = 2;
+
+  // meta is a collection of arbitrary key-value pairs associated to the token,
+  // it is useful for tracking the origin of tokens.
+  map<string, string> meta = 3;
+
+  // namespace (enterprise only) is the namespace in which the auth method
+  // resides.
+  string namespace = 4;
+
+  // partition (enterprise only) is the partition in which the auth method
+  // resides.
+  string partition = 5;
+
+  // datacenter is the target datacenter in which the request will be processed.
+  string datacenter = 6;
+}
+
+message LoginResponse {
+  // token is the generated ACL token.
+  LoginToken token = 1;
+}
+
+message LoginToken {
+  // accessor_id is a UUID used to identify the ACL token.
+  string accessor_id = 1;
+
+  // secret_id is a UUID presented as a credential by clients.
+  string secret_id = 2;
+}
+
+message LogoutRequest {
+  // token is the ACL token's secret ID.
+  string token = 1;
+
+  // datacenter is the target datacenter in which the request will be processed.
+  string datacenter = 2;
+}

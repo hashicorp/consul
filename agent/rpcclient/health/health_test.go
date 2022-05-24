@@ -152,7 +152,7 @@ func (f *fakeCache) Get(_ context.Context, t string, _ cache.Request) (interface
 	return result, cache.ResultMeta{}, nil
 }
 
-func (f *fakeCache) Notify(_ context.Context, t string, _ cache.Request, _ string, _ chan<- cache.UpdateEvent) error {
+func (f *fakeCache) NotifyCallback(_ context.Context, t string, _ cache.Request, _ string, _ cache.Callback) error {
 	f.calls = append(f.calls, t)
 	return nil
 }
@@ -175,7 +175,7 @@ func (f *fakeViewStore) Get(_ context.Context, req submatview.Request) (submatvi
 	return submatview.Result{Value: &structs.IndexedCheckServiceNodes{}}, nil
 }
 
-func (f *fakeViewStore) Notify(_ context.Context, req submatview.Request, _ string, _ chan<- cache.UpdateEvent) error {
+func (f *fakeViewStore) NotifyCallback(_ context.Context, req submatview.Request, _ string, _ cache.Callback) error {
 	f.calls = append(f.calls, req)
 	return nil
 }

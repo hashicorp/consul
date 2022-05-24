@@ -85,11 +85,6 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install project dependencies
-        run: |
-          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
-
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
@@ -185,11 +180,6 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install project dependencies
-        run: |
-          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
-
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
         with:
@@ -251,3 +241,6 @@ jobs:
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
+          dev_tags: |
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-dev
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}

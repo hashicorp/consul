@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -59,7 +58,7 @@ type Manager struct {
 type ManagerConfig struct {
 	// Cache is the agent's cache instance that can be used to retrieve, store and
 	// monitor state for the proxies.
-	Cache *cache.Cache
+	Cache CacheNotifier
 	// Health provides service health updates on a notification channel.
 	Health Health
 	// state is the agent's local state to be watched for new proxy registrations.

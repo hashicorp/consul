@@ -1,8 +1,6 @@
 syntax = "proto3";
 
-package pbservice;
-
-option go_package = "github.com/hashicorp/consul/proto/pbservice";
+package service;
 
 import "proto/pbcommon/common.proto";
 import "proto/pbservice/healthcheck.proto";

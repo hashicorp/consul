@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/go-uuid"
 
@@ -31,7 +30,7 @@ func TestWatchRoots_ConnectDisabled(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(context.Background(), &emptypb.Empty{})
+	stream, err := client.WatchRoots(context.Background(), &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -68,7 +67,7 @@ func TestWatchRoots_Success(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -116,7 +115,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 
 	// Start the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -154,7 +153,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Start the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -222,7 +221,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 

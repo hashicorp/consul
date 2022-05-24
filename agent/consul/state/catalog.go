@@ -1157,6 +1157,24 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, 
 	return idx, results, nil
 }
 
+func serviceExists(tx ReadTxn, ws memdb.WatchSet, name string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, bool, error) {
+	idx := catalogServicesMaxIndex(tx, entMeta, peerName)
+	q := Query{
+		Value:          name,
+		EnterpriseMeta: *entMeta,
+		PeerName:       peerName,
+	}
+	watchCh, existing, err := tx.FirstWatch(tableServices, indexService, q)
+	if err != nil {
+		return idx, false, fmt.Errorf("failed querying for service: %s", err)
+	}
+	ws.Add(watchCh)
+	if existing == nil {
+		return idx, false, nil
+	}
+	return idx, true, nil
+}
+
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
 func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)

@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -23,10 +24,28 @@ import (
 )
 
 func TestServerlessPluginFromSnapshot(t *testing.T) {
+	serviceDefaults := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "db",
+		Protocol: "http",
+		Meta: map[string]string{
+			"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+			"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+			"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
+			"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+		},
+	}
+
 	tests := []struct {
 		name   string
 		create func(t testinf.T) *proxycfg.ConfigSnapshot
 	}{
+		{
+			name: "lambda-connect-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
+			},
+		},
 		{
 			name: "lambda-terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {

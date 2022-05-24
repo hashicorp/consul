@@ -47,10 +47,18 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cache)
 
-		cache.PutIdentity("foo", &ACLToken{}, nil)
+		cache.PutIdentity("foo", &ACLToken{})
 		entry := cache.GetIdentity("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Identity)
+
+		cache.PutIdentityWithSecretToken("secret", &ACLToken{})
+		entry = cache.GetIdentityWithSecretToken("secret")
+		require.NotNil(t, entry)
+		require.NotNil(t, entry.Identity)
+		cache.RemoveIdentityWithSecretToken("secret")
+		entry = cache.GetIdentityWithSecretToken("secret")
+		require.Nil(t, entry)
 	})
 
 	t.Run("Policies", func(t *testing.T) {

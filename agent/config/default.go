@@ -128,6 +128,7 @@ func DefaultSource() Source {
 			metrics_prefix = "consul"
 			filter_default = true
 			prefix_filter = []
+			retry_failed_connection = true
 		}
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
@@ -209,13 +210,14 @@ func NonUserSource() Source {
 // versionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
-func versionSource(rev, ver, verPre string) Source {
+func versionSource(rev, ver, verPre, meta string) Source {
 	return LiteralSource{
 		Name: "version",
 		Config: Config{
 			Revision:          &rev,
 			Version:           &ver,
 			VersionPrerelease: &verPre,
+			VersionMetadata:   &meta,
 		},
 	}
 }
@@ -223,7 +225,7 @@ func versionSource(rev, ver, verPre string) Source {
 // defaultVersionSource returns the version config source for the embedded
 // version numbers.
 func defaultVersionSource() Source {
-	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease)
+	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease, version.VersionMetadata)
 }
 
 // DefaultConsulSource returns the default configuration for the consul agent.

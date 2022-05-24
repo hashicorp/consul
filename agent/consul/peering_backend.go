@@ -15,6 +15,7 @@ import (
 )
 
 type peeringBackend struct {
+	// TODO(peering): accept a smaller interface; maybe just funcs from the server that we actually need: DC, IsLeader, etc
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
@@ -31,6 +32,7 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 	}
 }
 
+// Forward should not be used to initiate forwarding over bidirectional streams
 func (b *peeringBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	// Only forward the request if the dc in the request matches the server's datacenter.
 	if info.RequestDatacenter() != "" && info.RequestDatacenter() != b.srv.config.Datacenter {
@@ -103,6 +105,10 @@ func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {
 	return b.enterpriseCheckPartitions(partition)
 }
 
+func (b *peeringBackend) IsLeader() bool {
+	return b.srv.IsLeader()
+}
+
 type peeringApply struct {
 	srv *Server
 }
@@ -120,6 +126,11 @@ func (a *peeringApply) PeeringDelete(req *pbpeering.PeeringDeleteRequest) error 
 // TODO(peering): This needs RPC metrics interceptor since it's not triggered by an RPC.
 func (a *peeringApply) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error {
 	_, err := a.srv.raftApplyProtobuf(structs.PeeringTerminateByIDType, req)
+	return err
+}
+
+func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Register", structs.RegisterRequestType, req)
 	return err
 }
 

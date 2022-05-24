@@ -376,8 +376,8 @@ func testManager_BasicLifecycle(
 
 	// Create manager
 	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		Cache:  &CacheWrapper{c},
+		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
 		State:  state,
 		Source: source,
 		Logger: logger,
@@ -509,7 +509,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2}),
+		Cache: &CacheWrapper{cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2})},
 		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
@@ -581,8 +581,8 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 	state.TriggerSyncChanges = func() {}
 
 	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		Cache:  &CacheWrapper{c},
+		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
 		State:  state,
 		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},
@@ -626,8 +626,8 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	state.TriggerSyncChanges = func() {}
 
 	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		Cache:  &CacheWrapper{c},
+		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
 		State:  state,
 		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},
@@ -673,7 +673,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 
 	// update the leaf certs
 	roots, issuedCert := TestCerts(t)
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        issuedCert,
 		Err:           nil,
@@ -688,7 +688,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	}
 
 	// update the root certs
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: rootsWatchID,
 		Result:        roots,
 		Err:           nil,
@@ -704,7 +704,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	}
 
 	// update the mesh config entry
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: meshConfigEntryID,
 		Result:        &structs.ConfigEntryResponse{},
 		Err:           nil,
@@ -723,7 +723,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	readEvent <- true
 
 	// update the intentions
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
 		Result:        &structs.IndexedIntentionMatches{},
 		Err:           nil,
@@ -741,7 +741,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// send two snapshots back to back without reading them to overflow the snapshot channel and get to the default use case
 	for i := 0; i < 2; i++ {
 		time.Sleep(250 * time.Millisecond)
-		notifyCH <- cache.UpdateEvent{
+		notifyCH <- UpdateEvent{
 			CorrelationID: leafWatchID,
 			Result:        issuedCert,
 			Err:           nil,

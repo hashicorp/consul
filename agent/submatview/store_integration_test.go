@@ -320,7 +320,12 @@ func (c *consumer) Consume(ctx context.Context, maxIndex uint64) error {
 
 	group, cctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		return c.healthClient.Notify(cctx, req, "", updateCh)
+		return c.healthClient.Notify(cctx, req, "", func(ctx context.Context, event cache.UpdateEvent) {
+			select {
+			case updateCh <- event:
+			case <-ctx.Done():
+			}
+		})
 	})
 	group.Go(func() error {
 		var idx uint64

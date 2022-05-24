@@ -26,12 +26,12 @@ type NetRPC interface {
 
 type CacheGetter interface {
 	Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error)
-	Notify(ctx context.Context, t string, r cache.Request, cID string, ch chan<- cache.UpdateEvent) error
+	NotifyCallback(ctx context.Context, t string, r cache.Request, cID string, cb cache.Callback) error
 }
 
 type MaterializedViewStore interface {
 	Get(ctx context.Context, req submatview.Request) (submatview.Result, error)
-	Notify(ctx context.Context, req submatview.Request, cID string, ch chan<- cache.UpdateEvent) error
+	NotifyCallback(ctx context.Context, req submatview.Request, cID string, cb cache.Callback) error
 }
 
 func (c *Client) ServiceNodes(
@@ -91,14 +91,14 @@ func (c *Client) Notify(
 	ctx context.Context,
 	req structs.ServiceSpecificRequest,
 	correlationID string,
-	ch chan<- cache.UpdateEvent,
+	cb cache.Callback,
 ) error {
 	if c.useStreaming(req) {
 		sr := c.newServiceRequest(req)
-		return c.ViewStore.Notify(ctx, sr, correlationID, ch)
+		return c.ViewStore.NotifyCallback(ctx, sr, correlationID, cb)
 	}
 
-	return c.Cache.Notify(ctx, c.CacheName, &req, correlationID, ch)
+	return c.Cache.NotifyCallback(ctx, c.CacheName, &req, correlationID, cb)
 }
 
 func (c *Client) useStreaming(req structs.ServiceSpecificRequest) bool {

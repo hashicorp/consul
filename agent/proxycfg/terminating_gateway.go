@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -68,7 +67,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	return snap, nil
 }
 
-func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -216,7 +215,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			// These are used to create clusters and endpoints for the service subsets
 			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
+				err := s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					Kind:           structs.ServiceResolver,
@@ -340,16 +339,15 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 		snap.TerminatingGateway.ServiceConfigs[sn] = serviceConfig
 
 	case strings.HasPrefix(u.CorrelationID, serviceResolverIDPrefix):
-		configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
 		sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, serviceResolverIDPrefix))
 		// There should only ever be one entry for a service resolver within a namespace
-		if len(configEntries.Entries) == 1 {
-			if resolver, ok := configEntries.Entries[0].(*structs.ServiceResolverConfigEntry); ok {
-				snap.TerminatingGateway.ServiceResolvers[sn] = resolver
-			}
+		if resolver, ok := resp.Entry.(*structs.ServiceResolverConfigEntry); ok {
+			snap.TerminatingGateway.ServiceResolvers[sn] = resolver
 		}
 		snap.TerminatingGateway.ServiceResolversSet[sn] = true
 

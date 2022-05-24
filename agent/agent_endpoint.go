@@ -99,7 +99,8 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Partition:         s.agent.config.PartitionOrEmpty(),
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
-		Version:           s.agent.config.Version,
+		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
+		Version: s.agent.config.VersionWithMetadata(),
 	}
 	return Self{
 		Config:      config,
@@ -172,7 +173,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		handler.ServeHTTP(resp, req)
 		return nil, nil
 	}
-	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
+	return s.agent.baseDeps.MetricsConfig.Handler.DisplayMetrics(resp, req)
 }
 
 func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -209,7 +210,7 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 		flusher: flusher,
 	}
 	enc.encoder.SetIndent("", "    ")
-	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
+	s.agent.baseDeps.MetricsConfig.Handler.Stream(req.Context(), enc)
 	return nil, nil
 }
 

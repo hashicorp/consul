@@ -12,7 +12,7 @@ import (
 
 func TestConfigEntries(t *testing.T) {
 	rpc := TestRPC(t)
-	typ := &ConfigEntries{RPC: rpc}
+	typ := &ConfigEntryList{RPC: rpc}
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
@@ -99,7 +99,7 @@ func TestConfigEntry(t *testing.T) {
 
 func TestConfigEntries_badReqType(t *testing.T) {
 	rpc := TestRPC(t)
-	typ := &ConfigEntries{RPC: rpc}
+	typ := &ConfigEntryList{RPC: rpc}
 
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(

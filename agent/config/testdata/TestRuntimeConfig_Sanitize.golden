@@ -420,6 +420,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
+        "RetryFailedConfiguration": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {
@@ -460,6 +461,7 @@
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
     "Version": "",
+    "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": []
 }
