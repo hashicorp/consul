@@ -1227,6 +1227,13 @@ type NodeService struct {
 	RaftIndex `bexpr:"-"`
 }
 
+// PeeringServiceMeta is read-only information provided from an exported peer.
+type PeeringServiceMeta struct {
+	SNI      []string `json:",omitempty"`
+	SpiffeID []string `json:",omitempty"`
+	Protocol string   `json:",omitempty"`
+}
+
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	addr := ns.Address
 	port := ns.Port
@@ -1297,6 +1304,8 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
+
+	PeerMeta *PeeringServiceMeta `json:",omitempty" bexpr:"-"`
 }
 
 func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {

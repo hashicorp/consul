@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/api"
@@ -29,41 +30,48 @@ type SubscriptionBackend interface {
 
 // subscriptionManager handlers requests to subscribe to events from an events publisher.
 type subscriptionManager struct {
-	logger    hclog.Logger
-	viewStore MaterializedViewStore
-	backend   SubscriptionBackend
-
-	// TODO(peering): remove this when we're ready
-	DisableMeshGatewayMode bool
+	logger      hclog.Logger
+	config      Config
+	trustDomain string
+	viewStore   MaterializedViewStore
+	backend     SubscriptionBackend
 }
 
 // TODO(peering): Maybe centralize so that there is a single manager per datacenter, rather than per peering.
-func newSubscriptionManager(ctx context.Context, logger hclog.Logger, backend SubscriptionBackend) *subscriptionManager {
+func newSubscriptionManager(
+	ctx context.Context,
+	logger hclog.Logger,
+	config Config,
+	trustDomain string,
+	backend SubscriptionBackend,
+) *subscriptionManager {
 	logger = logger.Named("subscriptions")
 	store := submatview.NewStore(logger.Named("viewstore"))
 	go store.Run(ctx)
 
 	return &subscriptionManager{
-		logger:    logger,
-		viewStore: store,
-		backend:   backend,
+		logger:      logger,
+		config:      config,
+		trustDomain: trustDomain,
+		viewStore:   store,
+		backend:     backend,
 	}
 }
 
 // subscribe returns a channel that will contain updates to exported service instances for a given peer.
-func (m *subscriptionManager) subscribe(ctx context.Context, peerID, partition string) <-chan cache.UpdateEvent {
+func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, partition string) <-chan cache.UpdateEvent {
 	var (
 		updateCh       = make(chan cache.UpdateEvent, 1)
 		publicUpdateCh = make(chan cache.UpdateEvent, 1)
 	)
 
-	state := newSubscriptionState(partition)
+	state := newSubscriptionState(peerName, partition)
 	state.publicUpdateCh = publicUpdateCh
 	state.updateCh = updateCh
 
 	// Wrap our bare state store queries in goroutines that emit events.
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
-	if !m.DisableMeshGatewayMode {
+	if !m.config.DisableMeshGatewayMode && m.config.ConnectEnabled {
 		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
 	}
 
@@ -112,10 +120,12 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, pending, evt.Services)
-		if m.DisableMeshGatewayMode {
+		if m.config.DisableMeshGatewayMode {
 			m.syncProxyServices(ctx, state, pending, evt.Services)
 		} else {
-			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			if m.config.ConnectEnabled {
+				m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			}
 		}
 		state.sendPendingEvents(ctx, m.logger, pending)
 
@@ -133,7 +143,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// Clear this raft index before exporting.
 		csn.Index = 0
 
-		if !m.DisableMeshGatewayMode {
+		if !m.config.DisableMeshGatewayMode {
 			// Ensure that connect things are scrubbed so we don't mix-and-match
 			// with the synthetic entries that point to mesh gateways.
 			filterConnectReferences(csn)
@@ -148,6 +158,18 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 					instance.Checks,
 				)
 			}
+		}
+
+		// Scrub raft indexes
+		for _, instance := range csn.Nodes {
+			instance.Node.RaftIndex = nil
+			instance.Service.RaftIndex = nil
+			if m.config.DisableMeshGatewayMode {
+				for _, chk := range instance.Checks {
+					chk.RaftIndex = nil
+				}
+			}
+			// skip checks since we just generated one from scratch
 		}
 
 		id := servicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedService)
@@ -165,7 +187,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		if !m.DisableMeshGatewayMode {
+		if !m.config.DisableMeshGatewayMode {
 			return nil // ignore event
 		}
 
@@ -182,6 +204,18 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// 		instance.Checks,
 		// 	)
 		// }
+
+		// Scrub raft indexes
+		for _, instance := range csn.Nodes {
+			instance.Node.RaftIndex = nil
+			instance.Service.RaftIndex = nil
+			if m.config.DisableMeshGatewayMode {
+				for _, chk := range instance.Checks {
+					chk.RaftIndex = nil
+				}
+			}
+			// skip checks since we just generated one from scratch
+		}
 
 		id := proxyServicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedProxyService)
 
@@ -200,7 +234,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		partition := strings.TrimPrefix(u.CorrelationID, subMeshGateway)
 
-		if m.DisableMeshGatewayMode {
+		if m.config.DisableMeshGatewayMode || !m.config.ConnectEnabled {
 			return nil // ignore event
 		}
 
@@ -210,6 +244,30 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		// Clear this raft index before exporting.
 		csn.Index = 0
+
+		// Flatten health checks
+		for _, instance := range csn.Nodes {
+			instance.Checks = flattenChecks(
+				instance.Node.Node,
+				instance.Service.ID,
+				instance.Service.Service,
+				instance.Service.EnterpriseMeta,
+				instance.Checks,
+			)
+		}
+
+		// Scrub raft indexes
+		for _, instance := range csn.Nodes {
+			instance.Node.RaftIndex = nil
+			instance.Service.RaftIndex = nil
+			// skip checks since we just generated one from scratch
+
+			// Remove connect things like native mode.
+			if instance.Service.Connect != nil || instance.Service.Proxy != nil {
+				instance.Service.Connect = nil
+				instance.Service.Proxy = nil
+			}
+		}
 
 		state.meshGateway = csn
 
@@ -223,8 +281,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
-			for chainName := range state.connectServices {
-				m.emitEventForDiscoveryChain(ctx, state, pending, chainName)
+			for chainName, protocol := range state.connectServices {
+				m.emitEventForDiscoveryChain(ctx, state, pending, chainName, protocol)
 			}
 		}
 
@@ -369,17 +427,17 @@ func (m *subscriptionManager) syncDiscoveryChains(
 	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
-	chainsByName map[structs.ServiceName]struct{},
+	chainsByName map[structs.ServiceName]string, // TODO(peering):rename variable
 ) {
 	// if it was newly added, then try to emit an UPDATE event
-	for chainName := range chainsByName {
-		if _, ok := state.connectServices[chainName]; ok {
+	for chainName, protocol := range chainsByName {
+		if oldProtocol, ok := state.connectServices[chainName]; ok && protocol == oldProtocol {
 			continue
 		}
 
-		state.connectServices[chainName] = struct{}{}
+		state.connectServices[chainName] = protocol
 
-		m.emitEventForDiscoveryChain(ctx, state, pending, chainName)
+		m.emitEventForDiscoveryChain(ctx, state, pending, chainName, protocol)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -411,6 +469,7 @@ func (m *subscriptionManager) emitEventForDiscoveryChain(
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
+	protocol string,
 ) {
 	if _, ok := state.connectServices[chainName]; !ok {
 		return // not found
@@ -427,7 +486,11 @@ func (m *subscriptionManager) emitEventForDiscoveryChain(
 		discoveryChainPayloadIDPrefix+chainName.String(),
 		subExportedService+proxyName.String(),
 		createDiscoChainHealth(
+			state.peerName,
+			m.config.Datacenter,
+			m.trustDomain,
 			chainName,
+			protocol,
 			state.meshGateway,
 		),
 	)
@@ -436,8 +499,42 @@ func (m *subscriptionManager) emitEventForDiscoveryChain(
 	}
 }
 
-func createDiscoChainHealth(sn structs.ServiceName, pb *pbservice.IndexedCheckServiceNodes) *pbservice.IndexedCheckServiceNodes {
+func createDiscoChainHealth(
+	peerName string,
+	datacenter, trustDomain string,
+	sn structs.ServiceName,
+	protocol string,
+	pb *pbservice.IndexedCheckServiceNodes,
+) *pbservice.IndexedCheckServiceNodes {
 	fakeProxyName := sn.Name + syntheticProxyNameSuffix
+
+	var peerMeta *pbservice.PeeringServiceMeta
+	{
+		spiffeID := connect.SpiffeIDService{
+			Host:       trustDomain,
+			Partition:  sn.PartitionOrDefault(),
+			Namespace:  sn.NamespaceOrDefault(),
+			Datacenter: datacenter,
+			Service:    sn.Name,
+		}
+
+		sni := connect.PeeredServiceSNI(
+			sn.Name,
+			sn.NamespaceOrDefault(),
+			sn.PartitionOrDefault(),
+			peerName,
+			trustDomain,
+		)
+
+		// Create common peer meta.
+		//
+		// TODO(peering): should this be replicated by service and not by instance?
+		peerMeta = &pbservice.PeeringServiceMeta{
+			SNI:      []string{sni},
+			SpiffeID: []string{spiffeID.URI().String()},
+			Protocol: protocol,
+		}
+	}
 
 	newNodes := make([]*pbservice.CheckServiceNode, 0, len(pb.Nodes))
 	for i := range pb.Nodes {
@@ -448,10 +545,12 @@ func createDiscoChainHealth(sn structs.ServiceName, pb *pbservice.IndexedCheckSe
 		pbEntMeta := pbcommon.NewEnterpriseMetaFromStructs(sn.EnterpriseMeta)
 
 		fakeProxyID := fakeProxyName
+		destServiceID := sn.Name
 		if gwService.ID != "" {
 			// This is only going to be relevant if multiple mesh gateways are
 			// on the same exporting node.
 			fakeProxyID = fmt.Sprintf("%s-instance-%d", fakeProxyName, i)
+			destServiceID = fmt.Sprintf("%s-instance-%d", sn.Name, i)
 		}
 
 		csn := &pbservice.CheckServiceNode{
@@ -464,7 +563,7 @@ func createDiscoChainHealth(sn structs.ServiceName, pb *pbservice.IndexedCheckSe
 				PeerName:       structs.DefaultPeerKeyword,
 				Proxy: &pbservice.ConnectProxyConfig{
 					DestinationServiceName: sn.Name,
-					DestinationServiceID:   sn.Name,
+					DestinationServiceID:   destServiceID,
 				},
 				// direct
 				Address:         gwService.Address,
@@ -472,6 +571,9 @@ func createDiscoChainHealth(sn structs.ServiceName, pb *pbservice.IndexedCheckSe
 				Port:            gwService.Port,
 				SocketPath:      gwService.SocketPath,
 				Weights:         gwService.Weights,
+				Connect: &pbservice.ServiceConnect{
+					PeerMeta: peerMeta,
+				},
 			},
 			Checks: flattenChecks(gwNode.Node, fakeProxyID, fakeProxyName, pbEntMeta, gwChecks),
 		}

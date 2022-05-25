@@ -19,6 +19,7 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/dns"
@@ -44,25 +45,30 @@ func (e *errPeeringInvalidServerAddress) Error() string {
 	return fmt.Sprintf("%s is not a valid peering server address", e.addr)
 }
 
+type Config struct {
+	Datacenter     string
+	ConnectEnabled bool
+	// TODO(peering): remove this when we're ready
+	DisableMeshGatewayMode bool
+}
+
 // Service implements pbpeering.PeeringService to provide RPC operations for
 // managing peering relationships.
 type Service struct {
 	Backend Backend
 	logger  hclog.Logger
+	config  Config
 	streams *streamTracker
-
-	// TODO(peering): remove this when we're ready
-	DisableMeshGatewayMode bool
 }
 
-func NewService(logger hclog.Logger, backend Backend) *Service {
-	srv := &Service{
+func NewService(logger hclog.Logger, cfg Config, backend Backend) *Service {
+	cfg.DisableMeshGatewayMode = true
+	return &Service{
 		Backend: backend,
 		logger:  logger,
+		config:  cfg,
 		streams: newStreamTracker(),
 	}
-	srv.DisableMeshGatewayMode = true
-	return srv
 }
 
 var _ pbpeering.PeeringServiceServer = (*Service)(nil)
@@ -112,6 +118,7 @@ type Store interface {
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
 	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
+	CAConfig(memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	AbandonCh() <-chan struct{}
 }
 
@@ -521,9 +528,24 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 	// TODO(peering) Also need to clear subscriptions associated with the peer
 	defer s.streams.disconnected(req.LocalID)
 
-	mgr := newSubscriptionManager(req.Stream.Context(), logger, s.Backend)
-	mgr.DisableMeshGatewayMode = s.DisableMeshGatewayMode
-	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.Partition)
+	var trustDomain string
+	if s.config.ConnectEnabled {
+		// Read the TrustDomain up front - we do not allow users to change the ClusterID
+		// so reading it once at the beginning of the stream is sufficient.
+		trustDomain, err = getTrustDomain(s.Backend.Store(), logger)
+		if err != nil {
+			return err
+		}
+	}
+
+	mgr := newSubscriptionManager(
+		req.Stream.Context(),
+		logger,
+		s.config,
+		trustDomain,
+		s.Backend,
+	)
+	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.PeerName, req.Partition)
 
 	sub := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Request_{
@@ -672,6 +694,19 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 		}
 	}
+}
+
+func getTrustDomain(store Store, logger hclog.Logger) (string, error) {
+	_, cfg, err := store.CAConfig(nil)
+	switch {
+	case err != nil:
+		logger.Error("failed to read Connect CA Config", "error", err)
+		return "", grpcstatus.Error(codes.Internal, "failed to read Connect CA Config")
+	case cfg == nil:
+		logger.Warn("cannot begin stream because Connect CA is not yet initialized")
+		return "", grpcstatus.Error(codes.FailedPrecondition, "Connect CA is not yet initialized")
+	}
+	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
 }
 
 func (s *Service) StreamStatus(peer string) (resp StreamStatus, found bool) {

@@ -389,7 +389,8 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	// mog: func-to=ServiceDefinitionPtrToStructs func-from=NewServiceDefinitionPtrFromStructs
-	SidecarService *ServiceDefinition `protobuf:"bytes,3,opt,name=SidecarService,proto3" json:"SidecarService,omitempty"`
+	SidecarService *ServiceDefinition  `protobuf:"bytes,3,opt,name=SidecarService,proto3" json:"SidecarService,omitempty"`
+	PeerMeta       *PeeringServiceMeta `protobuf:"bytes,4,opt,name=PeerMeta,proto3" json:"PeerMeta,omitempty"`
 }
 
 func (x *ServiceConnect) Reset() {
@@ -438,6 +439,83 @@ func (x *ServiceConnect) GetSidecarService() *ServiceDefinition {
 	return nil
 }
 
+func (x *ServiceConnect) GetPeerMeta() *PeeringServiceMeta {
+	if x != nil {
+		return x.PeerMeta
+	}
+	return nil
+}
+
+// PeeringServiceMeta is read-only information provided from an exported peer.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.PeeringServiceMeta
+// output=service.gen.go
+// name=Structs
+type PeeringServiceMeta struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SNI      []string `protobuf:"bytes,1,rep,name=SNI,proto3" json:"SNI,omitempty"`
+	SpiffeID []string `protobuf:"bytes,2,rep,name=SpiffeID,proto3" json:"SpiffeID,omitempty"`
+	Protocol string   `protobuf:"bytes,3,opt,name=Protocol,proto3" json:"Protocol,omitempty"`
+}
+
+func (x *PeeringServiceMeta) Reset() {
+	*x = PeeringServiceMeta{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbservice_service_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PeeringServiceMeta) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeeringServiceMeta) ProtoMessage() {}
+
+func (x *PeeringServiceMeta) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbservice_service_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeeringServiceMeta.ProtoReflect.Descriptor instead.
+func (*PeeringServiceMeta) Descriptor() ([]byte, []int) {
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PeeringServiceMeta) GetSNI() []string {
+	if x != nil {
+		return x.SNI
+	}
+	return nil
+}
+
+func (x *PeeringServiceMeta) GetSpiffeID() []string {
+	if x != nil {
+		return x.SpiffeID
+	}
+	return nil
+}
+
+func (x *PeeringServiceMeta) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
 //
@@ -462,7 +540,7 @@ type ExposeConfig struct {
 func (x *ExposeConfig) Reset() {
 	*x = ExposeConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[3]
+		mi := &file_proto_pbservice_service_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -475,7 +553,7 @@ func (x *ExposeConfig) String() string {
 func (*ExposeConfig) ProtoMessage() {}
 
 func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[3]
+	mi := &file_proto_pbservice_service_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +566,7 @@ func (x *ExposeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposeConfig.ProtoReflect.Descriptor instead.
 func (*ExposeConfig) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{3}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ExposeConfig) GetChecks() bool {
@@ -533,7 +611,7 @@ type ExposePath struct {
 func (x *ExposePath) Reset() {
 	*x = ExposePath{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[4]
+		mi := &file_proto_pbservice_service_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -546,7 +624,7 @@ func (x *ExposePath) String() string {
 func (*ExposePath) ProtoMessage() {}
 
 func (x *ExposePath) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[4]
+	mi := &file_proto_pbservice_service_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -559,7 +637,7 @@ func (x *ExposePath) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExposePath.ProtoReflect.Descriptor instead.
 func (*ExposePath) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{4}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ExposePath) GetListenerPort() int32 {
@@ -614,7 +692,7 @@ type MeshGatewayConfig struct {
 func (x *MeshGatewayConfig) Reset() {
 	*x = MeshGatewayConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[5]
+		mi := &file_proto_pbservice_service_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -627,7 +705,7 @@ func (x *MeshGatewayConfig) String() string {
 func (*MeshGatewayConfig) ProtoMessage() {}
 
 func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[5]
+	mi := &file_proto_pbservice_service_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,7 +718,7 @@ func (x *MeshGatewayConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeshGatewayConfig.ProtoReflect.Descriptor instead.
 func (*MeshGatewayConfig) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{5}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *MeshGatewayConfig) GetMode() string {
@@ -671,7 +749,7 @@ type TransparentProxyConfig struct {
 func (x *TransparentProxyConfig) Reset() {
 	*x = TransparentProxyConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[6]
+		mi := &file_proto_pbservice_service_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -684,7 +762,7 @@ func (x *TransparentProxyConfig) String() string {
 func (*TransparentProxyConfig) ProtoMessage() {}
 
 func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[6]
+	mi := &file_proto_pbservice_service_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -697,7 +775,7 @@ func (x *TransparentProxyConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransparentProxyConfig.ProtoReflect.Descriptor instead.
 func (*TransparentProxyConfig) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{6}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TransparentProxyConfig) GetOutboundListenerPort() int32 {
@@ -768,7 +846,7 @@ type ServiceDefinition struct {
 func (x *ServiceDefinition) Reset() {
 	*x = ServiceDefinition{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[7]
+		mi := &file_proto_pbservice_service_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -781,7 +859,7 @@ func (x *ServiceDefinition) String() string {
 func (*ServiceDefinition) ProtoMessage() {}
 
 func (x *ServiceDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[7]
+	mi := &file_proto_pbservice_service_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +872,7 @@ func (x *ServiceDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDefinition.ProtoReflect.Descriptor instead.
 func (*ServiceDefinition) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{7}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ServiceDefinition) GetKind() string {
@@ -930,7 +1008,7 @@ type ServiceAddress struct {
 func (x *ServiceAddress) Reset() {
 	*x = ServiceAddress{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[8]
+		mi := &file_proto_pbservice_service_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -943,7 +1021,7 @@ func (x *ServiceAddress) String() string {
 func (*ServiceAddress) ProtoMessage() {}
 
 func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[8]
+	mi := &file_proto_pbservice_service_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -956,7 +1034,7 @@ func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAddress.ProtoReflect.Descriptor instead.
 func (*ServiceAddress) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{8}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ServiceAddress) GetAddress() string {
@@ -988,7 +1066,7 @@ type Weights struct {
 func (x *Weights) Reset() {
 	*x = Weights{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbservice_service_proto_msgTypes[9]
+		mi := &file_proto_pbservice_service_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1001,7 +1079,7 @@ func (x *Weights) String() string {
 func (*Weights) ProtoMessage() {}
 
 func (x *Weights) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbservice_service_proto_msgTypes[9]
+	mi := &file_proto_pbservice_service_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1092,7 @@ func (x *Weights) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Weights.ProtoReflect.Descriptor instead.
 func (*Weights) Descriptor() ([]byte, []int) {
-	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{9}
+	return file_proto_pbservice_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Weights) GetPassing() int32 {
@@ -1117,14 +1195,24 @@ var file_proto_pbservice_service_proto_rawDesc = []byte{
 	0x6b, 0x65, 0x74, 0x50, 0x61, 0x74, 0x68, 0x12, 0x30, 0x0a, 0x13, 0x4c, 0x6f, 0x63, 0x61, 0x6c,
 	0x42, 0x69, 0x6e, 0x64, 0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x18, 0x0b,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x13, 0x4c, 0x6f, 0x63, 0x61, 0x6c, 0x42, 0x69, 0x6e, 0x64, 0x53,
-	0x6f, 0x63, 0x6b, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x22, 0x6c, 0x0a, 0x0e, 0x53, 0x65, 0x72,
-	0x76, 0x69, 0x63, 0x65, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x4e,
-	0x61, 0x74, 0x69, 0x76, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x4e, 0x61, 0x74,
-	0x69, 0x76, 0x65, 0x12, 0x42, 0x0a, 0x0e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x61, 0x72, 0x53, 0x65,
-	0x72, 0x76, 0x69, 0x63, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x73, 0x65,
-	0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x65, 0x66,
-	0x69, 0x6e, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x61, 0x72,
-	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x22, 0x51, 0x0a, 0x0c, 0x45, 0x78, 0x70, 0x6f, 0x73,
+	0x6f, 0x63, 0x6b, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x22, 0xab, 0x01, 0x0a, 0x0e, 0x53, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x12, 0x16, 0x0a, 0x06,
+	0x4e, 0x61, 0x74, 0x69, 0x76, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x4e, 0x61,
+	0x74, 0x69, 0x76, 0x65, 0x12, 0x42, 0x0a, 0x0e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x61, 0x72, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x73,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x65,
+	0x66, 0x69, 0x6e, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x61,
+	0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x37, 0x0a, 0x08, 0x50, 0x65, 0x65, 0x72,
+	0x4d, 0x65, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x73, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x52, 0x08, 0x50, 0x65, 0x65, 0x72, 0x4d, 0x65, 0x74,
+	0x61, 0x4a, 0x04, 0x08, 0x02, 0x10, 0x03, 0x22, 0x5e, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69,
+	0x6e, 0x67, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x12, 0x10, 0x0a,
+	0x03, 0x53, 0x4e, 0x49, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x03, 0x53, 0x4e, 0x49, 0x12,
+	0x1a, 0x0a, 0x08, 0x53, 0x70, 0x69, 0x66, 0x66, 0x65, 0x49, 0x44, 0x18, 0x02, 0x20, 0x03, 0x28,
+	0x09, 0x52, 0x08, 0x53, 0x70, 0x69, 0x66, 0x66, 0x65, 0x49, 0x44, 0x12, 0x1a, 0x0a, 0x08, 0x50,
+	0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x50,
+	0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x22, 0x51, 0x0a, 0x0c, 0x45, 0x78, 0x70, 0x6f, 0x73,
 	0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x16, 0x0a, 0x06, 0x43, 0x68, 0x65, 0x63, 0x6b,
 	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x73, 0x12,
 	0x29, 0x0a, 0x05, 0x50, 0x61, 0x74, 0x68, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x13,
@@ -1235,48 +1323,50 @@ func file_proto_pbservice_service_proto_rawDescGZIP() []byte {
 	return file_proto_pbservice_service_proto_rawDescData
 }
 
-var file_proto_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_proto_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_pbservice_service_proto_goTypes = []interface{}{
 	(*ConnectProxyConfig)(nil),      // 0: service.ConnectProxyConfig
 	(*Upstream)(nil),                // 1: service.Upstream
 	(*ServiceConnect)(nil),          // 2: service.ServiceConnect
-	(*ExposeConfig)(nil),            // 3: service.ExposeConfig
-	(*ExposePath)(nil),              // 4: service.ExposePath
-	(*MeshGatewayConfig)(nil),       // 5: service.MeshGatewayConfig
-	(*TransparentProxyConfig)(nil),  // 6: service.TransparentProxyConfig
-	(*ServiceDefinition)(nil),       // 7: service.ServiceDefinition
-	(*ServiceAddress)(nil),          // 8: service.ServiceAddress
-	(*Weights)(nil),                 // 9: service.Weights
-	nil,                             // 10: service.ServiceDefinition.TaggedAddressesEntry
-	nil,                             // 11: service.ServiceDefinition.MetaEntry
-	(*structpb.Struct)(nil),         // 12: google.protobuf.Struct
-	(*CheckType)(nil),               // 13: service.CheckType
-	(*pbcommon.EnterpriseMeta)(nil), // 14: common.EnterpriseMeta
+	(*PeeringServiceMeta)(nil),      // 3: service.PeeringServiceMeta
+	(*ExposeConfig)(nil),            // 4: service.ExposeConfig
+	(*ExposePath)(nil),              // 5: service.ExposePath
+	(*MeshGatewayConfig)(nil),       // 6: service.MeshGatewayConfig
+	(*TransparentProxyConfig)(nil),  // 7: service.TransparentProxyConfig
+	(*ServiceDefinition)(nil),       // 8: service.ServiceDefinition
+	(*ServiceAddress)(nil),          // 9: service.ServiceAddress
+	(*Weights)(nil),                 // 10: service.Weights
+	nil,                             // 11: service.ServiceDefinition.TaggedAddressesEntry
+	nil,                             // 12: service.ServiceDefinition.MetaEntry
+	(*structpb.Struct)(nil),         // 13: google.protobuf.Struct
+	(*CheckType)(nil),               // 14: service.CheckType
+	(*pbcommon.EnterpriseMeta)(nil), // 15: common.EnterpriseMeta
 }
 var file_proto_pbservice_service_proto_depIdxs = []int32{
-	12, // 0: service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
+	13, // 0: service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
 	1,  // 1: service.ConnectProxyConfig.Upstreams:type_name -> service.Upstream
-	5,  // 2: service.ConnectProxyConfig.MeshGateway:type_name -> service.MeshGatewayConfig
-	3,  // 3: service.ConnectProxyConfig.Expose:type_name -> service.ExposeConfig
-	6,  // 4: service.ConnectProxyConfig.TransparentProxy:type_name -> service.TransparentProxyConfig
-	12, // 5: service.Upstream.Config:type_name -> google.protobuf.Struct
-	5,  // 6: service.Upstream.MeshGateway:type_name -> service.MeshGatewayConfig
-	7,  // 7: service.ServiceConnect.SidecarService:type_name -> service.ServiceDefinition
-	4,  // 8: service.ExposeConfig.Paths:type_name -> service.ExposePath
-	10, // 9: service.ServiceDefinition.TaggedAddresses:type_name -> service.ServiceDefinition.TaggedAddressesEntry
-	11, // 10: service.ServiceDefinition.Meta:type_name -> service.ServiceDefinition.MetaEntry
-	13, // 11: service.ServiceDefinition.Check:type_name -> service.CheckType
-	13, // 12: service.ServiceDefinition.Checks:type_name -> service.CheckType
-	9,  // 13: service.ServiceDefinition.Weights:type_name -> service.Weights
-	0,  // 14: service.ServiceDefinition.Proxy:type_name -> service.ConnectProxyConfig
-	14, // 15: service.ServiceDefinition.EnterpriseMeta:type_name -> common.EnterpriseMeta
-	2,  // 16: service.ServiceDefinition.Connect:type_name -> service.ServiceConnect
-	8,  // 17: service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> service.ServiceAddress
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	6,  // 2: service.ConnectProxyConfig.MeshGateway:type_name -> service.MeshGatewayConfig
+	4,  // 3: service.ConnectProxyConfig.Expose:type_name -> service.ExposeConfig
+	7,  // 4: service.ConnectProxyConfig.TransparentProxy:type_name -> service.TransparentProxyConfig
+	13, // 5: service.Upstream.Config:type_name -> google.protobuf.Struct
+	6,  // 6: service.Upstream.MeshGateway:type_name -> service.MeshGatewayConfig
+	8,  // 7: service.ServiceConnect.SidecarService:type_name -> service.ServiceDefinition
+	3,  // 8: service.ServiceConnect.PeerMeta:type_name -> service.PeeringServiceMeta
+	5,  // 9: service.ExposeConfig.Paths:type_name -> service.ExposePath
+	11, // 10: service.ServiceDefinition.TaggedAddresses:type_name -> service.ServiceDefinition.TaggedAddressesEntry
+	12, // 11: service.ServiceDefinition.Meta:type_name -> service.ServiceDefinition.MetaEntry
+	14, // 12: service.ServiceDefinition.Check:type_name -> service.CheckType
+	14, // 13: service.ServiceDefinition.Checks:type_name -> service.CheckType
+	10, // 14: service.ServiceDefinition.Weights:type_name -> service.Weights
+	0,  // 15: service.ServiceDefinition.Proxy:type_name -> service.ConnectProxyConfig
+	15, // 16: service.ServiceDefinition.EnterpriseMeta:type_name -> common.EnterpriseMeta
+	2,  // 17: service.ServiceDefinition.Connect:type_name -> service.ServiceConnect
+	9,  // 18: service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> service.ServiceAddress
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_proto_pbservice_service_proto_init() }
@@ -1323,7 +1413,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExposeConfig); i {
+			switch v := v.(*PeeringServiceMeta); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1335,7 +1425,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExposePath); i {
+			switch v := v.(*ExposeConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1347,7 +1437,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MeshGatewayConfig); i {
+			switch v := v.(*ExposePath); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1359,7 +1449,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TransparentProxyConfig); i {
+			switch v := v.(*MeshGatewayConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1371,7 +1461,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServiceDefinition); i {
+			switch v := v.(*TransparentProxyConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1383,7 +1473,7 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServiceAddress); i {
+			switch v := v.(*ServiceDefinition); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1395,6 +1485,18 @@ func file_proto_pbservice_service_proto_init() {
 			}
 		}
 		file_proto_pbservice_service_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ServiceAddress); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbservice_service_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Weights); i {
 			case 0:
 				return &v.state
@@ -1413,7 +1515,7 @@ func file_proto_pbservice_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_pbservice_service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
