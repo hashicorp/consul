@@ -1054,10 +1054,8 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
-			"foo":              int64(1),
-			"protocol":         "http",
-			"destination_port": "9003",
-			"prefix_ranges":    "172.168.2.0/24",
+			"foo":      int64(1),
+			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
 			"bar": {
