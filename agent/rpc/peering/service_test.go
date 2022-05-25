@@ -311,6 +311,53 @@ func TestPeeringService_List(t *testing.T) {
 	prototest.AssertDeepEqual(t, expect, resp)
 }
 
+func TestPeeringService_TrustBundleRead(t *testing.T) {
+	srv := newTestServer(t, nil)
+	store := srv.Server.FSM().State()
+	client := pbpeering.NewPeeringServiceClient(srv.ClientConn(t))
+
+	var lastIdx uint64 = 1
+	_ = setupTestPeering(t, store, "my-peering", lastIdx)
+
+	mysql := &structs.CheckServiceNode{
+		Node: &structs.Node{
+			Node:     "node1",
+			Address:  "10.0.0.1",
+			PeerName: "my-peering",
+		},
+		Service: &structs.NodeService{
+			ID:       "mysql-1",
+			Service:  "mysql",
+			Port:     5000,
+			PeerName: "my-peering",
+		},
+	}
+
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, mysql.Node))
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, mysql.Node.Node, mysql.Service))
+
+	bundle := &pbpeering.PeeringTrustBundle{
+		TrustDomain: "peer1.com",
+		PeerName:    "my-peering",
+		RootPEMs:    []string{"peer1-root-1"},
+	}
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, bundle))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resp, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{
+		Name: "my-peering",
+	})
+	require.NoError(t, err)
+	require.Equal(t, lastIdx, resp.Index)
+	require.NotNil(t, resp.Bundle)
+	prototest.AssertDeepEqual(t, bundle, resp.Bundle)
+}
+
 func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	// test executes the following scenario:
 	// 0 - initial setup test server, state store, RPC client, verify empty results
@@ -1172,4 +1219,17 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 	}
+}
+
+func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
+	err := store.PeeringWrite(index, &pbpeering.Peering{
+		Name: name,
+	})
+	require.NoError(t, err)
+
+	_, p, err := store.PeeringRead(nil, state.Query{Value: name})
+	require.NoError(t, err)
+	require.NotNil(t, p)
+
+	return p.ID
 }
