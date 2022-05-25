@@ -9,15 +9,28 @@ description: >-
 
 ## Release Highlights
 
-Per-Task Execution Mode with Support for Terraform Cloud Agent <EnterpriseAlert inline />: CTS now allows users to select the Terraform execution mode to be “remote” or “cloud agent” per Task. For more information refer to the [per-task execution mode documentation](/docs/nia/network-drivers/terraform-cloud#remote-workspaces).
 
-HCP Consul support <EnterpriseAlert inline />: CTS now supports interoperability with HCP Consul with license retrieval capabilities that allow users to keep licenses in sync with their HCP Consul or Consul enterprise deployment.
+We have implemented the following features in this release:
+ 
+### Per-task Execution Mode with Support for Terraform Cloud Agent <EnterpriseAlert inline /> 
 
-Auto Service-Registration with Consul, and Health API Endpoint: CTS now supports a new configuration block that auto registers CTS as a service within Consul as soon as CTS is instantiated. This eliminates the manual step of registering CTS as a service within the Consul catalog. This service registration also enables health checking on CTS using the newly added [health API endpoint](/docs/nia/api/health#health).
+You can now execute Terraform tasks in `remote` or `cloud agent` mode. For more information, refer to the [per-task execution mode documentation](/docs/nia/network-drivers/terraform-cloud#remote-workspaces).
 
-CLI discoverability: CTS now improves discoverability in the CLI. The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and arguments
+### HCP Consul Cupport <EnterpriseAlert inline /> 
 
-Health Check API: CTS introduces a new [API endpoint](/docs/nia/api/health#health) that provides operators with the health status of their CTS instances.
+CTS now supports interoperability with HCP Consul. CTS retrieves licenses from HCP Consul so that users can keep their HCP Consul license or Consul enterprise deployment license in sync.
+
+### Auto Service-registration with Consul and Health API Endpoint 
+
+CTS includes a new configuration block that automatically registers CTS as a service within Consul as soon as CTS is instantiated. This eliminates the manual step of registering CTS as a service within the Consul catalog. This service registration also enables health checking on CTS using the newly added [health API endpoint](/docs/nia/api/health#health).
+
+### CLI Discoverability 
+
+We improved CTS's CLI discoverability functionality. The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and arguments
+
+### Health Check API 
+
+CTS includes a new [API endpoint](/docs/nia/api/health#health) that provides operators with the health status of their CTS instances.
 
 
 ## Supported Software Versions
