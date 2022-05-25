@@ -1,15 +1,9 @@
 @keyframes icon-identity-service {
-  50% {
-
-    background-color: var(--icon-color, var(--color-identity-service-500, currentColor));
-    -webkit-mask-image: var(--icon-identity-service-24);
-    mask-image: var(--icon-identity-service-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-identity-service-500, currentColor));
     -webkit-mask-image: var(--icon-identity-service-16);
     mask-image: var(--icon-identity-service-16);
+    background-color: var(--icon-color, var(--color-identity-service-500, currentColor));
+
   }
 }

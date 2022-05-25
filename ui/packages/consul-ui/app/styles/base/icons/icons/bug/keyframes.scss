@@ -1,15 +1,9 @@
 @keyframes icon-bug {
-  50% {
-
-    background-color: var(--icon-color, var(--color-bug-500, currentColor));
-    -webkit-mask-image: var(--icon-bug-24);
-    mask-image: var(--icon-bug-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-bug-500, currentColor));
     -webkit-mask-image: var(--icon-bug-16);
     mask-image: var(--icon-bug-16);
+    background-color: var(--icon-color, var(--color-bug-500, currentColor));
+
   }
 }

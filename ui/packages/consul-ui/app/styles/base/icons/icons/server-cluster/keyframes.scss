@@ -1,15 +1,9 @@
 @keyframes icon-server-cluster {
-  50% {
-
-    background-color: var(--icon-color, var(--color-server-cluster-500, currentColor));
-    -webkit-mask-image: var(--icon-server-cluster-24);
-    mask-image: var(--icon-server-cluster-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-server-cluster-500, currentColor));
     -webkit-mask-image: var(--icon-server-cluster-16);
     mask-image: var(--icon-server-cluster-16);
+    background-color: var(--icon-color, var(--color-server-cluster-500, currentColor));
+
   }
 }

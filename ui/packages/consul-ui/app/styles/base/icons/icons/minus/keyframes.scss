@@ -1,15 +1,9 @@
 @keyframes icon-minus {
-  50% {
-
-    background-color: var(--icon-color, var(--color-minus-500, currentColor));
-    -webkit-mask-image: var(--icon-minus-24);
-    mask-image: var(--icon-minus-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-minus-500, currentColor));
     -webkit-mask-image: var(--icon-minus-16);
     mask-image: var(--icon-minus-16);
+    background-color: var(--icon-color, var(--color-minus-500, currentColor));
+
   }
 }

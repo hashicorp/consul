@@ -1,15 +1,9 @@
 @keyframes icon-credit-card {
-  50% {
-
-    background-color: var(--icon-color, var(--color-credit-card-500, currentColor));
-    -webkit-mask-image: var(--icon-credit-card-24);
-    mask-image: var(--icon-credit-card-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-credit-card-500, currentColor));
     -webkit-mask-image: var(--icon-credit-card-16);
     mask-image: var(--icon-credit-card-16);
+    background-color: var(--icon-color, var(--color-credit-card-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-twitter {
-  50% {
-
-    background-color: var(--icon-color, var(--color-twitter-500, currentColor));
-    -webkit-mask-image: var(--icon-twitter-color-24);
-    mask-image: var(--icon-twitter-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-twitter-500, currentColor));
     -webkit-mask-image: var(--icon-twitter-color-16);
     mask-image: var(--icon-twitter-color-16);
+    background-color: var(--icon-color, var(--color-twitter-500, currentColor));
+
   }
 }

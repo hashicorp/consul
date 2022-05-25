@@ -1,15 +1,9 @@
 @keyframes icon-beaker {
-  50% {
-
-    background-color: var(--icon-color, var(--color-beaker-500, currentColor));
-    -webkit-mask-image: var(--icon-beaker-24);
-    mask-image: var(--icon-beaker-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-beaker-500, currentColor));
     -webkit-mask-image: var(--icon-beaker-16);
     mask-image: var(--icon-beaker-16);
+    background-color: var(--icon-color, var(--color-beaker-500, currentColor));
+
   }
 }

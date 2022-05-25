@@ -1,15 +1,9 @@
 @keyframes icon-lock-closed {
-  50% {
-
-    background-color: var(--icon-color, var(--color-lock-closed-500, currentColor));
-    -webkit-mask-image: var(--icon-lock-fill-24);
-    mask-image: var(--icon-lock-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-lock-closed-500, currentColor));
     -webkit-mask-image: var(--icon-lock-fill-16);
     mask-image: var(--icon-lock-fill-16);
+    background-color: var(--icon-color, var(--color-lock-closed-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-rotate-cw {
-  50% {
-
-    background-color: var(--icon-color, var(--color-rotate-cw-500, currentColor));
-    -webkit-mask-image: var(--icon-rotate-cw-24);
-    mask-image: var(--icon-rotate-cw-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-rotate-cw-500, currentColor));
     -webkit-mask-image: var(--icon-rotate-cw-16);
     mask-image: var(--icon-rotate-cw-16);
+    background-color: var(--icon-color, var(--color-rotate-cw-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-pen-tool {
-  50% {
-
-    background-color: var(--icon-color, var(--color-pen-tool-500, currentColor));
-    -webkit-mask-image: var(--icon-pen-tool-24);
-    mask-image: var(--icon-pen-tool-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-pen-tool-500, currentColor));
     -webkit-mask-image: var(--icon-pen-tool-16);
     mask-image: var(--icon-pen-tool-16);
+    background-color: var(--icon-color, var(--color-pen-tool-500, currentColor));
+
   }
 }

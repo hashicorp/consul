@@ -1,15 +1,9 @@
 @keyframes icon-align-justify {
-  50% {
-
-    background-color: var(--icon-color, var(--color-align-justify-500, currentColor));
-    -webkit-mask-image: var(--icon-align-justify-24);
-    mask-image: var(--icon-align-justify-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-align-justify-500, currentColor));
     -webkit-mask-image: var(--icon-align-justify-16);
     mask-image: var(--icon-align-justify-16);
+    background-color: var(--icon-color, var(--color-align-justify-500, currentColor));
+
   }
 }
