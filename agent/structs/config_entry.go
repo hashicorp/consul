@@ -96,16 +96,17 @@ type WarningConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Protocol         string
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Endpoint         *EndpointConfig        `json:",omitempty"`
+	Kind                  string
+	Name                  string
+	Protocol              string
+	Mode                  ProxyMode              `json:",omitempty"`
+	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                ExposeConfig           `json:",omitempty"`
+	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Endpoint              *EndpointConfig        `json:",omitempty"`
+	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
