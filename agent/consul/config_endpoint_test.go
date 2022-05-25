@@ -1036,7 +1036,6 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Name:     "foo",
 		Protocol: "http",
 		Meta:     map[string]string{"foo": "bar"},
-		Endpoint: &structs.EndpointConfig{Address: "172.168.2.0/24", Port: 9003},
 	}))
 	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
