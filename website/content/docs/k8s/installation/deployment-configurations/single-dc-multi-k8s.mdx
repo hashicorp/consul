@@ -20,7 +20,7 @@ which is available with Consul Enterprise.
 
 ## Prepare Helm release name ahead of installs
 
-~> The Helm release name must be unique for each Kubernetes cluster.
+The Helm release name must be unique for each Kubernetes cluster.
 The Helm chart uses the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are identical, subsequent Consul on Kubernetes clusters overwrite existing ACL resources and cause the clusters to fail.
