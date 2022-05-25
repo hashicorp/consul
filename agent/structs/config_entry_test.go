@@ -428,12 +428,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-defaults-with-endpoint",
+			name: "service-defaults-with-destination",
 			snake: `
 				kind = "service-defaults"
 				name = "external"
 				protocol = "tcp"
-				endpoint {
+				destination {
 					address = "1.2.3.4/24"
 					port = 8080
 				}
@@ -2421,7 +2421,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
-		"validate: missing endpoint address": {
+		"validate: missing destination address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2433,7 +2433,7 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "Could not validate address",
 		},
-		"validate: endpoint ipv4 address": {
+		"validate: destination ipv4 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2444,7 +2444,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"validate: endpoint ipv4 CIDR address": {
+		"validate: destination ipv4 CIDR address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2455,7 +2455,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"validate: endpoint ipv6 address": {
+		"validate: destination ipv6 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2466,7 +2466,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"valid endpoint shortened ipv6 address": {
+		"valid destination shortened ipv6 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2477,7 +2477,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"validate: endpoint ipv6 CIDR address": {
+		"validate: destination ipv6 CIDR address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
@@ -2488,7 +2488,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
-		"validate: invalid endpoint port": {
+		"validate: invalid destination port": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
