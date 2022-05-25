@@ -23,14 +23,7 @@ h5,
 h6 {
   @extend %reset-box;
 }
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  @extend %reset-typo;
-}
+
 ul {
   @extend %reset-list;
 }
@@ -60,6 +53,5 @@ footer,
 header,
 hgroup,
 section {
-  display: block
+  display: block;
 }
-
