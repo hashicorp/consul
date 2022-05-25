@@ -757,6 +757,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.PeerName,
 		r.Ingress,
 		r.ServiceKind,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
