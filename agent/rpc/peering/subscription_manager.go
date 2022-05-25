@@ -168,9 +168,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 				for _, chk := range instance.Checks {
 					chk.RaftIndex = nil
 				}
-			} else {
-				// skip checks since we just generated one from scratch
 			}
+			// skip checks since we just generated one from scratch
 		}
 
 		id := servicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedService)
@@ -214,9 +213,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 				for _, chk := range instance.Checks {
 					chk.RaftIndex = nil
 				}
-			} else {
-				// skip checks since we just generated one from scratch
 			}
+			// skip checks since we just generated one from scratch
 		}
 
 		id := proxyServicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedProxyService)
