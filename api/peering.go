@@ -6,15 +6,27 @@ import (
 )
 
 // PeeringState enumerates all the states a peering can be in
-type PeeringState int32
+type PeeringState string
 
 const (
 	// PeeringStateUndefined represents an unset value for PeeringState during
 	// writes.
-	PeeringStateUndefined PeeringState = 0
+	PeeringStateUndefined PeeringState = "UNDEFINED"
+
 	// PeeringStateInitial means a Peering has been initialized and is awaiting
 	// acknowledgement from a remote peer.
-	PeeringStateInitial PeeringState = 1
+	PeeringStateInitial PeeringState = "INITIAL"
+
+	// PeeringStateActive means that the peering connection is active and
+	// healthy.
+	PeeringStateActive PeeringState = "ACTIVE"
+
+	// PeeringStateFailing means the peering connection has been interrupted
+	// but has not yet been terminated.
+	PeeringStateFailing PeeringState = "FAILING"
+
+	// PeeringStateTerminated means the peering relationship has been removed.
+	PeeringStateTerminated PeeringState = "TERMINATED"
 )
 
 type Peering struct {
@@ -23,53 +35,38 @@ type Peering struct {
 	// Name is the local alias for the peering relationship.
 	Name string
 	// Partition is the local partition connecting to the peer.
-	Partition string `json:"Partition,omitempty"`
+	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 	// State is one of the valid PeeringState values to represent the status of
 	// peering relationship.
 	State PeeringState
-	// PeerID is the ID that our peer assigned to this peering.
-	// This ID is to be used when dialing the peer, so that it can know who dialed it.
-	PeerID string
+	// PeerID is the ID that our peer assigned to this peering. This ID is to
+	// be used when dialing the peer, so that it can know who dialed it.
+	PeerID string `json:",omitempty"`
 	// PeerCAPems contains all the CA certificates for the remote peer.
-	PeerCAPems []string
+	PeerCAPems []string `json:",omitempty"`
 	// PeerServerName is the name of the remote server as it relates to TLS.
-	PeerServerName string
+	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
-	PeerServerAddresses []string
+	PeerServerAddresses []string `json:",omitempty"`
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
 	// ModifyIndex is the latest Raft index at which the Peering. was modified.
 	ModifyIndex uint64
 }
 
-type PeeringReadRequest struct {
-	Name       string
-	Partition  string `json:"Partition,omitempty"`
-	Datacenter string
-}
-
-type PeeringDeleteRequest struct {
-	Name       string
-	Partition  string `json:"Partition,omitempty"`
-	Datacenter string
-}
-
 type PeeringReadResponse struct {
 	Peering *Peering
-}
-
-type PeeringDeleteResponse struct {
 }
 
 type PeeringGenerateTokenRequest struct {
 	// PeerName is the name of the remote peer.
 	PeerName string
 	// Partition to be peered.
-	Partition  string `json:"Partition,omitempty"`
-	Datacenter string
-	Token      string
+	Partition  string `json:",omitempty"`
+	Datacenter string `json:",omitempty"`
+	Token      string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 }
@@ -84,15 +81,14 @@ type PeeringInitiateRequest struct {
 	// Name of the remote peer.
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
-	PeeringToken string
-	Datacenter   string
-	Token        string
+	PeeringToken string `json:",omitempty"`
+	Datacenter   string `json:",omitempty"`
+	Token        string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 }
 
 type PeeringInitiateResponse struct {
-	Status uint32
 }
 
 type PeeringListRequest struct {
@@ -108,28 +104,32 @@ func (c *Client) Peerings() *Peerings {
 	return &Peerings{c: c}
 }
 
-func (p *Peerings) Read(ctx context.Context, peeringReq PeeringReadRequest, q *QueryOptions) (*Peering, *QueryMeta, error) {
-	if peeringReq.Name == "" {
+func (p *Peerings) Read(ctx context.Context, name string, q *QueryOptions) (*Peering, *QueryMeta, error) {
+	if name == "" {
 		return nil, nil, fmt.Errorf("peering name cannot be empty")
 	}
 
-	req := p.c.newRequest("GET", fmt.Sprintf("/v1/peering/%s", peeringReq.Name))
+	req := p.c.newRequest("GET", fmt.Sprintf("/v1/peering/%s", name))
 	req.setQueryOptions(q)
 	req.ctx = ctx
-	req.obj = peeringReq
 
 	rtt, resp, err := p.c.doRequest(req)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
 		return nil, nil, err
 	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
+
+	if !found {
+		return nil, qm, nil
+	}
 
 	var out Peering
 	if err := decodeBody(resp, &out); err != nil {
@@ -139,37 +139,29 @@ func (p *Peerings) Read(ctx context.Context, peeringReq PeeringReadRequest, q *Q
 	return &out, qm, nil
 }
 
-func (p *Peerings) Delete(ctx context.Context, peeringReq PeeringDeleteRequest, q *QueryOptions) (*PeeringDeleteResponse, *QueryMeta, error) {
-	if peeringReq.Name == "" {
-		return nil, nil, fmt.Errorf("peering name cannot be empty")
+func (p *Peerings) Delete(ctx context.Context, name string, q *WriteOptions) (*WriteMeta, error) {
+	if name == "" {
+		return nil, fmt.Errorf("peering name cannot be empty")
 	}
 
-	req := p.c.newRequest("DELETE", fmt.Sprintf("/v1/peering/%s", peeringReq.Name))
-	req.setQueryOptions(q)
-	req.obj = peeringReq
+	req := p.c.newRequest("DELETE", fmt.Sprintf("/v1/peering/%s", name))
+	req.setWriteOptions(q)
 	req.ctx = ctx
 
 	rtt, resp, err := p.c.doRequest(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	var out PeeringDeleteResponse
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-
-	return &out, qm, nil
+	wm := &WriteMeta{RequestTime: rtt}
+	return wm, nil
 }
 
+// TODO(peering): verify this is the ultimate signature we want
 func (p *Peerings) GenerateToken(ctx context.Context, g PeeringGenerateTokenRequest, wq *WriteOptions) (*PeeringGenerateTokenResponse, *WriteMeta, error) {
 	if g.PeerName == "" {
 		return nil, nil, fmt.Errorf("peer name cannot be empty")
@@ -199,8 +191,8 @@ func (p *Peerings) GenerateToken(ctx context.Context, g PeeringGenerateTokenRequ
 	return &out, wm, nil
 }
 
+// TODO(peering): verify this is the ultimate signature we want
 func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *WriteOptions) (*PeeringInitiateResponse, *WriteMeta, error) {
-
 	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/initiate"))
 	req.setWriteOptions(wq)
 	req.ctx = ctx
@@ -225,12 +217,10 @@ func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *W
 	return &out, wm, nil
 }
 
-func (p *Peerings) List(ctx context.Context, plr PeeringListRequest, q *QueryOptions) ([]*Peering, *QueryMeta, error) {
-
+func (p *Peerings) List(ctx context.Context, q *QueryOptions) ([]*Peering, *QueryMeta, error) {
 	req := p.c.newRequest("GET", "/v1/peerings")
 	req.setQueryOptions(q)
 	req.ctx = ctx
-	req.obj = plr
 
 	rtt, resp, err := p.c.doRequest(req)
 	if err != nil {

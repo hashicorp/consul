@@ -52,6 +52,12 @@ enum PeeringState {
 }
 
 // Peering defines a peering relationship between two disparate Consul clusters
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.Peering
+// output=peering.gen.go
+// name=API
 message Peering {
   // ID is a datacenter-scoped UUID for the peering.
   // The ID is generated when a peering is first written to the state store.
@@ -68,6 +74,8 @@ message Peering {
 
   // State is one of the valid PeeringState values to represent the status of
   // peering relationship.
+  //
+  // mog: func-to=PeeringStateToAPI func-from=PeeringStateFromAPI
   PeeringState State = 4;
 
   // PeerID is the ID that our peer assigned to this peering.
@@ -210,6 +218,11 @@ message PeeringTrustBundleDeleteRequest {
 
 message PeeringTrustBundleDeleteResponse {}
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringGenerateTokenRequest
+// output=peering.gen.go
+// name=API
 message GenerateTokenRequest {
   // Name of the remote peer.
   string PeerName = 1;
@@ -226,6 +239,11 @@ message GenerateTokenRequest {
   map<string, string> Meta = 5;
 }
 
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringGenerateTokenResponse
+// output=peering.gen.go
+// name=API
 message GenerateTokenResponse {
   // PeeringToken is an opaque string provided to the remote peer for it to complete
   // the peering initialization handshake.
@@ -233,6 +251,12 @@ message GenerateTokenResponse {
 }
 
 // @consul-rpc-glue: Datacenter
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringInitiateRequest
+// output=peering.gen.go
+// name=API
 message InitiateRequest {
   // Name of the remote peer.
   string PeerName = 1;
@@ -252,10 +276,13 @@ message InitiateRequest {
   map<string, string> Meta = 6;
 }
 
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.PeeringInitiateResponse
+// output=peering.gen.go
+// name=API
 message InitiateResponse {
-  // this is just a placeholder to avoid returning google.protobuf.Empty
-  // (and consequently gogo.protobuf.types that it will be replaced with)
-  uint32 Status = 1;
 }
 
 message ReplicationMessage {
