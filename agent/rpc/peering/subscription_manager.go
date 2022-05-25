@@ -35,9 +35,6 @@ type subscriptionManager struct {
 	trustDomain string
 	viewStore   MaterializedViewStore
 	backend     SubscriptionBackend
-
-	// TODO(peering): remove this when we're ready
-	DisableMeshGatewayMode bool
 }
 
 // TODO(peering): Maybe centralize so that there is a single manager per datacenter, rather than per peering.
@@ -74,7 +71,7 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 
 	// Wrap our bare state store queries in goroutines that emit events.
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
-	if !m.DisableMeshGatewayMode && m.config.ConnectEnabled {
+	if !m.config.DisableMeshGatewayMode && m.config.ConnectEnabled {
 		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
 	}
 
@@ -123,7 +120,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, pending, evt.Services)
-		if m.DisableMeshGatewayMode {
+		if m.config.DisableMeshGatewayMode {
 			m.syncProxyServices(ctx, state, pending, evt.Services)
 		} else {
 			if m.config.ConnectEnabled {
@@ -146,7 +143,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// Clear this raft index before exporting.
 		csn.Index = 0
 
-		if !m.DisableMeshGatewayMode {
+		if !m.config.DisableMeshGatewayMode {
 			// Ensure that connect things are scrubbed so we don't mix-and-match
 			// with the synthetic entries that point to mesh gateways.
 			filterConnectReferences(csn)
@@ -167,7 +164,13 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		for _, instance := range csn.Nodes {
 			instance.Node.RaftIndex = nil
 			instance.Service.RaftIndex = nil
-			// skip checks since we just generated one from scratch
+			if m.config.DisableMeshGatewayMode {
+				for _, chk := range instance.Checks {
+					chk.RaftIndex = nil
+				}
+			} else {
+				// skip checks since we just generated one from scratch
+			}
 		}
 
 		id := servicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedService)
@@ -185,7 +188,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		if !m.DisableMeshGatewayMode {
+		if !m.config.DisableMeshGatewayMode {
 			return nil // ignore event
 		}
 
@@ -202,6 +205,19 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// 		instance.Checks,
 		// 	)
 		// }
+
+		// Scrub raft indexes
+		for _, instance := range csn.Nodes {
+			instance.Node.RaftIndex = nil
+			instance.Service.RaftIndex = nil
+			if m.config.DisableMeshGatewayMode {
+				for _, chk := range instance.Checks {
+					chk.RaftIndex = nil
+				}
+			} else {
+				// skip checks since we just generated one from scratch
+			}
+		}
 
 		id := proxyServicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedProxyService)
 
@@ -220,7 +236,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		partition := strings.TrimPrefix(u.CorrelationID, subMeshGateway)
 
-		if m.DisableMeshGatewayMode || !m.config.ConnectEnabled {
+		if m.config.DisableMeshGatewayMode || !m.config.ConnectEnabled {
 			return nil // ignore event
 		}
 
