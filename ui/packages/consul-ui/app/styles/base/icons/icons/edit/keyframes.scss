@@ -1,15 +1,9 @@
 @keyframes icon-edit {
-  50% {
-
-    background-color: var(--icon-color, var(--color-edit-500, currentColor));
-    -webkit-mask-image: var(--icon-edit-24);
-    mask-image: var(--icon-edit-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-edit-500, currentColor));
     -webkit-mask-image: var(--icon-edit-16);
     mask-image: var(--icon-edit-16);
+    background-color: var(--icon-color, var(--color-edit-500, currentColor));
+
   }
 }

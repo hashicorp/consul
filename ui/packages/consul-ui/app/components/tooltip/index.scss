@@ -45,7 +45,6 @@
   &::before {
     border-color: var(--transparent);
     border-style: solid;
-    background-color: var(--transparent);
   }
 }
 
@@ -53,27 +52,23 @@
   &::before {
     border-width: var(--size) var(--size) 0;
     border-top-color: initial;
-    background-color: var(--transparent);
   }
 }
 %tooltip-tail-bottom {
   &::before {
     border-width: 0 var(--size) var(--size);
     border-bottom-color: initial;
-    background-color: var(--transparent);
   }
 }
 %tooltip-tail-left {
   &::before {
     border-width: var(--size) 0 var(--size) var(--size);
     border-left-color: initial;
-    background-color: var(--transparent);
   }
 }
 %tooltip-tail-right {
   &::before {
     border-width: var(--size) var(--size) var(--size) 0;
     border-right-color: initial;
-    background-color: var(--transparent);
   }
 }

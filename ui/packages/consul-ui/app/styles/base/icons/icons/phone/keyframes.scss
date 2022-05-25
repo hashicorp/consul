@@ -1,15 +1,9 @@
 @keyframes icon-phone {
-  50% {
-
-    background-color: var(--icon-color, var(--color-phone-500, currentColor));
-    -webkit-mask-image: var(--icon-phone-24);
-    mask-image: var(--icon-phone-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-phone-500, currentColor));
     -webkit-mask-image: var(--icon-phone-16);
     mask-image: var(--icon-phone-16);
+    background-color: var(--icon-color, var(--color-phone-500, currentColor));
+
   }
 }

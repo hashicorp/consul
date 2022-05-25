@@ -1,15 +1,9 @@
 @keyframes icon-cloud-check {
-  50% {
-
-    background-color: var(--icon-color, var(--color-cloud-check-500, currentColor));
-    -webkit-mask-image: var(--icon-cloud-check-24);
-    mask-image: var(--icon-cloud-check-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-cloud-check-500, currentColor));
     -webkit-mask-image: var(--icon-cloud-check-16);
     mask-image: var(--icon-cloud-check-16);
+    background-color: var(--icon-color, var(--color-cloud-check-500, currentColor));
+
   }
 }

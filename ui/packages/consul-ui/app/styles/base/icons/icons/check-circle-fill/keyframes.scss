@@ -1,15 +1,9 @@
 @keyframes icon-check-circle-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-check-circle-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-check-circle-fill-24);
-    mask-image: var(--icon-check-circle-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-check-circle-fill-500, currentColor));
     -webkit-mask-image: var(--icon-check-circle-fill-16);
     mask-image: var(--icon-check-circle-fill-16);
+    background-color: var(--icon-color, var(--color-check-circle-fill-500, currentColor));
+
   }
 }

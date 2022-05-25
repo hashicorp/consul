@@ -1,15 +1,9 @@
 @keyframes icon-newspaper {
-  50% {
-
-    background-color: var(--icon-color, var(--color-newspaper-500, currentColor));
-    -webkit-mask-image: var(--icon-newspaper-24);
-    mask-image: var(--icon-newspaper-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-newspaper-500, currentColor));
     -webkit-mask-image: var(--icon-newspaper-16);
     mask-image: var(--icon-newspaper-16);
+    background-color: var(--icon-color, var(--color-newspaper-500, currentColor));
+
   }
 }

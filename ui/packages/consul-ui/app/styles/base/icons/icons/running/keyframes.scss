@@ -1,15 +1,9 @@
 @keyframes icon-running {
-  50% {
-
-    background-color: var(--icon-color, var(--color-running-500, currentColor));
-    -webkit-mask-image: var(--icon-running-24);
-    mask-image: var(--icon-running-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-running-500, currentColor));
     -webkit-mask-image: var(--icon-running-16);
     mask-image: var(--icon-running-16);
+    background-color: var(--icon-color, var(--color-running-500, currentColor));
+
   }
 }
