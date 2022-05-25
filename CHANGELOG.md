@@ -2,6 +2,8 @@
 
 BREAKING CHANGES:
 
+* connect: Removes support for Envoy 1.17.4 [[GH-12777](https://github.com/hashicorp/consul/issues/12777)]
+* connect: Removes support for Envoy 1.18.6 [[GH-12805](https://github.com/hashicorp/consul/issues/12805)]
 * sdk: several changes to the testutil configuration structs (removed `ACLMasterToken`, renamed `Master` to `InitialManagement`, and `AgentMaster` to `AgentRecovery`) [[GH-11827](https://github.com/hashicorp/consul/issues/11827)]
 * telemetry: the disable_compat_1.9 option now defaults to true. 1.9 style `consul.http...` metrics can still be enabled by setting `disable_compat_1.9 = false`. However, we will remove these metrics in 1.13. [[GH-12675](https://github.com/hashicorp/consul/issues/12675)]
 
