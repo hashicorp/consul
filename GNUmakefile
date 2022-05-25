@@ -272,6 +272,8 @@ lint: lint-tools
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
 	@echo "--> Running lint-consul-retry"
 	@lint-consul-retry
+	@echo "--> Running enumcover"
+	@enumcover ./...
 
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no

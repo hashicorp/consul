@@ -88,7 +88,7 @@ func (x ReplicationMessage_Response_Operation) GoString() string {
 	return x.String()
 }
 
-// TODO(rb): figure how to use to use mog to maintain this mapping when states are added
+// enumcover:PeeringState
 func PeeringStateToAPI(s PeeringState) api.PeeringState {
 	switch s {
 	case PeeringState_INITIAL:
@@ -106,7 +106,7 @@ func PeeringStateToAPI(s PeeringState) api.PeeringState {
 	}
 }
 
-// TODO(rb): figure how to use to use mog to maintain this mapping when states are added
+// enumcover:api.PeeringState
 func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	switch t {
 	case api.PeeringStateInitial:
