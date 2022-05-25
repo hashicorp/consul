@@ -1703,6 +1703,7 @@ func TestAgent_Reload(t *testing.T) {
 	})
 
 	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	// NOTE: this may require refactoring to remove a potential test race
 	a.delegate = shim
 	if err := a.reloadConfigInternal(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
