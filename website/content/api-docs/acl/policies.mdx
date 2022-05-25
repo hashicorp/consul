@@ -35,7 +35,12 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy create`](/commands/acl/policy/create).
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you create.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
   can contain alphanumeric characters, dashes `-`, and underscores `_`.
@@ -50,11 +55,9 @@ The corresponding CLI command is [`consul acl policy create`](/commands/acl/poli
   When no datacenters are provided the policy is valid in all datacenters including
   those which do not yet exist but may in the future.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to
-  create the policy. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you create.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -110,16 +113,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy read`](/commands/acl/policy/read).
 
-### Parameters
+### Path Parameters
 
-- `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
-  read. This is required and is specified as part of the URL path.
+- `id` `(string: <required>)` - Specifies the UUID of the policy you lookup.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the policy. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -162,16 +163,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy read -name=<string>`](/commands/acl/policy/read#name).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the ACL policy to
-  read. This is required and is specified as part of the URL path.
+- `name` `(string: <required>)` - Specifies the name of the ACL policy to read.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the policy. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -214,11 +213,19 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy update`](/commands/acl/policy/update).
 
-### Parameters
+### Path Parameters
 
-- `ID` `(string: <required>)` - Specifies the UUID of the policy to update. This is
-  required in the URL path but may also be specified in the JSON body. If specified
-  in both places then they must match exactly.
+- `id` `(string: <required>)` - Specifies the UUID of the policy you update.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
+
+- `ID` `(string: <optional>)` - If specified, this field must be an exact match
+  with the `id` path parameter.
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
   can only contain alphanumeric characters as well as `-` and `_` and must be
@@ -233,11 +240,9 @@ The corresponding CLI command is [`consul acl policy update`](/commands/acl/poli
   When no datacenters are provided the policy is valid in all datacenters including
   those which do not yet exist but may in the future.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the policy to update. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you update.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -295,16 +300,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy delete`](/commands/acl/policy/delete).
 
-### Parameters
+### Path Parameters
 
-- `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
-  delete. This is required and is specified as part of the URL path.
+- `id` `(string: <required>)` - Specifies the UUID of the policy you delete.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the
-  policy to delete. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you delete.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -339,14 +342,11 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl policy list`](/commands/acl/policy/list).
 
-### Parameters
+### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list
-  the Policies for. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. The namespace may be specified as '\*' and then
-  results will be returned for all namespaces. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the auth methods in the specified namespace.
+  The namespace may be specified as '\*' to return results for all namespaces.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ## Sample Request
 
@@ -381,3 +381,15 @@ retrieved by the [policy reading endpoint](#read-a-policy)
   }
 ]
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+ACL policy endpoints
+support several methods for specifying the namespace of the ACL policy resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to [create](#create-a-policy) and [update](#update-a-policy) endpoints
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace
