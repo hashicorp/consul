@@ -588,18 +588,18 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
-	Gateway      ServiceName
-	Service      ServiceName
-	GatewayKind  ServiceKind
-	Port         int      `json:",omitempty"`
-	Protocol     string   `json:",omitempty"`
-	Hosts        []string `json:",omitempty"`
-	CAFile       string   `json:",omitempty"`
-	CertFile     string   `json:",omitempty"`
-	KeyFile      string   `json:",omitempty"`
-	SNI          string   `json:",omitempty"`
-	FromWildcard bool     `json:",omitempty"`
-	IsEndpoint   bool     `json:",omitempty"`
+	Gateway       ServiceName
+	Service       ServiceName
+	GatewayKind   ServiceKind
+	Port          int      `json:",omitempty"`
+	Protocol      string   `json:",omitempty"`
+	Hosts         []string `json:",omitempty"`
+	CAFile        string   `json:",omitempty"`
+	CertFile      string   `json:",omitempty"`
+	KeyFile       string   `json:",omitempty"`
+	SNI           string   `json:",omitempty"`
+	FromWildcard  bool     `json:",omitempty"`
+	IsDestination bool     `json:",omitempty"`
 	RaftIndex
 }
 

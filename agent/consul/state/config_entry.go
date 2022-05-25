@@ -383,8 +383,8 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}
 	}
-	isEndpoint := conf.GetKind() == structs.ServiceDefaults && conf.(*structs.ServiceConfigEntry).Endpoint != nil
-	if isEndpoint {
+	isDestination := conf.GetKind() == structs.ServiceDefaults && conf.(*structs.ServiceConfigEntry).Destination != nil
+	if isDestination {
 		if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
 			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}

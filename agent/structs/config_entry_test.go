@@ -442,7 +442,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind = "service-defaults"
 				Name = "external"
 				Protocol = "tcp"
-				Endpoint {
+				Destination {
 					Address = "1.2.3.4/24"
 					Port = 8080
 				}
@@ -451,7 +451,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind:     "service-defaults",
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "1.2.3.4/24",
 					Port:    8080,
 				},
@@ -2426,7 +2426,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "",
 					Port:    443,
 				},
@@ -2438,7 +2438,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "1.2.3.4",
 					Port:    443,
 				},
@@ -2449,7 +2449,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "10.0.0.1/16",
 					Port:    8080,
 				},
@@ -2460,7 +2460,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
 					Port:    443,
 				},
@@ -2471,7 +2471,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334",
 					Port:    443,
 				},
@@ -2482,7 +2482,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334/64",
 					Port:    443,
 				},
@@ -2493,7 +2493,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334/64",
 				},
 			},
@@ -2504,7 +2504,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "*external.com",
 					Port:    443,
 				},
@@ -2516,7 +2516,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "..hello.",
 					Port:    443,
 				},
@@ -2528,7 +2528,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "http",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "*",
 					Port:    443,
 				},

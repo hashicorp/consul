@@ -831,7 +831,7 @@ func TestParseConfigEntry(t *testing.T) {
 					outbound_listener_port = 10101
 					dialed_directly = true
 				}
-				Endpoint = {
+				Destination = {
 					Address = "10.0.0.0/16",
 					Port = 443
 				}
@@ -876,7 +876,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 10101,
 					"DialedDirectly": true
 				},
-				"Endpoint": {
+				"Destination": {
 					"Address": "10.0.0.0/16",
 					"Port": 443
 				}
@@ -898,7 +898,7 @@ func TestParseConfigEntry(t *testing.T) {
 					OutboundListenerPort: 10101,
 					DialedDirectly:       true,
 				},
-				Endpoint: &api.EndpointConfig{
+				Destination: &api.DestinationConfig{
 					Address: "10.0.0.0/16",
 					Port:    443,
 				},
