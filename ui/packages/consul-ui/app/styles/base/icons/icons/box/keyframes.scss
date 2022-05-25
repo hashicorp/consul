@@ -1,15 +1,9 @@
 @keyframes icon-box {
-  50% {
-
-    background-color: var(--icon-color, var(--color-box-500, currentColor));
-    -webkit-mask-image: var(--icon-box-24);
-    mask-image: var(--icon-box-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-box-500, currentColor));
     -webkit-mask-image: var(--icon-box-16);
     mask-image: var(--icon-box-16);
+    background-color: var(--icon-color, var(--color-box-500, currentColor));
+
   }
 }

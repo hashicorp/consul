@@ -1,15 +1,9 @@
 @keyframes icon-send {
-  50% {
-
-    background-color: var(--icon-color, var(--color-send-500, currentColor));
-    -webkit-mask-image: var(--icon-send-24);
-    mask-image: var(--icon-send-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-send-500, currentColor));
     -webkit-mask-image: var(--icon-send-16);
     mask-image: var(--icon-send-16);
+    background-color: var(--icon-color, var(--color-send-500, currentColor));
+
   }
 }

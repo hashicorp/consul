@@ -1,15 +1,9 @@
 @keyframes icon-health {
-  50% {
-
-    background-color: var(--icon-color, var(--color-health-500, currentColor));
-    -webkit-mask-image: var(--icon-activity-24);
-    mask-image: var(--icon-activity-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-health-500, currentColor));
     -webkit-mask-image: var(--icon-activity-16);
     mask-image: var(--icon-activity-16);
+    background-color: var(--icon-color, var(--color-health-500, currentColor));
+
   }
 }

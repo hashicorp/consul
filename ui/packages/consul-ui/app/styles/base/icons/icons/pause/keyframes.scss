@@ -1,15 +1,9 @@
 @keyframes icon-pause {
-  50% {
-
-    background-color: var(--icon-color, var(--color-pause-500, currentColor));
-    -webkit-mask-image: var(--icon-pause-24);
-    mask-image: var(--icon-pause-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-pause-500, currentColor));
     -webkit-mask-image: var(--icon-pause-16);
     mask-image: var(--icon-pause-16);
+    background-color: var(--icon-color, var(--color-pause-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-volume-2 {
-  50% {
-
-    background-color: var(--icon-color, var(--color-volume-2-500, currentColor));
-    -webkit-mask-image: var(--icon-volume-2-24);
-    mask-image: var(--icon-volume-2-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-volume-2-500, currentColor));
     -webkit-mask-image: var(--icon-volume-2-16);
     mask-image: var(--icon-volume-2-16);
+    background-color: var(--icon-color, var(--color-volume-2-500, currentColor));
+
   }
 }

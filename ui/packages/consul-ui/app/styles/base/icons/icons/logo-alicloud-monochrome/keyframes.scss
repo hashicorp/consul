@@ -1,15 +1,9 @@
 @keyframes icon-logo-alicloud-monochrome {
-  50% {
-
-    background-color: var(--icon-color, var(--color-logo-alicloud-monochrome-500, currentColor));
-    -webkit-mask-image: var(--icon-alibaba-color-24);
-    mask-image: var(--icon-alibaba-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-logo-alicloud-monochrome-500, currentColor));
     -webkit-mask-image: var(--icon-alibaba-color-16);
     mask-image: var(--icon-alibaba-color-16);
+    background-color: var(--icon-color, var(--color-logo-alicloud-monochrome-500, currentColor));
+
   }
 }

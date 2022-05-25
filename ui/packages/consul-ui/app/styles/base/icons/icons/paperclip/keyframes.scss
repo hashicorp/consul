@@ -1,15 +1,9 @@
 @keyframes icon-paperclip {
-  50% {
-
-    background-color: var(--icon-color, var(--color-paperclip-500, currentColor));
-    -webkit-mask-image: var(--icon-paperclip-24);
-    mask-image: var(--icon-paperclip-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-paperclip-500, currentColor));
     -webkit-mask-image: var(--icon-paperclip-16);
     mask-image: var(--icon-paperclip-16);
+    background-color: var(--icon-color, var(--color-paperclip-500, currentColor));
+
   }
 }

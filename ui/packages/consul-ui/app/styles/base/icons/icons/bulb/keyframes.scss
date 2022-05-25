@@ -1,15 +1,9 @@
 @keyframes icon-bulb {
-  50% {
-
-    background-color: var(--icon-color, var(--color-bulb-500, currentColor));
-    -webkit-mask-image: var(--icon-bulb-24);
-    mask-image: var(--icon-bulb-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-bulb-500, currentColor));
     -webkit-mask-image: var(--icon-bulb-16);
     mask-image: var(--icon-bulb-16);
+    background-color: var(--icon-color, var(--color-bulb-500, currentColor));
+
   }
 }

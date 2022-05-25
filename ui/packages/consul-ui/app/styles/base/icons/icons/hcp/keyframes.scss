@@ -1,15 +1,9 @@
 @keyframes icon-hcp {
-  50% {
-
-    background-color: var(--icon-color, var(--color-hcp-500, currentColor));
-    -webkit-mask-image: var(--icon-hcp-color-24);
-    mask-image: var(--icon-hcp-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-hcp-500, currentColor));
     -webkit-mask-image: var(--icon-hcp-color-16);
     mask-image: var(--icon-hcp-color-16);
+    background-color: var(--icon-color, var(--color-hcp-500, currentColor));
+
   }
 }
