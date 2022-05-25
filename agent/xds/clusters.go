@@ -16,10 +16,10 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -169,7 +169,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
 			},
 			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
-			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+			ConnectTimeout: durationpb.New(5 * time.Second),
 		})
 	}
 
@@ -196,11 +196,11 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				},
 				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 
-				ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+				ConnectTimeout: durationpb.New(5 * time.Second),
 			}
 
 			if discoTarget, ok := chain.Targets[targetID]; ok && discoTarget.ConnectTimeout > 0 {
-				c.ConnectTimeout = ptypes.DurationProto(discoTarget.ConnectTimeout)
+				c.ConnectTimeout = durationpb.New(discoTarget.ConnectTimeout)
 			}
 
 			spiffeID := connect.SpiffeIDService{
@@ -486,7 +486,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 
 	c = &envoy_cluster_v3.Cluster{
 		Name:                 name,
-		ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond),
+		ConnectTimeout:       durationpb.New(time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond),
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
 		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: name,
@@ -550,7 +550,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
 			Name:                 sni,
-			ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
+			ConnectTimeout:       durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
 			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
 				EdsConfig: &envoy_core_v3.ConfigSource{
@@ -738,7 +738,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		c := &envoy_cluster_v3.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
-			ConnectTimeout:       ptypes.DurationProto(node.Resolver.ConnectTimeout),
+			ConnectTimeout:       durationpb.New(node.Resolver.ConnectTimeout),
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
@@ -912,7 +912,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:           opts.name,
-		ConnectTimeout: ptypes.DurationProto(opts.connectTimeout),
+		ConnectTimeout: durationpb.New(opts.connectTimeout),
 
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
@@ -940,7 +940,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
 	// by setting a DNS cluster type and passing the hostname endpoints via CDS.
 	rate := 10 * time.Second
-	cluster.DnsRefreshRate = ptypes.DurationProto(rate)
+	cluster.DnsRefreshRate = durationpb.New(rate)
 	cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_V4_ONLY
 
 	discoveryType := envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS}
@@ -1099,7 +1099,7 @@ func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster)
 			},
 		},
 	}
-	any, err := ptypes.MarshalAny(cfg)
+	any, err := anypb.New(cfg)
 	if err != nil {
 		return err
 	}

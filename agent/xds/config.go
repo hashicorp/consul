@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/mapstructure"
 
@@ -163,7 +163,7 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 	}
 
 	if p.Interval != 0 {
-		od.Interval = ptypes.DurationProto(p.Interval)
+		od.Interval = durationpb.New(p.Interval)
 	}
 	if p.MaxFailures != 0 {
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}

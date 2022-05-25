@@ -15,12 +15,13 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
@@ -2815,23 +2816,19 @@ func (m MessageType) String() string {
 }
 
 func DurationToProto(d time.Duration) *duration.Duration {
-	return ptypes.DurationProto(d)
+	return durationpb.New(d)
 }
 
 func DurationFromProto(d *duration.Duration) time.Duration {
-	ret, _ := ptypes.Duration(d)
-	return ret
-
+	return d.AsDuration()
 }
 
 func TimeFromProto(s *timestamp.Timestamp) time.Time {
-	ret, _ := ptypes.Timestamp(s)
-	return ret
+	return s.AsTime()
 }
 
 func TimeToProto(s time.Time) *timestamp.Timestamp {
-	ret, _ := ptypes.TimestampProto(s)
-	return ret
+	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
