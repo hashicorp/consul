@@ -285,7 +285,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	var reply structs.IndexedIntentions
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
-		if err.Error() == consul.ErrIntentionNotFound.Error() {
+		if strings.Contains(err.Error(), consul.ErrIntentionNotFound.Error()) {
 			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
