@@ -25,7 +25,7 @@ The Helm chart uses the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are identical, subsequent Consul on Kubernetes clusters would overwrite existing ACL resources causing the clusters to fail.
 
-Prepare the Helm release names as environment variables for both the server and client installs for use in the proceeding install instructions. 
+Before you proceed with installation, prepare the Helm release names as environment variables for both the server and client installs to use. 
 
 ```shell-session
   $ export HELM_RELEASE_SERVER=server
