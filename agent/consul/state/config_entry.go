@@ -376,10 +376,17 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
+
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
+		}
+	}
+	isEndpoint := conf.GetKind() == structs.ServiceDefaults && conf.(*structs.ServiceConfigEntry).Endpoint != nil
+	if isEndpoint {
+		if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
+			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}
 	}
 

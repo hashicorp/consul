@@ -1625,6 +1625,78 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
 		},
 	})
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "destination1",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "destination1",
+				Endpoint: &structs.EndpointConfig{Port: 9000, Address: "kafka.test.com"},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{},
+	})
+
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults wildcard",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "destination1",
+				Endpoint: &structs.EndpointConfig{Port: 9000, Address: "kafka.test.com"},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("*"),
+			),
+		},
+	})
 }
 
 func (tc eventsTestCase) run(t *testing.T) {

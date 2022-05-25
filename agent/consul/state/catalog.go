@@ -846,9 +846,12 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	}
 
 	if svc.PeerName == "" {
-		// Check if this service is covered by a gateway's wildcard specifier
-		if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
-			return fmt.Errorf("failed updating gateway mapping: %s", err)
+		// Do not associate non-typical services with gateways or consul services
+		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
+			// Check if this service is covered by a gateway's wildcard specifier
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}, false); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
 		}
 	}
 	if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
@@ -3469,6 +3472,7 @@ func terminatingConfigGatewayServices(
 		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
+	// TODO(egress-tproxy): Check if it's an endpoint by quering the service and the service defaut config entry.
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
 	_, c, err := configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -3483,6 +3487,10 @@ func terminatingConfigGatewayServices(
 
 	var gatewayServices structs.GatewayServices
 	for _, svc := range entry.Services {
+		isEndpoint, err := isEndpoint(tx, svc.Name, &svc.EnterpriseMeta)
+		if err != nil {
+			return false, nil, fmt.Errorf("failed to query endpoints: %v", err)
+		}
 		mapping := &structs.GatewayService{
 			Gateway:     gateway,
 			Service:     structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
@@ -3491,11 +3499,34 @@ func terminatingConfigGatewayServices(
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
 			SNI:         svc.SNI,
+			IsEndpoint:  isEndpoint,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
 	}
 	return false, gatewayServices, nil
+}
+
+func isEndpoint(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (bool, error) {
+	serviceIter, err := tx.Get(tableServices, indexService, Query{
+		Value:          name,
+		EnterpriseMeta: *entMeta,
+	})
+	if err != nil {
+		return false, err
+	}
+	for service := serviceIter.Next(); service != nil; service = serviceIter.Next() {
+		return false, nil
+	}
+
+	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
+	if err != nil {
+		return false, err
+	}
+	if entry != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
@@ -3531,6 +3562,41 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		mapping := service.Clone()
 
 		mapping.Service = structs.NewServiceName(sn.ServiceName, &service.Service.EnterpriseMeta)
+		mapping.FromWildcard = true
+
+		err = updateGatewayService(tx, idx, mapping)
+		if err != nil {
+			return err
+		}
+	}
+	endpoints, err := tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: structs.ServiceDefaults})
+	if err != nil {
+		return fmt.Errorf("failed querying endpoints: %s", err)
+	}
+	for endpoint := endpoints.Next(); endpoint != nil; endpoint = endpoints.Next() {
+		e := endpoint.(*structs.ServiceConfigEntry)
+		if e.Endpoint == nil {
+			continue
+		}
+
+		sn := structs.ServiceName{
+			Name:           e.Name,
+			EnterpriseMeta: e.EnterpriseMeta,
+		}
+		existing, err := tx.First(tableGatewayServices, indexID, service.Gateway, sn, service.Port)
+		if err != nil {
+			return fmt.Errorf("gateway service lookup failed: %s", err)
+		}
+		if existing != nil {
+			// If there's an existing service associated with this gateway then we skip it.
+			// This means the service was specified on its own, and the service entry overrides the wildcard entry.
+			continue
+		}
+
+		mapping := service.Clone()
+
+		mapping.Service = structs.NewServiceName(e.Name, &service.Service.EnterpriseMeta)
+		mapping.IsEndpoint = true
 		mapping.FromWildcard = true
 
 		err = updateGatewayService(tx, idx, mapping)
@@ -3585,16 +3651,11 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.NodeService) error {
-	// Do not associate non-typical services with gateways or consul services
-	if svc.Kind != structs.ServiceKindTypical || svc.Service == "consul" {
-		return nil
-	}
-
+func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, isEndpoint bool) error {
 	sn := structs.ServiceName{Name: structs.WildcardSpecifier, EnterpriseMeta: svc.EnterpriseMeta}
 	svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
-		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Name, err)
 	}
 	for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
 		if wildcardSvc, ok := service.(*structs.GatewayService); ok && wildcardSvc != nil {
@@ -3602,8 +3663,9 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.NodeSe
 			// Copy the wildcard mapping and modify it
 			gatewaySvc := wildcardSvc.Clone()
 
-			gatewaySvc.Service = structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
+			gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 			gatewaySvc.FromWildcard = true
+			gatewaySvc.IsEndpoint = isEndpoint
 
 			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())

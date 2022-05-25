@@ -599,6 +599,7 @@ type GatewayService struct {
 	KeyFile      string   `json:",omitempty"`
 	SNI          string   `json:",omitempty"`
 	FromWildcard bool     `json:",omitempty"`
+	IsEndpoint   bool     `json:",omitempty"`
 	RaftIndex
 }
 
