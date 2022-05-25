@@ -388,6 +388,10 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
 			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}
+		if err := checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
+			return fmt.Errorf("failed updating gateway mapping: %s", err)
+		}
+
 	}
 
 	// Insert the config entry and update the index

@@ -3675,6 +3675,31 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 	return nil
 }
 
+// checkGatewayAndUpdate checks whether a service matches a
+// wildcard definition in gateway config entries and if so adds it the the
+// gateway-services table.
+func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, isDestination bool) error {
+	sn := structs.ServiceName{Name: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}
+	svcGateways, err := tx.First(tableGatewayServices, indexService, sn)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Name, err)
+	}
+
+	if service, ok := svcGateways.(*structs.GatewayService); ok && service != nil {
+		// Copy the wildcard mapping and modify it
+		gatewaySvc := service.Clone()
+
+		gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		gatewaySvc.IsDestination = isDestination
+
+		if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
+			return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
+		}
+	}
+
+	return nil
+}
+
 func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) error {
 	// Clean up association between service name and gateways if needed
 	sn := structs.ServiceName{Name: svc.ServiceName, EnterpriseMeta: svc.EnterpriseMeta}

@@ -636,6 +636,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
 		g.SNI == o.SNI &&
+		g.IsDestination == o.IsDestination &&
 		g.FromWildcard == o.FromWildcard
 }
 

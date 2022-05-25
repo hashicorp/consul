@@ -1654,7 +1654,21 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
 		},
-		WantEvents: []stream.Event{},
+		WantEvents: []stream.Event{
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1")),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1"),
+			),
+		},
 	})
 
 	run(t, eventsTestCase{
