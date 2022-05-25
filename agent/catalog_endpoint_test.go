@@ -1107,6 +1107,7 @@ func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
 	proxyGlobalEntry structs.ProxyConfigEntry,
 	serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
 
+	t.Helper()
 	assert.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
 	// validate proxy global defaults are resolved in the merged service config
 	assert.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
