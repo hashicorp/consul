@@ -38,6 +38,16 @@ func (msg *ServiceConnect) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *PeeringServiceMeta) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *PeeringServiceMeta) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *ExposeConfig) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

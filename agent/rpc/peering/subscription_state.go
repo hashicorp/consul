@@ -17,6 +17,8 @@ import (
 
 // subscriptionState is a collection of working state tied to a peerID subscription.
 type subscriptionState struct {
+	// peerName is immutable and is the LOCAL name for the peering
+	peerName string
 	// partition is immutable
 	partition string
 
@@ -25,7 +27,7 @@ type subscriptionState struct {
 
 	watchedServices      map[structs.ServiceName]context.CancelFunc
 	watchedProxyServices map[structs.ServiceName]context.CancelFunc // TODO(peering): remove
-	connectServices      map[structs.ServiceName]struct{}
+	connectServices      map[structs.ServiceName]string             // value:protocol
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"
 	// not the "correlationID"
@@ -42,12 +44,13 @@ type subscriptionState struct {
 	publicUpdateCh chan<- cache.UpdateEvent
 }
 
-func newSubscriptionState(partition string) *subscriptionState {
+func newSubscriptionState(peerName, partition string) *subscriptionState {
 	return &subscriptionState{
+		peerName:             peerName,
 		partition:            partition,
 		watchedServices:      make(map[structs.ServiceName]context.CancelFunc),
 		watchedProxyServices: make(map[structs.ServiceName]context.CancelFunc),
-		connectServices:      make(map[structs.ServiceName]struct{}),
+		connectServices:      make(map[structs.ServiceName]string),
 		eventVersions:        make(map[string]string),
 	}
 }

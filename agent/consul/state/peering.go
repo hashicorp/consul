@@ -398,10 +398,42 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 	structs.ServiceList(normal).Sort()
 	structs.ServiceList(disco).Sort()
 
-	return maxIdx, &structs.ExportedServiceList{
-		Services:    normal,
-		DiscoChains: disco,
-	}, nil
+	serviceProtocols := make(map[structs.ServiceName]string)
+	populateProtocol := func(svc structs.ServiceName) error {
+		if _, ok := serviceProtocols[svc]; ok {
+			return nil // already processed
+		}
+
+		idx, protocol, err := protocolForService(tx, ws, svc)
+		if err != nil {
+			return fmt.Errorf("failed to get protocol for service: %w", err)
+		}
+
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		serviceProtocols[svc] = protocol
+		return nil
+	}
+	for _, svc := range normal {
+		if err := populateProtocol(svc); err != nil {
+			return 0, nil, err
+		}
+	}
+	for _, svc := range disco {
+		if err := populateProtocol(svc); err != nil {
+			return 0, nil, err
+		}
+	}
+
+	list := &structs.ExportedServiceList{
+		Services:        normal,
+		DiscoChains:     disco,
+		ConnectProtocol: serviceProtocols,
+	}
+
+	return maxIdx, list, nil
 }
 
 // PeeringsForService returns the list of peerings that are associated with the service name provided in the query.

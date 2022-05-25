@@ -10,11 +10,14 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -29,8 +32,11 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
-	mgr := newSubscriptionManager(ctx, testutil.Logger(t), backend)
-	subCh := mgr.subscribe(ctx, id, partition)
+	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, connect.TestTrustDomain, backend)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	var (
 		gatewayCorrID = subMeshGateway + partition
@@ -93,12 +99,11 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 1)
-			node := res.Nodes[0]
-			require.NotNil(t, node.Node)
-			require.Equal(t, "foo", node.Node.Node)
-			require.NotNil(t, node.Service)
-			require.Equal(t, "mysql-1", node.Service.ID)
-			require.Len(t, node.Checks, 0)
+
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+			}, res.Nodes[0])
 		})
 
 		backend.ensureCheck(t, mysql1.Checks[0])
@@ -110,13 +115,14 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 1)
-			node := res.Nodes[0]
-			require.NotNil(t, node.Node)
-			require.Equal(t, "foo", node.Node.Node)
-			require.NotNil(t, node.Service)
-			require.Equal(t, "mysql-1", node.Service.ID)
-			require.Len(t, node.Checks, 1)
-			require.Equal(t, "mysql-1:overall-check", node.Checks[0].CheckID)
+
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
 		})
 	})
 
@@ -139,22 +145,18 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 2)
-			{
-				node := res.Nodes[0]
-				require.NotNil(t, node.Node)
-				require.Equal(t, "bar", node.Node.Node)
-				require.NotNil(t, node.Service)
-				require.Equal(t, "mysql-2", node.Service.ID)
-				require.Len(t, node.Checks, 0)
-			}
-			{
-				node := res.Nodes[1]
-				require.NotNil(t, node.Node)
-				require.Equal(t, "foo", node.Node.Node)
-				require.NotNil(t, node.Service)
-				require.Len(t, node.Checks, 1)
-				require.Equal(t, "mysql-1:overall-check", node.Checks[0].CheckID)
-			}
+
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+			}, res.Nodes[0])
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[1])
 		})
 
 		backend.ensureCheck(t, mysql2.Checks[0])
@@ -166,23 +168,20 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 2)
-			{
-				node := res.Nodes[0]
-				require.NotNil(t, node.Node)
-				require.Equal(t, "bar", node.Node.Node)
-				require.NotNil(t, node.Service)
-				require.Equal(t, "mysql-2", node.Service.ID)
-				require.Len(t, node.Checks, 1)
-				require.Equal(t, "mysql-2:overall-check", node.Checks[0].CheckID)
-			}
-			{
-				node := res.Nodes[1]
-				require.NotNil(t, node.Node)
-				require.Equal(t, "foo", node.Node.Node)
-				require.NotNil(t, node.Service)
-				require.Len(t, node.Checks, 1)
-				require.Equal(t, "mysql-1:overall-check", node.Checks[0].CheckID)
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("bar", "mysql-2", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[1])
 		})
 	})
 
@@ -212,15 +211,74 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 1)
-
-			node := res.Nodes[0]
-			require.NotNil(t, node.Node)
-			require.Equal(t, "bar", node.Node.Node)
-			require.NotNil(t, node.Service)
-			require.Equal(t, "mysql-2", node.Service.ID)
-			require.Len(t, node.Checks, 1)
-			require.Equal(t, "mysql-2:overall-check", node.Checks[0].CheckID)
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("bar", "mysql-2", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
 		})
+	})
+
+	testutil.RunStep(t, "register mesh gateway to send proxy updates", func(t *testing.T) {
+		gateway := &structs.CheckServiceNode{
+			Node:    &structs.Node{Node: "mgw", Address: "10.1.1.1"},
+			Service: &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443},
+			// TODO: checks
+		}
+		backend.ensureNode(t, gateway.Node)
+		backend.ensureService(t, "mgw", gateway.Service)
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node: pbNode("mgw", "10.1.1.1", partition),
+					Service: &pbservice.NodeService{
+						Kind:    "connect-proxy",
+						ID:      "mysql-sidecar-proxy-instance-0",
+						Service: "mysql-sidecar-proxy",
+						Port:    8443,
+						Weights: &pbservice.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+						EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+						Proxy: &pbservice.ConnectProxyConfig{
+							DestinationServiceID:   "mysql-instance-0",
+							DestinationServiceName: "mysql",
+						},
+						Connect: &pbservice.ServiceConnect{
+							PeerMeta: &pbservice.PeeringServiceMeta{
+								SNI: []string{
+									"mysql.default.default.my-peering.external.11111111-2222-3333-4444-555555555555.consul",
+								},
+								SpiffeID: []string{
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+								},
+								Protocol: "tcp",
+							},
+						},
+					},
+				}, res.Nodes[0])
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, gatewayCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node:    pbNode("mgw", "10.1.1.1", partition),
+					Service: pbService("mesh-gateway", "gateway-1", "gateway", 8443, nil),
+				}, res.Nodes[0])
+			},
+		)
 	})
 
 	testutil.RunStep(t, "deregister the last instance and the output is empty", func(t *testing.T) {
@@ -233,6 +291,27 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 
 			require.Len(t, res.Nodes, 0)
 		})
+	})
+
+	testutil.RunStep(t, "deregister mesh gateway to send proxy removals", func(t *testing.T) {
+		backend.deleteService(t, "mgw", "gateway-1")
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 0)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, gatewayCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 0)
+			},
+		)
 	})
 }
 
@@ -247,8 +326,11 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
-	mgr := newSubscriptionManager(ctx, testutil.Logger(t), backend)
-	subCh := mgr.subscribe(ctx, id, partition)
+	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, connect.TestTrustDomain, backend)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	// Register two services that are not yet exported
 	mysql := &structs.CheckServiceNode{
@@ -533,5 +615,41 @@ func checkEvent(
 			require.Equal(t, expectName, evt.Nodes[i].Service.Service)
 			require.Equal(t, expectKind, evt.Nodes[i].Service.Kind)
 		}
+	}
+}
+
+func pbNode(node, addr, partition string) *pbservice.Node {
+	return &pbservice.Node{Node: node, Partition: partition, Address: addr}
+}
+
+func pbService(kind, id, name string, port int32, entMeta *pbcommon.EnterpriseMeta) *pbservice.NodeService {
+	if entMeta == nil {
+		entMeta = pbcommon.DefaultEnterpriseMeta
+	}
+	return &pbservice.NodeService{
+		ID:      id,
+		Kind:    kind,
+		Service: name,
+		Port:    port,
+		Weights: &pbservice.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		EnterpriseMeta: entMeta,
+	}
+}
+
+func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMeta) *pbservice.HealthCheck {
+	if entMeta == nil {
+		entMeta = pbcommon.DefaultEnterpriseMeta
+	}
+	return &pbservice.HealthCheck{
+		Node:           node,
+		CheckID:        svcID + ":overall-check",
+		Name:           "overall-check",
+		Status:         status,
+		ServiceID:      svcID,
+		ServiceName:    svcName,
+		EnterpriseMeta: entMeta,
 	}
 }
