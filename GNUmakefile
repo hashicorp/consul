@@ -362,7 +362,7 @@ else
 endif
 
 .PHONY: proto
-proto:
+proto: proto-tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh
 
 .PHONY: proto-format
