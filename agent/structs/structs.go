@@ -706,6 +706,12 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -752,6 +758,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.PeerName,
 		r.Ingress,
 		r.ServiceKind,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -1330,7 +1337,8 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
-	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
+	return s.Kind == ServiceKindConnectProxy &&
+		(s.Proxy.DestinationServiceID != "" || s.Proxy.DestinationServiceName != "")
 }
 
 func (s *NodeService) IsGateway() bool {

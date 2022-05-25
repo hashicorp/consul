@@ -203,6 +203,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		args.TagFilter = true
 	}
 
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
+	}
+
 	// Determine the prefix
 	var prefix string
 	switch healthType {
