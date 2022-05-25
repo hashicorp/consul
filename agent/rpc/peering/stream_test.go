@@ -617,6 +617,201 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		store: store,
 		pub:   publisher,
 	})
+	srv.DisableMeshGatewayMode = false
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		if err := srv.StreamResources(client.ReplicationStream); err != nil {
+			errCh <- err
+		}
+	}()
+
+	// Issue a services subscription to server
+	init := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				PeerID:      peerID,
+				ResourceURL: pbpeering.TypeURLService,
+			},
+		},
+	}
+	require.NoError(t, client.Send(init))
+
+	// Receive a services subscription from server
+	receivedSub, err := client.Recv()
+	require.NoError(t, err)
+
+	expect := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				ResourceURL: pbpeering.TypeURLService,
+				PeerID:      remotePeerID,
+			},
+		},
+	}
+	prototest.AssertDeepEqual(t, expect, receivedSub)
+
+	// Register a service that is not yet exported
+	mysql := &structs.CheckServiceNode{
+		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
+		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
+	}
+
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, mysql.Node))
+
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
+
+	var (
+		mongoSN      = structs.NewServiceName("mongo", nil).String()
+		mongoProxySN = structs.NewServiceName("mongo-sidecar-proxy", nil).String()
+		mysqlSN      = structs.NewServiceName("mysql", nil).String()
+		mysqlProxySN = structs.NewServiceName("mysql-sidecar-proxy", nil).String()
+	)
+
+	testutil.RunStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
+		entry := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "mysql",
+					Consumers: []structs.ServiceConsumer{
+						{PeerName: "my-peering"},
+					},
+				},
+				{
+					// Mongo does not get pushed because it does not have instances registered.
+					Name: "mongo",
+					Consumers: []structs.ServiceConsumer{
+						{PeerName: "my-peering"},
+					},
+				},
+			},
+		}
+		lastIdx++
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
+
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlSN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
+
+				var nodes pbservice.IndexedCheckServiceNodes
+				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				require.Len(t, nodes.Nodes, 1)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+		)
+	})
+
+	mongo := &structs.CheckServiceNode{
+		Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
+		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
+	}
+
+	testutil.RunStep(t, "registering mongo instance leads to an UPSERT event", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureNode(lastIdx, mongo.Node))
+
+		lastIdx++
+		require.NoError(t, store.EnsureService(lastIdx, "zip", mongo.Service))
+
+		retry.Run(t, func(r *retry.R) {
+			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+			require.NoError(r, err)
+			require.Equal(r, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
+			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
+
+			var nodes pbservice.IndexedCheckServiceNodes
+			require.NoError(r, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+			require.Len(r, nodes.Nodes, 1)
+		})
+	})
+
+	testutil.RunStep(t, "un-exporting mysql leads to a DELETE event for mysql", func(t *testing.T) {
+		entry := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "mongo",
+					Consumers: []structs.ServiceConsumer{
+						{
+							PeerName: "my-peering",
+						},
+					},
+				},
+			},
+		}
+		lastIdx++
+		err = store.EnsureConfigEntry(lastIdx, entry)
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+			require.NoError(r, err)
+			require.Equal(r, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+			require.Equal(r, mysql.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
+			require.Nil(r, msg.GetResponse().Resource)
+		})
+	})
+
+	testutil.RunStep(t, "deleting the config entry leads to a DELETE event for mongo", func(t *testing.T) {
+		lastIdx++
+		err = store.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", nil)
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+			require.NoError(r, err)
+			require.Equal(r, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
+			require.Nil(r, msg.GetResponse().Resource)
+		})
+	})
+}
+
+func TestStreamResources_Server_ServiceUpdates_DisableMeshGatewayMode(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	// Create a peering
+	var lastIdx uint64 = 1
+	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	var (
+		peerID       = p.ID     // for Send
+		remotePeerID = p.PeerID // for Recv
+	)
+
+	srv := NewService(testutil.Logger(t), &testStreamBackend{
+		store: store,
+		pub:   publisher,
+	})
+	srv.DisableMeshGatewayMode = true
 
 	client := NewMockClient(context.Background())
 
