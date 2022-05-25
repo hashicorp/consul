@@ -1,0 +1,59 @@
+---
+layout: docs
+page_title: 0.6.x
+description: >-
+  Consul-Terraform-Sync release notes for version 0.6.x
+---
+
+# Consul-Terraform-Sync 0.6.0
+
+## Release Highlights
+
+
+We have implemented the following features in this release:
+ 
+### Per-task Execution Mode with Support for Terraform Cloud Agent <EnterpriseAlert inline /> 
+
+You can now execute Terraform tasks in `remote` or `cloud agent` mode. For more information, refer to the [per-task execution mode documentation](/docs/nia/network-drivers/terraform-cloud#remote-workspaces).
+
+### HCP Consul Support <EnterpriseAlert inline /> 
+
+CTS now supports interoperability with HCP Consul. CTS retrieves licenses from HCP Consul so that users can keep their HCP Consul license or Consul enterprise deployment license in sync.
+
+### Auto Service-registration with Consul and Health API Endpoint 
+
+CTS includes a new configuration block that automatically registers CTS as a service within Consul as soon as CTS is instantiated. This eliminates the manual step of registering CTS as a service within the Consul catalog. This service registration also enables health checking on CTS using the newly added [health API endpoint](/docs/nia/api/health#health).
+
+### CLI Discoverability 
+
+We improved CTS's CLI discoverability functionality. The `consul-terraform-sync` command features opt-in [autocompletion](/docs/nia/cli#autocompletion) for flags, subcommands, and arguments
+
+### Health Check API 
+
+CTS includes a new [API endpoint](/docs/nia/api/health#health) that provides operators with the health status of their CTS instance.
+
+
+## Supported Software Versions
+
+- Consul: v1.9+
+- <EnterpriseAlert inline /> HCP Consul: Latest
+- Terraform CLI: v0.13 - v1.1
+- <EnterpriseAlert inline /> Terraform Cloud: Latest
+- <EnterpriseAlert inline /> Terraform Enterprise: v202010-2 - Latest
+
+
+## What's Changed
+
+**Deprecations**
+
+* [[GH-790](https://github.com/hashicorp/consul-terraform-sync/issues/790)]<EnterpriseAlert inline /> Deprecate `terraform_version` task configuration in favor of `terraform_cloud_workspace.terraform_version` task configuration
+* [[GH-810](https://github.com/hashicorp/consul-terraform-sync/issues/810)] <EnterpriseAlert inline /> Deprecate `license_path` configuration in favor of `license.path` configuration
+* [[GH-866](https://github.com/hashicorp/consul-terraform-sync/issues/866)] Deprecate starting CTS as a daemon using no CLI command in favor of starting CTS as a daemon using the new `start` command
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will redirect you to the changelogs on the GitHub website.
+
+- [0.6.0](https://github.com/hashicorp/consul-terraform-sync/releases/tag/v0.6.0)
