@@ -1146,10 +1146,10 @@ func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
 	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
 
 	// Register proxy-defaults
-	proxyGlobalEntry := registerProxyDefaults(t, a)
+	_ = registerProxyDefaults(t, a)
 
 	// Register service-defaults
-	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	_ = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
 
 	type testCase struct {
 		testCaseName string
