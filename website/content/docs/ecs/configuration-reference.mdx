@@ -82,7 +82,7 @@ Defines the Consul checks for the service. Each check may contain these fields.
 | `h2pingUseTls` | `boolean` | optional | Specifies whether TLS is used for an h2ping check.  |
 | `header` | `object` | optional | Specifies a set of headers that should be set for HTTP checks. Each header can have multiple values.  |
 | `http` | `string` | optional | Specifies this is an HTTP check. Must be a URL against which request is performed every `interval`.  |
-| `interval` | `string` | optional | Specifies the frequency at which to run this check. Required for HTTP, TCP and UDP checks.  |
+| `interval` | `string` | optional | Specifies the frequency at which to run this check. Required for HTTP, TCP, and UDP checks.  |
 | `method` | `string` | optional | Specifies the HTTP method to be used for an HTTP check. When no value is specified, `GET` is used.  |
 | `name` | `string` | optional | The name of the check.  |
 | `notes` | `string` | optional | Specifies arbitrary information for humans. This is not used by Consul internally.  |
