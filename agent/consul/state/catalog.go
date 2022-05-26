@@ -3734,6 +3734,12 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 			if err := deleteGatewayServiceTopologyMapping(tx, idx, m); err != nil {
 				return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
 			}
+		} else {
+			kind, err := GatewayServiceKind(tx, m.Service.Name, &m.Service.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+			}
+			checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: m.Service.Name, EnterpriseMeta: m.Service.EnterpriseMeta}, kind)
 		}
 	}
 	return nil

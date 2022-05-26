@@ -409,6 +409,370 @@ func TestStore_ConfigEntries(t *testing.T) {
 		Protocol: "tcp",
 	}))
 	require.True(t, watchFired(ws))
+
+}
+
+func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "dest1",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	destination := &structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "dest1",
+		Destination: &structs.DestinationConfig{},
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, destination))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+
+}
+
+func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "web",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	service := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		Service: "web",
+	}
+	destination := &structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "web",
+		Destination: &structs.DestinationConfig{},
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, destination))
+
+	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
+	require.NoError(t, s.EnsureService(0, "node1", service))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+
+}
+
+func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "web",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	service := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		Service: "web",
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
+	require.NoError(t, s.EnsureService(0, "node1", service))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+
+}
+
+func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	destination := &structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "dest1",
+		Destination: &structs.DestinationConfig{},
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 0)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, destination))
+	require.NoError(t, err)
+
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+}
+
+func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	service := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		Service: "web",
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 0)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
+	require.NoError(t, s.EnsureService(0, "node1", service))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 0)
+}
+
+func TestStore_Service_TerminatingGateway_Kind_Service_Destination_Wildcard(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "*",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	service := &structs.NodeService{
+		Kind:    structs.ServiceKindTypical,
+		Service: "web",
+	}
+	destination := &structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "web",
+		Destination: &structs.DestinationConfig{},
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 0)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, destination))
+
+	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
+	require.NoError(t, s.EnsureService(0, "node1", service))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.True(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 0)
+
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
