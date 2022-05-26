@@ -357,6 +357,10 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		args.TagFilter = true
 	}
 
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
+	}
+
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
 	if args.ServiceName == "" {

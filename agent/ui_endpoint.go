@@ -134,11 +134,7 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// Verify we have some DC, or use the default
-	var err error
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
-	if err != nil {
-		return nil, err
-	}
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
@@ -266,11 +262,7 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the service name
-	var err error
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-services-nodes/")
-	if err != nil {
-		return nil, err
-	}
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing gateway name"}
 	}
@@ -310,11 +302,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 
-	var err error
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/service-topology/")
-	if err != nil {
-		return nil, err
-	}
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
