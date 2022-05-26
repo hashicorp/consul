@@ -129,8 +129,8 @@ func (m *leadershipMonitor) UpdateLeaderAddr(addr string) {
 }
 
 func (m *leadershipMonitor) GetLeaderAddr() string {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	m.lock.RLock()
+	defer m.lock.RUnlock()
 
 	return m.leaderAddr
 }
