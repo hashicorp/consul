@@ -848,8 +848,12 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	if svc.PeerName == "" {
 		// Do not associate non-typical services with gateways or consul services
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
-			// Check if this service is covered by a gateway's wildcard specifier
-			if err = checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}, structs.GatewayservicekindService); err != nil {
+			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
+			sn := structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
@@ -3625,9 +3629,6 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 	}
 	if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
 		mapping.CreateIndex = gs.CreateIndex
-		if gs.Kind != structs.GatewayservicekindUnknown {
-			mapping.Kind = gs.Kind
-		}
 		if gs.IsSame(mapping) {
 			return nil
 		}
