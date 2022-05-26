@@ -193,7 +193,7 @@ jobs:
       - run: go env
       - run:
           name: Install golangci-lint
-          command: bash build-support/scripts/devtools.sh -lint
+          command: bash -x build-support/scripts/devtools.sh -lint
       - run: go mod download
       - run:
           name: lint
