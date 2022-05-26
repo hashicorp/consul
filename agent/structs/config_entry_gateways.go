@@ -589,7 +589,7 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 type GatewayServiceKind string
 
 const (
-	GatewayservicekindUnknown     GatewayServiceKind = "gateway-service-unknown"
+	GatewayservicekindUnknown     GatewayServiceKind = ""
 	GatewayservicekindDestination GatewayServiceKind = "gateway-service-destination"
 	GatewayservicekindService     GatewayServiceKind = "gateway-service-service"
 )
