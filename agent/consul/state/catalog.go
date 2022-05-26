@@ -849,7 +849,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		// Do not associate non-typical services with gateways or consul services
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier
-			if err = checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}, false); err != nil {
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}, structs.GatewayservicekindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
@@ -3487,19 +3487,19 @@ func terminatingConfigGatewayServices(
 
 	var gatewayServices structs.GatewayServices
 	for _, svc := range entry.Services {
-		isDestination, err := isDestination(tx, svc.Name, &svc.EnterpriseMeta)
+		kind, err := GatewayServiceKind(tx, svc.Name, &svc.EnterpriseMeta)
 		if err != nil {
 			return false, nil, fmt.Errorf("failed to query endpoints: %v", err)
 		}
 		mapping := &structs.GatewayService{
-			Gateway:       gateway,
-			Service:       structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
-			GatewayKind:   structs.ServiceKindTerminatingGateway,
-			KeyFile:       svc.KeyFile,
-			CertFile:      svc.CertFile,
-			CAFile:        svc.CAFile,
-			SNI:           svc.SNI,
-			IsDestination: isDestination,
+			Gateway:     gateway,
+			Service:     structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			KeyFile:     svc.KeyFile,
+			CertFile:    svc.CertFile,
+			CAFile:      svc.CAFile,
+			SNI:         svc.SNI,
+			Kind:        kind,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
@@ -3507,26 +3507,26 @@ func terminatingConfigGatewayServices(
 	return false, gatewayServices, nil
 }
 
-func isDestination(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (bool, error) {
+func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {
 	serviceIter, err := tx.Get(tableServices, indexService, Query{
 		Value:          name,
 		EnterpriseMeta: *entMeta,
 	})
 	if err != nil {
-		return false, err
+		return structs.GatewayservicekindService, err
 	}
 	for service := serviceIter.Next(); service != nil; service = serviceIter.Next() {
-		return false, nil
+		return structs.GatewayservicekindUnknown, nil
 	}
 
 	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
 	if err != nil {
-		return false, err
+		return structs.GatewayservicekindUnknown, err
 	}
 	if entry != nil {
-		return true, nil
+		return structs.GatewayservicekindDestination, nil
 	}
-	return false, nil
+	return structs.GatewayservicekindUnknown, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
@@ -3569,7 +3569,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 			return err
 		}
 	}
-	endpoints, err := tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: structs.ServiceDefaults})
+	endpoints, err := tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: structs.ServiceDefaults, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return fmt.Errorf("failed querying endpoints: %s", err)
 	}
@@ -3596,7 +3596,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		mapping := service.Clone()
 
 		mapping.Service = structs.NewServiceName(e.Name, &service.Service.EnterpriseMeta)
-		mapping.IsDestination = true
+		mapping.Kind = structs.GatewayservicekindDestination
 		mapping.FromWildcard = true
 
 		err = updateGatewayService(tx, idx, mapping)
@@ -3625,6 +3625,9 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 	}
 	if gs, ok := existing.(*structs.GatewayService); ok && gs != nil {
 		mapping.CreateIndex = gs.CreateIndex
+		if gs.Kind != structs.GatewayservicekindUnknown {
+			mapping.Kind = gs.Kind
+		}
 		if gs.IsSame(mapping) {
 			return nil
 		}
@@ -3651,7 +3654,7 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, isDestination bool) error {
+func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, kind structs.GatewayServiceKind) error {
 	sn := structs.ServiceName{Name: structs.WildcardSpecifier, EnterpriseMeta: svc.EnterpriseMeta}
 	svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
@@ -3665,7 +3668,7 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 
 			gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 			gatewaySvc.FromWildcard = true
-			gatewaySvc.IsDestination = isDestination
+			gatewaySvc.Kind = kind
 
 			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
@@ -3678,7 +3681,7 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 // checkGatewayAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, isDestination bool) error {
+func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, kind structs.GatewayServiceKind) error {
 	sn := structs.ServiceName{Name: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}
 	svcGateways, err := tx.First(tableGatewayServices, indexService, sn)
 	if err != nil {
@@ -3690,7 +3693,7 @@ func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, is
 		gatewaySvc := service.Clone()
 
 		gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
-		gatewaySvc.IsDestination = isDestination
+		gatewaySvc.Kind = kind
 
 		if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 			return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())

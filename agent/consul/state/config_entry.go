@@ -385,10 +385,10 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 	isDestination := conf.GetKind() == structs.ServiceDefaults && conf.(*structs.ServiceConfigEntry).Destination != nil
 	if isDestination {
-		if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
+		if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, structs.GatewayservicekindDestination); err != nil {
 			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}
-		if err := checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, true); err != nil {
+		if err := checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}, structs.GatewayservicekindDestination); err != nil {
 			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}
 

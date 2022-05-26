@@ -100,7 +100,7 @@ func TestStore_ServiceDefaults_isDestination(t *testing.T) {
 	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.False(t, gatewayServices[0].IsDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -114,7 +114,7 @@ func TestStore_ServiceDefaults_isDestination(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.True(t, gatewayServices[0].IsDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
 
 }
 
@@ -155,7 +155,7 @@ func TestStore_ServiceDefaults_isDestination_Wildcard(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.True(t, gatewayServices[0].IsDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
 }
 
 func TestStore_ConfigEntryCAS(t *testing.T) {
