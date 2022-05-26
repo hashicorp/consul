@@ -314,6 +314,54 @@ func TestIntentionCheck(t *testing.T) {
 	})
 }
 
+func TestIntentionGetExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	hcl := `
+	bootstrap = false
+	bootstrap_expect = 2
+	server = true
+	`
+
+	a1 := NewTestAgent(t, hcl)
+	a2 := NewTestAgent(t, hcl)
+
+	_, err := a1.JoinLAN([]string{
+		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
+	}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	run := func(t *testing.T, a *TestAgent) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		testutil.RequireErrorContains(t, err, "Intention not found")
+		httpErr, ok := err.(HTTPError)
+		require.True(t, ok)
+		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+		require.Nil(t, obj)
+	}
+
+	// One of these will be the leader and the other will be a follower so we
+	// test direct RPC handling and RPC forwarding of errors at the same time.
+	for i, a := range []*TestAgent{a1, a2} {
+		t.Run(fmt.Sprintf("test agent %d of 2", i+1), func(t *testing.T) {
+			run(t, a)
+		})
+	}
+}
+
 func TestIntentionPutExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

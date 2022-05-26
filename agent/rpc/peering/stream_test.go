@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -34,13 +35,19 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store: store,
-		pub:   publisher,
-		leader: func() bool {
-			return false
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
 		},
-	})
+		&testStreamBackend{
+			store: store,
+			pub:   publisher,
+			leader: func() bool {
+				return false
+			},
+		})
 
 	client := NewMockClient(context.Background())
 
@@ -76,11 +83,18 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		}
 		return false
 	}
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store:  store,
-		pub:    publisher,
-		leader: leaderFunc,
-	})
+
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		&testStreamBackend{
+			store:  store,
+			pub:    publisher,
+			leader: leaderFunc,
+		})
 
 	client := NewMockClient(context.Background())
 
@@ -96,6 +110,9 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 
 	p := writeInitiatedPeering(t, store, 1, "my-peer")
 	peerID := p.ID
+
+	// Set the initial roots and CA configuration.
+	_ = writeInitialRootsAndCA(t, store)
 
 	// Receive a subscription from a peer
 	sub := &pbpeering.ReplicationMessage{
@@ -142,10 +159,15 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 		publisher := stream.NewEventPublisher(10 * time.Second)
 		store := newStateStore(t, publisher)
 
-		srv := NewService(testutil.Logger(t), &testStreamBackend{
-			store: store,
-			pub:   publisher,
-		})
+		srv := NewService(
+			testutil.Logger(t),
+			Config{
+				Datacenter:     "dc1",
+				ConnectEnabled: true,
+			}, &testStreamBackend{
+				store: store,
+				pub:   publisher,
+			})
 
 		client := NewMockClient(context.Background())
 
@@ -243,10 +265,15 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store: store,
-		pub:   publisher,
-	})
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		}, &testStreamBackend{
+			store: store,
+			pub:   publisher,
+		})
 
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -271,6 +298,9 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
 	)
+
+	// Set the initial roots and CA configuration.
+	_ = writeInitialRootsAndCA(t, store)
 
 	// Receive a subscription from a peer
 	sub := &pbpeering.ReplicationMessage{
@@ -330,10 +360,15 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store: store,
-		pub:   publisher,
-	})
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		}, &testStreamBackend{
+			store: store,
+			pub:   publisher,
+		})
 
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -352,6 +387,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
 	)
+
+	// Set the initial roots and CA configuration.
+	_ = writeInitialRootsAndCA(t, store)
 
 	// Receive a subscription from a peer
 	sub := &pbpeering.ReplicationMessage{
@@ -602,6 +640,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 }
 
 func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
+	testStreamResources_Server_ServiceUpdates(t, true)
+}
+func TestStreamResources_Server_ServiceUpdates_EnableMeshGateways(t *testing.T) {
+	testStreamResources_Server_ServiceUpdates(t, false)
+}
+func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways bool) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
@@ -613,10 +657,19 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		remotePeerID = p.PeerID // for Recv
 	)
 
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store: store,
-		pub:   publisher,
-	})
+	// Set the initial roots and CA configuration.
+	_ = writeInitialRootsAndCA(t, store)
+
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:             "dc1",
+			ConnectEnabled:         true,
+			DisableMeshGatewayMode: disableMeshGateways,
+		}, &testStreamBackend{
+			store: store,
+			pub:   publisher,
+		})
 
 	client := NewMockClient(context.Background())
 
@@ -857,10 +910,16 @@ func Test_processResponse_Validation(t *testing.T) {
 
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
-	srv := NewService(testutil.Logger(t), &testStreamBackend{
-		store: store,
-		pub:   publisher,
-	})
+
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		}, &testStreamBackend{
+			store: store,
+			pub:   publisher,
+		})
 
 	run := func(t *testing.T, tc testCase) {
 		reply, err := srv.processResponse("", "", tc.in)
@@ -997,6 +1056,19 @@ func writeInitiatedPeering(t *testing.T, store *state.Store, idx uint64, peerNam
 	require.NoError(t, err)
 
 	return p
+}
+
+func writeInitialRootsAndCA(t *testing.T, store *state.Store) string {
+	const clusterID = connect.TestClusterID
+
+	rootA := connect.TestCA(t, nil)
+	_, err := store.CARootSetCAS(1, 0, structs.CARoots{rootA})
+	require.NoError(t, err)
+
+	err = store.CASetConfig(0, &structs.CAConfiguration{ClusterID: clusterID})
+	require.NoError(t, err)
+
+	return clusterID
 }
 
 func makeAnyPB(t *testing.T, pb proto.Message) *any.Any {

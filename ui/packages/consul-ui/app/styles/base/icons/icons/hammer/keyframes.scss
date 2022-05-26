@@ -1,15 +1,9 @@
 @keyframes icon-hammer {
-  50% {
-
-    background-color: var(--icon-color, var(--color-hammer-500, currentColor));
-    -webkit-mask-image: var(--icon-hammer-24);
-    mask-image: var(--icon-hammer-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-hammer-500, currentColor));
     -webkit-mask-image: var(--icon-hammer-16);
     mask-image: var(--icon-hammer-16);
+    background-color: var(--icon-color, var(--color-hammer-500, currentColor));
+
   }
 }

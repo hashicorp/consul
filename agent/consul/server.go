@@ -760,6 +760,10 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	p := peering.NewService(
 		deps.Logger.Named("grpc-api.peering"),
+		peering.Config{
+			Datacenter:     config.Datacenter,
+			ConnectEnabled: config.ConnectEnabled,
+		},
 		NewPeeringBackend(s, deps.GRPCConnPool),
 	)
 	s.peeringService = p

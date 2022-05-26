@@ -139,6 +139,8 @@ message ServiceConnect {
   // Native is true when this service can natively understand Connect.
   bool Native = 1;
 
+  reserved 2;
+
   // SidecarService is a nested Service Definition to register at the same time.
   // It's purely a convenience mechanism to allow specifying a sidecar service
   // along with the application service definition. It's nested nature allows
@@ -148,6 +150,21 @@ message ServiceConnect {
   // other means.
   // mog: func-to=ServiceDefinitionPtrToStructs func-from=NewServiceDefinitionPtrFromStructs
   ServiceDefinition SidecarService = 3;
+
+  PeeringServiceMeta PeerMeta = 4;
+}
+
+// PeeringServiceMeta is read-only information provided from an exported peer.
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.PeeringServiceMeta
+// output=service.gen.go
+// name=Structs
+message PeeringServiceMeta {
+  repeated string SNI = 1;
+  repeated string SpiffeID = 2;
+  string Protocol = 3;
 }
 
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.

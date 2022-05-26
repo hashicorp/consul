@@ -82,6 +82,16 @@ func TestClient_ServiceNodes_BackendRouting(t *testing.T) {
 			},
 			expected: useCache,
 		},
+		{
+			name: "rpc if merge-central-config",
+			req: structs.ServiceSpecificRequest{
+				Datacenter:         "dc1",
+				ServiceName:        "web1",
+				MergeCentralConfig: true,
+				QueryOptions:       structs.QueryOptions{MinQueryIndex: 22},
+			},
+			expected: useRPC,
+		},
 	}
 
 	for _, tc := range testCases {

@@ -1,15 +1,9 @@
 @keyframes icon-file-check {
-  50% {
-
-    background-color: var(--icon-color, var(--color-file-check-500, currentColor));
-    -webkit-mask-image: var(--icon-file-check-24);
-    mask-image: var(--icon-file-check-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-file-check-500, currentColor));
     -webkit-mask-image: var(--icon-file-check-16);
     mask-image: var(--icon-file-check-16);
+    background-color: var(--icon-color, var(--color-file-check-500, currentColor));
+
   }
 }

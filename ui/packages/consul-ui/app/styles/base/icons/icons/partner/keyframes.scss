@@ -1,15 +1,9 @@
 @keyframes icon-partner {
-  50% {
-
-    background-color: var(--icon-color, var(--color-partner-500, currentColor));
-    -webkit-mask-image: var(--icon-socket-24);
-    mask-image: var(--icon-socket-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-partner-500, currentColor));
     -webkit-mask-image: var(--icon-socket-16);
     mask-image: var(--icon-socket-16);
+    background-color: var(--icon-color, var(--color-partner-500, currentColor));
+
   }
 }

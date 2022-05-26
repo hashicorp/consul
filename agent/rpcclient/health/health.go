@@ -38,7 +38,9 @@ func (c *Client) ServiceNodes(
 	ctx context.Context,
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) {
+	// Note: if MergeCentralConfig is requested, default to using the RPC backend for now
+	// as the streaming backend and materializer does not have support for merging yet.
+	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) && !req.MergeCentralConfig {
 		c.QueryOptionDefaults(&req.QueryOptions)
 
 		result, err := c.ViewStore.Get(ctx, c.newServiceRequest(req))

@@ -1,15 +1,9 @@
 @keyframes icon-minus-circle-outline {
-  50% {
-
-    background-color: var(--icon-color, var(--color-minus-circle-outline-500, currentColor));
-    -webkit-mask-image: var(--icon-minus-circle-24);
-    mask-image: var(--icon-minus-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-minus-circle-outline-500, currentColor));
     -webkit-mask-image: var(--icon-minus-circle-16);
     mask-image: var(--icon-minus-circle-16);
+    background-color: var(--icon-color, var(--color-minus-circle-outline-500, currentColor));
+
   }
 }

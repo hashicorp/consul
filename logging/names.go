@@ -61,4 +61,5 @@ const (
 	Watch              string = "watch"
 	XDS                string = "xds"
 	Vault              string = "vault"
+	Health             string = "health"
 )

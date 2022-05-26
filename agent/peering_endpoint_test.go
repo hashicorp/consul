@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -278,12 +279,11 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 
-		// TODO(peering): replace with API types
-		var pbresp pbpeering.Peering
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&pbresp))
+		var apiResp api.Peering
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
 
-		require.Equal(t, foo.Peering.Name, pbresp.Name)
-		require.Equal(t, foo.Peering.Meta, pbresp.Meta)
+		require.Equal(t, foo.Peering.Name, apiResp.Name)
+		require.Equal(t, foo.Peering.Meta, apiResp.Meta)
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -328,11 +328,10 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 
-		// TODO(peering): replace with API types
-		var pbresp pbpeering.Peering
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&pbresp))
+		var apiResp api.Peering
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
 
-		require.Equal(t, foo.Peering.Name, pbresp.Name)
+		require.Equal(t, foo.Peering.Name, apiResp.Name)
 	})
 
 	t.Run("delete the existing token we just read", func(t *testing.T) {
@@ -341,7 +340,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
-		require.Equal(t, "{}", resp.Body.String())
+		require.Equal(t, "", resp.Body.String())
 	})
 
 	t.Run("now the token is deleted, a read should 404", func(t *testing.T) {
@@ -408,10 +407,9 @@ func TestHTTP_Peering_List(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 
-		// TODO(peering): replace with API types
-		var pbresp []*pbpeering.Peering
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&pbresp))
+		var apiResp []*api.Peering
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
 
-		require.Len(t, pbresp, 2)
+		require.Len(t, apiResp, 2)
 	})
 }

@@ -679,8 +679,16 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 
 	s := newTestServer(t, nil)
 	testrpc.WaitForLeader(t, s.Server.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, s.Server.RPC, "dc1", nil)
 
-	srv := peering.NewService(testutil.Logger(t), consul.NewPeeringBackend(s.Server, nil))
+	srv := peering.NewService(
+		testutil.Logger(t),
+		peering.Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		consul.NewPeeringBackend(s.Server, nil),
+	)
 
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(0, &pbpeering.Peering{
 		Name: "my-peer",
@@ -1037,6 +1045,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	conf.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
 	conf.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
+
+	conf.PrimaryDatacenter = "dc1"
+	conf.ConnectEnabled = true
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {

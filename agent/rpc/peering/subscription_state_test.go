@@ -21,7 +21,7 @@ func TestSubscriptionState_Events(t *testing.T) {
 
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
-	state := newSubscriptionState(partition)
+	state := newSubscriptionState("my-peering", partition)
 
 	testutil.RunStep(t, "empty", func(t *testing.T) {
 		pending := &pendingPayload{}
@@ -193,7 +193,7 @@ func testNewSubscriptionState(partition string) (
 		publicUpdateCh = make(chan cache.UpdateEvent, 1)
 	)
 
-	state := newSubscriptionState(partition)
+	state := newSubscriptionState("my-peering", partition)
 	state.publicUpdateCh = publicUpdateCh
 
 	return state, publicUpdateCh

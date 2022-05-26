@@ -1,15 +1,9 @@
 @keyframes icon-sliders {
-  50% {
-
-    background-color: var(--icon-color, var(--color-sliders-500, currentColor));
-    -webkit-mask-image: var(--icon-sliders-24);
-    mask-image: var(--icon-sliders-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-sliders-500, currentColor));
     -webkit-mask-image: var(--icon-sliders-16);
     mask-image: var(--icon-sliders-16);
+    background-color: var(--icon-color, var(--color-sliders-500, currentColor));
+
   }
 }

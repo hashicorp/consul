@@ -1,15 +1,9 @@
 @keyframes icon-unlock {
-  50% {
-
-    background-color: var(--icon-color, var(--color-unlock-500, currentColor));
-    -webkit-mask-image: var(--icon-unlock-24);
-    mask-image: var(--icon-unlock-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-unlock-500, currentColor));
     -webkit-mask-image: var(--icon-unlock-16);
     mask-image: var(--icon-unlock-16);
+    background-color: var(--icon-color, var(--color-unlock-500, currentColor));
+
   }
 }

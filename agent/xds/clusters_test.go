@@ -173,6 +173,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "custom-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 3456
+				}, nil)
+			},
+		},
+		{
 			name: "custom-limits-max-connections-only",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {

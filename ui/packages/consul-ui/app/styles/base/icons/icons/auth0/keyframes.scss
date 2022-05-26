@@ -1,15 +1,9 @@
 @keyframes icon-auth0 {
-  50% {
-
-    background-color: var(--icon-color, var(--color-auth0-500, currentColor));
-    -webkit-mask-image: var(--icon-auth0-color-24);
-    mask-image: var(--icon-auth0-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-auth0-500, currentColor));
     -webkit-mask-image: var(--icon-auth0-color-16);
     mask-image: var(--icon-auth0-color-16);
+    background-color: var(--icon-color, var(--color-auth0-500, currentColor));
+
   }
 }

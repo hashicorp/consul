@@ -3,8 +3,9 @@ package connect
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -162,6 +163,11 @@ func TestServiceSNI(t *testing.T) {
 	// set namespace, set subset, set partition
 	require.Equal(t, "canary.api.neighbor.part1.foo."+testTrustDomainSuffix2WithPart,
 		ServiceSNI("api", "canary", "neighbor", "part1", "foo", testTrustDomain2))
+}
+
+func TestPeeredServiceSNI(t *testing.T) {
+	require.Equal(t, "api.billing.default.webstuff.external."+testTrustDomainSuffix1,
+		PeeredServiceSNI("api", "billing", "", "webstuff", testTrustDomainSuffix1))
 }
 
 func TestQuerySNI(t *testing.T) {
