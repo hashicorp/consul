@@ -1,15 +1,9 @@
 @keyframes icon-more-horizontal {
-  50% {
-
-    background-color: var(--icon-color, var(--color-more-horizontal-500, currentColor));
-    -webkit-mask-image: var(--icon-more-horizontal-24);
-    mask-image: var(--icon-more-horizontal-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-more-horizontal-500, currentColor));
     -webkit-mask-image: var(--icon-more-horizontal-16);
     mask-image: var(--icon-more-horizontal-16);
+    background-color: var(--icon-color, var(--color-more-horizontal-500, currentColor));
+
   }
 }

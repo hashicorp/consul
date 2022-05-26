@@ -1,15 +1,9 @@
 @keyframes icon-wand {
-  50% {
-
-    background-color: var(--icon-color, var(--color-wand-500, currentColor));
-    -webkit-mask-image: var(--icon-wand-24);
-    mask-image: var(--icon-wand-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-wand-500, currentColor));
     -webkit-mask-image: var(--icon-wand-16);
     mask-image: var(--icon-wand-16);
+    background-color: var(--icon-color, var(--color-wand-500, currentColor));
+
   }
 }

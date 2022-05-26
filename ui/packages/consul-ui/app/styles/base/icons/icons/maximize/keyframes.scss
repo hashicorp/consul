@@ -1,15 +1,9 @@
 @keyframes icon-maximize {
-  50% {
-
-    background-color: var(--icon-color, var(--color-maximize-500, currentColor));
-    -webkit-mask-image: var(--icon-maximize-24);
-    mask-image: var(--icon-maximize-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-maximize-500, currentColor));
     -webkit-mask-image: var(--icon-maximize-16);
     mask-image: var(--icon-maximize-16);
+    background-color: var(--icon-color, var(--color-maximize-500, currentColor));
+
   }
 }

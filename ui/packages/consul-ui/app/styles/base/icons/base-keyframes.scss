@@ -1,19 +1,24 @@
 *::before, *::after {
   display: inline-block;
-  animation-play-state: paused;
-  animation-fill-mode: forwards;
-  animation-iteration-count: var(--icon-resolution, 1);
   vertical-align: text-top;
+
+  background-repeat: no-repeat;
+  background-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+
 }
 *::before {
   animation-name: var(--icon-name-start, var(--icon-name)),
                   var(--icon-size-start, var(--icon-size, icon-000));
-  background-color: var(--icon-color-start, var(--icon-color, currentColor));
+  background-color: var(--icon-color-start, var(--icon-color));
 }
 *::after {
   animation-name: var(--icon-name-end, var(--icon-name)),
                   var(--icon-size-end, var(--icon-size, icon-000));
-  background-color: var(--icon-color-end, var(--icon-color, currentColor));
+  background-color: var(--icon-color-end, var(--icon-color));
 }
 
 [style*='--icon-color-start']::before {
@@ -85,5 +90,11 @@
   100% {
     width: 1.750rem; /* 28px */
     height: 1.750rem; /* 28px */
+  }
+}
+@keyframes icon-999 {
+  100% {
+    width: 100%;
+    height: 100%;
   }
 }

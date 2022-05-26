@@ -1,15 +1,9 @@
 @keyframes icon-database {
-  50% {
-
-    background-color: var(--icon-color, var(--color-database-500, currentColor));
-    -webkit-mask-image: var(--icon-database-24);
-    mask-image: var(--icon-database-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-database-500, currentColor));
     -webkit-mask-image: var(--icon-database-16);
     mask-image: var(--icon-database-16);
+    background-color: var(--icon-color, var(--color-database-500, currentColor));
+
   }
 }

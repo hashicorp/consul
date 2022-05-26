@@ -11,53 +11,19 @@ Consul-Terraform-Sync (CTS) is controlled via an easy to use command-line interf
 
 ## Daemon
 
-When running as a daemon, there is no default configuration to run CTS in a meaningful way. Setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+~> Running CTS as a daemon without using a command is deprecated in CTS 0.6.0 and will be removed at a much later date in a major release. For information on the preferred way to run CTS as a daemon review the [`start` command docs](/docs/nia/cli/start)
+
+When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag -config-file or -config-dir. For example:
 
 ```shell-session
 $ consul-terraform-sync -config-file=config.hcl
 ```
 
-To view a list of available flags, use the `-help` or `-h` flag.
-
-### Modes
-
-CTS can be run as a daemon in different modes.
-
-#### Long-running Mode
-
-Flag: none
-
-Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. Once beginning the long-running process, the daemon serves any API and command requests.
-
-Usage: Intended to be run as a long running process after running once-mode successfully for given configuration and tasks.
-
-#### Inspect Mode
-
-Flag: `-inspect`
-
-Behavior: CTS will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, CTS will exit with a non-zero status.
-
-Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
-
----
-
-Flag: `-inspect-task [task-name]`
-
-Behavior: This has similar behavior as `-inspect` mode for the selected task. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode.
-
-Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
-
-#### Once Mode
-
-Flag: `-once`
-
-Behavior: CTS will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, CTS will exit with a non-zero status.
-
-Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
+To review a list of available flags, use the `-help` or `-h` flag.
 
 ## Commands
 
-In addition to running the daemon, CTS has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the CTS APIs but does not correspond one-to-one with it. Please see the individual commands in the left navigation for more details.
+In addition to running the daemon, CTS has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the CTS APIs but does not correspond one-to-one with it. Please review the individual commands in the left navigation for more details.
 
 To get help for a command, run: `consul-terraform-sync <command> -h`
 
@@ -76,6 +42,40 @@ Example:
 
 ```shell-session
 consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
+```
+
+### Autocompletion
+
+The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
+arguments (where supported).
+
+To enable autocompletion, run:
+```shell-session
+$ consul-terraform-sync -autocomplete-install
+```
+
+~> After you install autocomplete, you must restart your shell for the change to take effect.
+
+When you start typing a CTS command, press the `<tab>` key to show a
+list of available completions. To show available flag completes, type `-<tab>`.
+
+Autocompletion will query the running CTS server to return helpful argument suggestions. For example, for the `task disable` command, autocompletion will return the names of all enabled tasks that can be disabled.
+
+When autocompletion makes the query to the running CTS server, it will also use any `CTS_*` environment variables (for example `CTS_ADDRESS`) set on the CTS server.
+
+#### Example: Use autocomplete to discover how to disable a task
+
+Assume a tab is typed at the end of each prompt line:
+
+```shell-session
+$ consul-terraform-sync
+start  task
+
+$ consul-terraform-sync task
+create   delete   disable   enable
+
+$ consul task disable
+task_name_a   task_name_b   task_name_c
 ```
 
 ### General Options

@@ -1,0 +1,62 @@
+---
+layout: docs
+page_title: Start Command
+description: >-
+  Consul-Terraform-Sync supports start command for starting CTS as a daemon
+---
+
+# start
+
+The `start` command starts Consul-Terraform-Sync (CTS) as a daemon. When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag `-config-file` or `-config-dir`. For example:
+
+```shell-session
+$ consul-terraform-sync start -config-file=config.hcl
+```
+
+To review a list of available flags, use the `-help` or `-h` flag.
+
+## Modes
+
+CTS can be run as a daemon in different modes.
+
+### Long-running Mode
+
+Flag: none
+
+Behavior: This is the default mode in which CTS passes through a once-mode phase and then turns into a long-running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long-running process in which errors are logged and exiting is not expected behavior. When the long-running process begins, CTS daemon starts serving API and command requests.
+
+### Inspect Mode
+
+Flag: `-inspect`
+
+Behavior: CTS will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, CTS will exit with a non-zero status.
+
+Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
+
+---
+
+Flag: `-inspect-task [task-name]`
+
+Behavior: This has similar behavior as `-inspect` mode for the selected task. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode.
+
+Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
+
+### Once Mode
+
+Flag: `-once`
+
+Behavior: CTS will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, CTS will exit with a non-zero status.
+
+Usage: Intended to be run before long-running mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
+
+## Options
+
+The `start` command supports the following options:
+
+| Name            | Required | Type    | Description                     |Default                  |
+| --------------- | -------- | ------- | ------------------------------- | ----------------------- |
+| `-config-dir ` &nbsp; &nbsp; &nbsp;| Required when`-config-file` is not set | string | A directory to load files for configuring CTS. Configuration files require an .hcl or .json file extension in order to specify their format. This option can be specified multiple times to load different directories. | none |
+| `-config-file` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Required when `-config-dir` is not set | string | A file to load for configuring CTS. Configuration file requires an .hcl or .json extension in order to specify their format. This option can be specified multiple times to load different configuration files. | none |
+| `-inspect` | Optional | boolean | Run CTS in Inspect mode to print the proposed state changes for all tasks, and then exit. No changes are applied in this mode. | false |
+| `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
+| `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |

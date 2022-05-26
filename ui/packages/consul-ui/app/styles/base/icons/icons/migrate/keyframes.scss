@@ -1,15 +1,9 @@
 @keyframes icon-migrate {
-  50% {
-
-    background-color: var(--icon-color, var(--color-migrate-500, currentColor));
-    -webkit-mask-image: var(--icon-migrate-24);
-    mask-image: var(--icon-migrate-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-migrate-500, currentColor));
     -webkit-mask-image: var(--icon-migrate-16);
     mask-image: var(--icon-migrate-16);
+    background-color: var(--icon-color, var(--color-migrate-500, currentColor));
+
   }
 }

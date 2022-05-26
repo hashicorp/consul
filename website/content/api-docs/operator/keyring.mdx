@@ -37,15 +37,15 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul keyring -list`](/commands/keyring#list).
 
-### Parameters
+### Query Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
-  This is specified as part of the URL as a query parameter.
+
 - `local-only` `(bool: false)` - Setting `local-only` to true will force keyring
   list queries to only hit local servers (no WAN traffic). This flag can only be set
-  for list queries. It is specified as part of the URL as a query parameter.
+  for list queries.
 
 ### Sample Request
 
@@ -124,12 +124,13 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul keyring -install`](/commands/keyring#install).
 
-### Parameters
+### Query Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
-  This is specified as part of the URL as a query parameter.
+
+### JSON Request Body Schema
 
 - `Key` `(string: <required>)` - Specifies the encryption key to install into
   the cluster.
@@ -172,12 +173,13 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul keyring -use`](/commands/keyring#use).
 
-### Parameters
+### Query Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
-  This is specified as part of the URL as a query parameter.
+
+### JSON Request Body Schema
 
 - `Key` `(string: <required>)` - Specifies the encryption key to begin using as
   primary into the cluster.
@@ -220,12 +222,13 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul keyring -remove`](/commands/keyring#remove).
 
-### Parameters
+### Query Parameters
 
 - `relay-factor` `(int: 0)` - Specifies the relay factor. Setting this to a
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
-  This is specified as part of the URL as a query parameter.
+
+### JSON Request Body Schema
 
 - `Key` `(string: <required>)` - Specifies the encryption key to delete.
 

@@ -100,12 +100,33 @@ func MeshGatewayConfigFromStructs(t *structs.MeshGatewayConfig, s *MeshGatewayCo
 	}
 	s.Mode = string(t.Mode)
 }
+func PeeringServiceMetaToStructs(s *PeeringServiceMeta, t *structs.PeeringServiceMeta) {
+	if s == nil {
+		return
+	}
+	t.SNI = s.SNI
+	t.SpiffeID = s.SpiffeID
+	t.Protocol = s.Protocol
+}
+func PeeringServiceMetaFromStructs(t *structs.PeeringServiceMeta, s *PeeringServiceMeta) {
+	if s == nil {
+		return
+	}
+	s.SNI = t.SNI
+	s.SpiffeID = t.SpiffeID
+	s.Protocol = t.Protocol
+}
 func ServiceConnectToStructs(s *ServiceConnect, t *structs.ServiceConnect) {
 	if s == nil {
 		return
 	}
 	t.Native = s.Native
 	t.SidecarService = ServiceDefinitionPtrToStructs(s.SidecarService)
+	if s.PeerMeta != nil {
+		var x structs.PeeringServiceMeta
+		PeeringServiceMetaToStructs(s.PeerMeta, &x)
+		t.PeerMeta = &x
+	}
 }
 func ServiceConnectFromStructs(t *structs.ServiceConnect, s *ServiceConnect) {
 	if s == nil {
@@ -113,6 +134,11 @@ func ServiceConnectFromStructs(t *structs.ServiceConnect, s *ServiceConnect) {
 	}
 	s.Native = t.Native
 	s.SidecarService = NewServiceDefinitionPtrFromStructs(t.SidecarService)
+	if t.PeerMeta != nil {
+		var x PeeringServiceMeta
+		PeeringServiceMetaFromStructs(t.PeerMeta, &x)
+		s.PeerMeta = &x
+	}
 }
 func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefinition) {
 	if s == nil {

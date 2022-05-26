@@ -1,15 +1,9 @@
 @keyframes icon-trash {
-  50% {
-
-    background-color: var(--icon-color, var(--color-trash-500, currentColor));
-    -webkit-mask-image: var(--icon-trash-24);
-    mask-image: var(--icon-trash-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-trash-500, currentColor));
     -webkit-mask-image: var(--icon-trash-16);
     mask-image: var(--icon-trash-16);
+    background-color: var(--icon-color, var(--color-trash-500, currentColor));
+
   }
 }

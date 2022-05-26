@@ -1,15 +1,9 @@
 @keyframes icon-smile {
-  50% {
-
-    background-color: var(--icon-color, var(--color-smile-500, currentColor));
-    -webkit-mask-image: var(--icon-smile-24);
-    mask-image: var(--icon-smile-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-smile-500, currentColor));
     -webkit-mask-image: var(--icon-smile-16);
     mask-image: var(--icon-smile-16);
+    background-color: var(--icon-color, var(--color-smile-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-rss {
-  50% {
-
-    background-color: var(--icon-color, var(--color-rss-500, currentColor));
-    -webkit-mask-image: var(--icon-rss-24);
-    mask-image: var(--icon-rss-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-rss-500, currentColor));
     -webkit-mask-image: var(--icon-rss-16);
     mask-image: var(--icon-rss-16);
+    background-color: var(--icon-color, var(--color-rss-500, currentColor));
+
   }
 }

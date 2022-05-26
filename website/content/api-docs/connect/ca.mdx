@@ -30,7 +30,7 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `none`       |
 
-### Parameters
+### Query Parameters
 
 - `pem` `(boolean: false)` - Specifies that the return body should be a PEM encoded
   certificate chain suitable for use by applications needing to trust Connect CA
@@ -169,7 +169,7 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul connect ca set-config`](/commands/connect/ca#set-config).
 
-### Parameters
+### JSON Request Body Schema
 
 - `Provider` `(string: <required>)` - Specifies the CA provider type to use.
 
