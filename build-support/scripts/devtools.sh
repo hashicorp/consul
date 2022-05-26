@@ -187,13 +187,13 @@ function install_versioned_tool {
     local install="${installbase}@${version}"
 
     if [[ -z "$version" ]]; then
-        err "cannot install '${command}' no version selected"
+        echo "cannot install '${command}' no version selected"
         return 1
     fi
 
     if [[ "$version" = "@DEV" ]]; then
         if ! command -v "${command}" &>/dev/null ; then
-            err "dev version of '${command}' requested but not installed"
+            echo "dev version of '${command}' requested but not installed"
             return 1
         fi
         status "skipping tool: ${installbase} (using development version)"
