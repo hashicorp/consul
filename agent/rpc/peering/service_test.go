@@ -11,15 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/state"
-
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/api"
@@ -725,6 +724,12 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 	_, err = client.Recv()
 	require.NoError(t, err)
 
+	// Receive first roots replication message
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeering.TypeURLRoots, receiveRoots.GetResponse().ResourceURL)
+
 	remoteEntMeta := structs.DefaultEnterpriseMetaInPartition("remote-partition")
 	localEntMeta := acl.DefaultEnterpriseMeta()
 	localPeerName := "my-peer"
@@ -752,7 +757,7 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 			pbCSN.Nodes = append(pbCSN.Nodes, pbservice.NewCheckServiceNodeFromStructs(&csn))
 		}
 
-		any, err := ptypes.MarshalAny(pbCSN)
+		any, err := anypb.New(pbCSN)
 		require.NoError(t, err)
 		tc.msg.Resource = any
 

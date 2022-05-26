@@ -118,7 +118,7 @@ type Store interface {
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
 	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
-	CAConfig(memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
+	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	AbandonCh() <-chan struct{}
 }
 
@@ -127,6 +127,7 @@ type Apply interface {
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
+	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
 }
 
@@ -469,7 +470,7 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 	if req.Nonce != "" {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce")
 	}
-	if req.ResourceURL != pbpeering.TypeURLService {
+	if !pbpeering.KnownTypeURL(req.ResourceURL) {
 		return grpcstatus.Error(codes.InvalidArgument, fmt.Sprintf("subscription request to unknown resource URL: %s", req.ResourceURL))
 	}
 
@@ -680,17 +681,29 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 
 		case update := <-subCh:
+			var resp *pbpeering.ReplicationMessage
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService),
 				strings.HasPrefix(update.CorrelationID, subExportedProxyService):
-				if err := pushServiceResponse(logger, req.Stream, status, update); err != nil {
-					return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
-				}
+				resp = makeServiceResponse(logger, update)
+
 			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
-				//TODO(Peering): figure out how to sync this separately
+				// TODO(Peering): figure out how to sync this separately
+
+			case update.CorrelationID == subCARoot:
+				resp = makeCARootsResponse(logger, update)
+
 			default:
 				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
 				continue
+			}
+			if resp == nil {
+				continue
+			}
+			logTraceSend(logger, resp)
+			if err := req.Stream.Send(resp); err != nil {
+				status.trackSendError(err.Error())
+				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
 		}
 	}
