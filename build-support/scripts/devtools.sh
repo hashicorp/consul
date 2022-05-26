@@ -168,7 +168,7 @@ function install_unversioned_tool {
         echo "installing tool: ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
 
     return 0
@@ -196,7 +196,7 @@ function install_versioned_tool {
             echo "dev version of '${command}' requested but not installed"
             return 1
         fi
-        status "skipping tool: ${installbase} (using development version)"
+        echo "skipping tool: ${installbase} (using development version)"
         return 0
     fi
 
@@ -214,7 +214,7 @@ function install_versioned_tool {
         echo "installing tool: ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
     return 0
 }
