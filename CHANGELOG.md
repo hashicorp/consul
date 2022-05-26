@@ -1,3 +1,21 @@
+## 1.11.6 (May 25, 2022)
+
+IMPROVEMENTS:
+
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+
+BUG FIXES:
+
+* Fix a bug when configuring an `add_headers` directive named `Host` the header is not set for `v1/internal/ui/metrics-proxy/` endpoint. [[GH-13071](https://github.com/hashicorp/consul/issues/13071)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* ca: fix a bug that caused a non blocking leaf cert query after a blocking leaf cert query to block [[GH-12820](https://github.com/hashicorp/consul/issues/12820)]
+* health: ensure /v1/health/service/:service endpoint returns the most recent results when a filter is used with streaming #12640 [[GH-12640](https://github.com/hashicorp/consul/issues/12640)]
+* snapshot-agent: **(Enterprise only)** Fix a bug where providing the ACL token to the snapshot agent via a CLI or ENV variable without a license configured results in an error during license auto-retrieval.
+
+NOTES:
+
+* ci: change action to pull v1 instead of main [[GH-12846](https://github.com/hashicorp/consul/issues/12846)]
+
 ## 1.11.5 (April 13, 2022)
 
 SECURITY:
