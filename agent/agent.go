@@ -41,6 +41,8 @@ import (
 	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
+	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -629,8 +631,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		Cache:  &proxycfg.CacheWrapper{Cache: a.cache},
 		Health: &proxycfg.HealthWrapper{Health: a.rpcClientHealth},
 		Logger: a.logger.Named(logging.ProxyConfig),
-		State:  a.State,
-		Tokens: a.baseDeps.Tokens,
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
 			Segment:       a.config.SegmentName,
@@ -646,11 +646,17 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	go func() {
-		if err := a.proxyConfig.Run(); err != nil {
-			a.logger.Error("proxy config manager exited with error", "error", err)
-		}
-	}()
+
+	go localproxycfg.Sync(
+		&lib.StopChannelContext{StopCh: a.shutdownCh},
+		localproxycfg.SyncConfig{
+			Manager:  a.proxyConfig,
+			State:    a.State,
+			Logger:   a.proxyConfig.Logger.Named("agent-state"),
+			Tokens:   a.baseDeps.Tokens,
+			NodeName: a.config.NodeName,
+		},
+	)
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -769,10 +775,30 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
+	// TODO(agentless): rather than asserting the concrete type of delegate, we
+	// should add a method to the Delegate interface to build a ConfigSource.
+	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
+	if server, ok := a.delegate.(*consul.Server); ok {
+		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+			NodeName:          a.config.NodeName,
+			LocalState:        a.State,
+			LocalConfigSource: cfg,
+			Manager:           a.proxyConfig,
+			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+		})
+		go func() {
+			<-a.shutdownCh
+			catalogCfg.Shutdown()
+		}()
+		cfg = catalogCfg
+	}
+
 	a.xdsServer = xds.NewServer(
+		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
 		a.config.ConnectServerlessPluginEnabled,
-		a.proxyConfig,
+		cfg,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},

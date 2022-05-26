@@ -242,7 +242,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, s, err := state.NodeService("foo", "svc-foo", nil, "")
+	_, s, err := state.NodeService(nil, "foo", "svc-foo", nil, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
