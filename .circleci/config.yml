@@ -1083,6 +1083,7 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1122,6 +1123,7 @@ workflows:
           requires:
             - dev-build
           context: consul-ci
+      - noop
   test-integrations:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1158,7 +1160,7 @@ workflows:
       - compatibility-integration-test:
           requires:
             - dev-build
-
+      - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1191,6 +1193,7 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
+      - noop
   workflow-automation:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
