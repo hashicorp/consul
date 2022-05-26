@@ -92,6 +92,9 @@ func (s *subscriptionState) cleanupEventVersions(logger hclog.Logger) {
 		case id == meshGatewayPayloadID:
 			keep = true
 
+		case id == caRootsPayloadID:
+			keep = true
+
 		case strings.HasPrefix(id, servicePayloadIDPrefix):
 			name := strings.TrimPrefix(id, servicePayloadIDPrefix)
 			sn := structs.ServiceNameFromString(name)
@@ -136,6 +139,7 @@ type pendingEvent struct {
 }
 
 const (
+	caRootsPayloadID              = "roots"
 	meshGatewayPayloadID          = "mesh-gateway"
 	servicePayloadIDPrefix        = "service:"
 	proxyServicePayloadIDPrefix   = "proxy-service:" // TODO(peering): remove

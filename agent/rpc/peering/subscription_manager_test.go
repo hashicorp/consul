@@ -572,6 +572,65 @@ func testSubscriptionManager_InitialSnapshot(t *testing.T, disableMeshGateways b
 	})
 }
 
+func TestSubscriptionManager_CARoots(t *testing.T) {
+	backend := newTestSubscriptionBackend(t)
+
+	// Setup CA-related configs in the store
+	clusterID, rootA := writeInitialRootsAndCA(t, backend.store)
+	trustDomain := connect.SpiffeIDSigningForCluster(clusterID).Host()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create a peering
+	_, id := backend.ensurePeering(t, "my-peering")
+	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
+
+	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, connect.TestTrustDomain, backend)
+	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
+
+	testutil.RunStep(t, "initial events contain trust bundle", func(t *testing.T) {
+		// events are ordered so we can expect a deterministic list
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				// mesh-gateway assertions are done in other tests
+				require.Equal(t, subMeshGateway+partition, got.CorrelationID)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subCARoot, got.CorrelationID)
+				roots, ok := got.Result.(*pbpeering.PeeringTrustBundle)
+				require.True(t, ok)
+
+				require.ElementsMatch(t, []string{rootA.RootCert}, roots.RootPEMs)
+
+				require.Equal(t, trustDomain, roots.TrustDomain)
+			},
+		)
+	})
+
+	testutil.RunStep(t, "updating CA roots triggers event", func(t *testing.T) {
+		rootB := connect.TestCA(t, nil)
+		rootC := connect.TestCA(t, nil)
+		rootC.Active = false // there can only be one active root
+		backend.ensureCARoots(t, rootB, rootC)
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subCARoot, got.CorrelationID)
+				roots, ok := got.Result.(*pbpeering.PeeringTrustBundle)
+				require.True(t, ok)
+
+				require.ElementsMatch(t, []string{rootB.RootCert, rootC.RootCert}, roots.RootPEMs)
+
+				require.Equal(t, trustDomain, roots.TrustDomain)
+			},
+		)
+	})
+}
+
 type testSubscriptionBackend struct {
 	state.EventPublisher
 	store *state.Store
@@ -643,6 +702,24 @@ func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceI
 	return b.lastIdx
 }
 
+func (b *testSubscriptionBackend) ensureCAConfig(t *testing.T, config *structs.CAConfiguration) uint64 {
+	b.lastIdx++
+	require.NoError(t, b.store.CASetConfig(b.lastIdx, config))
+	return b.lastIdx
+}
+
+func (b *testSubscriptionBackend) ensureCARoots(t *testing.T, roots ...*structs.CARoot) uint64 {
+	// Get the max index for Check-and-Set operation
+	cidx, _, err := b.store.CARoots(nil)
+	require.NoError(t, err)
+
+	b.lastIdx++
+	set, err := b.store.CARootSetCAS(b.lastIdx, cidx, roots)
+	require.True(t, set)
+	require.NoError(t, err)
+	return b.lastIdx
+}
+
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
 	err := store.PeeringWrite(index, &pbpeering.Peering{
 		Name: name,
@@ -666,6 +743,7 @@ func newStateStore(t *testing.T, publisher *stream.EventPublisher) *state.Store 
 	store := state.NewStateStoreWithEventPublisher(gc, publisher)
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot))
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot))
 	go publisher.Run(ctx)
 
 	return store

@@ -129,6 +129,11 @@ func (a *peeringApply) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDR
 	return err
 }
 
+func (a *peeringApply) PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error {
+	_, err := a.srv.raftApplyProtobuf(structs.PeeringTrustBundleWriteType, req)
+	return err
+}
+
 func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 	_, err := a.srv.leaderRaftApply("Catalog.Register", structs.RegisterRequestType, req)
 	return err
