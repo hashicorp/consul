@@ -19,7 +19,7 @@ BUG FIXES:
 NOTES:
 
 * ci: change action to pull v1 instead of main [[GH-12846](https://github.com/hashicorp/consul/issues/12846)]
-b
+
 ## 1.10.10 (April 13, 2022)
 
 SECURITY:
