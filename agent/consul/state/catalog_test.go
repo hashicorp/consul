@@ -5170,6 +5170,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 23,
 				ModifyIndex: 23,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -6421,6 +6422,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 22,
 					ModifyIndex: 22,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 		}
 		assert.Equal(t, expect, out)

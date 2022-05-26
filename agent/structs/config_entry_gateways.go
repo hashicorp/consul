@@ -586,20 +586,28 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 	return warnings
 }
 
+type GatewayServiceKind string
+
+const (
+	GatewayservicekindUnknown     GatewayServiceKind = ""
+	GatewayservicekindDestination GatewayServiceKind = "gateway-service-destination"
+	GatewayservicekindService     GatewayServiceKind = "gateway-service-service"
+)
+
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
 	Gateway      ServiceName
 	Service      ServiceName
 	GatewayKind  ServiceKind
-	Port         int      `json:",omitempty"`
-	Protocol     string   `json:",omitempty"`
-	Hosts        []string `json:",omitempty"`
-	CAFile       string   `json:",omitempty"`
-	CertFile     string   `json:",omitempty"`
-	KeyFile      string   `json:",omitempty"`
-	SNI          string   `json:",omitempty"`
-	FromWildcard bool     `json:",omitempty"`
-	IsEndpoint   bool     `json:",omitempty"`
+	Port         int                `json:",omitempty"`
+	Protocol     string             `json:",omitempty"`
+	Hosts        []string           `json:",omitempty"`
+	CAFile       string             `json:",omitempty"`
+	CertFile     string             `json:",omitempty"`
+	KeyFile      string             `json:",omitempty"`
+	SNI          string             `json:",omitempty"`
+	FromWildcard bool               `json:",omitempty"`
+	Kind         GatewayServiceKind `json:",omitempty"`
 	RaftIndex
 }
 
@@ -636,6 +644,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
 		g.SNI == o.SNI &&
+		g.Kind == o.Kind &&
 		g.FromWildcard == o.FromWildcard
 }
 

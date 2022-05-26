@@ -1473,6 +1473,18 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t, "srv1", evNodeUnchanged),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1648,13 +1660,27 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			configEntryDest := &structs.ServiceConfigEntry{
-				Kind:     structs.ServiceDefaults,
-				Name:     "destination1",
-				Endpoint: &structs.EndpointConfig{Port: 9000, Address: "kafka.test.com"},
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Address: "kafka.test.com"},
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
 		},
-		WantEvents: []stream.Event{},
+		WantEvents: []stream.Event{
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1")),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1"),
+			),
+		},
 	})
 
 	run(t, eventsTestCase{
@@ -1680,9 +1706,9 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			configEntryDest := &structs.ServiceConfigEntry{
-				Kind:     structs.ServiceDefaults,
-				Name:     "destination1",
-				Endpoint: &structs.EndpointConfig{Port: 9000, Address: "kafka.test.com"},
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Address: "kafka.test.com"},
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
 		},

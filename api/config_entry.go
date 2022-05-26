@@ -179,8 +179,8 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
-// EndpointConfig represents a virtual service, i.e. one that is external to Consul
-type EndpointConfig struct {
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
 	// Address of the endpoint; hostname, IP, or CIDR
 	Address string `json:",omitempty"`
 
@@ -229,7 +229,7 @@ type ServiceConfigEntry struct {
 	Expose           ExposeConfig            `json:",omitempty"`
 	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-	Endpoint         *EndpointConfig         `json:",omitempty"`
+	Destination      *DestinationConfig      `json:",omitempty"`
 	Meta             map[string]string       `json:",omitempty"`
 	CreateIndex      uint64
 	ModifyIndex      uint64
