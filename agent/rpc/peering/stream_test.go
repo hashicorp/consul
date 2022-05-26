@@ -795,9 +795,28 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 }
 
 type testStreamBackend struct {
-	pub    state.EventPublisher
-	store  *state.Store
-	leader func() bool
+	pub               state.EventPublisher
+	store             *state.Store
+	leader            func() bool
+	leadershipMonitor *leadershipMonitor
+}
+
+var _ LeadershipMonitor = (*leadershipMonitor)(nil)
+
+type leadershipMonitor struct {
+}
+
+func (l *leadershipMonitor) UpdateLeaderAddr(addr string) {
+	// noop
+}
+
+func (l *leadershipMonitor) GetLeaderAddr() string {
+	// noop
+	return ""
+}
+
+func (b *testStreamBackend) LeadershipMonitor() LeadershipMonitor {
+	return b.leadershipMonitor
 }
 
 func (b *testStreamBackend) IsLeader() bool {

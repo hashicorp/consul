@@ -1655,6 +1655,8 @@ func (s *Server) trackLeaderChanges() {
 			}
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
+			// TODO(peering): might need to send DC or use DC on the peering backend in the future
+			s.peeringService.Backend.LeadershipMonitor().UpdateLeaderAddr(string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
