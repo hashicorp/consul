@@ -1473,6 +1473,18 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t, "srv1", evNodeUnchanged),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{

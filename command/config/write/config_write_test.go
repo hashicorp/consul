@@ -793,7 +793,7 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-defaults: kitchen sink (endpoint edition)",
+			name: "service-defaults: kitchen sink (destination edition)",
 			snake: `
 				kind = "service-defaults"
 				name = "main"
@@ -810,7 +810,7 @@ func TestParseConfigEntry(t *testing.T) {
 					outbound_listener_port = 10101
 					dialed_directly = true
 				}
-				endpoint = {
+				destination = {
 					address = "10.0.0.0/16",
 					port = 443
 				}
@@ -853,7 +853,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"outbound_listener_port": 10101,
 					"dialed_directly": true
 				},
-				"endpoint": {
+				"destination": {
 					"address": "10.0.0.0/16",
 					"port": 443
 				}
