@@ -1,3 +1,33 @@
+## 1.12.1 (May 25, 2022)
+
+FEATURES:
+
+* xds: Add the ability to invoke AWS Lambdas through sidecar proxies. [[GH-12956](https://github.com/hashicorp/consul/issues/12956)]
+
+IMPROVEMENTS:
+
+* config: introduce `telemetry.retry_failed_connection` in agent configuration to
+retry on failed connection to any telemetry backend. This prevents the agent from
+exiting if the given DogStatsD DNS name is unresolvable, for example. [[GH-13091](https://github.com/hashicorp/consul/issues/13091)]
+* sentinel: **(Enterprise Only)** Sentinel now uses SHA256 to generate policy ids
+* xds: Envoy now inserts x-forwarded-client-cert for incoming proxy connections [[GH-12878](https://github.com/hashicorp/consul/issues/12878)]
+
+BUG FIXES:
+
+* Fix a bug when configuring an `add_headers` directive named `Host` the header is not set for `v1/internal/ui/metrics-proxy/` endpoint. [[GH-13071](https://github.com/hashicorp/consul/issues/13071)]
+* api: Fix a bug that causes partition to be ignored when creating a namespace [[GH-12845](https://github.com/hashicorp/consul/issues/12845)]
+* api: agent/self now returns version with +ent suffix for Enterprise Consul [[GH-12961](https://github.com/hashicorp/consul/issues/12961)]
+* areas: **(Enterprise Only)** Fixes a bug when using Yamux pool ( for servers version 1.7.3 and later), the entire pool was locked while connecting to a remote location, which could potentially take a long time. [[GH-1368](https://github.com/hashicorp/consul/issues/1368)]
+* ca: fix a bug that caused a non blocking leaf cert query after a blocking leaf cert query to block [[GH-12820](https://github.com/hashicorp/consul/issues/12820)]
+* config: fix backwards compatibility bug where setting the (deprecated) top-level `verify_incoming` option would enable TLS client authentication on the gRPC port [[GH-13118](https://github.com/hashicorp/consul/issues/13118)]
+* health: ensure /v1/health/service/:service endpoint returns the most recent results when a filter is used with streaming #12640 [[GH-12640](https://github.com/hashicorp/consul/issues/12640)]
+* snapshot-agent: **(Enterprise only)** Fix a bug where providing the ACL token to the snapshot agent via a CLI or ENV variable without a license configured results in an error during license auto-retrieval.
+* ui: Re-instate '...' icon for row actions [[GH-13183](https://github.com/hashicorp/consul/issues/13183)]
+
+NOTES:
+
+* ci: change action to pull v1 instead of main [[GH-12846](https://github.com/hashicorp/consul/issues/12846)]
+
 ## 1.12.0 (April 20, 2022)
 
 BREAKING CHANGES:
