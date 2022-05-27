@@ -123,6 +123,9 @@ func (p *Proxy) Serve() error {
 			cfg = newCfg
 
 		case <-p.stopChan:
+			if p.service != nil {
+				p.service.Close()
+			}
 			return nil
 		}
 	}
@@ -153,7 +156,4 @@ func (p *Proxy) startListener(name string, l *Listener) error {
 // called only once.
 func (p *Proxy) Close() {
 	close(p.stopChan)
-	if p.service != nil {
-		p.service.Close()
-	}
 }
