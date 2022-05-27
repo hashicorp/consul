@@ -289,7 +289,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64"]
+        arch: ["386", "amd64"]
       fail-fast: true
     env:
       version: ${{needs.get-product-version.outputs.product-version}}
@@ -301,7 +301,6 @@ jobs:
         with:
           name: ${{ env.PKG_NAME }}_${{ env.version }}_linux_${{ matrix.arch }}.zip
       - name: Run verification for ${{ matrix.arch }} linux zip
-        if: ${{ matrix.arch == 'amd64' || matrix.arch == '386' }}
         run: |
           unzip ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
           ./consul version
