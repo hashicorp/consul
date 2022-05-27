@@ -6,7 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
-      - CTIA-15-verify-linux-packages
+      - CTIA-17-verify-linux-packages
 
 env:
   PKG_NAME: consul
@@ -430,8 +430,7 @@ jobs:
           docker run \
             --platform linux/amd64 \
             -v $(pwd):/workdir \
-            -w /workdir \
-            centos:7 \
+            -w /workdir centos:7 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.rpm_name }} v${{ env.version }}
 
@@ -441,8 +440,7 @@ jobs:
           docker run \
             --platform=linux/arm/v7 \
             -v $(pwd):/workdir \
-            -w /workdir \
-            centos:7 \
+            -w /workdir centos:7 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.rpm_name }} v${{ env.version }}
 
@@ -452,7 +450,6 @@ jobs:
           docker run \
             --platform=linux/arm64 \
             -v $(pwd):/workdir \
-            -w /workdir \
-            centos:7 \
+            -w /workdir centos:7 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
