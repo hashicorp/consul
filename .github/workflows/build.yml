@@ -232,6 +232,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Download artifact for arm verification
+        uses: actions/download-artifact@v2
+        if: ${{ matrix.arch == 'arm64' || matrix.arch == 'arm' }}
+        with:
+          name: ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
+      - name: Unzip for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'arm64' || matrix.arch == 'arm' }}
+        run: |
+          unzip ${{ env.PKG_NAME }}_${{ env.version }}_linux_${{ matrix.arch }}.zip
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
@@ -244,6 +253,16 @@ jobs:
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
+      - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
+            arm64v8/debian ./consul version
+      - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'arm' }}
+        run: |
+          docker run --platform=linux/arm/v7 -v $(pwd):/workdir -w /workdir  \
+            arm32v7/debian ./consul version
 
   build-docker-redhat:
     name: Docker Build UBI Image for RedHat
@@ -263,3 +282,89 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
+  verify:
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["386", "amd64"]
+      fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+    name: Verify ${{ matrix.arch }} linux zip
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ env.version }}_linux_${{ matrix.arch }}.zip
+      - name: Run verification for ${{ matrix.arch }} linux zip
+        run: |
+          unzip ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
+          ./consul version
+
+  verify-darwin:
+    needs:
+      - get-product-version
+      - build-darwin
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: ["amd64", "arm64"]
+      fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+    name: Verify ${{ matrix.arch }} darwin zip
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
+      - name: Run verification for ${{ matrix.arch }} linux zip
+        if: ${{ matrix.arch == 'amd64' }}
+        run: |
+          unzip ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
+          ./consul version
+
+  verify-linux-packages-deb:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ "amd64", "arm", "arm64", "i386" ]
+      fail-fast: true
+
+    name: Verify ${{ matrix.arch }} debian package
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download ${{ matrix.arch }} debian package
+        run: |
+          echo "TODO: download ${{ matrix.arch }} debian package"
+
+      - name: Verify ${{ matrix.arch }} debian package
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} debian package"
+
+  verify-linux-packages-rpm:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ "aarch64", "arm", "i386", "x86_64" ]
+      fail-fast: true
+
+    name: Verify ${{ matrix.arch }} rpm package
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download ${{ matrix.arch }} rpm package
+        run: |
+          echo "TODO: download ${{ matrix.arch }} rpm package"
+
+      - name: Verify ${{ matrix.arch }} rpm package
+        run: |
+          echo "TODO: run verification for ${{ matrix.arch }} rpm package"
