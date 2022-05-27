@@ -107,6 +107,20 @@ type Backend interface {
 
 	Store() Store
 	Apply() Apply
+	LeadershipMonitor() LeadershipMonitor
+}
+
+// LeadershipMonitor provides a way for the consul server to update the peering service about
+// the server's leadership status.
+// Server addresses should look like: ip:port
+type LeadershipMonitor interface {
+	// UpdateLeaderAddr is called on a raft.LeaderObservation in a go routine in the consul server;
+	// see trackLeaderChanges()
+	UpdateLeaderAddr(leaderAddr string)
+
+	// GetLeaderAddr provides the best hint for the current address of the leader.
+	// There is no guarantee that this is the actual address of the leader.
+	GetLeaderAddr() string
 }
 
 // Store provides a read-only interface for querying Peering data.
