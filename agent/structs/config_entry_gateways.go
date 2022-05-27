@@ -663,5 +663,6 @@ func (g *GatewayService) Clone() *GatewayService {
 		SNI:          g.SNI,
 		FromWildcard: g.FromWildcard,
 		RaftIndex:    g.RaftIndex,
+		Kind:         g.Kind,
 	}
 }
