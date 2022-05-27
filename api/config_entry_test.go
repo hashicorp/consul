@@ -191,7 +191,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Kind, readService.Kind)
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
-				require.Equal(t, endpoint, readService.Destination)
+				require.Equal(t, dest, readService.Destination)
 			}
 		}
 
