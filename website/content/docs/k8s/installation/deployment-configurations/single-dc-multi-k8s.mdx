@@ -77,8 +77,8 @@ $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=
 
 Now we can install our Consul cluster with Helm:
 ```shell-session
- $ helm install ${HELM_RELEASE_SERVER} --values cluster1-config.yaml hashicorp/consul
- ```
+$ helm install ${HELM_RELEASE_SERVER} --values cluster1-config.yaml hashicorp/consul
+```
 
 ~> **Note:** The Helm release name must be unique for each Kubernetes cluster.
 That is because the Helm chart will use the Helm release name as a prefix for the
@@ -91,7 +91,7 @@ and the ACL bootstrap token generated during installation,
 so that we can apply them to our second Kubernetes cluster.
 
 ```shell-session
- $ kubectl get secret consul-gossip-encryption-key ${HELM_RELEASE_SERVER}-consul-ca-cert ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
+$ kubectl get secret consul-gossip-encryption-key ${HELM_RELEASE_SERVER}-consul-ca-cert ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --output yaml > cluster1-credentials.yaml
 ```
 
 ## Deploying Consul clients in the second cluster
