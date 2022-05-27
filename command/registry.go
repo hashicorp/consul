@@ -1,6 +1,11 @@
 package command
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -109,40 +114,16 @@ import (
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
 
-	"os"
-	"os/signal"
-	"syscall"
-
 	mcli "github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/command/cli"
 )
 
-// factory is a function that returns a new instance of a CLI-sub command.
-type factory func(cli.Ui) (cli.Command, error)
-
-// entry is a struct that contains a command's name and a factory for that command.
-type entry struct {
-	name string
-	fn   factory
-}
-
-func createCommands(ui cli.Ui, cmdEntries ...entry) map[string]mcli.CommandFactory {
-	m := make(map[string]mcli.CommandFactory)
-	for _, ent := range cmdEntries {
-		thisFn := ent.fn
-		m[ent.name] = func() (mcli.Command, error) {
-			return thisFn(ui)
-		}
-	}
-	return m
-}
-
-// CommandsFromRegistry returns a realized mapping of available CLI commands in a format that
-// the CLI class can consume. This should be called after all registration is
-// complete.
-func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
-	registry := createCommands(ui,
+// RegisteredCommands returns a realized mapping of available CLI commands in a format that
+// the CLI class can consume.
+func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
+	registry := map[string]mcli.CommandFactory{}
+	registerCommands(ui, registry,
 		entry{"acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil }},
 		entry{"acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil }},
 		entry{"acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil }},
@@ -253,6 +234,27 @@ func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
 	)
 	registerEnterpriseCommands(ui, registry)
 	return registry
+}
+
+// factory is a function that returns a new instance of a CLI-sub command.
+type factory func(cli.Ui) (cli.Command, error)
+
+// entry is a struct that contains a command's name and a factory for that command.
+type entry struct {
+	name string
+	fn   factory
+}
+
+func registerCommands(ui cli.Ui, m map[string]mcli.CommandFactory, cmdEntries ...entry) {
+	for _, ent := range cmdEntries {
+		thisFn := ent.fn
+		if _, ok := m[ent.name]; ok {
+			panic(fmt.Sprintf("duplicate command: %q", ent.name))
+		}
+		m[ent.name] = func() (mcli.Command, error) {
+			return thisFn(ui)
+		}
+	}
 }
 
 // MakeShutdownCh returns a channel that can be used for shutdown notifications
