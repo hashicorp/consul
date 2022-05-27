@@ -6,7 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
-      - CTIA-8-verify-builds
+      - CTIA-15-verify-linux-packages
 
 env:
   PKG_NAME: consul
@@ -314,7 +314,9 @@ jobs:
           ./consul version
 
   verify-linux-packages-deb:
-    needs: build
+    needs:
+      - build
+      - get-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -324,17 +326,28 @@ jobs:
     name: Verify ${{ matrix.arch }} debian package
     steps:
       - uses: actions/checkout@v2
-
+        
       - name: Download ${{ matrix.arch }} debian package
-        run: |
-          echo "TODO: download ${{ matrix.arch }} debian package"
+        uses: actions/download-artifact@v2
+        with:
+          name: "${{ env.PKG_NAME }}_${{env.version}}-*-${{ matrix.arch }}.deb"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
 
       - name: Verify ${{ matrix.arch }} debian package
+        with:
+          image: debian:bullseye
+          package: "${{ env.PKG_NAME }}_${{env.version}}-*-${{ matrix.arch }}.deb"
         run: |
-          echo "TODO: run verification for ${{ matrix.arch }} debian package"
+          docker run --rm --platform linux/${{ matrix.arch }} -v $(pwd):/workdir -w /workdir ${{ env.image }} /workdir/.github/scripts/verify_deb.sh ${{ env.package }}
 
   verify-linux-packages-rpm:
-    needs: build
+    needs:
+      - build
+      - get-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -346,9 +359,27 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Download ${{ matrix.arch }} rpm package
-        run: |
-          echo "TODO: download ${{ matrix.arch }} rpm package"
+        uses: actions/download-artifact@v2
+        with:
+          name: "${{ env.PKG_NAME }}.${{env.version}}.${{ matrix.arch }}.rpm"
 
-      - name: Verify ${{ matrix.arch }} rpm package
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Verify ${{ matrix.arch }} rpm package (x86/386)
+        if: ${{ matrix.arch == 'amd64' || matrix.arch == '386' }}
+        with:
+          image: centos:7
+          package: "${{ env.PKG_NAME }}.${{env.version}}.${{ matrix.arch }}.rpm"
         run: |
-          echo "TODO: run verification for ${{ matrix.arch }} rpm package"
+          docker run --rm --platform linux/amd64 -v $(pwd):/workdir -w /workdir ${{ env.image }} /workdir/.github/scripts/verify_rpm.sh ${{ env.package }}
+
+      - name: Verify ${{ matrix.arch }} rpm package (arm)
+        if: ${{ matrix.arch == 'arm64' || matrix.arch == 'arm' }}
+        with:
+          image: centos:7
+          package: "${{ env.PKG_NAME }}.${{env.version}}.${{ matrix.arch }}.rpm"
+        run: |
+          docker run --rm --platform linux/arm64 -v $(pwd):/workdir -w /workdir ${{ env.image }} /workdir/.github/scripts/verify_rpm.sh ${{ env.package }}
