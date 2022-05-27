@@ -14,7 +14,9 @@ In this example, we will use two Kubernetes clusters, but this approach could be
 
 ~> **Note:** This deployment topology requires that your Kubernetes clusters have a flat network
 for both pods and nodes, so that pods or nodes from one cluster can connect
-to pods or nodes in another. If a flat network is not available across all Kubernetes clusters, follow the instructions for using [Admin Partitions](/docs/enterprise/admin-partitions), which is a Consul Enterprise feature. 
+to pods or nodes in another. In many hosted Kubernetes environments, you will need to explicitly configure your hosting providers network. See [Azure AKS CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking), [AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html) and [GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
+If a flat network is not available across all Kubernetes clusters, follow the instructions for using [Admin Partitions](/docs/enterprise/admin-partitions), which is a Consul Enterprise feature.
+
 
 ## Prepare Helm release name ahead of installs
 
