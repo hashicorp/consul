@@ -849,7 +849,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		// Do not associate non-typical services with gateways or consul services
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
-			sn := structs.ServiceName{Name: svc.Service, EnterpriseMeta: svc.EnterpriseMeta}
+			sn := structs.NewServiceName(svc.Service,  &svc.EnterpriseMeta}
 			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
@@ -3476,7 +3476,6 @@ func terminatingConfigGatewayServices(
 		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
-	// TODO(egress-tproxy): Check if it's an endpoint by quering the service and the service defaut config entry.
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
 	_, c, err := configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -3493,7 +3492,7 @@ func terminatingConfigGatewayServices(
 	for _, svc := range entry.Services {
 		kind, err := GatewayServiceKind(tx, svc.Name, &svc.EnterpriseMeta)
 		if err != nil {
-			return false, nil, fmt.Errorf("failed to query endpoints: %v", err)
+			return false, nil, fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 		}
 		mapping := &structs.GatewayService{
 			Gateway:     gateway,
@@ -3573,12 +3572,12 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 			return err
 		}
 	}
-	endpoints, err := tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: structs.ServiceDefaults, EnterpriseMeta: *entMeta})
+	entries, err := tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: structs.ServiceDefaults, EnterpriseMeta: *entMeta})
 	if err != nil {
-		return fmt.Errorf("failed querying endpoints: %s", err)
+		return fmt.Errorf("failed querying entries: %s", err)
 	}
-	for endpoint := endpoints.Next(); endpoint != nil; endpoint = endpoints.Next() {
-		e := endpoint.(*structs.ServiceConfigEntry)
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		e := entry.(*structs.ServiceConfigEntry)
 		if e.Destination == nil {
 			continue
 		}
@@ -3737,7 +3736,7 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		} else {
 			kind, err := GatewayServiceKind(tx, m.Service.Name, &m.Service.EnterpriseMeta)
 			if err != nil {
-				return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 			}
 			checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: m.Service.Name, EnterpriseMeta: m.Service.EnterpriseMeta}, kind)
 		}

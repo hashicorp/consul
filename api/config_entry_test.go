@@ -106,7 +106,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			},
 		}
 
-		endpoint := &DestinationConfig{
+		dest := &DestinationConfig{
 			Address: "my.example.com",
 			Port:    80,
 		}
@@ -115,7 +115,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			Kind:        ServiceDefaults,
 			Name:        "bar",
 			Protocol:    "tcp",
-			Destination: endpoint,
+			Destination: dest,
 		}
 
 		// set it

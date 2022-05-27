@@ -351,7 +351,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		if c.(*structs.ServiceConfigEntry).Destination != nil {
 			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
 			if err != nil {
-				return fmt.Errorf("failed updating gateway mapping: %s", err)
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", sn.Name, err)
 			}
 			if gsKind == structs.GatewayservicekindDestination {
 				gsKind = structs.GatewayservicekindUnknown
