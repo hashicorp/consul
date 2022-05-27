@@ -342,3 +342,56 @@ jobs:
         if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
         run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
 
+  verify-linux-packages-deb:
+    needs:
+      - build
+      - get-product-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["386", "amd64", "arm", "arm64"]
+      fail-fast: true
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
+      deb_name: consul_${{ needs.get-product-version.outputs.product-version }}-*-${{ matrix.arch }}.deb
+
+    name: Verify ${{ matrix.arch }} debian package
+    steps:
+      - uses: actions/checkout@v2
+        
+      - name: Download ${{ matrix.arch }} debian package
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.deb_name }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        with:
+          # this should be a comma-separated string as opposed to an array
+          platforms: arm,arm64
+
+      - name: Verify ${{ matrix.arch }} debian package (x86/386)
+        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+        run: .github/scripts/verify_deb.sh ${{ env.deb_name }} v${{ env.version }}
+
+      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/arm/v7)
+        if: ${{ matrix.arch == 'arm' }}
+        run: |
+          docker run \
+            --platform=linux/arm/v7 \
+            -v $(pwd):/workdir \
+            -w /workdir \
+            arm64v8/debian \
+            /workdir/.github/scripts/verify_deb.sh \
+            /workdir/${{ env.deb_name }} v${{ env.version }}
+
+      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          docker run \
+            --platform=linux/arm64 \
+            -v $(pwd):/workdir \
+            -w /workdir \
+            arm64v8/debian \
+            /workdir/.github/scripts/verify_deb.sh \
+            /workdir/${{ env.deb_name }} v${{ env.version }}
