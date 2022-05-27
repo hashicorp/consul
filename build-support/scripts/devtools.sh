@@ -121,6 +121,10 @@ function lint_install {
         'lint-consul-retry' \
         'github.com/hashicorp/lint-consul-retry@master'
 
+    install_unversioned_tool \
+        'enumcover' \
+        'github.com/reillywatson/enumcover/cmd/enumcover@master'
+
     install_versioned_tool \
         'golangci-lint' \
         'github.com/golangci/golangci-lint' \

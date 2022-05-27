@@ -22,21 +22,24 @@ type ExportedServiceList struct {
 
 	// DiscoChains is a list of exported service that ONLY apply to service mesh.
 	DiscoChains []ServiceName
+
+	// TODO(peering): reduce duplication here in the response
+	ConnectProtocol map[ServiceName]string
 }
 
 // ListAllDiscoveryChains returns all discovery chains (union of Services and
 // DiscoChains).
-func (list *ExportedServiceList) ListAllDiscoveryChains() map[ServiceName]struct{} {
-	chainsByName := make(map[ServiceName]struct{})
+func (list *ExportedServiceList) ListAllDiscoveryChains() map[ServiceName]string {
+	chainsByName := make(map[ServiceName]string)
 	if list == nil {
 		return chainsByName
 	}
 
 	for _, svc := range list.Services {
-		chainsByName[svc] = struct{}{}
+		chainsByName[svc] = list.ConnectProtocol[svc]
 	}
 	for _, chainName := range list.DiscoChains {
-		chainsByName[chainName] = struct{}{}
+		chainsByName[chainName] = list.ConnectProtocol[chainName]
 	}
 	return chainsByName
 }

@@ -644,6 +644,10 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
+	newSN := func(name string) structs.ServiceName {
+		return structs.NewServiceName(name, defaultEntMeta)
+	}
+
 	ws := memdb.NewWatchSet()
 
 	ensureConfigEntry := func(t *testing.T, entry structs.ConfigEntry) {
@@ -704,6 +708,10 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("mysql"): "tcp",
+				newSN("redis"): "tcp",
+			},
 		}
 
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
@@ -745,6 +753,9 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					Name:           "billing",
 					EnterpriseMeta: *defaultEntMeta,
 				},
+			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("billing"): "tcp",
 			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
@@ -826,6 +837,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("billing"):  "http",
+				newSN("payments"): "http",
+				newSN("resolver"): "http",
+				newSN("router"):   "http",
+				newSN("splitter"): "http",
+			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
@@ -860,6 +878,11 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					Name:           "router",
 					EnterpriseMeta: *defaultEntMeta,
 				},
+			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("payments"): "http",
+				newSN("resolver"): "http",
+				newSN("router"):   "http",
 			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)

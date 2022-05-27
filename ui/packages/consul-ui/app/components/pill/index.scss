@@ -10,9 +10,7 @@ span.policy-node-identity,
 }
 span.policy-service-identity::before,
 span.policy-node-identity::before {
-  width: auto;
-  align-self: start;
-  font-size: inherit;
+  vertical-align: unset;
 }
 span.policy-node-identity::before {
   content: 'Node Identity: ';

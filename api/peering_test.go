@@ -36,97 +36,98 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 
 func TestAPI_Peering_Read_ErrorHandling(t *testing.T) {
 	t.Parallel()
+
 	c, s := makeClientWithCA(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
 	defer cancel()
+
 	peerings := c.Peerings()
 
 	t.Run("call Read with no name", func(t *testing.T) {
-		resp, qm, err := peerings.Read(ctx, PeeringReadRequest{}, nil)
-
-		// basic checks
+		_, _, err := peerings.Read(ctx, "", nil)
 		require.EqualError(t, err, "peering name cannot be empty")
-		require.Empty(t, qm)
-		require.Empty(t, resp)
 	})
 
 	t.Run("read peer that does not exist on server", func(t *testing.T) {
-		resp, qm, err := peerings.Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
-
-		// basic checks
-		require.NotNil(t, err) // 404
-		require.Empty(t, qm)
-		require.Empty(t, resp)
+		resp, qm, err := peerings.Read(ctx, "peer1", nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.Nil(t, resp)
 	})
 }
 
 // TestAPI_Peering_List
 func TestAPI_Peering_List(t *testing.T) {
 	t.Parallel()
+
 	c, s := makeClientWithCA(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
 	defer cancel()
+
 	peerings := c.Peerings()
 
-	// "call List when no peers should exist"
-	resp, qm, err := peerings.List(ctx, PeeringListRequest{}, nil)
+	testutil.RunStep(t, "list with no peers", func(t *testing.T) {
+		// "call List when no peers should exist"
+		resp, qm, err := peerings.List(ctx, nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.Empty(t, resp) // no peerings so this should be empty
+	})
 
-	// basic checks
-	require.NoError(t, err)
-	require.NotEmpty(t, qm)
+	testutil.RunStep(t, "list with some peers", func(t *testing.T) {
+		// "call List when peers are present"
+		resp1, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer1"}, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotNil(t, resp1)
 
-	require.Empty(t, resp) // no peerings so this should be empty
+		resp2, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2"}, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotNil(t, resp2)
 
-	// "call List when peers are present"
-	resp2, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer1"}, nil)
-	require.NoError(t, err)
-	require.NotEmpty(t, wm)
-	require.NotEmpty(t, resp2)
+		peering1, qm, err := peerings.Read(ctx, "peer1", nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.NotNil(t, peering1)
 
-	resp3, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2"}, nil)
-	require.NoError(t, err)
-	require.NotEmpty(t, wm)
-	require.NotEmpty(t, resp3)
+		peering2, qm, err := peerings.Read(ctx, "peer2", nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.NotNil(t, peering2)
 
-	peering1, qm, err2 := peerings.Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
-	require.NoError(t, err2)
-	require.NotEmpty(t, qm)
-	require.NotEmpty(t, peering1)
-	peering2, qm, err2 := peerings.Read(ctx, PeeringReadRequest{Name: "peer2"}, nil)
-	require.NoError(t, err2)
-	require.NotEmpty(t, qm)
-	require.NotEmpty(t, peering2)
+		peeringsList, qm, err := peerings.List(ctx, nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
 
-	peeringsList, qm, err := peerings.List(ctx, PeeringListRequest{}, nil)
-	require.NoError(t, err)
-	require.NotEmpty(t, qm)
-
-	require.Equal(t, 2, len(peeringsList))
-	require.True(t, peerExistsInPeerListings(peering1, peeringsList), "expected to find peering in list response")
-	require.True(t, peerExistsInPeerListings(peering2, peeringsList), "expected to find peering in list response")
-
+		require.Len(t, peeringsList, 2)
+		require.True(t, peerExistsInPeerListings(peering1, peeringsList), "expected to find peering in list response")
+		require.True(t, peerExistsInPeerListings(peering2, peeringsList), "expected to find peering in list response")
+	})
 }
 
 func TestAPI_Peering_GenerateToken(t *testing.T) {
 	t.Parallel()
+
 	c, s := makeClientWithCA(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
 	defer cancel()
+
 	peerings := c.Peerings()
 
 	t.Run("cannot have GenerateToken forward DC requests", func(t *testing.T) {
 		// Try to generate a token in dc2
-		resp, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2", Datacenter: "dc2"}, nil)
-
+		_, _, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2", Datacenter: "dc2"}, nil)
 		require.Error(t, err)
-		require.Empty(t, wm)
-		require.Empty(t, resp)
 	})
 }
 
@@ -138,42 +139,41 @@ func TestAPI_Peering_GenerateToken(t *testing.T) {
 // finally, we delete the token on the first server
 func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	t.Parallel()
+
 	c, s := makeClientWithCA(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
-	options := &WriteOptions{Datacenter: "dc1"}
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
 	defer cancel()
-	peerings := c.Peerings()
 
-	p1 := PeeringGenerateTokenRequest{
-		PeerName: "peer1",
-		Meta:     map[string]string{"foo": "bar"},
-	}
 	var token1 string
-	// Generate a token happy path
-	resp, wm, err := peerings.GenerateToken(ctx, p1, options)
+	testutil.RunStep(t, "generate token", func(t *testing.T) {
+		// Generate a token happy path
+		p1 := PeeringGenerateTokenRequest{
+			PeerName: "peer1",
+			Meta:     map[string]string{"foo": "bar"},
+		}
+		resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotNil(t, resp)
 
-	require.NoError(t, err)
-	require.NotEmpty(t, wm)
-	require.NotEmpty(t, resp)
+		token1 = resp.PeeringToken
+	})
 
-	token1 = resp.PeeringToken
+	testutil.RunStep(t, "verify token", func(t *testing.T) {
+		// Read token generated on server
+		resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.NotNil(t, resp)
 
-	// Read token generated on server
-	resp2, qm, err2 := peerings.Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
-
-	// basic ok checking
-	require.NoError(t, err2)
-	require.NotEmpty(t, qm)
-	require.NotEmpty(t, resp2)
-
-	// token specific assertions on the "server"
-	require.Equal(t, "peer1", resp2.Name)
-	require.Equal(t, PeeringStateInitial, resp2.State)
-	require.Equal(t, map[string]string{"foo": "bar"}, resp2.Meta)
-
-	// Initiate peering
+		// token specific assertions on the "server"
+		require.Equal(t, "peer1", resp.Name)
+		require.Equal(t, PeeringStateInitial, resp.State)
+		require.Equal(t, map[string]string{"foo": "bar"}, resp.Meta)
+	})
 
 	// make a "client" server in second DC for peering
 	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
@@ -181,53 +181,41 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	})
 	defer s2.Stop()
 
-	i := PeeringInitiateRequest{
-		Datacenter:   c2.config.Datacenter,
-		PeerName:     "peer1",
-		PeeringToken: token1,
-		Meta:         map[string]string{"foo": "bar"},
-	}
+	testutil.RunStep(t, "initiate peering", func(t *testing.T) {
+		i := PeeringInitiateRequest{
+			Datacenter:   c2.config.Datacenter,
+			PeerName:     "peer1",
+			PeeringToken: token1,
+			Meta:         map[string]string{"foo": "bar"},
+		}
 
-	respi, wm3, err3 := c2.Peerings().Initiate(ctx, i, options)
+		_, wm, err := c2.Peerings().Initiate(ctx, i, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
 
-	// basic checks
-	require.NoError(t, err3)
-	require.NotEmpty(t, wm3)
+		retry.Run(t, func(r *retry.R) {
+			resp, qm, err := c2.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
 
-	// at first the token will be undefined
-	require.Equal(t, PeeringStateUndefined, PeeringState(respi.Status))
+			// require that the peering state is not undefined
+			require.Equal(r, PeeringStateInitial, resp.State)
+			require.Equal(r, map[string]string{"foo": "bar"}, resp.Meta)
 
-	// wait for the peering backend to finish the peering connection
-	time.Sleep(2 * time.Second)
-
-	retry.Run(t, func(r *retry.R) {
-		respr, qm2, err4 := c2.Peerings().Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
-
-		// basic ok checking
-		require.NoError(r, err4)
-		require.NotEmpty(r, qm2)
-
-		// require that the peering state is not undefined
-		require.Equal(r, PeeringStateInitial, respr.State)
-		require.Equal(r, map[string]string{"foo": "bar"}, respr.Meta)
-
-		// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
+			// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
+		})
 	})
 
-	// Delete the token on server 1
-	resp4, qm3, err5 := peerings.Delete(ctx, PeeringDeleteRequest{Name: "peer1"}, nil)
+	testutil.RunStep(t, "delete peering at source", func(t *testing.T) {
+		// Delete the token on server 1
+		wm, err := c.Peerings().Delete(ctx, "peer1", nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
 
-	require.NoError(t, err5)
-	require.NotEmpty(t, qm3)
-
-	// {} is returned on success for now
-	require.Empty(t, resp4)
-
-	// Read to see if the token is "gone"
-	resp5, qm4, err6 := peerings.Read(ctx, PeeringReadRequest{Name: "peer1"}, nil)
-
-	// basic checks
-	require.NotNil(t, err6)
-	require.Empty(t, qm4)
-	require.Empty(t, resp5)
+		// Read to see if the token is "gone"
+		resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.Nil(t, resp)
+	})
 }

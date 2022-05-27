@@ -190,6 +190,12 @@ type QueryOptions struct {
 	// Filter requests filtering data prior to it being returned. The string
 	// is a go-bexpr compatible expression.
 	Filter string
+
+	// MergeCentralConfig returns a service definition merged with the
+	// proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -857,6 +863,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		if len(cc) > 0 {
 			r.header.Set("Cache-Control", strings.Join(cc, ", "))
 		}
+	}
+	if q.MergeCentralConfig {
+		r.params.Set("merge-central-config", "")
 	}
 
 	r.ctx = q.ctx

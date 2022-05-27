@@ -17,14 +17,17 @@ import (
 
 // subscriptionState is a collection of working state tied to a peerID subscription.
 type subscriptionState struct {
+	// peerName is immutable and is the LOCAL name for the peering
+	peerName string
 	// partition is immutable
 	partition string
 
 	// plain data
 	exportList *structs.ExportedServiceList
 
-	watchedServices map[structs.ServiceName]context.CancelFunc
-	connectServices map[structs.ServiceName]struct{}
+	watchedServices      map[structs.ServiceName]context.CancelFunc
+	watchedProxyServices map[structs.ServiceName]context.CancelFunc // TODO(peering): remove
+	connectServices      map[structs.ServiceName]string             // value:protocol
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"
 	// not the "correlationID"
@@ -41,12 +44,14 @@ type subscriptionState struct {
 	publicUpdateCh chan<- cache.UpdateEvent
 }
 
-func newSubscriptionState(partition string) *subscriptionState {
+func newSubscriptionState(peerName, partition string) *subscriptionState {
 	return &subscriptionState{
-		partition:       partition,
-		watchedServices: make(map[structs.ServiceName]context.CancelFunc),
-		connectServices: make(map[structs.ServiceName]struct{}),
-		eventVersions:   make(map[string]string),
+		peerName:             peerName,
+		partition:            partition,
+		watchedServices:      make(map[structs.ServiceName]context.CancelFunc),
+		watchedProxyServices: make(map[structs.ServiceName]context.CancelFunc),
+		connectServices:      make(map[structs.ServiceName]string),
+		eventVersions:        make(map[string]string),
 	}
 }
 
@@ -87,11 +92,22 @@ func (s *subscriptionState) cleanupEventVersions(logger hclog.Logger) {
 		case id == meshGatewayPayloadID:
 			keep = true
 
+		case id == caRootsPayloadID:
+			keep = true
+
 		case strings.HasPrefix(id, servicePayloadIDPrefix):
 			name := strings.TrimPrefix(id, servicePayloadIDPrefix)
 			sn := structs.ServiceNameFromString(name)
 
 			if _, ok := s.watchedServices[sn]; ok {
+				keep = true
+			}
+
+		case strings.HasPrefix(id, proxyServicePayloadIDPrefix):
+			name := strings.TrimPrefix(id, proxyServicePayloadIDPrefix)
+			sn := structs.ServiceNameFromString(name)
+
+			if _, ok := s.watchedProxyServices[sn]; ok {
 				keep = true
 			}
 
@@ -123,8 +139,10 @@ type pendingEvent struct {
 }
 
 const (
+	caRootsPayloadID              = "roots"
 	meshGatewayPayloadID          = "mesh-gateway"
 	servicePayloadIDPrefix        = "service:"
+	proxyServicePayloadIDPrefix   = "proxy-service:" // TODO(peering): remove
 	discoveryChainPayloadIDPrefix = "chain:"
 )
 

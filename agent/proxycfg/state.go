@@ -72,6 +72,7 @@ type stateConfig struct {
 // connect-proxy service. When a proxy registration is changed, the entire state
 // is discarded and a new one created.
 type state struct {
+	source          ProxySource
 	logger          hclog.Logger
 	serviceInstance serviceInstance
 	handler         kindHandler
@@ -95,7 +96,7 @@ type ServerSNIFunc func(dc, nodeName string) string
 type serviceInstance struct {
 	kind            structs.ServiceKind
 	service         string
-	proxyID         structs.ServiceID
+	proxyID         ProxyID
 	address         string
 	port            int
 	meta            map[string]string
@@ -153,7 +154,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(ns *structs.NodeService, token string, config stateConfig) (*state, error) {
+func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig) (*state, error) {
 	// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 	// reasonable number of upstream watches to all deliver their initial
 	// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -163,7 +164,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	// cases.
 	ch := make(chan UpdateEvent, 10)
 
-	s, err := newServiceInstanceFromNodeService(ns, token)
+	s, err := newServiceInstanceFromNodeService(id, ns, token)
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +175,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	}
 
 	return &state{
+		source:          source,
 		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
 		serviceInstance: s,
 		handler:         handler,
@@ -205,7 +207,7 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 	return handler, nil
 }
 
-func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (serviceInstance, error) {
+func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, token string) (serviceInstance, error) {
 	proxyCfg, err := copyProxyConfig(ns)
 	if err != nil {
 		return serviceInstance{}, err
@@ -224,7 +226,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 	return serviceInstance{
 		kind:            ns.Kind,
 		service:         ns.Service,
-		proxyID:         ns.CompoundServiceID(),
+		proxyID:         id,
 		address:         ns.Address,
 		port:            ns.Port,
 		meta:            meta,
@@ -418,7 +420,6 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 
 	i := s.serviceInstance
 	return ns.Kind != i.kind ||
-		i.proxyID != ns.CompoundServiceID() ||
 		i.address != ns.Address ||
 		i.port != ns.Port ||
 		!reflect.DeepEqual(i.proxyCfg, proxyCfg) ||

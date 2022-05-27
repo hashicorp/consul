@@ -1,15 +1,9 @@
 @keyframes icon-droplet {
-  50% {
-
-    background-color: var(--icon-color, var(--color-droplet-500, currentColor));
-    -webkit-mask-image: var(--icon-droplet-24);
-    mask-image: var(--icon-droplet-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-droplet-500, currentColor));
     -webkit-mask-image: var(--icon-droplet-16);
     mask-image: var(--icon-droplet-16);
+    background-color: var(--icon-color, var(--color-droplet-500, currentColor));
+
   }
 }

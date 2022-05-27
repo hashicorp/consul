@@ -1,15 +1,9 @@
 @keyframes icon-phone-call {
-  50% {
-
-    background-color: var(--icon-color, var(--color-phone-call-500, currentColor));
-    -webkit-mask-image: var(--icon-phone-call-24);
-    mask-image: var(--icon-phone-call-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-phone-call-500, currentColor));
     -webkit-mask-image: var(--icon-phone-call-16);
     mask-image: var(--icon-phone-call-16);
+    background-color: var(--icon-color, var(--color-phone-call-500, currentColor));
+
   }
 }

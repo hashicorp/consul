@@ -1,15 +1,9 @@
 @keyframes icon-star-outline {
-  50% {
-
-    background-color: var(--icon-color, var(--color-star-outline-500, currentColor));
-    -webkit-mask-image: var(--icon-star-24);
-    mask-image: var(--icon-star-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-star-outline-500, currentColor));
     -webkit-mask-image: var(--icon-star-16);
     mask-image: var(--icon-star-16);
+    background-color: var(--icon-color, var(--color-star-outline-500, currentColor));
+
   }
 }

@@ -1,6 +1,10 @@
 package pbpeering
 
-import "time"
+import (
+	"time"
+
+	"github.com/hashicorp/consul/api"
+)
 
 // TODO(peering): These are byproducts of not embedding
 // types in our protobuf definitions and are temporary;
@@ -82,4 +86,89 @@ func (p *Peering) ShouldDial() bool {
 
 func (x ReplicationMessage_Response_Operation) GoString() string {
 	return x.String()
+}
+
+// enumcover:PeeringState
+func PeeringStateToAPI(s PeeringState) api.PeeringState {
+	switch s {
+	case PeeringState_INITIAL:
+		return api.PeeringStateInitial
+	case PeeringState_ACTIVE:
+		return api.PeeringStateActive
+	case PeeringState_FAILING:
+		return api.PeeringStateFailing
+	case PeeringState_TERMINATED:
+		return api.PeeringStateTerminated
+	case PeeringState_UNDEFINED:
+		fallthrough
+	default:
+		return api.PeeringStateUndefined
+	}
+}
+
+// enumcover:api.PeeringState
+func PeeringStateFromAPI(t api.PeeringState) PeeringState {
+	switch t {
+	case api.PeeringStateInitial:
+		return PeeringState_INITIAL
+	case api.PeeringStateActive:
+		return PeeringState_ACTIVE
+	case api.PeeringStateFailing:
+		return PeeringState_FAILING
+	case api.PeeringStateTerminated:
+		return PeeringState_TERMINATED
+	case api.PeeringStateUndefined:
+		fallthrough
+	default:
+		return PeeringState_UNDEFINED
+	}
+}
+
+func (p *Peering) ToAPI() *api.Peering {
+	var t api.Peering
+	PeeringToAPI(p, &t)
+	return &t
+}
+
+// TODO consider using mog for this
+func (resp *PeeringListResponse) ToAPI() []*api.Peering {
+	list := make([]*api.Peering, len(resp.Peerings))
+	for i, p := range resp.Peerings {
+		list[i] = p.ToAPI()
+	}
+	return list
+}
+
+// TODO consider using mog for this
+func (resp *GenerateTokenResponse) ToAPI() *api.PeeringGenerateTokenResponse {
+	var t api.PeeringGenerateTokenResponse
+	GenerateTokenResponseToAPI(resp, &t)
+	return &t
+}
+
+// TODO consider using mog for this
+func (resp *InitiateResponse) ToAPI() *api.PeeringInitiateResponse {
+	var t api.PeeringInitiateResponse
+	InitiateResponseToAPI(resp, &t)
+	return &t
+}
+
+// convenience
+func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *GenerateTokenRequest {
+	if req == nil {
+		return nil
+	}
+	t := &GenerateTokenRequest{}
+	GenerateTokenRequestFromAPI(req, t)
+	return t
+}
+
+// convenience
+func NewInitiateRequestFromAPI(req *api.PeeringInitiateRequest) *InitiateRequest {
+	if req == nil {
+		return nil
+	}
+	t := &InitiateRequest{}
+	InitiateRequestFromAPI(req, t)
+	return t
 }

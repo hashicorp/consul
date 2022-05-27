@@ -1,15 +1,9 @@
 @keyframes icon-mouse-pointer {
-  50% {
-
-    background-color: var(--icon-color, var(--color-mouse-pointer-500, currentColor));
-    -webkit-mask-image: var(--icon-mouse-pointer-24);
-    mask-image: var(--icon-mouse-pointer-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-mouse-pointer-500, currentColor));
     -webkit-mask-image: var(--icon-mouse-pointer-16);
     mask-image: var(--icon-mouse-pointer-16);
+    background-color: var(--icon-color, var(--color-mouse-pointer-500, currentColor));
+
   }
 }

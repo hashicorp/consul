@@ -11,15 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/state"
-
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/consul/state"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/api"
@@ -679,8 +678,16 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 
 	s := newTestServer(t, nil)
 	testrpc.WaitForLeader(t, s.Server.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, s.Server.RPC, "dc1", nil)
 
-	srv := peering.NewService(testutil.Logger(t), consul.NewPeeringBackend(s.Server, nil))
+	srv := peering.NewService(
+		testutil.Logger(t),
+		peering.Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		consul.NewPeeringBackend(s.Server, nil),
+	)
 
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(0, &pbpeering.Peering{
 		Name: "my-peer",
@@ -717,6 +724,12 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 	_, err = client.Recv()
 	require.NoError(t, err)
 
+	// Receive first roots replication message
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeering.TypeURLRoots, receiveRoots.GetResponse().ResourceURL)
+
 	remoteEntMeta := structs.DefaultEnterpriseMetaInPartition("remote-partition")
 	localEntMeta := acl.DefaultEnterpriseMeta()
 	localPeerName := "my-peer"
@@ -744,7 +757,7 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 			pbCSN.Nodes = append(pbCSN.Nodes, pbservice.NewCheckServiceNodeFromStructs(&csn))
 		}
 
-		any, err := ptypes.MarshalAny(pbCSN)
+		any, err := anypb.New(pbCSN)
 		require.NoError(t, err)
 		tc.msg.Resource = any
 
@@ -1037,6 +1050,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	conf.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
 	conf.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
+
+	conf.PrimaryDatacenter = "dc1"
+	conf.ConnectEnabled = true
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {

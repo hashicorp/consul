@@ -1,15 +1,9 @@
 @keyframes icon-switcher {
-  50% {
-
-    background-color: var(--icon-color, var(--color-switcher-500, currentColor));
-    -webkit-mask-image: var(--icon-switcher-24);
-    mask-image: var(--icon-switcher-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-switcher-500, currentColor));
     -webkit-mask-image: var(--icon-switcher-16);
     mask-image: var(--icon-switcher-16);
+    background-color: var(--icon-color, var(--color-switcher-500, currentColor));
+
   }
 }

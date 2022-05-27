@@ -760,6 +760,10 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	p := peering.NewService(
 		deps.Logger.Named("grpc-api.peering"),
+		peering.Config{
+			Datacenter:     config.Datacenter,
+			ConnectEnabled: config.ConnectEnabled,
+		},
 		NewPeeringBackend(s, deps.GRPCConnPool),
 	)
 	s.peeringService = p
@@ -1655,6 +1659,7 @@ func (s *Server) trackLeaderChanges() {
 			}
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
+			s.peeringService.Backend.LeadershipMonitor().UpdateLeaderAddr(string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

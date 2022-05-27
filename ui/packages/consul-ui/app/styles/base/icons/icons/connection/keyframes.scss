@@ -1,15 +1,9 @@
 @keyframes icon-connection {
-  50% {
-
-    background-color: var(--icon-color, var(--color-connection-500, currentColor));
-    -webkit-mask-image: var(--icon-connection-24);
-    mask-image: var(--icon-connection-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-connection-500, currentColor));
     -webkit-mask-image: var(--icon-connection-16);
     mask-image: var(--icon-connection-16);
+    background-color: var(--icon-color, var(--color-connection-500, currentColor));
+
   }
 }

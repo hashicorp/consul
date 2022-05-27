@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package testservice;
 
+option go_package = "github.com/hashicorp/consul/agent/grpc/private/internal/testservice";
+
 // Simple service is used to test gRPC plumbing.
 service Simple {
   rpc Something(Req) returns (Resp) {}

@@ -50,22 +50,18 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul config write`](/commands/config/write).
 
-### Parameters
+### Query Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
 
 - `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. If the index is
   0, Consul will only store the entry if it does not already exist. If the index is
   non-zero, the entry is only set if the current index matches the `ModifyIndex`
   of that entry.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace the config
-  entry will apply to. This value may be provided by either the `ns` URL query
-  parameter or in the `X-Consul-Namespace` header. If not provided,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you apply.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -119,23 +115,21 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul config read`](/commands/config/read).
 
-### Parameters
+### Path Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+- `kind` `(string: <required>)` - Specifies the kind of the entry to read.
 
-- `kind` `(string: <required>)` - Specifies the kind of the entry to read. This
-  is specified as part of the URL.
-
-- `name` `(string: <required>)` - Specifies the name of the entry to read. This
-  is specified as part of the URL. The name of the `proxy-defaults` config entry
+- `name` `(string: <required>)` - Specifies the name of the entry to read.
+  The name of the `proxy-defaults` config entry
   must be `global`, and the name of the `mesh` config entry must be `mesh`.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited from
-  the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you lookup
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -192,19 +186,17 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul config list`](/commands/config/list).
 
-### Parameters
+### Path Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+- `kind` `(string: <required>)` - Specifies the kind of the entry to list.
 
-- `kind` `(string: <required>)` - Specifies the kind of the entry to list. This
-  is specified as part of the URL.
+### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited from
-  the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entries you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -268,29 +260,26 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul config delete`](/commands/config/delete).
 
-### Parameters
+### Path Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+- `kind` `(string: <required>)` - Specifies the kind of the entry to delete.
 
-- `kind` `(string: <required>)` - Specifies the kind of the entry to delete. This
-  is specified as part of the URL.
-
-- `name` `(string: <required>)` - Specifies the name of the entry to delete. This
-  is specified as part of the URL. The name of the `proxy-defaults` config entry
+- `name` `(string: <required>)` - Specifies the name of the entry to delete.
+  The name of the `proxy-defaults` config entry
   must be `global`, and the name of the `mesh` config entry must be `mesh`.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to delete from.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
 
 - `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. Unlike `PUT`,
   the index must be greater than 0 for Consul to take any action: a 0 index will
   not delete the config entry. If the index is non-zero, the config entry is only
-  deleted if the index matches the `ModifyIndex` of that config entry. This is
-  specified as part of the URL as a query parameter.
+  deleted if the index matches the `ModifyIndex` of that config entry.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you delete.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -299,3 +288,13 @@ $ curl \
     --request DELETE \
     http://127.0.0.1:8500/v1/config/service-defaults/web
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Config endpoints
+support several methods for specifying the namespace of configuration entry resources
+with the following order of precedence:
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

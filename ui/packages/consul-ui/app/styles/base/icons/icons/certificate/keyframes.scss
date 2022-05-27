@@ -1,15 +1,9 @@
 @keyframes icon-certificate {
-  50% {
-
-    background-color: var(--icon-color, var(--color-certificate-500, currentColor));
-    -webkit-mask-image: var(--icon-certificate-24);
-    mask-image: var(--icon-certificate-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-certificate-500, currentColor));
     -webkit-mask-image: var(--icon-certificate-16);
     mask-image: var(--icon-certificate-16);
+    background-color: var(--icon-color, var(--color-certificate-500, currentColor));
+
   }
 }

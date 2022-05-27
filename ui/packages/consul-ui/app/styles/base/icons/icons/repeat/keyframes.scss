@@ -1,15 +1,9 @@
 @keyframes icon-repeat {
-  50% {
-
-    background-color: var(--icon-color, var(--color-repeat-500, currentColor));
-    -webkit-mask-image: var(--icon-repeat-24);
-    mask-image: var(--icon-repeat-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-repeat-500, currentColor));
     -webkit-mask-image: var(--icon-repeat-16);
     mask-image: var(--icon-repeat-16);
+    background-color: var(--icon-color, var(--color-repeat-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-arrow-down-circle {
-  50% {
-
-    background-color: var(--icon-color, var(--color-arrow-down-circle-500, currentColor));
-    -webkit-mask-image: var(--icon-arrow-down-circle-24);
-    mask-image: var(--icon-arrow-down-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-arrow-down-circle-500, currentColor));
     -webkit-mask-image: var(--icon-arrow-down-circle-16);
     mask-image: var(--icon-arrow-down-circle-16);
+    background-color: var(--icon-color, var(--color-arrow-down-circle-500, currentColor));
+
   }
 }

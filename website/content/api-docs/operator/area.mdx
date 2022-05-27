@@ -47,11 +47,12 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area create`](/commands/operator/area#create).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
+
+### JSON Request Body Schema
 
 - `PeerDatacenter` `(string: <required>)` - Specifies the name of the Consul
   datacenter that will be joined the Consul servers in the current datacenter to
@@ -115,11 +116,10 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area list`](/commands/operator/area#list).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Request
 
@@ -160,11 +160,12 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area update`](/commands/operator/area#update).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
+
+### JSON Request Body Schema
 
 - `UseTLS` `(bool: <optional>)` - Specifies whether gossip over this area should be
   encrypted with TLS if possible.
@@ -204,14 +205,14 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `YES`            | `all`             | `none`        | `operator:read` |
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the area to list. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the area to list.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Request
 
@@ -252,14 +253,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area delete`](/commands/operator/area#delete).
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the area to delete. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the area to delete.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Request
 
@@ -290,14 +291,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area join`](/commands/operator/area#join).
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the area to join. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the area to join.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Payload
 
@@ -365,14 +366,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul operator area members`](/commands/operator/area#members).
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the area to list. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the area to list.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as a URL query
-  parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Request
 
