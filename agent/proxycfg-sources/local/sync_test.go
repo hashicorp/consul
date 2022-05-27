@@ -94,7 +94,7 @@ func TestSync(t *testing.T) {
 	// the user token).
 	cfgMgr.On("RegisteredProxies", source).
 		Return([]proxycfg.ProxyID{}).
-		Once()
+		Maybe()
 
 	state.AddService(&structs.NodeService{
 		ID:   serviceID,
