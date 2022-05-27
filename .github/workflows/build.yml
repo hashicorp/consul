@@ -315,3 +315,30 @@ jobs:
           docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
             arm64v8/debian /workdir/verify_bin.sh ./consul v${{ env.version }}
 
+  verify-darwin:
+    needs:
+      - get-product-version
+      - build-darwin
+    runs-on: macos-latest
+    strategy:
+      fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+
+    name: Verify amd64 darwin binary
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download amd64 darwin zip
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.zip_name }}
+
+      - name: Unzip ${{ matrix.arch }} linux zip
+        run: unzip ${{ env.zip_name }}
+
+      - name: Run verification for ${{ matrix.arch }} linux binary
+        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
+
