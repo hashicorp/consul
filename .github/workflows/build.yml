@@ -365,6 +365,7 @@ jobs:
           name: ${{ env.deb_name }}
 
       - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
         if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
         with:
           # this should be a comma-separated string as opposed to an array
@@ -394,4 +395,63 @@ jobs:
             -w /workdir \
             arm64v8/debian \
             /workdir/.github/scripts/verify_deb.sh \
+            /workdir/${{ env.deb_name }} v${{ env.version }}
+
+  verify-linux-packages-rpm:
+    needs:
+      - build
+      - get-product-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["386", "amd64", "arm", "arm64"]
+      fail-fast: true
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
+      rpm_name: consul-${{ needs.get-product-version.outputs.product-version }}.${{ matrix.arch }}.rpm
+
+    name: Verify ${{ matrix.arch }} rpm
+    steps:
+      - uses: actions/checkout@v2
+        
+      - name: Download ${{ matrix.arch }} rpm
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.rpm_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        with:
+          # this should be a comma-separated string as opposed to an array
+          platforms: arm,arm64
+
+      - name: Verify ${{ matrix.arch }} rpm (x86/386)
+        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+        run: |
+          docker run \
+            --platform linux/amd64 \
+            -v $(pwd):/workdir \
+            -w /workdir centos:7 \
+            /workdir/.github/scripts/verify_rpm.sh \
+            /workdir/${{ env.rpm_name }} v${{ env.version }}
+
+      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm/v7)
+        if: ${{ matrix.arch == 'arm' }}
+        run: |
+          docker run \
+            --platform=linux/arm/v7 \
+            -v $(pwd):/workdir \
+            -w /workdir centos:7 \
+            /workdir/.github/scripts/verify_rpm.sh \
+            /workdir/${{ env.rpm_name }} v${{ env.version }}
+
+      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          docker run \
+            --platform=linux/arm64 \
+            -v $(pwd):/workdir \
+            -w /workdir centos:7 \
+            /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
