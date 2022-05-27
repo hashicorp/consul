@@ -253,6 +253,7 @@ jobs:
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
+          smoke_test: .github/scripts/docker_smoke.sh
       - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
         if: ${{ matrix.arch == 'arm64' }}
         run: |
@@ -282,6 +283,7 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
+          smoke_test: .github/scripts/docker_smoke.sh
   verify:
     needs:
       - get-product-version
