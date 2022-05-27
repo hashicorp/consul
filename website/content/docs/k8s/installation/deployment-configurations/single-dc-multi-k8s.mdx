@@ -98,6 +98,10 @@ $ kubectl get secret consul-gossip-encryption-key ${HELM_RELEASE_SERVER}-consul-
 Now we can switch to the second Kubernetes cluster where we will deploy only the Consul clients
 that will join the first Consul cluster.
 
+```shell-session
+$ kubectl config use-context <CONTEXT_NAME>
+```
+
 First, we need to apply credentials we've extracted from the first cluster to the second cluster:
 
 ```shell-session
