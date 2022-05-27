@@ -266,3 +266,51 @@ jobs:
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
           smoke_test: .github/scripts/verify_docker.sh
+
+  verify-linux:
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["386", "amd64", "arm", "arm64"]
+      fail-fast: true
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+      zip_name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+
+    name: Verify ${{ matrix.arch }} linux binary
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download ${{ martix.arch  }} zip
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.zip_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        with:
+          # this should be a comma-separated string as opposed to an array
+          platforms: arm,arm64
+
+      - name: Unzip ${{ matrix.arch }} zip
+        run: unzip ${{ env.zip_name }}
+
+      - name: Run verification for ${{ matrix.arch }} binary
+        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
+
+      - name: Run verification for ${{ matrix.arch }} binary (using Docker linux/arm/v7)
+        if: ${{ matrix.arch == 'arm' }}
+        run: |
+          docker run --platform=linux/arm/v7 -v $(pwd):/workdir -w /workdir  \
+            arm64v8/debian /workdir/verify_bin.sh ./consul v${{ env.version }}
+
+      - name: Run verification for ${{ matrix.arch }} binary (using Docker linux/arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
+            arm64v8/debian /workdir/verify_bin.sh ./consul v${{ env.version }}
