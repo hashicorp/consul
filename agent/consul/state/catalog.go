@@ -1595,7 +1595,7 @@ func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNo
 
 // NodeService is used to retrieve a specific service associated with the given
 // node.
-func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
+func (s *Store) NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1603,7 +1603,7 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.Ente
 	idx := catalogServicesMaxIndex(tx, entMeta, peerName)
 
 	// Query the service
-	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta, peerName)
+	service, err := getNodeServiceTxn(tx, ws, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
@@ -1611,8 +1611,8 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.Ente
 	return idx, service, nil
 }
 
-func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.NodeService, error) {
-	sn, err := getServiceNodeTxn(tx, nodeName, serviceID, entMeta, peerName)
+func getNodeServiceTxn(tx ReadTxn, ws memdb.WatchSet, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.NodeService, error) {
+	sn, err := getServiceNodeTxn(tx, ws, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return nil, err
 	}
@@ -1622,14 +1622,14 @@ func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.Ente
 	return nil, nil
 }
 
-func getServiceNodeTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.ServiceNode, error) {
+func getServiceNodeTxn(tx ReadTxn, ws memdb.WatchSet, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.ServiceNode, error) {
 	// TODO: pass non-pointer type for ent meta
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Query the service
-	service, err := tx.First(tableServices, indexID, NodeServiceQuery{
+	watch, service, err := tx.FirstWatch(tableServices, indexID, NodeServiceQuery{
 		EnterpriseMeta: *entMeta,
 		Node:           nodeName,
 		Service:        serviceID,
@@ -1638,6 +1638,7 @@ func getServiceNodeTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.Ente
 	if err != nil {
 		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
+	ws.Add(watch)
 
 	if service != nil {
 		return service.(*structs.ServiceNode), nil
@@ -1676,7 +1677,7 @@ func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.Ent
 	idx := catalogServicesMaxIndex(tx, entMeta, peerName)
 
 	// Query the service
-	service, err := getServiceNodeTxn(tx, node.Node, serviceID, entMeta, peerName)
+	service, err := getServiceNodeTxn(tx, nil, node.Node, serviceID, entMeta, peerName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %w", node.Node, err)
 	}
@@ -1827,7 +1828,7 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *a
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
 func (s *Store) deleteServiceCASTxn(tx WriteTxn, idx, cidx uint64, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (bool, error) {
 	// Look up the service.
-	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta, peerName)
+	service, err := getNodeServiceTxn(tx, nil, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return false, fmt.Errorf("service lookup failed: %s", err)
 	}

@@ -97,13 +97,13 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
+func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
 	m.Lock()
 	defer m.Unlock()
 	// ch might be nil but then it will just block forever
 	return m.chans[proxyID], func() {
 		m.cancels <- proxyID
-	}
+	}, nil
 }
 
 // AssertWatchCancelled checks that the most recent call to a Watch cancel func
@@ -155,6 +155,7 @@ func newTestServerDeltaScenario(
 	})
 
 	s := NewServer(
+		"node-123",
 		testutil.Logger(t),
 		serverlessPluginEnabled,
 		mgr,

@@ -425,7 +425,7 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 type ConfigSnapshot struct {
 	Kind                  structs.ServiceKind
 	Service               string
-	ProxyID               structs.ServiceID
+	ProxyID               ProxyID
 	Address               string
 	Port                  int
 	ServiceMeta           map[string]string
