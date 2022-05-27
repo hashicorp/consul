@@ -1,15 +1,9 @@
 @keyframes icon-folder-plus {
-  50% {
-
-    background-color: var(--icon-color, var(--color-folder-plus-500, currentColor));
-    -webkit-mask-image: var(--icon-folder-plus-24);
-    mask-image: var(--icon-folder-plus-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-folder-plus-500, currentColor));
     -webkit-mask-image: var(--icon-folder-plus-16);
     mask-image: var(--icon-folder-plus-16);
+    background-color: var(--icon-color, var(--color-folder-plus-500, currentColor));
+
   }
 }

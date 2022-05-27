@@ -37,20 +37,42 @@ func newExportedStandardServiceRequest(logger hclog.Logger, svc structs.ServiceN
 	}
 }
 
+// TODO(peering): remove
+func newExportedConnectProxyServiceRequest(logger hclog.Logger, svc structs.ServiceName, sub Subscriber) *exportedServiceRequest {
+	req := structs.ServiceSpecificRequest{
+		ServiceName:    svc.Name,
+		Connect:        true,
+		EnterpriseMeta: svc.EnterpriseMeta,
+	}
+	return &exportedServiceRequest{
+		logger: logger,
+		req:    req,
+		sub:    sub,
+	}
+}
+
 // CacheInfo implements submatview.Request
 func (e *exportedServiceRequest) CacheInfo() cache.RequestInfo {
 	return e.req.CacheInfo()
 }
 
+func (e *exportedServiceRequest) getTopic() pbsubscribe.Topic {
+	if e.req.Connect {
+		return pbsubscribe.Topic_ServiceHealthConnect
+	}
+	// Using the Topic_ServiceHealth will ignore proxies unless the ServiceName is a proxy name.
+	return pbsubscribe.Topic_ServiceHealth
+}
+
 // NewMaterializer implements submatview.Request
 func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, error) {
-	if e.req.Connect {
-		return nil, fmt.Errorf("connect views are not supported")
-	}
+	// TODO(peering): reinstate this
+	// if e.req.Connect {
+	// 	return nil, fmt.Errorf("connect views are not supported")
+	// }
 	reqFn := func(index uint64) *pbsubscribe.SubscribeRequest {
 		return &pbsubscribe.SubscribeRequest{
-			// Using the Topic_ServiceHealth will ignore proxies unless the ServiceName is a proxy name.
-			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Topic:      e.getTopic(),
 			Key:        e.req.ServiceName,
 			Token:      e.req.Token,
 			Datacenter: e.req.Datacenter,

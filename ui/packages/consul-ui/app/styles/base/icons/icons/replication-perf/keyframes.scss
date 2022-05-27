@@ -1,15 +1,9 @@
 @keyframes icon-replication-perf {
-  50% {
-
-    background-color: var(--icon-color, var(--color-replication-perf-500, currentColor));
-    -webkit-mask-image: var(--icon-replication-perf-24);
-    mask-image: var(--icon-replication-perf-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-replication-perf-500, currentColor));
     -webkit-mask-image: var(--icon-replication-perf-16);
     mask-image: var(--icon-replication-perf-16);
+    background-color: var(--icon-color, var(--color-replication-perf-500, currentColor));
+
   }
 }

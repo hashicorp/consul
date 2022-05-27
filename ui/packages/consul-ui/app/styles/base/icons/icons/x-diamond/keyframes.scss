@@ -1,15 +1,9 @@
 @keyframes icon-x-diamond {
-  50% {
-
-    background-color: var(--icon-color, var(--color-x-diamond-500, currentColor));
-    -webkit-mask-image: var(--icon-x-diamond-24);
-    mask-image: var(--icon-x-diamond-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-x-diamond-500, currentColor));
     -webkit-mask-image: var(--icon-x-diamond-16);
     mask-image: var(--icon-x-diamond-16);
+    background-color: var(--icon-color, var(--color-x-diamond-500, currentColor));
+
   }
 }

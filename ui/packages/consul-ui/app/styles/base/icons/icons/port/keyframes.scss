@@ -1,15 +1,9 @@
 @keyframes icon-port {
-  50% {
-
-    background-color: var(--icon-color, var(--color-port-500, currentColor));
-    -webkit-mask-image: var(--icon-port-24);
-    mask-image: var(--icon-port-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-port-500, currentColor));
     -webkit-mask-image: var(--icon-port-16);
     mask-image: var(--icon-port-16);
+    background-color: var(--icon-color, var(--color-port-500, currentColor));
+
   }
 }

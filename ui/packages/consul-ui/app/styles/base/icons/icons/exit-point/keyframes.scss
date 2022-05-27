@@ -1,15 +1,9 @@
 @keyframes icon-exit-point {
-  50% {
-
-    background-color: var(--icon-color, var(--color-exit-point-500, currentColor));
-    -webkit-mask-image: var(--icon-exit-point-24);
-    mask-image: var(--icon-exit-point-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-exit-point-500, currentColor));
     -webkit-mask-image: var(--icon-exit-point-16);
     mask-image: var(--icon-exit-point-16);
+    background-color: var(--icon-color, var(--color-exit-point-500, currentColor));
+
   }
 }

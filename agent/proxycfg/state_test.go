@@ -52,16 +52,6 @@ func TestStateChanged(t *testing.T) {
 			want: true,
 		},
 		{
-			name:  "different service ID",
-			ns:    structs.TestNodeServiceProxy(t),
-			token: "foo",
-			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
-				ns.ID = "badger"
-				return &ns, token
-			},
-			want: true,
-		},
-		{
 			name:  "different address",
 			ns:    structs.TestNodeServiceProxy(t),
 			token: "foo",
@@ -115,7 +105,8 @@ func TestStateChanged(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			state, err := newState(tt.ns, tt.token, stateConfig{logger: hclog.New(nil)})
+			proxyID := ProxyID{ServiceID: tt.ns.CompoundServiceID()}
+			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)})
 			require.NoError(t, err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
@@ -2614,7 +2605,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			cn := newTestCacheNotifier()
-			state, err := newState(&tc.ns, "", stateConfig{
+			proxyID := ProxyID{ServiceID: tc.ns.CompoundServiceID()}
+			state, err := newState(proxyID, &tc.ns, testSource, "", stateConfig{
 				logger: testutil.Logger(t),
 				cache:  cn,
 				health: &HealthWrapper{&health.Client{Cache: cn, CacheName: cachetype.HealthServicesName}},

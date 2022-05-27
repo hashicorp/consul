@@ -1,15 +1,9 @@
 @keyframes icon-change {
-  50% {
-
-    background-color: var(--icon-color, var(--color-change-500, currentColor));
-    -webkit-mask-image: var(--icon-change-24);
-    mask-image: var(--icon-change-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-change-500, currentColor));
     -webkit-mask-image: var(--icon-change-16);
     mask-image: var(--icon-change-16);
+    background-color: var(--icon-color, var(--color-change-500, currentColor));
+
   }
 }

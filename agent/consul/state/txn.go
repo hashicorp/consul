@@ -219,7 +219,7 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
 	switch op.Verb {
 	case api.ServiceGet:
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
+		entry, err := getNodeServiceTxn(tx, nil, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		switch {
 		case err != nil:
 			return nil, err
@@ -233,7 +233,7 @@ func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (s
 		if err := ensureServiceTxn(tx, idx, op.Node, false, &op.Service); err != nil {
 			return nil, err
 		}
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
+		entry, err := getNodeServiceTxn(tx, nil, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceCAS:
@@ -246,7 +246,7 @@ func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (s
 			return nil, err
 		}
 
-		entry, err := getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
+		entry, err := getNodeServiceTxn(tx, nil, op.Node, op.Service.ID, &op.Service.EnterpriseMeta, op.Service.PeerName)
 		return newTxnResultFromNodeServiceEntry(entry), err
 
 	case api.ServiceDelete:

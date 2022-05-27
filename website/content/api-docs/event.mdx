@@ -31,24 +31,22 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul event`](/commands/event).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the event to fire. This
-  is specified as part of the URL. This name must not start with an underscore,
+- `name` `(string: <required>)` - Specifies the name of the event to fire.
+  This name must not start with an underscore,
   since those are reserved for Consul internally.
 
+### Query Parameters
+
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 - `node` `(string: "")` - Specifies a regular expression to filter by node name.
-  This is specified as part of the URL as a query parameter.
 
-- `service` `(string: "")` - Specifies a regular expression to filter by service
-  name. This is specified as part of the URL as a query parameter.
+- `service` `(string: "")` - Specifies a regular expression to filter by service name.
 
-- `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
-  is specified as part of the URL as a query parameter.
+- `tag` `(string: "")` - Specifies a regular expression to filter by tag.
 
 ### Sample Payload
 
@@ -109,19 +107,15 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `none`            | `none`        | `event:read` |
 
-### Parameters
+### Query Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the event to filter.
-  This is specified as part of the URL as a query parameter.
+- `name` `(string: "")` - Specifies the name of the event to filter.
 
 - `node` `(string: "")` - Specifies a regular expression to filter by node name.
-  This is specified as part of the URL as a query parameter.
 
-- `service` `(string: "")` - Specifies a regular expression to filter by service
-  name. This is specified as part of the URL as a query parameter.
+- `service` `(string: "")` - Specifies a regular expression to filter by service name.
 
-- `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
-  is specified as part of the URL as a query parameter.
+- `tag` `(string: "")` - Specifies a regular expression to filter by tag.
 
 ### Sample Request
 

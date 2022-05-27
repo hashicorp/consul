@@ -1,15 +1,9 @@
 @keyframes icon-hard-drive {
-  50% {
-
-    background-color: var(--icon-color, var(--color-hard-drive-500, currentColor));
-    -webkit-mask-image: var(--icon-hard-drive-24);
-    mask-image: var(--icon-hard-drive-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-hard-drive-500, currentColor));
     -webkit-mask-image: var(--icon-hard-drive-16);
     mask-image: var(--icon-hard-drive-16);
+    background-color: var(--icon-color, var(--color-hard-drive-500, currentColor));
+
   }
 }

@@ -158,6 +158,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "listener-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 222
+				}, nil)
+			},
+		},
+		{
 			name: "http-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -671,6 +679,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+		},
+		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
 		},
 		{
 			name: "terminating-gateway-no-api-cert",

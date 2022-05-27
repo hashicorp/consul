@@ -1,15 +1,9 @@
 @keyframes icon-file-diff {
-  50% {
-
-    background-color: var(--icon-color, var(--color-file-diff-500, currentColor));
-    -webkit-mask-image: var(--icon-file-diff-24);
-    mask-image: var(--icon-file-diff-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-file-diff-500, currentColor));
     -webkit-mask-image: var(--icon-file-diff-16);
     mask-image: var(--icon-file-diff-16);
+    background-color: var(--icon-color, var(--color-file-diff-500, currentColor));
+
   }
 }

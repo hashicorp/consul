@@ -1,15 +1,9 @@
 @keyframes icon-align-center {
-  50% {
-
-    background-color: var(--icon-color, var(--color-align-center-500, currentColor));
-    -webkit-mask-image: var(--icon-align-center-24);
-    mask-image: var(--icon-align-center-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-align-center-500, currentColor));
     -webkit-mask-image: var(--icon-align-center-16);
     mask-image: var(--icon-align-center-16);
+    background-color: var(--icon-color, var(--color-align-center-500, currentColor));
+
   }
 }

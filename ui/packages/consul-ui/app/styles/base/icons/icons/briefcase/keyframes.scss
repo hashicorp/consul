@@ -1,15 +1,9 @@
 @keyframes icon-briefcase {
-  50% {
-
-    background-color: var(--icon-color, var(--color-briefcase-500, currentColor));
-    -webkit-mask-image: var(--icon-briefcase-24);
-    mask-image: var(--icon-briefcase-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-briefcase-500, currentColor));
     -webkit-mask-image: var(--icon-briefcase-16);
     mask-image: var(--icon-briefcase-16);
+    background-color: var(--icon-color, var(--color-briefcase-500, currentColor));
+
   }
 }

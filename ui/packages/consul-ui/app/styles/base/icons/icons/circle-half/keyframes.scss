@@ -1,15 +1,9 @@
 @keyframes icon-circle-half {
-  50% {
-
-    background-color: var(--icon-color, var(--color-circle-half-500, currentColor));
-    -webkit-mask-image: var(--icon-circle-half-24);
-    mask-image: var(--icon-circle-half-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-circle-half-500, currentColor));
     -webkit-mask-image: var(--icon-circle-half-16);
     mask-image: var(--icon-circle-half-16);
+    background-color: var(--icon-color, var(--color-circle-half-500, currentColor));
+
   }
 }

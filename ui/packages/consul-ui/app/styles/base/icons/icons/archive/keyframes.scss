@@ -1,15 +1,9 @@
 @keyframes icon-archive {
-  50% {
-
-    background-color: var(--icon-color, var(--color-archive-500, currentColor));
-    -webkit-mask-image: var(--icon-archive-24);
-    mask-image: var(--icon-archive-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-archive-500, currentColor));
     -webkit-mask-image: var(--icon-archive-16);
     mask-image: var(--icon-archive-16);
+    background-color: var(--icon-color, var(--color-archive-500, currentColor));
+
   }
 }

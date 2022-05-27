@@ -800,6 +800,109 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 	})
 }
 
+func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot {
+	// We do not add baz/qux here so that we test the chain.IsDefault() case
+	entries := []structs.ConfigEntry{
+		&structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "foo",
+			ConnectTimeout: 22 * time.Second,
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "bar",
+			ConnectTimeout: 22 * time.Second,
+		},
+	}
+
+	var (
+		foo      = structs.NewServiceName("foo", nil)
+		fooUID   = NewUpstreamIDFromServiceName(foo)
+		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+
+		bar      = structs.NewServiceName("bar", nil)
+		barUID   = NewUpstreamIDFromServiceName(bar)
+		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+	)
+
+	require.False(t, fooChain.Default)
+	require.False(t, barChain.Default)
+
+	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
+		entry.Listeners = []structs.IngressListener{
+			{
+				Port:     8080,
+				Protocol: "grpc",
+				Services: []structs.IngressService{
+					{
+						Name: "foo",
+						Hosts: []string{
+							"test1.example.com",
+							"test2.example.com",
+							"test2.example.com:8080",
+						},
+					},
+					{Name: "bar"},
+				},
+			},
+		}
+	}, []UpdateEvent{
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service:  foo,
+						Port:     8080,
+						Protocol: "grpc",
+						Hosts: []string{
+							"test1.example.com",
+							"test2.example.com",
+							"test2.example.com:8080",
+						},
+					},
+					{
+						Service:  bar,
+						Port:     8080,
+						Protocol: "grpc",
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: "discovery-chain:" + fooUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: fooChain,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodes(t, "foo"),
+			},
+		},
+		{
+			CorrelationID: "discovery-chain:" + barUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: barChain,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:" + barChain.ID() + ":" + barUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodes(t, "bar"),
+			},
+		},
+	})
+}
+
 func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
 	var (
 		foo      = structs.NewServiceName("foo", nil)

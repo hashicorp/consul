@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -315,17 +314,6 @@ func TestIntentionCheck(t *testing.T) {
 	})
 }
 
-type testSrv struct {
-	delegate
-}
-
-func (s *testSrv) RPC(method string, args interface{}, reply interface{}) error {
-	return fmt.Errorf("rpc error making call: %w", errors.New("Intention not found"))
-}
-func (s *testSrv) Shutdown() error {
-	return nil
-}
-
 func TestIntentionGetExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -333,12 +321,26 @@ func TestIntentionGetExact(t *testing.T) {
 
 	t.Parallel()
 
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	hcl := `
+	bootstrap = false
+	bootstrap_expect = 2
+	server = true
+	`
 
-	notfound := func(t *testing.T) {
-		t.Helper()
+	a1 := NewTestAgent(t, hcl)
+	a2 := NewTestAgent(t, hcl)
+
+	_, err := a1.JoinLAN([]string{
+		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
+	}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	run := func(t *testing.T, a *TestAgent) {
 		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
 		require.NoError(t, err)
 
@@ -351,14 +353,13 @@ func TestIntentionGetExact(t *testing.T) {
 		require.Nil(t, obj)
 	}
 
-	t.Run("not found locally", func(t *testing.T) {
-		notfound(t)
-	})
-
-	t.Run("not found by RPC", func(t *testing.T) {
-		a.delegate = &testSrv{}
-		notfound(t)
-	})
+	// One of these will be the leader and the other will be a follower so we
+	// test direct RPC handling and RPC forwarding of errors at the same time.
+	for i, a := range []*TestAgent{a1, a2} {
+		t.Run(fmt.Sprintf("test agent %d of 2", i+1), func(t *testing.T) {
+			run(t, a)
+		})
+	}
 }
 
 func TestIntentionPutExact(t *testing.T) {

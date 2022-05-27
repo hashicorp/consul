@@ -1,15 +1,9 @@
 @keyframes icon-user-circle-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-user-circle-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-user-circle-fill-24);
-    mask-image: var(--icon-user-circle-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-user-circle-fill-500, currentColor));
     -webkit-mask-image: var(--icon-user-circle-fill-16);
     mask-image: var(--icon-user-circle-fill-16);
+    background-color: var(--icon-color, var(--color-user-circle-fill-500, currentColor));
+
   }
 }

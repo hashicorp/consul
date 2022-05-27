@@ -789,6 +789,10 @@
           {
             "title": "Tasks",
             "path": "nia/api/tasks"
+          },
+          {
+            "title": "Health",
+            "path": "nia/api/health"
           }
         ]
       },
@@ -802,6 +806,10 @@
           {
             "title": "task",
             "path": "nia/cli/task"
+          },
+          {
+            "title": "start",
+            "path": "nia/cli/start"
           }
         ]
       },
@@ -1254,12 +1262,12 @@
         "title": "Consul Terraform Sync",
         "routes": [
           {
-            "title": "v0.5.x",
-            "path": "release-notes/consul-terraform-sync/v0_5_x"
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
           },
           {
-            "title": "v0.6.0-beta",
-            "path": "release-notes/consul-terraform-sync/v0_6_0_beta"
+            "title": "v0.5.x",
+            "path": "release-notes/consul-terraform-sync/v0_5_x"
           }
         ]
       }
