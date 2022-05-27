@@ -5010,6 +5010,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5019,6 +5020,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5052,6 +5054,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5061,6 +5064,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5111,6 +5115,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5120,6 +5125,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5147,6 +5153,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5156,6 +5163,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:      structs.NewServiceName("redis", nil),
@@ -5198,6 +5206,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5207,6 +5216,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5238,6 +5248,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 25,
 				ModifyIndex: 25,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
