@@ -180,7 +180,6 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		}
 
 		for targetID := range targetMap {
-
 			uid := proxycfg.NewUpstreamIDFromTargetID(targetID)
 
 			sni := connect.ServiceSNI(
@@ -216,7 +215,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				cfgSnap.Leaf(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
-			err := injectSANMatcher(commonTLSContext, spiffeID)
+			err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
 			if err != nil {
 				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 			}
@@ -399,7 +398,7 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -574,7 +573,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 
 	endpoints := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 	var (
-		spiffeIDs = make([]connect.SpiffeIDService, 0)
+		spiffeIDs = make([]string, 0)
 		seen      = make(map[string]struct{})
 	)
 	for _, e := range endpoints {
@@ -588,13 +587,14 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		if e.Service.Connect.Native {
 			name = e.Service.Service
 		}
+
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDService{
 			Host:       cfgSnap.Roots.TrustDomain,
 			Namespace:  e.Service.NamespaceOrDefault(),
 			Partition:  e.Service.PartitionOrDefault(),
 			Datacenter: e.Node.Datacenter,
 			Service:    name,
-		})
+		}.URI().String())
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -683,7 +683,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			Partition:  target.Partition,
 			Datacenter: target.Datacenter,
 			Service:    target.Service,
-		}
+		}.URI().String()
 
 		if failoverThroughMeshGateway {
 			actualTargetID := firstHealthyTarget(
@@ -699,9 +699,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		spiffeIDs := []connect.SpiffeIDService{targetSpiffeID}
+		spiffeIDs := []string{targetSpiffeID}
 		seenIDs := map[string]struct{}{
-			targetSpiffeID.URI().String(): {},
+			targetSpiffeID: {},
 		}
 
 		if failover != nil {
@@ -719,19 +719,19 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					Partition:  target.Partition,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
-				}
+				}.URI().String()
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.
-				if _, ok := seenIDs[id.URI().String()]; ok {
+				if _, ok := seenIDs[id]; ok {
 					continue
 				}
-				seenIDs[id.URI().String()] = struct{}{}
+				seenIDs[id] = struct{}{}
 
 				spiffeIDs = append(spiffeIDs, id)
 			}
 		}
 		sort.Slice(spiffeIDs, func(i, j int) bool {
-			return spiffeIDs[i].URI().String() < spiffeIDs[j].URI().String()
+			return spiffeIDs[i] < spiffeIDs[j]
 		})
 
 		s.Logger.Debug("generating cluster for", "cluster", clusterName)
@@ -823,16 +823,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 }
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
-func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...connect.SpiffeIDService) error {
-	var matchStrings []string
-	for _, id := range spiffeIDs {
-		matchStrings = append(matchStrings, id.URI().String())
-	}
-
-	return injectRawSANMatcher(tlsContext, matchStrings)
-}
-
-func injectRawSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings []string) error {
+func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
