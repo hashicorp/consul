@@ -633,6 +633,15 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "foo", &structs.NodeService{
+		ID:      "mysql-sidecar-proxy",
+		Service: "mysql-sidecar-proxy",
+		Kind:    structs.ServiceKindConnectProxy,
+		Port:    5000,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "mysql"},
+	}))
+
 	var (
 		mongoSN      = structs.NewServiceName("mongo", nil).String()
 		mongoProxySN = structs.NewServiceName("mongo-sidecar-proxy", nil).String()
@@ -691,8 +700,14 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
-				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
-				require.Nil(t, msg.GetResponse().Resource)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
+
+				var nodes pbservice.IndexedCheckServiceNodes
+				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				require.Len(t, nodes.Nodes, 1)
+
+				svid := "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql"
+				require.Equal(t, []string{svid}, nodes.Nodes[0].Service.Connect.PeerMeta.SpiffeID)
 			},
 		)
 	})
