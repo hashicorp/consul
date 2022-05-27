@@ -849,7 +849,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		// Do not associate non-typical services with gateways or consul services
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
-			sn := structs.NewServiceName(svc.Service,  &svc.EnterpriseMeta}
+			sn := structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
 			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
@@ -3511,15 +3511,15 @@ func terminatingConfigGatewayServices(
 }
 
 func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {
-	serviceIter, err := tx.Get(tableServices, indexService, Query{
+	serviceIter, err := tx.First(tableServices, indexService, Query{
 		Value:          name,
 		EnterpriseMeta: *entMeta,
 	})
 	if err != nil {
-		return structs.GatewayservicekindService, err
+		return structs.GatewayservicekindUnknown, err
 	}
-	for service := serviceIter.Next(); service != nil; service = serviceIter.Next() {
-		return structs.GatewayservicekindUnknown, nil
+	if serviceIter != nil {
+		return structs.GatewayservicekindService, err
 	}
 
 	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
@@ -3736,7 +3736,7 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		} else {
 			kind, err := GatewayServiceKind(tx, m.Service.Name, &m.Service.EnterpriseMeta)
 			if err != nil {
-				return fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.ServiceName, err)
 			}
 			checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: m.Service.Name, EnterpriseMeta: m.Service.EnterpriseMeta}, kind)
 		}
