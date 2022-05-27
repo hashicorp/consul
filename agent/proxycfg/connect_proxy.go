@@ -193,7 +193,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				if err := (*handlerUpstreams)(s).resetWatchesFromChain(ctx, uid, chain, &snap.ConnectProxy.ConfigSnapshotUpstreams); err != nil {
 					return snap, fmt.Errorf("error while resetting watches from chain: %w", err)
 				}
-				return snap, nil
+				continue
 			}
 
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{

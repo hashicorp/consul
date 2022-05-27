@@ -677,13 +677,27 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		sni := target.SNI
 		clusterName := CustomizeClusterName(target.Name, chain)
 
-		targetSpiffeID := connect.SpiffeIDService{
-			Host:       cfgSnap.Roots.TrustDomain,
-			Namespace:  target.Namespace,
-			Partition:  target.Partition,
-			Datacenter: target.Datacenter,
-			Service:    target.Service,
-		}.URI().String()
+		// Get the SpiffeID for upstream SAN validation.
+		//
+		// For imported services the SpiffeID is embedded in the proxy instances.
+		// Whereas for local services we can construct the SpiffeID from the chain target.
+		var targetSpiffeID string
+		if uid.Peer != "" {
+			for _, e := range chainEndpoints[targetID] {
+				targetSpiffeID = e.Service.Connect.PeerMeta.SpiffeID[0]
+
+				// Only grab the first because it is the same for all instances.
+				break
+			}
+		} else {
+			targetSpiffeID = connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Namespace:  target.Namespace,
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+				Service:    target.Service,
+			}.URI().String()
+		}
 
 		if failoverThroughMeshGateway {
 			actualTargetID := firstHealthyTarget(
@@ -730,9 +744,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				spiffeIDs = append(spiffeIDs, id)
 			}
 		}
-		sort.Slice(spiffeIDs, func(i, j int) bool {
-			return spiffeIDs[i] < spiffeIDs[j]
-		})
+		sort.Strings(spiffeIDs)
 
 		s.Logger.Debug("generating cluster for", "cluster", clusterName)
 		c := &envoy_cluster_v3.Cluster{
