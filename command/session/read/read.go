@@ -29,7 +29,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.flagFormat, "format", session.PrettyFormat,
-	fmt.Sprintf("Output format {%s}.", strings.Join(session.GetSupportedFormats(), "|")))
+		fmt.Sprintf("Output format {%s}.", strings.Join(session.GetSupportedFormats(), "|")))
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())

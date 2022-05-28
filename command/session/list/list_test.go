@@ -78,7 +78,6 @@ func TestSessionListCommand(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			retry.Run(t, func(r *retry.R) {
 
-
 				ui.OutputWriter.Reset()
 				ui.ErrorWriter.Reset()
 

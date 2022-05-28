@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestSessionReadCommand_noTabs(t *testing.T) {
 	t.Parallel()
 
@@ -106,5 +105,5 @@ func TestSessionReadCommand_notFound(t *testing.T) {
 	}
 	require.Equal(t, 1, c.Run(args), ui.ErrorWriter.String())
 	require.Contains(t, ui.OutputWriter.String(), "")
-	require.Contains(t, ui.ErrorWriter.String(), `No session "1234" found`, )
+	require.Contains(t, ui.ErrorWriter.String(), `No session "1234" found`)
 }

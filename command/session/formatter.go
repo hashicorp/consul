@@ -34,11 +34,11 @@ func NewFormatter(format string) (Formatter, error) {
 	}
 }
 
-func  newPrettyFormatter() Formatter {
+func newPrettyFormatter() Formatter {
 	return &prettyFormatter{}
 }
 
-type prettyFormatter struct {}
+type prettyFormatter struct{}
 
 func (f *prettyFormatter) FormatSession(s *api.SessionEntry) (string, error) {
 	var buffer bytes.Buffer
@@ -83,7 +83,7 @@ func (f *prettyFormatter) FormatSessionList(s []*api.SessionEntry) (string, erro
 		}
 		buffer.WriteString(str)
 
-		if i != len(s) - 1 {
+		if i != len(s)-1 {
 			buffer.WriteString("\n")
 		}
 	}

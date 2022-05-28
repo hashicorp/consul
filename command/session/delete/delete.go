@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	help string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -72,7 +72,7 @@ func (c *cmd) Help() string {
 
 const (
 	synopsis = "Delete a session"
-	help = `
+	help     = `
 Usage: consul session delete [options] SESSIONID
 
     Delete a session by providing the ID.
