@@ -97,6 +97,12 @@ import (
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
+	session "github.com/hashicorp/consul/command/session"
+	sessioncreate "github.com/hashicorp/consul/command/session/create"
+	sessiondelete "github.com/hashicorp/consul/command/session/delete"
+	sessionlist "github.com/hashicorp/consul/command/session/list"
+	sessionread "github.com/hashicorp/consul/command/session/read"
+	sessionrenew "github.com/hashicorp/consul/command/session/renew"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
@@ -207,6 +213,12 @@ func init() {
 	Register("services", func(cli.Ui) (cli.Command, error) { return services.New(), nil })
 	Register("services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil })
 	Register("services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil })
+	Register("session", func(ui cli.Ui) (cli.Command, error) {return session.New(ui), nil })
+	Register("session create", func(ui cli.Ui) (cli.Command, error) {return sessioncreate.New(ui), nil })
+	Register("session delete", func(ui cli.Ui) (cli.Command, error) {return sessiondelete.New(ui), nil })
+	Register("session list", func(ui cli.Ui) (cli.Command, error) {return sessionlist.New(ui), nil })
+	Register("session read", func(ui cli.Ui) (cli.Command, error) {return sessionread.New(ui), nil })
+	Register("session renew", func(ui cli.Ui) (cli.Command, error) {return sessionrenew.New(ui), nil })
 	Register("snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil })
 	Register("snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil })
 	Register("snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil })

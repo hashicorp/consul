@@ -1,0 +1,68 @@
+---
+layout: commands
+page_title: 'Commands: Session Create'
+---
+
+# Consul Session Create
+
+Command: `consul session create`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/session/create](/api-docs/session#create-session)
+
+The `session create` command creates a new session.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `session:write` |
+
+## Usage
+
+Usage: `consul session create [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-lock-delay=<duration>` - Specifies the duration for the lock delay.
+
+- `-node=<string>` - Specifies the name of the node.
+
+- `-name=<string>` - Specifies a human-readable name for the session.
+
+- `-behavior=<string>` - Controls the behavior to take when a session is invalidated. It can be either `release` or `delete`.
+
+- `-ttl=<duration>` - Specifies the duration of a session (between 10s and 86400s).
+
+- `-node-check=<string>` - Specifies a node health check ID. May be specified multiple times. It is highly recommended that, if you override this list, you include the default `serfHealth`.
+
+- `-service-check=<string>` - Specifies a service check. May be specified multiple times. Format is the `SERVICECHECKID` or `SERVICECHECKID:NAMESPACE`.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+## Examples
+
+Create a new session:
+
+```shell-session
+$ consul session create -lock-delay=15s \
+                        -name=my-service-lock \
+                        -node=foobar \
+                        -node-check=serfHealth \
+                        -node-check=a \
+                        -node-check=b \
+                        -node-check=c \
+                        -behavior=release \
+                        -ttl=30s
+```
