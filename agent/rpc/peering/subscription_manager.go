@@ -2,6 +2,7 @@ package peering
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,10 +12,13 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
 )
 
@@ -73,6 +77,11 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
 	if !m.config.DisableMeshGatewayMode && m.config.ConnectEnabled {
 		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
+	}
+
+	// If connect is enabled, watch for updates to CA roots.
+	if m.config.ConnectEnabled {
+		go m.notifyRootCAUpdates(ctx, state.updateCh)
 	}
 
 	// This goroutine is the only one allowed to manipulate protected
@@ -289,6 +298,18 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// TODO(peering): should we ship this down verbatim to the consumer?
 		state.sendPendingEvents(ctx, m.logger, pending)
 
+	case u.CorrelationID == subCARoot:
+		roots, ok := u.Result.(*pbpeering.PeeringTrustBundle)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		pending := &pendingPayload{}
+		if err := pending.Add(caRootsPayloadID, u.CorrelationID, roots); err != nil {
+			return err
+		}
+
+		state.sendPendingEvents(ctx, m.logger, pending)
+
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -321,6 +342,106 @@ func filterConnectReferences(orig *pbservice.IndexedCheckServiceNodes) {
 	}
 	orig.Nodes = newNodes
 }
+
+func (m *subscriptionManager) notifyRootCAUpdates(ctx context.Context, updateCh chan<- cache.UpdateEvent) {
+	var idx uint64
+	// TODO(peering): retry logic; fail past a threshold
+	for {
+		var err error
+		// Typically, this function will block inside `m.subscribeCARoots` and only return on error.
+		// Errors are logged and the watch is retried.
+		idx, err = m.subscribeCARoots(ctx, idx, updateCh)
+		if errors.Is(err, stream.ErrSubForceClosed) {
+			m.logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
+		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			m.logger.Warn("failed to subscribe to CA roots, will attempt resume", "error", err.Error())
+		} else {
+			m.logger.Trace(err.Error())
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+// subscribeCARoots subscribes to state.EventTopicCARoots for changes to CA roots.
+// Upon receiving an event it will send the payload in updateCh.
+func (m *subscriptionManager) subscribeCARoots(ctx context.Context, idx uint64, updateCh chan<- cache.UpdateEvent) (uint64, error) {
+	// following code adapted from connectca/watch_roots.go
+	sub, err := m.backend.Subscribe(&stream.SubscribeRequest{
+		Topic:   state.EventTopicCARoots,
+		Subject: stream.SubjectNone,
+		Token:   "", // using anonymous token for now
+		Index:   idx,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to subscribe to CA Roots events: %w", err)
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		event, err := sub.Next(ctx)
+		switch {
+		case errors.Is(err, stream.ErrSubForceClosed):
+			// If the subscription was closed because the state store was abandoned (e.g.
+			// following a snapshot restore) reset idx to ensure we don't skip over the
+			// new store's events.
+			select {
+			case <-m.backend.Store().AbandonCh():
+				idx = 0
+			default:
+			}
+			return idx, err
+		case errors.Is(err, context.Canceled):
+			return 0, err
+		case errors.Is(err, context.DeadlineExceeded):
+			return 0, err
+		case err != nil:
+			return idx, fmt.Errorf("failed to read next event: %w", err)
+		}
+
+		// Note: this check isn't strictly necessary because the event publishing
+		// machinery will ensure the index increases monotonically, but it can be
+		// tricky to faithfully reproduce this in tests (e.g. the EventPublisher
+		// garbage collects topic buffers and snapshots aggressively when streams
+		// disconnect) so this avoids a bunch of confusing setup code.
+		if event.Index <= idx {
+			continue
+		}
+
+		idx = event.Index
+
+		// We do not send framing events (e.g. EndOfSnapshot, NewSnapshotToFollow)
+		// because we send a full list of roots on every event, rather than expecting
+		// clients to maintain a state-machine in the way they do for service health.
+		if event.IsFramingEvent() {
+			continue
+		}
+
+		payload, ok := event.Payload.(state.EventPayloadCARoots)
+		if !ok {
+			return 0, fmt.Errorf("unexpected event payload type: %T", payload)
+		}
+
+		var rootPems []string
+		for _, root := range payload.CARoots {
+			rootPems = append(rootPems, root.RootCert)
+		}
+
+		updateCh <- cache.UpdateEvent{
+			CorrelationID: subCARoot,
+			Result: &pbpeering.PeeringTrustBundle{
+				TrustDomain: m.trustDomain,
+				RootPEMs:    rootPems,
+			},
+		}
+	}
+}
+
+const subCARoot = "roots"
 
 func (m *subscriptionManager) syncNormalServices(
 	ctx context.Context,

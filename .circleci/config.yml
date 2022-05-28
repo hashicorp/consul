@@ -983,6 +983,7 @@ jobs:
               LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
             fi
             echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
+            git checkout ${LOCAL_COMMIT_SHA}
 
             short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
             echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
@@ -1002,7 +1003,8 @@ jobs:
           working_directory: .circleci/terraform/load-test
           name: terraform init
           command: |
-            echo "commit is ${LOCAL_COMMIT_SHA}"
+            short_ref=$(git rev-parse --short HEAD)
+            echo "Testing commit id: $short_ref"
             terraform init \
             -backend-config="bucket=${BUCKET}" \
             -backend-config="key=${LOCAL_COMMIT_SHA}" \
@@ -1018,7 +1020,7 @@ jobs:
           when: always
           name: terraform destroy
           command: |
-            terraform destroy -auto-approve
+            for i in $(seq 1 5); do terraform destroy -auto-approve && s=0 && break || s=$? && sleep 20; done; (exit $s)
       - run: *notify-slack-failure
 
   # The noop job is a used as a very fast job in the verify-ci workflow because every workflow

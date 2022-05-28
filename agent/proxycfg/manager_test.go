@@ -15,13 +15,13 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+const testSource ProxySource = "test"
 
 func mustCopyProxyConfig(t *testing.T, ns *structs.NodeService) structs.ConnectProxyConfig {
 	cfg, err := copyProxyConfig(ns)
@@ -213,7 +213,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.CompoundServiceID(),
+				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           mustCopyProxyConfig(t, webProxy),
@@ -272,7 +272,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.CompoundServiceID(),
+				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           mustCopyProxyConfig(t, webProxy),
@@ -342,7 +342,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				rootsCacheKey, leafCacheKey,
 				roots,
 				webProxyCopy.(*structs.NodeService),
-				local.Config{},
 				expectSnapCopy.(*ConfigSnapshot),
 			)
 		})
@@ -362,42 +361,34 @@ func testManager_BasicLifecycle(
 	rootsCacheKey, leafCacheKey string,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
-	agentConfig local.Config,
 	expectSnap *ConfigSnapshot,
 ) {
 	c := TestCacheWithTypes(t, types)
 
 	logger := testutil.Logger(t)
-	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
-
-	// Stub state syncing
-	state.TriggerSyncChanges = func() {}
 
 	// Create manager
 	m, err := NewManager(ManagerConfig{
 		Cache:  &CacheWrapper{c},
 		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
-		State:  state,
 		Source: source,
 		Logger: logger,
 	})
 	require.NoError(t, err)
 
-	// And run it
-	go func() {
-		err := m.Run()
-		require.NoError(t, err)
-	}()
+	webProxyID := ProxyID{
+		ServiceID: webProxy.CompoundServiceID(),
+	}
 
 	// BEFORE we register, we should be able to get a watch channel
-	wCh, cancel := m.Watch(webProxy.CompoundServiceID())
+	wCh, cancel := m.Watch(webProxyID)
 	defer cancel()
 
 	// And it should block with nothing sent on it yet
 	assertWatchChanBlocks(t, wCh)
 
-	require.NoError(t, state.AddService(webProxy, "my-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "my-token", false))
 
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
@@ -409,20 +400,20 @@ func testManager_BasicLifecycle(
 
 	// Update NodeConfig
 	webProxy.Port = 7777
-	require.NoError(t, state.AddService(webProxy, "my-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "my-token", false))
 
 	expectSnap.Port = 7777
 	assertWatchChanRecvs(t, wCh, expectSnap)
 
 	// Register a second watcher
-	wCh2, cancel2 := m.Watch(webProxy.CompoundServiceID())
+	wCh2, cancel2 := m.Watch(webProxyID)
 	defer cancel2()
 
 	// New watcher should immediately receive the current state
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Change token
-	require.NoError(t, state.AddService(webProxy, "other-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "other-token", false))
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
@@ -449,7 +440,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Remove the proxy
-	state.RemoveService(webProxy.CompoundServiceID())
+	m.Deregister(webProxyID, testSource)
 
 	// Chan should NOT close
 	assertWatchChanBlocks(t, wCh)
@@ -457,7 +448,7 @@ func testManager_BasicLifecycle(
 
 	// Re-add the proxy with another new port
 	webProxy.Port = 3333
-	require.NoError(t, state.AddService(webProxy, "other-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "other-token", false))
 
 	// Same watch chan should be notified again
 	expectSnap.Port = 3333
@@ -510,7 +501,6 @@ func TestManager_deliverLatest(t *testing.T) {
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
 		Cache: &CacheWrapper{cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2})},
-		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
 			Datacenter: "dc1",
@@ -522,11 +512,11 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.NoError(t, err)
 
 	snap1 := &ConfigSnapshot{
-		ProxyID: structs.NewServiceID("test-proxy", nil),
+		ProxyID: ProxyID{ServiceID: structs.NewServiceID("test-proxy", nil)},
 		Port:    1111,
 	}
 	snap2 := &ConfigSnapshot{
-		ProxyID: structs.NewServiceID("test-proxy", nil),
+		ProxyID: ProxyID{ServiceID: structs.NewServiceID("test-proxy", nil)},
 		Port:    2222,
 	}
 
@@ -570,66 +560,14 @@ func testGenCacheKey(req cache.Request) string {
 	return path.Join(info.Key, info.Datacenter)
 }
 
-func TestManager_SyncState_DefaultToken(t *testing.T) {
-	types := NewTestCacheTypes(t)
-	c := TestCacheWithTypes(t, types)
-	logger := testutil.Logger(t)
-	tokens := new(token.Store)
-	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
-
-	state := local.NewState(local.Config{}, logger, tokens)
-	state.TriggerSyncChanges = func() {}
-
-	m, err := NewManager(ManagerConfig{
-		Cache:  &CacheWrapper{c},
-		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
-		State:  state,
-		Tokens: tokens,
-		Source: &structs.QuerySource{Datacenter: "dc1"},
-		Logger: logger,
-	})
-	require.NoError(t, err)
-	defer m.Close()
-
-	srv := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    9999,
-		Meta:    map[string]string{},
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceID:   "web",
-			DestinationServiceName: "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-		},
-	}
-
-	err = state.AddServiceWithChecks(srv, nil, "")
-	require.NoError(t, err)
-	m.syncState(m.notifyBroadcast)
-
-	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
-}
-
 func TestManager_SyncState_No_Notify(t *testing.T) {
 	types := NewTestCacheTypes(t)
 	c := TestCacheWithTypes(t, types)
 	logger := testutil.Logger(t)
-	tokens := new(token.Store)
-	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
-
-	state := local.NewState(local.Config{}, logger, tokens)
-	state.TriggerSyncChanges = func() {}
 
 	m, err := NewManager(ManagerConfig{
 		Cache:  &CacheWrapper{c},
 		Health: &HealthWrapper{&health.Client{Cache: c, CacheName: cachetype.HealthServicesName}},
-		State:  state,
-		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},
 		Logger: logger,
 	})
@@ -653,23 +591,17 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 		},
 	}
 
-	err = state.AddServiceWithChecks(srv, nil, "")
-	require.NoError(t, err)
+	proxyID := ProxyID{
+		ServiceID: srv.CompoundServiceID(),
+	}
 
-	readEvent := make(chan bool, 1)
-	snapSent := make(chan bool, 1)
+	require.NoError(t, m.Register(proxyID, srv, testSource, "", false))
 
-	m.syncState(func(ch <-chan ConfigSnapshot) {
-		for {
-			<-readEvent
-			snap := <-ch
-			m.notify(&snap)
-			snapSent <- true
-		}
-	})
+	watchCh, cancelWatch := m.Watch(proxyID)
+	t.Cleanup(cancelWatch)
 
 	// Get the relevant notification Channel, should only have 1
-	notifyCH := m.proxies[srv.CompoundServiceID()].ch
+	notifyCH := m.proxies[proxyID].ch
 
 	// update the leaf certs
 	roots, issuedCert := TestCerts(t)
@@ -681,7 +613,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after := time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
@@ -697,7 +629,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after = time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
@@ -713,14 +645,11 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after = time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
 	}
-
-	// prepare to read a snapshot update as the next update should make the snapshot valid
-	readEvent <- true
 
 	// update the intentions
 	notifyCH <- UpdateEvent{
@@ -732,40 +661,9 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point we have a valid snapshot
 	after = time.After(500 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 	case <-after:
 		t.Fatal("snap should be valid")
 
-	}
-
-	// send two snapshots back to back without reading them to overflow the snapshot channel and get to the default use case
-	for i := 0; i < 2; i++ {
-		time.Sleep(250 * time.Millisecond)
-		notifyCH <- UpdateEvent{
-			CorrelationID: leafWatchID,
-			Result:        issuedCert,
-			Err:           nil,
-		}
-	}
-
-	// make sure that we are not receiving any snapshot and wait for the snapshots to be processed
-	after = time.After(500 * time.Millisecond)
-	select {
-	case <-snapSent:
-		t.Fatal("snap should not be sent")
-	case <-after:
-	}
-
-	// now make sure that both snapshots got propagated
-	for i := 0; i < 2; i++ {
-
-		readEvent <- true
-		after = time.After(500 * time.Millisecond)
-		select {
-		case <-snapSent:
-		case <-after:
-			t.Fatal("snap should be valid")
-
-		}
 	}
 }

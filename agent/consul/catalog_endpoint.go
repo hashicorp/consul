@@ -368,7 +368,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var ns *structs.NodeService
 	if args.ServiceID != "" {
-		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta, args.PeerName)
+		_, ns, err = state.NodeService(nil, args.Node, args.ServiceID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Service lookup failed: %v", err)
 		}

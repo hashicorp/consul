@@ -7,10 +7,16 @@ provider "aws" {
   assume_role {
     role_arn = var.role_arn
   }
+
+  default_tags {
+    tags = {
+      Environment = "ConsulLoadTest"
+    }
+  }
 }
 
 module "load-test" {
-  source = "github.com/hashicorp/consul/test/load/terraform"
+  source = "../../../test/load/terraform"
 
   vpc_az               = ["us-east-2a", "us-east-2b"]
   vpc_name             = var.vpc_name
@@ -21,4 +27,5 @@ module "load-test" {
   ami_owners           = var.ami_owners
   consul_download_url  = var.consul_download_url
   cluster_name         = var.cluster_name
+  cluster_tag_key      = var.cluster_tag_key
 }

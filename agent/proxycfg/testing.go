@@ -720,7 +720,7 @@ func testConfigSnapshotFixture(
 		serverSNIFn:           serverSNIFn,
 		intentionDefaultAllow: false, // TODO: make configurable
 	}
-	s, err := newServiceInstanceFromNodeService(ns, token)
+	s, err := newServiceInstanceFromNodeService(ProxyID{ServiceID: ns.CompoundServiceID()}, ns, token)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 		return nil
