@@ -171,7 +171,7 @@ func TestSessionListCommand_JSON(t *testing.T) {
 
 				var jsonOutput json.RawMessage
 				err := json.Unmarshal([]byte(output), &jsonOutput)
-				require.NoError(t, err, output)
+				require.NoError(r, err, output)
 			})
 		})
 	}
