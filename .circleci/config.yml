@@ -1091,11 +1091,6 @@ workflows:
           requires:
             - frontend-cache
       - publish-static-assets:
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
           requires:
             - ember-build-prod
       - dev-build:
