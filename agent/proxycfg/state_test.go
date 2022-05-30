@@ -312,6 +312,18 @@ func genVerifyMeshConfigWatch(expectedDatacenter string) verifyWatchRequest {
 	}
 }
 
+func genVerifyServiceDefaultsConfigWatch(expectedDatacenter string) verifyWatchRequest {
+	return func(t testing.TB, cacheType string, request cache.Request) {
+		require.Equal(t, cachetype.ConfigEntryName, cacheType)
+
+		reqReal, ok := request.(*structs.ConfigEntryQuery)
+		require.True(t, ok)
+		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
+		require.Equal(t, "", reqReal.Name)
+		require.Equal(t, structs.ServiceDefaults, reqReal.Kind)
+	}
+}
+
 func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
 		require.Equal(t, cachetype.InternalServiceDumpName, cacheType)
@@ -1695,6 +1707,128 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
+
+		"terminating-gateway-handle-update-destination": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Address: "10.0.1.1",
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						rootsWatchID:      genVerifyRootsWatch("dc1"),
+						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
+						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
+							"terminating-gateway", "", "dc1", false),
+					},
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: gatewayServicesWatchID,
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
+									{
+										Service:    db,
+										Gateway:    structs.NewServiceName("terminating-gateway", nil),
+										IsEndpoint: true,
+									},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: serviceConfigIDPrefix + db.String(),
+							Result: &structs.ServiceConfigResponse{
+								Endpoint: structs.EndpointConfig{Address: "10.0.0.1", Port: 443},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: serviceLeafIDPrefix + db.Name,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						{
+							CorrelationID: serviceIntentionsIDPrefix + db.Name,
+							Result:        dbIxnMatch,
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Len(t, snap.TerminatingGateway.ValidEndpoints(), 1)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						{
+							CorrelationID: gatewayServicesWatchID,
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
+									{
+										Service:    db,
+										Gateway:    structs.NewServiceName("terminating-gateway", nil),
+										IsEndpoint: true,
+									},
+									{
+										Service:    api,
+										Gateway:    structs.NewServiceName("terminating-gateway", nil),
+										IsEndpoint: true,
+									},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: serviceConfigIDPrefix + api.String(),
+							Result: &structs.ServiceConfigResponse{
+								Endpoint: structs.EndpointConfig{Address: "10.0.0.4", Port: 443},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: serviceLeafIDPrefix + api.Name,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						{
+							CorrelationID: serviceIntentionsIDPrefix + api.Name,
+							Result:        dbIxnMatch,
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+
+						require.Len(t, snap.TerminatingGateway.WatchedServices, 0)
+						require.Len(t, snap.TerminatingGateway.ValidEndpoints(), 2)
+						require.Contains(t, snap.TerminatingGateway.ValidEndpoints(), db)
+						require.Contains(t, snap.TerminatingGateway.ValidEndpoints(), api)
+
+						require.Len(t, snap.TerminatingGateway.WatchedIntentions, 2)
+						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, db)
+						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, api)
+
+						require.Len(t, snap.TerminatingGateway.WatchedLeaves, 2)
+						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, db)
+						require.Contains(t, snap.TerminatingGateway.WatchedLeaves, api)
+
+						require.Len(t, snap.TerminatingGateway.WatchedConfigs, 2)
+						require.Contains(t, snap.TerminatingGateway.WatchedConfigs, db)
+						require.Contains(t, snap.TerminatingGateway.WatchedConfigs, api)
+					},
+				},
+			},
+		},
 		"transparent-proxy-initial": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
@@ -2666,7 +2800,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					// therefore we just tell it about the updates
 					for eveIdx, event := range stage.events {
 						require.True(t, t.Run(fmt.Sprintf("update-%d", eveIdx), func(t *testing.T) {
-							require.NoError(t, state.handler.handleUpdate(ctx, event, &snap))
+							err2 := state.handler.handleUpdate(ctx, event, &snap)
+							require.NoError(t, err2)
 						}))
 					}
 
