@@ -21,7 +21,6 @@ Description:
 Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
-    -bindata                 Just install tools for static assets.
     -h | --help              Print this help text.
 EOF
 }
@@ -38,10 +37,6 @@ function main {
         case "$1" in
             -protobuf )
                 proto_tools_install
-                return 0
-                ;;
-            -bindata )
-                bindata_install
                 return 0
                 ;;
             -lint )
@@ -132,16 +127,6 @@ function lint_install {
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
 }
 
-function bindata_install {
-    install_unversioned_tool \
-        'go-bindata' \
-        'github.com/hashicorp/go-bindata/go-bindata@bf7910a'
-
-    install_unversioned_tool \
-        'go-bindata-assetfs' \
-        'github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe'
-}
-
 function tools_install {
     local mockery_version
 
@@ -154,7 +139,6 @@ function tools_install {
         'github.com/vektra/mockery/v2'
 
     lint_install
-    bindata_install
     proto_tools_install
 
     return 0

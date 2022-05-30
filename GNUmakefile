@@ -20,7 +20,6 @@ MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
-ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
@@ -284,10 +283,6 @@ tools:
 .PHONY: lint-tools
 lint-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
-
-.PHONY: bindata-tools
-bindata-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -bindata
 
 .PHONY: proto-tools
 proto-tools:
