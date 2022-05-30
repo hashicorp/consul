@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"hash/crc32"
 	"net"
 	"net/url"
 	"regexp"
@@ -47,12 +46,6 @@ import (
 )
 
 const virtualIPTag = "virtual"
-
-var crc32q *crc32.Table
-
-func init() {
-	crc32q = crc32.MakeTable(crc32.IEEE)
-}
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
@@ -1098,13 +1091,13 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	// effect on how they operate, but it does mean that we won't churn
 	// listeners at idle.
 	sort.Slice(l.FilterChains, func(i, j int) bool {
-		outI, _ := proto.Marshal(l.FilterChains[i].FilterChainMatch)
-		crcI := crc32.Checksum(outI, crc32q)
-
-		outJ, _ := proto.Marshal(l.FilterChains[j].FilterChainMatch)
-		crcJ := crc32.Checksum(outJ, crc32q)
-
-		return crcI < crcJ
+		if len(l.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 && len(l.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
+			return l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix < l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
+		}
+		if len(l.FilterChains[i].FilterChainMatch.ServerNames) > 0 && len(l.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
+			return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		}
+		return false
 	})
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
