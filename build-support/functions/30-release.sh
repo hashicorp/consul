@@ -471,7 +471,7 @@ function build_release {
          git add "${sdir}/agent/uiserver/dist"
          if test $? -ne 0
          then
-           err "ERROR: Failed to git add the assetfs file"
+           err "ERROR: Failed to git add /agent/uiserver/dist directory"
            return 1
          fi
       fi
