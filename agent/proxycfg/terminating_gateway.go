@@ -39,6 +39,17 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 		return snap, err
 	}
 
+	// Get information about the service-defaults to watch destinations
+	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+		Kind:           structs.ServiceDefaults,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, serviceDefaultsConfigEntryID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch for the terminating-gateway's linked services
 	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
@@ -99,6 +110,46 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		}
 		snap.TerminatingGateway.MeshConfigSet = true
 
+	case u.CorrelationID == serviceDefaultsConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+
+			sd, ok := resp.Entry.(*structs.ServiceConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			// Here we assume that any service-defaults entry with a destination address is a destination.
+			// Validation will be done at the writing side.
+			// if the Address is nil, we assume it's another type of service-defaults, and just ignore.
+			if sd.Endpoint.Address != "" {
+				// Watch leaf certificate for the destination
+				// This cert is used to terminate mTLS connections on the destination's behalf
+				sn := structs.ServiceName{Name: sd.Name, EnterpriseMeta: sd.EnterpriseMeta}
+				if _, ok := snap.TerminatingGateway.WatchedLeaves[sn]; !ok {
+					ctx, cancel := context.WithCancel(ctx)
+					err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+						Datacenter:     s.source.Datacenter,
+						Token:          s.token,
+						Service:        sd.Name,
+						EnterpriseMeta: sd.EnterpriseMeta,
+					}, serviceLeafIDPrefix+sd.Name, s.ch)
+
+					if err != nil {
+						logger.Error("failed to register watch for a service-leaf",
+							"service", sd.Name,
+							"error", err,
+						)
+						cancel()
+						return err
+					}
+					snap.TerminatingGateway.WatchedLeaves[sn] = cancel
+				}
+			}
+		}
 	// Update watches based on the current list of services associated with the terminating-gateway
 	case u.CorrelationID == gatewayServicesWatchID:
 		services, ok := u.Result.(*structs.IndexedGatewayServices)
