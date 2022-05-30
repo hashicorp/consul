@@ -1091,13 +1091,23 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	// effect on how they operate, but it does mean that we won't churn
 	// listeners at idle.
 	sort.Slice(l.FilterChains, func(i, j int) bool {
-		if len(l.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 && len(l.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
-			return l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix < l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
+		si := ""
+		sj := ""
+		if len(l.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 {
+			si += l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix
 		}
-		if len(l.FilterChains[i].FilterChainMatch.ServerNames) > 0 && len(l.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
-			return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		if len(l.FilterChains[i].FilterChainMatch.ServerNames) > 0 {
+			si += l.FilterChains[i].FilterChainMatch.ServerNames[0]
 		}
-		return false
+
+		if len(l.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
+			sj += l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
+		}
+		if len(l.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
+			sj += l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		}
+
+		return si < sj
 	})
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
