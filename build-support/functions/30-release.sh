@@ -465,6 +465,16 @@ function build_release {
          err "ERROR: Failed to build the ui" 
          return 1
       fi
+
+      if is_set "${do_tag}"
+         then
+         git add "${sdir}/agent/uiserver/dist"
+         if test $? -ne 0
+         then
+           err "ERROR: Failed to git add the assetfs file"
+           return 1
+         fi
+      fi
       status "UI Built with Version: $(ui_version "${sdir}/agent/uiserver/dist/index.html")"
    fi
    
