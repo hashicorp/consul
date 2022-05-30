@@ -1094,7 +1094,10 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		if len(l.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 && len(l.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
 			return l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix < l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
 		}
-		return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		if len(l.FilterChains[i].FilterChainMatch.ServerNames) > 0 && len(l.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
+			return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+		}
+		return false
 	})
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
