@@ -192,6 +192,7 @@ jobs:
           echo "consul binary type is ${CONSUL_BINARY_TYPE}"
           echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
           cd ui && make && cd ..
+          rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
 
       - name: Build
