@@ -5376,6 +5376,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 19,
 				ModifyIndex: 19,
 			},
+			Kind: structs.GatewayservicekindService,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5414,8 +5415,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	// Delete a service specified directly.
 	assert.Nil(t, s.DeleteService(20, "foo", "db", nil, ""))
 
-	// Only the watch for other-gateway should fire, since its association to db came from a wildcard
-	assert.False(t, watchFired(ws))
+	// The watch will file because we need to update the gateway-services kind
+	assert.True(t, watchFired(ws))
 	assert.True(t, watchFired(otherWS))
 
 	// db should remain in the original gateway
@@ -5432,7 +5433,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 			CAFile:      "my_ca.pem",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 19,
-				ModifyIndex: 19,
+				ModifyIndex: 20,
 			},
 		},
 	}
@@ -6313,6 +6314,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -6322,6 +6324,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -6372,6 +6375,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -6381,6 +6385,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -6410,6 +6415,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -6419,6 +6425,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:      structs.NewServiceName("redis", nil),
@@ -6463,6 +6470,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -6472,6 +6480,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -6505,6 +6514,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 24,
 					ModifyIndex: 24,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -6562,6 +6572,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 24,
 					ModifyIndex: 24,
 				},
+				Kind: structs.GatewayservicekindService,
 			},
 			{
 				Service:     structs.NewServiceName("api", nil),
