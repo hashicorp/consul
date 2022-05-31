@@ -21,9 +21,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0 # by default the checkout action doesn't checkout all branches
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 14
       - name: Check for agent/uiserver/dist dir change in diff
         run: |
           dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- agent/uiserver/dist)
