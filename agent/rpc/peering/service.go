@@ -400,6 +400,40 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 	return &pbpeering.PeeringDeleteResponse{}, nil
 }
 
+func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
+	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+
+	var resp *pbpeering.TrustBundleReadResponse
+	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+		var err error
+		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleRead(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
+	}
+
+	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
+	// TODO(peering): ACL check request token
+
+	// TODO(peering): handle blocking queries
+
+	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
+		Value:          req.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
+	}
+
+	return &pbpeering.TrustBundleReadResponse{
+		Index:  idx,
+		Bundle: trustBundle,
+	}, nil
+}
+
 func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
