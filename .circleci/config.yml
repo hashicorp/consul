@@ -687,7 +687,7 @@ jobs:
           name: move compiled ui files to agent/uiserver
           command: |
             rm -rf agent/uiserver/dist
-            mv ui/packages/consul-ui/dist agent/uiserver
+            mv packages/consul-ui/dist agent/uiserver
       - run:
           name: commit agent/uiserver/dist/ if there are UI changes
           command: |
