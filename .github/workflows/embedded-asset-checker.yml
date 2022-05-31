@@ -1,0 +1,50 @@
+# This workflow detects if there is a diff in the `agent/uiserver/dist` directory
+# which is used by Consul to serve its embedded UI. If there is a diff, this action
+# will build the ui again and diff `agent/uiserver/dist` with the newly compiled files
+# to ensure that the updates are valid.
+#
+# Note that since the latest commit SHA is embedded in index.html as CONSUL_VERSION
+# you must always compile the assets from the HEAD of your branch or this workflow fails.
+
+name: Embedded Asset Checker
+
+on:
+  pull_request:
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  dist-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
+      - name: Check for agent/uiserver/dist dir change in diff
+        run: |
+          dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- agent/uiserver/dist)
+          
+          if [ -n "$dist_files" ]; then
+            cd ui
+            make
+            cd ..
+
+            # diff causes this step to exit code 1 if there is a diff so we append '|| true' to the end
+            diffs=$(diff -r --brief ui/packages/consul-ui/dist agent/uiserver/dist || true)
+
+            if [ -n "$diffs" ]; then
+              echo "Found diffs between compiled assets and committed assets"
+              github_message="This PR has diffs in \`agent/uiserver/dist\` but the assets are out of date. Rerun \`make ui\` from the latest commit or revert changes to  \`agent/uiserver/dist\`."
+              curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+                -X POST \
+                -d "{ \"body\": \"${github_message}\"}" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
+              exit 1
+            fi
+          fi
