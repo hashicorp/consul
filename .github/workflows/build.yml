@@ -101,12 +101,8 @@ jobs:
           echo "consul binary type is ${CONSUL_BINARY_TYPE}"
           echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
           cd ui && make && cd ..
-          mkdir pkg
-          mv ui/packages/consul-ui/dist pkg/web_ui
-
-      - name: Build static-assets
-        run: make static-assets
-
+          rm -rf agent/uiserver/dist
+          mv ui/packages/consul-ui/dist agent/uiserver/
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
@@ -196,11 +192,8 @@ jobs:
           echo "consul binary type is ${CONSUL_BINARY_TYPE}"
           echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
           cd ui && make && cd ..
-          mkdir pkg
-          mv ui/packages/consul-ui/dist pkg/web_ui
-
-      - name: Build static-assets
-        run: make static-assets
+          rm -rf agent/uiserver/dist
+          mv ui/packages/consul-ui/dist agent/uiserver/
 
       - name: Build
         env:

@@ -20,7 +20,6 @@ MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
-ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
@@ -275,15 +274,15 @@ lint: lint-tools
 	@echo "--> Running enumcover"
 	@enumcover ./...
 
-# If you've run "make ui" manually then this will get called for you. This is
-# also run as part of the release build script when it verifies that there are no
-# changes to the UI assets that aren't checked in.
-static-assets: bindata-tools
-	@go-bindata-assetfs -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
-	@go fmt $(ASSETFS_PATH)
+# Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
+ui: ui-docker
 
-# Build the static web ui and build static assets inside a Docker container
-ui: ui-docker static-assets-docker
+# Build the static web ui with yarn. This is the version to commit.
+.PHONY: ui-regen
+ui-regen:
+	cd $(CURDIR)/ui && make && cd ..
+	rm -rf $(CURDIR)/agent/uiserver/dist
+	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
 
 tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
@@ -291,10 +290,6 @@ tools:
 .PHONY: lint-tools
 lint-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
-
-.PHONY: bindata-tools
-bindata-tools:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -bindata
 
 .PHONY: proto-tools
 proto-tools:
@@ -320,9 +315,6 @@ go-build-image:
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-static-assets-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
 
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
@@ -401,6 +393,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
-.PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
+.PHONY: all bin dev dist cov test test-internal cover lint ui tools
+.PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
 .PHONY: version test-envoy-integ

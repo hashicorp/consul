@@ -672,22 +672,6 @@ jobs:
             - packages/consul-ui/dist
       - run: *notify-slack-failure
 
-  # build static-assets file
-  build-static-assets:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ./pkg
-      - run: mv pkg/packages/consul-ui/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
-      - run: make static-assets
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./agent/uiserver/bindata_assetfs.go
-      - run: *notify-slack-failure
-
   # commits static assets to git
   publish-static-assets:
     docker:
@@ -700,7 +684,12 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
+          name: move compiled ui files to agent/uiserver
+          command: |
+            rm -rf agent/uiserver/dist
+            mv ui/packages/consul-ui/dist agent/uiserver
+      - run:
+          name: commit agent/uiserver/dist/ if there are UI changes
           command: |
             # check if there are any changes in ui/
             # if there are, we commit the ui static asset file
@@ -714,8 +703,8 @@ jobs:
               git checkout -B ci/main-assetfs-build main
 
               short_sha=$(git rev-parse --short HEAD)
-              git add agent/uiserver/bindata_assetfs.go
-              git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
+              git add agent/uiserver/dist/
+              git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
               git push --force origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
@@ -1102,20 +1091,12 @@ workflows:
       - ember-build-prod:
           requires:
             - frontend-cache
-      - build-static-assets:
+      - publish-static-assets:
           requires:
             - ember-build-prod
-      - publish-static-assets:
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
-          requires:
-            - build-static-assets
       - dev-build:
           requires:
-            - build-static-assets
+            - ember-build-prod
       - dev-upload-s3:
           requires:
             - dev-build
