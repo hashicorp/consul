@@ -26,7 +26,7 @@ var SessionGauges = []prometheus.GaugeDefinition{
 	},
 	{
 		Name: []string{"raft", "is_leader"},
-		Help: "Track if the server is a leader.",
+		Help: "Tracks if the server is a leader.",
 	},
 }
 
