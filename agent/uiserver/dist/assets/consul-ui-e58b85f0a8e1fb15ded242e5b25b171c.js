@@ -3504,4 +3504,4 @@ e.default=n})),define("consul-ui/validations/role",["exports","ember-changeset-v
 var n={Name:(0,t.validateFormat)({regex:/^[A-Za-z0-9\-_]{1,256}$/})}
 e.default=n})),define("consul-ui/validations/token",["exports"],(function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 e.default={}})),define("consul-ui/config/environment",[],(function(){try{var e="consul-ui/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),n={default:JSON.parse(decodeURIComponent(t))}
-return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(r){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("consul-ui/app").default.create({name:"consul-ui",version:"2.2.0"})
+return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(r){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("consul-ui/app").default.create({name:"consul-ui",version:"2.2.0+89053cb2"})

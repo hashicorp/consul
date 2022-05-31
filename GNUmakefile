@@ -274,8 +274,15 @@ lint: lint-tools
 	@echo "--> Running enumcover"
 	@enumcover ./...
 
-# Build the static web ui inside a Docker container
+# Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker
+
+# Build the static web ui with yarn. This is the version to commit.
+.PHONY: ui-regen
+ui-regen:
+	cd $(CURDIR)/ui && make && cd ..
+	rm -rf $(CURDIR)/agent/uiserver/dist
+	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
 
 tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh

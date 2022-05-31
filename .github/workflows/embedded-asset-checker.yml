@@ -1,15 +1,12 @@
 # This workflow detects if there is a diff in the `agent/uiserver/dist` directory
-# which is used by Consul to serve its embedded UI. If there is a diff, this action
-# will build the ui again and diff `agent/uiserver/dist` with the newly compiled files
-# to ensure that the updates are valid.
-#
-# Note that since the latest commit SHA is embedded in index.html as CONSUL_VERSION
-# you must always compile the assets from the HEAD of your branch or this workflow fails.
+# which is used by Consul to serve its embedded UI.
+# `agent/uiserver/dist` should not be manually updated.
 
 name: Embedded Asset Checker
 
 on:
   pull_request:
+    types: [opened, synchronize, labeled, unlabeled, reopened]
     # Runs on PRs to main and all release branches
     branches:
       - main
@@ -17,6 +14,7 @@ on:
 
 jobs:
   dist-check:
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/update-ui-assets') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -32,17 +30,11 @@ jobs:
           if [[ -z "${dist_files}" ]]; then
             exit 0
           fi
-
-          cd ui
-          make
-          cd ..
-
-          if ! diff -r --brief ui/packages/consul-ui/dist agent/uiserver/dist ; then
-            echo "Found diffs between compiled assets and committed assets"
-            github_message="This PR has diffs in \`agent/uiserver/dist\` but the assets are out of date. Rerun \`make ui\` from the latest commit or revert changes to  \`agent/uiserver/dist\`."
-            curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
-              -X POST \
-              -d "{ \"body\": \"${github_message}\"}" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
-            exit 1
-          fi
+          
+          echo "Found diffs in dir agent/uiserver/dist"
+          github_message="This PR has diffs in \`agent/uiserver/dist\`. If the changes are intentional, add the label \`pr/update-ui-assets\`. Otherwise, revert changes to \`agent/uiserver/dist\`."
+          curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+            -X POST \
+            -d "{ \"body\": \"${github_message}\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
+          exit 1
