@@ -29,22 +29,20 @@ jobs:
       - name: Check for agent/uiserver/dist dir change in diff
         run: |
           dist_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- agent/uiserver/dist)
-          
-          if [ -n "$dist_files" ]; then
-            cd ui
-            make
-            cd ..
+          if [[ -z "${dist_files}" ]]; then
+            exit 0
+          fi
 
-            # diff causes this step to exit code 1 if there is a diff so we append '|| true' to the end
-            diffs=$(diff -r --brief ui/packages/consul-ui/dist agent/uiserver/dist || true)
+          cd ui
+          make
+          cd ..
 
-            if [ -n "$diffs" ]; then
-              echo "Found diffs between compiled assets and committed assets"
-              github_message="This PR has diffs in \`agent/uiserver/dist\` but the assets are out of date. Rerun \`make ui\` from the latest commit or revert changes to  \`agent/uiserver/dist\`."
-              curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
-                -X POST \
-                -d "{ \"body\": \"${github_message}\"}" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
-              exit 1
-            fi
+          if ! diff -r --brief ui/packages/consul-ui/dist agent/uiserver/dist ; then
+            echo "Found diffs between compiled assets and committed assets"
+            github_message="This PR has diffs in \`agent/uiserver/dist\` but the assets are out of date. Rerun \`make ui\` from the latest commit or revert changes to  \`agent/uiserver/dist\`."
+            curl -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
+              -X POST \
+              -d "{ \"body\": \"${github_message}\"}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
+            exit 1
           fi
