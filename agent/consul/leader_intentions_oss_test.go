@@ -141,7 +141,7 @@ func TestMigrateIntentionsToConfigEntries(t *testing.T) {
 			// Convert them back to the line-item version.
 			var gotIxns structs.Intentions
 			for _, entry := range got {
-				gotIxns = append(gotIxns, entry.ToIntentions()...)
+				gotIxns = append(gotIxns, entry.ToIntentions(structs.IntentionDestinationService)...)
 			}
 			sort.Sort(structs.IntentionPrecedenceSorter(gotIxns))
 

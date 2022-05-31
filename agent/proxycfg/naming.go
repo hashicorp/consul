@@ -43,6 +43,16 @@ func NewUpstreamIDFromServiceName(sn structs.ServiceName) UpstreamID {
 }
 
 // TODO(peering): confirm we don't need peername here
+func NewUpstreamIDFromServiceDestinationName(sn structs.ServiceDestinationName) UpstreamID {
+	id := UpstreamID{
+		Name:           sn.Name,
+		EnterpriseMeta: sn.EnterpriseMeta,
+	}
+	id.normalize()
+	return id
+}
+
+// TODO(peering): confirm we don't need peername here
 func NewUpstreamIDFromServiceID(sid structs.ServiceID) UpstreamID {
 	id := UpstreamID{
 		Name:           sid.ID,

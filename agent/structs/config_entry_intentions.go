@@ -114,7 +114,7 @@ func (e *ServiceIntentionsConfigEntry) DeleteSourceByName(sn ServiceName) bool {
 	return false
 }
 
-func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intention {
+func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention, destinationType IntentionDestinationType) *Intention {
 	meta := e.Meta
 	if src.LegacyID != "" {
 		meta = src.LegacyMeta
@@ -127,6 +127,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
 		SourceType:           src.Type,
+		DestinationType:      destinationType,
 		Action:               src.Action,
 		Permissions:          src.Permissions,
 		Meta:                 meta,
@@ -173,10 +174,10 @@ func (e *ServiceIntentionsConfigEntry) LegacyIDFieldsAreAllSet() bool {
 	return true
 }
 
-func (e *ServiceIntentionsConfigEntry) ToIntentions() Intentions {
+func (e *ServiceIntentionsConfigEntry) ToIntentions(destinationType IntentionDestinationType) Intentions {
 	out := make(Intentions, 0, len(e.Sources))
 	for _, src := range e.Sources {
-		out = append(out, e.ToIntention(src))
+		out = append(out, e.ToIntention(src, destinationType))
 	}
 	return out
 }

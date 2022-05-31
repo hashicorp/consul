@@ -422,6 +422,9 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			if err := checkGatewayAndUpdate(tx, idx, &sn, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
+			if err := upsertKindServiceName(tx, idx, structs.ServiceKindDestination, sn); err != nil {
+				return fmt.Errorf("failed to persist destination name: %v", err)
+			}
 		}
 	}
 

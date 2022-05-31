@@ -60,6 +60,8 @@ type Intention struct {
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
+	DestinationType IntentionDestinationType
+
 	// Action is whether this is an allowlist or denylist intention.
 	Action IntentionAction `json:",omitempty"`
 
@@ -492,6 +494,14 @@ type IntentionSourceType string
 const (
 	// IntentionSourceConsul is a service within the Consul catalog.
 	IntentionSourceConsul IntentionSourceType = "consul"
+)
+
+type IntentionDestinationType string
+
+const (
+	// IntentionSourceConsul is a service within the Consul catalog.
+	IntentionDestinationService     IntentionDestinationType = "service"
+	IntentionDestinationDestination IntentionDestinationType = "destination"
 )
 
 // Intentions is a list of intentions.

@@ -136,7 +136,7 @@ func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Enterpr
 
 	ws.Add(iter.WatchCh())
 
-	results := configIntentionsConvertToList(iter, entMeta)
+	results := configIntentionsConvertToList(tx, iter, entMeta)
 
 	// Sort by precedence just because that's nicer and probably what most clients
 	// want for presentation.
@@ -165,9 +165,18 @@ func configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *s
 		return 0, nil, nil, fmt.Errorf("config entry is an invalid type: %T", conf)
 	}
 
+	entMeta := conf.DestinationServiceName().EnterpriseMeta
+	kind, err := GatewayServiceKind(tx, conf.DestinationServiceName().Name, &entMeta)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
+	}
+	destType := structs.IntentionDestinationService
+	if kind == structs.GatewayservicekindDestination {
+		destType = structs.IntentionDestinationDestination
+	}
 	for _, src := range conf.Sources {
 		if src.LegacyID == id {
-			return idx, conf, conf.ToIntention(src), nil
+			return idx, conf, conf.ToIntention(src, destType), nil
 		}
 	}
 
@@ -187,10 +196,18 @@ func (s *Store) configIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *
 	}
 
 	sn := structs.NewServiceName(args.SourceName, args.SourceEnterpriseMeta())
-
+	entMeta := sn.EnterpriseMeta
+	kind, err := GatewayServiceKind(tx, sn.Name, &entMeta)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
+	}
+	destType := structs.IntentionDestinationService
+	if kind == structs.GatewayservicekindDestination {
+		destType = structs.IntentionDestinationDestination
+	}
 	for _, src := range entry.Sources {
 		if sn == src.SourceServiceName() {
-			return idx, entry, entry.ToIntention(src), nil
+			return idx, entry, entry.ToIntention(src, destType), nil
 		}
 	}
 
@@ -274,9 +291,17 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		kind, err := GatewayServiceKind(tx, serviceName, entMeta)
+		if err != nil {
+			return nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
+		}
+		destType := structs.IntentionDestinationService
+		if kind == structs.GatewayservicekindDestination {
+			destType = structs.IntentionDestinationDestination
+		}
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				results = append(results, entry.ToIntention(src))
+				results = append(results, entry.ToIntention(src, destType))
 			}
 		}
 	}
@@ -294,8 +319,18 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 		_, entry, err := getServiceIntentionsConfigEntryTxn(tx, ws, sn.Name, nil, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
-		} else if entry != nil {
-			results = append(results, entry.ToIntentions()...)
+		}
+		entMeta := entry.DestinationServiceName().EnterpriseMeta
+		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		destType := structs.IntentionDestinationService
+		if kind == structs.GatewayservicekindDestination {
+			destType = structs.IntentionDestinationDestination
+		}
+		if entry != nil {
+			results = append(results, entry.ToIntentions(destType)...)
 		}
 	}
 

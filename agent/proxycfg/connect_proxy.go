@@ -252,7 +252,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 
 		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, svc := range resp.Services {
-			uid := NewUpstreamIDFromServiceName(svc)
+			uid := NewUpstreamIDFromServiceDestinationName(svc)
 
 			seenUpstreams[uid] = struct{}{}
 
@@ -290,7 +290,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				meshGateway = meshGateway.OverlayWith(u.MeshGateway)
 			}
 			watchOpts := discoveryChainWatchOpts{
-				id:          NewUpstreamIDFromServiceName(svc),
+				id:          NewUpstreamIDFromServiceDestinationName(svc),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
 				partition:   svc.PartitionOrDefault(),

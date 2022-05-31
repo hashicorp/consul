@@ -942,15 +942,14 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 }
 
 type ServiceWithDecision struct {
-	Name     structs.ServiceName
+	Name     structs.ServiceDestinationName
 	Decision structs.IntentionDecisionSummary
 }
 
 // IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
 // intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
-func (s *Store) IntentionTopology(ws memdb.WatchSet,
-	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceDestinationList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -963,9 +962,9 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		return 0, nil, fmt.Errorf("failed to fetch %s for %s: %v", requested, target.String(), err)
 	}
 
-	resp := make(structs.ServiceList, 0)
+	resp := make(structs.ServiceDestinationList, 0)
 	for _, svc := range services {
-		resp = append(resp, svc.Name)
+		resp = append(resp, structs.ServiceDestinationName{Name: svc.Name.Name, EnterpriseMeta: svc.Name.EnterpriseMeta})
 	}
 	return idx, resp, nil
 }
@@ -1017,6 +1016,16 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			maxIdx = index
 		}
 		services = append(services, ingress...)
+	} else {
+		// Ingress gateways can only ever be downstreams, since mesh services don't dial them.
+		index, destinations, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
+		}
+		if index > maxIdx {
+			maxIdx = index
+		}
+		services = append(services, destinations...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
@@ -1055,8 +1064,12 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			continue
 		}
 
+		t := "service"
+		if svc.Kind == structs.ServiceKindDestination {
+			t = "destination"
+		}
 		result = append(result, ServiceWithDecision{
-			Name:     candidate,
+			Name:     structs.ServiceDestinationName{Name: candidate.Name, EnterpriseMeta: candidate.EnterpriseMeta, Type: t},
 			Decision: decision,
 		})
 	}

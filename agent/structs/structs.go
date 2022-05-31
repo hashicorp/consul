@@ -1166,6 +1166,11 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindDestination is a Destination  for the Connect feature.
+	// This service allows external traffic to exit the mesh through a terminating gateway
+	//based on centralized configuration.
+	ServiceKindDestination ServiceKind = "destination"
 )
 
 // Type to hold a address and port of a service
@@ -2133,6 +2138,12 @@ type ServiceName struct {
 	acl.EnterpriseMeta
 }
 
+type ServiceDestinationName struct {
+	Name string
+	Type string
+	acl.EnterpriseMeta
+}
+
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
@@ -2159,6 +2170,8 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 
 type ServiceList []ServiceName
 
+type ServiceDestinationList []ServiceDestinationName
+
 // Len implements sort.Interface.
 func (s ServiceList) Len() int { return len(s) }
 
@@ -2168,7 +2181,7 @@ func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
-	Services ServiceList
+	Services ServiceDestinationList
 	QueryMeta
 }
 

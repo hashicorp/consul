@@ -50,12 +50,21 @@ func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *acl.EnterpriseMeta) 
 	return tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: kind})
 }
 
-func configIntentionsConvertToList(iter memdb.ResultIterator, _ *acl.EnterpriseMeta) structs.Intentions {
+func configIntentionsConvertToList(tx ReadTxn, iter memdb.ResultIterator, _ *acl.EnterpriseMeta) structs.Intentions {
 	var results structs.Intentions
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		entMeta := entry.DestinationServiceName().EnterpriseMeta
+		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+		if err != nil {
+			return results
+		}
+		destType := structs.IntentionDestinationService
+		if kind == structs.GatewayservicekindDestination {
+			destType = structs.IntentionDestinationDestination
+		}
 		for _, src := range entry.Sources {
-			results = append(results, entry.ToIntention(src))
+			results = append(results, entry.ToIntention(src, destType))
 		}
 	}
 	return results
