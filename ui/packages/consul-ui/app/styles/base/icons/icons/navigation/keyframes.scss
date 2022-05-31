@@ -1,15 +1,9 @@
 @keyframes icon-navigation {
-  50% {
-
-    background-color: var(--icon-color, var(--color-navigation-500, currentColor));
-    -webkit-mask-image: var(--icon-navigation-24);
-    mask-image: var(--icon-navigation-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-navigation-500, currentColor));
     -webkit-mask-image: var(--icon-navigation-16);
     mask-image: var(--icon-navigation-16);
+    background-color: var(--icon-color, var(--color-navigation-500, currentColor));
+
   }
 }

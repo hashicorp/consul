@@ -1,15 +1,9 @@
 @keyframes icon-notification-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-notification-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-bell-active-fill-24);
-    mask-image: var(--icon-bell-active-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-notification-fill-500, currentColor));
     -webkit-mask-image: var(--icon-bell-active-fill-16);
     mask-image: var(--icon-bell-active-fill-16);
+    background-color: var(--icon-color, var(--color-notification-fill-500, currentColor));
+
   }
 }

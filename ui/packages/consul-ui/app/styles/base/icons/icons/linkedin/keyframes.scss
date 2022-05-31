@@ -1,15 +1,9 @@
 @keyframes icon-linkedin {
-  50% {
-
-    background-color: var(--icon-color, var(--color-linkedin-500, currentColor));
-    -webkit-mask-image: var(--icon-linkedin-color-24);
-    mask-image: var(--icon-linkedin-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-linkedin-500, currentColor));
     -webkit-mask-image: var(--icon-linkedin-color-16);
     mask-image: var(--icon-linkedin-color-16);
+    background-color: var(--icon-color, var(--color-linkedin-500, currentColor));
+
   }
 }

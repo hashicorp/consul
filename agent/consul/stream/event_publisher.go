@@ -351,7 +351,7 @@ func (s *subscriptions) closeAll() {
 
 	for _, byRequest := range s.byToken {
 		for _, sub := range byRequest {
-			sub.forceClose()
+			sub.shutDown()
 		}
 	}
 }

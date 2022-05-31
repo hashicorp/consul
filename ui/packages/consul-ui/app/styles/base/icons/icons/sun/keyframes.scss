@@ -1,15 +1,9 @@
 @keyframes icon-sun {
-  50% {
-
-    background-color: var(--icon-color, var(--color-sun-500, currentColor));
-    -webkit-mask-image: var(--icon-sun-24);
-    mask-image: var(--icon-sun-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-sun-500, currentColor));
     -webkit-mask-image: var(--icon-sun-16);
     mask-image: var(--icon-sun-16);
+    background-color: var(--icon-color, var(--color-sun-500, currentColor));
+
   }
 }

@@ -273,7 +273,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'Incoming',
           yaml: false,
           type: 'TLSDirectionConfig: <optional>',
-          description: `TLS configuration for inbound mTLS connections targeting 
+          description: `TLS configuration for inbound mTLS connections targeting
                         the public listener on \`connect-proxy\` and \`terminating-gateway\`
                         proxy kinds.`,
           children: [
@@ -356,6 +356,21 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                             Envoy.`,
             },
           ],
+        },
+      ],
+    },
+    {
+      name: 'HTTP',
+      type: 'HTTPConfig: <optional>',
+      description: 'HTTP configuration for the service mesh.',
+      children: [
+        {
+          name: 'SanitizeXForwardedClientCert',
+          yaml: false,
+          type: 'bool: <optional>',
+          description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\` 
+                        for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
+                        If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },
       ],
     },

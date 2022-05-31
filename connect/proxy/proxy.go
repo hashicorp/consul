@@ -57,7 +57,7 @@ func (p *Proxy) Serve() error {
 				// Setup telemetry if configured
 				// NOTE(kit): As far as I can tell, all of the metrics in the proxy are generated at runtime, so we
 				//  don't have any static metrics we initialize at start.
-				_, err := lib.InitTelemetry(newCfg.Telemetry)
+				_, err := lib.InitTelemetry(newCfg.Telemetry, p.logger)
 				if err != nil {
 					p.logger.Error("proxy telemetry config error", "error", err)
 				}
@@ -123,6 +123,9 @@ func (p *Proxy) Serve() error {
 			cfg = newCfg
 
 		case <-p.stopChan:
+			if p.service != nil {
+				p.service.Close()
+			}
 			return nil
 		}
 	}
@@ -153,7 +156,4 @@ func (p *Proxy) startListener(name string, l *Listener) error {
 // called only once.
 func (p *Proxy) Close() {
 	close(p.stopChan)
-	if p.service != nil {
-		p.service.Close()
-	}
 }

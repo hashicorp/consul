@@ -100,6 +100,10 @@ func (m *EnterpriseMeta) UnsetPartition() {
 	// do nothing
 }
 
+func (m *EnterpriseMeta) OverridePartition(_ string) {
+	// do nothing
+}
+
 func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
 }

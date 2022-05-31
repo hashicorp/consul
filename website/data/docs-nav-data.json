@@ -392,6 +392,10 @@
       {
         "title": "Common Errors",
         "path": "api-gateway/common-errors"
+      },
+      {
+        "title": "Upgrades",
+        "path": "api-gateway/upgrade-specific-versions"
       }
     ]
   },
@@ -785,6 +789,10 @@
           {
             "title": "Tasks",
             "path": "nia/api/tasks"
+          },
+          {
+            "title": "Health",
+            "path": "nia/api/health"
           }
         ]
       },
@@ -798,6 +806,10 @@
           {
             "title": "task",
             "path": "nia/cli/task"
+          },
+          {
+            "title": "start",
+            "path": "nia/cli/start"
           }
         ]
       },
@@ -1083,6 +1095,10 @@
         "path": "architecture"
       },
       {
+        "title": "Improving Consul Resilience",
+        "path": "architecture/improving-consul-resilience"
+      },
+      {
         "title": "Anti-Entropy",
         "path": "architecture/anti-entropy"
       },
@@ -1218,6 +1234,10 @@
           {
             "title": "v0.1.x",
             "path": "release-notes/consul-api-gateway/v0_1_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-api-gateway/v0_2_x"
           }
         ]
       },
@@ -1241,6 +1261,10 @@
       {
         "title": "Consul Terraform Sync",
         "routes": [
+          {
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
+          },
           {
             "title": "v0.5.x",
             "path": "release-notes/consul-terraform-sync/v0_5_x"

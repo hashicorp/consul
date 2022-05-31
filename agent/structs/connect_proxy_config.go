@@ -338,6 +338,7 @@ type Upstream struct {
 	DestinationType      string `alias:"destination_type"`
 	DestinationNamespace string `json:",omitempty" alias:"destination_namespace"`
 	DestinationPartition string `json:",omitempty" alias:"destination_partition"`
+	DestinationPeer      string `json:",omitempty" alias:"destination_peer"`
 	DestinationName      string `alias:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -384,6 +385,7 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 		DestinationTypeSnake      string `json:"destination_type"`
 		DestinationPartitionSnake string `json:"destination_partition"`
 		DestinationNamespaceSnake string `json:"destination_namespace"`
+		DestinationPeerSnake      string `json:"destination_peer"`
 		DestinationNameSnake      string `json:"destination_name"`
 
 		LocalBindAddressSnake string `json:"local_bind_address"`
@@ -409,6 +411,9 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.DestinationPartition == "" {
 		t.DestinationPartition = aux.DestinationPartitionSnake
+	}
+	if t.DestinationPeer == "" {
+		t.DestinationPeer = aux.DestinationPeerSnake
 	}
 	if t.DestinationName == "" {
 		t.DestinationName = aux.DestinationNameSnake
@@ -447,6 +452,9 @@ func (u *Upstream) Validate() error {
 	if u.DestinationName == WildcardSpecifier && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream destination name cannot be a wildcard")
 	}
+	if u.DestinationPeer != "" && u.Datacenter != "" {
+		return fmt.Errorf("upstream cannot specify both destination peer and datacenter")
+	}
 
 	if u.LocalBindPort == 0 && u.LocalBindSocketPath == "" && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream local bind port or local socket path must be defined and nonzero")
@@ -467,6 +475,7 @@ func (u *Upstream) ToAPI() api.Upstream {
 		DestinationType:      api.UpstreamDestType(u.DestinationType),
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationPartition: u.DestinationPartition,
+		DestinationPeer:      u.DestinationPeer,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
@@ -482,13 +491,14 @@ func (u *Upstream) ToAPI() api.Upstream {
 // upstream in a canonical way. Set and unset values are deliberately handled
 // differently.
 //
-// These fields should be user-specificed explicit values and not inferred
+// These fields should be user-specified explicit values and not inferred
 // values.
 func (u *Upstream) ToKey() UpstreamKey {
 	return UpstreamKey{
 		DestinationType:      u.DestinationType,
 		DestinationPartition: u.DestinationPartition,
 		DestinationNamespace: u.DestinationNamespace,
+		DestinationPeer:      u.DestinationPeer,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,
 	}
@@ -528,16 +538,18 @@ type UpstreamKey struct {
 	DestinationName      string
 	DestinationPartition string
 	DestinationNamespace string
+	DestinationPeer      string
 	Datacenter           string
 }
 
 func (k UpstreamKey) String() string {
 	return fmt.Sprintf(
-		"[type=%q, name=%q, partition=%q, namespace=%q, datacenter=%q]",
+		"[type=%q, name=%q, partition=%q, namespace=%q, peer=%q, datacenter=%q]",
 		k.DestinationType,
 		k.DestinationName,
 		k.DestinationPartition,
 		k.DestinationNamespace,
+		k.DestinationPeer,
 		k.Datacenter,
 	)
 }
@@ -548,7 +560,9 @@ func (us *Upstream) String() string {
 	name := us.enterpriseStringPrefix() + us.DestinationName
 	typ := us.DestinationType
 
-	if us.Datacenter != "" {
+	if us.DestinationPeer != "" {
+		name += "?peer=" + us.DestinationPeer
+	} else if us.Datacenter != "" {
 		name += "?dc=" + us.Datacenter
 	}
 
@@ -565,6 +579,7 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 		DestinationType:      string(u.DestinationType),
 		DestinationPartition: u.DestinationPartition,
 		DestinationNamespace: u.DestinationNamespace,
+		DestinationPeer:      u.DestinationPeer,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,

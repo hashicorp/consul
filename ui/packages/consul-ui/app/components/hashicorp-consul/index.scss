@@ -3,6 +3,10 @@
     @extend %main-nav-vertical-hoisted;
     left: 100px;
   }
+  nav .dcs li.is-primary span,
+  nav .dcs li.is-local span {
+    @extend %menu-panel-badge;
+  }
   nav li.partitions,
   nav li.nspaces {
     @extend %main-nav-vertical-popover-menu;

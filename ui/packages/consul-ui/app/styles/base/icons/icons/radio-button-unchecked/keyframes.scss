@@ -1,15 +1,9 @@
 @keyframes icon-radio-button-unchecked {
-  50% {
-
-    background-color: var(--icon-color, var(--color-radio-button-unchecked-500, currentColor));
-    -webkit-mask-image: var(--icon-circle-24);
-    mask-image: var(--icon-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-radio-button-unchecked-500, currentColor));
     -webkit-mask-image: var(--icon-circle-16);
     mask-image: var(--icon-circle-16);
+    background-color: var(--icon-color, var(--color-radio-button-unchecked-500, currentColor));
+
   }
 }

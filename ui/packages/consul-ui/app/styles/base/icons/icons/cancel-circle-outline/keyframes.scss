@@ -1,15 +1,9 @@
 @keyframes icon-cancel-circle-outline {
-  50% {
-
-    background-color: var(--icon-color, var(--color-cancel-circle-outline-500, currentColor));
-    -webkit-mask-image: var(--icon-x-circle-24);
-    mask-image: var(--icon-x-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-cancel-circle-outline-500, currentColor));
     -webkit-mask-image: var(--icon-x-circle-16);
     mask-image: var(--icon-x-circle-16);
+    background-color: var(--icon-color, var(--color-cancel-circle-outline-500, currentColor));
+
   }
 }

@@ -1,15 +1,9 @@
 @keyframes icon-x-hexagon {
-  50% {
-
-    background-color: var(--icon-color, var(--color-x-hexagon-500, currentColor));
-    -webkit-mask-image: var(--icon-x-hexagon-24);
-    mask-image: var(--icon-x-hexagon-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-x-hexagon-500, currentColor));
     -webkit-mask-image: var(--icon-x-hexagon-16);
     mask-image: var(--icon-x-hexagon-16);
+    background-color: var(--icon-color, var(--color-x-hexagon-500, currentColor));
+
   }
 }

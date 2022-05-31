@@ -143,25 +143,24 @@ environment and adapt these configurations accordingly.
     **Example Client Agent TLS Configuration**
 
     ```hcl
-    tls {
-      defaults {
-        verify_incoming = false
-        verify_outgoing = true
-        ca_file = "consul-agent-ca.pem"
+      tls {
+        defaults {
+          verify_incoming = false
+          verify_outgoing = true
+          ca_file = "consul-agent-ca.pem"
+        }
+
+        internal_rpc {
+          verify_server_hostname = true
+        }
       }
 
-      internal_rpc {
-        verify_server_hostname = true
+      auto_encrypt {
+        tls = true
       }
-    }
-
-
-    auto_encrypt {
-      tls = true
-    }
     ```
 
-    -> The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming)
+  -> **Note**: The client agent TLS configuration from above sets [`verify_incoming`](/docs/agent/config/config-files#tls_defaults_verify_incoming)
     to false which assumes all incoming traffic is restricted to `localhost`. The primary benefit for this configuration
     would be to avoid provisioning client TLS certificates (in addition to ACL tokens) for all tools or applications
     using the local Consul agent. In this case ACLs should be enabled to provide authorization and only ACL tokens would
@@ -171,7 +170,7 @@ environment and adapt these configurations accordingly.
   capabilities tied to an individual human, or machine operator identity. To ultimately secure the ACL system,
   administrators should configure the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) to "deny".
 
-  The [system](/docs/security/acl/acl-system) is comprised of five major components:
+  The [system](/docs/security/acl) is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 

@@ -32,22 +32,8 @@ type patcher interface {
 
 type patchers map[api.CompoundServiceName]patcher
 
-func getPatcher(patchers patchers, kind api.ServiceKind, name api.CompoundServiceName) patcher {
-	patcher, ok := patchers[name]
-
-	if !ok {
-		return nil
-	}
-
-	if !patcher.CanPatch(kind) {
-		return nil
-	}
-
-	return patcher
-}
-
 // getPatcherBySNI gets the patcher for the associated SNI.
-func getPatcherBySNI(config xdscommon.PluginConfiguration, kind api.ServiceKind, sni string) patcher {
+func getPatcherBySNI(config xdscommon.PluginConfiguration, sni string) patcher {
 	serviceName, ok := config.SNIToServiceName[sni]
 
 	if !ok {
@@ -60,7 +46,28 @@ func getPatcherBySNI(config xdscommon.PluginConfiguration, kind api.ServiceKind,
 	}
 
 	p := makePatcher(serviceConfig)
-	if p == nil || !p.CanPatch(kind) {
+	if p == nil || !p.CanPatch(config.Kind) {
+		return nil
+	}
+
+	return p
+}
+
+// getPatcherByEnvoyID gets the patcher for the associated envoy id.
+func getPatcherByEnvoyID(config xdscommon.PluginConfiguration, envoyID string) patcher {
+	serviceName, ok := config.EnvoyIDToServiceName[envoyID]
+
+	if !ok {
+		return nil
+	}
+
+	serviceConfig, ok := config.ServiceConfigs[serviceName]
+	if !ok {
+		return nil
+	}
+
+	p := makePatcher(serviceConfig)
+	if p == nil || !p.CanPatch(config.Kind) {
 		return nil
 	}
 

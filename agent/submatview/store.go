@@ -150,6 +150,23 @@ func (s *Store) Notify(
 	correlationID string,
 	updateCh chan<- cache.UpdateEvent,
 ) error {
+	return s.NotifyCallback(ctx, req, correlationID, func(ctx context.Context, event cache.UpdateEvent) {
+		select {
+		case updateCh <- event:
+		case <-ctx.Done():
+			return
+		}
+	})
+}
+
+// NotifyCallback subscribes to updates of the entry identified by req in the
+// same way as Notify, but accepts a callback function instead of a channel.
+func (s *Store) NotifyCallback(
+	ctx context.Context,
+	req Request,
+	correlationID string,
+	cb cache.Callback,
+) error {
 	info := req.CacheInfo()
 	key, materializer, err := s.readEntry(req)
 	if err != nil {
@@ -174,16 +191,11 @@ func (s *Store) Notify(
 			}
 
 			index = result.Index
-			u := cache.UpdateEvent{
+			cb(ctx, cache.UpdateEvent{
 				CorrelationID: correlationID,
 				Result:        result.Value,
 				Meta:          cache.ResultMeta{Index: result.Index, Hit: result.Cached},
-			}
-			select {
-			case updateCh <- u:
-			case <-ctx.Done():
-				return
-			}
+			})
 		}
 	}()
 	return nil

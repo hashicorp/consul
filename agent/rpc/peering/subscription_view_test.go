@@ -2,6 +2,7 @@ package peering
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sort"
 	"sync"
@@ -38,87 +39,36 @@ func TestExportedServiceSubscription(t *testing.T) {
 	apiSN := structs.NewServiceName("api", nil)
 	webSN := structs.NewServiceName("web", nil)
 
+	newRegisterHealthEvent := func(id, service string) stream.Event {
+		return stream.Event{
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Payload: state.EventPayloadCheckServiceNode{
+				Op: pbsubscribe.CatalogOp_Register,
+				Value: &structs.CheckServiceNode{
+					Service: &structs.NodeService{
+						ID:      id,
+						Service: service,
+					},
+				},
+			},
+		}
+	}
+
 	// List of updates to the state store:
 	// - api: {register api-1, register api-2, register api-3}
 	// - web: {register web-1, deregister web-1, register web-2}1
 	events := []map[string]stream.Event{
 		{
-			apiSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Register,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "api-1",
-							Service: "api",
-						},
-					},
-				},
-			},
-			webSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Register,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "web-1",
-							Service: "web",
-						},
-					},
-				},
-			},
+			apiSN.String(): newRegisterHealthEvent("api-1", "api"),
+			webSN.String(): newRegisterHealthEvent("web-1", "web"),
 		},
 		{
-			apiSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Register,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "api-2",
-							Service: "api",
-						},
-					},
-				},
-			},
-			webSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Deregister,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "web-1",
-							Service: "web",
-						},
-					},
-				},
-			},
+			apiSN.String(): newRegisterHealthEvent("api-2", "api"),
+			webSN.String(): newRegisterHealthEvent("web-1", "web"),
 		},
 		{
-			apiSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Register,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "api-3",
-							Service: "api",
-						},
-					},
-				},
-			},
-			webSN.String(): stream.Event{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Payload: state.EventPayloadCheckServiceNode{
-					Op: pbsubscribe.CatalogOp_Register,
-					Value: &structs.CheckServiceNode{
-						Service: &structs.NodeService{
-							ID:      "web-2",
-							Service: "web",
-						},
-					},
-				},
-			},
+			apiSN.String(): newRegisterHealthEvent("api-3", "api"),
+			webSN.String(): newRegisterHealthEvent("web-2", "web"),
 		},
 	}
 
@@ -224,9 +174,10 @@ func (s *store) simulateUpdates(ctx context.Context, events []map[string]stream.
 			switch payload.Op {
 			case pbsubscribe.CatalogOp_Register:
 				svcState.current[payload.Value.Service.ID] = payload.Value
-			default:
-				// If not a registration it must be a deregistration:
+			case pbsubscribe.CatalogOp_Deregister:
 				delete(svcState.current, payload.Value.Service.ID)
+			default:
+				panic(fmt.Sprintf("unable to handle op type %v", payload.Op))
 			}
 
 			svcState.idsByIndex[idx] = serviceIDsFromMap(svcState.current)
@@ -305,7 +256,11 @@ func (c *consumer) consume(ctx context.Context, service string, countExpected in
 	updateCh := make(chan cache.UpdateEvent, 10)
 
 	group.Go(func() error {
-		sr := newExportedServiceRequest(hclog.New(nil), structs.NewServiceName(service, nil), c.publisher)
+		sr := newExportedStandardServiceRequest(
+			hclog.New(nil),
+			structs.NewServiceName(service, nil),
+			c.publisher,
+		)
 		return c.viewStore.Notify(gctx, sr, "", updateCh)
 	})
 	group.Go(func() error {

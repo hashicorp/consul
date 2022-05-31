@@ -1,15 +1,9 @@
 @keyframes icon-lock-disabled {
-  50% {
-
-    background-color: var(--icon-color, var(--color-lock-disabled-500, currentColor));
-    -webkit-mask-image: var(--icon-lock-off-24);
-    mask-image: var(--icon-lock-off-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-lock-disabled-500, currentColor));
     -webkit-mask-image: var(--icon-lock-off-16);
     mask-image: var(--icon-lock-off-16);
+    background-color: var(--icon-color, var(--color-lock-disabled-500, currentColor));
+
   }
 }

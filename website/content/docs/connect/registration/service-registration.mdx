@@ -16,7 +16,6 @@ This topic describes how to declare a proxy as a `connect-proxy` in service defi
 Configure a service mesh proxy using the following syntax:
 
 <CodeTabs heading="Basic syntax for configuring a service mesh proxy">
-<CodeBlockConfig>
 
 ```hcl
 name =  <name of the service>
@@ -26,10 +25,7 @@ proxy = {
   <additional proxy parameters> = "<additional parameter values>"
 }
 port = <port where services can discover and connect to proxied services>
-``` 
-
-</CodeBlockConfig>
-<CodeBlockConfig>
+```
 
 ```json
 {
@@ -43,7 +39,6 @@ port = <port where services can discover and connect to proxied services>
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 The following table describes the parameters that must be added to the service definition to declare the service as a proxy. 
@@ -62,7 +57,6 @@ You can specify several additional parameters to configure the proxy to meet you
 In the following example, a proxy named `redis-proxy` is registered as a service mesh proxy. It proxies to the `redis` service and is available at port `8181`. As a result, any service mesh clients searching for a Connect-capable endpoint for `redis` will find this proxy.
 
 <CodeTabs heading="Minimal example of a service mesh proxy">
-<CodeBlockConfig>
 
 ```hcl
 kind = "connect-proxy"
@@ -72,8 +66,6 @@ proxy = {
   destination_service_name = "redis"
 }
 ```
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -85,9 +77,8 @@ proxy = {
   "port": 8181
 }
 ```
-</CodeBlockConfig>
-</CodeTabs>
 
+</CodeTabs>
 
 ### Sidecar Proxy Configuration
 
@@ -107,7 +98,6 @@ See (Sidecar Service Registration)[/docs/connect/registration/sidecar-service] f
 The following example includes values for all available options when registering a proxy instance.
 
 <CodeTabs heading="Example that includes all configuration options when registering a proxy instance">
-<CodeBlockConfig>
 
 ```hcl 
 kind = "connect-proxy"
@@ -126,9 +116,6 @@ proxy = {
   transparent_proxy = {}
   upstreams = []
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -150,7 +137,7 @@ proxy = {
   "port": 8181
 }
 ```
-</CodeBlockConfig>
+
 </CodeTabs>
 
 ### Proxy Parameters
@@ -196,7 +183,6 @@ Upstreams support multiple destination types. The following examples include inf
 -> **Snake case**: The examples in this topic use `snake_case` because the syntax is supported in configuration files and API registrations. See [Service Definition Parameter Case](/docs/discovery/services#service-definition-parameter-case) for additional information.
 
 <CodeTabs heading="Example service destination upstream">
-<CodeBlockConfig>
 
 ```hcl
 destination_type = "service"
@@ -210,8 +196,6 @@ mesh_gateway = {
     mode = "local"
   }
 ```
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -228,11 +212,9 @@ mesh_gateway = {
 },
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 <CodeTabs heading="Example prepared query upstream">
-<CodeBlockConfig>
 
 ```hcl
 destination_type = "prepared_query"
@@ -241,9 +223,6 @@ local_bind_address = "127.0.0.1"
 local_bind_port = 1234
 config = {}
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -254,12 +233,10 @@ config = {}
   "config": {}
 },
 ```
-</CodeBlockConfig>
+
 </CodeTabs>
 
-
 <CodeTabs heading="Example of dialing remote upstreams across admin partitions">
-<CodeBlockConfig>
 
 ```hcl
 destination_partition = "finance"
@@ -268,8 +245,6 @@ destination_type = "service"
 destination_name = "billing"
 local_bind_port = 9090
 ```
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -281,7 +256,6 @@ local_bind_port = 9090
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## Proxy Modes

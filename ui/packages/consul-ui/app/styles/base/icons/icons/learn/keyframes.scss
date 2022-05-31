@@ -1,15 +1,9 @@
 @keyframes icon-learn {
-  50% {
-
-    background-color: var(--icon-color, var(--color-learn-500, currentColor));
-    -webkit-mask-image: var(--icon-learn-24);
-    mask-image: var(--icon-learn-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-learn-500, currentColor));
     -webkit-mask-image: var(--icon-learn-16);
     mask-image: var(--icon-learn-16);
+    background-color: var(--icon-color, var(--color-learn-500, currentColor));
+
   }
 }

@@ -1,8 +1,11 @@
+name: Load Test
+
 on:
   pull_request:
     branches:
       - main
     types: [labeled]
+  workflow_dispatch: {}
 
 jobs:
   trigger-load-test:

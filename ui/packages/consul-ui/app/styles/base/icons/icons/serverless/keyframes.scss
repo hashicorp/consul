@@ -1,15 +1,9 @@
 @keyframes icon-serverless {
-  50% {
-
-    background-color: var(--icon-color, var(--color-serverless-500, currentColor));
-    -webkit-mask-image: var(--icon-serverless-24);
-    mask-image: var(--icon-serverless-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-serverless-500, currentColor));
     -webkit-mask-image: var(--icon-serverless-16);
     mask-image: var(--icon-serverless-16);
+    background-color: var(--icon-color, var(--color-serverless-500, currentColor));
+
   }
 }

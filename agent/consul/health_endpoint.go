@@ -6,7 +6,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -15,7 +17,8 @@ import (
 
 // Health endpoint is used to query the health information
 type Health struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // ChecksInState is used to get all the checks in a given state
@@ -232,34 +235,83 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	err = h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			var thisReply structs.IndexedCheckServiceNodes
+
 			index, nodes, err := f(ws, state, args)
 			if err != nil {
 				return err
 			}
 
-			reply.Index, reply.Nodes = index, nodes
-			if len(args.NodeMetaFilters) > 0 {
-				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
+			resolvedNodes := nodes
+			if args.MergeCentralConfig {
+				for _, node := range resolvedNodes {
+					ns := node.Service
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+						*node.Service = *mergedns
+					}
+				}
+
+				// Generate a hash of the resolvedNodes driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(resolvedNodes, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
 			}
 
-			raw, err := filter.Execute(reply.Nodes)
+			thisReply.Index, thisReply.Nodes = index, resolvedNodes
+
+			if len(args.NodeMetaFilters) > 0 {
+				thisReply.Nodes = nodeMetaFilter(args.NodeMetaFilters, thisReply.Nodes)
+			}
+
+			raw, err := filter.Execute(thisReply.Nodes)
 			if err != nil {
 				return err
 			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = raw.(structs.CheckServiceNodes)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
 			// results that would be filtered out even if the user did have permission.
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
+			if err := h.srv.filterACL(args.Token, &thisReply); err != nil {
 				return err
 			}
 
-			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
+			if err := h.srv.sortNodesByDistanceFrom(args.Source, thisReply.Nodes); err != nil {
+				return err
+			}
+
+			*reply = thisReply
+			return nil
 		})
 
 	// Provide some metrics

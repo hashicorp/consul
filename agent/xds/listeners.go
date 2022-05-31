@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/types"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -23,6 +25,8 @@ import (
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
+
+	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -818,7 +822,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			}
 		}
 
-		err := s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
+		err := s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 		}
@@ -859,6 +863,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		if err != nil {
 			return nil, err
 		}
+		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
+			filterOpts.forwardClientDetails = true
+			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
+		}
 	}
 	filter, err := makeListenerFilter(filterOpts)
 	if err != nil {
@@ -872,7 +880,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		},
 	}
 
-	err = s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
+	err = s.finalizePublicListenerFromConfig(l, cfgSnap, cfg, useHTTPFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
@@ -882,7 +890,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 // finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
 // This include L4 authorization filters and TLS context.
-func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
+func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, proxyCfg ProxyConfig, useHTTPFilter bool) error {
 	if !useHTTPFilter {
 		// Best-effort injection of L4 intentions
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {
@@ -894,6 +902,18 @@ func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v
 	if err := s.injectConnectTLSOnFilterChains(cfgSnap, l); err != nil {
 		return nil
 	}
+
+	// If an inbound connect limit is set, inject a connection limit filter on each chain.
+	if proxyCfg.MaxInboundConnections > 0 {
+		filter, err := makeConnectionLimitFilter(proxyCfg.MaxInboundConnections)
+		if err != nil {
+			return nil
+		}
+		for idx := range l.FilterChains {
+			l.FilterChains[idx].Filters = append(l.FilterChains[idx].Filters, filter)
+		}
+	}
+
 	return nil
 }
 
@@ -1146,6 +1166,12 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 
 		opts.cluster = ""
 		opts.useRDS = true
+
+		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
+			opts.forwardClientDetails = true
+			// This assumes that we have a client cert (mTLS) (implied by the context of this function)
+			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
+		}
 	}
 
 	filter, err := makeListenerFilter(opts)
@@ -1366,16 +1392,18 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 }
 
 type listenerFilterOpts struct {
-	useRDS           bool
-	protocol         string
-	filterName       string
-	routeName        string
-	cluster          string
-	statPrefix       string
-	routePath        string
-	requestTimeoutMs *int
-	ingressGateway   bool
-	httpAuthzFilter  *envoy_http_v3.HttpFilter
+	useRDS               bool
+	protocol             string
+	filterName           string
+	routeName            string
+	cluster              string
+	statPrefix           string
+	routePath            string
+	requestTimeoutMs     *int
+	ingressGateway       bool
+	httpAuthzFilter      *envoy_http_v3.HttpFilter
+	forwardClientDetails bool
+	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -1414,6 +1442,13 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener
 		ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: cluster},
 	}
 	return makeFilter("envoy.filters.network.tcp_proxy", cfg)
+}
+
+func makeConnectionLimitFilter(limit int) (*envoy_listener_v3.Filter, error) {
+	cfg := &envoy_connection_limit_v3.ConnectionLimit{
+		MaxConnections: wrapperspb.UInt64(uint64(limit)),
+	}
+	return makeFilter("envoy.filters.network.connection_limit", cfg)
 }
 
 func makeStatPrefix(prefix, filterName string) string {
@@ -1485,7 +1520,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 		if opts.requestTimeoutMs != nil {
 			r := route.GetRoute()
-			r.Timeout = ptypes.DurationProto(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
+			r.Timeout = durationpb.New(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
 		}
 
 		// If a path is provided, do not match on a catch-all prefix
@@ -1511,6 +1546,18 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	if opts.protocol == "http2" || opts.protocol == "grpc" {
 		cfg.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+	}
+
+	// Note the default leads to setting HttpConnectionManager_SANITIZE
+	if opts.forwardClientDetails {
+		cfg.ForwardClientCertDetails = opts.forwardClientPolicy
+		cfg.SetCurrentClientCertDetails = &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails{
+			Subject: &wrappers.BoolValue{Value: true},
+			Cert:    true,
+			Chain:   true,
+			Dns:     true,
+			Uri:     true,
+		}
 	}
 
 	// Like injectConnectFilters for L4, here we ensure that the first filter
