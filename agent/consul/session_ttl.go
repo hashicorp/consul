@@ -23,6 +23,10 @@ var SessionGauges = []prometheus.GaugeDefinition{
 		Name: []string{"raft", "last_index"},
 		Help: "Represents the raft last index.",
 	},
+	{
+		Name: []string{"raft", "is_leader"},
+		Help: "Track if the server is a leader.",
+	},
 }
 
 var SessionSummaries = []prometheus.SummaryDefinition{
@@ -151,6 +155,11 @@ func (s *Server) updateMetrics() {
 
 			metrics.SetGauge([]string{"raft", "applied_index"}, float32(s.raft.AppliedIndex()))
 			metrics.SetGauge([]string{"raft", "last_index"}, float32(s.raft.LastIndex()))
+			if s.IsLeader() {
+				metrics.SetGauge([]string{"raft", "is_leader"}, float32(1))
+			} else {
+				metrics.SetGauge([]string{"raft", "is_leader"}, float32(0))
+			}
 		case <-s.shutdownCh:
 			return
 		}
