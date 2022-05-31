@@ -3502,7 +3502,7 @@ func terminatingConfigGatewayServices(
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
 			SNI:         svc.SNI,
-			Kind:        kind,
+			ServiceKind: kind,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
@@ -3605,7 +3605,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		mapping := service.Clone()
 
 		mapping.Service = structs.NewServiceName(e.Name, &service.Service.EnterpriseMeta)
-		mapping.Kind = structs.GatewayServiceKindDestination
+		mapping.ServiceKind = structs.GatewayServiceKindDestination
 		mapping.FromWildcard = true
 
 		err = updateGatewayService(tx, idx, mapping)
@@ -3674,7 +3674,7 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 
 			gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 			gatewaySvc.FromWildcard = true
-			gatewaySvc.Kind = kind
+			gatewaySvc.ServiceKind = kind
 
 			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
@@ -3699,7 +3699,7 @@ func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, ki
 		gatewaySvc := service.Clone()
 
 		gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
-		gatewaySvc.Kind = kind
+		gatewaySvc.ServiceKind = kind
 
 		if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 			return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())

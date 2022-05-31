@@ -1122,7 +1122,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
-				Kind:        structs.GatewayServiceKindService,
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
@@ -1156,7 +1156,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
-				Kind:        structs.GatewayServiceKindService,
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
