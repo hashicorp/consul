@@ -5415,7 +5415,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	// Delete a service specified directly.
 	assert.Nil(t, s.DeleteService(20, "foo", "db", nil, ""))
 
-	// The watch will file because we need to update the gateway-services kind
+	// The watch will fire because we need to update the gateway-services kind
 	assert.True(t, watchFired(ws))
 	assert.True(t, watchFired(otherWS))
 
