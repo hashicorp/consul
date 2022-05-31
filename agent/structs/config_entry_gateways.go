@@ -589,9 +589,9 @@ func (e *TerminatingGatewayConfigEntry) Warnings() []string {
 type GatewayServiceKind string
 
 const (
-	GatewayservicekindUnknown     GatewayServiceKind = ""
-	GatewayservicekindDestination GatewayServiceKind = "gateway-service-destination"
-	GatewayservicekindService     GatewayServiceKind = "gateway-service-service"
+	GatewayServiceKindUnknown     GatewayServiceKind = ""
+	GatewayServiceKindDestination GatewayServiceKind = "destination"
+	GatewayServiceKindService     GatewayServiceKind = "service"
 )
 
 // GatewayService is used to associate gateways with their linked services.

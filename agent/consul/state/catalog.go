@@ -850,10 +850,10 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
 			sn := structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
-			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
-			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
+			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
@@ -3516,20 +3516,26 @@ func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (s
 		EnterpriseMeta: *entMeta,
 	})
 	if err != nil {
-		return structs.GatewayservicekindUnknown, err
+		return structs.GatewayServiceKindUnknown, err
 	}
 	if serviceIter != nil {
-		return structs.GatewayservicekindService, err
+		return structs.GatewayServiceKindService, err
 	}
 
 	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
 	if err != nil {
-		return structs.GatewayservicekindUnknown, err
+		return structs.GatewayServiceKindUnknown, err
 	}
 	if entry != nil {
-		return structs.GatewayservicekindDestination, nil
+		sd, ok := entry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return structs.GatewayServiceKindUnknown, fmt.Errorf("invalid config entry type %T", entry)
+		}
+		if sd.Destination != nil {
+			return structs.GatewayServiceKindDestination, nil
+		}
 	}
-	return structs.GatewayservicekindUnknown, nil
+	return structs.GatewayServiceKindUnknown, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
@@ -3599,7 +3605,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		mapping := service.Clone()
 
 		mapping.Service = structs.NewServiceName(e.Name, &service.Service.EnterpriseMeta)
-		mapping.Kind = structs.GatewayservicekindDestination
+		mapping.Kind = structs.GatewayServiceKindDestination
 		mapping.FromWildcard = true
 
 		err = updateGatewayService(tx, idx, mapping)

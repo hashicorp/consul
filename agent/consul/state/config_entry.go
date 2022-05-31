@@ -353,8 +353,8 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			if err != nil {
 				return fmt.Errorf("failed to get gateway service kind for service %s: %v", sn.Name, err)
 			}
-			if gsKind == structs.GatewayservicekindDestination {
-				gsKind = structs.GatewayservicekindUnknown
+			if gsKind == structs.GatewayServiceKindDestination {
+				gsKind = structs.GatewayServiceKindUnknown
 			}
 			if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
@@ -410,8 +410,8 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		if conf.(*structs.ServiceConfigEntry).Destination != nil {
 			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
 			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
-			if gsKind == structs.GatewayservicekindUnknown {
-				gsKind = structs.GatewayservicekindDestination
+			if gsKind == structs.GatewayServiceKindUnknown {
+				gsKind = structs.GatewayServiceKindDestination
 			}
 			if err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)

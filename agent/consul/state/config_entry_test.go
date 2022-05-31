@@ -338,7 +338,7 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -353,7 +353,7 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -367,7 +367,64 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
+
+}
+
+func TestStore_ServiceDefaults_Kind_NotDestination(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	Gtwy := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "Gtwy1",
+		Services: []structs.LinkedService{
+			{
+				Name: "dest1",
+			},
+		},
+	}
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
+
+	destination := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "dest1",
+	}
+
+	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
+
+	ws := memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	// Create
+	require.NoError(t, s.EnsureConfigEntry(0, destination))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.False(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
+
+	ws = memdb.NewWatchSet()
+	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+
+	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
+
+	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	require.False(t, watchFired(ws))
+
+	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+	require.NoError(t, err)
+	require.Len(t, gatewayServices, 1)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 }
 
@@ -400,7 +457,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -416,14 +473,14 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	require.NoError(t, s.EnsureConfigEntry(0, destination))
 
 	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -437,7 +494,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 }
 
@@ -470,7 +527,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -482,7 +539,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
@@ -493,7 +550,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -507,7 +564,7 @@ func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T)
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 }
 
@@ -535,7 +592,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 	ws := memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -551,7 +608,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -565,7 +622,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 
 }
 
@@ -606,7 +663,7 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -620,7 +677,7 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindUnknown)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindUnknown)
 }
 
 func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
@@ -662,7 +719,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
@@ -718,7 +775,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination_Wildcard(t *t
 	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindDestination)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindDestination)
 
 	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
 	require.NoError(t, s.EnsureService(0, "node1", service))
@@ -729,7 +786,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination_Wildcard(t *t
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].Kind, structs.GatewayservicekindService)
+	require.Equal(t, gatewayServices[0].Kind, structs.GatewayServiceKindService)
 
 	ws = memdb.NewWatchSet()
 	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
