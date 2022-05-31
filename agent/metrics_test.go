@@ -133,7 +133,7 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
-func assertMetricsWithLabelHaveValueDifferentFrom(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string, value string) {
+func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -148,8 +148,8 @@ func assertMetricsWithLabelHaveValueDifferentFrom(t *testing.T, respRec *httptes
 
 		if strings.Contains(line, labelWithValueTarget) {
 			s := strings.SplitN(line, " ", 2)
-			if s[1] == value {
-				t.Fatalf("Metric with label provided \"%s:%s\" has the same outcome as the provided value `%s`", label, labelValue, value)
+			if s[1] == "0" {
+				t.Fatalf("Metric with label provided \"%s:%s\" has the value 0", label, labelValue)
 			}
 		}
 	}
@@ -225,6 +225,32 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
 	})
+
+	t.Run("RPC calls with elapsed time below 1ms are reported as decimal", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics_3"
+		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+			prefix_filter = ["+%s"]
+		}
+		`, metricsPrefix, allowRPCMetricRule)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		err := a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
+	})
+
 }
 
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around
@@ -441,32 +467,4 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		require.Contains(t, out, "agent_5_mesh_active_signing_ca_expiry 3.15")
 	})
 
-}
-
-func TestMetricsOutput(t *testing.T) {
-	skipIfShortTesting(t)
-
-	t.Run("RPC calls with elapsed time below 1ms are reported as decimal", func(t *testing.T) {
-		metricsPrefix := "new_rpc_metrics_2"
-		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
-		hcl := fmt.Sprintf(`
-		telemetry = {
-			prometheus_retention_time = "5s"
-			disable_hostname = true
-			metrics_prefix = "%s"
-			prefix_filter = ["+%s"]
-		}
-		`, metricsPrefix, allowRPCMetricRule)
-
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
-		defer a.Shutdown()
-
-		var out struct{}
-		_ = a.RPC("Status.Ping", struct{}{}, &out)
-
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
-
-		assertMetricsWithLabelHaveValueDifferentFrom(t, respRec, "method", "Status.Ping", "0")
-	})
 }
