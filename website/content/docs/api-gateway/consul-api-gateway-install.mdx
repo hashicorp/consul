@@ -277,12 +277,12 @@ example-gateway   1/1     1            1
 ```
 ```
 $ kubectl scale deployment/example-gateway --replicas=3
-deployment.apps/api-gateway scaled
+deployment.apps/example-gateway scaled
 ```
 ```
-$ k get deployment -n consul --selector api-gateway.consul.hashicorp.com/name=api-gateway
-NAME          READY   UP-TO-DATE   AVAILABLE
-api-gateway   3/3     3            3
+$ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   3/3     3            3
 ```
 
 ### Route
