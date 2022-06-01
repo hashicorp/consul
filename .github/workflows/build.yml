@@ -300,7 +300,7 @@ jobs:
         if: ${{ matrix.arch == 'arm' }}
         run: |
           docker run --platform=linux/arm/v7 -v $(pwd):/workdir -w /workdir  \
-            arm64v8/debian /workdir/verify_bin.sh ./consul v${{ env.version }}
+            arm32v7/debian /workdir/verify_bin.sh ./consul v${{ env.version }}
 
       - name: Run verification for ${{ matrix.arch }} binary (using Docker linux/arm64)
         if: ${{ matrix.arch == 'arm64' }}
@@ -374,7 +374,7 @@ jobs:
             --platform=linux/arm/v7 \
             -v $(pwd):/workdir \
             -w /workdir \
-            arm64v8/debian \
+            arm32v7/debian \
             /workdir/.github/scripts/verify_deb.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
 
