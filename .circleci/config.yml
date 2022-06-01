@@ -545,7 +545,7 @@ jobs:
   # run integration tests on nomad/main
   nomad-integration-main:
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.17
+      - image: docker.mirror.hashicorp.services/cimg/go:1.18
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
