@@ -7,8 +7,8 @@ set -euo pipefail
 # report why it failed. This is meant to be run as part of the build workflow to verify the built
 # .deb meets some basic criteria for validity.
 
-SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-SCRIPT_DIR="$( dirname ${SCRIPT_PATH} )"
+# set this so we can locate and execute the verify_bin.sh script for verifying version output
+SCRIPT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 function usage {
   echo "./verify_deb.sh <path_to_deb> <expect_version>"
@@ -31,6 +31,9 @@ function main {
     exit 1
   fi
 
+  # expand globs for path names, if this fails, the script will exit
+  deb_path=$(echo ${deb_path})
+
   if [[ ! -e "${deb_path}" ]]; then
     echo "ERROR: package at ${deb_path} does not exist."
     usage
@@ -39,7 +42,7 @@ function main {
 
   apt -y update
   apt -y install openssl
-  dpkg -i "${deb_path}"
+  dpkg -i ${deb_path}
 
   # use the script that should be located next to this one for verifying the output
   exec "${SCRIPT_DIR}/verify_bin.sh" $(which consul) "${expect_version}"
