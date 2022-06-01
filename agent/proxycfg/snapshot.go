@@ -44,9 +44,13 @@ type ConfigSnapshotUpstreams struct {
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedUpstreamTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// WatchedPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
+	// watches for peer trust bundles any time the list of upstream peers changes.
+	WatchedPeerTrustBundles map[string]context.CancelFunc
+
+	// PeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
 	// It is used to store trust bundles for upstream TLS transport sockets.
-	WatchedUpstreamTrustBundles map[string]*pbpeering.PeeringTrustBundle
+	PeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -139,7 +143,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
-		len(c.WatchedUpstreamTrustBundles) == 0 &&
+		len(c.WatchedPeerTrustBundles) == 0 &&
+		len(c.PeerTrustBundles) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&

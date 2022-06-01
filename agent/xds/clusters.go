@@ -78,6 +78,8 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
+	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
+	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
@@ -86,16 +88,15 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
+		if _, ok := cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
+			continue
+		}
 
 		chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid]
 		if !ok {
 			// this should not happen
 			return nil, fmt.Errorf("no endpoint map for upstream %q", uid)
-		}
-
-		if _, ok := cfgSnap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
-			// The trust bundle for this upstream is not available yet, skip for now.
-			continue
 		}
 
 		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, upstreamCfg, chain, chainEndpoints, cfgSnap)
@@ -800,7 +801,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 		rootPEMs := cfgSnap.RootPEMs()
 		if uid.Peer != "" {
-			rootPEMs = cfgSnap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+			rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
 		}
 		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),

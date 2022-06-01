@@ -31,7 +31,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 		}
 	}, []UpdateEvent{
 		{
-			CorrelationID: peerTrustBundleWatchID + "cloud",
+			CorrelationID: peerTrustBundleIDPrefix + "cloud",
 			Result: &pbpeering.TrustBundleReadResponse{
 				Bundle: TestPeerTrustBundles(t).Bundles[0],
 			},

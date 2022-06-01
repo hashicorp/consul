@@ -2490,9 +2490,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
 						}),
-						rootsWatchID:                      genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:                       genVerifyLeafWatch("web", "dc1"),
-						peerTrustBundleWatchID + "peer-a": genVerifyTrustBundleReadWatch("peer-a"),
+						rootsWatchID:                       genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                        genVerifyLeafWatch("web", "dc1"),
+						peerTrustBundleIDPrefix + "peer-a": genVerifyTrustBundleReadWatch("peer-a"),
 						// No Peering watch
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
@@ -2509,7 +2509,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 1, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamTrustBundles, "peer-a")
+						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
+						require.Len(t, snap.ConnectProxy.PeerTrustBundles, 0, "%+v", snap.ConnectProxy.PeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
@@ -2541,7 +2542,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Err: nil,
 						},
 						{
-							CorrelationID: peerTrustBundleWatchID + "peer-a",
+							CorrelationID: peerTrustBundleIDPrefix + "peer-a",
 							Result: &pbpeering.TrustBundleReadResponse{
 								Bundle: peerTrustBundles.Bundles[0],
 							},
@@ -2558,7 +2559,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 2, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 2, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
-						require.Equal(t, snap.ConnectProxy.WatchedUpstreamTrustBundles["peer-a"], peerTrustBundles.Bundles[0], "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
+						require.Equal(t, snap.ConnectProxy.PeerTrustBundles["peer-a"], peerTrustBundles.Bundles[0], "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
