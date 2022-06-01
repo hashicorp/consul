@@ -761,9 +761,9 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContextFromLeaf(
-				cfgSnap,
+			CommonTlsContext: makeCommonTLSContext(
 				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 			),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
@@ -1109,9 +1109,9 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	protocol string,
 ) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContextFromLeaf(
-			cfgSnap,
+		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[service],
+			cfgSnap.RootPEMs(),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
@@ -1637,21 +1637,14 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
-func makeCommonTLSContextFromLeaf(
-	cfgSnap *proxycfg.ConfigSnapshot,
+func makeCommonTLSContext(
 	leaf *structs.IssuedCert,
+	rootPEMs string,
 	tlsParams *envoy_tls_v3.TlsParameters,
 ) *envoy_tls_v3.CommonTlsContext {
-	// Concatenate all the root PEMs into one.
-	if cfgSnap.Roots == nil {
+	if rootPEMs == "" {
 		return nil
 	}
-
-	rootPEMS := ""
-	for _, root := range cfgSnap.Roots.Roots {
-		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
-	}
-
 	if tlsParams == nil {
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
@@ -1677,7 +1670,7 @@ func makeCommonTLSContextFromLeaf(
 				// TODO(banks): later for L7 support we may need to configure ALPN here.
 				TrustedCa: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: rootPEMS,
+						InlineString: rootPEMs,
 					},
 				},
 			},

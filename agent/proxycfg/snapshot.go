@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 
@@ -536,6 +537,15 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 	default:
 		return nil
 	}
+}
+
+// RootPEMs returns all PEM-encoded public certificates for the root CA.
+func (s *ConfigSnapshot) RootPEMs() string {
+	var rootPEMs string
+	for _, root := range s.Roots.Roots {
+		rootPEMs += ca.EnsureTrailingNewline(root.RootCert)
+	}
+	return rootPEMs
 }
 
 func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {

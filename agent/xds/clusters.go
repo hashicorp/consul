@@ -210,9 +210,9 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Service:    uid.Name,
 			}
 
-			commonTLSContext := makeCommonTLSContextFromLeaf(
-				cfgSnap,
+			commonTLSContext := makeCommonTLSContext(
 				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
 			err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
@@ -598,9 +598,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeaf(
-		cfgSnap,
+	commonTLSContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
+		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
@@ -794,9 +794,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeaf(
-			cfgSnap,
+		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),
+			cfgSnap.RootPEMs(),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
 
@@ -809,7 +809,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			CommonTlsContext: commonTLSContext,
 			Sni:              sni,
 		}
-
 		transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 		if err != nil {
 			return nil, err
