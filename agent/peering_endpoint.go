@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
@@ -12,10 +13,7 @@ import (
 
 // PeeringEndpoint handles GET, DELETE on v1/peering/name
 func (s *HTTPHandlers) PeeringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	name, err := getPathSuffixUnescaped(req.URL.Path, "/v1/peering/")
-	if err != nil {
-		return nil, err
-	}
+	name := strings.TrimPrefix(req.URL.Path, "/v1/peering/")
 	if name == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Must specify a name to fetch."}
 	}

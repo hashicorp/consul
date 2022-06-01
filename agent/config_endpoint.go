@@ -33,10 +33,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
-	if err != nil {
-		return nil, err
-	}
+	kindAndName := strings.TrimPrefix(req.URL.Path, "/v1/config/")
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	switch len(pathArgs) {
@@ -84,10 +81,7 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
-	if err != nil {
-		return nil, err
-	}
+	kindAndName := strings.TrimPrefix(req.URL.Path, "/v1/config/")
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	if len(pathArgs) != 2 {
