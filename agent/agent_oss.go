@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -58,3 +59,5 @@ func (a *Agent) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (a *Agent) registerEntCache() {}
+
+func (*Agent) fillEnterpriseProxyDataSources(*proxycfg.DataSources) {}

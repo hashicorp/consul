@@ -22,53 +22,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// TestCacheTypes encapsulates all the different cache types proxycfg.State will
-// watch/request for controlling one during testing.
-type TestCacheTypes struct {
-	roots             *ControllableCacheType
-	leaf              *ControllableCacheType
-	intentions        *ControllableCacheType
-	health            *ControllableCacheType
-	query             *ControllableCacheType
-	compiledChain     *ControllableCacheType
-	serviceHTTPChecks *ControllableCacheType
-	configEntry       *ControllableCacheType
-}
-
-// NewTestCacheTypes creates a set of ControllableCacheTypes for all types that
-// proxycfg will watch suitable for testing a proxycfg.State or Manager.
-func NewTestCacheTypes(t testing.T) *TestCacheTypes {
-	t.Helper()
-	ct := &TestCacheTypes{
-		roots:             NewControllableCacheType(t),
-		leaf:              NewControllableCacheType(t),
-		intentions:        NewControllableCacheType(t),
-		health:            NewControllableCacheType(t),
-		query:             NewControllableCacheType(t),
-		compiledChain:     NewControllableCacheType(t),
-		serviceHTTPChecks: NewControllableCacheType(t),
-		configEntry:       NewControllableCacheType(t),
-	}
-	ct.query.blocking = false
-	return ct
-}
-
-// TestCacheWithTypes registers ControllableCacheTypes for all types that
-// proxycfg will watch suitable for testing a proxycfg.State or Manager.
-func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
-	c := cache.New(cache.Options{})
-	c.RegisterType(cachetype.ConnectCARootName, types.roots)
-	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
-	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
-	c.RegisterType(cachetype.HealthServicesName, types.health)
-	c.RegisterType(cachetype.PreparedQueryName, types.query)
-	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain)
-	c.RegisterType(cachetype.ServiceHTTPChecksName, types.serviceHTTPChecks)
-	c.RegisterType(cachetype.ConfigEntryName, types.configEntry)
-
-	return c
-}
-
 // TestCerts generates a CA and Leaf suitable for returning as mock CA
 // root/leaf cache requests.
 func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
@@ -668,19 +621,9 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
-type noopCacheNotifier struct{}
+type noopDataSource[ReqType any] struct{}
 
-var _ CacheNotifier = (*noopCacheNotifier)(nil)
-
-func (*noopCacheNotifier) Notify(_ context.Context, _ string, _ cache.Request, _ string, _ chan<- UpdateEvent) error {
-	return nil
-}
-
-type noopHealth struct{}
-
-var _ Health = (*noopHealth)(nil)
-
-func (*noopHealth) Notify(_ context.Context, _ structs.ServiceSpecificRequest, _ string, _ chan<- UpdateEvent) error {
+func (*noopDataSource[ReqType]) Notify(context.Context, ReqType, string, chan<- UpdateEvent) error {
 	return nil
 }
 
@@ -711,8 +654,24 @@ func testConfigSnapshotFixture(
 		source: &structs.QuerySource{
 			Datacenter: "dc1",
 		},
-		cache:  &noopCacheNotifier{},
-		health: &noopHealth{},
+		dataSources: DataSources{
+			CARoots:                         &noopDataSource[*structs.DCSpecificRequest]{},
+			CompiledDiscoveryChain:          &noopDataSource[*structs.DiscoveryChainRequest]{},
+			ConfigEntry:                     &noopDataSource[*structs.ConfigEntryQuery]{},
+			ConfigEntryList:                 &noopDataSource[*structs.ConfigEntryQuery]{},
+			Datacenters:                     &noopDataSource[*structs.DatacentersRequest]{},
+			FederationStateListMeshGateways: &noopDataSource[*structs.DCSpecificRequest]{},
+			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
+			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
+			Intentions:                      &noopDataSource[*structs.IntentionQueryRequest]{},
+			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
+			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
+			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
+			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
+			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
+			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
+		},
 		dnsConfig: DNSConfig{ // TODO: make configurable
 			Domain:    "consul",
 			AltDomain: "",
@@ -720,6 +679,7 @@ func testConfigSnapshotFixture(
 		serverSNIFn:           serverSNIFn,
 		intentionDefaultAllow: false, // TODO: make configurable
 	}
+	testConfigSnapshotFixtureEnterprise(&config)
 	s, err := newServiceInstanceFromNodeService(ProxyID{ServiceID: ns.CompoundServiceID()}, ns, token)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -888,4 +848,160 @@ func golden(t testing.T, name string) string {
 func projectRoot() string {
 	_, base, _, _ := runtime.Caller(0)
 	return filepath.Dir(base)
+}
+
+// NewTestDataSources creates a set of data sources that can be used to provide
+// the Manager with data in tests.
+func NewTestDataSources() *TestDataSources {
+	srcs := &TestDataSources{
+		CARoots:                         NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedCARoots](),
+		CompiledDiscoveryChain:          NewTestDataSource[*structs.DiscoveryChainRequest, *structs.DiscoveryChainResponse](),
+		ConfigEntry:                     NewTestDataSource[*structs.ConfigEntryQuery, *structs.ConfigEntryResponse](),
+		ConfigEntryList:                 NewTestDataSource[*structs.ConfigEntryQuery, *structs.IndexedConfigEntries](),
+		Datacenters:                     NewTestDataSource[*structs.DatacentersRequest, *[]string](),
+		FederationStateListMeshGateways: NewTestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes](),
+		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
+		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
+		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
+		Intentions:                      NewTestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches](),
+		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
+		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
+		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
+		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
+		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
+		ServiceList:                     NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList](),
+	}
+	srcs.buildEnterpriseSources()
+	return srcs
+}
+
+type TestDataSources struct {
+	CARoots                         *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedCARoots]
+	CompiledDiscoveryChain          *TestDataSource[*structs.DiscoveryChainRequest, *structs.DiscoveryChainResponse]
+	ConfigEntry                     *TestDataSource[*structs.ConfigEntryQuery, *structs.ConfigEntryResponse]
+	ConfigEntryList                 *TestDataSource[*structs.ConfigEntryQuery, *structs.IndexedConfigEntries]
+	FederationStateListMeshGateways *TestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes]
+	Datacenters                     *TestDataSource[*structs.DatacentersRequest, *[]string]
+	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
+	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
+	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
+	Intentions                      *TestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches]
+	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
+	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
+	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
+	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
+	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
+	ServiceList                     *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList]
+
+	TestDataSourcesEnterprise
+}
+
+func (t *TestDataSources) ToDataSources() DataSources {
+	ds := DataSources{
+		CARoots:                t.CARoots,
+		CompiledDiscoveryChain: t.CompiledDiscoveryChain,
+		ConfigEntry:            t.ConfigEntry,
+		ConfigEntryList:        t.ConfigEntryList,
+		Datacenters:            t.Datacenters,
+		GatewayServices:        t.GatewayServices,
+		Health:                 t.Health,
+		HTTPChecks:             t.HTTPChecks,
+		Intentions:             t.Intentions,
+		IntentionUpstreams:     t.IntentionUpstreams,
+		InternalServiceDump:    t.InternalServiceDump,
+		LeafCertificate:        t.LeafCertificate,
+		PreparedQuery:          t.PreparedQuery,
+		ResolvedServiceConfig:  t.ResolvedServiceConfig,
+		ServiceList:            t.ServiceList,
+	}
+	t.fillEnterpriseDataSources(&ds)
+	return ds
+}
+
+// NewTestDataSource creates a test data source that accepts requests to Notify
+// of type RequestType and dispatches UpdateEvents with a result of type ValType.
+//
+// TODO(agentless): we still depend on cache.Request here because it provides the
+// CacheInfo method used for hashing the request - this won't work when we extract
+// this package into a shared library.
+func NewTestDataSource[ReqType cache.Request, ValType any]() *TestDataSource[ReqType, ValType] {
+	return &TestDataSource[ReqType, ValType]{
+		data:    make(map[string]ValType),
+		trigger: make(chan struct{}),
+	}
+}
+
+type TestDataSource[ReqType cache.Request, ValType any] struct {
+	mu      sync.Mutex
+	data    map[string]ValType
+	lastReq ReqType
+
+	// Note: trigger is currently global for all requests of the given type, so
+	// Manager may receive duplicate events - as the dispatch goroutine will be
+	// woken up whenever *any* requested data changes.
+	trigger chan struct{}
+}
+
+// Notify satisfies the interfaces used by Manager to subscribe to data.
+func (t *TestDataSource[ReqType, ValType]) Notify(ctx context.Context, req ReqType, correlationID string, ch chan<- UpdateEvent) error {
+	t.mu.Lock()
+	t.lastReq = req
+	t.mu.Unlock()
+
+	go t.dispatch(ctx, correlationID, t.reqKey(req), ch)
+
+	return nil
+}
+
+func (t *TestDataSource[ReqType, ValType]) dispatch(ctx context.Context, correlationID, key string, ch chan<- UpdateEvent) {
+	for {
+		t.mu.Lock()
+		val, ok := t.data[key]
+		trigger := t.trigger
+		t.mu.Unlock()
+
+		if ok {
+			event := UpdateEvent{
+				CorrelationID: correlationID,
+				Result:        val,
+			}
+
+			select {
+			case ch <- event:
+			case <-ctx.Done():
+			}
+		}
+
+		select {
+		case <-trigger:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (t *TestDataSource[ReqType, ValType]) reqKey(req ReqType) string {
+	return req.CacheInfo().Key
+}
+
+// Set broadcasts the given value to consumers that subscribed with the given
+// request.
+func (t *TestDataSource[ReqType, ValType]) Set(req ReqType, val ValType) error {
+	t.mu.Lock()
+	t.data[t.reqKey(req)] = val
+	oldTrigger := t.trigger
+	t.trigger = make(chan struct{})
+	t.mu.Unlock()
+
+	close(oldTrigger)
+
+	return nil
+}
+
+// LastReq returns the request from the last call to Notify that was received.
+func (t *TestDataSource[ReqType, ValType]) LastReq() ReqType {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	return t.lastReq
 }
