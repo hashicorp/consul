@@ -84,10 +84,10 @@ func TestLeadershipMetrics(t *testing.T) {
 	for i, n := range cluster.Nodes {
 		addr, port := n.GetAddr()
 		if addr == leadAddr && port == leaderPort {
-			err = retryWithBackoff(leaderNode, ".raft.is_leader\",\"Value\":1,")
+			err = retryWithBackoff(leaderNode, ".server.is_leader\",\"Value\":1,")
 			require.NoError(t, err, "%dth node(leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.is_leader\",\"Value\":1,")
 		} else {
-			err = retryWithBackoff(n, ".raft.is_leader\",\"Value\":0,")
+			err = retryWithBackoff(n, ".server.is_leader\",\"Value\":0,")
 			require.NoError(t, err, "%dth node(non-leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.is_leader\",\"Value\":0,")
 		}
 	}
