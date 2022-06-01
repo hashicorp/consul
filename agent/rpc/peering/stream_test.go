@@ -63,10 +63,25 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 		}
 	}()
 
+	expectedMsg := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
+			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
+				Address: "",
+			},
+		},
+	}
+
+	// expect ReplicationMessage_LeaderAddress
 	msg, err := client.Recv()
-	require.Nil(t, msg)
-	require.Error(t, err)
-	require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
+	require.NoError(t, err)
+	require.NotEmpty(t, msg)
+	prototest.AssertDeepEqual(t, expectedMsg, msg)
+
+	// expect error
+	msg2, err2 := client.Recv()
+	require.Nil(t, msg2)
+	require.Error(t, err2)
+	require.Contains(t, err2.Error(), "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
 }
 
 // TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
@@ -147,10 +162,25 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	err2 := client.Send(input2)
 	require.NoError(t, err2)
 
+	expectedMsg := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
+			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
+				Address: "",
+			},
+		},
+	}
+
+	// expect ReplicationMessage_LeaderAddress
 	msg2, err2 := client.Recv()
-	require.Nil(t, msg2)
-	require.Error(t, err2)
-	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+	require.NoError(t, err2)
+	require.NotEmpty(t, msg2)
+	prototest.AssertDeepEqual(t, expectedMsg, msg2)
+
+	// expect error
+	msg3, err3 := client.Recv()
+	require.Nil(t, msg3)
+	require.Error(t, err3)
+	require.Contains(t, err3.Error(), "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {

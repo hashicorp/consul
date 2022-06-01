@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -473,9 +474,14 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 	if !s.Backend.IsLeader() {
 		// we are not the leader so we will hang up on the dialer
 
-		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
 		s.logger.Error("cannot establish a peering stream on a follower node")
-		return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+		var merr *multierror.Error
+		if err := s.sendLeaderAddrMsg(stream, nil, s.logger); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+
+		merr = multierror.Append(grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node"), merr)
+		return merr.ErrorOrNil()
 	}
 
 	// Initial message on a new stream must be a new subscription request.
@@ -660,9 +666,14 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			if !s.Backend.IsLeader() {
 				// we are not the leader anymore so we will hang up on the dialer
 
-				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
 				logger.Error("node is not a leader anymore; cannot continue streaming")
-				return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+				var merr *multierror.Error
+				if err := s.sendLeaderAddrMsg(req.Stream, status, logger); err != nil {
+					merr = multierror.Append(merr, err)
+				}
+
+				merr = multierror.Append(grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming"), merr)
+				return merr.ErrorOrNil()
 			}
 
 			if req := msg.GetRequest(); req != nil {
@@ -738,6 +749,27 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 		}
 	}
+}
+
+// TODO(peering): why not have a modular send message func for replication messages?
+func (s *Service) sendLeaderAddrMsg(stream BidirectionalStream, status *lockableStreamStatus, logger hclog.Logger) error {
+	reply := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
+			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
+				Address: s.Backend.LeadershipMonitor().GetLeaderAddr(),
+			},
+		},
+	}
+
+	logTraceSend(logger, reply)
+	if err := stream.Send(reply); err != nil {
+		if status != nil {
+			status.trackSendError(err.Error())
+		}
+		return fmt.Errorf("failed to send leader address to stream: %v", err)
+	}
+
+	return nil
 }
 
 func getTrustDomain(store Store, logger hclog.Logger) (string, error) {
