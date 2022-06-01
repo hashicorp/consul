@@ -393,6 +393,12 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
+.PHONY: help
+help:
+	$(info available make targets)
+	$(info ----------------------)
+	@grep "^[a-z0-9-][a-z0-9.-]*:" GNUmakefile  | cut -d':' -f1 | sort
+
 .PHONY: all bin dev dist cov test test-internal cover lint ui tools
 .PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
 .PHONY: version test-envoy-integ
