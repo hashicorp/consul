@@ -552,17 +552,9 @@ jobs:
       - image: docker.mirror.hashicorp.services/cimg/go:1.10
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: v0.8.7
     steps: &NOMAD_INTEGRATION_TEST_STEPS
-      - run: |
-          echo "== env"
-          env
-          echo "== go env"
-          go env
-          echo "== find /"
-          find /
-
       - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
