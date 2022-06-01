@@ -425,6 +425,7 @@ jobs:
         if: ${{ matrix.arch == '386' || matrix.arch == 'x86_64' }}
         run: |
           docker run \
+            -it --rm \
             --platform linux/amd64 \
             -v $(pwd):/workdir \
             -w /workdir centos:7 \
@@ -435,6 +436,7 @@ jobs:
         if: ${{ matrix.arch == 'arm' }}
         run: |
           docker run \
+            -it --rm \
             --platform=linux/arm/v7 \
             -v $(pwd):/workdir \
             -w /workdir centos:7 \
@@ -445,6 +447,7 @@ jobs:
         if: ${{ matrix.arch == 'aarch64' }}
         run: |
           docker run \
+            -it --rm \
             --platform=linux/arm64 \
             -v $(pwd):/workdir \
             -w /workdir centos:7 \
