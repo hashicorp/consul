@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // CacheCARoots satisfies the proxycfg.CARoots interface by sourcing data from
@@ -98,6 +99,10 @@ func CacheResolvedServiceConfig(c *cache.Cache) proxycfg.ResolvedServiceConfig {
 // data from the agent cache.
 func CacheServiceList(c *cache.Cache) proxycfg.ServiceList {
 	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.CatalogServiceListName}
+}
+
+func CacheTrustBundle(c *cache.Cache) proxycfg.TrustBundle {
+	return &cacheProxyDataSource[*pbpeering.TrustBundleReadRequest]{c, cachetype.TrustBundleReadName}
 }
 
 // cacheProxyDataSource implements a generic wrapper around the agent cache to

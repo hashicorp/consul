@@ -645,6 +645,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
+		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
 	}
 	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
@@ -3819,7 +3820,7 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
-	//if auto reload is enabled, make sure we have the right certs file watched.
+	// if auto reload is enabled, make sure we have the right certs file watched.
 	if autoReload {
 		for _, f := range []struct {
 			oldCfg tlsutil.ProtocolConfig
@@ -4096,6 +4097,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.ConfigEntryName, &cachetype.ConfigEntry{RPC: a})
 
 	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
+
+	a.cache.RegisterType(cachetype.TrustBundleReadName, &cachetype.TrustBundle{Client: a.rpcClientPeering})
 
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})

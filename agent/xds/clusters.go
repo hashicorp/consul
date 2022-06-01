@@ -13,7 +13,6 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
@@ -79,12 +78,18 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
+	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
+	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
 		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+		if _, ok := cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
 			continue
 		}
 
@@ -210,9 +215,9 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Service:    uid.Name,
 			}
 
-			commonTLSContext := makeCommonTLSContextFromLeaf(
-				cfgSnap,
+			commonTLSContext := makeCommonTLSContext(
 				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
 			err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
@@ -598,9 +603,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeaf(
-		cfgSnap,
+	commonTLSContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
+		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
@@ -794,9 +799,13 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeaf(
-			cfgSnap,
+		rootPEMs := cfgSnap.RootPEMs()
+		if uid.Peer != "" {
+			rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		}
+		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),
+			rootPEMs,
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
 
@@ -809,7 +818,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			CommonTlsContext: commonTLSContext,
 			Sni:              sni,
 		}
-
 		transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 		if err != nil {
 			return nil, err

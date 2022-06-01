@@ -20,6 +20,7 @@ const (
 	coalesceTimeout                    = 200 * time.Millisecond
 	rootsWatchID                       = "roots"
 	leafWatchID                        = "leaf"
+	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"

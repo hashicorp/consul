@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 
@@ -238,8 +239,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:   map[string]indexedTarget{},
+						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:      map[string]indexedTarget{},
+						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
+						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
@@ -298,8 +301,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:   map[string]indexedTarget{},
+						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:      map[string]indexedTarget{},
+						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
+						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
