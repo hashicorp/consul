@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Added a `is_leader` metric to track if a server is a leader or not.
+```
