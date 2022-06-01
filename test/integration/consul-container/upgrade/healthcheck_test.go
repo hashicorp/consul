@@ -21,10 +21,10 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, *targetImage)
+	cluster := serversCluster(t, numServers, *utils.TargetImage)
 	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
@@ -77,7 +77,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 					log_level="TRACE"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *targetImage,
+			Version: *utils.TargetImage,
 		})
 
 	for i := 1; i < 3; i++ {
@@ -88,7 +88,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *latestImage,
+				Version: *utils.LatestImage,
 			})
 
 	}
@@ -101,7 +101,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 
@@ -155,7 +155,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: *utils.TargetImage,
 			})
 
 	}
@@ -165,7 +165,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 					log_level="TRACE"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *latestImage,
+			Version: *utils.LatestImage,
 		})
 
 	cluster, err := libcluster.New(configs)
@@ -176,7 +176,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *latestImage, cluster.EncryptKey)
+	clients := clientsCreate(t, numClients, *utils.LatestImage, cluster.EncryptKey)
 
 	require.NoError(t, cluster.AddNodes(clients))
 

@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -19,8 +18,6 @@ import (
 	"github.com/hashicorp/consul/lib/retry"
 )
 
-var targetImage = flag.String("target-version", "local", "docker image to be used as UUT (unit under test)")
-
 func TestLeaderShipMetrics(t *testing.T) {
 	var configs []node.Config
 	configs = append(configs,
@@ -32,7 +29,7 @@ func TestLeaderShipMetrics(t *testing.T) {
 						statsite_address = "127.0.0.1:2180"
 					}`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
-			Version: *targetImage,
+			Version: *utils.TargetImage,
 		})
 
 	numServer := 3
@@ -44,7 +41,7 @@ func TestLeaderShipMetrics(t *testing.T) {
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
-				Version: *targetImage,
+				Version: *utils.TargetImage,
 			})
 
 	}

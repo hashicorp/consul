@@ -825,11 +825,12 @@ jobs:
             subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
             echo "Running $(echo $subtests | wc -w) subtests"
             echo "$subtests"
-            subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
+            subtests_formatted=$(echo "$subtests" |  sed 's/^/.\//g' | xargs)
             mkdir -p /tmp/test-results/
             docker run consul:local consul version
             cd ./test/integration/consul-container
-            gotestsum -- -timeout=30m ./$subtests_pipe_sepr --target-version local --latest-version latest
+            echo "$subtests_formatted"
+            gotestsum -- -timeout=30m ./$subtests_formatted --target-version local --latest-version latest
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
