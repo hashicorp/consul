@@ -428,7 +428,7 @@ jobs:
             -it --rm \
             --platform linux/amd64 \
             -v $(pwd):/workdir \
-            -w /workdir centos:7 \
+            -w /workdir amd64/centos \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.rpm_name }} v${{ env.version }}
 
@@ -439,7 +439,7 @@ jobs:
             -it --rm \
             --platform=linux/arm/v7 \
             -v $(pwd):/workdir \
-            -w /workdir centos:7 \
+            -w /workdir arm32v7/centos \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.rpm_name }} v${{ env.version }}
 
@@ -450,6 +450,6 @@ jobs:
             -it --rm \
             --platform=linux/arm64 \
             -v $(pwd):/workdir \
-            -w /workdir centos:7 \
+            -w /workdir arm64/centos \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
