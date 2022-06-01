@@ -2,6 +2,7 @@ package pbpeering
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/hashstructure"
@@ -118,6 +119,26 @@ func (r *TrustBundleReadRequest) CacheInfo() cache.RequestInfo {
 	}
 
 	return info
+}
+
+// ConcatenatedRootPEMs concatenates and returns all PEM-encoded public certificates
+// in a peer's trust bundle.
+func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
+	if b == nil {
+		return ""
+	}
+
+	var rootPEMs string
+	for _, pem := range b.RootPEMs {
+		rootPEMs += pem
+
+		// We do not use the "ca.EnsureTrailingNewline" helper here because importing "connect/ca"
+		// would lead to an import cycle.
+		if !strings.HasSuffix(pem, "\n") {
+			rootPEMs += "\n"
+		}
+	}
+	return rootPEMs
 }
 
 // enumcover:PeeringState

@@ -13,7 +13,6 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
@@ -92,6 +91,11 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		if !ok {
 			// this should not happen
 			return nil, fmt.Errorf("no endpoint map for upstream %q", uid)
+		}
+
+		if _, ok := cfgSnap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
+			continue
 		}
 
 		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, upstreamCfg, chain, chainEndpoints, cfgSnap)
@@ -794,9 +798,13 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
+		rootPEMs := cfgSnap.RootPEMs()
+		if uid.Peer != "" {
+			rootPEMs = cfgSnap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		}
 		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),
-			cfgSnap.RootPEMs(),
+			rootPEMs,
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
 
