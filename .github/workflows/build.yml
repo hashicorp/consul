@@ -278,7 +278,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Download ${{ matrix.arch  }} zip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ${{ env.zip_name }}
 
@@ -324,7 +324,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Download amd64 darwin zip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ${{ env.zip_name }}
 
@@ -352,10 +352,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         
-      - name: Download ${{ matrix.arch }} debian package
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.deb_name }}
+      - name: Download workflow artifacts #${{ matrix.arch }} debian package
+        uses: actions/download-artifact@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -408,10 +406,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         
-      - name: Download ${{ matrix.arch }} rpm
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.rpm_name }}
+      - name: Download workflow artifacts #${{ matrix.arch }} rpm
+        uses: actions/download-artifact@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
