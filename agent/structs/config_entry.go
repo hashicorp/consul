@@ -105,7 +105,7 @@ type ServiceConfigEntry struct {
 	Expose                ExposeConfig           `json:",omitempty"`
 	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Endpoint              *EndpointConfig        `json:",omitempty"`
+	Destination           *DestinationConfig     `json:",omitempty"`
 	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
@@ -180,8 +180,8 @@ func (e *ServiceConfigEntry) Validate() error {
 	validationErr := validateConfigEntryMeta(e.Meta)
 
 	// External endpoints are invalid with an existing service's upstream configuration
-	if e.UpstreamConfig != nil && e.Endpoint != nil {
-		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Endpoint are mutually exclusive for service defaults"))
+	if e.UpstreamConfig != nil && e.Destination != nil {
+		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Destination are mutually exclusive for service defaults"))
 		return validationErr
 	}
 
@@ -200,13 +200,13 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
-	if e.Endpoint != nil {
-		if err := validateEndpointAddress(e.Endpoint.Address); err != nil {
-			validationErr = multierror.Append(validationErr, fmt.Errorf("Endpoint address is invalid %w", err))
+	if e.Destination != nil {
+		if err := validateEndpointAddress(e.Destination.Address); err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Destination address is invalid %w", err))
 		}
 
-		if e.Endpoint.Port < 1 || e.Endpoint.Port > 65535 {
-			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Endpoint.Port))
+		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Destination.Port))
 		}
 	}
 
@@ -292,8 +292,8 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 	return &c2
 }
 
-// EndpointConfig represents a virtual service, i.e. one that is external to Consul
-type EndpointConfig struct {
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
 	// Address of the endpoint; hostname, IP, or CIDR
 	Address string `json:",omitempty"`
 

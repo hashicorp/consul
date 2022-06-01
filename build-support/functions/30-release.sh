@@ -465,25 +465,17 @@ function build_release {
          err "ERROR: Failed to build the ui" 
          return 1
       fi
-      status "UI Built with Version: $(ui_version "${sdir}/pkg/web_ui/index.html")"
-      
-      status_stage "==> Building Static Assets for version ${vers}"
-      build_assetfs "${sdir}" "${GO_BUILD_TAG}"
-      if test $? -ne 0
-      then
-         err "ERROR: Failed to build the static assets" 
-         return 1
-      fi
-      
+
       if is_set "${do_tag}"
       then
-         git add "${sdir}/agent/uiserver/bindata_assetfs.go"
+         git add "${sdir}/agent/uiserver/dist"
          if test $? -ne 0
          then
-            err "ERROR: Failed to git add the assetfs file" 
+            err "ERROR: Failed to git add /agent/uiserver/dist directory"
             return 1
          fi
       fi
+      status "UI Built with Version: $(ui_version "${sdir}/agent/uiserver/dist/index.html")"
    fi
    
    if is_set "${do_tag}"

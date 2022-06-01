@@ -1894,19 +1894,11 @@ func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	registerServiceReq.Check = &structs.HealthCheck{
-		Node: registerServiceReq.Node,
-		Name: "check1",
-	}
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+	registerServiceReq := registerService(t, a)
 	// Register proxy-defaults
-	_ = registerProxyDefaults(t, a)
-
+	proxyGlobalEntry := registerProxyDefaults(t, a)
 	// Register service-defaults
-	_ = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
 
 	type testCase struct {
 		testCaseName string
@@ -1929,16 +1921,16 @@ func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
 			obj, err = a.srv.HealthServiceNodes(resp, req)
 		}
 
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		checkServiceNodes := obj.(structs.CheckServiceNodes)
 
 		// validate response
-		assert.Len(t, checkServiceNodes, 1)
-		// v := checkServiceNodes[0]
+		require.Len(t, checkServiceNodes, 1)
+		v := checkServiceNodes[0]
 
-		// validateMergeCentralConfigResponse(t, v.Service.ToServiceNode(registerServiceReq.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+		validateMergeCentralConfigResponse(t, v.Service.ToServiceNode(registerServiceReq.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
 	}
 	testCases := []testCase{
 		{
@@ -1956,6 +1948,84 @@ func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestHealthServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Run the query
+	rpcReq := structs.ServiceSpecificRequest{
+		Datacenter:         "dc1",
+		ServiceName:        registerServiceReq.Service.Service,
+		MergeCentralConfig: true,
+	}
+	var rpcResp structs.IndexedCheckServiceNodes
+	require.NoError(t, a.RPC("Health.ServiceNodes", &rpcReq, &rpcResp))
+
+	require.Len(t, rpcResp.Nodes, 1)
+	nodeService := rpcResp.Nodes[0].Service
+	require.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, nodeService.Proxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, nodeService.Proxy.Mode)
+
+	// Async cause a change - register service defaults
+	waitIndex := rpcResp.Index
+	start := time.Now()
+	var serviceDefaultsConfigEntry structs.ServiceConfigEntry
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		// Register service-defaults
+		serviceDefaultsConfigEntry = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	}()
+
+	const waitDuration = 3 * time.Second
+RUN_BLOCKING_QUERY:
+	url := fmt.Sprintf("/v1/health/service/%s?merge-central-config&wait=%s&index=%d",
+		registerServiceReq.Service.Service, waitDuration.String(), waitIndex)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceNodes(resp, req)
+
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	elapsed := time.Since(start)
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad index returned: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	checkServiceNodes := obj.(structs.CheckServiceNodes)
+
+	// validate response
+	require.Len(t, checkServiceNodes, 1)
+	v := checkServiceNodes[0].Service.ToServiceNode(registerServiceReq.Node)
+
+	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
 }
 
 func peerQuerySuffix(peerName string) string {

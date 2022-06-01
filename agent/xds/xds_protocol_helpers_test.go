@@ -234,9 +234,9 @@ func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
-	uri ...connect.SpiffeIDService,
+	spiffeID ...string,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, false, false, sni, uri...)
+	return xdsNewTransportSocket(t, snap, false, false, sni, spiffeID...)
 }
 
 func xdsNewTransportSocket(
@@ -245,7 +245,7 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
-	uri ...connect.SpiffeIDService,
+	spiffeID ...string,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
@@ -262,8 +262,8 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if len(uri) > 0 {
-		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
+	if len(spiffeID) > 0 {
+		require.NoError(t, injectSANMatcher(commonTLSContext, spiffeID...))
 	}
 
 	var tlsContext proto.Message
@@ -365,22 +365,22 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			Namespace:  "default",
 			Datacenter: "dc1",
 			Service:    "db",
-		}
+		}.URI().String()
 
 		geocacheSNI  = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-		geocacheURIs = []connect.SpiffeIDService{
-			{
+		geocacheURIs = []string{
+			connect.SpiffeIDService{
 				Host:       "11111111-2222-3333-4444-555555555555.consul",
 				Namespace:  "default",
 				Datacenter: "dc1",
 				Service:    "geo-cache-target",
-			},
-			{
+			}.URI().String(),
+			connect.SpiffeIDService{
 				Host:       "11111111-2222-3333-4444-555555555555.consul",
 				Namespace:  "default",
 				Datacenter: "dc2",
 				Service:    "geo-cache-target",
-			},
+			}.URI().String(),
 		}
 	)
 
