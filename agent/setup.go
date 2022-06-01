@@ -201,7 +201,14 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 			Help: "This measures how old the oldest log in the leader's log store is.",
 		},
 		{
-			Name: []string{"raft", "is_leader"},
+			Name: []string{"server", "is_leader"},
+			Help: "Tracks if the server is a leader.",
+		},
+	}
+
+	serverGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"server", "is_leader"},
 			Help: "Tracks if the server is a leader.",
 		},
 	}
@@ -218,6 +225,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		CertExpirationGauges,
 		Gauges,
 		raftGauges,
+		serverGauges,
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc

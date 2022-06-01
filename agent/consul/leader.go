@@ -72,11 +72,11 @@ func (s *Server) monitorLeadership() {
 	var leaderLoop sync.WaitGroup
 	for {
 		select {
-		case <-time.After(time.Second):
+		case <-time.After(s.config.MetricsReportingInterval):
 			if s.IsLeader() {
-				metrics.SetGauge([]string{"raft", "is_leader"}, float32(1))
+				metrics.SetGauge([]string{"server", "is_leader"}, float32(1))
 			} else {
-				metrics.SetGauge([]string{"raft", "is_leader"}, float32(0))
+				metrics.SetGauge([]string{"server", "is_leader"}, float32(0))
 			}
 		case isLeader := <-raftNotifyCh:
 			switch {

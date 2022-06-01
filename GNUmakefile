@@ -344,7 +344,7 @@ test-metrics-integ: dev-docker
 	@docker tag consul-dev:latest consul:local
 	@docker run --rm -t consul:local consul version
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./metrics --target-version local
+		go test -v -timeout=7m ./metrics --target-version local
 
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")

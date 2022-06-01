@@ -18,7 +18,8 @@ import (
 	"github.com/hashicorp/consul/lib/retry"
 )
 
-func TestLeaderShipMetrics(t *testing.T) {
+// Given a 3-server cluster, when the leader is elected, then leader's is_leader is 1 and non-leader's 0
+func TestLeadershipMetrics(t *testing.T) {
 	var configs []node.Config
 	configs = append(configs,
 		node.Config{
