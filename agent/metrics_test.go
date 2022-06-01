@@ -209,12 +209,11 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
-	t.Run("check that we can still turn on consul.http metrics", func(t *testing.T) {
+	t.Run("check that we emit is_leader on leader agent", func(t *testing.T) {
 		hcl := `
 		telemetry = {
 			prometheus_retention_time = "5s",
-			disable_compat_1.9 = false
-			metrics_prefix = "agent_http_2"
+			metrics_prefix = "agent_is_leader"
 		}
 		`
 
