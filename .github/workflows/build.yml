@@ -367,7 +367,8 @@ jobs:
           docker run \
             --platform linux/amd64 \
             -v $(pwd):/workdir \
-            -w /workdir centos:7 \
+            -w /workdir \
+            amd64/debian \
             /workdir/.github/scripts/verify_deb.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
 
@@ -404,7 +405,6 @@ jobs:
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      # rpm_name: consul-${{ needs.get-product-version.outputs.product-version }}.${{ matrix.arch }}.rpm
       rpm_name: 'consul-*${{ matrix.arch }}.rpm'
 
     name: Verify ${{ matrix.arch }} rpm
