@@ -8,6 +8,11 @@ type PeeringToken struct {
 	PeerID          string
 }
 
+type IndexedExportedServiceList struct {
+	Services map[string]ServiceList
+	QueryMeta
+}
+
 // NOTE: this is not serialized via msgpack so it can be changed without concern.
 type ExportedServiceList struct {
 	// Services is a list of exported services that apply to both standard
