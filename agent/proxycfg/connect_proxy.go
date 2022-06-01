@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerConnectProxy struct {
@@ -23,6 +24,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.ConnectProxy.WatchedUpstreamTrustBundles = make(map[string]*pbpeering.PeeringTrustBundle)
 	snap.ConnectProxy.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
@@ -193,6 +195,20 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				if err := (*handlerUpstreams)(s).resetWatchesFromChain(ctx, uid, chain, &snap.ConnectProxy.ConfigSnapshotUpstreams); err != nil {
 					return snap, fmt.Errorf("error while resetting watches from chain: %w", err)
 				}
+
+				// Check whether a watch for this peer exists to avoid duplicates.
+				if _, ok := snap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer]; !ok {
+					if err := s.dataSources.TrustBundle.Notify(ctx, &pbpeering.TrustBundleReadRequest{
+						Name:      uid.Peer,
+						Partition: uid.PartitionOrDefault(),
+					}, peerTrustBundleWatchID+uid.Peer, s.ch); err != nil {
+						return snap, fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)
+					}
+
+					// Assigning a nil entry lets us track that the watch was initiated, even if the trust bundle hasn't
+					// been received yet.
+					snap.ConnectProxy.WatchedUpstreamTrustBundles[uid.Peer] = nil
+				}
 				continue
 			}
 
@@ -231,6 +247,17 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
+
+	case strings.HasPrefix(u.CorrelationID, peerTrustBundleWatchID):
+		resp, ok := u.Result.(*pbpeering.TrustBundleReadResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		peer := strings.TrimPrefix(u.CorrelationID, peerTrustBundleWatchID)
+		if resp.Bundle != nil {
+			snap.ConnectProxy.WatchedUpstreamTrustBundles[peer] = resp.Bundle
+		}
+
 	case u.CorrelationID == intentionsWatchID:
 		resp, ok := u.Result.(*structs.IndexedIntentionMatches)
 		if !ok {

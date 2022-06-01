@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -41,6 +42,10 @@ type ConfigSnapshotUpstreams struct {
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
+
+	// WatchedUpstreamTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// It is used to store trust bundles for upstream TLS transport sockets.
+	WatchedUpstreamTrustBundles map[string]*pbpeering.PeeringTrustBundle
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -133,6 +138,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
+		len(c.WatchedUpstreamTrustBundles) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&

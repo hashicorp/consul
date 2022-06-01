@@ -10,7 +10,7 @@ import (
 )
 
 // Recommended name for registration.
-const TrustBundleReadName = "peering-trust-bundle"
+const TrustBundleReadName = "peer-trust-bundle"
 
 // TrustBundle supports fetching discovering service instances via prepared
 // queries.
