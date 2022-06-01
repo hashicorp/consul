@@ -165,7 +165,10 @@ function install_versioned_tool {
     local installbase="$4"
 
     local should_install=
+    local install_reason=
     local got
+    local vgot
+    local vneed
 
     local expect="${module}@${version}"
     local install="${installbase}@${version}"
@@ -189,13 +192,25 @@ function install_versioned_tool {
             awk '{print $2 "@" $3}')"
         if [[ "$expect" != "$got" ]]; then
             should_install=1
+            install_reason="upgrade"
+        fi
+
+        # check that they were compiled with the current version of go
+        set +o pipefail
+        vgot="$(go version -m $(which "${command}") | head -n 1 | grep -o 'go[0-9.]\+')"
+        vneed="$(go version | head -n 1 | awk '{print $3}')"
+        set -o pipefail
+        if [[ "$vgot" != "$vneed" ]]; then
+            should_install=1
+            install_reason="go toolchain upgrade"
         fi
     else
         should_install=1
+        install_reason="install"
     fi
 
     if [[ -n $should_install ]]; then
-        status_stage "installing tool: ${install}"
+        status_stage "installing tool (${install_reason}): ${install}"
         go install "${install}"
     else
         debug "skipping tool: ${install} (installed)"
