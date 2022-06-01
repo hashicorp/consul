@@ -308,6 +308,7 @@ message ReplicationMessage {
     Request request = 1;
     Response response = 2;
     Terminated terminated = 3;
+    LeaderAddress leaderAddress = 4;
   }
 
   // A Request requests to subscribe to a resource of a given type.
@@ -364,4 +365,11 @@ message ReplicationMessage {
   // Terminated is sent when a peering is deleted locally.
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
+
+  // LeaderAddress is sent when the peering service runs on a consul node
+  // that is not a leader. The node either was a leader before and not it is not, or it never was.
+  message LeaderAddress {
+    // address is an ip:port best effort hint at what could be the cluster leader's address
+    string address = 1;
+  }
 }
