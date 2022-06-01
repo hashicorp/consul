@@ -20,7 +20,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -41,6 +40,7 @@ import (
 	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
@@ -56,6 +56,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -627,10 +628,28 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
+	proxyDataSources := proxycfg.DataSources{
+		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
+		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
+		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
+		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
+		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
+		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
+		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		Health:                          proxycfgglue.Health(a.rpcClientHealth),
+		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
+		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
+		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
+		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
+		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
+		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
+	}
+	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		Cache:  &proxycfg.CacheWrapper{Cache: a.cache},
-		Health: &proxycfg.HealthWrapper{Health: a.rpcClientHealth},
-		Logger: a.logger.Named(logging.ProxyConfig),
+		DataSources: proxyDataSources,
+		Logger:      a.logger.Named(logging.ProxyConfig),
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
 			Segment:       a.config.SegmentName,
