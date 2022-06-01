@@ -854,7 +854,7 @@ func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot
 				},
 			},
 		}
-	}, []UpdateEvent{
+	}, []cache.UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
