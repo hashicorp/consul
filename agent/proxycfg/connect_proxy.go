@@ -44,6 +44,16 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	err = s.dataSources.TrustBundleList.Notify(ctx, &pbpeering.TrustBundleListByServiceRequest{
+		// TODO(peering): Pass ACL token
+		ServiceName: s.proxyCfg.DestinationServiceName,
+		Namespace:   s.proxyID.NamespaceOrDefault(),
+		Partition:   s.proxyID.PartitionOrDefault(),
+	}, peeringTrustBundlesWatchID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch the leaf cert
 	err = s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
@@ -258,6 +268,16 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		if resp.Bundle != nil {
 			snap.ConnectProxy.PeerTrustBundles[peer] = resp.Bundle
 		}
+
+	case u.CorrelationID == peeringTrustBundlesWatchID:
+		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		if len(resp.Bundles) > 0 {
+			snap.ConnectProxy.PeeringTrustBundles = resp.Bundles
+		}
+		snap.ConnectProxy.PeeringTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
 		resp, ok := u.Result.(*structs.IndexedIntentionMatches)

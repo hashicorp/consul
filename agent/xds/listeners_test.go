@@ -9,7 +9,6 @@ import (
 	"time"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -40,6 +39,21 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name: "defaults",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-exported-to-peers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This test is only concerned about the SPIFFE cert validator config in the public listener
+					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
+					ns.Proxy.Upstreams = structs.Upstreams{}
+				}, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peering-trust-bundles",
+						Result:        proxycfg.TestPeerTrustBundles(t),
+					},
+				})
 			},
 		},
 		{

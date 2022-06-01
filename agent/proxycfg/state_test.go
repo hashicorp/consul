@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +14,8 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -134,6 +135,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 		TrustBundle:                     typedWatchRecorder[*pbpeering.TrustBundleReadRequest]{wr},
+		TrustBundleList:                 typedWatchRecorder[*pbpeering.TrustBundleListByServiceRequest]{wr},
 	}
 	recordWatchesEnterprise(sc, wr)
 
@@ -215,6 +217,14 @@ func genVerifyLeafWatchWithDNSSANs(expectedService string, expectedDatacenter st
 
 func genVerifyLeafWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return genVerifyLeafWatchWithDNSSANs(expectedService, expectedDatacenter, nil)
+}
+
+func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*pbpeering.TrustBundleListByServiceRequest)
+		require.True(t, ok)
+		require.Equal(t, service, reqReal.ServiceName)
+	}
 }
 
 func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind string) verifyWatchRequest {
@@ -2492,6 +2502,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						}),
 						rootsWatchID:                       genVerifyDCSpecificWatch("dc1"),
 						leafWatchID:                        genVerifyLeafWatch("web", "dc1"),
+						peeringTrustBundlesWatchID:         genVerifyTrustBundleListWatch("web"),
 						peerTrustBundleIDPrefix + "peer-a": genVerifyTrustBundleReadWatch("peer-a"),
 						// No Peering watch
 					},
@@ -2514,12 +2525,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+						require.Len(t, snap.ConnectProxy.PeeringTrustBundles, 0, "%+v", snap.ConnectProxy.PeeringTrustBundles)
+						require.False(t, snap.ConnectProxy.PeeringTrustBundlesSet)
 					},
 				},
 				{
 					// This time add the events
 					events: []UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result:        peerTrustBundles,
+						},
 						{
 							CorrelationID: leafWatchID,
 							Result:        issuedCert,
@@ -2551,8 +2568,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
 						require.True(t, snap.MeshGateway.isEmpty())
+
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles, snap.ConnectProxy.PeeringTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.DiscoveryChain, 2, "%+v", snap.ConnectProxy.DiscoveryChain)
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 2, "%+v", snap.ConnectProxy.WatchedUpstreams)
