@@ -15,6 +15,8 @@ type bufferedFile struct {
 	info fs.FileInfo
 }
 
+var _ fs.FileInfo = (*bufferedFile)(nil)
+
 func newBufferedFile(buf *bytes.Buffer, info fs.FileInfo) *bufferedFile {
 	return &bufferedFile{
 		buf:  buf,
