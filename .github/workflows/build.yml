@@ -345,7 +345,6 @@ jobs:
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      # deb_name: consul_${{ needs.get-product-version.outputs.product-version }}-*-${{ matrix.arch }}.deb
       deb_name: 'consul_*${{ matrix.arch }}.deb'
 
     name: Verify ${{ matrix.arch }} debian package
@@ -364,7 +363,13 @@ jobs:
 
       - name: Verify ${{ matrix.arch }} debian package (x86/386)
         if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
-        run: .github/scripts/verify_deb.sh ${{ env.deb_name }} v${{ env.version }}
+        run: |
+          docker run \
+            --platform linux/amd64 \
+            -v $(pwd):/workdir \
+            -w /workdir centos:7 \
+            /workdir/.github/scripts/verify_deb.sh \
+            /workdir/${{ env.deb_name }} v${{ env.version }}
 
       - name: Verify ${{ matrix.arch }} debian package (using Docker linux/arm/v7)
         if: ${{ matrix.arch == 'arm' }}
@@ -395,7 +400,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64"]
+        arch: ["386", "x86_64", "arm", "aarch64"]
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
@@ -406,18 +411,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         
-      - name: Download workflow artifacts #${{ matrix.arch }} rpm
+      - name: Download workflow artifacts
         uses: actions/download-artifact@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
-        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'aarch64' }}
         with:
           # this should be a comma-separated string as opposed to an array
           platforms: arm,arm64
 
       - name: Verify ${{ matrix.arch }} rpm (x86/386)
-        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+        if: ${{ matrix.arch == '386' || matrix.arch == 'x86_64' }}
         run: |
           docker run \
             --platform linux/amd64 \
@@ -437,7 +442,7 @@ jobs:
             /workdir/${{ env.rpm_name }} v${{ env.version }}
 
       - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm64)
-        if: ${{ matrix.arch == 'arm64' }}
+        if: ${{ matrix.arch == 'aarch64' }}
         run: |
           docker run \
             --platform=linux/arm64 \
