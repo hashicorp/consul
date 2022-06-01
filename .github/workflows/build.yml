@@ -324,7 +324,7 @@ jobs:
       fail-fast: true
     env:
       version: ${{needs.get-product-version.outputs.product-version}}
-      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_darwin_amd64.zip
 
     name: Verify amd64 darwin binary
     steps:
@@ -335,11 +335,10 @@ jobs:
         with:
           name: ${{ env.zip_name }}
 
-      - name: Unzip ${{ matrix.arch }} linux zip
+      - name: Unzip ${{ matrix.arch }} darwin zip
         run: unzip ${{ env.zip_name }}
 
-      - name: Run verification for ${{ matrix.arch }} linux binary
-        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
+      - name: Run verification for ${{ matrix.arch }} darwin binary
         run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
 
   verify-linux-packages-deb:
