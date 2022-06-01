@@ -205,6 +205,29 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 	})
 }
 
+func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	t.Run("check that we can still turn on consul.http metrics", func(t *testing.T) {
+		hcl := `
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_compat_1.9 = false
+			metrics_prefix = "agent_http_2"
+		}
+		`
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		assertMetricExists(t, respRec, "is_leader")
+	})
+}
+
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around
 // the published autopilot metrics on https://www.consul.io/docs/agent/telemetry#autopilot
 func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
