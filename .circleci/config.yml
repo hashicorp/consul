@@ -600,7 +600,7 @@ jobs:
       - image: docker.mirror.hashicorp.services/cimg/go:1.18
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
