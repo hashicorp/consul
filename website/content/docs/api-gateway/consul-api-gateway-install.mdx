@@ -266,6 +266,25 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 
 Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener) for details about configuring listeners.
 
+#### Scaling
+
+A logical gateway object can be scaled to multiple instances within the bounds set in its associated GatewayClassConfig by using the [`kubectl scale`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment) command.
+
+```
+> kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   1/1     1            1
+```
+```
+> kubectl scale deployment/example-gateway --replicas=3
+deployment.apps/api-gateway scaled
+```
+```
+> k get deployment -n consul --selector api-gateway.consul.hashicorp.com/name=api-gateway
+NAME          READY   UP-TO-DATE   AVAILABLE
+api-gateway   3/3     3            3
+```
+
 ### Route
 
 Routes are independent configuration objects that are associated with specific listeners.
