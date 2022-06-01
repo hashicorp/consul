@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 
@@ -548,7 +548,7 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 func (s *ConfigSnapshot) RootPEMs() string {
 	var rootPEMs string
 	for _, root := range s.Roots.Roots {
-		rootPEMs += ca.EnsureTrailingNewline(root.RootCert)
+		rootPEMs += lib.EnsureTrailingNewline(root.RootCert)
 	}
 	return rootPEMs
 }

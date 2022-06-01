@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -1655,12 +1655,12 @@ func makeCommonTLSContext(
 			{
 				CertificateChain: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: ca.EnsureTrailingNewline(leaf.CertPEM),
+						InlineString: lib.EnsureTrailingNewline(leaf.CertPEM),
 					},
 				},
 				PrivateKey: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: ca.EnsureTrailingNewline(leaf.PrivateKeyPEM),
+						InlineString: lib.EnsureTrailingNewline(leaf.PrivateKeyPEM),
 					},
 				},
 			},

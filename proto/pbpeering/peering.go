@@ -2,13 +2,13 @@ package pbpeering
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 )
 
 // TODO(peering): These are byproducts of not embedding
@@ -130,13 +130,7 @@ func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
 
 	var rootPEMs string
 	for _, pem := range b.RootPEMs {
-		rootPEMs += pem
-
-		// We do not use the "ca.EnsureTrailingNewline" helper here because importing "connect/ca"
-		// would lead to an import cycle.
-		if !strings.HasSuffix(pem, "\n") {
-			rootPEMs += "\n"
-		}
+		rootPEMs += lib.EnsureTrailingNewline(pem)
 	}
 	return rootPEMs
 }

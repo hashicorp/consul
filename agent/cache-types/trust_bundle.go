@@ -19,6 +19,7 @@ type TrustBundle struct {
 	Client TrustBundleReader
 }
 
+//go:generate mockery --name TrustBundleReader --inpackage --testonly
 type TrustBundleReader interface {
 	TrustBundleRead(
 		ctx context.Context, in *pbpeering.TrustBundleReadRequest, opts ...grpc.CallOption,
