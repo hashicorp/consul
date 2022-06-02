@@ -6,7 +6,18 @@
       </h1>
     </BlockSlot>
     <BlockSlot @name="content">
-      <EmptyState @login={{noop}}>
+      {{#if @model.length}}
+      <ListCollection @items={{@model}} as |item index|>
+        <BlockSlot @name="header">
+          <p>{{item.name}}</p>
+        </BlockSlot>
+        <BlockSlot @name="details">
+          <div>{{item.state}}</div>
+        </BlockSlot>
+      </ListCollection>
+      {{else}}
+      {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
+      <EmptyState @login={{route.model.app.login.open}}>
         <BlockSlot @name="header">
           <h2>Welcome to Peers</h2>
         </BlockSlot>
@@ -31,6 +42,7 @@
           </li>
         </BlockSlot>
       </EmptyState>
+      {{/if}}
     </BlockSlot>
 
   </AppView>
