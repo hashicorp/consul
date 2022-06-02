@@ -1009,7 +1009,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		}
 		services = append(services, ingress...)
 	} else {
-		// Ingress gateways can only ever be downstreams, since mesh services don't dial them.
+		// destinations can only ever be upstream, since they are only allowed as intention destination.
 		index, destinations, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
 		if err != nil {
 			return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
