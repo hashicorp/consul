@@ -46,16 +46,7 @@ function main {
     dpkg --add-architecture arm
   fi
 
-  # debug
-  ls -al ${deb_path}
-  du -sh ${deb_path}
-
   apt -y update
-
-  # debug
-  apt -y install file
-  file ${deb_path}
-
   apt -y install openssl
   dpkg -i ${deb_path}
 
