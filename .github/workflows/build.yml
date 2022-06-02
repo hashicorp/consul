@@ -464,6 +464,6 @@ jobs:
           docker run \
             --platform=linux/arm64 \
             -v $(pwd):/workdir \
-            -w /workdir arm64/centos \
+            -w /workdir arm64v8/centos \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.deb_name }} v${{ env.version }}
