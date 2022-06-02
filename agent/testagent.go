@@ -207,7 +207,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
 		}
-		result.RuntimeConfig.MetricsReportingInterval = a.Config.MetricsReportingInterval
+		if a.Config != nil {
+			result.RuntimeConfig.MetricsReportingInterval = a.Config.MetricsReportingInterval
+		}
 		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
