@@ -42,6 +42,7 @@ func TestIntentionApply_new(t *testing.T) {
 			DestinationName: "test",
 			Action:          structs.IntentionActionAllow,
 			SourceType:      structs.IntentionSourceConsul,
+			DestinationType: "service",
 			Meta:            map[string]string{},
 		},
 	}
@@ -215,6 +216,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			Action:          structs.IntentionActionAllow,
 			SourceType:      structs.IntentionSourceConsul,
 			Meta:            map[string]string{},
+			DestinationType: "service",
 		},
 	}
 	var reply string
