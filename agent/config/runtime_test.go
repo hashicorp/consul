@@ -5661,6 +5661,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		Version:           "R909Hblt",
 		VersionPrerelease: "ZT1JOQLn",
 		VersionMetadata:   "GtTCa13",
+		BuildDate:         time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  128,
@@ -6447,7 +6448,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				ConfigFiles: []string{"testdata/full-config." + format},
 				HCL:         []string{fmt.Sprintf(`data_dir = "%s"`, dataDir)},
 			}
-			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn", "GtTCa13"))
+			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn", "GtTCa13",
+				time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC)))
 			r, err := Load(opts)
 			require.NoError(t, err)
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
@@ -6641,6 +6643,7 @@ func parseCIDR(t *testing.T, cidr string) *net.IPNet {
 func TestRuntimeConfig_Sanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
+		BuildDate:            time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC),
 		CheckOutputMaxSize:   checks.DefaultBufSize,
 		SerfAdvertiseAddrLAN: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		DNSAddrs: []net.Addr{
