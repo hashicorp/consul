@@ -733,6 +733,11 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
 		SubFields:           expectedFieldConfigMapStringValue,
 	},
+	"DestinationType": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationType",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 }
 
 // Only need to generate the field configurations for the top level filtered types
