@@ -2198,6 +2198,174 @@ func TestStore_IntentionTopology(t *testing.T) {
 	}
 }
 
+func TestStore_IntentionTopology_Destination(t *testing.T) {
+	node := structs.Node{
+		Node:    "foo",
+		Address: "127.0.0.1",
+	}
+
+	services := []structs.NodeService{
+		{
+			ID:             structs.ConsulServiceID,
+			Service:        structs.ConsulServiceName,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			ID:             "web-1",
+			Service:        "web",
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			ID:             "mysql-1",
+			Service:        "mysql",
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+	}
+	destinations := []structs.ServiceConfigEntry{
+		{
+			Name:           "api.test.com",
+			Destination:    &structs.DestinationConfig{},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			Name:           "kafka.store.org",
+			Destination:    &structs.DestinationConfig{},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+	}
+
+	type expect struct {
+		idx      uint64
+		services structs.ServiceList
+	}
+	tests := []struct {
+		name            string
+		defaultDecision acl.EnforcementDecision
+		intentions      []structs.ServiceIntentionsConfigEntry
+		target          structs.ServiceName
+		downstreams     bool
+		expect          expect
+	}{
+		{
+			name:            "(downstream) acl allow all but intentions deny one, destination target",
+			defaultDecision: acl.Allow,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api.test.com",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionDeny,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("api.test.com", nil),
+			downstreams: true,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "mysql",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(downstream) acl deny all intentions allow one, destination target",
+			defaultDecision: acl.Deny,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "kafka.store.org",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("kafka.store.org", nil),
+			downstreams: true,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "web",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(downstream) acl allow all check only services show, service target",
+			defaultDecision: acl.Allow,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionDeny,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("api", nil),
+			downstreams: true,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "mysql",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+					{
+						Name:           "web",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testConfigStateStore(t)
+
+			var idx uint64 = 1
+			require.NoError(t, s.EnsureNode(idx, &node))
+			idx++
+
+			for _, svc := range services {
+				require.NoError(t, s.EnsureService(idx, "foo", &svc))
+				idx++
+			}
+			for _, d := range destinations {
+				require.NoError(t, s.EnsureConfigEntry(idx, &d))
+				idx++
+			}
+			for _, ixn := range tt.intentions {
+				require.NoError(t, s.EnsureConfigEntry(idx, &ixn))
+				idx++
+			}
+
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetDestination)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect.idx, idx)
+
+			// ServiceList is from a map, so it is not deterministically sorted
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].String() < got[j].String()
+			})
+			require.Equal(t, tt.expect.services, got)
+		})
+	}
+}
+
 func TestStore_IntentionTopology_Watches(t *testing.T) {
 	s := testConfigStateStore(t)
 
