@@ -299,7 +299,7 @@ function git_date {
    # it's tricky to do an RFC3339 format in a cross platform way, so we hardcode UTC
    local date_format="%Y-%m-%dT%H:%M:%SZ"
    # we're using this for build date because it's stable across platform builds
-   local date=$(git show -s --format=%cd --date=format:"$date_format" HEAD)
+   local date="$(git show -s --format=%cd --date=format:"$date_format" HEAD)" || ret=1
 
    ##local head="$(git status -b --porcelain=v2 | awk '{if ($1 == "#" && $2 =="branch.head") { print $3 }}')" || ret=1
 

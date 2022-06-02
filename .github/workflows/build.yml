@@ -25,7 +25,7 @@ jobs:
         id: get-product-version
         run: |
           CONSUL_VERSION=$(build-support/scripts/version.sh -r)
-          CONSUL_DATE=$(build-support/scripts/build-date.sh -r)
+          CONSUL_DATE=$(build-support/scripts/build-date.sh)
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
           IFS="+" read VERSION _other <<< "$CONSUL_VERSION"
           IFS="-" read _other PREREL_VERSION <<< "$CONSUL_VERSION"
@@ -100,9 +100,11 @@ jobs:
       - name: Build UI
         run: |
           CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_DATE=${{ needs.get-product-version.outputs.product-date }}
           CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
           CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
           echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul_date is ${CONSUL_DATE}"
           echo "consul binary type is ${CONSUL_BINARY_TYPE}"
           echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
           cd ui && make && cd ..

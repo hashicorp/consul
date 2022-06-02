@@ -36,6 +36,7 @@ func TestFormat(t *testing.T) {
 		Version:      "1.99.3",
 		Prerelease:   "beta1",
 		Revision:     "5e5dbedd47a5f875b60e241c5555a9caab595246",
+		BuildDate:    "2022-06-01T13:18:45Z",
 		RPC: RPCVersionInfo{
 			Default: 2,
 			Min:     1,
