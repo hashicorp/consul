@@ -356,7 +356,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			if gsKind == structs.GatewayServiceKindDestination {
 				gsKind = structs.GatewayServiceKindUnknown
 			}
-			serviceName := structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}
+			serviceName := structs.NewServiceName(c.GetName(), c.GetEnterpriseMeta())
 			if err := checkGatewayWildcardsAndUpdate(tx, idx, &serviceName, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}

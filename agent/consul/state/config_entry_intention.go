@@ -136,7 +136,7 @@ func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Enterpr
 
 	ws.Add(iter.WatchCh())
 
-	results := configIntentionsConvertToList(tx, iter, entMeta)
+	results := configIntentionsConvertToList(iter, entMeta)
 
 	// Sort by precedence just because that's nicer and probably what most clients
 	// want for presentation.
@@ -208,7 +208,7 @@ func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 		// improving that in the future, the test cases shouldn't have to
 		// change for that.
 
-		index, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, args.Type, structs.IntentionDestinationService)
+		index, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, args.Type, structs.IntentionTargetService)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -223,7 +223,7 @@ func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 	return maxIndex, results, nil
 }
 
-func configIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, matchEntry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionDestinationType) (uint64, structs.Intentions, error) {
+func configIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, matchEntry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
 	switch matchType {
 	case structs.IntentionMatchSource:
 		return readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
@@ -279,7 +279,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 	return results, nil
 }
 
-func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, destinationType structs.IntentionDestinationType) (uint64, structs.Intentions, error) {
+func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var results structs.Intentions
@@ -290,29 +290,28 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 		if err != nil {
 			return 0, nil, err
 		}
-		if entry != nil {
-			entMeta := entry.DestinationServiceName().EnterpriseMeta
-			kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-			if err != nil {
-				return 0, nil, err
+		if entry == nil {
+			continue
+		}
+		entMeta := entry.DestinationServiceName().EnterpriseMeta
+		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		switch destinationType {
+		case structs.IntentionTargetService:
+			if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
+				results = append(results, entry.ToIntentions()...)
 			}
-			if entry != nil {
-				switch destinationType {
-				case structs.IntentionDestinationService:
-					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
-						results = append(results, entry.ToIntentions()...)
-					}
-				case structs.IntentionDestinationDestination:
-					if kind == structs.GatewayServiceKindDestination {
-						results = append(results, entry.ToIntentions()...)
-					}
-				default:
-					return 0, nil, fmt.Errorf("invalid destinationType")
-				}
+		case structs.IntentionTargetDestination:
+			if kind == structs.GatewayServiceKindDestination {
+				results = append(results, entry.ToIntentions()...)
 			}
+		default:
+			return 0, nil, fmt.Errorf("invalid destinationType")
 		}
 	}
-
 	// Sort the results by precedence
 	sort.Sort(structs.IntentionPrecedenceSorter(results))
 

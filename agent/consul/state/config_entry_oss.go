@@ -50,7 +50,7 @@ func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *acl.EnterpriseMeta) 
 	return tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: kind})
 }
 
-func configIntentionsConvertToList(tx ReadTxn, iter memdb.ResultIterator, _ *acl.EnterpriseMeta) structs.Intentions {
+func configIntentionsConvertToList(iter memdb.ResultIterator, _ *acl.EnterpriseMeta) structs.Intentions {
 	var results structs.Intentions
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)

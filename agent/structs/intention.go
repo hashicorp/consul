@@ -494,13 +494,13 @@ const (
 	IntentionSourceConsul IntentionSourceType = "consul"
 )
 
-type IntentionDestinationType string
+type IntentionTargetType string
 
 const (
-	// IntentionDestinationService is a service within the Consul catalog.
-	IntentionDestinationService IntentionDestinationType = "service"
-	// IntentionDestinationDestination is a destination defined through a service-default config entry.
-	IntentionDestinationDestination IntentionDestinationType = "destination"
+	// IntentionTargetService is a service within the Consul catalog.
+	IntentionTargetService IntentionTargetType = "service"
+	// IntentionTargetDestination is a destination defined through a service-default config entry.
+	IntentionTargetDestination IntentionTargetType = "destination"
 )
 
 // Intentions is a list of intentions.
