@@ -40,6 +40,12 @@ function main {
     exit 1
   fi
 
+  # we have to install the 'arm' architecture in order to install the 'arm'
+  # package, otherwise we will git a 'package architecture does not match system' error
+  if [[ ${deb_path} = *_arm.deb ]]; then
+    dpkg --add-architecture arm
+  fi
+
   # debug
   ls -al ${deb_path}
   du -sh ${deb_path}
