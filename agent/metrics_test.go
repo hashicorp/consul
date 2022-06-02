@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -9,12 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -209,7 +212,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
-	t.Run("check that we emit is_leader on leader agent", func(t *testing.T) {
+	t.Run("check that metric is_leader is set properly on server", func(t *testing.T) {
 		hcl := `
 		telemetry = {
 			prometheus_retention_time = "5s",
@@ -217,13 +220,43 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		}
 		`
 
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		a := StartTestAgent(t, TestAgent{
+			HCL: hcl,
+			Config: &config.RuntimeConfig{
+				// Give server some time to update the is_leader metric
+				MetricsReportingInterval: 7 * time.Second,
+			},
+		})
 		defer a.Shutdown()
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		retryWithBackoff := func(expectedStr string) error {
+			waiter := &retry.Waiter{
+				MaxWait: 1 * time.Minute,
+			}
+			ctx := context.Background()
+			for {
+				if waiter.Failures() > 6 {
+					return fmt.Errorf("reach max failure: %d", waiter.Failures())
+				}
+				respRec := httptest.NewRecorder()
+				recordPromMetrics(t, a, respRec)
 
-		assertMetricExists(t, respRec, "is_leader")
+				out := respRec.Body.String()
+				if strings.Contains(out, expectedStr) {
+					return nil
+				}
+				waiter.Wait(ctx)
+			}
+		}
+		// agent hasn't become a leader
+		err := retryWithBackoff("is_leader 0")
+		require.NoError(t, err, "non-leader server should have is_leader 0")
+
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		// Verify agent's is_leader metrics is 1
+		err = retryWithBackoff("is_leader 1")
+		require.NoError(t, err, "leader should have is_leader 1")
 	})
 }
 
