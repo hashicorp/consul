@@ -57,11 +57,9 @@ type Manager struct {
 // panic. The ManagerConfig is passed by value to NewManager so the passed value
 // can be mutated safely.
 type ManagerConfig struct {
-	// Cache is the agent's cache instance that can be used to retrieve, store and
-	// monitor state for the proxies.
-	Cache CacheNotifier
-	// Health provides service health updates on a notification channel.
-	Health Health
+	// DataSources contains the dependencies used to consume data used to configure
+	// proxies.
+	DataSources DataSources
 	// source describes the current agent's identity, it's used directly for
 	// prepared query discovery but also indirectly as a way to pass current
 	// Datacenter name into other request types that need it. This is sufficient
@@ -81,7 +79,7 @@ type ManagerConfig struct {
 
 // NewManager constructs a Manager.
 func NewManager(cfg ManagerConfig) (*Manager, error) {
-	if cfg.Cache == nil || cfg.Source == nil || cfg.Logger == nil {
+	if cfg.Source == nil || cfg.Logger == nil {
 		return nil, errors.New("all ManagerConfig fields must be provided")
 	}
 	m := &Manager{
@@ -135,8 +133,7 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 	// TODO: move to a function that translates ManagerConfig->stateConfig
 	stateConfig := stateConfig{
 		logger:                m.Logger.With("service_id", id.String()),
-		cache:                 m.Cache,
-		health:                m.Health,
+		dataSources:           m.DataSources,
 		source:                m.Source,
 		dnsConfig:             m.DNSConfig,
 		intentionDefaultAllow: m.IntentionDefaultAllow,

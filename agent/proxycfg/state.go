@@ -11,28 +11,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
-
-// UpdateEvent contains new data for a resource we are subscribed to (e.g. an
-// agent cache entry).
-type UpdateEvent struct {
-	CorrelationID string
-	Result        interface{}
-	Err           error
-}
-
-type CacheNotifier interface {
-	Notify(ctx context.Context, t string, r cache.Request,
-		correlationID string, ch chan<- UpdateEvent) error
-}
-
-type Health interface {
-	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
-}
 
 const (
 	coalesceTimeout                    = 200 * time.Millisecond
@@ -61,8 +43,7 @@ const (
 type stateConfig struct {
 	logger                hclog.Logger
 	source                *structs.QuerySource
-	cache                 CacheNotifier
-	health                Health
+	dataSources           DataSources
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
@@ -458,16 +439,16 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 }
 
 type gatewayWatchOpts struct {
-	notifier   CacheNotifier
-	notifyCh   chan UpdateEvent
-	source     structs.QuerySource
-	token      string
-	key        GatewayKey
-	upstreamID UpstreamID
+	internalServiceDump InternalServiceDump
+	notifyCh            chan UpdateEvent
+	source              structs.QuerySource
+	token               string
+	key                 GatewayKey
+	upstreamID          UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
-	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,

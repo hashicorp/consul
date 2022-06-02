@@ -557,17 +557,17 @@ jobs:
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.10
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: v0.8.7
     steps: &NOMAD_INTEGRATION_TEST_STEPS
       - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
 
       # make dev build of nomad
       - run:
@@ -597,10 +597,10 @@ jobs:
   # run integration tests on nomad/main
   nomad-integration-main:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
+      - image: docker.mirror.hashicorp.services/cimg/go:1.18
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
