@@ -62,6 +62,7 @@ type RuntimeConfig struct {
 	Version                    string
 	VersionPrerelease          string
 	VersionMetadata            string
+	BuildDate                  time.Time
 
 	// consul config
 	ConsulCoordinateUpdateMaxBatches int
