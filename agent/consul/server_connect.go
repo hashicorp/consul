@@ -6,9 +6,9 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.IndexedCARoots, error) {
@@ -59,7 +59,7 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 			ExternalTrustDomain: r.ExternalTrustDomain,
 			NotBefore:           r.NotBefore,
 			NotAfter:            r.NotAfter,
-			RootCert:            ca.EnsureTrailingNewline(r.RootCert),
+			RootCert:            lib.EnsureTrailingNewline(r.RootCert),
 			IntermediateCerts:   intermediates,
 			RaftIndex:           r.RaftIndex,
 			Active:              r.Active,

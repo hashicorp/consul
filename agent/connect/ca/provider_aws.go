@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 const (
@@ -363,15 +364,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = EnsureTrailingNewline(*output.Certificate)
+		a.rootPEM = lib.EnsureTrailingNewline(*output.Certificate)
 	} else {
-		a.intermediatePEM = EnsureTrailingNewline(*output.Certificate)
+		a.intermediatePEM = lib.EnsureTrailingNewline(*output.Certificate)
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = EnsureTrailingNewline(*output.CertificateChain)
+		a.rootPEM = lib.EnsureTrailingNewline(*output.CertificateChain)
 	}
 	return nil
 }
@@ -489,7 +490,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, EnsureTrailingNewline(*certOutput.Certificate), nil
+				return true, lib.EnsureTrailingNewline(*certOutput.Certificate), nil
 			}
 
 			return false, "", nil
@@ -532,8 +533,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	}
 
 	// We successfully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = EnsureTrailingNewline(rootPEM)
-	a.intermediatePEM = EnsureTrailingNewline(intermediatePEM)
+	a.rootPEM = lib.EnsureTrailingNewline(rootPEM)
+	a.intermediatePEM = lib.EnsureTrailingNewline(intermediatePEM)
 
 	return nil
 }

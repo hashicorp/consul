@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -19,11 +20,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	s.parseDC(req, &dc)
 
 	event := &UserEvent{}
-	var err error
-	event.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/event/fire/")
-	if err != nil {
-		return nil, err
-	}
+	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing name"}
 	}

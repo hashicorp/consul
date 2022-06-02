@@ -31,6 +31,7 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 	d := map[string]interface{}{
 		"ContentPath":       cfg.UIConfig.ContentPath,
 		"ACLsEnabled":       cfg.ACLsEnabled,
+		"HCPEnabled":        cfg.UIConfig.HCPEnabled,
 		"UIConfig":          uiCfg,
 		"LocalDatacenter":   cfg.Datacenter,
 		"PrimaryDatacenter": cfg.PrimaryDatacenter,

@@ -850,10 +850,10 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
 			sn := structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
-			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
-			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayservicekindService); err != nil {
+			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
@@ -1602,7 +1602,7 @@ func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNo
 
 // NodeService is used to retrieve a specific service associated with the given
 // node.
-func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
+func (s *Store) NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1610,7 +1610,7 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.Ente
 	idx := catalogServicesMaxIndex(tx, entMeta, peerName)
 
 	// Query the service
-	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta, peerName)
+	service, err := getNodeServiceTxn(tx, ws, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
@@ -1618,8 +1618,8 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *acl.Ente
 	return idx, service, nil
 }
 
-func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.NodeService, error) {
-	sn, err := getServiceNodeTxn(tx, nodeName, serviceID, entMeta, peerName)
+func getNodeServiceTxn(tx ReadTxn, ws memdb.WatchSet, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.NodeService, error) {
+	sn, err := getServiceNodeTxn(tx, ws, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return nil, err
 	}
@@ -1629,14 +1629,14 @@ func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.Ente
 	return nil, nil
 }
 
-func getServiceNodeTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.ServiceNode, error) {
+func getServiceNodeTxn(tx ReadTxn, ws memdb.WatchSet, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (*structs.ServiceNode, error) {
 	// TODO: pass non-pointer type for ent meta
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Query the service
-	service, err := tx.First(tableServices, indexID, NodeServiceQuery{
+	watch, service, err := tx.FirstWatch(tableServices, indexID, NodeServiceQuery{
 		EnterpriseMeta: *entMeta,
 		Node:           nodeName,
 		Service:        serviceID,
@@ -1645,6 +1645,7 @@ func getServiceNodeTxn(tx ReadTxn, nodeName, serviceID string, entMeta *acl.Ente
 	if err != nil {
 		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
+	ws.Add(watch)
 
 	if service != nil {
 		return service.(*structs.ServiceNode), nil
@@ -1683,7 +1684,7 @@ func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.Ent
 	idx := catalogServicesMaxIndex(tx, entMeta, peerName)
 
 	// Query the service
-	service, err := getServiceNodeTxn(tx, node.Node, serviceID, entMeta, peerName)
+	service, err := getServiceNodeTxn(tx, nil, node.Node, serviceID, entMeta, peerName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %w", node.Node, err)
 	}
@@ -1834,7 +1835,7 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *a
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
 func (s *Store) deleteServiceCASTxn(tx WriteTxn, idx, cidx uint64, nodeName, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (bool, error) {
 	// Look up the service.
-	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta, peerName)
+	service, err := getNodeServiceTxn(tx, nil, nodeName, serviceID, entMeta, peerName)
 	if err != nil {
 		return false, fmt.Errorf("service lookup failed: %s", err)
 	}
@@ -3502,7 +3503,7 @@ func terminatingConfigGatewayServices(
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
 			SNI:         svc.SNI,
-			Kind:        kind,
+			ServiceKind: kind,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
@@ -3516,20 +3517,26 @@ func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (s
 		EnterpriseMeta: *entMeta,
 	})
 	if err != nil {
-		return structs.GatewayservicekindUnknown, err
+		return structs.GatewayServiceKindUnknown, err
 	}
 	if serviceIter != nil {
-		return structs.GatewayservicekindService, err
+		return structs.GatewayServiceKindService, err
 	}
 
 	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
 	if err != nil {
-		return structs.GatewayservicekindUnknown, err
+		return structs.GatewayServiceKindUnknown, err
 	}
 	if entry != nil {
-		return structs.GatewayservicekindDestination, nil
+		sd, ok := entry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return structs.GatewayServiceKindUnknown, fmt.Errorf("invalid config entry type %T", entry)
+		}
+		if sd.Destination != nil {
+			return structs.GatewayServiceKindDestination, nil
+		}
 	}
-	return structs.GatewayservicekindUnknown, nil
+	return structs.GatewayServiceKindUnknown, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
@@ -3599,7 +3606,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		mapping := service.Clone()
 
 		mapping.Service = structs.NewServiceName(e.Name, &service.Service.EnterpriseMeta)
-		mapping.Kind = structs.GatewayservicekindDestination
+		mapping.ServiceKind = structs.GatewayServiceKindDestination
 		mapping.FromWildcard = true
 
 		err = updateGatewayService(tx, idx, mapping)
@@ -3668,7 +3675,7 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 
 			gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
 			gatewaySvc.FromWildcard = true
-			gatewaySvc.Kind = kind
+			gatewaySvc.ServiceKind = kind
 
 			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
@@ -3693,7 +3700,7 @@ func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, ki
 		gatewaySvc := service.Clone()
 
 		gatewaySvc.Service = structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
-		gatewaySvc.Kind = kind
+		gatewaySvc.ServiceKind = kind
 
 		if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 			return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())

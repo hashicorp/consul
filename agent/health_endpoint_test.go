@@ -1894,17 +1894,9 @@ func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	registerServiceReq.Check = &structs.HealthCheck{
-		Node: registerServiceReq.Node,
-		Name: "check1",
-	}
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+	registerServiceReq := registerService(t, a)
 	// Register proxy-defaults
 	proxyGlobalEntry := registerProxyDefaults(t, a)
-
 	// Register service-defaults
 	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
 
@@ -1929,13 +1921,13 @@ func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
 			obj, err = a.srv.HealthServiceNodes(resp, req)
 		}
 
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		checkServiceNodes := obj.(structs.CheckServiceNodes)
 
 		// validate response
-		assert.Len(t, checkServiceNodes, 1)
+		require.Len(t, checkServiceNodes, 1)
 		v := checkServiceNodes[0]
 
 		validateMergeCentralConfigResponse(t, v.Service.ToServiceNode(registerServiceReq.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
@@ -1970,14 +1962,7 @@ func TestHealthServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	registerServiceReq.Check = &structs.HealthCheck{
-		Node: registerServiceReq.Node,
-		Name: "check1",
-	}
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+	registerServiceReq := registerService(t, a)
 	// Register proxy-defaults
 	proxyGlobalEntry := registerProxyDefaults(t, a)
 
@@ -1988,14 +1973,14 @@ func TestHealthServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
 		MergeCentralConfig: true,
 	}
 	var rpcResp structs.IndexedCheckServiceNodes
-	assert.Nil(t, a.RPC("Health.ServiceNodes", &rpcReq, &rpcResp))
+	require.NoError(t, a.RPC("Health.ServiceNodes", &rpcReq, &rpcResp))
 
-	assert.Len(t, rpcResp.Nodes, 1)
+	require.Len(t, rpcResp.Nodes, 1)
 	nodeService := rpcResp.Nodes[0].Service
-	assert.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
+	require.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
 	// validate proxy global defaults are resolved in the merged service config
-	assert.Equal(t, proxyGlobalEntry.Config, nodeService.Proxy.Config)
-	assert.Equal(t, proxyGlobalEntry.Mode, nodeService.Proxy.Mode)
+	require.Equal(t, proxyGlobalEntry.Config, nodeService.Proxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, nodeService.Proxy.Mode)
 
 	// Async cause a change - register service defaults
 	waitIndex := rpcResp.Index
@@ -2015,7 +2000,7 @@ RUN_BLOCKING_QUERY:
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthServiceNodes(resp, req)
 
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	elapsed := time.Since(start)
@@ -2037,7 +2022,7 @@ RUN_BLOCKING_QUERY:
 	checkServiceNodes := obj.(structs.CheckServiceNodes)
 
 	// validate response
-	assert.Len(t, checkServiceNodes, 1)
+	require.Len(t, checkServiceNodes, 1)
 	v := checkServiceNodes[0].Service.ToServiceNode(registerServiceReq.Node)
 
 	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)

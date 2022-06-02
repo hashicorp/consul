@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/serf/coordinate"
@@ -1052,6 +1053,24 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
+func registerService(t *testing.T, a *TestAgent) (registerServiceReq *structs.RegisterRequest) {
+	t.Helper()
+	entMeta := acl.DefaultEnterpriseMeta()
+	registerServiceReq = structs.TestRegisterRequestProxy(t)
+	registerServiceReq.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.Proxy.Upstreams = structs.TestAddDefaultsToUpstreams(t, registerServiceReq.Service.Proxy.Upstreams, *entMeta)
+	registerServiceReq.Check = &structs.HealthCheck{
+		Node: registerServiceReq.Node,
+		Name: "check1",
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", registerServiceReq, &out))
+
+	return
+}
+
 func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs.ProxyConfigEntry) {
 	t.Helper()
 	// Register proxy-defaults
@@ -1063,6 +1082,7 @@ func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs
 			"local_connect_timeout_ms": uint64(1000),
 			"handshake_timeout_ms":     uint64(1000),
 		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 	}
 	proxyDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
 		Op:         structs.ConfigEntryUpsert,
@@ -1070,7 +1090,7 @@ func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs
 		Entry:      &proxyGlobalEntry,
 	}
 	var proxyDefaultsConfigEntryResp bool
-	assert.Nil(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
 	return
 }
 
@@ -1091,6 +1111,7 @@ func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (se
 				},
 			},
 		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 	}
 	serviceDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
 		Op:         structs.ConfigEntryUpsert,
@@ -1098,7 +1119,7 @@ func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (se
 		Entry:      &serviceDefaultsConfigEntry,
 	}
 	var serviceDefaultsConfigEntryResp bool
-	assert.Nil(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
 	return
 }
 
@@ -1108,24 +1129,24 @@ func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
 	serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
 
 	t.Helper()
-	assert.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
+	require.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
 	// validate proxy global defaults are resolved in the merged service config
-	assert.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
+	require.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
 	// validate service defaults override proxy-defaults/global
-	assert.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
-	assert.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
+	require.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
+	require.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
 	// validate service defaults are resolved in the merged service config
 	// expected number of upstreams = (number of upstreams defined in the register request proxy config +
-	//	1 default from service defaults)
-	assert.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+	//	1 centrally configured default from service defaults)
+	require.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
 	for _, up := range v.ServiceProxy.Upstreams {
-		if up.DestinationType != "" {
+		if up.DestinationType != "" && up.DestinationType != structs.UpstreamDestTypeService {
 			continue
 		}
-		assert.Contains(t, up.Config, "limits")
+		require.Contains(t, up.Config, "limits")
 		upstreamLimits := up.Config["limits"].(*structs.UpstreamLimits)
-		assert.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections, upstreamLimits.MaxConnections)
-		assert.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode, up.MeshGateway.Mode)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections, upstreamLimits.MaxConnections)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode, up.MeshGateway.Mode)
 	}
 }
 
@@ -1141,13 +1162,9 @@ func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+	registerServiceReq := registerService(t, a)
 	// Register proxy-defaults
 	proxyGlobalEntry := registerProxyDefaults(t, a)
-
 	// Register service-defaults
 	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
 
@@ -1172,13 +1189,13 @@ func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
 			obj, err = a.srv.CatalogServiceNodes(resp, req)
 		}
 
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		serviceNodes := obj.(structs.ServiceNodes)
 
 		// validate response
-		assert.Len(t, serviceNodes, 1)
+		require.Len(t, serviceNodes, 1)
 		v := serviceNodes[0]
 
 		validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
@@ -1213,10 +1230,7 @@ func TestCatalogServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service
-	registerServiceReq := structs.TestRegisterRequestProxy(t)
-	var out struct{}
-	assert.Nil(t, a.RPC("Catalog.Register", registerServiceReq, &out))
-
+	registerServiceReq := registerService(t, a)
 	// Register proxy-defaults
 	proxyGlobalEntry := registerProxyDefaults(t, a)
 
@@ -1227,14 +1241,14 @@ func TestCatalogServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
 		MergeCentralConfig: true,
 	}
 	var rpcResp structs.IndexedServiceNodes
-	assert.Nil(t, a.RPC("Catalog.ServiceNodes", &rpcReq, &rpcResp))
+	require.NoError(t, a.RPC("Catalog.ServiceNodes", &rpcReq, &rpcResp))
 
-	assert.Len(t, rpcResp.ServiceNodes, 1)
+	require.Len(t, rpcResp.ServiceNodes, 1)
 	serviceNode := rpcResp.ServiceNodes[0]
-	assert.Equal(t, registerServiceReq.Service.Service, serviceNode.ServiceName)
+	require.Equal(t, registerServiceReq.Service.Service, serviceNode.ServiceName)
 	// validate proxy global defaults are resolved in the merged service config
-	assert.Equal(t, proxyGlobalEntry.Config, serviceNode.ServiceProxy.Config)
-	assert.Equal(t, proxyGlobalEntry.Mode, serviceNode.ServiceProxy.Mode)
+	require.Equal(t, proxyGlobalEntry.Config, serviceNode.ServiceProxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, serviceNode.ServiceProxy.Mode)
 
 	// Async cause a change - register service defaults
 	waitIndex := rpcResp.Index
@@ -1254,7 +1268,7 @@ RUN_BLOCKING_QUERY:
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogServiceNodes(resp, req)
 
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	elapsed := time.Since(start)
@@ -1276,7 +1290,7 @@ RUN_BLOCKING_QUERY:
 	serviceNodes := obj.(structs.ServiceNodes)
 
 	// validate response
-	assert.Len(t, serviceNodes, 1)
+	require.Len(t, serviceNodes, 1)
 	v := serviceNodes[0]
 
 	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)

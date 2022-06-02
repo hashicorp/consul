@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/acl"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -314,12 +313,12 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 
 		ctx, cancel := context.WithCancel(ctx)
 		opts := gatewayWatchOpts{
-			notifier:   s.cache,
-			notifyCh:   s.ch,
-			source:     *s.source,
-			token:      s.token,
-			key:        gwKey,
-			upstreamID: uid,
+			internalServiceDump: s.dataSources.InternalServiceDump,
+			notifyCh:            s.ch,
+			source:              *s.source,
+			token:               s.token,
+			key:                 gwKey,
+			upstreamID:          uid,
 		}
 		err := watchMeshGateway(ctx, opts)
 		if err != nil {
@@ -372,7 +371,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 		PeerName:   opts.upstreamID.Peer,
 		Datacenter: opts.datacenter,
 		QueryOptions: structs.QueryOptions{
@@ -413,7 +412,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+	err := s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
 		Datacenter:             s.source.Datacenter,
 		QueryOptions:           structs.QueryOptions{Token: s.token},
 		Name:                   opts.name,

@@ -1,9 +1,14 @@
 package pbpeering
 
 import (
+	"strconv"
 	"time"
 
+	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 )
 
 // TODO(peering): These are byproducts of not embedding
@@ -86,6 +91,48 @@ func (p *Peering) ShouldDial() bool {
 
 func (x ReplicationMessage_Response_Operation) GoString() string {
 	return x.String()
+}
+
+func (r *TrustBundleReadRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		// TODO(peering): Revisit whether this is the token to use once request types accept a token.
+		Token:          r.Token(),
+		Datacenter:     r.Datacenter,
+		MinIndex:       0,
+		Timeout:        0,
+		MustRevalidate: false,
+
+		// TODO(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
+		//                Using an exponential backoff when the result hasn't changed may be preferable.
+		MaxAge: 1 * time.Second,
+	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Partition,
+		r.Name,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+// ConcatenatedRootPEMs concatenates and returns all PEM-encoded public certificates
+// in a peer's trust bundle.
+func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
+	if b == nil {
+		return ""
+	}
+
+	var rootPEMs string
+	for _, pem := range b.RootPEMs {
+		rootPEMs += lib.EnsureTrailingNewline(pem)
+	}
+	return rootPEMs
 }
 
 // enumcover:PeeringState
