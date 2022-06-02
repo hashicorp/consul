@@ -42,7 +42,6 @@ function main {
 
   # debug
   ls -al ${rpm_path}
-  file ${rpm_path}
   du -sh ${rpm_path}
 
   yum -y update
