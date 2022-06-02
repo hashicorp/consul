@@ -104,7 +104,7 @@ func (b *peeringBackend) Apply() peering.Apply {
 	return b.apply
 }
 
-func (b *peeringBackend) LeadershipMonitor() peering.LeadershipMonitor {
+func (b *peeringBackend) LeaderAddress() peering.LeaderAddress {
 	return b.monitor
 }
 
@@ -121,14 +121,14 @@ type leadershipMonitor struct {
 	leaderAddr string
 }
 
-func (m *leadershipMonitor) UpdateLeaderAddr(addr string) {
+func (m *leadershipMonitor) Set(addr string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.leaderAddr = addr
 }
 
-func (m *leadershipMonitor) GetLeaderAddr() string {
+func (m *leadershipMonitor) Get() string {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -166,4 +166,4 @@ func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 }
 
 var _ peering.Apply = (*peeringApply)(nil)
-var _ peering.LeadershipMonitor = (*leadershipMonitor)(nil)
+var _ peering.LeaderAddress = (*leadershipMonitor)(nil)

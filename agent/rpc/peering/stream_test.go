@@ -931,28 +931,28 @@ func makeClient(
 }
 
 type testStreamBackend struct {
-	pub               state.EventPublisher
-	store             *state.Store
-	leader            func() bool
-	leadershipMonitor *leadershipMonitor
+	pub           state.EventPublisher
+	store         *state.Store
+	leader        func() bool
+	leaderAddress *leaderAddress
 }
 
-var _ LeadershipMonitor = (*leadershipMonitor)(nil)
+var _ LeaderAddress = (*leaderAddress)(nil)
 
-type leadershipMonitor struct {
+type leaderAddress struct {
 }
 
-func (l *leadershipMonitor) UpdateLeaderAddr(addr string) {
+func (l *leaderAddress) Set(addr string) {
 	// noop
 }
 
-func (l *leadershipMonitor) GetLeaderAddr() string {
+func (l *leaderAddress) Get() string {
 	// noop
 	return ""
 }
 
-func (b *testStreamBackend) LeadershipMonitor() LeadershipMonitor {
-	return b.leadershipMonitor
+func (b *testStreamBackend) LeaderAddress() LeaderAddress {
+	return b.leaderAddress
 }
 
 func (b *testStreamBackend) IsLeader() bool {
