@@ -1,0 +1,30 @@
+[
+  {
+    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca687",
+    "Name": "billing",
+    "State": "INITIAL",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
+    "Name": "web",
+    "State": "ACTIVE",
+    "CreateIndex": 18,
+    "ModifyIndex": 18
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
+    "Name": "db",
+    "State": "FAILING",
+    "CreateIndex": 19,
+    "ModifyIndex": 19
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
+    "Name": "legacy",
+    "State": "TERMINATED",
+    "CreateIndex": 20,
+    "ModifyIndex": 20
+  }
+]
