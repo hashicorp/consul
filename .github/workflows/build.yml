@@ -341,7 +341,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64", "arm", "arm64"]
+        arch: ["i386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
@@ -370,7 +370,7 @@ jobs:
           platforms: all
 
       - name: Verify ${{ matrix.arch }} debian package (using Docker linux/386)
-        if: ${{ matrix.arch == '386' }}
+        if: ${{ matrix.arch == 'i386' }}
         run: |
           docker run \
             --platform linux/386 \
@@ -420,7 +420,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "x86_64", "arm", "aarch64"]
+        arch: ["i386", "x86_64", "arm", "aarch64"]
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
@@ -449,7 +449,7 @@ jobs:
           platforms: all
 
       - name: Verify ${{ matrix.arch }} rpm (using Docker linux/386)
-        if: ${{ matrix.arch == '386' }}
+        if: ${{ matrix.arch == 'i386' }}
         run: |
           docker run \
             --platform linux/386\
