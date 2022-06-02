@@ -213,8 +213,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: defaultPartition,
-			Namespace: defaultNamespace,
+			Partition: splitDefaultPartition,
+			Namespace: splitDefaultNamespace,
 		}
 		ce := c.ConfigEntries()
 

@@ -363,7 +363,7 @@ func TestAPI_AgentServicesWithFilterOpts(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 
-	opts := &QueryOptions{Namespace: defaultNamespace}
+	opts := &QueryOptions{Namespace: splitDefaultNamespace}
 	services, err := agent.ServicesWithFilterOpts("foo in Tags", opts)
 	require.NoError(t, err)
 	require.Len(t, services, 1)
@@ -791,8 +791,8 @@ func TestAPI_AgentService(t *testing.T) {
 			Warning: 1,
 		},
 		Meta:       map[string]string{},
-		Namespace:  defaultNamespace,
-		Partition:  defaultPartition,
+		Namespace:  splitDefaultNamespace,
+		Partition:  splitDefaultPartition,
 		Datacenter: "dc1",
 	}
 	require.Equal(t, expect, got)
@@ -932,7 +932,7 @@ func TestAPI_AgentUpdateTTLOpts(t *testing.T) {
 		}
 	}
 
-	opts := &QueryOptions{Namespace: defaultNamespace}
+	opts := &QueryOptions{Namespace: splitDefaultNamespace}
 
 	if err := agent.UpdateTTLOpts("service:foo", "foo", HealthWarning, opts); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1007,7 +1007,7 @@ func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
 	reg.TTL = "15s"
 	require.NoError(t, agent.CheckRegister(reg))
 
-	opts := &QueryOptions{Namespace: defaultNamespace}
+	opts := &QueryOptions{Namespace: splitDefaultNamespace}
 	checks, err := agent.ChecksWithFilterOpts("Name == foo", opts)
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
@@ -1382,7 +1382,7 @@ func TestAPI_ServiceMaintenanceOpts(t *testing.T) {
 	}
 
 	// Specify namespace in query option
-	opts := &QueryOptions{Namespace: defaultNamespace}
+	opts := &QueryOptions{Namespace: splitDefaultNamespace}
 
 	// Enable maintenance mode
 	if err := agent.EnableServiceMaintenanceOpts("redis", "broken", opts); err != nil {
@@ -1701,7 +1701,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
 
-		opts := &QueryOptions{Namespace: defaultNamespace}
+		opts := &QueryOptions{Namespace: splitDefaultNamespace}
 		state, out, err := agent.AgentHealthServiceByIDOpts(serviceID, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
@@ -1715,7 +1715,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
 
-		opts := &QueryOptions{Namespace: defaultNamespace}
+		opts := &QueryOptions{Namespace: splitDefaultNamespace}
 		state, outs, err := agent.AgentHealthServiceByNameOpts(serviceName, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")

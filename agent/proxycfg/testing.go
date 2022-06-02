@@ -20,7 +20,57 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
+
+func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
+	t.Helper()
+
+	return &pbpeering.TrustBundleListByServiceResponse{
+		Bundles: []*pbpeering.PeeringTrustBundle{
+			{
+				PeerName:    "peer-a",
+				TrustDomain: "1c053652-8512-4373-90cf-5a7f6263a994.consul",
+				RootPEMs: []string{`-----BEGIN CERTIFICATE-----
+MIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV
+UzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v
+MRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B
+CQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0
+NFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh
+ZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl
+ci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B
+AQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV
+c2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR
+2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC
+AwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk
+yto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy
+0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH
+ZAuKN1aoKA==
+-----END CERTIFICATE-----`},
+			},
+			{
+				PeerName:    "peer-b",
+				TrustDomain: "d89ac423-e95a-475d-94f2-1c557c57bf31.consul",
+				RootPEMs: []string{`-----BEGIN CERTIFICATE-----
+MIICcTCCAdoCCQDyGxC08cD0BDANBgkqhkiG9w0BAQsFADB9MQswCQYDVQQGEwJV
+UzELMAkGA1UECAwCQ0ExETAPBgNVBAcMCENhcmxzYmFkMQwwCgYDVQQKDANGb28x
+EDAOBgNVBAsMB2V4YW1wbGUxDzANBgNVBAMMBnBlZXItYjEdMBsGCSqGSIb3DQEJ
+ARYOZm9vQHBlZXItYi5jb20wHhcNMjIwNTI2MDExNjE2WhcNMjMwNTI2MDExNjE2
+WjB9MQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExETAPBgNVBAcMCENhcmxzYmFk
+MQwwCgYDVQQKDANGb28xEDAOBgNVBAsMB2V4YW1wbGUxDzANBgNVBAMMBnBlZXIt
+YjEdMBsGCSqGSIb3DQEJARYOZm9vQHBlZXItYi5jb20wgZ8wDQYJKoZIhvcNAQEB
+BQADgY0AMIGJAoGBAL4i5erdZ5vKk3mzW9Qt6Wvw/WN/IpMDlL0a28wz9oDCtMLN
+cD/XQB9yT5jUwb2s4mD1lCDZtee8MHeD8zygICozufWVB+u2KvMaoA50T9GMQD0E
+z/0nz/Z703I4q13VHeTpltmEpYcfxw/7nJ3leKA34+Nj3zteJ70iqvD/TNBBAgMB
+AAEwDQYJKoZIhvcNAQELBQADgYEAbL04gicH+EIznDNhZJEb1guMBtBBJ8kujPyU
+ao8xhlUuorDTLwhLpkKsOhD8619oSS8KynjEBichidQRkwxIaze0a2mrGT+tGBMf
+pVz6UeCkqpde6bSJ/ozEe/2seQzKqYvRT1oUjLwYvY7OIh2DzYibOAxh6fewYAmU
+5j5qNLc=
+-----END CERTIFICATE-----`},
+			},
+		},
+	}
+}
 
 // TestCerts generates a CA and Leaf suitable for returning as mock CA
 // root/leaf cache requests.
@@ -671,6 +721,7 @@ func testConfigSnapshotFixture(
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
 			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
 			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
+			TrustBundle:                     &noopDataSource[*pbpeering.TrustBundleReadRequest]{},
 		},
 		dnsConfig: DNSConfig{ // TODO: make configurable
 			Domain:    "consul",
@@ -870,6 +921,7 @@ func NewTestDataSources() *TestDataSources {
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
 		ServiceList:                     NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList](),
+		TrustBundle:                     NewTestDataSource[*pbpeering.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse](),
 	}
 	srcs.buildEnterpriseSources()
 	return srcs
@@ -892,8 +944,7 @@ type TestDataSources struct {
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
 	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
 	ServiceList                     *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList]
-
-	TestDataSourcesEnterprise
+	TrustBundle                     *TestDataSource[*pbpeering.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse]
 }
 
 func (t *TestDataSources) ToDataSources() DataSources {
@@ -913,6 +964,7 @@ func (t *TestDataSources) ToDataSources() DataSources {
 		PreparedQuery:          t.PreparedQuery,
 		ResolvedServiceConfig:  t.ResolvedServiceConfig,
 		ServiceList:            t.ServiceList,
+		TrustBundle:            t.TrustBundle,
 	}
 	t.fillEnterpriseDataSources(&ds)
 	return ds

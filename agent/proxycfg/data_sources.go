@@ -5,6 +5,7 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // UpdateEvent contains new data for a resource we are subscribed to (e.g. an
@@ -21,47 +22,65 @@ type DataSources struct {
 	// CARoots provides updates about the CA root certificates on a notification
 	// channel.
 	CARoots CARoots
+
 	// CompiledDiscoveryChain provides updates about a service's discovery chain
 	// on a notification channel.
 	CompiledDiscoveryChain CompiledDiscoveryChain
+
 	// ConfigEntry provides updates about a single config entry on a notification
 	// channel.
 	ConfigEntry ConfigEntry
+
 	// ConfigEntryList provides updates about a list of config entries on a
 	// notification channel.
 	ConfigEntryList ConfigEntryList
+
 	// Datacenters provides updates about federated datacenters on a notification
 	// channel.
 	Datacenters Datacenters
+
 	// FederationStateListMeshGateways is the interface used to consume updates
 	// about mesh gateways from the federation state.
 	FederationStateListMeshGateways FederationStateListMeshGateways
+
 	// GatewayServices provides updates about a gateway's upstream services on a
 	// notification channel.
 	GatewayServices GatewayServices
+
 	// Health provides service health updates on a notification channel.
 	Health Health
+
 	// HTTPChecks provides updates about a service's HTTP and gRPC checks on a
 	// notification channel.
 	HTTPChecks HTTPChecks
+
 	// Intentions provides intention updates on a notification channel.
 	Intentions Intentions
+
 	// IntentionUpstreams provides intention-inferred upstream updates on a
 	// notification channel.
 	IntentionUpstreams IntentionUpstreams
+
 	// InternalServiceDump provides updates about a (gateway) service on a
 	// notification channel.
 	InternalServiceDump InternalServiceDump
+
 	// LeafCertificate provides updates about the service's leaf certificate on a
 	// notification channel.
 	LeafCertificate LeafCertificate
+
 	// PreparedQuery provides updates about the results of a prepared query.
 	PreparedQuery PreparedQuery
+
 	// ResolvedServiceConfig provides updates about a service's resolved config.
 	ResolvedServiceConfig ResolvedServiceConfig
+
 	// ServiceList provides updates about the list of all services in a datacenter
 	// on a notification channel.
 	ServiceList ServiceList
+
+	// TrustBundle provides updates about the trust bundle for a single peer.
+	TrustBundle TrustBundle
 
 	DataSourcesEnterprise
 }
@@ -159,4 +178,10 @@ type ResolvedServiceConfig interface {
 // all services in a datacenter.
 type ServiceList interface {
 	Notify(ctx context.Context, req *structs.DCSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// TrustBundle is the interface used to consume updates about a single
+// peer's trust bundle.
+type TrustBundle interface {
+	Notify(ctx context.Context, req *pbpeering.TrustBundleReadRequest, correlationID string, ch chan<- UpdateEvent) error
 }

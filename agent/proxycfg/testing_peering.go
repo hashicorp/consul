@@ -4,6 +4,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
@@ -29,6 +30,12 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 			refundsUpstream,
 		}
 	}, []UpdateEvent{
+		{
+			CorrelationID: peerTrustBundleIDPrefix + "cloud",
+			Result: &pbpeering.TrustBundleReadResponse{
+				Bundle: TestPeerTrustBundles(t).Bundles[0],
+			},
+		},
 		{
 			CorrelationID: "upstream-target:payments.default.default.dc1:" + paymentsUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
@@ -67,7 +74,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 							Port:    443,
 							Connect: structs.ServiceConnect{
 								PeerMeta: &structs.PeeringServiceMeta{
-									SpiffeID: []string{"spiffe://d89ac423-e95a-475d-94f2-1c557c57bf31.consul/ns/default/dc/cloud-dc/svc/refunds"},
+									SpiffeID: []string{"spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/refunds"},
 								},
 							},
 						},

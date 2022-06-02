@@ -87,7 +87,7 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 	newCoord.Height = 0.5
 	entry := &CoordinateEntry{
 		Node:      node,
-		Partition: defaultPartition,
+		Partition: splitDefaultPartition,
 		Coord:     newCoord,
 	}
 	_, err = coord.Update(entry, nil)

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
@@ -132,6 +133,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
+		TrustBundle:                     typedWatchRecorder[*pbpeering.TrustBundleReadRequest]{wr},
 	}
 	recordWatchesEnterprise(sc, wr)
 
@@ -191,6 +193,14 @@ func genVerifyDCSpecificWatch(expectedDatacenter string) verifyWatchRequest {
 func verifyDatacentersWatch(t testing.TB, request any) {
 	_, ok := request.(*structs.DatacentersRequest)
 	require.True(t, ok)
+}
+
+func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*pbpeering.TrustBundleReadRequest)
+		require.True(t, ok)
+		require.Equal(t, peer, reqReal.Name)
+	}
 }
 
 func genVerifyLeafWatchWithDNSSANs(expectedService string, expectedDatacenter string, expectedDNSSANs []string) verifyWatchRequest {
@@ -359,6 +369,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 
 	indexedRoots, issuedCert := TestCerts(t)
+	peerTrustBundles := TestPeerTrustBundles(t)
 
 	// Used to account for differences in OSS/ent implementations of ServiceID.String()
 	var (
@@ -2479,8 +2490,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInPartition:  "default",
 							Datacenter:           "dc1",
 						}),
-						rootsWatchID: genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:  genVerifyLeafWatch("web", "dc1"),
+						rootsWatchID:                       genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                        genVerifyLeafWatch("web", "dc1"),
+						peerTrustBundleIDPrefix + "peer-a": genVerifyTrustBundleReadWatch("peer-a"),
 						// No Peering watch
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
@@ -2497,6 +2509,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 1, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
+						require.Len(t, snap.ConnectProxy.PeerTrustBundles, 0, "%+v", snap.ConnectProxy.PeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
@@ -2527,6 +2541,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: peerTrustBundleIDPrefix + "peer-a",
+							Result: &pbpeering.TrustBundleReadResponse{
+								Bundle: peerTrustBundles.Bundles[0],
+							},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
@@ -2539,6 +2559,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 2, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 2, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 2, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
+						require.Equal(t, peerTrustBundles.Bundles[0], snap.ConnectProxy.PeerTrustBundles["peer-a"], "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
