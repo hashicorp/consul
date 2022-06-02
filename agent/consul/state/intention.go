@@ -978,7 +978,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, "")
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, structs.IntentionDestinationService)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}

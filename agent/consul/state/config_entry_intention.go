@@ -208,7 +208,7 @@ func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 		// improving that in the future, the test cases shouldn't have to
 		// change for that.
 
-		index, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, args.Type, "")
+		index, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, args.Type, structs.IntentionDestinationService)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -297,15 +297,17 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 				return 0, nil, err
 			}
 			if entry != nil {
-				switch kind {
-				case structs.GatewayServiceKindService, structs.GatewayServiceKindUnknown:
-					if destinationType == structs.IntentionDestinationService {
+				switch destinationType {
+				case structs.IntentionDestinationService:
+					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
 						results = append(results, entry.ToIntentions()...)
 					}
-				case structs.GatewayServiceKindDestination:
-					if destinationType == structs.IntentionDestinationDestination {
+				case structs.IntentionDestinationDestination:
+					if kind == structs.GatewayServiceKindDestination {
 						results = append(results, entry.ToIntentions()...)
 					}
+				default:
+					return 0, nil, fmt.Errorf("invalid destinationType")
 				}
 			}
 		}
