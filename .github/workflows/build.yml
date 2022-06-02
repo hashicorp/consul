@@ -345,7 +345,6 @@ jobs:
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      deb_name: 'consul_*${{ matrix.arch }}.deb'
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
@@ -424,7 +423,6 @@ jobs:
       fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
-      rpm_name: 'consul-*${{ matrix.arch }}.rpm'
 
     name: Verify ${{ matrix.arch }} rpm
     steps:
