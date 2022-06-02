@@ -434,7 +434,7 @@ jobs:
 
       - name: Set package name
         run: |
-          echo "pkg_name=consul_${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV 
+          echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV 
         
       - name: Download workflow artifacts
         uses: actions/download-artifact@v3
