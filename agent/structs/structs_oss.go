@@ -113,10 +113,6 @@ func (n ServiceName) String() string {
 	return n.Name
 }
 
-func (n ServiceDestinationName) String() string {
-	return n.Name
-}
-
 func ServiceNameFromString(input string) ServiceName {
 	id, _ := ParseServiceNameString(input)
 	return ServiceName{Name: id}

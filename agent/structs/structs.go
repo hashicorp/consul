@@ -2150,12 +2150,6 @@ type ServiceName struct {
 	acl.EnterpriseMeta
 }
 
-type ServiceDestinationName struct {
-	Name string
-	Type string
-	acl.EnterpriseMeta
-}
-
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
@@ -2182,8 +2176,6 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 
 type ServiceList []ServiceName
 
-type ServiceDestinationList []ServiceDestinationName
-
 // Len implements sort.Interface.
 func (s ServiceList) Len() int { return len(s) }
 
@@ -2193,7 +2185,7 @@ func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
-	Services ServiceDestinationList
+	Services ServiceList
 	QueryMeta
 }
 

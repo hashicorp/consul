@@ -171,7 +171,7 @@ func configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *s
 		return 0, nil, nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
 	}
 	destType := structs.IntentionDestinationService
-	if kind == structs.GatewayservicekindDestination {
+	if kind == structs.GatewayServiceKindDestination {
 		destType = structs.IntentionDestinationDestination
 	}
 	for _, src := range conf.Sources {
@@ -202,7 +202,7 @@ func (s *Store) configIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *
 		return 0, nil, nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
 	}
 	destType := structs.IntentionDestinationService
-	if kind == structs.GatewayservicekindDestination {
+	if kind == structs.GatewayServiceKindDestination {
 		destType = structs.IntentionDestinationDestination
 	}
 	for _, src := range entry.Sources {
@@ -296,7 +296,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 			return nil, fmt.Errorf("failed gateway service kind lookup: %s", err)
 		}
 		destType := structs.IntentionDestinationService
-		if kind == structs.GatewayservicekindDestination {
+		if kind == structs.GatewayServiceKindDestination {
 			destType = structs.IntentionDestinationDestination
 		}
 		for _, src := range entry.Sources {
@@ -320,17 +320,19 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 		if err != nil {
 			return 0, nil, err
 		}
-		entMeta := entry.DestinationServiceName().EnterpriseMeta
-		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-		if err != nil {
-			return 0, nil, err
-		}
-		destType := structs.IntentionDestinationService
-		if kind == structs.GatewayservicekindDestination {
-			destType = structs.IntentionDestinationDestination
-		}
 		if entry != nil {
-			results = append(results, entry.ToIntentions(destType)...)
+			entMeta := entry.DestinationServiceName().EnterpriseMeta
+			kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			destType := structs.IntentionDestinationService
+			if kind == structs.GatewayServiceKindDestination {
+				destType = structs.IntentionDestinationDestination
+			}
+			if entry != nil {
+				results = append(results, entry.ToIntentions(destType)...)
+			}
 		}
 	}
 

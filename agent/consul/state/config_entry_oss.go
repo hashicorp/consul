@@ -60,7 +60,7 @@ func configIntentionsConvertToList(tx ReadTxn, iter memdb.ResultIterator, _ *acl
 			return results
 		}
 		destType := structs.IntentionDestinationService
-		if kind == structs.GatewayservicekindDestination {
+		if kind == structs.GatewayServiceKindDestination {
 			destType = structs.IntentionDestinationDestination
 		}
 		for _, src := range entry.Sources {
