@@ -40,6 +40,11 @@ function main {
     exit 1
   fi
 
+  # debug
+  ls -al ${rpm_path}
+  file ${rpm_path}
+  du -sh ${rpm_path}
+
   yum -y update
   yum -y install openssl
   rpm -i ${rpm_path}

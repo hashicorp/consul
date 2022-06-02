@@ -40,6 +40,11 @@ function main {
     exit 1
   fi
 
+  # debug
+  ls -al ${deb_path}
+  file ${deb_path}
+  du -sh ${deb_path}
+
   apt -y update
   apt -y install openssl
   dpkg -i ${deb_path}
