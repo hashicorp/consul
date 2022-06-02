@@ -466,22 +466,22 @@ jobs:
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
 
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm/v7)
-        if: ${{ matrix.arch == 'arm' }}
-        run: |
-          docker run \
-            --platform=linux/arm/v7 \
-            -v $(pwd):/workdir \
-            -w /workdir arm32v7/centos:7 \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm64)
-        if: ${{ matrix.arch == 'aarch64' }}
-        run: |
-          docker run \
-            --platform=linux/arm64 \
-            -v $(pwd):/workdir \
-            -w /workdir arm64v8/centos:7  \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
+      # - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm/v7)
+      #   if: ${{ matrix.arch == 'arm' }}
+      #   run: |
+      #     docker run \
+      #       --platform=linux/arm/v7 \
+      #       -v $(pwd):/workdir \
+      #       -w /workdir arm32v7/centos:7 \
+      #       /workdir/.github/scripts/verify_rpm.sh \
+      #       /workdir/${{ env.pkg_name }} v${{ env.version }}
+      #
+      # - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm64)
+      #   if: ${{ matrix.arch == 'aarch64' }}
+      #   run: |
+      #     docker run \
+      #       --platform=linux/arm64 \
+      #       -v $(pwd):/workdir \
+      #       -w /workdir arm64v8/centos:7  \
+      #       /workdir/.github/scripts/verify_rpm.sh \
+      #       /workdir/${{ env.pkg_name }} v${{ env.version }}
