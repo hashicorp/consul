@@ -85,6 +85,7 @@ These are some metrics emitted that can help you understand the health of your c
 | `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. | ms        | timer   |
 | `consul.raft.state.candidate`    | Increments whenever a Consul server starts an election.                                                   | elections | counter |
 | `consul.raft.state.leader`       | Increments whenever a Consul server becomes a leader.                                                     | leaders   | counter |
+| `consul.server.is_leader`        | Track if a server is a leader.                                                                            | 1 or 0    | gauge   |
 
 **Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
 

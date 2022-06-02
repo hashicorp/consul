@@ -200,10 +200,6 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 			Name: []string{"raft", "leader", "oldestLogAge"},
 			Help: "This measures how old the oldest log in the leader's log store is.",
 		},
-		{
-			Name: []string{"server", "is_leader"},
-			Help: "Tracks if the server is a leader.",
-		},
 	}
 
 	serverGauges := []prometheus.GaugeDefinition{
