@@ -1147,10 +1147,6 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*consul.Config, error) {
 	cfg := consul.DefaultConfig()
 
-	if runtimeCfg.MetricsReportingInterval != 0 {
-		cfg.MetricsReportingInterval = runtimeCfg.MetricsReportingInterval
-	}
-
 	// This is set when the agent starts up
 	cfg.NodeID = runtimeCfg.NodeID
 

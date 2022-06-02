@@ -1405,8 +1405,6 @@ type RuntimeConfig struct {
 	AutoReloadConfigCoalesceInterval time.Duration
 
 	EnterpriseRuntimeConfig
-
-	MetricsReportingInterval time.Duration
 }
 
 type AutoConfig struct {

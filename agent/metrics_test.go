@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/config"
+	// "github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -220,13 +220,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		}
 		`
 
-		a := StartTestAgent(t, TestAgent{
-			HCL: hcl,
-			Config: &config.RuntimeConfig{
-				// Give server some time to update the is_leader metric
-				MetricsReportingInterval: 7 * time.Second,
-			},
-		})
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
 
 		retryWithBackoff := func(expectedStr string) error {
@@ -235,7 +229,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 			}
 			ctx := context.Background()
 			for {
-				if waiter.Failures() > 6 {
+				if waiter.Failures() > 7 {
 					return fmt.Errorf("reach max failure: %d", waiter.Failures())
 				}
 				respRec := httptest.NewRecorder()
