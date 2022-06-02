@@ -60,8 +60,6 @@ type Intention struct {
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
-	DestinationType IntentionDestinationType
-
 	// Action is whether this is an allowlist or denylist intention.
 	Action IntentionAction `json:",omitempty"`
 

@@ -14,7 +14,6 @@ func TestIntention(t testing.T) *Intention {
 		Action:          IntentionActionAllow,
 		SourceType:      IntentionSourceConsul,
 		Meta:            map[string]string{},
-		DestinationType: "service",
 	}
 	ixn.FillPartitionAndNamespace(nil, true)
 	return ixn

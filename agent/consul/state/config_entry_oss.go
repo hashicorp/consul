@@ -54,17 +54,8 @@ func configIntentionsConvertToList(tx ReadTxn, iter memdb.ResultIterator, _ *acl
 	var results structs.Intentions
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
-		entMeta := entry.DestinationServiceName().EnterpriseMeta
-		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-		if err != nil {
-			return results
-		}
-		destType := structs.IntentionDestinationService
-		if kind == structs.GatewayServiceKindDestination {
-			destType = structs.IntentionDestinationDestination
-		}
 		for _, src := range entry.Sources {
-			results = append(results, entry.ToIntention(src, destType))
+			results = append(results, entry.ToIntention(src))
 		}
 	}
 	return results

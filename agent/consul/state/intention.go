@@ -602,11 +602,7 @@ func legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *s
 	var result *structs.Intention
 
 	if intention != nil {
-		t := intention.(*structs.Intention)
-		if t.DestinationType == "" {
-			t.DestinationType = "service"
-		}
-		result = t
+		result = intention.(*structs.Intention)
 	}
 
 	return idx, result, nil
@@ -843,23 +839,14 @@ func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 //
 // The returned intentions are sorted based on the intention precedence rules.
 // i.e. result[0] is the highest precedent rule to match
-func (s *Store) IntentionMatchOne(
-	ws memdb.WatchSet,
-	entry structs.IntentionMatchEntry,
-	matchType structs.IntentionMatchType,
-) (uint64, structs.Intentions, error) {
+func (s *Store) IntentionMatchOne(ws memdb.WatchSet, entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionDestinationType) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+	return compatIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
-func compatIntentionMatchOneTxn(
-	tx ReadTxn,
-	ws memdb.WatchSet,
-	entry structs.IntentionMatchEntry,
-	matchType structs.IntentionMatchType,
-) (uint64, structs.Intentions, error) {
+func compatIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionDestinationType) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
@@ -868,7 +855,7 @@ func compatIntentionMatchOneTxn(
 	if !usingConfigEntries {
 		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
 	}
-	return configIntentionMatchOneTxn(tx, ws, entry, matchType)
+	return configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
 func legacyIntentionMatchOneTxn(
@@ -991,7 +978,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, "")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}

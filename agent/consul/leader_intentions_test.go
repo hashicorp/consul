@@ -127,7 +127,6 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 			Action:          structs.IntentionActionAllow,
 			SourceType:      structs.IntentionSourceConsul,
 			Meta:            map[string]string{},
-			DestinationType: "service",
 		},
 	}
 	require.NoError(t, legacyApply(s1, &ixn))

@@ -4027,14 +4027,7 @@ func (s *Store) ServiceTopology(
 		Partition: entMeta.PartitionOrDefault(),
 		Name:      service,
 	}
-	_, srcIntentions, err := compatIntentionMatchOneTxn(
-		tx,
-		ws,
-		matchEntry,
-
-		// The given service is a source relative to its upstreams
-		structs.IntentionMatchSource,
-	)
+	_, srcIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchSource, "")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
@@ -4146,14 +4139,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[svc.Name.String()] = source
 	}
 
-	_, dstIntentions, err := compatIntentionMatchOneTxn(
-		tx,
-		ws,
-		matchEntry,
-
-		// The given service is a destination relative to its downstreams
-		structs.IntentionMatchDestination,
-	)
+	_, dstIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchDestination, "")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}

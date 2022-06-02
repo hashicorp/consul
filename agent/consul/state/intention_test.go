@@ -101,7 +101,6 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 				Meta:            map[string]string{},
 				CreatedAt:       testTimeA,
 				UpdatedAt:       testTimeA,
-				DestinationType: "service",
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: lastIndex,
 					ModifyIndex: lastIndex,
@@ -144,7 +143,6 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 				DestinationName: "web",
 				Meta:            map[string]string{},
 				Action:          structs.IntentionActionAllow,
-				DestinationType: "service",
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: lastIndex,
 					ModifyIndex: lastIndex,
@@ -1092,7 +1090,6 @@ func TestStore_IntentionsList(t *testing.T) {
 				SourceName:      src,
 				DestinationNS:   "default",
 				DestinationName: dst,
-				DestinationType: "service",
 				SourceType:      structs.IntentionSourceConsul,
 				Action:          structs.IntentionActionAllow,
 				Meta:            map[string]string{},
@@ -1536,7 +1533,7 @@ func TestStore_IntentionMatchOne_table(t *testing.T) {
 					Namespace: "default",
 					Name:      query,
 				}
-				_, matches, err := s.IntentionMatchOne(nil, entry, typ)
+				_, matches, err := s.IntentionMatchOne(nil, entry, typ, structs.IntentionDestinationService)
 				require.NoError(t, err)
 
 				// Verify matches
@@ -1876,7 +1873,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 				Partition: acl.DefaultPartitionName,
 				Name:      tc.src,
 			}
-			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource, structs.IntentionDestinationService)
 			if err != nil {
 				require.NoError(t, err)
 			}
