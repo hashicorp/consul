@@ -3993,7 +3993,7 @@ func (s *Store) ServiceTopology(
 
 	// Only transparent proxies / connect native services have upstreams from intentions
 	if hasTransparent || connectNative {
-		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
+		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow, structs.IntentionTargetService)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -4110,7 +4110,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
-	idx, intentionDownstreams, err := s.intentionTopologyTxn(tx, ws, sn, true, defaultAllow)
+	idx, intentionDownstreams, err := s.intentionTopologyTxn(tx, ws, sn, true, defaultAllow, structs.IntentionTargetService)
 	if err != nil {
 		return 0, nil, err
 	}

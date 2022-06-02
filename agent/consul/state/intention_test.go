@@ -2185,7 +2185,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 				idx++
 			}
 
-			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision)
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetService)
 			require.NoError(t, err)
 			require.Equal(t, tt.expect.idx, idx)
 
@@ -2211,7 +2211,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	target := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	ws := memdb.NewWatchSet()
-	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), index)
 	require.Empty(t, got)
@@ -2233,7 +2233,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 
 	// Reset the WatchSet
 	ws = memdb.NewWatchSet()
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), index)
 	require.Empty(t, got)
@@ -2255,7 +2255,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	// require.False(t, watchFired(ws))
 
 	// Result should not have changed
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), index)
 	require.Empty(t, got)
@@ -2270,7 +2270,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	require.True(t, watchFired(ws))
 
 	// Reset the WatchSet
-	index, got, err = s.IntentionTopology(nil, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(nil, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), index)
 

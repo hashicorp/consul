@@ -244,7 +244,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, structs.IntentionTargetService)
 			if err != nil {
 				return err
 			}

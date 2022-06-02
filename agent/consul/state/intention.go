@@ -941,11 +941,11 @@ type ServiceWithDecision struct {
 // IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
 // intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
-func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision)
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision, intentionTarget)
 	if err != nil {
 		requested := "upstreams"
 		if downstreams {
@@ -962,7 +962,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName,
 }
 
 func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
-	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, []ServiceWithDecision, error) {
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
 
@@ -978,7 +978,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, structs.IntentionTargetService)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, intentionTarget)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}
