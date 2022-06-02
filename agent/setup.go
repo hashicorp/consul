@@ -204,7 +204,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 
 	serverGauges := []prometheus.GaugeDefinition{
 		{
-			Name: []string{"server", "is_leader"},
+			Name: []string{"server", "isLeader"},
 			Help: "Tracks if the server is a leader.",
 		},
 	}

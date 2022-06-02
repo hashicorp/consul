@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/lib/retry"
 )
 
-// Given a 3-server cluster, when the leader is elected, then leader's is_leader is 1 and non-leader's 0
+// Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
 func TestLeadershipMetrics(t *testing.T) {
 	var configs []node.Config
 	configs = append(configs,
@@ -84,11 +84,11 @@ func TestLeadershipMetrics(t *testing.T) {
 	for i, n := range cluster.Nodes {
 		addr, port := n.GetAddr()
 		if addr == leadAddr && port == leaderPort {
-			err = retryWithBackoff(leaderNode, ".server.is_leader\",\"Value\":1,")
-			require.NoError(t, err, "%dth node(leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.is_leader\",\"Value\":1,")
+			err = retryWithBackoff(leaderNode, ".server.isLeader\",\"Value\":1,")
+			require.NoError(t, err, "%dth node(leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.isLeader\",\"Value\":1,")
 		} else {
-			err = retryWithBackoff(n, ".server.is_leader\",\"Value\":0,")
-			require.NoError(t, err, "%dth node(non-leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.is_leader\",\"Value\":0,")
+			err = retryWithBackoff(n, ".server.isLeader\",\"Value\":0,")
+			require.NoError(t, err, "%dth node(non-leader): could not find the metric %q in the /v1/agent/metrics response", i, ".server.isLeader\",\"Value\":0,")
 		}
 	}
 }

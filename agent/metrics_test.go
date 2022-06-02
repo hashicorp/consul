@@ -212,7 +212,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
-	t.Run("check that metric is_leader is set properly on server", func(t *testing.T) {
+	t.Run("check that metric isLeader is set properly on server", func(t *testing.T) {
 		hcl := `
 		telemetry = {
 			prometheus_retention_time = "5s",
@@ -243,14 +243,14 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 			}
 		}
 		// agent hasn't become a leader
-		err := retryWithBackoff("is_leader 0")
-		require.NoError(t, err, "non-leader server should have is_leader 0")
+		err := retryWithBackoff("isLeader 0")
+		require.NoError(t, err, "non-leader server should have isLeader 0")
 
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		// Verify agent's is_leader metrics is 1
-		err = retryWithBackoff("is_leader 1")
-		require.NoError(t, err, "leader should have is_leader 1")
+		// Verify agent's isLeader metrics is 1
+		err = retryWithBackoff("isLeader 1")
+		require.NoError(t, err, "leader should have isLeader 1")
 	})
 }
 

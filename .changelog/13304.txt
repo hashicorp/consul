@@ -1,3 +1,3 @@
 ```release-note:improvement
-telemetry: Added a `is_leader` metric to track if a server is a leader or not.
+telemetry: Added a `consul.server.isLeader` metric to track if a server is a leader or not.
 ```

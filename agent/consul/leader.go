@@ -74,9 +74,9 @@ func (s *Server) monitorLeadership() {
 		select {
 		case <-time.After(s.config.MetricsReportingInterval):
 			if s.IsLeader() {
-				metrics.SetGauge([]string{"server", "is_leader"}, float32(1))
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(1))
 			} else {
-				metrics.SetGauge([]string{"server", "is_leader"}, float32(0))
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(0))
 			}
 		case isLeader := <-raftNotifyCh:
 			switch {
