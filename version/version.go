@@ -24,8 +24,8 @@ var (
 	// such as "dev" (in development), "beta", "rc1", etc.
 	VersionPrerelease = "dev"
 
-	// The date/time of the build
-	BuildDate string
+	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
+	BuildDate string = "2022-06-02T18:28:32Z"
 )
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
