@@ -32,7 +32,7 @@ function main {
     exit 1
   fi
   
-  got_version="$(${bin_path} version  | head -n1 | awk '{print $2}')"
+  got_version="$( awk '{print $2}' <(head -n1 <(${bin_path} version)) )"
   if [ "${got_version}" != "${expect_version}" ]; then
     echo "Test FAILED"
     echo "Got: ${got_version}, Want: ${expect_version}"
