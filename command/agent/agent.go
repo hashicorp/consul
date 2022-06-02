@@ -205,7 +205,7 @@ func (c *cmd) run(args []string) int {
 	if strings.Contains(c.versionHuman, "dev") {
 		ui.Info(fmt.Sprintf("      Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("    Build Date: %s", c.buildDate))
+	ui.Info(fmt.Sprintf("    Build Date: '%s'", c.buildDate))
 	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
 	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {
