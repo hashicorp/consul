@@ -452,7 +452,7 @@ jobs:
           docker run \
             --platform linux/386\
             -v $(pwd):/workdir \
-            -w /workdir i386/centos:7 \
+            -w /workdir i386/fedora:36 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
 
@@ -462,7 +462,7 @@ jobs:
           docker run \
             --platform linux/amd64 \
             -v $(pwd):/workdir \
-            -w /workdir amd64/centos:7 \
+            -w /workdir amd64/fedora:36 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
 
@@ -472,7 +472,7 @@ jobs:
           docker run \
             --platform=linux/arm/v7 \
             -v $(pwd):/workdir \
-            -w /workdir arm32v7/centos:7 \
+            -w /workdir arm32v7/fedora:36 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
 
@@ -482,6 +482,6 @@ jobs:
           docker run \
             --platform=linux/arm64 \
             -v $(pwd):/workdir \
-            -w /workdir arm64v8/centos:7  \
+            -w /workdir arm64v8/fedora:36  \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
