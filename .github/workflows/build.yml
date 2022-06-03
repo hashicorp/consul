@@ -446,23 +446,13 @@ jobs:
         with:
           platforms: all
 
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/386)
-        if: ${{ matrix.arch == 'i386' }}
-        run: |
-          docker run \
-            --platform linux/386\
-            -v $(pwd):/workdir \
-            -w /workdir i386/fedora:36 \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
       - name: Verify ${{ matrix.arch }} rpm (using Docker linux/amd64)
-        if: ${{ matrix.arch == 'x86_64' }}
+        if: ${{ matrix.arch == 'i386' || matrix.arch == 'x86_64' }} 
         run: |
           docker run \
-            --platform linux/amd64 \
+            --platform=linux/amd64 \
             -v $(pwd):/workdir \
-            -w /workdir amd64/fedora:36 \
+            -w /workdir fedora:36 \
             /workdir/.github/scripts/verify_rpm.sh \
             /workdir/${{ env.pkg_name }} v${{ env.version }}
 
