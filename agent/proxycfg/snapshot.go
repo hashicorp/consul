@@ -263,12 +263,12 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
-
 // ValidDestinations returns the list of service keys (that represent exclusively endpoints) that have enough data to be emitted.
 func (c *configSnapshotTerminatingGateway) ValidDestinations() []structs.ServiceName {
 	out := make([]structs.ServiceName, 0, len(c.DestinationServices))
 	for svc := range c.DestinationServices {
 		// It only counts if ALL of our watches have come back (with data or not).
+
 		// Skip the service if we don't have a cert to present for mTLS.
 		if cert, ok := c.ServiceLeaves[svc]; !ok || cert == nil {
 			continue

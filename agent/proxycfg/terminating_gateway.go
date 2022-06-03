@@ -351,13 +351,13 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		// Here we assume that any service-defaults entry with a destination address is a destination.
 		// Validation will be done at the writing side.
 		// if the Address is nil, we assume it's another type of service-defaults, and just ignore.
-		if serviceConfig.Endpoint.Address != "" {
+		if serviceConfig.Destination.Address != "" {
 			// Watch leaf certificate for the destination
 			// This cert is used to terminate mTLS connections on the destination's behalf
 			sn := structs.ServiceName{Name: sn.Name, EnterpriseMeta: sn.EnterpriseMeta}
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[sn]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        sn.Name,

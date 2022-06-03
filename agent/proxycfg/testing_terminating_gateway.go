@@ -10,13 +10,10 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 	roots, _ := TestCerts(t)
 
 	var (
-		web              = structs.NewServiceName("web", nil)
-		api              = structs.NewServiceName("api", nil)
-		db               = structs.NewServiceName("db", nil)
-		cache            = structs.NewServiceName("cache", nil)
-		externalCIDR     = structs.NewServiceName("external-CIDR", nil)
-		externalIP       = structs.NewServiceName("external-IP", nil)
-		externalHostname = structs.NewServiceName("external-hostanem", nil)
+		web   = structs.NewServiceName("web", nil)
+		api   = structs.NewServiceName("api", nil)
+		db    = structs.NewServiceName("db", nil)
+		cache = structs.NewServiceName("cache", nil)
 	)
 
 	baseEvents := []UpdateEvent{
@@ -329,110 +326,6 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 		})
 	}
 
-	if populateEndpoints {
-		tgtwyServices = append(tgtwyServices,
-			&structs.GatewayService{
-				Service:    externalCIDR,
-				IsEndpoint: true,
-			},
-			&structs.GatewayService{
-				Service:    externalIP,
-				IsEndpoint: true,
-			},
-			&structs.GatewayService{
-				Service:    externalHostname,
-				IsEndpoint: true,
-			},
-		)
-
-		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
-			{
-				CorrelationID: gatewayServicesWatchID,
-				Result: &structs.IndexedGatewayServices{
-					Services: tgtwyServices,
-				},
-			},
-			// no intentions defined for these services
-			{
-				CorrelationID: serviceIntentionsIDPrefix + externalCIDR.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
-			},
-			{
-				CorrelationID: serviceIntentionsIDPrefix + externalIP.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
-			},
-			{
-				CorrelationID: serviceIntentionsIDPrefix + externalHostname.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
-			},
-			// ========
-			{
-				CorrelationID: serviceLeafIDPrefix + externalCIDR.String(),
-				Result: &structs.IssuedCert{
-					CertPEM:       "placeholder.crt",
-					PrivateKeyPEM: "placeholder.key",
-				},
-			},
-			{
-				CorrelationID: serviceLeafIDPrefix + externalIP.String(),
-				Result: &structs.IssuedCert{
-					CertPEM:       "placeholder.crt",
-					PrivateKeyPEM: "placeholder.key",
-				},
-			},
-			{
-				CorrelationID: serviceLeafIDPrefix + externalHostname.String(),
-				Result: &structs.IssuedCert{
-					CertPEM:       "placeholder.crt",
-					PrivateKeyPEM: "placeholder.key",
-				},
-			},
-			// ========
-			{
-				CorrelationID: serviceConfigIDPrefix + externalCIDR.String(),
-				Result: &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
-					Endpoint: structs.EndpointConfig{
-						Address: "10.0.0.1/8",
-						Port:    443,
-					},
-				},
-			},
-			{
-				CorrelationID: serviceConfigIDPrefix + externalIP.String(),
-				Result: &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-					Endpoint: structs.EndpointConfig{
-						Address: "192.168.0.1",
-						Port:    80,
-					},
-				},
-			},
-			{
-				CorrelationID: serviceConfigIDPrefix + externalHostname.String(),
-				Result: &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "grpc"},
-					Endpoint: structs.EndpointConfig{
-						Address: "*.hashicorp.com",
-						Port:    8089,
-					},
-				},
-			},
-		})
-	}
-
 	return testConfigSnapshotFixture(t, &structs.NodeService{
 		Kind:    structs.ServiceKindTerminatingGateway,
 		Service: "terminating-gateway",
@@ -628,13 +521,13 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 		})
 	}
 
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, events)
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, events)
 }
 
 func TestConfigSnapshotTerminatingGatewayDefaultServiceSubset(t testing.T) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -654,12 +547,6 @@ func TestConfigSnapshotTerminatingGatewayDefaultServiceSubset(t testing.T) *Conf
 				},
 			},
 		},
-		// {
-		// 	CorrelationID: serviceConfigIDPrefix + web.String(),
-		// 	Result: &structs.ServiceConfigResponse{
-		// 		ProxyConfig: map[string]interface{}{"protocol": "http"},
-		// 	},
-		// },
 	})
 }
 
@@ -718,7 +605,7 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 		return nil
 	}
 
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceConfigIDPrefix + web.String(),
 			Result: &structs.ServiceConfigResponse{
@@ -741,7 +628,7 @@ func testConfigSnapshotTerminatingGatewayLBConfig(t testing.T, variant string) *
 }
 
 func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: "gateway-services",
 			Result: &structs.IndexedGatewayServices{
@@ -770,7 +657,7 @@ func TestConfigSnapshotTerminatingGatewayHostnameSubsets(t testing.T) *ConfigSna
 		cache = structs.NewServiceName("cache", nil)
 	)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + api.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -820,7 +707,7 @@ func TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers(t testing.T) *Conf
 		notfound = structs.NewServiceName("notfound", nil)
 	)
 
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, []UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
 			Result: &structs.ConfigEntryResponse{
@@ -882,7 +769,7 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 			},
 		},
 	})
-	return TestConfigSnapshotTerminatingGateway(t, true, false, nil, updateEvents)
+	return TestConfigSnapshotTerminatingGateway(t, true, nil, updateEvents)
 }
 
 func TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers(t testing.T) *ConfigSnapshot {

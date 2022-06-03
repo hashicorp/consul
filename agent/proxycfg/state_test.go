@@ -277,18 +277,6 @@ func genVerifyMeshConfigWatch(expectedDatacenter string) verifyWatchRequest {
 	}
 }
 
-func genVerifyServiceDefaultsConfigWatch(expectedDatacenter string) verifyWatchRequest {
-	return func(t testing.TB, cacheType string, request cache.Request) {
-		require.Equal(t, cachetype.ConfigEntryName, cacheType)
-
-		reqReal, ok := request.(*structs.ConfigEntryQuery)
-		require.True(t, ok)
-		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
-		require.Equal(t, "", reqReal.Name)
-		require.Equal(t, structs.ServiceDefaults, reqReal.Kind)
-	}
-}
-
 func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ServiceDumpRequest)
@@ -1673,10 +1661,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						rootsWatchID:      genVerifyRootsWatch("dc1"),
+						rootsWatchID:      genVerifyDCSpecificWatch("dc1"),
 						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
 						gatewayServicesWatchID: genVerifyServiceSpecificRequest(gatewayServicesWatchID,
-							"terminating-gateway", "", "dc1", false),
+							"terminating-gateway", "dc1", false),
 					},
 					events: []UpdateEvent{
 						rootWatchEvent(),
@@ -1689,9 +1677,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service:    db,
-										Gateway:    structs.NewServiceName("terminating-gateway", nil),
-										IsEndpoint: true,
+										Service:     db,
+										Gateway:     structs.NewServiceName("terminating-gateway", nil),
+										ServiceKind: structs.GatewayServiceKindDestination,
 									},
 								},
 							},
@@ -1700,7 +1688,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: serviceConfigIDPrefix + db.String(),
 							Result: &structs.ServiceConfigResponse{
-								Endpoint: structs.EndpointConfig{Address: "10.0.0.1", Port: 443},
+								Destination: structs.DestinationConfig{Address: "10.0.0.1", Port: 443},
 							},
 							Err: nil,
 						},
@@ -1718,7 +1706,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
 						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
-						require.Len(t, snap.TerminatingGateway.ValidEndpoints(), 1)
+						require.Len(t, snap.TerminatingGateway.ValidDestinations(), 1)
 					},
 				},
 				{
@@ -1728,14 +1716,14 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedGatewayServices{
 								Services: structs.GatewayServices{
 									{
-										Service:    db,
-										Gateway:    structs.NewServiceName("terminating-gateway", nil),
-										IsEndpoint: true,
+										Service:     db,
+										Gateway:     structs.NewServiceName("terminating-gateway", nil),
+										ServiceKind: structs.GatewayServiceKindDestination,
 									},
 									{
-										Service:    api,
-										Gateway:    structs.NewServiceName("terminating-gateway", nil),
-										IsEndpoint: true,
+										Service:     api,
+										Gateway:     structs.NewServiceName("terminating-gateway", nil),
+										ServiceKind: structs.GatewayServiceKindDestination,
 									},
 								},
 							},
@@ -1744,7 +1732,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: serviceConfigIDPrefix + api.String(),
 							Result: &structs.ServiceConfigResponse{
-								Endpoint: structs.EndpointConfig{Address: "10.0.0.4", Port: 443},
+								Destination: structs.DestinationConfig{Address: "10.0.0.4", Port: 443},
 							},
 							Err: nil,
 						},
@@ -1764,9 +1752,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
 
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 0)
-						require.Len(t, snap.TerminatingGateway.ValidEndpoints(), 2)
-						require.Contains(t, snap.TerminatingGateway.ValidEndpoints(), db)
-						require.Contains(t, snap.TerminatingGateway.ValidEndpoints(), api)
+						require.Len(t, snap.TerminatingGateway.ValidDestinations(), 2)
+						require.Contains(t, snap.TerminatingGateway.ValidDestinations(), db)
+						require.Contains(t, snap.TerminatingGateway.ValidDestinations(), api)
 
 						require.Len(t, snap.TerminatingGateway.WatchedIntentions, 2)
 						require.Contains(t, snap.TerminatingGateway.WatchedIntentions, db)
