@@ -20,7 +20,7 @@ type peeringBackend struct {
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
-	monitor  *leadershipMonitor
+	monitor  *leaderAddr
 }
 
 var _ peering.Backend = (*peeringBackend)(nil)
@@ -31,7 +31,7 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 		srv:      srv,
 		connPool: connPool,
 		apply:    &peeringApply{srv: srv},
-		monitor:  &leadershipMonitor{},
+		monitor:  &leaderAddr{},
 	}
 }
 
@@ -116,19 +116,19 @@ func (b *peeringBackend) IsLeader() bool {
 	return b.srv.IsLeader()
 }
 
-type leadershipMonitor struct {
+type leaderAddr struct {
 	lock       sync.RWMutex
 	leaderAddr string
 }
 
-func (m *leadershipMonitor) Set(addr string) {
+func (m *leaderAddr) Set(addr string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.leaderAddr = addr
 }
 
-func (m *leadershipMonitor) Get() string {
+func (m *leaderAddr) Get() string {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -166,4 +166,4 @@ func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 }
 
 var _ peering.Apply = (*peeringApply)(nil)
-var _ peering.LeaderAddress = (*leadershipMonitor)(nil)
+var _ peering.LeaderAddress = (*leaderAddr)(nil)
