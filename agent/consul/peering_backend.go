@@ -20,7 +20,7 @@ type peeringBackend struct {
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
-	monitor  *leaderAddr
+	addr     *leaderAddr
 }
 
 var _ peering.Backend = (*peeringBackend)(nil)
@@ -31,7 +31,7 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 		srv:      srv,
 		connPool: connPool,
 		apply:    &peeringApply{srv: srv},
-		monitor:  &leaderAddr{},
+		addr:     &leaderAddr{},
 	}
 }
 
@@ -105,7 +105,7 @@ func (b *peeringBackend) Apply() peering.Apply {
 }
 
 func (b *peeringBackend) LeaderAddress() peering.LeaderAddress {
-	return b.monitor
+	return b.addr
 }
 
 func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {

@@ -1952,9 +1952,9 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 	})
 }
 
-// TestServer_Peering_LeadershipMonitor tests that a peering service can receive the leader address
+// TestServer_Peering_LeadershipCheck tests that a peering service can receive the leader address
 // through the LeaderAddress IRL.
-func TestServer_Peering_LeadershipMonitor(t *testing.T) {
+func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1991,7 +1991,7 @@ func TestServer_Peering_LeadershipMonitor(t *testing.T) {
 
 	// the actual tests
 	// when leadership has been established s2 should have the address of s1
-	// in its leadership monitor in the peering service
+	// in the peering service
 	peeringLeaderAddr := s2.peeringService.Backend.LeaderAddress().Get()
 
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
