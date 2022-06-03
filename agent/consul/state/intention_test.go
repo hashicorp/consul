@@ -2270,10 +2270,6 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 						Name:           "kafka.store.org",
 						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
-					{
-						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
 				},
 			},
 		},
