@@ -43,7 +43,7 @@ function main {
   yum -y clean all
   yum -y update
   yum -y install openssl
-  rpm -i ${rpm_path}
+  rpm --ignorearch -i ${rpm_path}
 
   # use the script that should be located next to this one for verifying the output
   exec "${SCRIPT_DIR}/verify_bin.sh" $(which consul) "${expect_version}"
