@@ -80,7 +80,7 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 	{
 		found := false
 		for _, deet := range deets {
-			la, ok := deet.(*pbpeering.ReplicationMessage_LeaderAddress)
+			la, ok := deet.(*pbpeering.LeaderAddress)
 
 			if !ok {
 				continue
@@ -90,7 +90,7 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 			}
 		}
 
-		require.True(t, found, "expected to find a ReplicationMessage_LeaderAddress message in error details")
+		require.True(t, found, "expected to find a LeaderAddress message in error details")
 	}
 }
 
@@ -189,7 +189,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	{
 		found := false
 		for _, deet := range deets {
-			la, ok := deet.(*pbpeering.ReplicationMessage_LeaderAddress)
+			la, ok := deet.(*pbpeering.LeaderAddress)
 
 			if !ok {
 				continue
@@ -199,7 +199,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 			}
 		}
 
-		require.True(t, found, "expected to find a ReplicationMessage_LeaderAddress message in error details")
+		require.True(t, found, "expected to find a LeaderAddress message in error details")
 	}
 }
 

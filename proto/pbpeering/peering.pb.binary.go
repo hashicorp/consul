@@ -288,11 +288,11 @@ func (msg *ReplicationMessage_Terminated) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ReplicationMessage_LeaderAddress) MarshalBinary() ([]byte, error) {
+func (msg *LeaderAddress) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ReplicationMessage_LeaderAddress) UnmarshalBinary(b []byte) error {
+func (msg *LeaderAddress) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

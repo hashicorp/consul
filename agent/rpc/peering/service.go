@@ -478,7 +478,7 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 
 		s.logger.Error("cannot establish a peering stream on a follower node")
 
-		details, err := anypb.New(&pbpeering.ReplicationMessage_LeaderAddress{
+		details, err := anypb.New(&pbpeering.LeaderAddress{
 			Address: s.Backend.LeaderAddress().Get(),
 		})
 		if err != nil {
@@ -678,7 +678,7 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 
 				logger.Error("node is not a leader anymore; cannot continue streaming")
 
-				details, err := anypb.New(&pbpeering.ReplicationMessage_LeaderAddress{
+				details, err := anypb.New(&pbpeering.LeaderAddress{
 					Address: s.Backend.LeaderAddress().Get(),
 				})
 				if err != nil {
@@ -767,27 +767,6 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 		}
 	}
-}
-
-// TODO(peering): why not have a modular send message func for replication messages?
-func (s *Service) sendLeaderAddrMsg(stream BidirectionalStream, status *lockableStreamStatus, logger hclog.Logger) error {
-	reply := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
-			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
-				Address: s.Backend.LeaderAddress().Get(),
-			},
-		},
-	}
-
-	logTraceSend(logger, reply)
-	if err := stream.Send(reply); err != nil {
-		if status != nil {
-			status.trackSendError(err.Error())
-		}
-		return fmt.Errorf("failed to send leader address to stream: %v", err)
-	}
-
-	return nil
 }
 
 func getTrustDomain(store Store, logger hclog.Logger) (string, error) {
