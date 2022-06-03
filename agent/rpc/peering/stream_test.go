@@ -47,6 +47,9 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 			leader: func() bool {
 				return false
 			},
+			leaderAddress: &leaderAddress{
+				addr: "expected:address",
+			},
 		})
 
 	client := NewMockClient(context.Background())
@@ -63,25 +66,32 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 		}
 	}()
 
-	expectedMsg := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
-			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
-				Address: "",
-			},
-		},
-	}
-
-	// expect ReplicationMessage_LeaderAddress
-	msg, err := client.Recv()
-	require.NoError(t, err)
-	require.NotEmpty(t, msg)
-	prototest.AssertDeepEqual(t, expectedMsg, msg)
-
 	// expect error
-	msg2, err2 := client.Recv()
-	require.Nil(t, msg2)
-	require.Error(t, err2)
-	require.Contains(t, err2.Error(), "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
+	msg, err := client.Recv()
+	require.Nil(t, msg)
+	require.Error(t, err)
+	require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
+
+	// expect a status error
+	st, ok := status.FromError(err)
+	require.True(t, ok, "need to get back a grpc status error")
+	deets := st.Details()
+	// expect a ReplicationMessage_LeaderAddress
+	{
+		found := false
+		for _, deet := range deets {
+			la, ok := deet.(*pbpeering.ReplicationMessage_LeaderAddress)
+
+			if !ok {
+				continue
+			} else {
+				found = true
+				require.Equal(t, "expected:address", la.Address)
+			}
+		}
+
+		require.True(t, found, "expected to find a ReplicationMessage_LeaderAddress message in error details")
+	}
 }
 
 // TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
@@ -109,6 +119,9 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 			store:  store,
 			pub:    publisher,
 			leader: leaderFunc,
+			leaderAddress: &leaderAddress{
+				addr: "expected:address",
+			},
 		})
 
 	client := NewMockClient(context.Background())
@@ -162,25 +175,32 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	err2 := client.Send(input2)
 	require.NoError(t, err2)
 
-	expectedMsg := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_LeaderAddress_{
-			LeaderAddress: &pbpeering.ReplicationMessage_LeaderAddress{
-				Address: "",
-			},
-		},
-	}
-
-	// expect ReplicationMessage_LeaderAddress
-	msg2, err2 := client.Recv()
-	require.NoError(t, err2)
-	require.NotEmpty(t, msg2)
-	prototest.AssertDeepEqual(t, expectedMsg, msg2)
-
 	// expect error
-	msg3, err3 := client.Recv()
-	require.Nil(t, msg3)
-	require.Error(t, err3)
-	require.Contains(t, err3.Error(), "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+	msg2, err2 := client.Recv()
+	require.Nil(t, msg2)
+	require.Error(t, err2)
+	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+
+	// expect a status error
+	st, ok := status.FromError(err2)
+	require.True(t, ok, "need to get back a grpc status error")
+	deets := st.Details()
+	// expect a ReplicationMessage_LeaderAddress
+	{
+		found := false
+		for _, deet := range deets {
+			la, ok := deet.(*pbpeering.ReplicationMessage_LeaderAddress)
+
+			if !ok {
+				continue
+			} else {
+				found = true
+				require.Equal(t, "expected:address", la.Address)
+			}
+		}
+
+		require.True(t, found, "expected to find a ReplicationMessage_LeaderAddress message in error details")
+	}
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
@@ -940,6 +960,7 @@ type testStreamBackend struct {
 var _ LeaderAddress = (*leaderAddress)(nil)
 
 type leaderAddress struct {
+	addr string
 }
 
 func (l *leaderAddress) Set(addr string) {
@@ -947,8 +968,7 @@ func (l *leaderAddress) Set(addr string) {
 }
 
 func (l *leaderAddress) Get() string {
-	// noop
-	return ""
+	return l.addr
 }
 
 func (b *testStreamBackend) LeaderAddress() LeaderAddress {
