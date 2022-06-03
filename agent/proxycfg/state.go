@@ -36,6 +36,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	upstreamPeerWatchIDPrefix          = "upstream-peer:"
 	meshConfigEntryID                  = "mesh"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"

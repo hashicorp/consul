@@ -88,10 +88,6 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
-		if _, ok := cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
-			// The trust bundle for this upstream is not available yet, skip for now.
-			continue
-		}
 
 		chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid]
 		if !ok {
@@ -107,6 +103,29 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		for _, cluster := range upstreamClusters {
 			clusters = append(clusters, cluster)
 		}
+	}
+
+	// NOTE: Any time we skip an upstream below we MUST also skip that same
+	// upstream in endpoints.go so that the sets of endpoints generated matches
+	// the sets of clusters.
+	//
+	// TODO(peering): make this work for tproxy
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+
+		upstreamCluster, err := s.makeUpstreamClusterForPeerService(upstreamCfg, peerMeta, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, upstreamCluster)
 	}
 
 	for _, u := range cfgSnap.Proxy.Upstreams {
@@ -525,6 +544,96 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 	return c, err
 }
 
+func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
+	upstream *structs.Upstream,
+	peerMeta structs.PeeringServiceMeta,
+	cfgSnap *proxycfg.ConfigSnapshot,
+) (*envoy_cluster_v3.Cluster, error) {
+	var (
+		c   *envoy_cluster_v3.Cluster
+		err error
+	)
+
+	uid := proxycfg.NewUpstreamID(upstream)
+
+	cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
+	if cfg.EnvoyClusterJSON != "" {
+		c, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
+		if err != nil {
+			return c, err
+		}
+		// In the happy path don't return yet as we need to inject TLS config still.
+	}
+
+	// TODO(peering): if we replicated service metadata separately from the
+	// instances we wouldn't have to flip/flop this cluster name like this.
+	clusterName := peerMeta.PrimarySNI()
+	if clusterName == "" {
+		clusterName = uid.EnvoyID()
+	}
+
+	s.Logger.Trace("generating cluster for", "cluster", clusterName)
+	if c == nil {
+		c = &envoy_cluster_v3.Cluster{
+			Name:                 clusterName,
+			AltStatName:          clusterName,
+			ConnectTimeout:       durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
+				HealthyPanicThreshold: &envoy_type_v3.Percent{
+					Value: 0, // disable panic threshold
+				},
+			},
+			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
+				EdsConfig: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+				},
+			},
+			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
+			},
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+		}
+		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
+		}
+	}
+
+	rootPEMs := cfgSnap.RootPEMs()
+	if uid.Peer != "" {
+		rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+	}
+
+	// Enable TLS upstream with the configured client certificate.
+	commonTLSContext := makeCommonTLSContext(
+		cfgSnap.Leaf(),
+		rootPEMs,
+		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+	)
+	err = injectSANMatcher(commonTLSContext, peerMeta.SpiffeID...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
+	}
+
+	tlsContext := &envoy_tls_v3.UpstreamTlsContext{
+		CommonTlsContext: commonTLSContext,
+		Sni:              peerMeta.PrimarySNI(),
+	}
+
+	transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+	c.TransportSocket = transportSocket
+
+	return c, nil
+}
+
 func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_cluster_v3.Cluster, error) {
 	var c *envoy_cluster_v3.Cluster
 	var err error
@@ -751,7 +860,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 		sort.Strings(spiffeIDs)
 
-		s.Logger.Debug("generating cluster for", "cluster", clusterName)
+		s.Logger.Trace("generating cluster for", "cluster", clusterName)
 		c := &envoy_cluster_v3.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,

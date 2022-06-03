@@ -11,9 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -22,7 +19,6 @@ import (
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
-
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
@@ -35,6 +31,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -224,6 +222,73 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
+	}
+
+	// Looping over explicit upstreams is only needed for cross-peer because
+	// they do not have discovery chains.
+	//
+	// TODO(peering): make this work for tproxy
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstreamCfg, peerMeta)
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				s.Logger.Error("failed to parse envoy_listener_json",
+					"upstream", uid,
+					"error", err)
+				continue
+			}
+			resources = append(resources, upstreamListener)
+			continue
+		}
+
+		// TODO(peering): if we replicated service metadata separately from the
+		// instances we wouldn't have to flip/flop this cluster name like this.
+		clusterName := peerMeta.PrimarySNI()
+		if clusterName == "" {
+			clusterName = uid.EnvoyID()
+		}
+
+		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
+		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				clusterName: clusterName,
+				filterName:  uid.EnvoyID(),
+				routeName:   uid.EnvoyID(),
+				protocol:    cfg.Protocol,
+				useRDS:      false,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, upstreamListener)
+
+			// Avoid creating filter chains below for upstreams that have dedicated listeners
+			continue
+		}
+
+		// The rest of this loop is used exclusively for transparent proxies.
+		// Below we create a filter chain per upstream, rather than a listener per upstream
+		// as we do for explicit upstreams above.
+
+		// TODO(peering): tproxy
+
 	}
 
 	if outboundListener != nil {
@@ -1482,6 +1547,46 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 
 	// set back on the config so that we can use it from return value
 	cfg.Protocol = protocol
+
+	return cfg
+}
+
+func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
+	uid proxycfg.UpstreamID,
+	u *structs.Upstream,
+	peerMeta structs.PeeringServiceMeta,
+) structs.UpstreamConfig {
+	var (
+		cfg structs.UpstreamConfig
+		err error
+	)
+
+	configMap := make(map[string]interface{})
+	if u != nil {
+		configMap = u.Config
+	}
+
+	cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
+	}
+
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = peerMeta.Protocol
+	}
+	if protocol == "" {
+		protocol = "tcp"
+	}
+
+	// set back on the config so that we can use it from return value
+	cfg.Protocol = protocol
+
+	if cfg.ConnectTimeoutMs == 0 {
+		cfg.ConnectTimeoutMs = 5000
+	}
 
 	return cfg
 }

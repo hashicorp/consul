@@ -28,8 +28,8 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "payments.default.dc1.internal.trustdomain.consul",
-      "altStatName": "payments.default.dc1.internal.trustdomain.consul",
+      "name": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "altStatName": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -80,14 +80,14 @@
               ]
             }
           },
-          "sni": "payments.default.dc1.internal.trustdomain.consul"
+          "sni": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
       }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "refunds.default.dc1.internal.trustdomain.consul",
-      "altStatName": "refunds.default.dc1.internal.trustdomain.consul",
+      "name": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "altStatName": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -138,7 +138,7 @@
               ]
             }
           },
-          "sni": "refunds.default.dc1.internal.trustdomain.consul"
+          "sni": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
       }
     }
