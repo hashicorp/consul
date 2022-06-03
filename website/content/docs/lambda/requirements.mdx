@@ -35,14 +35,14 @@ like the following:
 ```
 
 AWS IAM credentials should be defined in environment variables, EC2 metadata or
-ECS metadata. On Kubernetes, users must associate an IAM role with the proxy's
+ECS metadata. On AWS EKS, users must associate an IAM role with the proxy's
 ServiceAccount by following [these
 instructions](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
 
 
 ## Optional: Run and Configure a Terminating Gateway
 
-When invoking Lambda services through a terminating gateway, a terminating
+When invoking Lambda services through a [Terminating Gateway](/docs/connect/gateways#terminating-gateways), a terminating
 gateway must be registered and running in the Consul datacenter. [This learn
 guide](https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services)
 describes how to manually set up a terminating gateway on VMs and [this
@@ -56,7 +56,7 @@ more information about the ways Consul can invoke Lambdas.
 
 ## Optional: Run a Mesh Gateway
 
-If a mesh gateway will be used to invoke a Lambda service across admin
+If a [mesh gateway](/docs/connect/gateways#mesh-gateways) will be used to invoke a Lambda service across admin
 partitions or datacenters, a mesh gateway must be running and registered in
 relevant Consul datacenters and partitions. [This learn
 guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
