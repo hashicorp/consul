@@ -182,7 +182,7 @@ function verify_zip {
 
     *_linux_arm64.zip)
       docker run \
-        --platform=linux/arm/v8 \
+        --platform=linux/arm64 \
         -v $(pwd):/workdir \
         -w /workdir  \
       arm64v8/debian \
