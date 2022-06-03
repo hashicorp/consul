@@ -165,7 +165,7 @@ function verify_zip {
 
   case "${artifact_path}" in
 
-    *_linux_i386.zip | *_linux_amd64.zip)
+    *_linux_386.zip | *_linux_amd64.zip)
       $SCRIPT_DIR/verify_bin.sh ./consul "${expect_version}"
       ;;
 
