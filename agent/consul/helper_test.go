@@ -1307,13 +1307,27 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 	}
 	registerTestCatalogEntriesMap(t, codec, registrations)
 
-	// Add intentions: deny all and web -> api
+	// Add intentions: deny all and web -> api and web -> api.example.com
 	entries := []structs.ConfigEntryRequest{
 		{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceIntentionsConfigEntry{
 				Kind: structs.ServiceIntentions,
 				Name: "api",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "web",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "api.example.com",
 				Sources: []*structs.SourceIntention{
 					{
 						Name:   "web",
@@ -1339,6 +1353,38 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 		},
 	}
 	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+
+	// Add destinations
+	dests := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "api.example.com",
+				Destination: &structs.DestinationConfig{
+					Address: "api.example.com",
+					Port:    443,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "kafka.store.com",
+				Destination: &structs.DestinationConfig{
+					Address: "172.168.2.1",
+					Port:    9003,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range dests {
 		var out bool
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 	}

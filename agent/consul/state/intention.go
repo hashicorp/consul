@@ -990,7 +990,13 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
 	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	var services []*KindServiceName
+	if intentionTarget == structs.IntentionTargetService {
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	} else {
+		// destinations can only ever be upstream, since they are only allowed as intention destination.
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+	}
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 	}
@@ -1008,16 +1014,6 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			maxIdx = index
 		}
 		services = append(services, ingress...)
-	} else {
-		// destinations can only ever be upstream, since they are only allowed as intention destination.
-		index, destinations, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
-		if err != nil {
-			return index, nil, fmt.Errorf("failed to list destination names: %v", err)
-		}
-		if index > maxIdx {
-			maxIdx = index
-		}
-		services = append(services, destinations...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding

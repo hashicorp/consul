@@ -2347,7 +2347,7 @@ func TestInternal_IntentionUpstreamsDestination(t *testing.T) {
 	// web -> api (allow)
 	registerIntentionUpstreamEntries(t, codec, "")
 
-	t.Run("web", func(t *testing.T) {
+	t.Run("api.example.com", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			args := structs.ServiceSpecificRequest{
 				Datacenter:  "dc1",
@@ -2360,7 +2360,7 @@ func TestInternal_IntentionUpstreamsDestination(t *testing.T) {
 			require.Len(r, out.Services, 1)
 
 			expectUp := structs.ServiceList{
-				structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()),
+				structs.NewServiceName("api.example.com", structs.DefaultEnterpriseMetaInDefaultPartition()),
 			}
 			require.Equal(r, expectUp, out.Services)
 		})
