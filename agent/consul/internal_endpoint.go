@@ -224,6 +224,27 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreams", args, reply); done {
 		return err
 	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetService)
+}
+
+// IntentionUpstreamsDestination returns the upstreams of a service. Upstreams are inferred from intentions.
+// If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (m *Internal) IntentionUpstreamsDestination(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreamsDestination", args, reply); done {
+		return err
+	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetDestination)
+}
+
+func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList, intentionTarget structs.IntentionTargetType) error {
 
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
@@ -244,7 +265,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, structs.IntentionTargetService)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, intentionTarget)
 			if err != nil {
 				return err
 			}
