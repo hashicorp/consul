@@ -42,7 +42,7 @@ function main {
 
   yum -y clean all
   yum -y update
-  yum -y install openssl
+  yum -y install which openssl
   rpm --ignorearch -i ${rpm_path}
 
   # use the script that should be located next to this one for verifying the output

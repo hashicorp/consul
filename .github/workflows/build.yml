@@ -289,24 +289,8 @@ jobs:
           # this should be a comma-separated string as opposed to an array
           platforms: arm,arm64
 
-      - name: Unzip ${{ matrix.arch }} zip
-        run: unzip ${{ env.zip_name }}
-
       - name: Run verification for ${{ matrix.arch }} binary
-        if: ${{ matrix.arch == '386' || matrix.arch == 'amd64' }}
-        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
-
-      - name: Run verification for ${{ matrix.arch }} binary (using Docker linux/arm/v7)
-        if: ${{ matrix.arch == 'arm' }}
-        run: |
-          docker run --platform=linux/arm/v7 -v $(pwd):/workdir -w /workdir  \
-            arm32v7/debian /workdir/.github/scripts/verify_bin.sh ./consul v${{ env.version }}
-
-      - name: Run verification for ${{ matrix.arch }} binary (using Docker linux/arm64)
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
-            arm64v8/debian /workdir/.github/scripts/verify_bin.sh ./consul v${{ env.version }}
+        run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
 
   verify-darwin:
     needs:
@@ -368,49 +352,8 @@ jobs:
         with:
           platforms: all
 
-      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/386)
-        if: ${{ matrix.arch == 'i386' }}
-        run: |
-          docker run \
-            --platform linux/386 \
-            -v $(pwd):/workdir \
-            -w /workdir \
-            i386/debian \
-            /workdir/.github/scripts/verify_deb.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/amd64)
-        if: ${{ matrix.arch == 'amd64' }}
-        run: |
-          docker run \
-            --platform linux/amd64 \
-            -v $(pwd):/workdir \
-            -w /workdir \
-            amd64/debian \
-            /workdir/.github/scripts/verify_deb.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/arm/v7)
-        if: ${{ matrix.arch == 'arm' }}
-        run: |
-          docker run \
-            --platform=linux/arm/v7 \
-            -v $(pwd):/workdir \
-            -w /workdir \
-            arm32v7/debian \
-            /workdir/.github/scripts/verify_deb.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} debian package (using Docker linux/arm64)
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          docker run \
-            --platform=linux/arm64 \
-            -v $(pwd):/workdir \
-            -w /workdir \
-            arm64v8/debian \
-            /workdir/.github/scripts/verify_deb.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
+      - name: Verify ${{ matrix.arch }} debian package
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
 
   verify-linux-packages-rpm:
     needs:
@@ -446,32 +389,5 @@ jobs:
         with:
           platforms: all
 
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/amd64)
-        if: ${{ matrix.arch == 'i386' || matrix.arch == 'x86_64' }} 
-        run: |
-          docker run \
-            --platform=linux/amd64 \
-            -v $(pwd):/workdir \
-            -w /workdir fedora:36 \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm/v7)
-        if: ${{ matrix.arch == 'arm' }}
-        run: |
-          docker run \
-            --platform=linux/arm/v7 \
-            -v $(pwd):/workdir \
-            -w /workdir arm32v7/fedora:36 \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
-
-      - name: Verify ${{ matrix.arch }} rpm (using Docker linux/arm64)
-        if: ${{ matrix.arch == 'aarch64' }}
-        run: |
-          docker run \
-            --platform=linux/arm64 \
-            -v $(pwd):/workdir \
-            -w /workdir arm64v8/fedora:36  \
-            /workdir/.github/scripts/verify_rpm.sh \
-            /workdir/${{ env.pkg_name }} v${{ env.version }}
+      - name: Verify ${{ matrix.arch }} rpm 
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
