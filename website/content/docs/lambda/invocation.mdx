@@ -82,4 +82,4 @@ Store the configuration with `consul services register api-sidecar-proxy.hcl`.
 
 ### Invoke the Lambda Service
 
-Call `curl localhost:2345` from `api` to invoke the `authentication` service.
+Now that the Lambda is configured with the `authentication` service, you can run `curl localhost:2345` from `api` to invoke the `authentication` service. This invokes the Lambda function associated with the `authentication` service.

@@ -15,7 +15,7 @@ runs as a Lambda function that is invoked by EventBridge in two ways:
 - [CloudTrail Lambda
   events](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) - This syncs updates and deletes from Lambda into Consul in real-time.
     Typically, Lambda registrator syncs Lambdas into Consul within one minute,
-    but CloudTrail events are occationally delayed.
+    but CloudTrail events are occasionally delayed.
 - [Schedules](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html) - This periodically does a full sync between Lambda and Consul to prevent
   entropy. By default, EventBridge triggers a full sync every five minutes.
 
@@ -64,8 +64,8 @@ service_prefix "" {
 }
 ```
 
-2. Create the policy with `consul acl policy create -name "new-policy" -rules @rules.hcl`.
-3. Create the token with `consul acl token create -policy-id <POLICY_ID>`.
+2. Create the policy with `consul acl policy create -name "lambda-registrator-policy" -rules @rules.hcl`.
+3. Create the token with `consul acl token create -policy-name "lambda-registrator-policy"`.
 4. Store the token in Parameter Store by applying the following Terraform:
 ```hcl
 resource "aws_ssm_parameter" "acl-token" {
