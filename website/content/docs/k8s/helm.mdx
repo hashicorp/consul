@@ -58,7 +58,7 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (see `-domain` (https://consul.io/docs/agent/config/cli-flags#_domain)) and the domain services synced from
+    (see `-domain` (https://consul.io/docs/agent/options#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
@@ -261,7 +261,7 @@ Use these links to navigate to a particular top-level stanza.
           ```
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (see `-encrypt` (https://consul.io/docs/agent/config/cli-flags#_encrypt)).
+    (see `-encrypt` (https://consul.io/docs/agent/options#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -292,7 +292,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
-    See https://www.consul.io/docs/agent/config/cli-flags#_recursor for more details.
+    See https://www.consul.io/docs/agent/options#_recursor for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
   - `tls` ((#v-global-tls)) - Enables TLS (https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure)
@@ -316,7 +316,7 @@ Use these links to navigate to a particular top-level stanza.
       Consul server(s) externally, for example, if you're using the UI.
 
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
-      and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
+      and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
       Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster
       for more details.
@@ -448,10 +448,9 @@ Use these links to navigate to a particular top-level stanza.
     - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
       set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
       This address must be reachable from the Consul servers in the primary datacenter.
-
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes) for additional information.
+      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -499,6 +498,9 @@ Use these links to navigate to a particular top-level stanza.
 
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
+
+  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
+    the API before cancelling the request.
 
 ### server
 
@@ -663,7 +665,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -864,7 +866,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://consul.io/docs/agent/config/config-files#retry-join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://consul.io/docs/agent/options#retry-join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -885,7 +887,7 @@ Use these links to navigate to a particular top-level stanza.
     required for Connect.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
-    (see https://www.consul.io/docs/agent/config/cli-flags#_node_meta)
+    (see https://www.consul.io/docs/agent/options.html#_node_meta)
 
     - `pod-name` ((#v-client-nodemeta-pod-name)) (`string: ${HOSTNAME}`)
 
@@ -929,7 +931,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1238,7 +1240,7 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
-      https://www.consul.io/docs/agent/config/config-files#ui_config_metrics_provider
+      https://www.consul.io/docs/agent/options#ui_config_metrics_provider
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
@@ -1324,6 +1326,9 @@ Use these links to navigate to a particular top-level stanza.
       already exist, it will be created. Turning this on overrides the
       `consulDestinationNamespace` setting.
       `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
+      If mirroring is enabled, avoid creating any Consul resources in the following 
+      Kubernetes namespaces, as Consul currently reserves these namespaces for 
+      system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-synccatalog-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
       to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
@@ -1576,7 +1581,9 @@ Use these links to navigate to a particular top-level stanza.
       of the same name as their k8s namespace, optionally prefixed if
       `mirroringK8SPrefix` is set below. If the Consul namespace does not
       already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting.
+      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul 
+      resources in the following Kubernetes namespaces, as Consul currently reserves these 
+      namespaces for system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
       to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
@@ -2050,26 +2057,6 @@ Use these links to navigate to a particular top-level stanza.
         service: |
         - external-dns.alpha.kubernetes.io/hostname
         ```
-
-  - `consulNamespaces` ((#v-apigateway-consulnamespaces)) - <EnterpriseAlert inline /> These settings manage the API Gateway's interaction with
-    Consul namespaces (requires consul-ent v1.7+).
-    Also, `global.enableConsulNamespaces` must be true.
-
-    - `consulDestinationNamespace` ((#v-apigateway-consulnamespaces-consuldestinationnamespace)) (`string: default`) - Name of the Consul namespace to register all
-      k8s services into. If the Consul namespace does not already exist,
-      it will be created. This will be ignored if `mirroringK8S` is true.
-
-    - `mirroringK8S` ((#v-apigateway-consulnamespaces-mirroringk8s)) (`boolean: false`) - If true, k8s services will be registered into a Consul namespace
-      of the same name as their k8s namespace, optionally prefixed if
-      `mirroringK8SPrefix` is set below. If the Consul namespace does not
-      already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting.
-      `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
-
-    - `mirroringK8SPrefix` ((#v-apigateway-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
-      to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
-      service in the k8s `staging` namespace will be registered into the
-      `k8s-staging` Consul namespace.
 
   - `serviceAccount` ((#v-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 
