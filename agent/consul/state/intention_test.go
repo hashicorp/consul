@@ -2247,7 +2247,7 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 		expect          expect
 	}{
 		{
-			name:            "(downstream) acl allow all but intentions deny one, destination target",
+			name:            "(upstream) acl allow all but intentions deny one, destination target",
 			defaultDecision: acl.Allow,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
@@ -2261,11 +2261,15 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 					},
 				},
 			},
-			target:      structs.NewServiceName("api.test.com", nil),
-			downstreams: true,
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
 			expect: expect{
 				idx: 7,
 				services: structs.ServiceList{
+					{
+						Name:           "kafka.store.org",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
 					{
 						Name:           "mysql",
 						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
@@ -2274,7 +2278,7 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			},
 		},
 		{
-			name:            "(downstream) acl deny all intentions allow one, destination target",
+			name:            "(upstream) acl deny all intentions allow one, destination target",
 			defaultDecision: acl.Deny,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
@@ -2288,21 +2292,21 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 					},
 				},
 			},
-			target:      structs.NewServiceName("kafka.store.org", nil),
-			downstreams: true,
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
 			expect: expect{
 				idx: 7,
 				services: structs.ServiceList{
 					{
-						Name:           "web",
+						Name:           "kafka.store.org",
 						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
 		},
 		{
-			name:            "(downstream) acl allow all check only services show, service target",
-			defaultDecision: acl.Allow,
+			name:            "(upstream) acl allow all check only destinations show, service target",
+			defaultDecision: acl.Deny,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2310,25 +2314,16 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 					Sources: []*structs.SourceIntention{
 						{
 							Name:   "web",
-							Action: structs.IntentionActionDeny,
+							Action: structs.IntentionActionAllow,
 						},
 					},
 				},
 			},
-			target:      structs.NewServiceName("api", nil),
-			downstreams: true,
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
 			expect: expect{
-				idx: 7,
-				services: structs.ServiceList{
-					{
-						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-					{
-						Name:           "web",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-				},
+				idx:      7,
+				services: structs.ServiceList{},
 			},
 		},
 	}
