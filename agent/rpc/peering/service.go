@@ -11,15 +11,12 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	apb "github.com/golang/protobuf/ptypes/any"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"google.golang.org/genproto/googleapis/rpc/code"
-	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -478,20 +475,15 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 
 		s.logger.Error("cannot establish a peering stream on a follower node")
 
-		details, err := anypb.New(&pbpeering.LeaderAddress{
-			Address: s.Backend.LeaderAddress().Get(),
-		})
+		st, err := grpcstatus.New(codes.FailedPrecondition,
+			"cannot establish a peering stream on a follower node").WithDetails(
+			&pbpeering.LeaderAddress{Address: s.Backend.LeaderAddress().Get()})
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
+			return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+		} else {
+			return st.Err()
 		}
-
-		// if there was an error above while marshaling details, then details is nil
-		// clients need to check types casts either way so it should be safe to send {nil}
-		return grpcstatus.FromProto(&spb.Status{
-			Code:    9,
-			Message: "cannot establish a peering stream on a follower node",
-			Details: []*apb.Any{details},
-		}).Err()
 	}
 
 	// Initial message on a new stream must be a new subscription request.
@@ -678,20 +670,15 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 
 				logger.Error("node is not a leader anymore; cannot continue streaming")
 
-				details, err := anypb.New(&pbpeering.LeaderAddress{
-					Address: s.Backend.LeaderAddress().Get(),
-				})
+				st, err := grpcstatus.New(codes.FailedPrecondition,
+					"node is not a leader anymore; cannot continue streaming").WithDetails(
+					&pbpeering.LeaderAddress{Address: s.Backend.LeaderAddress().Get()})
 				if err != nil {
 					s.logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
+					return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+				} else {
+					return st.Err()
 				}
-
-				// if there was an error above while marshaling details, then details is nil
-				// clients need to check types casts either way so it should be safe to send {nil}
-				return grpcstatus.FromProto(&spb.Status{
-					Code:    9,
-					Message: "node is not a leader anymore; cannot continue streaming",
-					Details: []*apb.Any{details},
-				}).Err()
 			}
 
 			if req := msg.GetRequest(); req != nil {
