@@ -367,7 +367,7 @@ message ReplicationMessage {
 }
 
 // LeaderAddress is sent when the peering service runs on a consul node
-// that is not a leader. The node either was a leader before and not it is not, or it never was.
+// that is not a leader. The node either lost leadership, or never was a leader.
 message LeaderAddress {
   // address is an ip:port best effort hint at what could be the cluster leader's address
   string address = 1;

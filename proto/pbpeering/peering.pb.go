@@ -1721,7 +1721,7 @@ func (*ReplicationMessage_Response_) isReplicationMessage_Payload() {}
 func (*ReplicationMessage_Terminated_) isReplicationMessage_Payload() {}
 
 // LeaderAddress is sent when the peering service runs on a consul node
-// that is not a leader. The node either was a leader before and not it is not, or it never was.
+// that is not a leader. The node either lost leadership, or never was a leader.
 type LeaderAddress struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
