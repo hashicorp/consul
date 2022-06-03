@@ -173,9 +173,10 @@ function verify_zip {
       docker run \
         --platform=linux/arm/v7 \
         -v $(pwd):/workdir \
+        -v ${SCRIPT_DIR}:/scripts \
         -w /workdir  \
       arm32v7/debian \
-      /workdir/.github/scripts/verify_bin.sh \
+      /scripts/verify_bin.sh \
       ./consul \
       "${expect_version}"
       ;;
@@ -184,9 +185,10 @@ function verify_zip {
       docker run \
         --platform=linux/arm64 \
         -v $(pwd):/workdir \
+        -v ${SCRIPT_DIR}:/scripts \
         -w /workdir  \
       arm64v8/debian \
-      /workdir/.github/scripts/verify_bin.sh \
+      /scripts/verify_bin.sh \
       ./consul \
       "${expect_version}"
       ;;
