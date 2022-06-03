@@ -32,6 +32,7 @@ type PeeringServiceClient interface {
 	PeeringWrite(ctx context.Context, in *PeeringWriteRequest, opts ...grpc.CallOption) (*PeeringWriteResponse, error)
 	// TODO(peering): Rename this to PeeredServiceRoots? or something like that?
 	TrustBundleListByService(ctx context.Context, in *TrustBundleListByServiceRequest, opts ...grpc.CallOption) (*TrustBundleListByServiceResponse, error)
+	TrustBundleRead(ctx context.Context, in *TrustBundleReadRequest, opts ...grpc.CallOption) (*TrustBundleReadResponse, error)
 	// StreamResources opens an event stream for resources to share between peers, such as services.
 	// Events are streamed as they happen.
 	// buf:lint:ignore RPC_REQUEST_STANDARD_NAME
@@ -111,6 +112,15 @@ func (c *peeringServiceClient) TrustBundleListByService(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *peeringServiceClient) TrustBundleRead(ctx context.Context, in *TrustBundleReadRequest, opts ...grpc.CallOption) (*TrustBundleReadResponse, error) {
+	out := new(TrustBundleReadResponse)
+	err := c.cc.Invoke(ctx, "/peering.PeeringService/TrustBundleRead", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *peeringServiceClient) StreamResources(ctx context.Context, opts ...grpc.CallOption) (PeeringService_StreamResourcesClient, error) {
 	stream, err := c.cc.NewStream(ctx, &PeeringService_ServiceDesc.Streams[0], "/peering.PeeringService/StreamResources", opts...)
 	if err != nil {
@@ -156,6 +166,7 @@ type PeeringServiceServer interface {
 	PeeringWrite(context.Context, *PeeringWriteRequest) (*PeeringWriteResponse, error)
 	// TODO(peering): Rename this to PeeredServiceRoots? or something like that?
 	TrustBundleListByService(context.Context, *TrustBundleListByServiceRequest) (*TrustBundleListByServiceResponse, error)
+	TrustBundleRead(context.Context, *TrustBundleReadRequest) (*TrustBundleReadResponse, error)
 	// StreamResources opens an event stream for resources to share between peers, such as services.
 	// Events are streamed as they happen.
 	// buf:lint:ignore RPC_REQUEST_STANDARD_NAME
@@ -188,6 +199,9 @@ func (UnimplementedPeeringServiceServer) PeeringWrite(context.Context, *PeeringW
 }
 func (UnimplementedPeeringServiceServer) TrustBundleListByService(context.Context, *TrustBundleListByServiceRequest) (*TrustBundleListByServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TrustBundleListByService not implemented")
+}
+func (UnimplementedPeeringServiceServer) TrustBundleRead(context.Context, *TrustBundleReadRequest) (*TrustBundleReadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TrustBundleRead not implemented")
 }
 func (UnimplementedPeeringServiceServer) StreamResources(PeeringService_StreamResourcesServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamResources not implemented")
@@ -330,6 +344,24 @@ func _PeeringService_TrustBundleListByService_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PeeringService_TrustBundleRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TrustBundleReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeeringServiceServer).TrustBundleRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/peering.PeeringService/TrustBundleRead",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeeringServiceServer).TrustBundleRead(ctx, req.(*TrustBundleReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PeeringService_StreamResources_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(PeeringServiceServer).StreamResources(&peeringServiceStreamResourcesServer{stream})
 }
@@ -390,6 +422,10 @@ var PeeringService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TrustBundleListByService",
 			Handler:    _PeeringService_TrustBundleListByService_Handler,
+		},
+		{
+			MethodName: "TrustBundleRead",
+			Handler:    _PeeringService_TrustBundleRead_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -289,14 +289,13 @@ The automatically generated federation secret contains:
 
 ## Kubernetes API URL
 
-If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the primary cluster
-must be specified in the config files for all secondary clusters because secondary clusters need
+If ACLs are enabled, you must next determine the Kubernetes API URL for each secondary cluster. The API URL of the secondary cluster must be specified in the config files for each secondary cluster because they  need
 to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
 by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
 in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
 to retrieve global Consul ACL tokens from the primary.
 
-To determine the Kubernetes API URL, first get the cluster name in your kubeconfig:
+To determine the Kubernetes API URL, first get the cluster name in your kubeconfig for your secondary:
 
 ```shell-session
 $ export CLUSTER=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$(kubectl config current-context)\")].context.cluster}")
@@ -352,7 +351,7 @@ global:
 
   federation:
     enabled: true
-    k8sAuthMethodHost: <kubernetes-api-url>
+    k8sAuthMethodHost: <kubernetes-api-url-of-secondary>
     primaryDatacenter: dc1
   gossipEncryption:
     secretName: consul-federation
@@ -380,8 +379,7 @@ server:
 
 Modifications:
 
-1. If ACLs are enabled, change the value of `global.federation.k8sAuthMethodHost` to the full URL (including `https://`) of this cluster's
-   Kubernetes API.
+1. If ACLs are enabled, change the value of `global.federation.k8sAuthMethodHost` to the full URL (including `https://`) of the secondary cluster's Kubernetes API.
 1. `global.federation.primaryDatacenter` must be set to the name of the primary datacenter.
 1. The Consul datacenter name for the datacenter in this example is `dc2`. The datacenter name in **each** federated cluster **must be unique**.
 1. ACLs are enabled in the above config file. They can be disabled by removing

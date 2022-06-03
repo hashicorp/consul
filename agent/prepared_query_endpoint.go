@@ -309,10 +309,7 @@ func (s *HTTPHandlers) PreparedQuerySpecific(resp http.ResponseWriter, req *http
 	}
 
 	path := req.URL.Path
-	id, err := getPathSuffixUnescaped(path, "/v1/query/")
-	if err != nil {
-		return nil, err
-	}
+	id := strings.TrimPrefix(path, "/v1/query/")
 
 	switch {
 	case strings.HasSuffix(path, "/execute"):

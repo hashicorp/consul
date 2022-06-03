@@ -2,16 +2,14 @@ package agent
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // GET /v1/internal/federation-state/<datacenter>
 func (s *HTTPHandlers) FederationStateGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	datacenterName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/internal/federation-state/")
-	if err != nil {
-		return nil, err
-	}
+	datacenterName := strings.TrimPrefix(req.URL.Path, "/v1/internal/federation-state/")
 	if datacenterName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing datacenter name"}
 	}

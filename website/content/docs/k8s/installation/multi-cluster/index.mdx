@@ -57,15 +57,19 @@ federated with Consul datacenters running on virtual machines (and vice versa).
 Because the communication between clusters is end-to-end encrypted, mesh gateways
 can even be exposed on the public internet.
 
-The only requirement is that the mesh gateways for each cluster can route to
-one another. For example, if using a load balancer service in front of each cluster's
-mesh gateway, the load balancer IP must be routable from the other mesh gateway pods.
+There are three networking requirements:
+1. When Consul servers in secondary datacenters first start up, they must be able to make calls directly to the
+   primary datacenter's mesh gateways.
+1. Once the Consul servers in secondary datacenters have made that initial call to the primary datacenter's mesh
+   gateways, the mesh gateways in the secondary datacenter will be able to start. From this point onwards, all
+   communication between servers will flow first to the local mesh gateways, and then to the remote mesh gateways.
+   This means all mesh gateways across datacenters must be able to route to one another.
 
-If using a public load balancer, this is guaranteed. If using a private load balancer
-then you'll need to make sure that its IP is routable from your other clusters.
-
-In addition, if ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URL of
-secondary clusters.
+   For example, if using a load balancer service in front of each cluster's mesh gateway pods, the load balancer IP
+   must be routable from the other mesh gateway pods.
+   If using a public load balancer, this is guaranteed. If using a private load balancer
+   then you'll need to make sure that its IP/DNS address is routable from your other clusters.
+1. If ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters.
 
 ## Next Steps
 

@@ -19,9 +19,6 @@ import (
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/rpc/middleware"
-	"github.com/hashicorp/consul/ipaddr"
-
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -29,8 +26,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1951,4 +1950,51 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+// TestServer_Peering_LeadershipMonitor tests that a peering service can receive the leader address
+// through the LeadershipMonitor IRL.
+func TestServer_Peering_LeadershipMonitor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// given two servers: s1 (leader), s2 (follower)
+	_, conf1 := testServerConfig(t)
+	s1, err := newServer(t, conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+
+	_, conf2 := testServerConfig(t)
+	conf2.Bootstrap = false
+	s2, err := newServer(t, conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s2.Shutdown()
+
+	// Try to join
+	joinLAN(t, s2, s1)
+
+	// Verify Raft has established a peer
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
+
+	// the actual tests
+	// when leadership has been established s2 should have the address of s1
+	// in its leadership monitor in the peering service
+	peeringLeaderAddr := s2.peeringService.Backend.LeadershipMonitor().GetLeaderAddr()
+
+	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
+	// test corollary by transitivity to future-proof against any setup bugs
+	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
 }

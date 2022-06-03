@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -41,6 +43,14 @@ type ConfigSnapshotUpstreams struct {
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
+
+	// WatchedPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
+	// watches for peer trust bundles any time the list of upstream peers changes.
+	WatchedPeerTrustBundles map[string]context.CancelFunc
+
+	// PeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// It is used to store trust bundles for upstream TLS transport sockets.
+	PeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -112,6 +122,9 @@ func gatewayKeyFromString(s string) GatewayKey {
 type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
+	PeeringTrustBundlesSet bool
+	PeeringTrustBundles    []*pbpeering.PeeringTrustBundle
+
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
 
@@ -133,6 +146,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
+		len(c.WatchedPeerTrustBundles) == 0 &&
+		len(c.PeerTrustBundles) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
@@ -140,6 +155,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
+		!c.PeeringTrustBundlesSet &&
 		!c.MeshConfigSet
 }
 
@@ -425,7 +441,7 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 type ConfigSnapshot struct {
 	Kind                  structs.ServiceKind
 	Service               string
-	ProxyID               structs.ServiceID
+	ProxyID               ProxyID
 	Address               string
 	Port                  int
 	ServiceMeta           map[string]string
@@ -530,6 +546,15 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 	default:
 		return nil
 	}
+}
+
+// RootPEMs returns all PEM-encoded public certificates for the root CA.
+func (s *ConfigSnapshot) RootPEMs() string {
+	var rootPEMs string
+	for _, root := range s.Roots.Roots {
+		rootPEMs += lib.EnsureTrailingNewline(root.RootCert)
+	}
+	return rootPEMs
 }
 
 func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {

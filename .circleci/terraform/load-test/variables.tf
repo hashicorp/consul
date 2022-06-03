@@ -22,3 +22,9 @@ variable "cluster_name" {
   type        = string
   default     = "consul-example"
 }
+
+variable "cluster_tag_key" {
+  description = "The tag the EC2 Instances will look for to automatically discover each other and form a cluster."
+  type        = string
+  default     = "consul-ci-load-test"
+}

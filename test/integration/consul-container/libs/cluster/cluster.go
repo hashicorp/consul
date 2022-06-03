@@ -6,9 +6,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -121,4 +125,39 @@ func GetLeader(client *api.Client) (string, error) {
 		return "", fmt.Errorf("no leader available")
 	}
 	return leaderAdd, nil
+}
+
+const retryTimeout = 20 * time.Second
+const retryFrequency = 500 * time.Millisecond
+
+func LongFailer() *retry.Timer {
+	return &retry.Timer{Timeout: retryTimeout, Wait: retryFrequency}
+}
+
+func WaitForLeader(t *testing.T, cluster *Cluster, client *api.Client) {
+	retry.RunWith(LongFailer(), t, func(r *retry.R) {
+		leader, err := cluster.Leader()
+		require.NoError(r, err)
+		require.NotEmpty(r, leader)
+	})
+
+	if client != nil {
+		waitForLeaderFromClient(t, client)
+	}
+}
+
+func waitForLeaderFromClient(t *testing.T, client *api.Client) {
+	retry.RunWith(LongFailer(), t, func(r *retry.R) {
+		leader, err := GetLeader(client)
+		require.NoError(r, err)
+		require.NotEmpty(r, leader)
+	})
+}
+
+func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
+	retry.RunWith(LongFailer(), t, func(r *retry.R) {
+		members, err := client.Agent().Members(false)
+		require.NoError(r, err)
+		require.Len(r, members, expectN)
+	})
 }

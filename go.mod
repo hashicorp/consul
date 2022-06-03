@@ -17,7 +17,6 @@ require (
 	github.com/coredns/coredns v1.1.2
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.3.0
-	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
 	github.com/envoyproxy/go-control-plane v0.10.1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/golang/protobuf v1.5.0
