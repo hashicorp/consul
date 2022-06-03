@@ -225,16 +225,17 @@ func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 
 func configIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, matchEntry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
 	switch matchType {
+	// destination type is only relevant for Source match, as destinations can only be targets
 	case structs.IntentionMatchSource:
-		return readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
+		return readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta(), destinationType)
 	case structs.IntentionMatchDestination:
-		return readDestinationIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta(), destinationType)
+		return readDestinationIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
 	default:
 		return 0, nil, fmt.Errorf("invalid intention match type: %s", matchType)
 	}
 }
 
-func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var (
@@ -244,9 +245,7 @@ func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, ser
 
 	names := getIntentionPrecedenceMatchServiceNames(serviceName, entMeta)
 	for _, sn := range names {
-		results, err = readSourceIntentionsFromConfigEntriesForServiceTxn(
-			tx, ws, sn.Name, &sn.EnterpriseMeta, results,
-		)
+		results, err = readSourceIntentionsFromConfigEntriesForServiceTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, results, destinationType)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -258,7 +257,7 @@ func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, ser
 	return idx, results, nil
 }
 
-func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, results structs.Intentions, destinationType structs.IntentionTargetType) (structs.Intentions, error) {
 	sn := structs.NewServiceName(serviceName, entMeta)
 
 	iter, err := tx.Get(tableConfigEntries, indexSource, sn)
@@ -271,7 +270,23 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				results = append(results, entry.ToIntention(src))
+				entMeta := entry.DestinationServiceName().EnterpriseMeta
+				kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+				if err != nil {
+					return nil, err
+				}
+				switch destinationType {
+				case structs.IntentionTargetService:
+					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
+						results = append(results, entry.ToIntention(src))
+					}
+				case structs.IntentionTargetDestination:
+					if kind == structs.GatewayServiceKindDestination {
+						results = append(results, entry.ToIntention(src))
+					}
+				default:
+					return nil, fmt.Errorf("invalid destinationType")
+				}
 			}
 		}
 	}
@@ -279,7 +294,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 	return results, nil
 }
 
-func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
+func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var results structs.Intentions
@@ -290,26 +305,10 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 		if err != nil {
 			return 0, nil, err
 		}
-		if entry == nil {
-			continue
-		}
-		entMeta := entry.DestinationServiceName().EnterpriseMeta
-		kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
 		if err != nil {
 			return 0, nil, err
-		}
-
-		switch destinationType {
-		case structs.IntentionTargetService:
-			if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
-				results = append(results, entry.ToIntentions()...)
-			}
-		case structs.IntentionTargetDestination:
-			if kind == structs.GatewayServiceKindDestination {
-				results = append(results, entry.ToIntentions()...)
-			}
-		default:
-			return 0, nil, fmt.Errorf("invalid destinationType")
+		} else if entry != nil {
+			results = append(results, entry.ToIntentions()...)
 		}
 	}
 	// Sort the results by precedence
