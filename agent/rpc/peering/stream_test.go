@@ -76,7 +76,7 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 	st, ok := status.FromError(err)
 	require.True(t, ok, "need to get back a grpc status error")
 	deets := st.Details()
-	// expect a ReplicationMessage_LeaderAddress
+	// expect a LeaderAddress message
 	{
 		found := false
 		for _, deet := range deets {
@@ -185,7 +185,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	st, ok := status.FromError(err2)
 	require.True(t, ok, "need to get back a grpc status error")
 	deets := st.Details()
-	// expect a ReplicationMessage_LeaderAddress
+	// expect a LeaderAddress message
 	{
 		found := false
 		for _, deet := range deets {
