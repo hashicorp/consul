@@ -8,13 +8,14 @@ description: >-
 
 # AWS Lambda
 
-Consul supports registering [AWS Lambdas](https://aws.amazon.com/lambda/) and
-invoking them from mesh services.
+You can register AWS Lambda functions in Consul and invoke them from mesh services.
+
+Lambda functions are programs or scripts that run in AWS Lambda. The functions process events and return responses. Refer to the [AWS Lambda website](https://aws.amazon.com/lambda/) for additional information.
 
 ## Registering Lambdas
 
 The first step toward invoking Lambdas from Consul is registering them as
-Consul services. The [overview
+Consul services. The [Registration
 page](/docs/lambda/registration/overview) describes the process of
 registering Lambdas at a high level along with explaining how to register
 Lambdas with [Lambda registrator](/docs/lambda/registration/lambda-registrator)
@@ -23,5 +24,5 @@ and [manually](/docs/lambda/registration/manual).
 ## Invoking Lambdas
 
 Lambdas can be invoked by any mesh service directly from connect proxies or
-through terminating gateways. The [invocation page](/docs/lambda/invocation)
+through terminating gateways. The [Invocation page](/docs/lambda/invocation)
 explains how to invoke Lambdas from Consul connect services.
