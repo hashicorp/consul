@@ -38,6 +38,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "connect-proxy-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeering,
+		},
+		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{

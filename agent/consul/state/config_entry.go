@@ -344,6 +344,27 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			return fmt.Errorf("failed updating gateway-services index: %v", err)
 		}
 	}
+
+	c := existing.(structs.ConfigEntry)
+	switch x := c.(type) {
+	case *structs.ServiceConfigEntry:
+		if x.Destination != nil {
+			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", sn.Name, err)
+			}
+			if gsKind == structs.GatewayServiceKindDestination {
+				gsKind = structs.GatewayServiceKindUnknown
+			}
+			if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+		}
+	}
+
 	// Also clean up associations in the mesh topology table for ingress gateways
 	if kind == structs.IngressGateway {
 		if _, err := tx.DeleteAll(tableMeshTopology, indexDownstream, sn); err != nil {
@@ -376,10 +397,31 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
+
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
+		}
+	}
+
+	switch conf.GetKind() {
+	case structs.ServiceDefaults:
+		if conf.(*structs.ServiceConfigEntry).Destination != nil {
+			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
+			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
+			if gsKind == structs.GatewayServiceKindUnknown {
+				gsKind = structs.GatewayServiceKindDestination
+			}
+			if err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayWildcardsAndUpdate(tx, idx, &sn, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayAndUpdate(tx, idx, &sn, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
 		}
 	}
 

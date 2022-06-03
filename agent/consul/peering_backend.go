@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"google.golang.org/grpc"
 
@@ -19,6 +20,7 @@ type peeringBackend struct {
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
+	monitor  *leadershipMonitor
 }
 
 var _ peering.Backend = (*peeringBackend)(nil)
@@ -29,6 +31,7 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 		srv:      srv,
 		connPool: connPool,
 		apply:    &peeringApply{srv: srv},
+		monitor:  &leadershipMonitor{},
 	}
 }
 
@@ -101,12 +104,35 @@ func (b *peeringBackend) Apply() peering.Apply {
 	return b.apply
 }
 
+func (b *peeringBackend) LeadershipMonitor() peering.LeadershipMonitor {
+	return b.monitor
+}
+
 func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {
 	return b.enterpriseCheckPartitions(partition)
 }
 
 func (b *peeringBackend) IsLeader() bool {
 	return b.srv.IsLeader()
+}
+
+type leadershipMonitor struct {
+	lock       sync.RWMutex
+	leaderAddr string
+}
+
+func (m *leadershipMonitor) UpdateLeaderAddr(addr string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.leaderAddr = addr
+}
+
+func (m *leadershipMonitor) GetLeaderAddr() string {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	return m.leaderAddr
 }
 
 type peeringApply struct {
@@ -140,3 +166,4 @@ func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 }
 
 var _ peering.Apply = (*peeringApply)(nil)
+var _ peering.LeadershipMonitor = (*leadershipMonitor)(nil)

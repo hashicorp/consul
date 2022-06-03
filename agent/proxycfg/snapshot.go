@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -41,6 +43,14 @@ type ConfigSnapshotUpstreams struct {
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
+
+	// WatchedPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
+	// watches for peer trust bundles any time the list of upstream peers changes.
+	WatchedPeerTrustBundles map[string]context.CancelFunc
+
+	// PeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// It is used to store trust bundles for upstream TLS transport sockets.
+	PeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -133,6 +143,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
+		len(c.WatchedPeerTrustBundles) == 0 &&
+		len(c.PeerTrustBundles) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
@@ -210,9 +222,9 @@ type configSnapshotTerminatingGateway struct {
 	// destinations.
 	GatewayServices map[structs.ServiceName]structs.GatewayService
 
-	// EndpointServices is a map of service name to GatewayServices that represent
-	// an Endpoint to an external destination of the service mesh.
-	EndpointServices map[structs.ServiceName]structs.GatewayService
+	// DestinationServices is a map of service name to GatewayServices that represent
+	// a destination to an external destination of the service mesh.
+	DestinationServices map[structs.ServiceName]structs.GatewayService
 
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -251,13 +263,12 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
-// ValidEndpoints returns the list of service keys (that represent exclusively endpoints) that have enough data to be emitted.
-func (c *configSnapshotTerminatingGateway) ValidEndpoints() []structs.ServiceName {
-	out := make([]structs.ServiceName, 0, len(c.EndpointServices))
-	for svc := range c.EndpointServices {
-		// It only counts if ALL of our watches have come back (with data or not).
 
-		// TODO (dans): there's still mTLS between connect proxies in transparent mode, so we need this, right?
+// ValidDestinations returns the list of service keys (that represent exclusively endpoints) that have enough data to be emitted.
+func (c *configSnapshotTerminatingGateway) ValidDestinations() []structs.ServiceName {
+	out := make([]structs.ServiceName, 0, len(c.DestinationServices))
+	for svc := range c.DestinationServices {
+		// It only counts if ALL of our watches have come back (with data or not).
 		// Skip the service if we don't have a cert to present for mTLS.
 		if cert, ok := c.ServiceLeaves[svc]; !ok || cert == nil {
 			continue
@@ -270,7 +281,7 @@ func (c *configSnapshotTerminatingGateway) ValidEndpoints() []structs.ServiceNam
 
 		// Skip the service if we haven't gotten our service config yet to know
 		// the protocol.
-		if _, ok := c.ServiceConfigs[svc]; !ok || c.ServiceConfigs[svc].Endpoint.Address == "" {
+		if _, ok := c.ServiceConfigs[svc]; !ok || c.ServiceConfigs[svc].Destination.Address == "" {
 			continue
 		}
 
@@ -296,7 +307,7 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		len(c.ServiceConfigs) == 0 &&
 		len(c.WatchedConfigs) == 0 &&
 		len(c.GatewayServices) == 0 &&
-		len(c.EndpointServices) == 0 &&
+		len(c.DestinationServices) == 0 &&
 		len(c.HostnameServices) == 0 &&
 		!c.MeshConfigSet
 }
@@ -460,7 +471,7 @@ func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKe
 type ConfigSnapshot struct {
 	Kind                  structs.ServiceKind
 	Service               string
-	ProxyID               structs.ServiceID
+	ProxyID               ProxyID
 	Address               string
 	Port                  int
 	ServiceMeta           map[string]string
@@ -565,6 +576,15 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 	default:
 		return nil
 	}
+}
+
+// RootPEMs returns all PEM-encoded public certificates for the root CA.
+func (s *ConfigSnapshot) RootPEMs() string {
+	var rootPEMs string
+	for _, root := range s.Roots.Roots {
+		rootPEMs += lib.EnsureTrailingNewline(root.RootCert)
+	}
+	return rootPEMs
 }
 
 func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {

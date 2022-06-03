@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, populateEndpoints bool, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 
 	var (
@@ -445,6 +445,123 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, po
 			},
 		},
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+}
+
+func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDestinations bool, extraUpdates []UpdateEvent) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+
+	var (
+		externalIP       = structs.NewServiceName("external-IP", nil)
+		externalHostname = structs.NewServiceName("external-hostname", nil)
+	)
+
+	baseEvents := []UpdateEvent{
+		{
+			CorrelationID: rootsWatchID,
+			Result:        roots,
+		},
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: nil,
+			},
+		},
+	}
+
+	tgtwyServices := []*structs.GatewayService{}
+
+	if populateDestinations {
+		tgtwyServices = append(tgtwyServices,
+			&structs.GatewayService{
+				Service:     externalIP,
+				ServiceKind: structs.GatewayServiceKindDestination,
+			},
+			&structs.GatewayService{
+				Service:     externalHostname,
+				ServiceKind: structs.GatewayServiceKindDestination,
+			},
+		)
+
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
+			{
+				CorrelationID: gatewayServicesWatchID,
+				Result: &structs.IndexedGatewayServices{
+					Services: tgtwyServices,
+				},
+			},
+			// no intentions defined for these services
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalIP.String(),
+				Result: &structs.IndexedIntentionMatches{
+					Matches: []structs.Intentions{
+						nil,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalHostname.String(),
+				Result: &structs.IndexedIntentionMatches{
+					Matches: []structs.Intentions{
+						nil,
+					},
+				},
+			},
+			// ========
+			{
+				CorrelationID: serviceLeafIDPrefix + externalIP.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
+			{
+				CorrelationID: serviceLeafIDPrefix + externalHostname.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
+			// ========
+			{
+				CorrelationID: serviceConfigIDPrefix + externalIP.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+					Destination: structs.DestinationConfig{
+						Address: "192.168.0.1",
+						Port:    80,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceConfigIDPrefix + externalHostname.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+					Destination: structs.DestinationConfig{
+						Address: "*.hashicorp.com",
+						Port:    8089,
+					},
+				},
+			},
+		})
+	}
+
+	return testConfigSnapshotFixture(t, &structs.NodeService{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		Service: "terminating-gateway",
+		Address: "1.2.3.4",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Mode: structs.ProxyModeTransparent,
+		},
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWAN: {
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+	}, nil, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
 func TestConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T) *ConfigSnapshot {

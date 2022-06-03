@@ -1140,7 +1140,7 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 					Kind: structs.ServiceDefaults,
 					Name: "foo",
 					Mode: structs.ProxyModeTransparent,
-					Endpoint: &structs.EndpointConfig{
+					Destination: &structs.DestinationConfig{
 						Address: "hello.world.com",
 						Port:    443,
 					},
@@ -1152,7 +1152,7 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			},
 			expect: structs.ServiceConfigResponse{
 				Mode: structs.ProxyModeTransparent,
-				Endpoint: structs.EndpointConfig{
+				Destination: structs.DestinationConfig{
 					Address: "hello.world.com",
 					Port:    443,
 				},

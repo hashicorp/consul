@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -761,9 +761,9 @@ func injectHTTPFilterOnFilterChains(
 func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContextFromLeaf(
-				cfgSnap,
+			CommonTlsContext: makeCommonTLSContext(
 				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 			),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
@@ -1056,11 +1056,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		}
 	}
 
-	for _, svc := range cfgSnap.TerminatingGateway.ValidEndpoints() {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+	for _, destination := range cfgSnap.TerminatingGateway.ValidDestinations() {
+		clusterName := connect.ServiceSNI(destination.Name, "", destination.NamespaceOrDefault(), destination.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
-		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		intentions := cfgSnap.TerminatingGateway.Intentions[destination]
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[destination]
 
 		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
@@ -1068,16 +1068,18 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			// default config if there is an error so it's safe to continue.
 			s.Logger.Warn(
 				"failed to parse Connect.Proxy.Config for linked service",
-				"service", svc.String(),
+				"service", destination.String(),
 				"error", err,
 			)
 		}
 
-		var endpoint *structs.EndpointConfig
-		if cfgSnap.TerminatingGateway.EndpointServices[svc].IsEndpoint {
-			endpoint = &svcConfig.Endpoint
+		var dest *structs.DestinationConfig
+		if cfgSnap.TerminatingGateway.DestinationServices[destination].ServiceKind == structs.GatewayServiceKindDestination {
+			dest = &svcConfig.Destination
+		} else {
+			return nil, fmt.Errorf("invalid gateway service for destination %s", destination.Name)
 		}
-		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, endpoint)
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, destination, intentions, cfg.Protocol, dest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -1094,14 +1096,18 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		si := ""
 		sj := ""
 		if len(l.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 {
-			si += l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix
+			si += l.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix +
+				"/" + l.FilterChains[i].FilterChainMatch.PrefixRanges[0].PrefixLen.String() +
+				":" + l.FilterChains[i].FilterChainMatch.DestinationPort.String()
 		}
 		if len(l.FilterChains[i].FilterChainMatch.ServerNames) > 0 {
 			si += l.FilterChains[i].FilterChainMatch.ServerNames[0]
 		}
 
 		if len(l.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
-			sj += l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
+			sj += l.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix +
+				"/" + l.FilterChains[j].FilterChainMatch.PrefixRanges[0].PrefixLen.String() +
+				":" + l.FilterChains[j].FilterChainMatch.DestinationPort.String()
 		}
 		if len(l.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
 			sj += l.FilterChains[j].FilterChainMatch.ServerNames[0]
@@ -1133,11 +1139,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, endpoint *structs.EndpointConfig) (*envoy_listener_v3.FilterChain, error) {
+func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, destination *structs.DestinationConfig) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContextFromLeaf(
-			cfgSnap,
+		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[service],
+			cfgSnap.RootPEMs(),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
@@ -1148,9 +1154,9 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	}
 
 	var filterChain *envoy_listener_v3.FilterChain
-	if endpoint != nil {
+	if destination != nil {
 		filterChain = &envoy_listener_v3.FilterChain{
-			FilterChainMatch: makeEndpointFilterChainMatch(endpoint),
+			FilterChainMatch: makeDestinationFilterChainMatch(cluster, destination),
 			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
 			TransportSocket:  transportSocket,
 		}
@@ -1218,47 +1224,20 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	return filterChain, nil
 }
 
-func makeEndpointFilterChainMatch(endpoint *structs.EndpointConfig) *envoy_listener_v3.FilterChainMatch {
-	// IP
-	ip := net.ParseIP(endpoint.Address)
+func makeDestinationFilterChainMatch(cluster string, dest *structs.DestinationConfig) *envoy_listener_v3.FilterChainMatch {
+	// For hostname and wildcard destinations, we match on the address.
+
+	// For IP Destinations, use the alias SNI name to match
+	ip := net.ParseIP(dest.Address)
 	if ip != nil {
-
-		pfxLen := uint32(32)
-		if ip.To4() == nil {
-			pfxLen = 128
-		}
-
 		return &envoy_listener_v3.FilterChainMatch{
-			PrefixRanges: []*envoy_core_v3.CidrRange{
-				{
-					AddressPrefix: endpoint.Address,
-					PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
-				},
-			},
-			DestinationPort: &wrappers.UInt32Value{Value: uint32(endpoint.Port)},
+			ServerNames: []string{cluster},
 		}
 	}
 
-	// CIDR
-	ip, ipNet, err := net.ParseCIDR(endpoint.Address)
-	if err == nil {
-		ipSize, _ := ipNet.Mask.Size()
-		pfxLen := uint32(ipSize)
-
-		return &envoy_listener_v3.FilterChainMatch{
-			PrefixRanges: []*envoy_core_v3.CidrRange{
-				{
-					AddressPrefix: ip.String(),
-					PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
-				},
-			},
-			DestinationPort: &wrappers.UInt32Value{Value: uint32(endpoint.Port)},
-		}
-	}
-
-	// Hostname or Wildcard
+	// For hostname and wildcard destinations, we match on the address in the Destination
 	return &envoy_listener_v3.FilterChainMatch{
-		ServerNames: []string{endpoint.Address},
+		ServerNames: []string{dest.Address},
 	}
 }
 
@@ -1716,21 +1695,14 @@ func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFil
 	}, nil
 }
 
-func makeCommonTLSContextFromLeaf(
-	cfgSnap *proxycfg.ConfigSnapshot,
+func makeCommonTLSContext(
 	leaf *structs.IssuedCert,
+	rootPEMs string,
 	tlsParams *envoy_tls_v3.TlsParameters,
 ) *envoy_tls_v3.CommonTlsContext {
-	// Concatenate all the root PEMs into one.
-	if cfgSnap.Roots == nil {
+	if rootPEMs == "" {
 		return nil
 	}
-
-	rootPEMS := ""
-	for _, root := range cfgSnap.Roots.Roots {
-		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
-	}
-
 	if tlsParams == nil {
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
@@ -1741,12 +1713,12 @@ func makeCommonTLSContextFromLeaf(
 			{
 				CertificateChain: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: ca.EnsureTrailingNewline(leaf.CertPEM),
+						InlineString: lib.EnsureTrailingNewline(leaf.CertPEM),
 					},
 				},
 				PrivateKey: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: ca.EnsureTrailingNewline(leaf.PrivateKeyPEM),
+						InlineString: lib.EnsureTrailingNewline(leaf.PrivateKeyPEM),
 					},
 				},
 			},
@@ -1756,7 +1728,7 @@ func makeCommonTLSContextFromLeaf(
 				// TODO(banks): later for L7 support we may need to configure ALPN here.
 				TrustedCa: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: rootPEMS,
+						InlineString: rootPEMs,
 					},
 				},
 			},

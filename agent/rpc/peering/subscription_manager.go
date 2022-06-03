@@ -200,22 +200,23 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			return nil // ignore event
 		}
 
-		// Clear this raft index before exporting.
-		csn.Index = 0
+		sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, subExportedProxyService))
+		spiffeID := connect.SpiffeIDService{
+			Host:       m.trustDomain,
+			Partition:  sn.PartitionOrDefault(),
+			Namespace:  sn.NamespaceOrDefault(),
+			Datacenter: m.config.Datacenter,
+			Service:    sn.Name,
+		}
+		peerMeta := &pbservice.PeeringServiceMeta{
+			SpiffeID: []string{spiffeID.URI().String()},
+		}
 
-		// // Flatten health checks
-		// for _, instance := range csn.Nodes {
-		// 	instance.Checks = flattenChecks(
-		// 		instance.Node.Node,
-		// 		instance.Service.ID,
-		// 		instance.Service.Service,
-		// 		instance.Service.EnterpriseMeta,
-		// 		instance.Checks,
-		// 	)
-		// }
-
-		// Scrub raft indexes
+		// skip checks since we just generated one from scratch
+		// Set peerMeta on all instances and scrub the raft indexes.
 		for _, instance := range csn.Nodes {
+			instance.Service.Connect.PeerMeta = peerMeta
+
 			instance.Node.RaftIndex = nil
 			instance.Service.RaftIndex = nil
 			if m.config.DisableMeshGatewayMode {
@@ -223,8 +224,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 					chk.RaftIndex = nil
 				}
 			}
-			// skip checks since we just generated one from scratch
 		}
+		csn.Index = 0
 
 		id := proxyServicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedProxyService)
 
