@@ -208,8 +208,17 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			Datacenter: m.config.Datacenter,
 			Service:    sn.Name,
 		}
+		sni := connect.PeeredServiceSNI(
+			sn.Name,
+			sn.NamespaceOrDefault(),
+			sn.PartitionOrDefault(),
+			state.peerName,
+			m.trustDomain,
+		)
 		peerMeta := &pbservice.PeeringServiceMeta{
+			SNI:      []string{sni},
 			SpiffeID: []string{spiffeID.URI().String()},
+			Protocol: "tcp",
 		}
 
 		// skip checks since we just generated one from scratch
