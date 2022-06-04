@@ -1,3 +1,9 @@
+## 1.12.2 (June 3, 2022)
+
+BUG FIXES:
+
+* kvs: Fixed a bug where query options were not being applied to KVS.Get RPC operations. [[GH-13344](https://github.com/hashicorp/consul/issues/13344)]
+
 ## 1.12.1 (May 25, 2022)
 
 FEATURES:
