@@ -43,7 +43,7 @@ function main {
   # match against the various artifact names:
   # deb packages: consul_${version}-1_${arch}.deb
   # rpm packages: consul-${version}-1.${arch}.rpm
-  # zip packages: consul_${version}_${os}_${arch}.zip 
+  # zip packages: consul_${version}_${os}_${arch}.zip
   case "${artifact_path}" in
     *.rpm) verify_rpm "${artifact_path}" "${expect_version}";;
     *.deb) verify_deb "${artifact_path}" "${expect_version}";;
@@ -56,7 +56,7 @@ function main {
 }
 
 # Arguments:
-#   $1 - path to rpm (eg. consul-1.13.0~dev-1.aarch64.rpm) 
+#   $1 - path to rpm (eg. consul-1.13.0~dev-1.aarch64.rpm)
 #   $2 - expected version to match against (eg. v1.13.0-dev)
 function verify_rpm {
   local artifact_path="${1:-}"
@@ -155,6 +155,8 @@ function verify_deb {
 function verify_zip {
   local artifact_path="${1:-}"
   local expect_version="${2:-}"
+  local machine_os=$(uname -s)
+  local machine_arch=$(uname -m)
 
   unzip "${artifact_path}"
 
@@ -165,32 +167,67 @@ function verify_zip {
 
   case "${artifact_path}" in
 
+    *_darwin_amd64.zip)
+      if [[ "${machine_os}" = 'Darwin' ]]; then
+        # run the darwin binary if the host is Darwin.
+        ${SCRIPT_DIR}/verify_bin.sh ./consul ${expect_version}
+      else
+        echo "cannot run darwin binary on a non-darwin host (${machine_os})"
+      fi
+      ;;
+
     *_linux_386.zip | *_linux_amd64.zip)
-      $SCRIPT_DIR/verify_bin.sh ./consul "${expect_version}"
+      if [[ "${machine_os}" = 'Linux' && "${machine_arch}" = "x86_64" ]]; then
+        # run the binary directly on the host when it's x86_64 Linux
+        ${SCRIPT_DIR}/verify_bin.sh ./consul ${expect_version}
+      else
+        # otherwise, use Docker/QEMU
+        docker run \
+          --platform=linux/amd64 \
+          -v $(pwd):/workdir \
+          -v ${SCRIPT_DIR}:/scripts \
+          -w /workdir  \
+        amd64/debian \
+        /scripts/verify_bin.sh \
+        ./consul \
+        "${expect_version}"
+      fi
       ;;
 
     *_linux_arm.zip)
-      docker run \
-        --platform=linux/arm/v7 \
-        -v $(pwd):/workdir \
-        -v ${SCRIPT_DIR}:/scripts \
-        -w /workdir  \
-      arm32v7/debian \
-      /scripts/verify_bin.sh \
-      ./consul \
-      "${expect_version}"
+      if [[ "${machine_os}" = 'Linux' && "${machine_arch}" = arm* ]]; then
+        # run the binary directly on the host when it's x86_64 Linux
+        ${SCRIPT_DIR}/verify_bin.sh ./consul ${expect_version}
+      else
+        # otherwise, use Docker/QEMU
+        docker run \
+          --platform=linux/arm/v7 \
+          -v $(pwd):/workdir \
+          -v ${SCRIPT_DIR}:/scripts \
+          -w /workdir  \
+        arm32v7/debian \
+        /scripts/verify_bin.sh \
+        ./consul \
+        "${expect_version}"
+      fi
       ;;
 
     *_linux_arm64.zip)
-      docker run \
-        --platform=linux/arm64 \
-        -v $(pwd):/workdir \
-        -v ${SCRIPT_DIR}:/scripts \
-        -w /workdir  \
-      arm64v8/debian \
-      /scripts/verify_bin.sh \
-      ./consul \
-      "${expect_version}"
+      if [[ "${machine_os}" = 'Linux' && "${machine_arch}" = arm* ]]; then
+        # run the binary directly on the host when it's x86_64 Linux
+        ${SCRIPT_DIR}/verify_bin.sh ./consul ${expect_version}
+      else
+        # otherwise, use Docker/QEMU
+        docker run \
+          --platform=linux/arm64 \
+          -v $(pwd):/workdir \
+          -v ${SCRIPT_DIR}:/scripts \
+          -w /workdir  \
+        arm64v8/debian \
+        /scripts/verify_bin.sh \
+        ./consul \
+        "${expect_version}"
+      fi
       ;;
 
     *)
