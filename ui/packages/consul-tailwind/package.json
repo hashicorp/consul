@@ -1,0 +1,12 @@
+{
+  "name": "consul-tailwind",
+  "version": "0.1.0",
+  "description": "For creating functional css classes via tailwindcss jit",
+  "scripts": {
+    "start": "tailwindcss -i ./input.css -o ../consul-ui/app/styles/functional.scss --watch"
+  },
+  "private": true,
+  "devDependencies": {
+    "tailwindcss": "^3.1.2"
+  }
+}
