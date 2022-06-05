@@ -7,12 +7,17 @@
     </BlockSlot>
     <BlockSlot @name="content">
       {{#if @model.length}}
-      <ListCollection @items={{@model}} as |item index|>
+      <ListCollection @items={{@model}} @cellHeight=72 as |item index|>
         <BlockSlot @name="header">
           <p>{{item.name}}</p>
         </BlockSlot>
         <BlockSlot @name="details">
-          <div>{{item.state}}</div>
+        <div class="flex space-x-4 items-center overflow-x-scroll">
+          <Peerings::Badge @peering={{item}} />
+          {{!-- TODO: where do we get this information from? --}}
+          <div>12 imported services</div>
+          <div>0 exported services</div>
+        </div>
         </BlockSlot>
       </ListCollection>
       {{else}}
