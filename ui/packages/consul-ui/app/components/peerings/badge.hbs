@@ -1,4 +1,8 @@
-<div class="flex items-center {{ this.background }} px-2 py-1 rounded-md {{ this.color }}">
+<div
+  class="flex items-center {{ this.background }} px-2 py-0.5 rounded-md {{ this.color }}"
+
+  {{tooltip this.tooltip options=(hash hideTooltip=(not this.tooltip))}}
+>
   <Peerings::Badge::Icon @state="{{@peering.state}}" class="mr-1" />
   <span class="text-xs font-semibold">{{capitalize (lowercase @peering.state)}}</span>
 </div>
