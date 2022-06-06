@@ -61,19 +61,17 @@ The following diagram shows the invocation procedure:
 ## Invoke a Lambda Function
 Before you can invoke a Lambda function, register the service used to invoke
 the Lambda function and the service running in Lambda with
-Consul (refer to [registration](/docs/lambda/registration/overview) for
+Consul (refer to [registration](/docs/lambda/registration) for
 instructions). The service used to invoke the function must be deployed to the
 service mesh.
 
 1. Update the invoking service to use the Lambda service as an upstream. In the following example, the `destination_name` for the invoking service (`api`) points to a Lambda service called `authentication`:
-   <CodeBlockConfig filename="api-sidecar-proxy.hcl">
     ```hcl
-     upstreams {
-       local_bind_port = 2345
-       destination_name = "authentication"
-     }
-     ```
-   </CodeBlockConfig>
+    upstreams {
+      local_bind_port = 2345
+      destination_name = "authentication"
+    }
+    ```
 1. Issue the `consul services register` command to store the configuration:
     ```shell-sesion
      $ consul services register api-sidecar-proxy.hcl`.

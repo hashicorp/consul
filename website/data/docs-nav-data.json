@@ -751,25 +751,8 @@
         "path": "lambda"
       },
       {
-        "title": "Requirements",
-        "path": "lambda/requirements"
-      },
-      {
         "title": "Registration",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "lambda/registration/overview"
-          },
-          {
-            "title": "Lambda Registrator",
-            "path": "lambda/registration/lambda-registrator"
-          },
-          {
-            "title": "Manual",
-            "path": "lambda/registration/manual"
-          }
-        ]
+        "path": "lambda/registration"
       },
       {
         "title": "Invocation",
