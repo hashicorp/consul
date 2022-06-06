@@ -79,6 +79,11 @@ type ConfigSnapshotUpstreams struct {
 	//
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
+
+	// PeerUpstreamEndpoints is a map of UpstreamID -> (set of IP addresses)
+	// and used to determine the backing endpoints of an upstream in another
+	// peer.
+	PeerUpstreamEndpoints map[UpstreamID]structs.CheckServiceNodes
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -156,7 +161,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
 		!c.PeeringTrustBundlesSet &&
-		!c.MeshConfigSet
+		!c.MeshConfigSet &&
+		len(c.PeerUpstreamEndpoints) == 0
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -516,8 +522,11 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
+		// common with connect-proxy and ingress-gateway
 		snap.ConnectProxy.WatchedUpstreams = nil
 		snap.ConnectProxy.WatchedGateways = nil
+		snap.ConnectProxy.WatchedDiscoveryChains = nil
+		snap.ConnectProxy.WatchedPeerTrustBundles = nil
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = nil
 		snap.TerminatingGateway.WatchedIntentions = nil
@@ -528,9 +537,12 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.MeshGateway.WatchedGateways = nil
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
+		// common with connect-proxy and ingress-gateway
 		snap.IngressGateway.WatchedUpstreams = nil
 		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
+		snap.IngressGateway.WatchedPeerTrustBundles = nil
+		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
 
@@ -584,4 +596,45 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 		return nil
 	}
 	return mesh.TLS.Outgoing
+}
+
+func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
+	nodes := u.PeerUpstreamEndpoints[uid]
+	if len(nodes) == 0 {
+		return structs.PeeringServiceMeta{}
+	}
+
+	// In agent/rpc/peering/subscription_manager.go we denormalize the
+	// PeeringServiceMeta data onto each replicated service instance to convey
+	// this information back to the importing side of the peering.
+	//
+	// This data is guaranteed (subject to any eventual consistency lag around
+	// updates) to be the same across all instances, so we only need to take
+	// the first item.
+	//
+	// TODO(peering): consider replicating this "common to all instances" data
+	// using a different replication type and persist it separately in the
+	// catalog to avoid this weird construction.
+	csn := nodes[0]
+	if csn.Service == nil {
+		return structs.PeeringServiceMeta{}
+	}
+	return *csn.Service.Connect.PeerMeta
+}
+
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
+	out := make([]UpstreamID, 0, len(u.UpstreamConfig))
+	for uid := range u.UpstreamConfig {
+		if uid.Peer == "" {
+			continue
+		}
+
+		if _, ok := u.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
+			continue
+		}
+
+		out = append(out, uid)
+	}
+	return out
 }
