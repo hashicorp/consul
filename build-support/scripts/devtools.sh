@@ -149,7 +149,7 @@ function install_unversioned_tool {
     local install="$2"
 
     if ! command -v "${command}" &>/dev/null ; then
-        status_stage "installing tool: ${install}"
+        status "installing tool: ${install}"
         go install "${install}"
     else
         debug "skipping tool: ${install} (installed)"
@@ -210,7 +210,7 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        status_stage "installing tool (${install_reason}): ${install}"
+        status "installing tool (${install_reason}): ${install}"
         go install "${install}"
     else
         debug "skipping tool: ${install} (installed)"
