@@ -830,7 +830,15 @@ jobs:
             docker run consul:local consul version
             cd ./test/integration/consul-container
             echo "$subtests_formatted"
-            gotestsum -- -timeout=30m ./$subtests_formatted --target-version local --latest-version latest
+            gotestsum \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              -- \
+              -timeout=30m \
+              ./$subtests_formatted \
+              --target-version local \
+              --latest-version latest
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
