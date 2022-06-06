@@ -5,16 +5,19 @@
         <route.Title @title="Peers" />
       </h1>
     </BlockSlot>
+    <BlockSlot @name="toolbar">
+      <Peerings::Search @search={{this.filter}} @onSearch={{this.handleSearchChanged}} />
+    </BlockSlot>
     <BlockSlot @name="content">
-      {{#if @model.length}}
-      <ListCollection @items={{@model}} as |item index|>
+      {{#if this.filteredPeers.length}}
+      <ListCollection @items={{this.filteredPeers}} as |item index|>
         <BlockSlot @name="header">
           <p>{{item.name}}</p>
         </BlockSlot>
         <BlockSlot @name="details">
-        <div class="flex items-center overflow-x-scroll space-x-4">
-          <Peerings::Badge @peering={{item}} />
-        </div>
+          <div class="flex items-center overflow-x-scroll space-x-4">
+            <Peerings::Badge @peering={{item}} />
+          </div>
         </BlockSlot>
       </ListCollection>
       {{else}}
