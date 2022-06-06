@@ -6,6 +6,7 @@ import (
 )
 
 // NOTE: copied from github.com/hashicorp/consul/lib/retry to avoid a heavy dependency
+// NOTE2: Jitter was removed
 
 // Waiter records the number of failures and performs exponential backoff when
 // when there are consecutive failures.
@@ -15,12 +16,8 @@ type Waiter struct {
 	MinFailures uint
 	// MinWait time. Returned after the first failure.
 	MinWait time.Duration
-	// MaxWait time applied before Jitter. Note that the actual maximum wait time
-	// is MaxWait + MaxWait * Jitter.
+	// MaxWait time.
 	MaxWait time.Duration
-	// Jitter to add to each wait time. The Jitter is applied after MaxWait, which
-	// may cause the actual wait time to exceed MaxWait.
-	Jitter Jitter
 	// Factor is the multiplier to use when calculating the delay. Defaults to
 	// 1 second.
 	Factor   time.Duration
@@ -42,13 +39,8 @@ func (w *Waiter) delay() time.Duration {
 	if shift < 31 {
 		waitTime = (1 << shift) * factor
 	}
-	// apply MaxWait before jitter so that multiple waiters with the same MaxWait
-	// do not converge when they hit their max.
 	if w.MaxWait != 0 && waitTime > w.MaxWait {
 		waitTime = w.MaxWait
-	}
-	if w.Jitter != nil {
-		waitTime = w.Jitter(waitTime)
 	}
 	if waitTime < w.MinWait {
 		return w.MinWait
