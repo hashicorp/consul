@@ -39,6 +39,7 @@ type CheckType struct {
 	Body                   string
 	DisableRedirects       bool
 	TCP                    string
+	UDP                    string
 	Interval               time.Duration
 	AliasNode              string
 	AliasService           string
@@ -179,13 +180,13 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 
 // Validate returns an error message if the check is invalid
 func (c *CheckType) Validate() error {
-	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.GRPC != "" || c.H2PING != ""
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.UDP != "" || c.GRPC != "" || c.H2PING != ""
 
 	if c.Interval > 0 && c.TTL > 0 {
 		return fmt.Errorf("Interval and TTL cannot both be specified")
 	}
 	if intervalCheck && c.Interval <= 0 {
-		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, or TCP checks")
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, H2PING, TCP or UDP checks")
 	}
 	if intervalCheck && c.IsAlias() {
 		return fmt.Errorf("Interval cannot be set for Alias checks")
@@ -241,6 +242,10 @@ func (c *CheckType) IsTCP() bool {
 	return c.TCP != "" && c.Interval > 0
 }
 
+func (c *CheckType) IsUDP() bool {
+	return c.UDP != "" && c.Interval > 0
+}
+
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
 	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
@@ -266,6 +271,8 @@ func (c *CheckType) Type() string {
 		return "ttl"
 	case c.IsTCP():
 		return "tcp"
+	case c.IsUDP():
+		return "udp"
 	case c.IsAlias():
 		return "alias"
 	case c.IsDocker():
