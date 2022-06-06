@@ -197,7 +197,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					// golden files for every test case and so not be any use!
 					setupTLSRootsAndLeaf(t, snap)
 
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					routes, err := g.routesFromSnapshot(snap)

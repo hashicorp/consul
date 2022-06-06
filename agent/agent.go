@@ -824,7 +824,6 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a,
 	)
 	a.xdsServer.Register(a.publicGRPCServer)
 

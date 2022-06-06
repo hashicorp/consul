@@ -106,7 +106,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
-		s.CheckFetcher,
 		s.CfgFetcher,
 		true,
 	)
