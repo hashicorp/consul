@@ -721,7 +721,7 @@ func testConfigSnapshotFixture(
 			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
 			TrustBundle:                     &noopDataSource[*pbpeering.TrustBundleReadRequest]{},
 			TrustBundleList:                 &noopDataSource[*pbpeering.TrustBundleListByServiceRequest]{},
-			ExportingPeeredServices:         &noopDataSource[*structs.DCSpecificRequest]{},
+			ExportedPeeredServices:          &noopDataSource[*structs.DCSpecificRequest]{},
 		},
 		dnsConfig: DNSConfig{ // TODO: make configurable
 			Domain:    "consul",

@@ -136,7 +136,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 		TrustBundle:                     typedWatchRecorder[*pbpeering.TrustBundleReadRequest]{wr},
 		TrustBundleList:                 typedWatchRecorder[*pbpeering.TrustBundleListByServiceRequest]{wr},
-		ExportingPeeredServices:         typedWatchRecorder[*structs.DCSpecificRequest]{wr},
+		ExportedPeeredServices:          typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 	}
 	recordWatchesEnterprise(sc, wr)
 

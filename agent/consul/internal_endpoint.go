@@ -435,10 +435,10 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	)
 }
 
-// ExportingPeeredServices is used to query the exported services for peers.
+// ExportedPeeredServices is used to query the exported services for peers.
 // Returns services as a map of ServiceNames by peer.
-func (m *Internal) ExportingPeeredServices(args *structs.DCSpecificRequest, reply *structs.IndexedExportedServiceList) error {
-	if done, err := m.srv.ForwardRPC("Internal.ExportingPeeredServices", args, reply); done {
+func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply *structs.IndexedExportedServiceList) error {
+	if done, err := m.srv.ForwardRPC("Internal.ExportedPeeredServices", args, reply); done {
 		return err
 	}
 

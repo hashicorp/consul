@@ -11,14 +11,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestExportingPeeredServices(t *testing.T) {
+func TestExportedPeeredServices(t *testing.T) {
 	rpc := TestRPC(t)
-	typ := &ExportingPeeredServices{RPC: rpc}
+	typ := &ExportedPeeredServices{RPC: rpc}
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedExportedServiceList
-	rpc.On("RPC", "Internal.ExportingPeeredServices", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Internal.ExportedPeeredServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.DCSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
@@ -56,9 +56,9 @@ func TestExportingPeeredServices(t *testing.T) {
 	rpc.AssertExpectations(t)
 }
 
-func TestExportingPeeredServices_badReqType(t *testing.T) {
+func TestExportedPeeredServices_badReqType(t *testing.T) {
 	rpc := TestRPC(t)
-	typ := &ExportingPeeredServices{RPC: rpc}
+	typ := &ExportedPeeredServices{RPC: rpc}
 
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(

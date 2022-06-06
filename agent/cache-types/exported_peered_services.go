@@ -8,14 +8,14 @@ import (
 )
 
 // Recommended name for registration.
-const ExportingPeeredServicesName = "exporting-peered-services"
+const ExportedPeeredServicesName = "exported-peered-services"
 
-type ExportingPeeredServices struct {
+type ExportedPeeredServices struct {
 	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
-func (c *ExportingPeeredServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ExportedPeeredServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -41,7 +41,7 @@ func (c *ExportingPeeredServices) Fetch(opts cache.FetchOptions, req cache.Reque
 
 	// Fetch
 	var reply structs.IndexedExportedServiceList
-	if err := c.RPC.RPC("Internal.ExportingPeeredServices", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("Internal.ExportedPeeredServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

@@ -70,7 +70,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	// Watch for all exported services from this mesh gateway's partition in any peering.
-	err = s.dataSources.ExportingPeeredServices.Notify(ctx, &structs.DCSpecificRequest{
+	err = s.dataSources.ExportedPeeredServices.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Source:         *s.source,
