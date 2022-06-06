@@ -6,7 +6,6 @@ import (
 	"sort"
 	"testing"
 	"text/template"
-	"time"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -451,32 +450,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			// NOTE: if IPv6 is not supported in the kernel per
 			// kernelSupportsIPv6() then this test will fail because the golden
 			// files were generated assuming ipv6 support was present
-			name: "expose-checks",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
-					ns.Proxy.Expose = structs.ExposeConfig{
-						Checks: true,
-					}
-				})
-			},
+			name:   "expose-checks",
+			create: proxycfg.TestConfigSnapshotExposeChecks,
 			generatorSetup: func(s *ResourceGenerator) {
 				s.CfgFetcher = configFetcherFunc(func() string {
 					return "192.0.2.1"
-				})
-
-				s.CheckFetcher = httpCheckFetcherFunc(func(sid structs.ServiceID) []structs.CheckType {
-					if sid != structs.NewServiceID("web", nil) {
-						return nil
-					}
-					return []structs.CheckType{{
-						CheckID:   types.CheckID("http"),
-						Name:      "http",
-						HTTP:      "http://127.0.0.1:8181/debug",
-						ProxyHTTP: "http://:21500/debug",
-						Method:    "GET",
-						Interval:  10 * time.Second,
-						Timeout:   1 * time.Second,
-					}}
 				})
 			},
 		},
@@ -838,7 +816,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 					if tt.generatorSetup != nil {
 						tt.generatorSetup(g)
@@ -986,14 +964,6 @@ func customHTTPListenerJSON(t testinf.T, opts customHTTPListenerJSONOptions) str
 	var buf bytes.Buffer
 	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))
 	return buf.String()
-}
-
-type httpCheckFetcherFunc func(serviceID structs.ServiceID) []structs.CheckType
-
-var _ HTTPCheckFetcher = (httpCheckFetcherFunc)(nil)
-
-func (f httpCheckFetcherFunc) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType {
-	return f(serviceID)
 }
 
 type configFetcherFunc func() string
