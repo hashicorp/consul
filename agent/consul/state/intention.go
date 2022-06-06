@@ -839,14 +839,25 @@ func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 //
 // The returned intentions are sorted based on the intention precedence rules.
 // i.e. result[0] is the highest precedent rule to match
-func (s *Store) IntentionMatchOne(ws memdb.WatchSet, entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
+func (s *Store) IntentionMatchOne(
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+	destinationType structs.IntentionTargetType,
+) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	return compatIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
-func compatIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
+func compatIntentionMatchOneTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+	destinationType structs.IntentionTargetType,
+) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
@@ -941,7 +952,13 @@ type ServiceWithDecision struct {
 // IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
 // intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
-func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error) {
+func (s *Store) IntentionTopology(
+	ws memdb.WatchSet,
+	target structs.ServiceName,
+	downstreams bool,
+	defaultDecision acl.EnforcementDecision,
+  intentionTarget structs.IntentionTargetType,
+) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -961,8 +978,13 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet, target structs.ServiceName,
 	return idx, resp, nil
 }
 
-func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
-	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, []ServiceWithDecision, error) {
+func (s *Store) intentionTopologyTxn(
+	tx ReadTxn, ws memdb.WatchSet,
+	target structs.ServiceName,
+	downstreams bool,
+	defaultDecision acl.EnforcementDecision,
+  intentionTarget structs.IntentionTargetType,
+) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
 

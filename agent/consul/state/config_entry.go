@@ -364,7 +364,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 			if err := cleanupKindServiceName(tx, idx, serviceName, structs.ServiceKindDestination); err != nil {
-				return fmt.Errorf("failed to persist service name: %v", err)
+				return fmt.Errorf("failed to persist service name: \"%s\"; err: %v", serviceName, err)
 			}
 		}
 	}
