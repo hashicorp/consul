@@ -8,7 +8,7 @@
       </svg>
     </label>
     <input id="peer-search" placeholder="Search" class="py-2 focus:outline-0" value="{{@search}}" {{on "input"
-      (pick "target.value" @onSearch)}} />
+      (pick "target.value" @onSearch)}} {{on-key "Escape" (fn @onSearch "" )}} />
     {{#if @search}}
     <button type="button" {{on "click" (fn @onSearch "" )}}
       class="absolute h-full right-2 flex items-center justify-center">
