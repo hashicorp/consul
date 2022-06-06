@@ -365,3 +365,10 @@ message ReplicationMessage {
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
 }
+
+// LeaderAddress is sent when the peering service runs on a consul node
+// that is not a leader. The node either lost leadership, or never was a leader.
+message LeaderAddress {
+  // address is an ip:port best effort hint at what could be the cluster leader's address
+  string address = 1;
+}
