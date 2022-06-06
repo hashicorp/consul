@@ -822,15 +822,19 @@ jobs:
       - run:
           name: Compatibility Integration Tests
           command: |
-            subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
-            echo "Running $(echo $subtests | wc -w) subtests"
-            echo "$subtests"
-            subtests_formatted=$(echo "$subtests" |  sed 's/^/.\//g' | xargs)
             mkdir -p /tmp/test-results/
-            docker run consul:local consul version
             cd ./test/integration/consul-container
-            echo "$subtests_formatted"
-            gotestsum -- -timeout=30m ./$subtests_formatted --target-version local --latest-version latest
+            docker run --rm consul:local consul version
+            gotestsum \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              --packages="./..." \
+              -- \
+              -timeout=30m \
+              ./... \
+              --target-version local \
+              --latest-version latest
             ls -lrt
           environment:
             # this is needed because of incompatibility between RYUK container and circleci
