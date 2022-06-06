@@ -14,6 +14,9 @@ type BootstrapTplArgs struct {
 	// the agent to deliver the correct configuration.
 	ProxyID string
 
+	// NodeName is the name of the node on which the proxy service instance is registered.
+	NodeName string
+
 	// ProxySourceService is the Consul service name to report for this proxy
 	// instance's source service label. For sidecars it should be the
 	// Proxy.DestinationServiceName. For gateways and similar it is the service
@@ -140,6 +143,9 @@ const bootstrapTemplate = `{
     "cluster": "{{ .ProxyCluster }}",
     "id": "{{ .ProxyID }}",
     "metadata": {
+      {{- if .NodeName }}
+      "node_name": "{{ .NodeName }}",
+      {{- end }}
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
       "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
