@@ -957,7 +957,7 @@ func (s *Store) IntentionTopology(
 	target structs.ServiceName,
 	downstreams bool,
 	defaultDecision acl.EnforcementDecision,
-  intentionTarget structs.IntentionTargetType,
+	intentionTarget structs.IntentionTargetType,
 ) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
@@ -983,7 +983,7 @@ func (s *Store) intentionTopologyTxn(
 	target structs.ServiceName,
 	downstreams bool,
 	defaultDecision acl.EnforcementDecision,
-  intentionTarget structs.IntentionTargetType,
+	intentionTarget structs.IntentionTargetType,
 ) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
