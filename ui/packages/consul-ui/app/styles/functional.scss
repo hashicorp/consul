@@ -661,6 +661,10 @@ video {
   top: 6rem;
 }
 
+.right-2 {
+  right: 0.5rem;
+}
+
 .isolate {
   isolation: isolate;
 }
@@ -671,10 +675,6 @@ video {
 
 .block {
   display: block;
-}
-
-.\!block {
-  display: block !important;
 }
 
 .inline-block {
@@ -697,40 +697,12 @@ video {
   display: table;
 }
 
-.inline-table {
-  display: inline-table;
-}
-
 .table-caption {
   display: table-caption;
 }
 
 .table-cell {
   display: table-cell;
-}
-
-.table-column {
-  display: table-column;
-}
-
-.table-column-group {
-  display: table-column-group;
-}
-
-.table-footer-group {
-  display: table-footer-group;
-}
-
-.table-header-group {
-  display: table-header-group;
-}
-
-.table-row-group {
-  display: table-row-group;
-}
-
-.table-row {
-  display: table-row;
 }
 
 .grid {
@@ -741,20 +713,20 @@ video {
   display: contents;
 }
 
-.\!contents {
-  display: contents !important;
-}
-
-.list-item {
-  display: list-item;
-}
-
 .hidden {
   display: none;
 }
 
 .\!hidden {
   display: none !important;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.w-7 {
+  width: 1.75rem;
 }
 
 .grow {
@@ -783,6 +755,10 @@ video {
   align-items: center;
 }
 
+.justify-center {
+  justify-content: center;
+}
+
 .space-x-4 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 0;
   margin-right: calc(1rem * var(--tw-space-x-reverse));
@@ -799,12 +775,16 @@ video {
   white-space: nowrap;
 }
 
+.rounded-md {
+  border-radius: 0.375rem;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
 
-.rounded-md {
-  border-radius: 0.375rem;
+.rounded-sm {
+  border-radius: 0.125rem;
 }
 
 .border {
@@ -831,6 +811,10 @@ video {
   background-color: rgb(241 242 243 / var(--tw-bg-opacity));
 }
 
+.fill-current {
+  fill: currentColor;
+}
+
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -844,6 +828,16 @@ video {
 .py-0 {
   padding-top: 0px;
   padding-bottom: 0px;
+}
+
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .text-xs {
@@ -987,4 +981,12 @@ video {
 
 .\[validator\:presence\] {
   validator: presence;
+}
+
+.focus-within\:outline:focus-within {
+  outline-style: solid;
+}
+
+.focus\:outline-0:focus {
+  outline-width: 0px;
 }
