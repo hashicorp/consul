@@ -146,7 +146,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// Add service health checks to the list of paths to create clusters for if needed
 	if cfgSnap.Proxy.Expose.Checks {
 		psid := structs.NewServiceID(cfgSnap.Proxy.DestinationServiceID, &cfgSnap.ProxyID.EnterpriseMeta)
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
+		for _, check := range cfgSnap.ConnectProxy.WatchedServiceChecks[psid] {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Warn("failed to create cluster for", "check", check.CheckID, "error", err)
