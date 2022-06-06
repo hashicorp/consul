@@ -14,9 +14,6 @@
         <BlockSlot @name="details">
         <div class="flex items-center overflow-x-scroll space-x-4">
           <Peerings::Badge @peering={{item}} />
-          {{!-- TODO: where do we get this information from? --}}
-          <div>12 imported services</div>
-          <div>0 exported services</div>
         </div>
         </BlockSlot>
       </ListCollection>
@@ -36,6 +33,7 @@
         </BlockSlot>
         <BlockSlot @name="actions">
           <li class="docs-link">
+            {{!-- what's the docs for peering?--}}
             <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
               Documentation on Peers
             </a>
