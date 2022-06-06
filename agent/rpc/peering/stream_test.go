@@ -76,22 +76,10 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 	st, ok := status.FromError(err)
 	require.True(t, ok, "need to get back a grpc status error")
 	deets := st.Details()
+
 	// expect a LeaderAddress message
-	{
-		found := false
-		for _, deet := range deets {
-			la, ok := deet.(*pbpeering.LeaderAddress)
-
-			if !ok {
-				continue
-			} else {
-				found = true
-				require.Equal(t, "expected:address", la.Address)
-			}
-		}
-
-		require.True(t, found, "expected to find a LeaderAddress message in error details")
-	}
+	exp := []interface{}{&pbpeering.LeaderAddress{Address: "expected:address"}}
+	prototest.AssertDeepEqual(t, exp, deets)
 }
 
 // TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
@@ -185,22 +173,10 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	st, ok := status.FromError(err2)
 	require.True(t, ok, "need to get back a grpc status error")
 	deets := st.Details()
+
 	// expect a LeaderAddress message
-	{
-		found := false
-		for _, deet := range deets {
-			la, ok := deet.(*pbpeering.LeaderAddress)
-
-			if !ok {
-				continue
-			} else {
-				found = true
-				require.Equal(t, "expected:address", la.Address)
-			}
-		}
-
-		require.True(t, found, "expected to find a LeaderAddress message in error details")
-	}
+	exp := []interface{}{&pbpeering.LeaderAddress{Address: "expected:address"}}
+	prototest.AssertDeepEqual(t, exp, deets)
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
