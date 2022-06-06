@@ -27,7 +27,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		var (
 			fooSN = structs.NewServiceName("foo", nil)
 			barSN = structs.NewServiceName("bar", nil)
-			girSN = structs.NewServiceName("zim", nil)
+			girSN = structs.NewServiceName("gir", nil)
 
 			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
