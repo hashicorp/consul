@@ -338,10 +338,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		// For each service that we should be exposing, also watch disco chains
 		// in the same manner as an ingress gateway would.
 
-		// TODO: 1. watch for peerings and for each peering, check for exported services (same trick as peer replication)
-		//         2. for each service get the disco chain
-		//           3. for each disco chain target, watch the check-service-nodes
-
 		for _, svc := range snap.MeshGateway.ExportedServicesSlice {
 			if _, ok := snap.MeshGateway.WatchedDiscoveryChains[svc]; ok {
 				continue
@@ -357,6 +353,10 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 				EvaluateInPartition:  svc.PartitionOrDefault(),
 			}, "discovery-chain:"+svc.String(), s.ch)
 			if err != nil {
+				meshLogger.Error("failed to register watch for discovery chain",
+					"service", svc.String(),
+					"error", err,
+				)
 				cancel()
 				return err
 			}
