@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
@@ -19,7 +18,7 @@ type handlerMeshGateway struct {
 func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -34,7 +33,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	// Eventually we will have to watch connect enabled instances for each service as well as the
 	// destination services themselves but those notifications will be setup later.
 	// We cannot setup those watches until we know what the services are.
-	err = s.cache.Notify(ctx, cachetype.CatalogServiceListName, &structs.DCSpecificRequest{
+	err = s.dataSources.ServiceList.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Source:         *s.source,
@@ -46,7 +45,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	// Watch service-resolvers so we can setup service subset clusters
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryListName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntryList.Notify(ctx, &structs.ConfigEntryQuery{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Kind:           structs.ServiceResolver,
@@ -85,7 +84,7 @@ func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context) error
 		// Conveniently we can just use this service meta attribute in one
 		// place here to set the machinery in motion and leave the conditional
 		// behavior out of the rest of the package.
-		err := s.cache.Notify(ctx, cachetype.FederationStateListMeshGatewaysName, &structs.DCSpecificRequest{
+		err := s.dataSources.FederationStateListMeshGateways.Notify(ctx, &structs.DCSpecificRequest{
 			Datacenter:   s.source.Datacenter,
 			QueryOptions: structs.QueryOptions{Token: s.token},
 			Source:       *s.source,
@@ -94,7 +93,7 @@ func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context) error
 			return err
 		}
 
-		err = s.health.Notify(ctx, structs.ServiceSpecificRequest{
+		err = s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 			Datacenter:   s.source.Datacenter,
 			QueryOptions: structs.QueryOptions{Token: s.token},
 			ServiceName:  structs.ConsulServiceName,
@@ -104,7 +103,7 @@ func (s *handlerMeshGateway) initializeCrossDCWatches(ctx context.Context) error
 		}
 	}
 
-	err := s.cache.Notify(ctx, cachetype.CatalogDatacentersName, &structs.DatacentersRequest{
+	err := s.dataSources.Datacenters.Notify(ctx, &structs.DatacentersRequest{
 		QueryOptions: structs.QueryOptions{Token: s.token, MaxAge: 30 * time.Second},
 	}, datacentersWatchID, s.ch)
 	if err != nil {
@@ -168,7 +167,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 			if _, ok := snap.MeshGateway.WatchedServices[svc]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Name,
@@ -220,7 +219,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 			if _, ok := snap.MeshGateway.WatchedGateways[gk.String()]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+				err := s.dataSources.InternalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 					Datacenter:     dc,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceKind:    structs.ServiceKindMeshGateway,

@@ -17,7 +17,7 @@ type handlerTerminatingGateway struct {
 func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -28,7 +28,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	}
 
 	// Get information about the entire service mesh.
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.MeshConfig,
 		Name:           structs.MeshConfigMesh,
 		Datacenter:     s.source.Datacenter,
@@ -40,7 +40,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	}
 
 	// Watch for the terminating-gateway's linked services
-	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
+	err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
@@ -116,7 +116,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// Watch the health endpoint to discover endpoints for the service
 			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Service.Name,
@@ -141,7 +141,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// The gateway will enforce intentions for connections to the service
 			if _, ok := snap.TerminatingGateway.WatchedIntentions[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.IntentionMatchName, &structs.IntentionQueryRequest{
+				err := s.dataSources.Intentions.Notify(ctx, &structs.IntentionQueryRequest{
 					Datacenter:   s.source.Datacenter,
 					QueryOptions: structs.QueryOptions{Token: s.token},
 					Match: &structs.IntentionQueryMatch{
@@ -171,7 +171,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// This cert is used to terminate mTLS connections on the service's behalf
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        svc.Service.Name,
@@ -193,7 +193,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// These are used to determine the protocol for the target service.
 			if _, ok := snap.TerminatingGateway.WatchedConfigs[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, &structs.ServiceConfigRequest{
+				err := s.dataSources.ResolvedServiceConfig.Notify(ctx, &structs.ServiceConfigRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					Name:           svc.Service.Name,
@@ -215,7 +215,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// These are used to create clusters and endpoints for the service subsets
 			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+				err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					Kind:           structs.ServiceResolver,

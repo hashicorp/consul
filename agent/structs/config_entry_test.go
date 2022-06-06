@@ -428,12 +428,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-defaults-with-endpoint",
+			name: "service-defaults-with-destination",
 			snake: `
 				kind = "service-defaults"
 				name = "external"
 				protocol = "tcp"
-				endpoint {
+				destination {
 					address = "1.2.3.4/24"
 					port = 8080
 				}
@@ -442,7 +442,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind = "service-defaults"
 				Name = "external"
 				Protocol = "tcp"
-				Endpoint {
+				Destination {
 					Address = "1.2.3.4/24"
 					Port = 8080
 				}
@@ -451,7 +451,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind:     "service-defaults",
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "1.2.3.4/24",
 					Port:    8080,
 				},
@@ -2421,79 +2421,79 @@ func TestServiceConfigEntry(t *testing.T) {
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
-		"validate: missing endpoint address": {
+		"validate: missing destination address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "",
 					Port:    443,
 				},
 			},
 			validateErr: "Could not validate address",
 		},
-		"validate: endpoint ipv4 address": {
+		"validate: destination ipv4 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "1.2.3.4",
 					Port:    443,
 				},
 			},
 		},
-		"validate: endpoint ipv4 CIDR address": {
+		"validate: destination ipv4 CIDR address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "10.0.0.1/16",
 					Port:    8080,
 				},
 			},
 		},
-		"validate: endpoint ipv6 address": {
+		"validate: destination ipv6 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
 					Port:    443,
 				},
 			},
 		},
-		"valid endpoint shortened ipv6 address": {
+		"valid destination shortened ipv6 address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334",
 					Port:    443,
 				},
 			},
 		},
-		"validate: endpoint ipv6 CIDR address": {
+		"validate: destination ipv6 CIDR address": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334/64",
 					Port:    443,
 				},
 			},
 		},
-		"validate: invalid endpoint port": {
+		"validate: invalid destination port": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "2001:db8::8a2e:370:7334/64",
 				},
 			},
@@ -2504,7 +2504,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "*external.com",
 					Port:    443,
 				},
@@ -2516,7 +2516,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "tcp",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "..hello.",
 					Port:    443,
 				},
@@ -2528,7 +2528,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "http",
-				Endpoint: &EndpointConfig{
+				Destination: &DestinationConfig{
 					Address: "*",
 					Port:    443,
 				},

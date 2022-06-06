@@ -13,7 +13,6 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
@@ -79,6 +78,8 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		clusters = append(clusters, passthroughs...)
 	}
 
+	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
+	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
@@ -104,6 +105,29 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		}
 	}
 
+	// NOTE: Any time we skip an upstream below we MUST also skip that same
+	// upstream in endpoints.go so that the sets of endpoints generated matches
+	// the sets of clusters.
+	//
+	// TODO(peering): make this work for tproxy
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+
+		upstreamCluster, err := s.makeUpstreamClusterForPeerService(upstreamCfg, peerMeta, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, upstreamCluster)
+	}
+
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
@@ -122,7 +146,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// Add service health checks to the list of paths to create clusters for if needed
 	if cfgSnap.Proxy.Expose.Checks {
 		psid := structs.NewServiceID(cfgSnap.Proxy.DestinationServiceID, &cfgSnap.ProxyID.EnterpriseMeta)
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
+		for _, check := range cfgSnap.ConnectProxy.WatchedServiceChecks[psid] {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Warn("failed to create cluster for", "check", check.CheckID, "error", err)
@@ -180,7 +204,6 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		}
 
 		for targetID := range targetMap {
-
 			uid := proxycfg.NewUpstreamIDFromTargetID(targetID)
 
 			sni := connect.ServiceSNI(
@@ -211,12 +234,12 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				Service:    uid.Name,
 			}
 
-			commonTLSContext := makeCommonTLSContextFromLeaf(
-				cfgSnap,
+			commonTLSContext := makeCommonTLSContext(
 				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
-			err := injectSANMatcher(commonTLSContext, spiffeID)
+			err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
 			if err != nil {
 				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 			}
@@ -399,7 +422,7 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectRawSANMatcher(tlsContext.CommonTlsContext, []string{mapping.SNI}); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -521,6 +544,96 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 	return c, err
 }
 
+func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
+	upstream *structs.Upstream,
+	peerMeta structs.PeeringServiceMeta,
+	cfgSnap *proxycfg.ConfigSnapshot,
+) (*envoy_cluster_v3.Cluster, error) {
+	var (
+		c   *envoy_cluster_v3.Cluster
+		err error
+	)
+
+	uid := proxycfg.NewUpstreamID(upstream)
+
+	cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
+	if cfg.EnvoyClusterJSON != "" {
+		c, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
+		if err != nil {
+			return c, err
+		}
+		// In the happy path don't return yet as we need to inject TLS config still.
+	}
+
+	// TODO(peering): if we replicated service metadata separately from the
+	// instances we wouldn't have to flip/flop this cluster name like this.
+	clusterName := peerMeta.PrimarySNI()
+	if clusterName == "" {
+		clusterName = uid.EnvoyID()
+	}
+
+	s.Logger.Trace("generating cluster for", "cluster", clusterName)
+	if c == nil {
+		c = &envoy_cluster_v3.Cluster{
+			Name:                 clusterName,
+			AltStatName:          clusterName,
+			ConnectTimeout:       durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
+				HealthyPanicThreshold: &envoy_type_v3.Percent{
+					Value: 0, // disable panic threshold
+				},
+			},
+			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
+				EdsConfig: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+				},
+			},
+			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
+			},
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
+		}
+		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
+		}
+	}
+
+	rootPEMs := cfgSnap.RootPEMs()
+	if uid.Peer != "" {
+		rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+	}
+
+	// Enable TLS upstream with the configured client certificate.
+	commonTLSContext := makeCommonTLSContext(
+		cfgSnap.Leaf(),
+		rootPEMs,
+		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+	)
+	err = injectSANMatcher(commonTLSContext, peerMeta.SpiffeID...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
+	}
+
+	tlsContext := &envoy_tls_v3.UpstreamTlsContext{
+		CommonTlsContext: commonTLSContext,
+		Sni:              peerMeta.PrimarySNI(),
+	}
+
+	transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+	c.TransportSocket = transportSocket
+
+	return c, nil
+}
+
 func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_cluster_v3.Cluster, error) {
 	var c *envoy_cluster_v3.Cluster
 	var err error
@@ -574,7 +687,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 
 	endpoints := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
 	var (
-		spiffeIDs = make([]connect.SpiffeIDService, 0)
+		spiffeIDs = make([]string, 0)
 		seen      = make(map[string]struct{})
 	)
 	for _, e := range endpoints {
@@ -588,19 +701,20 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		if e.Service.Connect.Native {
 			name = e.Service.Service
 		}
+
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDService{
 			Host:       cfgSnap.Roots.TrustDomain,
 			Namespace:  e.Service.NamespaceOrDefault(),
 			Partition:  e.Service.PartitionOrDefault(),
 			Datacenter: e.Node.Datacenter,
 			Service:    name,
-		})
+		}.URI().String())
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	commonTLSContext := makeCommonTLSContextFromLeaf(
-		cfgSnap,
+	commonTLSContext := makeCommonTLSContext(
 		cfgSnap.Leaf(),
+		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
 	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
@@ -677,12 +791,26 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		sni := target.SNI
 		clusterName := CustomizeClusterName(target.Name, chain)
 
-		targetSpiffeID := connect.SpiffeIDService{
-			Host:       cfgSnap.Roots.TrustDomain,
-			Namespace:  target.Namespace,
-			Partition:  target.Partition,
-			Datacenter: target.Datacenter,
-			Service:    target.Service,
+		// Get the SpiffeID for upstream SAN validation.
+		//
+		// For imported services the SpiffeID is embedded in the proxy instances.
+		// Whereas for local services we can construct the SpiffeID from the chain target.
+		var targetSpiffeID string
+		if uid.Peer != "" {
+			for _, e := range chainEndpoints[targetID] {
+				targetSpiffeID = e.Service.Connect.PeerMeta.SpiffeID[0]
+
+				// Only grab the first because it is the same for all instances.
+				break
+			}
+		} else {
+			targetSpiffeID = connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Namespace:  target.Namespace,
+				Partition:  target.Partition,
+				Datacenter: target.Datacenter,
+				Service:    target.Service,
+			}.URI().String()
 		}
 
 		if failoverThroughMeshGateway {
@@ -699,9 +827,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		spiffeIDs := []connect.SpiffeIDService{targetSpiffeID}
+		spiffeIDs := []string{targetSpiffeID}
 		seenIDs := map[string]struct{}{
-			targetSpiffeID.URI().String(): {},
+			targetSpiffeID: {},
 		}
 
 		if failover != nil {
@@ -719,22 +847,20 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					Partition:  target.Partition,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
-				}
+				}.URI().String()
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.
-				if _, ok := seenIDs[id.URI().String()]; ok {
+				if _, ok := seenIDs[id]; ok {
 					continue
 				}
-				seenIDs[id.URI().String()] = struct{}{}
+				seenIDs[id] = struct{}{}
 
 				spiffeIDs = append(spiffeIDs, id)
 			}
 		}
-		sort.Slice(spiffeIDs, func(i, j int) bool {
-			return spiffeIDs[i].URI().String() < spiffeIDs[j].URI().String()
-		})
+		sort.Strings(spiffeIDs)
 
-		s.Logger.Debug("generating cluster for", "cluster", clusterName)
+		s.Logger.Trace("generating cluster for", "cluster", clusterName)
 		c := &envoy_cluster_v3.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
@@ -782,9 +908,13 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		commonTLSContext := makeCommonTLSContextFromLeaf(
-			cfgSnap,
+		rootPEMs := cfgSnap.RootPEMs()
+		if uid.Peer != "" {
+			rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		}
+		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),
+			rootPEMs,
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
 
@@ -797,7 +927,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			CommonTlsContext: commonTLSContext,
 			Sni:              sni,
 		}
-
 		transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 		if err != nil {
 			return nil, err
@@ -823,16 +952,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 }
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
-func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, spiffeIDs ...connect.SpiffeIDService) error {
-	var matchStrings []string
-	for _, id := range spiffeIDs {
-		matchStrings = append(matchStrings, id.URI().String())
-	}
-
-	return injectRawSANMatcher(tlsContext, matchStrings)
-}
-
-func injectRawSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings []string) error {
+func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",

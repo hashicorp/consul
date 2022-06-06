@@ -1141,6 +1141,18 @@ func (k ServiceKind) Normalized() string {
 	return string(k)
 }
 
+// IsProxy returns whether the ServiceKind is a connect proxy or gateway.
+func (k ServiceKind) IsProxy() bool {
+	switch k {
+	case ServiceKindConnectProxy,
+		ServiceKindMeshGateway,
+		ServiceKindTerminatingGateway,
+		ServiceKindIngressGateway:
+		return true
+	}
+	return false
+}
+
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is
 	// represented by the absence of a value. This was chosen for ease of
@@ -1239,6 +1251,13 @@ type PeeringServiceMeta struct {
 	SNI      []string `json:",omitempty"`
 	SpiffeID []string `json:",omitempty"`
 	Protocol string   `json:",omitempty"`
+}
+
+func (m *PeeringServiceMeta) PrimarySNI() string {
+	if m == nil || len(m.SNI) == 0 {
+		return ""
+	}
+	return m.SNI[0]
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {

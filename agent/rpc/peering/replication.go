@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/genproto/googleapis/rpc/code"
@@ -29,20 +30,17 @@ import (
 	request a resync operation.
 */
 
-// pushService response handles sending exported service instance updates to the peer cluster.
+// makeServiceResponse handles preparing exported service instance updates to the peer cluster.
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
-func pushServiceResponse(
+func makeServiceResponse(
 	logger hclog.Logger,
-	stream BidirectionalStream,
-	status *lockableStreamStatus,
 	update cache.UpdateEvent,
-) error {
-	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
-	if !ok {
-		logger.Error(fmt.Sprintf("invalid type for response: %T, expected *pbservice.IndexedCheckServiceNodes", update.Result))
-
-		// Skip this update to avoid locking up peering due to a bad service update.
+) *pbpeering.ReplicationMessage {
+	any, csn, err := marshalToProtoAny[*pbservice.IndexedCheckServiceNodes](update.Result)
+	if err != nil {
+		// Log the error and skip this response to avoid locking up peering due to a bad update event.
+		logger.Error("failed to marshal", "error", err)
 		return nil
 	}
 
@@ -72,21 +70,10 @@ func pushServiceResponse(
 				},
 			},
 		}
-		logTraceSend(logger, resp)
-		if err := stream.Send(resp); err != nil {
-			status.trackSendError(err.Error())
-			return fmt.Errorf("failed to send to stream: %v", err)
-		}
-		return nil
+		return resp
 	}
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
-	any, err := ptypes.MarshalAny(csn)
-	if err != nil {
-		// Log the error and skip this response to avoid locking up peering due to a bad update event.
-		logger.Error("failed to marshal service endpoints", "error", err)
-		return nil
-	}
 	resp := &pbpeering.ReplicationMessage{
 		Payload: &pbpeering.ReplicationMessage_Response_{
 			Response: &pbpeering.ReplicationMessage_Response{
@@ -99,16 +86,58 @@ func pushServiceResponse(
 			},
 		},
 	}
-	logTraceSend(logger, resp)
-	if err := stream.Send(resp); err != nil {
-		status.trackSendError(err.Error())
-		return fmt.Errorf("failed to send to stream: %v", err)
-	}
-	return nil
+	return resp
 }
 
-func (s *Service) processResponse(peerName string, partition string, resp *pbpeering.ReplicationMessage_Response) (*pbpeering.ReplicationMessage, error) {
-	if resp.ResourceURL != pbpeering.TypeURLService {
+func makeCARootsResponse(
+	logger hclog.Logger,
+	update cache.UpdateEvent,
+) *pbpeering.ReplicationMessage {
+	any, _, err := marshalToProtoAny[*pbpeering.PeeringTrustBundle](update.Result)
+	if err != nil {
+		// Log the error and skip this response to avoid locking up peering due to a bad update event.
+		logger.Error("failed to marshal", "error", err)
+		return nil
+	}
+
+	resp := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Response_{
+			Response: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLRoots,
+				// TODO(peering): Nonce management
+				Nonce:      "",
+				ResourceID: "roots",
+				Operation:  pbpeering.ReplicationMessage_Response_UPSERT,
+				Resource:   any,
+			},
+		},
+	}
+	return resp
+}
+
+// marshalToProtoAny takes any input and returns:
+// the protobuf.Any type, the asserted T type, and any errors
+// during marshalling or type assertion.
+// `in` MUST be of type T or it returns an error.
+func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
+	typ, ok := in.(T)
+	if !ok {
+		var outType T
+		return nil, typ, fmt.Errorf("input type is not %T: %T", outType, in)
+	}
+	any, err := ptypes.MarshalAny(typ)
+	if err != nil {
+		return nil, typ, err
+	}
+	return any, typ, nil
+}
+
+func (s *Service) processResponse(
+	peerName string,
+	partition string,
+	resp *pbpeering.ReplicationMessage_Response,
+) (*pbpeering.ReplicationMessage, error) {
+	if !pbpeering.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
 		return makeReply(
 			resp.ResourceURL,
@@ -186,6 +215,15 @@ func (s *Service) handleUpsert(
 		}
 
 		return s.handleUpsertService(peerName, partition, sn, csn)
+
+	case pbpeering.TypeURLRoots:
+		roots := &pbpeering.PeeringTrustBundle{}
+		if err := ptypes.UnmarshalAny(resource, roots); err != nil {
+			return fmt.Errorf("failed to unmarshal resource: %w", err)
+		}
+
+		return s.handleUpsertRoots(peerName, partition, roots)
+
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
 	}
@@ -247,6 +285,21 @@ func (s *Service) handleUpsertService(
 	// TODO(peering): cleanup and deregister existing data that is now missing safely somehow
 
 	return nil
+}
+
+func (s *Service) handleUpsertRoots(
+	peerName string,
+	partition string,
+	trustBundle *pbpeering.PeeringTrustBundle,
+) error {
+	// We override the partition and peer name so that the trust bundle gets stored
+	// in the importing partition with a reference to the peer it was imported from.
+	trustBundle.Partition = partition
+	trustBundle.PeerName = peerName
+	req := &pbpeering.PeeringTrustBundleWriteRequest{
+		PeeringTrustBundle: trustBundle,
+	}
+	return s.Backend.Apply().PeeringTrustBundleWrite(req)
 }
 
 func (s *Service) handleDelete(

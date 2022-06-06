@@ -107,6 +107,20 @@ type Backend interface {
 
 	Store() Store
 	Apply() Apply
+	LeadershipMonitor() LeadershipMonitor
+}
+
+// LeadershipMonitor provides a way for the consul server to update the peering service about
+// the server's leadership status.
+// Server addresses should look like: ip:port
+type LeadershipMonitor interface {
+	// UpdateLeaderAddr is called on a raft.LeaderObservation in a go routine in the consul server;
+	// see trackLeaderChanges()
+	UpdateLeaderAddr(leaderAddr string)
+
+	// GetLeaderAddr provides the best hint for the current address of the leader.
+	// There is no guarantee that this is the actual address of the leader.
+	GetLeaderAddr() string
 }
 
 // Store provides a read-only interface for querying Peering data.
@@ -116,9 +130,9 @@ type Store interface {
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
-	PeeringsForService(ws memdb.WatchSet, serviceName string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
-	CAConfig(memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
+	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
+	TrustBundleListByService(ws memdb.WatchSet, service string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	AbandonCh() <-chan struct{}
 }
 
@@ -127,6 +141,7 @@ type Apply interface {
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
+	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
 }
 
@@ -385,6 +400,40 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 	return &pbpeering.PeeringDeleteResponse{}, nil
 }
 
+func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
+	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+
+	var resp *pbpeering.TrustBundleReadResponse
+	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
+		var err error
+		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleRead(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
+	}
+
+	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
+	// TODO(peering): ACL check request token
+
+	// TODO(peering): handle blocking queries
+
+	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
+		Value:          req.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
+	}
+
+	return &pbpeering.TrustBundleReadResponse{
+		Index:  idx,
+		Bundle: trustBundle,
+	}, nil
+}
+
 func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
@@ -401,33 +450,16 @@ func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.T
 	}
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_list_by_service"}, time.Now())
-	// TODO(peering): ACL check request token
+	// TODO(peering): ACL check request token for service:write on the service name
 
 	// TODO(peering): handle blocking queries
 
-	entMeta := *structs.NodeEnterpriseMetaInPartition(req.Partition)
-	// TODO(peering): we're throwing away the index here that would tell us how to execute a blocking query
-	_, peers, err := s.Backend.Store().PeeringsForService(nil, req.ServiceName, entMeta)
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
+	idx, bundles, err := s.Backend.Store().TrustBundleListByService(nil, req.ServiceName, entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get peers for service %s: %v", req.ServiceName, err)
+		return nil, err
 	}
-
-	trustBundles := []*pbpeering.PeeringTrustBundle{}
-	for _, peer := range peers {
-		q := state.Query{
-			Value:          strings.ToLower(peer.Name),
-			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
-		}
-		_, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, q)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peer.Name, err)
-		}
-
-		if trustBundle != nil {
-			trustBundles = append(trustBundles, trustBundle)
-		}
-	}
-	return &pbpeering.TrustBundleListByServiceResponse{Bundles: trustBundles}, nil
+	return &pbpeering.TrustBundleListByServiceResponse{Index: idx, Bundles: bundles}, nil
 }
 
 type BidirectionalStream interface {
@@ -469,7 +501,7 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 	if req.Nonce != "" {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce")
 	}
-	if req.ResourceURL != pbpeering.TypeURLService {
+	if !pbpeering.KnownTypeURL(req.ResourceURL) {
 		return grpcstatus.Error(codes.InvalidArgument, fmt.Sprintf("subscription request to unknown resource URL: %s", req.ResourceURL))
 	}
 
@@ -680,17 +712,29 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 
 		case update := <-subCh:
+			var resp *pbpeering.ReplicationMessage
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService),
 				strings.HasPrefix(update.CorrelationID, subExportedProxyService):
-				if err := pushServiceResponse(logger, req.Stream, status, update); err != nil {
-					return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
-				}
+				resp = makeServiceResponse(logger, update)
+
 			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
-				//TODO(Peering): figure out how to sync this separately
+				// TODO(Peering): figure out how to sync this separately
+
+			case update.CorrelationID == subCARoot:
+				resp = makeCARootsResponse(logger, update)
+
 			default:
 				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
 				continue
+			}
+			if resp == nil {
+				continue
+			}
+			logTraceSend(logger, resp)
+			if err := req.Stream.Send(resp); err != nil {
+				status.trackSendError(err.Error())
+				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
 		}
 	}

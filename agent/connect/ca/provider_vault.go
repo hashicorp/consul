@@ -13,14 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 const (
@@ -506,7 +507,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	root := EnsureTrailingNewline(string(bytes))
+	root := lib.EnsureTrailingNewline(string(bytes))
 	if root == "" {
 		return "", ErrBackendNotInitialized
 	}
@@ -535,7 +536,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	root := EnsureTrailingNewline(string(raw))
+	root := lib.EnsureTrailingNewline(string(raw))
 	return root, nil
 }
 
@@ -600,7 +601,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("certificate was not a string")
 	}
-	return EnsureTrailingNewline(cert), nil
+	return lib.EnsureTrailingNewline(cert), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint
@@ -637,7 +638,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		return "", fmt.Errorf("signed intermediate result is not a string")
 	}
 
-	return EnsureTrailingNewline(intermediate), nil
+	return lib.EnsureTrailingNewline(intermediate), nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
@@ -677,7 +678,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("certificate was not a string")
 	}
 
-	return EnsureTrailingNewline(xcCert), nil
+	return lib.EnsureTrailingNewline(xcCert), nil
 }
 
 // SupportsCrossSigning implements Provider
