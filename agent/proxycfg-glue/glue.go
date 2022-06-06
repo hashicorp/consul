@@ -113,6 +113,12 @@ func CacheTrustBundleList(c *cache.Cache) proxycfg.TrustBundleList {
 	return &cacheProxyDataSource[*pbpeering.TrustBundleListByServiceRequest]{c, cachetype.TrustBundleListName}
 }
 
+// CacheExportedPeeredServices satisfies the proxycfg.ExportedPeeredServices
+// interface by sourcing data from the agent cache.
+func CacheExportedPeeredServices(c *cache.Cache) proxycfg.ExportedPeeredServices {
+	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.ExportedPeeredServicesName}
+}
+
 // cacheProxyDataSource implements a generic wrapper around the agent cache to
 // provide data to the proxycfg.Manager.
 type cacheProxyDataSource[ReqType cache.Request] struct {

@@ -107,20 +107,20 @@ type Backend interface {
 
 	Store() Store
 	Apply() Apply
-	LeadershipMonitor() LeadershipMonitor
+	LeaderAddress() LeaderAddress
 }
 
-// LeadershipMonitor provides a way for the consul server to update the peering service about
+// LeaderAddress provides a way for the consul server to update the peering service about
 // the server's leadership status.
 // Server addresses should look like: ip:port
-type LeadershipMonitor interface {
-	// UpdateLeaderAddr is called on a raft.LeaderObservation in a go routine in the consul server;
+type LeaderAddress interface {
+	// Set is called on a raft.LeaderObservation in a go routine in the consul server;
 	// see trackLeaderChanges()
-	UpdateLeaderAddr(leaderAddr string)
+	Set(leaderAddr string)
 
-	// GetLeaderAddr provides the best hint for the current address of the leader.
+	// Get provides the best hint for the current address of the leader.
 	// There is no guarantee that this is the actual address of the leader.
-	GetLeaderAddr() string
+	Get() string
 }
 
 // Store provides a read-only interface for querying Peering data.
@@ -473,9 +473,17 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 	if !s.Backend.IsLeader() {
 		// we are not the leader so we will hang up on the dialer
 
-		// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
 		s.logger.Error("cannot establish a peering stream on a follower node")
-		return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+
+		st, err := grpcstatus.New(codes.FailedPrecondition,
+			"cannot establish a peering stream on a follower node").WithDetails(
+			&pbpeering.LeaderAddress{Address: s.Backend.LeaderAddress().Get()})
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
+			return grpcstatus.Error(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+		} else {
+			return st.Err()
+		}
 	}
 
 	// Initial message on a new stream must be a new subscription request.
@@ -660,9 +668,17 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			if !s.Backend.IsLeader() {
 				// we are not the leader anymore so we will hang up on the dialer
 
-				// TODO(peering): in the future we want to indicate the address of the leader server as a message to the dialer (best effort, non blocking)
 				logger.Error("node is not a leader anymore; cannot continue streaming")
-				return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+
+				st, err := grpcstatus.New(codes.FailedPrecondition,
+					"node is not a leader anymore; cannot continue streaming").WithDetails(
+					&pbpeering.LeaderAddress{Address: s.Backend.LeaderAddress().Get()})
+				if err != nil {
+					s.logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
+					return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+				} else {
+					return st.Err()
+				}
 			}
 
 			if req := msg.GetRequest(); req != nil {

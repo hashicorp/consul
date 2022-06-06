@@ -603,6 +603,63 @@ func TestCatalogRegister_checkRegistration(t *testing.T) {
 	})
 }
 
+func TestCatalogRegister_checkRegistration_UDP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register node with a service and check
+	check := structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "foo-check",
+		Name:      "foo check",
+		ServiceID: "api",
+		Definition: structs.HealthCheckDefinition{
+			UDP:      "localhost:8888",
+			Interval: 5 * time.Second,
+		},
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+		},
+		Check: &check,
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/health/checks/api", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		checks := obj.(structs.HealthChecks)
+		if len(checks) != 1 {
+			r.Fatalf("expected 1 check, got: %d", len(checks))
+		}
+		if checks[0].CheckID != check.CheckID {
+			r.Fatalf("expected check id %s, got %s", check.Type, checks[0].Type)
+		}
+		if checks[0].Type != "udp" {
+			r.Fatalf("expected check type udp, got %s", checks[0].Type)
+		}
+	})
+}
+
 func TestCatalogServiceNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

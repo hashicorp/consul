@@ -477,6 +477,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-gateway-with-exported-peered-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "peered-services", nil, nil)
+			},
+		},
+		{
 			name: "mesh-gateway-tagged-addresses",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
