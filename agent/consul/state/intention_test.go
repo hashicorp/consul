@@ -2301,7 +2301,7 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl allow all check only destinations show, service target",
+			name:            "(upstream) acl deny all check only destinations show, service target",
 			defaultDecision: acl.Deny,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
@@ -2320,6 +2320,37 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			expect: expect{
 				idx:      7,
 				services: structs.ServiceList{},
+			},
+		},
+		{
+			name:            "(upstream) acl allow all check only destinations show, service target",
+			defaultDecision: acl.Allow,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "api.test.com",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+					{
+						Name:           "kafka.store.org",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
 			},
 		},
 	}
