@@ -23,6 +23,10 @@ const BADGE_LOOKUP = {
     tooltip:
       'Someone in the other peer may have deleted this peering connection.',
   },
+  UNDEFINED: {
+    bg: 'bg-[#F1F2F3]',
+    color: 'text-[#3B3D45]',
+  },
 };
 export default class PeeingsBadge extends Component {
   get styles() {

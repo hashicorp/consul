@@ -26,5 +26,12 @@
     "State": "TERMINATED",
     "CreateIndex": 20,
     "ModifyIndex": 20
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b97",
+    "Name": "legacy undefined",
+    "State": "UNDEFINED",
+    "CreateIndex": 20,
+    "ModifyIndex": 20
   }
 ]
