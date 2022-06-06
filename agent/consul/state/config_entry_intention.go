@@ -304,9 +304,6 @@ func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet
 		_, entry, err := getServiceIntentionsConfigEntryTxn(tx, ws, sn.Name, nil, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
-		}
-		if err != nil {
-			return 0, nil, err
 		} else if entry != nil {
 			results = append(results, entry.ToIntentions()...)
 		}
