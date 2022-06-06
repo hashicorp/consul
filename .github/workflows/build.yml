@@ -311,10 +311,10 @@ jobs:
         with:
           name: ${{ env.zip_name }}
 
-      - name: Unzip ${{ matrix.arch }} darwin zip
+      - name: Unzip amd64 darwin zip
         run: unzip ${{ env.zip_name }}
 
-      - name: Run verification for ${{ matrix.arch }} darwin binary
+      - name: Run verification for amd64 darwin binary
         run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
 
   verify-linux-packages-deb:
