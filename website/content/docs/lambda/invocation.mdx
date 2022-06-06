@@ -13,12 +13,12 @@ This topic describes how to invoke AWS Lambda functions from the Consul service 
 
 You can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connect proxies.
 
-We recommend invoking Lambda functions through terminating gateways because Consul intentions and transparent proxy are unsupported when invoking Lambda functions through connect proxies. 
+We recommend invoking Lambda functions through terminating gateways because Consul intentions and transparent proxy are unsupported when invoking Lambda functions through connect proxies.
 
 ### Terminating Gateway
 
 We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
-proxies, intentions, and all other Consul service mesh features. 
+proxies, intentions, and all other Consul service mesh features.
 
 The terminating gateway must have [the appropriate IAM permissions](/docs/lambda/requirements#allow-envoy-to-invoke-the-lambda)
 to invoke the function.
@@ -58,28 +58,24 @@ The following diagram shows the invocation procedure:
 1. Make an HTTP request to the local Connect proxy.
 2. The Connect proxy invokes the Lambda.
 
-## Invoking the Lambda
+## Invoke a Lambda Function
+Before you can invoke a Lambda function, register the service used to invoke
+the Lambda function and the service running in Lambda with
+Consul (refer to [registration](/docs/lambda/registration/overview) for
+instructions). The service used to invoke the function must be deployed to the
+service mesh.
 
-### Assumptions
-This section gives an example of invoking a Lambda function. In this example, we have the following services:
-
-* A service named `api` is registered and running on Consul service mesh.
-* A Lambda service named `authentication` [is registered into Consul](/docs/lambda/registration/overview).
-
-### Use the Lambda Service as an Upstream
-
-Update the `api` service's proxy registration configuration to use the
-`authentication` service as an upstream:
-
-```hcl
-upstreams {
-  local_bind_port = 2345
-  destination_name = "authentication"
-}
-```
-
-Store the configuration with `consul services register api-sidecar-proxy.hcl`.
-
-### Invoke the Lambda Service
-
-Now that the Lambda is configured with the `authentication` service, you can run `curl localhost:2345` from `api` to invoke the `authentication` service. This invokes the Lambda function associated with the `authentication` service.
+1. Update the invoking service to use the Lambda service as an upstream. In the following example, the `destination_name` for the invoking service (`api`) points to a Lambda service called `authentication`:
+   <CodeBlockConfig filename="api-sidecar-proxy.hcl">
+    ```hcl
+     upstreams {
+       local_bind_port = 2345
+       destination_name = "authentication"
+     }
+     ```
+   </CodeBlockConfig>
+1. Issue the `consul services register` command to store the configuration:
+    ```shell-sesion
+     $ consul services register api-sidecar-proxy.hcl`.
+    ```
+1. Call `curl localhost:2345` from `api` to invoke the `authentication` service.

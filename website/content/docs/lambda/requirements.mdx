@@ -10,8 +10,8 @@ description: >-
 ## Enable the Serverless Plugin
 
 Lambda integration is only available in Consul 1.12.1 and later. It requires
-including `connect { enable_serverless_plugin = true }` in the configuration
-for all Consul clients.
+including `connect { enable_serverless_plugin = true, connect = true }` in the
+configuration for all Consul clients.
 
 ## Allow Envoy to Invoke the Lambda
 

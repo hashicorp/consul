@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Manually Configuring AWS Lambdas
+page_title: Manually Configuring AWS Lambda functions
 description: >-
   Manually configure AWS Lambda services in Consul Service Mesh.
 ---
@@ -9,7 +9,8 @@ description: >-
 
 ## Register the Service
 
-Store the following in `lambda.json`:
+`<SERVICE_NAME>` specifies the Consul service name for the Lambda function.
+Replace `<SERVICE_NAME>` and store the following in `lambda.json`:
 ```json
 {
   "Node": "lambdas",
@@ -19,8 +20,7 @@ Store the following in `lambda.json`:
     "external-probe": "true"
   },
   "Service": {
-    "ID": "lambda",
-    "Service": "lambda"
+    "Service": "<SERVICE_NAME>"
   }
 }
 ```
