@@ -113,6 +113,8 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 			}
 		}
 
+		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
+
 		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
 			if _, ok := connectProxies[uid]; !ok {
 				continue

@@ -1253,6 +1253,13 @@ type PeeringServiceMeta struct {
 	Protocol string   `json:",omitempty"`
 }
 
+func (m *PeeringServiceMeta) PrimarySNI() string {
+	if m == nil || len(m.SNI) == 0 {
+		return ""
+	}
+	return m.SNI[0]
+}
+
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	addr := ns.Address
 	port := ns.Port

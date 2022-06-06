@@ -82,6 +82,10 @@ type DataSources struct {
 	// TrustBundle provides updates about the trust bundle for a single peer.
 	TrustBundle TrustBundle
 
+	// TrustBundleList provides updates about the list of trust bundles for
+	// peered clusters that the given proxy is exported to.
+	TrustBundleList TrustBundleList
+
 	DataSourcesEnterprise
 }
 
@@ -184,4 +188,10 @@ type ServiceList interface {
 // peer's trust bundle.
 type TrustBundle interface {
 	Notify(ctx context.Context, req *pbpeering.TrustBundleReadRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// TrustBundleList is the interface used to consume updates about trust bundles
+// for peered clusters that the given proxy is exported to.
+type TrustBundleList interface {
+	Notify(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest, correlationID string, ch chan<- UpdateEvent) error
 }

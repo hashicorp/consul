@@ -181,15 +181,17 @@ message PeeringDeleteResponse {}
 // @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleListByServiceRequest {
   string ServiceName = 1;
-  string Partition = 2;
+  string Namespace = 2;
+  string Partition = 3;
 
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 3;
+  string Datacenter = 4;
 }
 
 message TrustBundleListByServiceResponse {
-  repeated PeeringTrustBundle Bundles = 1;
+  uint64 Index = 1;
+  repeated PeeringTrustBundle Bundles = 2;
 }
 
 // @consul-rpc-glue: Datacenter,ReadTODO

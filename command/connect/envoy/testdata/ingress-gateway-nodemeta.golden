@@ -9,9 +9,10 @@
     }
   },
   "node": {
-    "cluster": "test",
-    "id": "test-proxy",
+    "cluster": "ingress-gateway-1",
+    "id": "ingress-gateway-1",
     "metadata": {
+      "node_name": "test-node",
       "namespace": "default",
       "partition": "default"
     }
@@ -45,13 +46,13 @@
         }
       },
       {
-        "name": "prometheus_backend",
+        "name": "self_admin",
         "ignore_health_on_host_removal": false,
         "connect_timeout": "5s",
         "type": "STATIC",
         "http_protocol_options": {},
         "loadAssignment": {
-          "clusterName": "prometheus_backend",
+          "clusterName": "self_admin",
           "endpoints": [
             {
               "lbEndpoints": [
@@ -60,7 +61,7 @@
                     "address": {
                       "socket_address": {
                         "address": "127.0.0.1",
-                        "port_value": 20100
+                        "port_value": 19000
                       }
                     }
                   }
@@ -73,11 +74,11 @@
     ],
     "listeners": [
       {
-        "name": "envoy_prometheus_metrics_listener",
+        "name": "envoy_ready_listener",
         "address": {
           "socket_address": {
-            "address": "0.0.0.0",
-            "port_value": 9000
+            "address": "127.0.0.1",
+            "port_value": 8443
           }
         },
         "filter_chains": [
@@ -87,7 +88,7 @@
                 "name": "envoy.filters.network.http_connection_manager",
                 "typedConfig": {
                   "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                  "stat_prefix": "envoy_prometheus_metrics",
+                  "stat_prefix": "envoy_ready",
                   "codec_type": "HTTP1",
                   "route_config": {
                     "name": "self_admin_route",
@@ -100,11 +101,11 @@
                         "routes": [
                           {
                             "match": {
-                              "path": "/scrape-path"
+                              "path": "/ready"
                             },
                             "route": {
-                              "cluster": "prometheus_backend",
-                              "prefix_rewrite": "/stats/prometheus"
+                              "cluster": "self_admin",
+                              "prefix_rewrite": "/ready"
                             }
                           },
                           {
@@ -231,11 +232,11 @@
       },
       {
         "tag_name": "local_cluster",
-        "fixed_value": "test"
+        "fixed_value": "ingress-gateway-1"
       },
       {
         "tag_name": "consul.source.service",
-        "fixed_value": "test"
+        "fixed_value": "ingress-gateway-1"
       },
       {
         "tag_name": "consul.source.namespace",

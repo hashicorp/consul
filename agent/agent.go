@@ -646,6 +646,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
 		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
+		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
 	}
 	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
@@ -822,7 +823,6 @@ func (a *Agent) listenAndServeGRPC() error {
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
-		a,
 		a,
 	)
 	a.xdsServer.Register(a.publicGRPCServer)
@@ -4102,6 +4102,8 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
+
+	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
 
 	a.registerEntCache()
 }

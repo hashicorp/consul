@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/configentry"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -33,6 +31,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
+	snap.ConnectProxy.PeerUpstreamEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
 
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -40,6 +39,16 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
 	}, rootsWatchID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
+	err = s.dataSources.TrustBundleList.Notify(ctx, &pbpeering.TrustBundleListByServiceRequest{
+		// TODO(peering): Pass ACL token
+		ServiceName: s.proxyCfg.DestinationServiceName,
+		Namespace:   s.proxyID.NamespaceOrDefault(),
+		Partition:   s.proxyID.PartitionOrDefault(),
+	}, peeringTrustBundlesWatchID, s.ch)
 	if err != nil {
 		return snap, err
 	}
@@ -174,27 +183,31 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			fallthrough
 
 		case "":
-			// If DestinationPeer is not empty, insert a default discovery chain directly to the snapshot
 			if u.DestinationPeer != "" {
-				req := discoverychain.CompileRequest{
-					ServiceName:           u.DestinationName,
-					EvaluateInNamespace:   u.DestinationNamespace,
-					EvaluateInPartition:   u.DestinationPartition,
-					EvaluateInDatacenter:  dc,
-					EvaluateInTrustDomain: "trustdomain.consul", // TODO(peering): where to evaluate this?
-					Entries:               configentry.NewDiscoveryChainSet(),
-				}
-				chain, err := discoverychain.Compile(req)
+				// NOTE: An upstream that points to a peer by definition will
+				// only ever watch a single catalog query, so a map key of just
+				// "UID" is sufficient to cover the peer data watches here.
+
+				s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
+
+				// TODO(peering): We'll need to track a CancelFunc for this
+				// once the tproxy support lands.
+				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
+					PeerName:   uid.Peer,
+					Datacenter: dc,
+					QueryOptions: structs.QueryOptions{
+						Token: s.token,
+					},
+					ServiceName: u.DestinationName,
+					Connect:     true,
+					// Note that Identifier doesn't type-prefix for service any more as it's
+					// the default and makes metrics and other things much cleaner. It's
+					// simpler for us if we have the type to make things unambiguous.
+					Source:         *s.source,
+					EnterpriseMeta: uid.EnterpriseMeta,
+				}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
 				if err != nil {
-					return snap, fmt.Errorf("error while compiling default discovery chain: %w", err)
-				}
-
-				// Directly insert chain and empty function into the discovery chain maps
-				snap.ConnectProxy.ConfigSnapshotUpstreams.DiscoveryChain[uid] = chain
-				snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedDiscoveryChains[uid] = func() {}
-
-				if err := (*handlerUpstreams)(s).resetWatchesFromChain(ctx, uid, chain, &snap.ConnectProxy.ConfigSnapshotUpstreams); err != nil {
-					return snap, fmt.Errorf("error while resetting watches from chain: %w", err)
+					return snap, err
 				}
 
 				// Check whether a watch for this peer exists to avoid duplicates.
@@ -258,6 +271,16 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		if resp.Bundle != nil {
 			snap.ConnectProxy.PeerTrustBundles[peer] = resp.Bundle
 		}
+
+	case u.CorrelationID == peeringTrustBundlesWatchID:
+		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		if len(resp.Bundles) > 0 {
+			snap.ConnectProxy.PeeringTrustBundles = resp.Bundles
+		}
+		snap.ConnectProxy.PeeringTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
 		resp, ok := u.Result.(*structs.IndexedIntentionMatches)
