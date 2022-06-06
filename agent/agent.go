@@ -651,6 +651,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
 		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
 		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
+		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
 	}
 	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
@@ -4135,6 +4136,8 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{Agent: a})
 
 	a.cache.RegisterType(cachetype.TrustBundleReadName, &cachetype.TrustBundle{Client: a.rpcClientPeering})
+
+	a.cache.RegisterType(cachetype.ExportedPeeredServicesName, &cachetype.ExportedPeeredServices{RPC: a})
 
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})

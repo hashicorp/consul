@@ -1371,6 +1371,59 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
+	// Add in TCP filter chains for plain peered passthrough.
+	//
+	// TODO(peering): make this work for L7 as well
+	// TODO(peering): make failover work
+	for _, svc := range cfgSnap.MeshGateway.ExportedServicesSlice {
+		peerNames, ok := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
+		if !ok {
+			continue // not possible
+		}
+		chain, ok := cfgSnap.MeshGateway.DiscoveryChain[svc]
+		if !ok {
+			continue // ignore; not ready
+		}
+
+		if structs.IsProtocolHTTPLike(chain.Protocol) {
+			continue // temporary skip
+		}
+
+		target, err := simpleChainTarget(chain)
+		if err != nil {
+			return nil, err
+		}
+		clusterName := CustomizeClusterName(target.Name, chain)
+
+		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
+		if err != nil {
+			return nil, err
+		}
+
+		var peeredServerNames []string
+		for _, peerName := range peerNames {
+			peeredSNI := connect.PeeredServiceSNI(
+				svc.Name,
+				svc.NamespaceOrDefault(),
+				svc.PartitionOrDefault(),
+				peerName,
+				cfgSnap.Roots.TrustDomain,
+			)
+			peeredServerNames = append(peeredServerNames, peeredSNI)
+		}
+
+		l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+				ServerNames: peeredServerNames,
+			},
+			Filters: []*envoy_listener_v3.Filter{
+				dcTCPProxy,
+			},
+		})
+	}
+
 	// We need 1 Filter Chain per remote cluster
 	keys := cfgSnap.MeshGateway.GatewayKeys()
 	for _, key := range keys {

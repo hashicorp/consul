@@ -136,6 +136,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 		TrustBundle:                     typedWatchRecorder[*pbpeering.TrustBundleReadRequest]{wr},
 		TrustBundleList:                 typedWatchRecorder[*pbpeering.TrustBundleListByServiceRequest]{wr},
+		ExportedPeeredServices:          typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 	}
 	recordWatchesEnterprise(sc, wr)
 
@@ -725,9 +726,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						datacentersWatchID: verifyDatacentersWatch,
-						serviceListWatchID: genVerifyDCSpecificWatch("dc1"),
-						rootsWatchID:       genVerifyDCSpecificWatch("dc1"),
+						datacentersWatchID:         verifyDatacentersWatch,
+						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
+						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
+						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -737,6 +739,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					events: []UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: exportedServiceListWatchID,
+							Result: &structs.IndexedExportedServiceList{
+								Services: nil,
+							},
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without services is valid")
@@ -786,12 +794,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						datacentersWatchID: verifyDatacentersWatch,
-						serviceListWatchID: genVerifyDCSpecificWatch("dc1"),
-						rootsWatchID:       genVerifyDCSpecificWatch("dc1"),
+						datacentersWatchID:         verifyDatacentersWatch,
+						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
+						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
+						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 					},
 					events: []UpdateEvent{
 						rootWatchEvent(),
+						{
+							CorrelationID: exportedServiceListWatchID,
+							Result: &structs.IndexedExportedServiceList{
+								Services: nil,
+							},
+						},
 						{
 							CorrelationID: serviceListWatchID,
 							Result: &structs.IndexedServiceList{

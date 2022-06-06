@@ -435,6 +435,39 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	)
 }
 
+// ExportedPeeredServices is used to query the exported services for peers.
+// Returns services as a map of ServiceNames by peer.
+func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply *structs.IndexedExportedServiceList) error {
+	if done, err := m.srv.ForwardRPC("Internal.ExportedPeeredServices", args, reply); done {
+		return err
+	}
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// TODO(peering): acls: mesh gateway needs appropriate wildcard service:read
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, serviceMap
+			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
 // call to fire an event. The primary use case is to enable user events being
 // triggered in a remote DC.

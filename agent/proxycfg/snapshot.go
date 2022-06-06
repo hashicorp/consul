@@ -331,6 +331,33 @@ type configSnapshotMeshGateway struct {
 	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameDatacenters map[string]structs.CheckServiceNodes
+
+	// TODO(peering):
+	ExportedServicesSlice []structs.ServiceName
+
+	// TODO(peering): svc -> peername slice
+	ExportedServicesWithPeers map[structs.ServiceName][]string
+
+	// TODO(peering):  discard this maybe
+	WatchedExportedServices map[string]structs.ServiceList
+
+	// TODO(peering):
+	WatchedExportedServicesSet bool
+
+	// TODO(peering):
+	DiscoveryChain map[structs.ServiceName]*structs.CompiledDiscoveryChain
+
+	// TODO(peering):
+	WatchedDiscoveryChains map[structs.ServiceName]context.CancelFunc
+}
+
+func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
+	if c == nil || len(c.ExportedServicesWithPeers) == 0 {
+		return false
+	}
+
+	_, ok := c.ExportedServicesWithPeers[svc]
+	return ok
 }
 
 func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
@@ -376,7 +403,22 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
 		len(c.ConsulServers) == 0 &&
-		len(c.HostnameDatacenters) == 0
+		len(c.HostnameDatacenters) == 0 &&
+		c.isEmptyPeering()
+}
+
+// isEmptyPeering is a test helper
+func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
+	if c == nil {
+		return true
+	}
+
+	return len(c.ExportedServicesSlice) == 0 &&
+		len(c.ExportedServicesWithPeers) == 0 &&
+		len(c.WatchedExportedServices) == 0 &&
+		!c.WatchedExportedServicesSet &&
+		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedDiscoveryChains) == 0
 }
 
 type configSnapshotIngressGateway struct {
@@ -496,7 +538,8 @@ func (s *ConfigSnapshot) Valid() bool {
 			}
 		}
 		return s.Roots != nil &&
-			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
+			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0) &&
+			s.MeshGateway.WatchedExportedServicesSet
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&

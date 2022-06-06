@@ -310,6 +310,33 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 	return s.exportedServicesForPeerTxn(ws, tx, peering)
 }
 
+func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	maxIdx, peerings, err := s.peeringListTxn(ws, tx, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to list peerings: %w", err)
+	}
+
+	out := make(map[string]structs.ServiceList)
+	for _, peering := range peerings {
+		idx, list, err := s.exportedServicesForPeerTxn(ws, tx, peering)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		m := list.ListAllDiscoveryChains()
+		if len(m) > 0 {
+			out[peering.Name] = maps.SliceOfKeys(m)
+		}
+	}
+
+	return maxIdx, out, nil
+}
+
 func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peering *pbpeering.Peering) (uint64, *structs.ExportedServiceList, error) {
 	maxIdx := peering.ModifyIndex
 
