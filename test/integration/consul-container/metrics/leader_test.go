@@ -15,7 +15,6 @@ import (
 	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/lib/retry"
 )
 
 // Given a 3-server cluster, when the leader is elected, then leader's isLeader is 1 and non-leader's 0
@@ -56,7 +55,7 @@ func TestLeadershipMetrics(t *testing.T) {
 	libcluster.WaitForMembers(t, svrCli, 3)
 
 	retryWithBackoff := func(agentNode node.Node, expectedStr string) error {
-		waiter := &retry.Waiter{
+		waiter := &utils.Waiter{
 			MaxWait: 5 * time.Minute,
 		}
 		_, port := agentNode.GetAddr()

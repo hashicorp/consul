@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/docker/docker v20.10.11+incompatible
-	github.com/hashicorp/consul v1.12.1
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/go-uuid v1.0.2
@@ -59,8 +58,6 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
-
-replace github.com/hashicorp/consul => ../../..
 
 replace github.com/hashicorp/consul/api => ../../../api
 
