@@ -1181,7 +1181,7 @@ const (
 
 	// ServiceKindDestination is a Destination  for the Connect feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
-	//based on centralized configuration.
+	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
 )
 
@@ -2152,6 +2152,12 @@ type IndexedServices struct {
 	// this is needed to be able to properly filter the list based on ACLs
 	acl.EnterpriseMeta
 	QueryMeta
+}
+
+// PeeredServiceName is a basic tuple of ServiceName and peer
+type PeeredServiceName struct {
+	ServiceName ServiceName
+	Peer        string
 }
 
 type ServiceName struct {

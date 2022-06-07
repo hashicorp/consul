@@ -682,6 +682,11 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
+	"SourcePeer": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourcePeer",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 	"SourcePartition": &bexpr.FieldConfiguration{
 		StructFieldName:     "SourcePartition",
 		CoerceFn:            bexpr.CoerceString,
