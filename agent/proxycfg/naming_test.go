@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// TODO(freddy): Needs enterprise test
 func TestUpstreamIDFromTargetID(t *testing.T) {
 	type testcase struct {
 		tid    string
@@ -91,6 +90,13 @@ func TestUpstreamIDFromString(t *testing.T) {
 				Datacenter: "dc2",
 			},
 		},
+		"normal with peer": {
+			"foo?peer=payments",
+			UpstreamID{
+				Name: "foo",
+				Peer: "payments",
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -159,6 +165,13 @@ func TestUpstreamID_String(t *testing.T) {
 			},
 			prefix + "foo?dc=dc2",
 		},
+		"normal with peer": {
+			UpstreamID{
+				Name: "foo",
+				Peer: "payments",
+			},
+			prefix + "foo?peer=payments",
+		},
 	}
 
 	for name, tc := range cases {
@@ -221,6 +234,13 @@ func TestUpstreamID_EnvoyID(t *testing.T) {
 				Datacenter: "dc2",
 			},
 			"foo?dc=dc2",
+		},
+		"normal with peer": {
+			UpstreamID{
+				Name: "foo",
+				Peer: "billing",
+			},
+			"foo?peer=billing",
 		},
 	}
 

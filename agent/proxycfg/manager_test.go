@@ -2,26 +2,23 @@ package proxycfg
 
 import (
 	"context"
-	"path"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+const testSource ProxySource = "test"
 
 func mustCopyProxyConfig(t *testing.T, ns *structs.NodeService) structs.ConnectProxyConfig {
 	cfg, err := copyProxyConfig(ns)
@@ -31,25 +28,22 @@ func mustCopyProxyConfig(t *testing.T, ns *structs.NodeService) structs.ConnectP
 
 // assertLastReqArgs verifies that each request type had the correct source
 // parameters (e.g. Datacenter name) and token.
-func assertLastReqArgs(t *testing.T, types *TestCacheTypes, token string, source *structs.QuerySource) {
+func assertLastReqArgs(t *testing.T, dataSources *TestDataSources, token string, source *structs.QuerySource) {
 	t.Helper()
 	// Roots needs correct DC and token
-	rootReq := types.roots.lastReq.Load()
-	require.IsType(t, rootReq, &structs.DCSpecificRequest{})
-	require.Equal(t, token, rootReq.(*structs.DCSpecificRequest).Token)
-	require.Equal(t, source.Datacenter, rootReq.(*structs.DCSpecificRequest).Datacenter)
+	rootReq := dataSources.CARoots.LastReq()
+	require.Equal(t, token, rootReq.Token)
+	require.Equal(t, source.Datacenter, rootReq.Datacenter)
 
 	// Leaf needs correct DC and token
-	leafReq := types.leaf.lastReq.Load()
-	require.IsType(t, leafReq, &cachetype.ConnectCALeafRequest{})
-	require.Equal(t, token, leafReq.(*cachetype.ConnectCALeafRequest).Token)
-	require.Equal(t, source.Datacenter, leafReq.(*cachetype.ConnectCALeafRequest).Datacenter)
+	leafReq := dataSources.LeafCertificate.LastReq()
+	require.Equal(t, token, leafReq.Token)
+	require.Equal(t, source.Datacenter, leafReq.Datacenter)
 
 	// Intentions needs correct DC and token
-	intReq := types.intentions.lastReq.Load()
-	require.IsType(t, intReq, &structs.IntentionQueryRequest{})
-	require.Equal(t, token, intReq.(*structs.IntentionQueryRequest).Token)
-	require.Equal(t, source.Datacenter, intReq.(*structs.IntentionQueryRequest).Datacenter)
+	intReq := dataSources.Intentions.LastReq()
+	require.Equal(t, token, intReq.Token)
+	require.Equal(t, source.Datacenter, intReq.Datacenter)
 }
 
 func TestManager_BasicLifecycle(t *testing.T) {
@@ -125,16 +119,17 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		},
 	}
 
-	rootsCacheKey := testGenCacheKey(&structs.DCSpecificRequest{
+	rootsReq := &structs.DCSpecificRequest{
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token"},
-	})
-	leafCacheKey := testGenCacheKey(&cachetype.ConnectCALeafRequest{
+	}
+	leafReq := &cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Token:      "my-token",
 		Service:    "web",
-	})
-	intentionCacheKey := testGenCacheKey(&structs.IntentionQueryRequest{
+	}
+
+	intentionReq := &structs.IntentionQueryRequest{
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token"},
 		Match: &structs.IntentionQueryMatch{
@@ -147,16 +142,17 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				},
 			},
 		},
-	})
-	meshCacheKey := testGenCacheKey(&structs.ConfigEntryQuery{
+	}
+
+	meshConfigReq := &structs.ConfigEntryQuery{
 		Datacenter:     "dc1",
 		QueryOptions:   structs.QueryOptions{Token: "my-token"},
 		Kind:           structs.MeshConfig,
 		Name:           structs.MeshConfigMesh,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	})
+	}
 
-	dbChainCacheKey := testGenCacheKey(&structs.DiscoveryChainRequest{
+	dbChainReq := &structs.DiscoveryChainRequest{
 		Name:                 "db",
 		EvaluateInDatacenter: "dc1",
 		EvaluateInNamespace:  "default",
@@ -166,16 +162,16 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		OverrideConnectTimeout: 1 * time.Second,
 		Datacenter:             "dc1",
 		QueryOptions:           structs.QueryOptions{Token: "my-token"},
-	})
+	}
 
-	dbHealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
+	dbHealthReq := &structs.ServiceSpecificRequest{
 		Datacenter:     "dc1",
 		QueryOptions:   structs.QueryOptions{Token: "my-token", Filter: ""},
 		ServiceName:    "db",
 		Connect:        true,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	})
-	db_v1_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
+	}
+	db_v1_HealthReq := &structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token",
 			Filter: "Service.Meta.version == v1",
@@ -183,8 +179,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		ServiceName:    "db",
 		Connect:        true,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	})
-	db_v2_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
+	}
+	db_v2_HealthReq := &structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token",
 			Filter: "Service.Meta.version == v2",
@@ -192,7 +188,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		ServiceName:    "db",
 		Connect:        true,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-	})
+	}
 
 	db := structs.NewServiceName("db", nil)
 	dbUID := NewUpstreamIDFromServiceName(db)
@@ -201,19 +197,19 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	tests := []*testcase_BasicLifecycle{
 		{
 			name: "simple-default-resolver",
-			setup: func(t *testing.T, types *TestCacheTypes) {
+			setup: func(t *testing.T, dataSources *TestDataSources) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
-				types.health.Set(dbHealthCacheKey, &structs.IndexedCheckServiceNodes{
+				dataSources.Health.Set(dbHealthReq, &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, db.Name),
 				})
-				types.compiledChain.Set(dbChainCacheKey, &structs.DiscoveryChainResponse{
+				dataSources.CompiledDiscoveryChain.Set(dbChainReq, &structs.DiscoveryChainResponse{
 					Chain: dbDefaultChain(),
 				})
 			},
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.CompoundServiceID(),
+				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           mustCopyProxyConfig(t, webProxy),
@@ -243,8 +239,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:   map[string]indexedTarget{},
+						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:      map[string]indexedTarget{},
+						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
+						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
@@ -257,22 +255,22 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		},
 		{
 			name: "chain-resolver-with-version-split",
-			setup: func(t *testing.T, types *TestCacheTypes) {
+			setup: func(t *testing.T, dataSources *TestDataSources) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
-				types.health.Set(db_v1_HealthCacheKey, &structs.IndexedCheckServiceNodes{
+				dataSources.Health.Set(db_v1_HealthReq, &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodes(t, db.Name),
 				})
-				types.health.Set(db_v2_HealthCacheKey, &structs.IndexedCheckServiceNodes{
+				dataSources.Health.Set(db_v2_HealthReq, &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodesAlternate(t),
 				})
-				types.compiledChain.Set(dbChainCacheKey, &structs.DiscoveryChainResponse{
+				dataSources.CompiledDiscoveryChain.Set(dbChainReq, &structs.DiscoveryChainResponse{
 					Chain: dbSplitChain(),
 				})
 			},
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.CompoundServiceID(),
+				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           mustCopyProxyConfig(t, webProxy),
@@ -303,8 +301,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams: map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:   map[string]indexedTarget{},
+						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:      map[string]indexedTarget{},
+						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
+						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
@@ -322,15 +322,13 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			require.NotNil(t, tt.setup)
 			require.NotNil(t, tt.expectSnap)
 
-			// Use a mocked cache to make life simpler
-			types := NewTestCacheTypes(t)
-
 			// Setup initial values
-			types.roots.Set(rootsCacheKey, roots)
-			types.leaf.Set(leafCacheKey, leaf)
-			types.intentions.Set(intentionCacheKey, TestIntentions())
-			types.configEntry.Set(meshCacheKey, &structs.ConfigEntryResponse{Entry: nil})
-			tt.setup(t, types)
+			dataSources := NewTestDataSources()
+			dataSources.LeafCertificate.Set(leafReq, leaf)
+			dataSources.CARoots.Set(rootsReq, roots)
+			dataSources.Intentions.Set(intentionReq, TestIntentions())
+			dataSources.ConfigEntry.Set(meshConfigReq, &structs.ConfigEntryResponse{Entry: nil})
+			tt.setup(t, dataSources)
 
 			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
 			require.NoError(t, err)
@@ -338,11 +336,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			webProxyCopy, err := copystructure.Copy(webProxy)
 			require.NoError(t, err)
 
-			testManager_BasicLifecycle(t, types,
-				rootsCacheKey, leafCacheKey,
+			testManager_BasicLifecycle(t,
+				dataSources,
+				rootsReq, leafReq,
 				roots,
 				webProxyCopy.(*structs.NodeService),
-				local.Config{},
 				expectSnapCopy.(*ConfigSnapshot),
 			)
 		})
@@ -351,53 +349,43 @@ func TestManager_BasicLifecycle(t *testing.T) {
 
 type testcase_BasicLifecycle struct {
 	name       string
-	setup      func(t *testing.T, types *TestCacheTypes)
+	setup      func(t *testing.T, dataSources *TestDataSources)
 	webProxy   *structs.NodeService
 	expectSnap *ConfigSnapshot
 }
 
 func testManager_BasicLifecycle(
 	t *testing.T,
-	types *TestCacheTypes,
-	rootsCacheKey, leafCacheKey string,
+	dataSources *TestDataSources,
+	rootsReq *structs.DCSpecificRequest,
+	leafReq *cachetype.ConnectCALeafRequest,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
-	agentConfig local.Config,
 	expectSnap *ConfigSnapshot,
 ) {
-	c := TestCacheWithTypes(t, types)
-
 	logger := testutil.Logger(t)
-	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
-
-	// Stub state syncing
-	state.TriggerSyncChanges = func() {}
 
 	// Create manager
 	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
-		State:  state,
-		Source: source,
-		Logger: logger,
+		Source:      source,
+		Logger:      logger,
+		DataSources: dataSources.ToDataSources(),
 	})
 	require.NoError(t, err)
 
-	// And run it
-	go func() {
-		err := m.Run()
-		require.NoError(t, err)
-	}()
+	webProxyID := ProxyID{
+		ServiceID: webProxy.CompoundServiceID(),
+	}
 
 	// BEFORE we register, we should be able to get a watch channel
-	wCh, cancel := m.Watch(webProxy.CompoundServiceID())
+	wCh, cancel := m.Watch(webProxyID)
 	defer cancel()
 
 	// And it should block with nothing sent on it yet
 	assertWatchChanBlocks(t, wCh)
 
-	require.NoError(t, state.AddService(webProxy, "my-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "my-token", false))
 
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
@@ -405,35 +393,35 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	require.True(t, time.Since(start) >= coalesceTimeout)
 
-	assertLastReqArgs(t, types, "my-token", source)
+	assertLastReqArgs(t, dataSources, "my-token", source)
 
 	// Update NodeConfig
 	webProxy.Port = 7777
-	require.NoError(t, state.AddService(webProxy, "my-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "my-token", false))
 
 	expectSnap.Port = 7777
 	assertWatchChanRecvs(t, wCh, expectSnap)
 
 	// Register a second watcher
-	wCh2, cancel2 := m.Watch(webProxy.CompoundServiceID())
+	wCh2, cancel2 := m.Watch(webProxyID)
 	defer cancel2()
 
 	// New watcher should immediately receive the current state
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Change token
-	require.NoError(t, state.AddService(webProxy, "other-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "other-token", false))
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// This is actually sort of timing dependent - the cache background fetcher
 	// will still be fetching with the old token, but we rely on the fact that our
 	// mock type will have been blocked on those for a while.
-	assertLastReqArgs(t, types, "other-token", source)
+	assertLastReqArgs(t, dataSources, "other-token", source)
 	// Update roots
 	newRoots, newLeaf := TestCerts(t)
 	newRoots.Roots = append(newRoots.Roots, roots.Roots...)
-	types.roots.Set(rootsCacheKey, newRoots)
+	dataSources.CARoots.Set(rootsReq, newRoots)
 
 	// Expect new roots in snapshot
 	expectSnap.Roots = newRoots
@@ -441,7 +429,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Update leaf
-	types.leaf.Set(leafCacheKey, newLeaf)
+	dataSources.LeafCertificate.Set(leafReq, newLeaf)
 
 	// Expect new roots in snapshot
 	expectSnap.ConnectProxy.Leaf = newLeaf
@@ -449,7 +437,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Remove the proxy
-	state.RemoveService(webProxy.CompoundServiceID())
+	m.Deregister(webProxyID, testSource)
 
 	// Chan should NOT close
 	assertWatchChanBlocks(t, wCh)
@@ -457,7 +445,7 @@ func testManager_BasicLifecycle(
 
 	// Re-add the proxy with another new port
 	webProxy.Port = 3333
-	require.NoError(t, state.AddService(webProxy, "other-token"))
+	require.NoError(t, m.Register(webProxyID, webProxy, testSource, "other-token", false))
 
 	// Same watch chan should be notified again
 	expectSnap.Port = 3333
@@ -509,8 +497,6 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2}),
-		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
 			Datacenter: "dc1",
@@ -522,11 +508,11 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.NoError(t, err)
 
 	snap1 := &ConfigSnapshot{
-		ProxyID: structs.NewServiceID("test-proxy", nil),
+		ProxyID: ProxyID{ServiceID: structs.NewServiceID("test-proxy", nil)},
 		Port:    1111,
 	}
 	snap2 := &ConfigSnapshot{
-		ProxyID: structs.NewServiceID("test-proxy", nil),
+		ProxyID: ProxyID{ServiceID: structs.NewServiceID("test-proxy", nil)},
 		Port:    2222,
 	}
 
@@ -565,73 +551,14 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.Equal(t, snap2, <-ch5)
 }
 
-func testGenCacheKey(req cache.Request) string {
-	info := req.CacheInfo()
-	return path.Join(info.Key, info.Datacenter)
-}
-
-func TestManager_SyncState_DefaultToken(t *testing.T) {
-	types := NewTestCacheTypes(t)
-	c := TestCacheWithTypes(t, types)
-	logger := testutil.Logger(t)
-	tokens := new(token.Store)
-	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
-
-	state := local.NewState(local.Config{}, logger, tokens)
-	state.TriggerSyncChanges = func() {}
-
-	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
-		State:  state,
-		Tokens: tokens,
-		Source: &structs.QuerySource{Datacenter: "dc1"},
-		Logger: logger,
-	})
-	require.NoError(t, err)
-	defer m.Close()
-
-	srv := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    9999,
-		Meta:    map[string]string{},
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceID:   "web",
-			DestinationServiceName: "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8080,
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-		},
-	}
-
-	err = state.AddServiceWithChecks(srv, nil, "")
-	require.NoError(t, err)
-	m.syncState(m.notifyBroadcast)
-
-	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
-}
-
 func TestManager_SyncState_No_Notify(t *testing.T) {
-	types := NewTestCacheTypes(t)
-	c := TestCacheWithTypes(t, types)
+	dataSources := NewTestDataSources()
 	logger := testutil.Logger(t)
-	tokens := new(token.Store)
-	tokens.UpdateUserToken("default-token", token.TokenSourceConfig)
-
-	state := local.NewState(local.Config{}, logger, tokens)
-	state.TriggerSyncChanges = func() {}
 
 	m, err := NewManager(ManagerConfig{
-		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
-		State:  state,
-		Tokens: tokens,
-		Source: &structs.QuerySource{Datacenter: "dc1"},
-		Logger: logger,
+		Source:      &structs.QuerySource{Datacenter: "dc1"},
+		Logger:      logger,
+		DataSources: dataSources.ToDataSources(),
 	})
 	require.NoError(t, err)
 	defer m.Close()
@@ -653,27 +580,21 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 		},
 	}
 
-	err = state.AddServiceWithChecks(srv, nil, "")
-	require.NoError(t, err)
+	proxyID := ProxyID{
+		ServiceID: srv.CompoundServiceID(),
+	}
 
-	readEvent := make(chan bool, 1)
-	snapSent := make(chan bool, 1)
+	require.NoError(t, m.Register(proxyID, srv, testSource, "", false))
 
-	m.syncState(func(ch <-chan ConfigSnapshot) {
-		for {
-			<-readEvent
-			snap := <-ch
-			m.notify(&snap)
-			snapSent <- true
-		}
-	})
+	watchCh, cancelWatch := m.Watch(proxyID)
+	t.Cleanup(cancelWatch)
 
 	// Get the relevant notification Channel, should only have 1
-	notifyCH := m.proxies[srv.CompoundServiceID()].ch
+	notifyCH := m.proxies[proxyID].ch
 
 	// update the leaf certs
 	roots, issuedCert := TestCerts(t)
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        issuedCert,
 		Err:           nil,
@@ -681,14 +602,14 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after := time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
 	}
 
 	// update the root certs
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: rootsWatchID,
 		Result:        roots,
 		Err:           nil,
@@ -697,14 +618,14 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after = time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
 	}
 
 	// update the mesh config entry
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: meshConfigEntryID,
 		Result:        &structs.ConfigEntryResponse{},
 		Err:           nil,
@@ -713,17 +634,14 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point the snapshot should not be valid and not be sent
 	after = time.After(200 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 		t.Fatal("snap should not be valid")
 	case <-after:
 
 	}
 
-	// prepare to read a snapshot update as the next update should make the snapshot valid
-	readEvent <- true
-
 	// update the intentions
-	notifyCH <- cache.UpdateEvent{
+	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
 		Result:        &structs.IndexedIntentionMatches{},
 		Err:           nil,
@@ -732,40 +650,9 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// at this point we have a valid snapshot
 	after = time.After(500 * time.Millisecond)
 	select {
-	case <-snapSent:
+	case <-watchCh:
 	case <-after:
 		t.Fatal("snap should be valid")
 
-	}
-
-	// send two snapshots back to back without reading them to overflow the snapshot channel and get to the default use case
-	for i := 0; i < 2; i++ {
-		time.Sleep(250 * time.Millisecond)
-		notifyCH <- cache.UpdateEvent{
-			CorrelationID: leafWatchID,
-			Result:        issuedCert,
-			Err:           nil,
-		}
-	}
-
-	// make sure that we are not receiving any snapshot and wait for the snapshots to be processed
-	after = time.After(500 * time.Millisecond)
-	select {
-	case <-snapSent:
-		t.Fatal("snap should not be sent")
-	case <-after:
-	}
-
-	// now make sure that both snapshots got propagated
-	for i := 0; i < 2; i++ {
-
-		readEvent <- true
-		after = time.After(500 * time.Millisecond)
-		select {
-		case <-snapSent:
-		case <-after:
-			t.Fatal("snap should be valid")
-
-		}
 	}
 }

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,13 +20,9 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	var err error
-	args.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/discovery-chain/")
-	if err != nil {
-		return nil, err
-	}
+	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
 	if args.Name == "" {
-		return nil, BadRequestError{Reason: "Missing chain name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing chain name"}
 	}
 
 	args.EvaluateInDatacenter = req.URL.Query().Get("compile-dc")
@@ -38,12 +35,12 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 	if req.Method == "POST" {
 		var raw map[string]interface{}
 		if err := decodeBody(req.Body, &raw); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
 
 		apiReq, err := decodeDiscoveryChainReadRequest(raw)
 		if err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
 
 		args.OverrideProtocol = apiReq.OverrideProtocol
@@ -52,7 +49,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		if apiReq.OverrideMeshGateway.Mode != "" {
 			_, err := structs.ValidateMeshGatewayMode(string(apiReq.OverrideMeshGateway.Mode))
 			if err != nil {
-				return nil, BadRequestError{Reason: "Invalid OverrideMeshGateway.Mode parameter"}
+				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid OverrideMeshGateway.Mode parameter"}
 			}
 			args.OverrideMeshGateway = apiReq.OverrideMeshGateway
 		}

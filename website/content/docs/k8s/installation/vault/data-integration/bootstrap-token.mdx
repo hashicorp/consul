@@ -42,7 +42,7 @@ Next, you will need to create a Vault policy that allows read access to this sec
 <CodeBlockConfig filename="bootstrap-token-policy.hcl">
 
 ```HCL
-path "secret/data/consul/boostrap-token" {
+path "secret/data/consul/bootstrap-token" {
   capabilities = ["read"]
 }
 ```
@@ -52,7 +52,7 @@ path "secret/data/consul/boostrap-token" {
 Apply the Vault policy by issuing the `vault policy write` CLI command:
 
 ```shell-session
-$ vault policy write boostrap-token-policy boostrap-token-policy.hcl
+$ vault policy write bootstrap-token-policy bootstrap-token-policy.hcl
 ```
 
 ## Setup per Consul datacenter
@@ -64,7 +64,7 @@ Next, you will create Kubernetes auth roles for the Consul `server-acl-init` con
 $ vault write auth/kubernetes/role/consul-server-acl-init \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=boostrap-token-policy \
+    policies=bootstrap-token-policy \
     ttl=1h
 ```
 
@@ -78,7 +78,7 @@ $ helm template --release-name ${RELEASE_NAME} -s templates/server-acl-init-serv
 ### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the  ACL bootrap token in Vault:
+use the  ACL bootstrap token in Vault:
 
 <CodeBlockConfig filename="values.yaml">
 

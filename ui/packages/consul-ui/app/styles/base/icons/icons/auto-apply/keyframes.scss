@@ -1,15 +1,9 @@
 @keyframes icon-auto-apply {
-  50% {
-
-    background-color: var(--icon-color, var(--color-auto-apply-500, currentColor));
-    -webkit-mask-image: var(--icon-auto-apply-24);
-    mask-image: var(--icon-auto-apply-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-auto-apply-500, currentColor));
     -webkit-mask-image: var(--icon-auto-apply-16);
     mask-image: var(--icon-auto-apply-16);
+    background-color: var(--icon-color, var(--color-auto-apply-500, currentColor));
+
   }
 }

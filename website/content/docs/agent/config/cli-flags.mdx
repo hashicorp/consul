@@ -21,10 +21,13 @@ Environment variables **cannot** be used to configure the Consul client. They
 _can_ be used when running other `consul` CLI commands that connect with a
 running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
 
-See [Consul Commands](/docs/commands#environment-variables) for more
+See [Consul Commands](/commands#environment-variables) for more
 information.
 
 ## General
+
+- `-auto-reload-config` ((#\_auto_reload_config)) - This option directs Consul to automatically reload the [reloadable configuration options](/docs/agent/config#reloadable-configuration) when configuration files change.
+  Consul also watches the certificate and key files specified with the `cert_file` and `key_file` parameters and reloads the configuration if the files are updated.
 
 - `-check_output_max_size` - Override the default
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
@@ -37,6 +40,30 @@ information.
   allowing only loopback connections. In Consul 1.0 and later this can be set to
   a space-separated list of addresses to bind to, or a [go-sockaddr]
   template that can potentially resolve to multiple addresses.
+
+  <CodeBlockConfig hideClipboard heading="Bind consul client interfaces to private IPv4 interfaces">
+
+  ```shell
+  $ consul agent -dev -client '{{ GetPrivateInterfaces | exclude "type" "ipv6" | join "address" " " }}'
+  ```
+
+  </CodeBlockConfig>
+
+  <CodeBlockConfig hideClipboard heading="Bind consul client interfaces to private IP addresses and loopback">
+
+  ```shell
+  $ consul agent -dev -client '{{ GetPrivateInterfaces | join "address" " " }} {{ GetAllInterfaces | include "flags" "loopback" | join "address" " " }}'
+  ```
+
+  </CodeBlockConfig>
+
+  <CodeBlockConfig hideClipboard heading="Exclude private interfaces that start with 'br-'">
+
+  ```shell
+  $ consul agent -dev -client '{{ GetPrivateInterfaces | exclude "name" "br.*" | join "address" " " }}'
+  ```
+
+  </CodeBlockConfig>
 
 - `-data-dir` ((#\_data_dir)) - This flag provides a data directory for
   the agent to store state. This is required for all agents. The directory should
@@ -65,7 +92,7 @@ information.
   only the given `-encrypt` key will be available on startup. This defaults to false.
 
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
-  [health checks that execute scripts](/docs/agent/checks) are enabled on this
+  [health checks that execute scripts](/docs/discovery/checks) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
   was added in Consul 0.9.0.
 
@@ -76,10 +103,9 @@ information.
   for more details.
 
 - `-enable-local-script-checks` ((#\_enable_local_script_checks))
-  Like [`enable_script_checks`](#_enable_script_checks), but only enable them when
+  Like [`-enable-script-checks`](#_enable_script_checks), but only enable them when
   they are defined in the local configuration files. Script checks defined in HTTP
   API registrations will still not be allowed.
-
 
 - `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
   of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
@@ -92,7 +118,7 @@ information.
   the provided key is ignored and a warning will be displayed.
 
 - `-grpc-port` ((#\_grpc_port)) - the gRPC API port to listen on. Default
-  -1 (gRPC disabled). See [ports](#ports) documentation for more detail.
+  -1 (gRPC disabled). See [ports](/docs/agent/config#ports-used) documentation for more detail.
 
 - `-hcl` ((#\_hcl)) - A HCL configuration fragment. This HCL configuration
   fragment is appended to the configuration and allows to specify the full range
@@ -105,7 +131,7 @@ information.
   allowing you to set the port directly via a Procfile.
 
 - `-https-port` ((#\_https_port)) - the HTTPS API port to listen on. Default
-  -1 (https disabled). See [ports](#ports) documentation for more detail.
+  -1 (https disabled). See [ports](/docs/agent/config#ports-used) documentation for more detail.
 
 - `-default-query-time` ((#\_default_query_time)) - This flag controls the
   amount of time a blocking query will wait before Consul will force a response.
@@ -122,7 +148,7 @@ information.
   to close the agent or `SIGHUP` to update check definitions) to the agent.
 
 - `-protocol` ((#\_protocol)) - The Consul protocol version to use. Consul
-  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/docs/upgrading). You can view the protocol versions supported by Consul by running `consul -v`.
+  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/docs/upgrading). You can view the protocol versions supported by Consul by running `consul version`.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
@@ -136,7 +162,7 @@ information.
   for more details. By default, this is an empty string, which is the `<default>`
   network segment.
 
-  ~> **Warning:** The `segment` flag cannot be used with the [`partition`](#partition-1) option.
+  ~> **Warning:** The `segment` flag cannot be used with the [`partition`](/docs/agent/config/config-files#partition-1) option.
 
 ## Advertise Address Options
 
@@ -147,6 +173,14 @@ information.
   this. If this address is not routable, the node will be in a constant flapping
   state as other nodes will treat the non-routability as a failure. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
+
+  <CodeBlockConfig heading="Using a static network interface name">
+
+  ```shell-session
+  $ consul agent -advertise '{{ GetInterfaceIP "eth0" }}'
+  ```
+
+  </CodeBlockConfig>
 
 - `-advertise-wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.
@@ -173,20 +207,29 @@ information.
   both. If you have any firewalls, be sure to allow both protocols. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that must resolve at runtime to a single address. Some example templates:
 
-  ```shell
-  # Using address within a specific CIDR
+  <CodeBlockConfig heading="Using address within a specific CIDR">
+
+  ```shell-session
   $ consul agent -bind '{{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'
   ```
 
-  ```shell
-  # Using a static network interface name
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using a static network interface name">
+
+  ```shell-session
   $ consul agent -bind '{{ GetInterfaceIP "eth0" }}'
   ```
 
-  ```shell
-  # Using regular expression matching for network interface name that is forwardable and up
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using regular expression matching for network interface name that is forwardable and up">
+
+  ```shell-session
   $ consul agent -bind '{{ GetAllInterfaces | include "name" "^eth" | include "flags" "forwardable|up" | attr "address" }}'
   ```
+
+  </CodeBlockConfig>
 
 - `-serf-wan-bind` ((#\_serf_wan_bind)) - The address that should be bound
   to for Serf WAN gossip communications. By default, the value follows the same rules
@@ -221,7 +264,7 @@ information.
 ## Configuration File Options
 
 - `-config-file` ((#\_config_file)) - A configuration file to load. For
-  more information on the format of this file, read the [Configuration Files](#configuration_files)
+  more information on the format of this file, read the [Configuration Files](/docs/agent/config/config-files)
   section. This option can be specified multiple times to load multiple configuration
   files. If it is specified multiple times, configuration files loaded later will
   merge with configuration files loaded earlier. During a config merge, single-value
@@ -234,7 +277,7 @@ information.
   the [`config-file`](#_config_file) option above. This option can be specified multiple
   times to load multiple directories. Sub-directories of the config directory are
   not loaded. For more information on the format of the configuration files, see
-  the [Configuration Files](#configuration_files) section.
+  the [Configuration Files](/docs/agent/config/config-files) section.
 
 - `-config-format` ((#\_config_format)) - The format of the configuration
   files to load. Normally, Consul detects the format of the config files from the
@@ -261,14 +304,14 @@ information.
 
 - `-recursor` ((#\_recursor)) - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally equivalent
-  to the [`recursors` configuration option](#recursors).
+  to the [`recursors` configuration option](/docs/agent/config/config-files#recursors).
 
-## Join Options 
+## Join Options
 
 - `-join` ((#\_join)) - Address of another agent to join upon starting up.
   This can be specified multiple times to specify multiple agents to join. If Consul
   is unable to join with any of the specified addresses, agent startup will fail.
-  By default, the agent won't join any nodes when it starts up. Note that using [`retry_join`](#retry_join) could be more appropriate to help mitigate node startup race conditions when automating
+  By default, the agent won't join any nodes when it starts up. Note that using [`-retry-join`](#_retry_join) could be more appropriate to help mitigate node startup race conditions when automating
   a Consul cluster deployment.
 
   In Consul 1.1.0 and later this can be dynamically defined with a
@@ -302,30 +345,45 @@ information.
 
   Here are some examples of using `-retry-join`:
 
-  ```shell
-  # Using a DNS entry
+  <CodeBlockConfig heading="Using a DNS entry">
+
+  ```shell-session
   $ consul agent -retry-join "consul.domain.internal"
   ```
 
-  ```shell
-  # Using IPv4
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using IPv4">
+
+  ```shell-session
   $ consul agent -retry-join "10.0.4.67"
   ```
 
-  ```shell
-  # Using a non-default Serf LAN port
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using a non-default Serf LAN port">
+
+  ```shell-session
   $ consul agent -retry-join "192.0.2.10:8304"
   ```
 
-  ```shell
-  # Using IPv6
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using IPv6">
+
+  ```shell-session
   $ consul agent -retry-join "[::1]:8301"
   ```
 
-  ```shell
-  # Using multiple addresses
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading="Using multiple addresses">
+
+  ```shell-session
   $ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
   ```
+
+  </CodeBlockConfig>
 
   ### Cloud Auto-Joining
 
@@ -334,10 +392,13 @@ information.
   automatic cluster joining using cloud metadata. For more information, see
   the [Cloud Auto-join page](/docs/agent/cloud-auto-join).
 
-  ```shell
-  # Using Cloud Auto-Joining
+  <CodeBlockConfig heading="Using Cloud Auto-Joining">
+
+  ```shell-session
   $ consul agent -retry-join "provider=aws tag_key=..."
   ```
+
+  </CodeBlockConfig>
 
 - `-retry-interval` ((#\_retry_interval)) - Time to wait between join attempts.
   Defaults to 30s.
@@ -355,7 +416,7 @@ information.
   In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
-- `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`retry-join`](#_retry_join)
+- `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`-retry-join`](#_retry_join)
   but allows retrying a wan join if the first attempt fails. This is useful for cases
   where we know the address will become available eventually. As of Consul 0.9.3
   [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
@@ -363,7 +424,7 @@ information.
   In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
-- `-primary-gateway` ((#\_primary_gateway)) - Similar to [`retry-join-wan`](#_retry_join_wan)
+- `-primary-gateway` ((#\_primary_gateway)) - Similar to [`-retry-join-wan`](#_retry_join_wan)
   but allows retrying discovery of fallback addresses for the mesh gateways in the
   primary datacenter if the first attempt fails. This is useful for cases where we
   know the address will become available eventually. [Cloud Auto-Joining](#cloud-auto-joining)
@@ -415,7 +476,7 @@ information.
   in a JSON format. By default this is false.
 
 - `-syslog` ((#\_syslog)) - This flag enables logging to syslog. This is
-  only supported on Linux and OSX. It will result in an error if provided on Windows.
+  only supported on Linux and macOS. It will result in an error if provided on Windows.
 
 ## Node Options
 
@@ -486,7 +547,7 @@ information.
   state, which is maintained on all server nodes to ensure availability in the case
   of node failure. Server nodes also participate in a WAN gossip pool with server
   nodes in other datacenters. Servers act as gateways to other datacenters and forward
-  traffic as appropriate.
+  RPC traffic as appropriate.
 
 - `-server-port` ((#\_server_port)) - the server RPC port to listen on.
   This overrides the default server RPC port 8300. This is available in Consul 1.2.2
@@ -519,3 +580,7 @@ information.
   By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics,
   `-`, and `_` are allowed in a custom path.`/v1/` is not allowed as it would overwrite
   the API endpoint.
+
+<!-- list of reference-style links -->
+
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

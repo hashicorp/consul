@@ -1,15 +1,9 @@
 @keyframes icon-file-outline {
-  50% {
-
-    background-color: var(--icon-color, var(--color-file-outline-500, currentColor));
-    -webkit-mask-image: var(--icon-file-24);
-    mask-image: var(--icon-file-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-file-outline-500, currentColor));
     -webkit-mask-image: var(--icon-file-16);
     mask-image: var(--icon-file-16);
+    background-color: var(--icon-color, var(--color-file-outline-500, currentColor));
+
   }
 }

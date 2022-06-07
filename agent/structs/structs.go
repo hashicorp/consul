@@ -15,13 +15,15 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -704,6 +706,12 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -750,6 +758,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.PeerName,
 		r.Ingress,
 		r.ServiceKind,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -854,6 +863,20 @@ func (n *Node) BestAddress(wan bool) string {
 	return n.Address
 }
 
+func (n *Node) ToRegisterRequest() RegisterRequest {
+	return RegisterRequest{
+		ID:              n.ID,
+		Node:            n.Node,
+		Datacenter:      n.Datacenter,
+		Address:         n.Address,
+		TaggedAddresses: n.TaggedAddresses,
+		NodeMeta:        n.Meta,
+		RaftIndex:       n.RaftIndex,
+		EnterpriseMeta:  *n.GetEnterpriseMeta(),
+		PeerName:        n.PeerName,
+	}
+}
+
 type Nodes []*Node
 
 // IsSame return whether nodes are similar without taking into account
@@ -884,6 +907,11 @@ func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowCons
 	default:
 		return validateMetadata(meta, allowConsulPrefix, nil)
 	}
+}
+
+// ValidateMetaTags validates arbitrary key/value pairs from the agent_endpoints
+func ValidateMetaTags(metaTags map[string]string) error {
+	return validateMetadata(metaTags, false, nil)
 }
 
 func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
@@ -1113,6 +1141,18 @@ func (k ServiceKind) Normalized() string {
 	return string(k)
 }
 
+// IsProxy returns whether the ServiceKind is a connect proxy or gateway.
+func (k ServiceKind) IsProxy() bool {
+	switch k {
+	case ServiceKindConnectProxy,
+		ServiceKindMeshGateway,
+		ServiceKindTerminatingGateway,
+		ServiceKindIngressGateway:
+		return true
+	}
+	return false
+}
+
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is
 	// represented by the absence of a value. This was chosen for ease of
@@ -1206,6 +1246,13 @@ type NodeService struct {
 	RaftIndex `bexpr:"-"`
 }
 
+// PeeringServiceMeta is read-only information provided from an exported peer.
+type PeeringServiceMeta struct {
+	SNI      []string `json:",omitempty"`
+	SpiffeID []string `json:",omitempty"`
+	Protocol string   `json:",omitempty"`
+}
+
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	addr := ns.Address
 	port := ns.Port
@@ -1276,6 +1323,8 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
+
+	PeerMeta *PeeringServiceMeta `json:",omitempty" bexpr:"-"`
 }
 
 func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
@@ -1300,7 +1349,8 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
-	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
+	return s.Kind == ServiceKindConnectProxy &&
+		(s.Proxy.DestinationServiceID != "" || s.Proxy.DestinationServiceName != "")
 }
 
 func (s *NodeService) IsGateway() bool {
@@ -1334,8 +1384,7 @@ func (s *NodeService) Validate() error {
 		}
 
 		if s.Port == 0 && s.SocketPath == "" {
-			result = multierror.Append(result, fmt.Errorf(
-				"Port or SocketPath must be set for a Connect proxy"))
+			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
 
 		if s.Connect.Native {
@@ -1349,17 +1398,34 @@ func (s *NodeService) Validate() error {
 			bindAddrs    = make(map[string]struct{})
 		)
 		for _, u := range s.Proxy.Upstreams {
+
 			destinationPartition := u.DestinationPartition
 			if destinationPartition == "" {
-				destinationPartition = acl.DefaultPartitionName
+
+				// If we have a set DestinationPeer, then DestinationPartition
+				// must match the NodeService's Partition
+				if u.DestinationPeer != "" {
+					destinationPartition = s.PartitionOrDefault()
+				} else {
+					destinationPartition = acl.DefaultPartitionName
+				}
 			}
 
-			// cross DC Upstreams are only allowed for non "default" partitions
-			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
-				result = multierror.Append(result, fmt.Errorf(
-					"upstreams cannot target another datacenter in non default partition"))
-				continue
+			if u.DestinationPeer == "" {
+				// cross DC Upstreams are only allowed for non "default" partitions
+				if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams cannot target another datacenter in non default partition"))
+					continue
+				}
+			} else {
+				if destinationPartition != s.PartitionOrDefault() {
+					result = multierror.Append(result, fmt.Errorf(
+						"upstreams must target peers in the same partition as the service"))
+					continue
+				}
 			}
+
 			if err := u.Validate(); err != nil {
 				result = multierror.Append(result, err)
 				continue
@@ -1464,6 +1530,11 @@ func (s *NodeService) Validate() error {
 					"A SidecarService cannot have a nested SidecarService"))
 			}
 		}
+	}
+
+	if s.Connect.Native && s.Port == 0 && s.SocketPath == "" {
+		result = multierror.Append(result, fmt.Errorf(
+			"Port or SocketPath must be set for a Connect native service."))
 	}
 
 	return result
@@ -2099,6 +2170,14 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 }
 
 type ServiceList []ServiceName
+
+// Len implements sort.Interface.
+func (s ServiceList) Len() int { return len(s) }
+
+// Swap implements sort.Interface.
+func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList
@@ -2766,23 +2845,19 @@ func (m MessageType) String() string {
 }
 
 func DurationToProto(d time.Duration) *duration.Duration {
-	return ptypes.DurationProto(d)
+	return durationpb.New(d)
 }
 
 func DurationFromProto(d *duration.Duration) time.Duration {
-	ret, _ := ptypes.Duration(d)
-	return ret
-
+	return d.AsDuration()
 }
 
 func TimeFromProto(s *timestamp.Timestamp) time.Time {
-	ret, _ := ptypes.Timestamp(s)
-	return ret
+	return s.AsTime()
 }
 
 func TimeToProto(s time.Time) *timestamp.Timestamp {
-	ret, _ := ptypes.TimestampProto(s)
-	return ret
+	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp

@@ -428,6 +428,36 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-defaults-with-destination",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					address = "1.2.3.4/24"
+					port = 8080
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Address = "1.2.3.4/24"
+					Port = 8080
+				}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4/24",
+					Port:    8080,
+				},
+			},
+		},
+		{
 			name: "service-router: kitchen sink",
 			snake: `
 				kind = "service-router"
@@ -1694,6 +1724,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1722,6 +1755,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1748,6 +1784,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 						},
 					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},
@@ -2380,6 +2419,119 @@ func TestServiceConfigEntry(t *testing.T) {
 					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
 				},
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
+			},
+		},
+		"validate: missing destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: destination ipv4 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4",
+					Port:    443,
+				},
+			},
+		},
+		"validate: destination ipv4 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "10.0.0.1/16",
+					Port:    8080,
+				},
+			},
+		},
+		"validate: destination ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
+					Port:    443,
+				},
+			},
+		},
+		"valid destination shortened ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334",
+					Port:    443,
+				},
+			},
+		},
+		"validate: destination ipv6 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+					Port:    443,
+				},
+			},
+		},
+		"validate: invalid destination port": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"validate: invalid hostname 1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "*external.com",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: invalid hostname 2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "..hello.",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: all web traffic allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Address: "*",
+					Port:    443,
+				},
 			},
 		},
 	}

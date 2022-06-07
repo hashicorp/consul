@@ -21,12 +21,14 @@ Ensure that the following requirements are met prior to upgrading:
 - You should have the ability to run `kubectl` CLI commands.
 - `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
 - You should have the following permission rights on your Kubernetes cluster:
-  * `HTTPRoute.read`
-  * `TCPRoute.read`
-  * `ReferencePolicy.create`
+  - `HTTPRoute.read`
+  - `TCPRoute.read`
+  - `ReferencePolicy.create`
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
 ## Procedure
+
+-> **NOTE** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
 
 1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
 
@@ -45,6 +47,7 @@ Ensure that the following requirements are met prior to upgrading:
   ```shell-session
   $ kubectl get HTTPRoute,TCPRoute --output json --all-namespaces
   ```
+
   Note that the command only retrieves `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
 
   If you have any active `HTTPRoutes` or `TCPRoutes`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
@@ -93,6 +96,7 @@ Ensure that the following requirements are met prior to upgrading:
             ...
       ...
   ```
+
 1. Inspect the `backendRefs` entries for each of the routes.
 
   If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-policy)).
@@ -120,12 +124,13 @@ Ensure that the following requirements are met prior to upgrading:
             name: web-backend
             namespace: gateway-namespace
   ```
+
   </CodeBlockConfig>
 
   Skip to [step 8](#step-8) if your list is empty.
 <a name="jq-command"/>
 
-1.  If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferencePolicy`.
+1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferencePolicy`.
 
   ```shell-session
   $ kubectl get HTTPRoute,TCPRoute -o json -A | jq -r '.items[] | {name: .metadata.name, namespace: .metadata.namespace, kind: .kind, crossNamespaceBackendReferences: ( .metadata.namespace as $parentnamespace | .spec.rules[] .backendRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
@@ -165,6 +170,7 @@ Ensure that the following requirements are met prior to upgrading:
     }
   }
   ```
+
   </CodeBlockConfig>
 
   If your output is empty, skip to [step 8](#step-8).
@@ -197,6 +203,7 @@ Ensure that the following requirements are met prior to upgrading:
         kind: Service
         name: web-backend
   ```
+
   </CodeBlockConfig>
 
 1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
@@ -210,10 +217,10 @@ Ensure that the following requirements are met prior to upgrading:
   Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
 <a name="step-8"/>
 
-1. Issue the following command to install the v.0.2.0 CRDs into your cluster:
+1. Issue the following command to install the new version of CRDs into your cluster:
 
   ``` shell-session
-  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=0.2.0"
+  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
   ```
 
 1. Update `apiGateway.image` in `values.yaml`:
@@ -223,9 +230,10 @@ Ensure that the following requirements are met prior to upgrading:
   ```yaml
   ...
   apiGateway:
-    image: hashicorp/consul-api-gateway:0.2.0
+    image: hashicorp/consul-api-gateway:VERSION
     ...
   ```
+
   </CodeBlockConfig>
 
 1. Issue the following command to upgrade your Consul installation:
@@ -247,6 +255,7 @@ Ensure that the following requirements are met prior to upgrading:
   --->
 
 1. (Optional) Delete and recreate your routes. Note that it may take several minutes for attached routes to reconcile and start reporting bind errors.
+
   ```shell-session
   $ kubectl delete --filename <path_to_route_config.yaml>
   $ kubectl create --filename <path_to_route_config.yaml>
@@ -254,4 +263,4 @@ Ensure that the following requirements are met prior to upgrading:
 
 ## Post-Upgrade Configuration Changes
 
-No configuration changes are required for this upgrade.
+No additional configuration changes are required for this upgrade.

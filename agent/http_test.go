@@ -1488,10 +1488,16 @@ func TestAllowedNets(t *testing.T) {
 			t.Fatalf("bad checkWriteAccess for values %+v, got %v", v, err)
 		}
 
-		_, isForbiddenErr := err.(ForbiddenError)
-		if err != nil && !isForbiddenErr {
-			t.Fatalf("expected ForbiddenError but got: %s", err)
+		if err != nil {
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 403 {
+					t.Fatalf("expected 403 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("expected HTTP Error but got %v", err)
+			}
 		}
+
 	}
 }
 
@@ -1677,45 +1683,6 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			defer conn4.Close()
 
 			assertConn(conn4, true)
-		})
-	}
-}
-
-func TestGetPathSuffixUnescaped(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name         string
-		pathInput    string
-		pathPrefix   string
-		suffixResult string
-		errString    string
-	}{
-		// No decoding required (resource name must be unaffected by the decode)
-		{"Normal Valid", "/foo/bar/resource-1", "/foo/bar/", "resource-1", ""},
-		// This function is not responsible for enforcing a valid URL, just for decoding escaped values.
-		// If there's an invalid URL segment in the path, it will be returned as is.
-		{"Unencoded Invalid", "/foo/bar/resource 1", "/foo/bar/", "resource 1", ""},
-		// Decode the encoded value properly
-		{"Encoded Valid", "/foo/bar/re%2Fsource%201", "/foo/bar/", "re/source 1", ""},
-		// Fail to decode an invalidly encoded input
-		{"Encoded Invalid", "/foo/bar/re%Fsource%201", "/foo/bar/", "re%Fsource%201", "failure in unescaping path param"},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-
-			suffixResult, err := getPathSuffixUnescaped(tc.pathInput, tc.pathPrefix)
-
-			require.Equal(t, suffixResult, tc.suffixResult)
-
-			if tc.errString == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errString)
-			}
 		})
 	}
 }

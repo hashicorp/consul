@@ -427,6 +427,7 @@ type Upstream struct {
 	DestinationType      UpstreamDestType `json:",omitempty"`
 	DestinationPartition string           `json:",omitempty"`
 	DestinationNamespace string           `json:",omitempty"`
+	DestinationPeer      string           `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`

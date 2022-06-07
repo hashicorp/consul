@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func insertTestPeerings(t *testing.T, s *Store) {
@@ -629,86 +630,106 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 	var lastIdx uint64
 
 	lastIdx++
-	err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
 		Name: "my-peering",
-	})
-	require.NoError(t, err)
+	}))
 
-	q := Query{Value: "my-peering"}
-	_, p, err := s.PeeringRead(nil, q)
+	_, p, err := s.PeeringRead(nil, Query{
+		Value: "my-peering",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, p)
 
 	id := p.ID
 
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	newSN := func(name string) structs.ServiceName {
+		return structs.NewServiceName(name, defaultEntMeta)
+	}
+
 	ws := memdb.NewWatchSet()
 
-	runStep(t, "no exported services", func(t *testing.T) {
-		idx, exported, err := s.ExportedServicesForPeer(ws, id)
+	ensureConfigEntry := func(t *testing.T, entry structs.ConfigEntry) {
+		t.Helper()
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
+
+		lastIdx++
+		require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
+	}
+
+	testutil.RunStep(t, "no exported services", func(t *testing.T) {
+		expect := &structs.ExportedServiceList{}
+
+		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Empty(t, exported)
+		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "config entry with exact service names", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with exact service names", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
 				{
 					Name: "mysql",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-peering",
-						},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					Name: "redis",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-peering",
-						},
+						{PeerName: "my-peering"},
 					},
 				},
 				{
 					Name: "mongo",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-other-peering",
-						},
+						{PeerName: "my-other-peering"},
 					},
 				},
 			},
 		}
-		lastIdx++
-		err = s.EnsureConfigEntry(lastIdx, entry)
-		require.NoError(t, err)
+		ensureConfigEntry(t, entry)
 
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		expect := []structs.ServiceName{
-			{
-				Name:           "mysql",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		expect := &structs.ExportedServiceList{
+			Services: []structs.ServiceName{
+				{
+					Name:           "mysql",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				{
+					Name:           "redis",
+					EnterpriseMeta: *defaultEntMeta,
+				},
 			},
-			{
-				Name:           "redis",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("mysql"): "tcp",
+				newSN("redis"): "tcp",
 			},
 		}
+
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.ElementsMatch(t, expect, got)
+		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service name picks up existing service", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service name picks up existing service", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, s.EnsureNode(lastIdx, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+		require.NoError(t, s.EnsureNode(lastIdx, &structs.Node{
+			Node: "foo", Address: "127.0.0.1",
+		}))
 
 		lastIdx++
-		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{ID: "billing", Service: "billing", Port: 5000}))
+		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
+			ID: "billing", Service: "billing", Port: 5000,
+		}))
 
 		entry := &structs.ExportedServicesConfigEntry{
 			Name: "default",
@@ -716,24 +737,25 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				{
 					Name: "*",
 					Consumers: []structs.ServiceConsumer{
-						{
-							PeerName: "my-peering",
-						},
+						{PeerName: "my-peering"},
 					},
 				},
 			},
 		}
-		lastIdx++
-		err = s.EnsureConfigEntry(lastIdx, entry)
-		require.NoError(t, err)
+		ensureConfigEntry(t, entry)
 
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		expect := []structs.ServiceName{
-			{
-				Name:           "billing",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		expect := &structs.ExportedServiceList{
+			Services: []structs.ServiceName{
+				{
+					Name:           "billing",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("billing"): "tcp",
 			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
@@ -742,70 +764,333 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service names picks up new registrations", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service names picks up new registrations", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{ID: "payments", Service: "payments", Port: 5000}))
+		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
+			ID: "payments", Service: "payments", Port: 5000,
+		}))
 
+		// The proxy will be ignored.
 		lastIdx++
-		proxy := structs.NodeService{
+		require.NoError(t, s.EnsureService(lastIdx, "foo", &structs.NodeService{
 			Kind:    structs.ServiceKindConnectProxy,
 			ID:      "payments-proxy",
 			Service: "payments-proxy",
 			Port:    5000,
-		}
-		require.NoError(t, s.EnsureService(lastIdx, "foo", &proxy))
+		}))
+
+		// Ensure everything is L7-capable.
+		ensureConfigEntry(t, &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+			EnterpriseMeta: *defaultEntMeta,
+		})
+
+		ensureConfigEntry(t, &structs.ServiceRouterConfigEntry{
+			Kind:           structs.ServiceRouter,
+			Name:           "router",
+			EnterpriseMeta: *defaultEntMeta,
+		})
+
+		ensureConfigEntry(t, &structs.ServiceSplitterConfigEntry{
+			Kind:           structs.ServiceSplitter,
+			Name:           "splitter",
+			EnterpriseMeta: *defaultEntMeta,
+			Splits:         []structs.ServiceSplit{{Weight: 100}},
+		})
+
+		ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "resolver",
+			EnterpriseMeta: *defaultEntMeta,
+		})
 
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		expect := []structs.ServiceName{
-			{
-				Name:           "billing",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		expect := &structs.ExportedServiceList{
+			Services: []structs.ServiceName{
+				{
+					Name:           "billing",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				{
+					Name:           "payments",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				// NOTE: no payments-proxy here
 			},
-			{
-				Name:           "payments",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			DiscoChains: []structs.ServiceName{
+				{
+					Name:           "resolver",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				{
+					Name:           "router",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				{
+					Name:           "splitter",
+					EnterpriseMeta: *defaultEntMeta,
+				},
 			},
-			{
-				Name:           "payments-proxy",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("billing"):  "http",
+				newSN("payments"): "http",
+				newSN("resolver"): "http",
+				newSN("router"):   "http",
+				newSN("splitter"): "http",
 			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.ElementsMatch(t, expect, got)
+		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "config entry with wildcard service names picks up service deletions", func(t *testing.T) {
+	testutil.RunStep(t, "config entry with wildcard service names picks up service deletions", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, s.DeleteService(lastIdx, "foo", "billing", nil, ""))
 
+		lastIdx++
+		require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ServiceSplitter, "splitter", nil))
+
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		expect := []structs.ServiceName{
-			{
-				Name:           "payments",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		expect := &structs.ExportedServiceList{
+			Services: []structs.ServiceName{
+				{
+					Name:           "payments",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				// NOTE: no payments-proxy here
 			},
-			{
-				Name:           "payments-proxy",
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			DiscoChains: []structs.ServiceName{
+				{
+					Name:           "resolver",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+				{
+					Name:           "router",
+					EnterpriseMeta: *defaultEntMeta,
+				},
+			},
+			ConnectProtocol: map[structs.ServiceName]string{
+				newSN("payments"): "http",
+				newSN("resolver"): "http",
+				newSN("router"):   "http",
 			},
 		}
 		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.ElementsMatch(t, expect, got)
+		require.Equal(t, expect, got)
 	})
 
-	runStep(t, "deleting the config entry clears exported services", func(t *testing.T) {
-		require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", structs.DefaultEnterpriseMetaInDefaultPartition()))
-		idx, exported, err := s.ExportedServicesForPeer(ws, id)
+	testutil.RunStep(t, "deleting the config entry clears exported services", func(t *testing.T) {
+		expect := &structs.ExportedServiceList{}
+
+		require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", defaultEntMeta))
+		idx, got, err := s.ExportedServicesForPeer(ws, id)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Empty(t, exported)
+		require.Equal(t, expect, got)
 	})
+}
+
+func TestStateStore_PeeringsForService(t *testing.T) {
+	type testCase struct {
+		name      string
+		services  []structs.ServiceName
+		peerings  []*pbpeering.Peering
+		entries   []*structs.ExportedServicesConfigEntry
+		query     []string
+		expect    [][]*pbpeering.Peering
+		expectIdx uint64
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		s := testStateStore(t)
+
+		var lastIdx uint64
+		// Create peerings
+		for _, peering := range tc.peerings {
+			lastIdx++
+			require.NoError(t, s.PeeringWrite(lastIdx, peering))
+
+			// make sure it got created
+			q := Query{Value: peering.Name}
+			_, p, err := s.PeeringRead(nil, q)
+			require.NoError(t, err)
+			require.NotNil(t, p)
+		}
+
+		// Create a Nodes for services
+		svcNode := &structs.Node{Node: "foo", Address: "127.0.0.1"}
+		lastIdx++
+		require.NoError(t, s.EnsureNode(lastIdx, svcNode))
+
+		// Create the test services
+		for _, svc := range tc.services {
+			lastIdx++
+			require.NoError(t, s.EnsureService(lastIdx, svcNode.Node, &structs.NodeService{
+				ID:      svc.Name,
+				Service: svc.Name,
+				Port:    8080,
+			}))
+		}
+
+		// Write the config entries.
+		for _, entry := range tc.entries {
+			lastIdx++
+			require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
+		}
+
+		// Query for peers.
+		for resultIdx, q := range tc.query {
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+			idx, peers, err := s.PeeringsForService(nil, q, *acl.DefaultEnterpriseMeta())
+			require.NoError(t, err)
+			require.Equal(t, tc.expectIdx, idx)
+
+			// Verify the result, ignoring generated fields
+			require.Len(t, peers, len(tc.expect[resultIdx]))
+			for _, got := range peers {
+				got.ID = ""
+				got.ModifyIndex = 0
+				got.CreateIndex = 0
+			}
+			require.ElementsMatch(t, tc.expect[resultIdx], peers)
+		}
+	}
+
+	cases := []testCase{
+		{
+			name: "no exported services",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+			},
+			peerings: []*pbpeering.Peering{},
+			entries:  []*structs.ExportedServicesConfigEntry{},
+			query:    []string{"foo"},
+			expect:   [][]*pbpeering.Peering{{}},
+		},
+		{
+			name: "service does not exist",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+			},
+			peerings:  []*pbpeering.Peering{},
+			entries:   []*structs.ExportedServicesConfigEntry{},
+			query:     []string{"bar"},
+			expect:    [][]*pbpeering.Peering{{}},
+			expectIdx: uint64(2), // catalog services max index
+		},
+		{
+			name: "config entry with exact service name",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+			peerings: []*pbpeering.Peering{
+				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+			},
+			entries: []*structs.ExportedServicesConfigEntry{
+				{
+					Name: "ce1",
+					Services: []structs.ExportedService{
+						{
+							Name: "foo",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer1",
+								},
+							},
+						},
+						{
+							Name: "bar",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer2",
+								},
+							},
+						},
+					},
+				},
+			},
+			query: []string{"foo", "bar"},
+			expect: [][]*pbpeering.Peering{
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				},
+				{
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				},
+			},
+			expectIdx: uint64(6), // config	entries max index
+		},
+		{
+			name: "config entry with wildcard service name",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+			peerings: []*pbpeering.Peering{
+				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+			},
+			entries: []*structs.ExportedServicesConfigEntry{
+				{
+					Name: "ce1",
+					Services: []structs.ExportedService{
+						{
+							Name: "*",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer1",
+								},
+								{
+									PeerName: "peer2",
+								},
+							},
+						},
+						{
+							Name: "bar",
+							Consumers: []structs.ServiceConsumer{
+								{
+									PeerName: "peer3",
+								},
+							},
+						},
+					},
+				},
+			},
+			query: []string{"foo", "bar"},
+			expect: [][]*pbpeering.Peering{
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+				},
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+				},
+			},
+			expectIdx: uint64(7),
+		},
+	}
+
+	for _, tc := range cases {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

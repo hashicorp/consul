@@ -1,15 +1,9 @@
 @keyframes icon-wifi {
-  50% {
-
-    background-color: var(--icon-color, var(--color-wifi-500, currentColor));
-    -webkit-mask-image: var(--icon-wifi-24);
-    mask-image: var(--icon-wifi-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-wifi-500, currentColor));
     -webkit-mask-image: var(--icon-wifi-16);
     mask-image: var(--icon-wifi-16);
+    background-color: var(--icon-color, var(--color-wifi-500, currentColor));
+
   }
 }

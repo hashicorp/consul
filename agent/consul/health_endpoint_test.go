@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -694,7 +695,7 @@ func TestHealth_ServiceNodes_BlockingQuery_withFilter(t *testing.T) {
 	register(t, "web", "foo")
 
 	var lastIndex uint64
-	runStep(t, "read original", func(t *testing.T) {
+	testutil.RunStep(t, "read original", func(t *testing.T) {
 		var out structs.IndexedCheckServiceNodes
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
@@ -715,7 +716,7 @@ func TestHealth_ServiceNodes_BlockingQuery_withFilter(t *testing.T) {
 		lastIndex = out.Index
 	})
 
-	runStep(t, "read blocking query result", func(t *testing.T) {
+	testutil.RunStep(t, "read blocking query result", func(t *testing.T) {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "web",

@@ -64,6 +64,7 @@ module "my_task" {
 
   port       = 9090
   retry_join = ["<address of the Consul server>"]
+  consul_datacenter = "<name of your Consul datacenter>"
 }
 ```
 
@@ -80,6 +81,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
 | `retry_join`            | list     | The is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
+| `consul_datacenter`            | string     | The name of your Consul datacenter.                                                                                                  |
 
 ### Running Terraform
 

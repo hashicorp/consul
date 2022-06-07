@@ -40,7 +40,7 @@ Usage: `consul acl set-agent-token [options] TYPE TOKEN`
 
 - `recovery` - This sets the token that can be used to access the Agent APIs
   in the event that the ACL datacenter cannot be reached. In Consul versions
-  prior to 1.11, this token type was called `master`.
+  prior to 1.11, this token type was called `agent_master`.
 
 - `replication` - This is the token that the agent will use for replication
   operations. This token will need to be configured with read access to

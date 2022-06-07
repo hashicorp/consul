@@ -3054,6 +3054,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				CertFile:    "api/client.crt",
 				KeyFile:     "api/client.key",
 				SNI:         "my-domain",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -3062,6 +3063,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				CAFile:      "",
 				CertFile:    "",
 				KeyFile:     "",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 			{
 				Service:      structs.NewServiceName("redis", nil),
@@ -3206,6 +3208,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 				Service:     structs.NewServiceName("api", nil),
 				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		}
 
@@ -3428,11 +3431,13 @@ service "gateway" {
 				Service:     structs.NewServiceName("db", nil),
 				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 			{
 				Service:     structs.NewServiceName("db_replica", nil),
 				Gateway:     structs.NewServiceName("gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
+				ServiceKind: structs.GatewayServiceKindUnknown,
 			},
 		}
 

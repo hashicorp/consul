@@ -56,25 +56,20 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention create -replace`](/commands/intention/create#replace).
 
-### URL Parameters
+### Query Parameters
 
-- `source` `(string: <required>)` - Specifies the source service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `source` `(string: <required>)` - Specifies the source service
+  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
 
-- `destination` `(string: <required>)` - Specifies the destination service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `destination` `(string: <required>)` - Specifies the destination service
+  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when `source` or `destination` query parameters do not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-### PUT Body Parameters
+### JSON Request Body Schema
 
 - `SourceType` `(string: "")` - The type for the `SourceName` value.
   This can be only "consul" today to represent a Consul service. If not
@@ -167,28 +162,25 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention create`](/commands/intention/create).
 
-### URL Parameters
+### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `SourceNS` or `DestinationNS` are omitted or empty.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when `SourceNS` or `DestinationNS` request body parameters do not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-### POST Body Parameters
+### JSON Request Body Schema
 
 - `SourceName` `(string: <required>)` - The source of the intention.
   For a `SourceType` of `consul` this is the name of a Consul service. The
-  service doesn't need to be registered.
+  service does not need to be registered.
 
 - `SourceNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
   `SourceName` parameter.
 
 - `DestinationName` `(string: <required>)` - The destination of the intention.
   The intention destination is always a Consul service, unlike the source.
-  The service doesn't need to be registered.
+  The service does not need to be registered.
 
 - `DestinationNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
   `DestinationName` parameter.
@@ -265,12 +257,12 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
-### Parameters
+This endpoint supports the same parameters as the [create an intention](#create-intention-with-id) endpoint.
+Additional parameters unique to this endpoint include:
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to update. This
-  is specified as part of the URL.
+### Path Parameters
 
-- Other parameters are identical to creating an intention.
+- `uuid` `(string: <required>)` - Specifies the UUID of the intention to update.
 
 ### Sample Payload
 
@@ -321,23 +313,18 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention get`](/commands/intention/get).
 
-### Parameters
+### Query Parameters
 
-- `source` `(string: <required>)` - Specifies the source service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `source` `(string: <required>)` - Specifies the source service
+  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
 
-- `destination` `(string: <required>)` - Specifies the destination service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `destination` `(string: <required>)` - Specifies the destination service
+  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when `source` or `destination` query parameters do not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -398,10 +385,9 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention get`](/commands/intention/get).
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the intention to read.
 
 ### Sample Request
 
@@ -462,7 +448,7 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention list`](/commands/intention/list).
 
-### Parameters
+### Query Parameters
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
@@ -470,11 +456,7 @@ The corresponding CLI command is [`consul intention list`](/commands/intention/l
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the
   namespace to list intentions from.
   The `*` wildcard may be used to list intentions from all namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -553,23 +535,18 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
 
-### Parameters
+### Query Parameters
 
-- `source` `(string: <required>)` - Specifies the source service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `source` `(string: <required>)` - Specifies the source service
+  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
 
-- `destination` `(string: <required>)` - Specifies the destination service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `destination` `(string: <required>)` - Specifies the destination service
+  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when `source` or `destination` query parameters do not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -613,10 +590,9 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention delete`](/commands/intention/delete).
 
-### Parameters
+### Path Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to delete. This
-  is specified as part of the URL.
+- `uuid` `(string: <required>)` - Specifies the UUID of the intention to delete.
 
 ### Sample Request
 
@@ -670,23 +646,18 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention check`](/commands/intention/check).
 
-### Parameters
+### Query Parameters
 
-- `source` `(string: <required>)` - Specifies the source service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `source` `(string: <required>)` - Specifies the source service
+  according to the [source naming conventions](/commands/intention#source-and-destination-naming).
 
-- `destination` `(string: <required>)` - Specifies the destination service. This
-  is specified as part of the URL.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `destination` `(string: <required>)` - Specifies the destination service
+  according to the [destination naming conventions](/commands/intention#source-and-destination-naming).
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when `source` or `destination` query parameters do not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -735,22 +706,19 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul intention match`](/commands/intention/match).
 
-### Parameters
+### Query Parameters
 
 - `by` `(string: <required>)` - Specifies whether to match the "name" value
   by "source" or "destination".
 
-- `name` `(string: <required>)` - Specifies a name to match. This parameter
-  can be repeated for batching multiple matches.
-  This can take [several forms](/commands/intention#source-and-destination-naming).
+- `name` `(string: <required>)` - Specifies a name to match
+  according to the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can repeat this parameter for batching multiple matches.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `name` parameter lacks namespaces.
-  If not provided, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default namespace
+  to use when the `name` query parameter does not include a namespace
+  as shown in the [source and destination naming conventions](/commands/intention#source-and-destination-naming).
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -791,3 +759,13 @@ $ curl \
   ]
 }
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Connect intention endpoints
+support several methods for specifying the namespace of intention resources
+with the following order of precedence:
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

@@ -2,25 +2,38 @@ package cluster
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
 // in integration tests, with nodes running in containers.
 type Cluster struct {
-	Nodes []node.Node
+	Nodes      []node.Node
+	EncryptKey string
 }
 
 // New creates a Consul cluster. A node will be started for each of the given
 // configs and joined to the cluster.
 func New(configs []node.Config) (*Cluster, error) {
-	cluster := Cluster{}
+	serfKey, err := newSerfEncryptionKey()
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := Cluster{
+		EncryptKey: serfKey,
+	}
 
 	nodes := make([]node.Node, len(configs))
 	for idx, c := range configs {
+		c.HCL += fmt.Sprintf(" encrypt=%q", serfKey)
+
 		n, err := node.NewConsulContainer(context.Background(), c)
 		if err != nil {
 			return nil, err
@@ -71,13 +84,12 @@ func (c *Cluster) Leader() (node.Node, error) {
 		return nil, fmt.Errorf("no node available")
 	}
 	n0 := c.Nodes[0]
-	leaderAdd, err := n0.GetClient().Status().Leader()
+
+	leaderAdd, err := GetLeader(n0.GetClient())
 	if err != nil {
 		return nil, err
 	}
-	if leaderAdd == "" {
-		return nil, fmt.Errorf("no leader available")
-	}
+
 	for _, n := range c.Nodes {
 		addr, _ := n.GetAddr()
 		if strings.Contains(leaderAdd, addr) {
@@ -85,4 +97,28 @@ func (c *Cluster) Leader() (node.Node, error) {
 		}
 	}
 	return nil, fmt.Errorf("leader not found")
+}
+
+func newSerfEncryptionKey() (string, error) {
+	key := make([]byte, 32)
+	n, err := rand.Reader.Read(key)
+	if err != nil {
+		return "", fmt.Errorf("Error reading random data: %w", err)
+	}
+	if n != 32 {
+		return "", fmt.Errorf("Couldn't read enough entropy. Generate more entropy!")
+	}
+
+	return base64.StdEncoding.EncodeToString(key), nil
+}
+
+func GetLeader(client *api.Client) (string, error) {
+	leaderAdd, err := client.Status().Leader()
+	if err != nil {
+		return "", err
+	}
+	if leaderAdd == "" {
+		return "", fmt.Errorf("no leader available")
+	}
+	return leaderAdd, nil
 }

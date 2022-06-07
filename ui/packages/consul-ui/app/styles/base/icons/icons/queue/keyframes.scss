@@ -1,15 +1,9 @@
 @keyframes icon-queue {
-  50% {
-
-    background-color: var(--icon-color, var(--color-queue-500, currentColor));
-    -webkit-mask-image: var(--icon-queue-24);
-    mask-image: var(--icon-queue-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-queue-500, currentColor));
     -webkit-mask-image: var(--icon-queue-16);
     mask-image: var(--icon-queue-16);
+    background-color: var(--icon-color, var(--color-queue-500, currentColor));
+
   }
 }

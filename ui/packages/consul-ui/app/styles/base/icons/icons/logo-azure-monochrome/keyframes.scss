@@ -1,15 +1,9 @@
 @keyframes icon-logo-azure-monochrome {
-  50% {
-
-    background-color: var(--icon-color, var(--color-logo-azure-monochrome-500, currentColor));
-    -webkit-mask-image: var(--icon-azure-color-24);
-    mask-image: var(--icon-azure-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-logo-azure-monochrome-500, currentColor));
     -webkit-mask-image: var(--icon-azure-color-16);
     mask-image: var(--icon-azure-color-16);
+    background-color: var(--icon-color, var(--color-logo-azure-monochrome-500, currentColor));
+
   }
 }

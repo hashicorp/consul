@@ -23,6 +23,7 @@ import (
 //
 // NOTE: this is duplicated in the api package as testClusterID
 const TestClusterID = "11111111-2222-3333-4444-555555555555"
+const TestTrustDomain = TestClusterID + ".consul"
 
 // testCACounter is just an atomically incremented counter for creating
 // unique names for the CA certs.

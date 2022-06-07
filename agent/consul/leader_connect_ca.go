@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 )
 
@@ -1522,7 +1523,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = pem + ca.EnsureTrailingNewline(p)
+		pem = pem + lib.EnsureTrailingNewline(p)
 	}
 
 	modIdx, err := c.delegate.ApplyCALeafRequest()

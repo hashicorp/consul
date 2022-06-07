@@ -134,6 +134,12 @@ func (c *ACLCaches) GetIdentity(id string) *IdentityCacheEntry {
 	return nil
 }
 
+// GetIdentityWithSecretToken fetches the identity with the given secret token
+// from the cache.
+func (c *ACLCaches) GetIdentityWithSecretToken(secretToken string) *IdentityCacheEntry {
+	return c.GetIdentity(cacheIDSecretToken(secretToken))
+}
+
 // GetPolicy fetches a policy from the cache and returns it
 func (c *ACLCaches) GetPolicy(policyID string) *PolicyCacheEntry {
 	if c == nil || c.policies == nil {
@@ -193,6 +199,22 @@ func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
 	}
 
 	c.identities.Add(id, &IdentityCacheEntry{Identity: ident, CacheTime: time.Now()})
+}
+
+// PutIdentityWithSecretToken adds a new identity to the cache, keyed by the
+// given secret token (with a prefix to prevent collisions).
+func (c *ACLCaches) PutIdentityWithSecretToken(secretToken string, identity ACLIdentity) {
+	c.PutIdentity(cacheIDSecretToken(secretToken), identity)
+}
+
+// RemoveIdentityWithSecretToken removes the identity from the cache with the
+// given secret token.
+func (c *ACLCaches) RemoveIdentityWithSecretToken(secretToken string) {
+	if c == nil || c.identities == nil {
+		return
+	}
+
+	c.identities.Remove(cacheIDSecretToken(secretToken))
 }
 
 func (c *ACLCaches) PutPolicy(policyId string, policy *ACLPolicy) {
@@ -263,4 +285,8 @@ func (c *ACLCaches) Purge() {
 			c.roles.Purge()
 		}
 	}
+}
+
+func cacheIDSecretToken(token string) string {
+	return "token-secret:" + token
 }

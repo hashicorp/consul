@@ -1,0 +1,4 @@
+```release-note:enhancement
+connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
+This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration.
+```

@@ -13,7 +13,6 @@ import (
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -46,7 +45,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -65,7 +64,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -84,7 +83,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -103,7 +102,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -159,11 +158,40 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "listener-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 222
+				}, nil)
+			},
+		},
+		{
 			name: "http-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
 				}, nil)
+			},
+		},
+		{
+			name: "http-public-listener-no-xfcc",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t,
+					func(ns *structs.NodeService) {
+						ns.Proxy.Config["protocol"] = "http"
+					},
+					[]proxycfg.UpdateEvent{
+						{
+							CorrelationID: "mesh",
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									HTTP: &structs.MeshHTTPConfig{
+										SanitizeXForwardedClientCert: true,
+									},
+								},
+							},
+						},
+					})
 			},
 		},
 		{
@@ -559,7 +587,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -578,7 +606,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -597,7 +625,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -653,10 +681,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+		},
+		{
 			name: "terminating-gateway-no-api-cert",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				api := structs.NewServiceName("api", nil)
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
 						Result:        nil,                            // tombstone this

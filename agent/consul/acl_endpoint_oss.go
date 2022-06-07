@@ -27,19 +27,8 @@ func (a *ACL) roleUpsertValidateEnterprise(role *structs.ACLRole, existing *stru
 	return state.ACLRoleUpsertValidateEnterprise(role, existing)
 }
 
-func (a *ACL) enterpriseAuthMethodTypeValidation(authMethodType string) error {
-	return nil
-}
-
 func enterpriseAuthMethodValidation(method *structs.ACLAuthMethod, validator authmethod.Validator) error {
 	return nil
-}
-
-func computeTargetEnterpriseMeta(
-	method *structs.ACLAuthMethod,
-	verifiedIdentity *authmethod.Identity,
-) (*acl.EnterpriseMeta, error) {
-	return &acl.EnterpriseMeta{}, nil
 }
 
 func getTokenNamespaceDefaults(ws memdb.WatchSet, state *state.Store, entMeta *acl.EnterpriseMeta) ([]string, []string, error) {

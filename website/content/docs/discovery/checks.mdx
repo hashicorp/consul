@@ -151,7 +151,7 @@ A script check:
 ```hcl
 check = {
   id = "mem-util"
-  name =  "Memory utilization"
+  name = "Memory utilization"
   args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
   interval = "10s"
   timeout = "1s"
@@ -186,12 +186,12 @@ check = {
   tls_skip_verify = false
   method = "POST"
   header = {
-     Content-Type =  ["application/json"]
+     Content-Type = ["application/json"]
   }
   body = "{\"method\":\"health\"}"
   disable_redirects = true
-  interval =  "10s"
-  timeout =  "1s"
+  interval = "10s"
+  timeout = "1s"
 }
 ```
 
@@ -248,11 +248,11 @@ A TTL check:
 <CodeTabs heading="TTL Check">
 
 ```hcl
-check =  {
+check = {
   id = "web-app"
   name = "Web App Status"
   notes = "Web app does a curl internally every 10 seconds"
-  ttl =  "30s"
+  ttl = "30s"
 }
 ```
 
@@ -305,11 +305,11 @@ A gRPC check for the whole application:
 
 ```hcl
 check = {
-  id =  "mem-util"
+  id = "mem-util"
   name = "Service health status"
-  grpc =  "127.0.0.1:12345"
+  grpc = "127.0.0.1:12345"
   grpc_use_tls = true
-  interval =  "10s"
+  interval = "10s"
 }
 ```
 
@@ -482,11 +482,11 @@ health check definition, like so:
 <CodeTabs heading="Status Field Example">
 
 ```hcl
-check =  {
-  "id": "mem",
-  "args": ["/bin/check_mem", "-limit", "256MB"]
-  "interval": "10s"
-  "status": "passing"
+check = {
+  id = "mem"
+  args = ["/bin/check_mem", "-limit", "256MB"]
+  interval = "10s"
+  status = "passing"
 }
 ```
 
@@ -516,10 +516,10 @@ provided by adding a `service_id` field to a check configuration:
 <CodeTabs heading="Status Field Example">
 
 ```hcl
-check =  {
+check = {
   id = "web-app"
-  name =  "Web App Status"
-  service_id =  "web-app"
+  name = "Web App Status"
+  service_id = "web-app"
   ttl = "30s"
 }
 ```
@@ -635,7 +635,7 @@ checks = [
     name = "HTTP TCP on port 80"
     tcp = "localhost:80"
     interval = "10s"
-    timeout =  "1s"
+    timeout  = "1s"
     success_before_passing =  3
     failures_before_warning =  1
     failures_before_critical =  3

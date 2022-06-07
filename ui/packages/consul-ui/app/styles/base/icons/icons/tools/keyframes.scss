@@ -1,15 +1,9 @@
 @keyframes icon-tools {
-  50% {
-
-    background-color: var(--icon-color, var(--color-tools-500, currentColor));
-    -webkit-mask-image: var(--icon-tools-24);
-    mask-image: var(--icon-tools-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-tools-500, currentColor));
     -webkit-mask-image: var(--icon-tools-16);
     mask-image: var(--icon-tools-16);
+    background-color: var(--icon-color, var(--color-tools-500, currentColor));
+
   }
 }

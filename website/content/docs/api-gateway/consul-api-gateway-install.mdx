@@ -11,19 +11,17 @@ This topic describes how to use the Consul API Gateway add-on module. It include
 
 ## Requirements
 
-Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications](/docs/api-gateway/tech-specs). This includes validating that the requirements for minimum versions of software are met.
+Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications][tech-specs]. This includes validating that the requirements for minimum versions of software are met. See the [Release Notes][rel-notes] for the version of API Gateway you are deploying.
 
 ## Installation
 
+-> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
+
 1. Issue the following command to install the CRDs:
 
-   <CodeBlockConfig>
-
    ```shell-session
-   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.2.0"
+   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
    ```
-
-   </CodeBlockConfig>
 
 1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
 
@@ -38,20 +36,16 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
      enabled: true
    apiGateway:
      enabled: true
-     image: hashicorp/consul-api-gateway:0.2.0
+     image: hashicorp/consul-api-gateway:VERSION
    ```
 
    </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
-   <CodeBlockConfig>
-
    ```shell-session
    $ helm install consul hashicorp/consul --version 0.43.0 --values values.yaml --create-namespace --namespace consul
    ```
-
-   </CodeBlockConfig>
 
 ## Usage
 
@@ -71,13 +65,9 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
-   <CodeBlockConfig>
-
    ```shell-session
    $ kubectl apply -f gateway.yaml routes.yaml
    ```
-
-   </CodeBlockConfig>
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 
@@ -355,3 +345,10 @@ The `MeshService` configuration holds a reference to an externally-managed Consu
 | `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
 
 Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
+
+<!--
+    ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
+    Only Reference style links should be added below this comment
+--->
+[tech-specs]: /docs/api-gateway/tech-specs
+[rel-notes]: /docs/release-notes

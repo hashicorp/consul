@@ -20,7 +20,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
 		val, err := strconv.ParseBool(pemParam)
 		if err != nil {
-			return nil, BadRequestError{Reason: "The 'pem' query parameter must be a boolean value"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "The 'pem' query parameter must be a boolean value"}
 		}
 		pemResponse = val
 	}
@@ -90,15 +90,14 @@ func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Config); err != nil {
-		return nil, BadRequestError{
-			Reason: fmt.Sprintf("Request decode failed: %v", err),
-		}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
 	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
-		return nil, BadRequestError{
+		return nil, HTTPError{
+			StatusCode: http.StatusBadRequest,
 			Reason: "Provider State is read-only. It must be omitted" +
 				" or identical to the current value",
 		}

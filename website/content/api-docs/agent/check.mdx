@@ -37,16 +37,13 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------------------ |
 | `NO`             | `none`            | `none`        | `node:read,service:read` |
 
-### Parameters
+### Query Parameters
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to list checks. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the checks in the specified namespace.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -118,7 +115,12 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you register.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `Name` `(string: <required>)` - Specifies the name of the check.
 
@@ -126,12 +128,9 @@ The table below shows this endpoint's support for
   This defaults to the `"Name"` parameter, but it may be necessary to provide an
   ID for uniqueness. This value will return in the response as `"CheckId"`.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to register the check. This parameter is only valid for service checks.
-  If not provided in the JSON body, the value of the `ns` URL query parameter or
-  in the `X-Consul-Namespace` header will be used. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you register.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 - `Interval` `(string: "")` - Specifies the frequency at which to run this
   check. This is required for HTTP and TCP checks.
@@ -313,16 +312,16 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
 
-- `check_id` `(string: "")` - Specifies the unique ID of the check to
-  deregister. This is specified as part of the URL.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to deregister the check. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Path Parameters
+
+- `check_id` `(string: "")` - Specifies the unique ID of the check to deregister.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you deregister.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -351,19 +350,17 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Path Parameters
 
-- `check_id` `(string: "")` - Specifies the unique ID of the check to
-  use. This is specified as part of the URL.
+- `check_id` `(string: "")` - Specifies the unique ID of the check to use.
+
+### Query Parameters
 
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to update the check. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -392,19 +389,17 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Path Parameters
 
-- `check_id` `(string: "")` - Specifies the unique ID of the check to
-  use. This is specified as part of the URL.
+- `check_id` `(string: "")` - Specifies the unique ID of the check to use.
+
+### Query Parameters
 
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to update the check. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -432,19 +427,17 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Path Parameters
 
-- `check_id` `(string: "")` - Specifies the unique ID of the check to
-  use. This is specified as part of the URL.
+- `check_id` `(string: "")` - Specifies the unique ID of the check to use.
+
+### Query Parameters
 
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to update the check. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -472,10 +465,16 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Path Parameters
 
-- `check_id` `(string: "")` - Specifies the unique ID of the check to
-  use. This is specified as part of the URL.
+- `check_id` `(string: "")` - Specifies the unique ID of the check to use.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the check you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `Status` `(string: "")` - Specifies the status of the check. Valid values are
   `"passing"`, `"warning"`, and `"critical"`.
@@ -483,11 +482,7 @@ The table below shows this endpoint's support for
 - `Output` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to update the check. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+<!-- Are we missing a Namespace field here? -->
 
 ### Sample Payload
 
@@ -506,3 +501,15 @@ $ curl \
     --data @payload.json \
     http://127.0.0.1:8500/v1/agent/check/update/my-check-id
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Local agent health check endpoints
+support several methods for specifying the namespace of the check resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to the [register](#register-check) endpoint
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

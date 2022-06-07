@@ -38,7 +38,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
 ~> **Note**: For demonstration purposes, you will deploy a Vault server in dev mode. For production installations, this is not recommended. Please visit the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide?in=vault/day-one-raft) for guidance on how to install Vault in a production setting. 
 
-1. Change your currrent Kubernetes context to target the primary datacenter (dc1).
+1. Change your current Kubernetes context to target the primary datacenter (dc1).
 
     ```shell-session
     $ kubectl config use-context <context for dc1>
@@ -113,7 +113,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
 
-## Systems Integation
+## Systems Integration
 ### Overview
 To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must complete following systems integration actions:
 
@@ -233,7 +233,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must co
     $ vault auth enable -path=kubernetes-dc2 kubernetes
     ```
 
-1. Create a service account with access to the Kubenetes API in the secondary datacenter (dc2).  For the secondary datacenter (dc2) auth method, you first need to create a service account that allows the Vault server in the primary datacenter (dc1) cluster to talk to the Kubernetes API in the secondary datacenter (dc2) cluster.
+1. Create a service account with access to the Kubernetes API in the secondary datacenter (dc2).  For the secondary datacenter (dc2) auth method, you first need to create a service account that allows the Vault server in the primary datacenter (dc1) cluster to talk to the Kubernetes API in the secondary datacenter (dc2) cluster.
 
     ```shell-session
     $ cat <<EOF >> auth-method-serviceaccount.yaml

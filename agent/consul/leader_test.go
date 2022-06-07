@@ -402,7 +402,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	}
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
+		_, service, err := state.NodeService(nil, s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -438,7 +438,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
-		_, service, err := state.NodeService(s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
+		_, service, err := state.NodeService(nil, s3.config.NodeName, "consul", &consulService.EnterpriseMeta, "")
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -2336,7 +2336,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, node, err := state.NodeService("bar", "tgate1", nil, "")
+	_, node, err := state.NodeService(nil, "bar", "tgate1", nil, "")
 	require.NoError(t, err)
 	sn := structs.ServiceName{Name: "api"}
 	key := structs.ServiceGatewayVirtualIPTag(sn)

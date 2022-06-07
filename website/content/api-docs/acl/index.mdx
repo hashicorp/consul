@@ -105,11 +105,10 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `consistent`      | `none`        | `none`       |
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Request
 
@@ -302,7 +301,12 @@ replication enabled.
 
 The corresponding CLI command is [`consul login`](/commands/login).
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for login.
 
@@ -314,11 +318,9 @@ The corresponding CLI command is [`consul login`](/commands/login).
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the token. Can be useful to track origins.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the Auth Method to use for Login. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token, or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -430,7 +432,12 @@ enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
   login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
@@ -444,11 +451,9 @@ replication enabled.
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the token. Can be useful to track origins.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the Auth Method to use for Login. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token, or will default to the `default` namespace.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
   This must match the namespace provided on the [OIDC Callback](#oidc-callback).
 
@@ -510,7 +515,12 @@ enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
   login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
@@ -528,13 +538,9 @@ replication enabled.
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the token. Can be useful to track origins.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the Auth Method to use for Login. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token, or will default to the `default` namespace.
-
-  This must match the namespace provided on the [OIDC Callback](#oidc-callback).
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you use to login.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -581,3 +587,14 @@ $ curl \
   "ModifyIndex": 36
 }
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Some ACL endpoints support several methods for specifying the namespace of the resource
+with the following order of precedence:
+1. Namespace` field of the JSON request body -
+  only applies to endpoints that accept an JSON request body
+1. ns` query parameter
+1. X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

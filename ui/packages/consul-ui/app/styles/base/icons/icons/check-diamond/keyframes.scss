@@ -1,15 +1,9 @@
 @keyframes icon-check-diamond {
-  50% {
-
-    background-color: var(--icon-color, var(--color-check-diamond-500, currentColor));
-    -webkit-mask-image: var(--icon-check-diamond-24);
-    mask-image: var(--icon-check-diamond-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-check-diamond-500, currentColor));
     -webkit-mask-image: var(--icon-check-diamond-16);
     mask-image: var(--icon-check-diamond-16);
+    background-color: var(--icon-color, var(--color-check-diamond-500, currentColor));
+
   }
 }

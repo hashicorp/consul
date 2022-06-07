@@ -1,0 +1,3 @@
+```release-note:enhancement
+api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way).
+```

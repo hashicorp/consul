@@ -1,15 +1,9 @@
 @keyframes icon-bookmark-add-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-bookmark-add-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-bookmark-add-fill-24);
-    mask-image: var(--icon-bookmark-add-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-bookmark-add-fill-500, currentColor));
     -webkit-mask-image: var(--icon-bookmark-add-fill-16);
     mask-image: var(--icon-bookmark-add-fill-16);
+    background-color: var(--icon-color, var(--color-bookmark-add-fill-500, currentColor));
+
   }
 }

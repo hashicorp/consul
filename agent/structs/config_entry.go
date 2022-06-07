@@ -1,7 +1,9 @@
 package structs
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -94,15 +96,17 @@ type WarningConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Protocol         string
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Kind                  string
+	Name                  string
+	Protocol              string
+	Mode                  ProxyMode              `json:",omitempty"`
+	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                ExposeConfig           `json:",omitempty"`
+	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Destination           *DestinationConfig     `json:",omitempty"`
+	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -175,6 +179,12 @@ func (e *ServiceConfigEntry) Validate() error {
 
 	validationErr := validateConfigEntryMeta(e.Meta)
 
+	// External endpoints are invalid with an existing service's upstream configuration
+	if e.UpstreamConfig != nil && e.Destination != nil {
+		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Destination are mutually exclusive for service defaults"))
+		return validationErr
+	}
+
 	if e.UpstreamConfig != nil {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.ValidateWithName()
@@ -190,7 +200,36 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
+	if e.Destination != nil {
+		if err := validateEndpointAddress(e.Destination.Address); err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Destination address is invalid %w", err))
+		}
+
+		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Destination.Port))
+		}
+	}
+
 	return validationErr
+}
+
+func validateEndpointAddress(address string) error {
+	var valid bool
+
+	ip := net.ParseIP(address)
+	valid = ip != nil
+
+	_, _, err := net.ParseCIDR(address)
+	valid = valid || err == nil
+
+	// Since we don't know if this will be a TLS connection, setting tlsEnabled to false will be more permissive with wildcards
+	err = validateHost(false, address)
+	valid = valid || err == nil
+
+	if !valid {
+		return fmt.Errorf("Could not validate address %s as an IP, CIDR block or Hostname", address)
+	}
+	return nil
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -251,6 +290,15 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 	}
 
 	return &c2
+}
+
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
+	// Address of the endpoint; hostname, IP, or CIDR
+	Address string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.

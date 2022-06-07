@@ -26,7 +26,7 @@ Generally, for each secret you wish to store in Vault, the process to integrate 
 
 ### Example - Gossip Encryption Key Integration
 
-Following the general integraiton steps, a more detailed workflow for integration of the [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) with the Vault Secrets backend would like the following:
+Following the general integration steps, a more detailed workflow for integration of the [Gossip encryption key](/docs/k8s/installation/vault/data-integration/gossip) with the Vault Secrets backend would like the following:
 
 
 #### One time setup in Vault
@@ -134,7 +134,7 @@ For example, if your Consul on Kubernetes servers need access to [Gossip encrypt
       $ vault policy write license-policy license-policy.hcl
       ```
 
-1. Create one role that maps the Consul on Kubernetes servicea account to the 3 policies.
+1. Create one role that maps the Consul on Kubernetes service account to the 3 policies.
     ```shell-session
     $ vault write auth/kubernetes/role/consul-server \
         bound_service_account_names=<Consul server service account> \
@@ -144,7 +144,7 @@ For example, if your Consul on Kubernetes servers need access to [Gossip encrypt
     ```
 
 ## Detailed data integration guides
-The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitraty secrets:
+The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
 - [ACL Bootstrap token](/docs/k8s/installation/vault/data-integration/bootstrap-token)
 - [ACL Partition token](/docs/k8s/installation/vault/data-integration/partition-token)
 - [ACL Replication token](/docs/k8s/installation/vault/data-integration/replication-token)

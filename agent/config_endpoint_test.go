@@ -601,9 +601,8 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 
 		_, err := a.srv.ConfigApply(resp, req)
 		require.Error(t, err)
-		badReq, ok := err.(BadRequestError)
-		require.True(t, ok)
-		require.Equal(t, "Request decoding failed: Payload does not contain a kind/Kind key at the top level", badReq.Reason)
+		require.True(t, isHTTPBadRequest(err))
+		require.Equal(t, "Request decoding failed: Payload does not contain a kind/Kind key at the top level", err.Error())
 	})
 
 	t.Run("Kind Not String", func(t *testing.T) {
@@ -619,9 +618,8 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 
 		_, err := a.srv.ConfigApply(resp, req)
 		require.Error(t, err)
-		badReq, ok := err.(BadRequestError)
-		require.True(t, ok)
-		require.Equal(t, "Request decoding failed: Kind value in payload is not a string", badReq.Reason)
+		require.True(t, isHTTPBadRequest(err))
+		require.Equal(t, "Request decoding failed: Kind value in payload is not a string", err.Error())
 	})
 
 	t.Run("Lowercase kind", func(t *testing.T) {

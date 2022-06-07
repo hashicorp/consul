@@ -26,6 +26,24 @@ type consulContainerNode struct {
 	container testcontainers.Container
 	ip        string
 	port      int
+	config    Config
+	req       testcontainers.ContainerRequest
+	dataDir   string
+}
+
+func (c *consulContainerNode) GetConfig() Config {
+	return c.config
+}
+
+func newConsulContainerWithReq(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return container, nil
 }
 
 // NewConsulContainer starts a Consul node in a container with the given config.
@@ -36,39 +54,36 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 	name := utils.RandName("consul-")
-	tmpDir, err := ioutils.TempDir("", name)
+
+	tmpDirData, err := ioutils.TempDir("", name)
 	if err != nil {
 		return nil, err
 	}
-	err = os.Chmod(tmpDir, 0777)
+	err = os.Chmod(tmpDirData, 0777)
 	if err != nil {
 		return nil, err
 	}
-	err = os.Mkdir(tmpDir+"/config", 0777)
-	if err != nil {
-		return nil, err
-	}
-	configFile := tmpDir + "/config/config.hcl"
-	err = os.WriteFile(configFile, []byte(config.HCL), 0644)
+
+	configFile, err := createConfigFile(config.HCL)
 	if err != nil {
 		return nil, err
 	}
 	skipReaper := isRYUKDisabled()
 	req := testcontainers.ContainerRequest{
-		Image:        "consul:" + config.Version,
+		Image:        consulImage + ":" + config.Version,
 		ExposedPorts: []string{"8500/tcp"},
 		WaitingFor:   wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
 		AutoRemove:   false,
 		Name:         name,
-		Mounts:       testcontainers.ContainerMounts{testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"}},
-		Cmd:          config.Cmd,
-		SkipReaper:   skipReaper,
-		Env:          map[string]string{"CONSUL_LICENSE": license},
+		Mounts: testcontainers.ContainerMounts{
+			testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"},
+			testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: tmpDirData}, Target: "/consul/data"},
+		},
+		Cmd:        config.Cmd,
+		SkipReaper: skipReaper,
+		Env:        map[string]string{"CONSUL_LICENSE": license},
 	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
+	container, err := newConsulContainerWithReq(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +105,7 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 
 	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
 	c := new(consulContainerNode)
+	c.config = config
 	c.container = container
 	c.ip = ip
 	c.port = mappedPort.Int()
@@ -97,7 +113,8 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 	apiConfig.Address = uri
 	c.client, err = api.NewClient(apiConfig)
 	c.ctx = ctx
-
+	c.req = req
+	c.dataDir = tmpDirData
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +129,57 @@ func (c *consulContainerNode) GetClient() *api.Client {
 // GetAddr return the network address associated with the Node.
 func (c *consulContainerNode) GetAddr() (string, int) {
 	return c.ip, c.port
+}
+
+func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
+	file, err := createConfigFile(config.HCL)
+	if err != nil {
+		return err
+	}
+	c.req.Cmd = config.Cmd
+	c.req.Mounts = testcontainers.ContainerMounts{
+		testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: file}, Target: "/consul/config/config.hcl"},
+		testcontainers.ContainerMount{Source: testcontainers.DockerBindMountSource{HostPath: c.dataDir}, Target: "/consul/data"},
+	}
+	c.req.Image = consulImage + ":" + config.Version
+	err = c.container.Terminate(ctx)
+	if err != nil {
+		return err
+	}
+	container, err := newConsulContainerWithReq(ctx, c.req)
+	if err != nil {
+		return err
+	}
+
+	c.container = container
+
+	localIP, err := container.Host(ctx)
+	if err != nil {
+		return err
+	}
+
+	mappedPort, err := container.MappedPort(ctx, "8500")
+	if err != nil {
+		return err
+	}
+
+	ip, err := container.ContainerIP(ctx)
+	if err != nil {
+		return err
+	}
+	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
+	c.ip = ip
+	c.port = mappedPort.Int()
+	apiConfig := api.DefaultConfig()
+	apiConfig.Address = uri
+	c.client, err = api.NewClient(apiConfig)
+	c.ctx = ctx
+	c.config = config
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Terminate attempts to terminate the container. On failure, an error will be
@@ -146,4 +214,25 @@ func readLicense() (string, error) {
 		}
 	}
 	return license, nil
+}
+
+func createConfigFile(HCL string) (string, error) {
+	tmpDir, err := ioutils.TempDir("", "consul-container-test-config")
+	if err != nil {
+		return "", err
+	}
+	err = os.Chmod(tmpDir, 0777)
+	if err != nil {
+		return "", err
+	}
+	err = os.Mkdir(tmpDir+"/config", 0777)
+	if err != nil {
+		return "", err
+	}
+	configFile := tmpDir + "/config/config.hcl"
+	err = os.WriteFile(configFile, []byte(HCL), 0644)
+	if err != nil {
+		return "", err
+	}
+	return configFile, nil
 }

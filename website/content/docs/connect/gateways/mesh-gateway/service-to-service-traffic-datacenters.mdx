@@ -32,10 +32,10 @@ Ensure that your Consul environment meets the following requirements.
 * A local Consul agent is required to manage its configuration.
 * Consul [Connect](/docs/agent/config/config-files#connect) must be enabled in both datacenters.
 * Each [datacenter](/docs/agent/config/config-files#datacenter) must have a unique name.
-* Each datacenters must be [WAN joined](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan).
+* Each datacenters must be [WAN joined](https://learn.hashicorp.com/tutorials/consul/federation-gossip-wan).
 * The [primary datacenter](/docs/agent/config/config-files#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
 * [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled.
-* If you want to [enable gateways globally](/docs/connect/mesh-gateway#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
+* If you want to [enable gateways globally](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/config/config-files#enable_central_service_config).
 
 ### Network
 

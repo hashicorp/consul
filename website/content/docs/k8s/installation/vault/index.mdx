@@ -13,7 +13,7 @@ to use Consul Helm chart with Vault as the secrets storage backend.
 
 ## Secrets Overview
 
-By default, Consul on Kubernetes leverages Kubernetes secrets which are base64 encoded and unencrypted. In addition, the following limitations exist with mangaging sensitive data within Kubernetes secrets: 
+By default, Consul on Kubernetes leverages Kubernetes secrets which are base64 encoded and unencrypted. In addition, the following limitations exist with managing sensitive data within Kubernetes secrets:
 
 - There are no lease or time-to-live properties associated with these secrets. 
 - Kubernetes can only manage resources, such as secrets, within a cluster boundary. If you have sets of clusters, the resources across them need to be managed separately.

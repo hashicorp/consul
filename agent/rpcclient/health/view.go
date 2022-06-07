@@ -31,6 +31,7 @@ func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index ui
 			Index:      index,
 			Namespace:  srvReq.EnterpriseMeta.NamespaceOrEmpty(),
 			Partition:  srvReq.EnterpriseMeta.PartitionOrEmpty(),
+			PeerName:   srvReq.PeerName,
 		}
 		if srvReq.Connect {
 			req.Topic = pbsubscribe.Topic_ServiceHealthConnect

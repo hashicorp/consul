@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -48,7 +49,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	runStep(t, "send the apply request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+	testutil.RunStep(t, "send the apply request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
 		updated := &structs.ServiceConfigEntry{
 			Name: "foo",
 		}
@@ -62,7 +63,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 	})
 
 	var originalModifyIndex uint64
-	runStep(t, "verify the entry was updated in the primary and secondary", func(t *testing.T) {
+	testutil.RunStep(t, "verify the entry was updated in the primary and secondary", func(t *testing.T) {
 		// the previous RPC should not return until the primary has been updated but will return
 		// before the secondary has the data.
 		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
@@ -83,7 +84,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 		originalModifyIndex = serviceConf.ModifyIndex
 	})
 
-	runStep(t, "update the entry again in the primary", func(t *testing.T) {
+	testutil.RunStep(t, "update the entry again in the primary", func(t *testing.T) {
 		updated := &structs.ServiceConfigEntry{
 			Name: "foo",
 			MeshGateway: structs.MeshGatewayConfig{
@@ -97,12 +98,12 @@ func TestConfigEntry_Apply(t *testing.T) {
 			Entry:      updated,
 		}
 
-		runStep(t, "with the wrong CAS", func(t *testing.T) {
+		testutil.RunStep(t, "with the wrong CAS", func(t *testing.T) {
 			var out bool
 			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
 			require.False(t, out)
 		})
-		runStep(t, "with the correct CAS", func(t *testing.T) {
+		testutil.RunStep(t, "with the correct CAS", func(t *testing.T) {
 			var out bool
 			args.Entry.GetRaftIndex().ModifyIndex = originalModifyIndex
 			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
@@ -110,7 +111,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 		})
 	})
 
-	runStep(t, "verify the entry was updated in the state store", func(t *testing.T) {
+	testutil.RunStep(t, "verify the entry was updated in the state store", func(t *testing.T) {
 		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(t, err)
 
@@ -122,10 +123,10 @@ func TestConfigEntry_Apply(t *testing.T) {
 		require.Equal(t, structs.ServiceDefaults, serviceConf.Kind)
 	})
 
-	runStep(t, "verify no-op updates do not advance the raft indexes", func(t *testing.T) {
+	testutil.RunStep(t, "verify no-op updates do not advance the raft indexes", func(t *testing.T) {
 		var modifyIndex uint64
 		for i := 0; i < 3; i++ {
-			runStep(t, fmt.Sprintf("iteration %d", i), func(t *testing.T) {
+			testutil.RunStep(t, fmt.Sprintf("iteration %d", i), func(t *testing.T) {
 				args := structs.ConfigEntryRequest{
 					Datacenter: "dc1",
 					Op:         structs.ConfigEntryUpsert,
@@ -329,7 +330,7 @@ func TestConfigEntry_Get_BlockOnNonExistent(t *testing.T) {
 		require.True(t, out)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		rpcBlockingQueryTestHarness(t,
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := structs.ConfigEntryQuery{
@@ -508,7 +509,7 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other")
 	})
 
@@ -531,7 +532,7 @@ func TestConfigEntry_List_BlockOnNoChange(t *testing.T) {
 		}
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other")
 	})
 }
@@ -801,7 +802,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 	// wait for cross-dc queries to work
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	runStep(t, "create a dummy service in the state store to look up", func(t *testing.T) {
+	testutil.RunStep(t, "create a dummy service in the state store to look up", func(t *testing.T) {
 		entry := &structs.ServiceConfigEntry{
 			Kind: structs.ServiceDefaults,
 			Name: "foo",
@@ -809,7 +810,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		require.NoError(t, s1.fsm.State().EnsureConfigEntry(1, entry))
 	})
 
-	runStep(t, "verify it exists in the primary and is replicated to the secondary", func(t *testing.T) {
+	testutil.RunStep(t, "verify it exists in the primary and is replicated to the secondary", func(t *testing.T) {
 		// Verify it's there.
 		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(t, err)
@@ -827,7 +828,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		})
 	})
 
-	runStep(t, "send the delete request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
+	testutil.RunStep(t, "send the delete request to dc2 - it should get forwarded to dc1", func(t *testing.T) {
 		args := structs.ConfigEntryRequest{
 			Datacenter: "dc2",
 			Entry: &structs.ServiceConfigEntry{
@@ -840,7 +841,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		require.True(t, out.Deleted)
 	})
 
-	runStep(t, "verify the entry was deleted in the primary and secondary", func(t *testing.T) {
+	testutil.RunStep(t, "verify the entry was deleted in the primary and secondary", func(t *testing.T) {
 		// Verify the entry was deleted.
 		_, existing, err := s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(t, err)
@@ -854,7 +855,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		})
 	})
 
-	runStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
+	testutil.RunStep(t, "delete in dc1 again - should be fine", func(t *testing.T) {
 		args := structs.ConfigEntryRequest{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceConfigEntry{
@@ -1809,7 +1810,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 
 	var index uint64
 
-	runStep(t, "foo and bar should be both http", func(t *testing.T) {
+	testutil.RunStep(t, "foo and bar should be both http", func(t *testing.T) {
 		// Verify that we get the results of service-defaults for 'foo' and 'bar'.
 		var out structs.ServiceConfigResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
@@ -1843,7 +1844,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "blocking query for foo wakes on bar entry delete", func(t *testing.T) {
+	testutil.RunStep(t, "blocking query for foo wakes on bar entry delete", func(t *testing.T) {
 		// Now setup a blocking query for 'foo' while we erase the
 		// service-defaults for bar.
 
@@ -1896,7 +1897,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "foo should be http and bar should be unset", func(t *testing.T) {
+	testutil.RunStep(t, "foo should be http and bar should be unset", func(t *testing.T) {
 		// Verify that we get the results of service-defaults for just 'foo'.
 		var out structs.ServiceConfigResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
@@ -1922,7 +1923,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		index = out.Index
 	})
 
-	runStep(t, "blocking query for foo wakes on foo entry delete", func(t *testing.T) {
+	testutil.RunStep(t, "blocking query for foo wakes on foo entry delete", func(t *testing.T) {
 		// Now setup a blocking query for 'foo' while we erase the
 		// service-defaults for foo.
 
@@ -2183,7 +2184,7 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 		require.True(t, out)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other")
 	})
 
@@ -2199,7 +2200,7 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 		require.True(t, out)
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other")
 	})
 }
@@ -2341,13 +2342,6 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
 	require.True(t, ok)
 	require.Equal(t, expose, proxyConf.Expose)
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func Test_gateWriteToSecondary(t *testing.T) {

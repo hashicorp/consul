@@ -31,12 +31,12 @@ Once all workspaces are set up, CTS monitors the Consul catalog for service chan
 
 ## Remote Workspaces
 
-CTS will discover or create a new workspaces based on your configured tasks. The task configuration options for `name`, `description`, and `terraform_version` are used to set the workspace name, description, and Terraform version.
+CTS will discover or create a new workspaces based on your configured tasks. The task configuration [`name`](/docs/nia/configuration#name-1) and [`description`](/docs/nia/configuration#description) are used to set the workspace name and description. The task configuration [`terraform_cloud_workspace`](/docs/nia/configuration#terraform_cloud_workspace) is used to set options like Terraform version, execution mode, and agent pool if relevant. CTS will also use any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
 
 [![CTS Workspace Overview](/img/nia/cts-tfc-workspace.png)](/img/nia/cts-tfc-workspace.png)
 
 Workspace automation requirements for CTS are in place to avoid overriding other workspaces unintentionally.
-* Must be set to remote execution mode
+* Must be set to remote or agent execution mode
 * Cannot be connected to a VCS
 * Cannot have an existing configuration version uploaded by another application
 * Must satisfy workspace [tag requirements](/docs/nia/configuration#tags_allowlist) and [tag restrictions](/docs/nia/configuration#tags_denylist) set by the CTS operator
@@ -47,9 +47,9 @@ Workspaces created by CTS will be configured with the following settings:
 | ------- | ----- |
 | Workspace name | CTS task name |
 | Description | CTS task description |
-| Execution mode | Remote |
+| Execution mode | [`task.terraform_cloud_workspace.execution_mode`](/docs/nia/configuration#execution_mode) or remote by default |
 | Apply method | Auto apply |
-| Terraform Version | [`task.terraform_version`](/docs/nia/configuration#terraform_version) or the latest [Terraform version compatible with CTS](/docs/nia/compatibility#terraform) available for the organization. |
+| Terraform Version | [`task.terraform_cloud_workspace.terraform_version`](/docs/nia/configuration#terraform_version-1), [`task.terraform_version`](/docs/nia/configuration#terraform_version) (deprecated), or the latest [Terraform version compatible with CTS](/docs/nia/compatibility#terraform) available for the organization. |
 | Tags | `source:cts` and [additional tags](/docs/nia/configuration#tags) set by the CTS operator |
 
 Other workspace settings can be pre-configured or updated, such as setting the workspace to [manual apply](#manual-apply) or adding a [run notification](https://www.terraform.io/docs/cloud/workspaces/notifications.html) to send messages to a Slack channel when CTS updates your network infrastructure.
@@ -127,7 +127,7 @@ After creating a dedicated team, update the team's permissions with "Manage Work
 
 [![CTS Terraform Team Setup](/img/nia/cts-tfc-team-setup.png)](/img/nia/cts-tfc-team-setup.png)
 
-After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token-1) on the Terraform Cloud driver.
+After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token) on the Terraform Cloud driver.
 
 ### Recommendations
 

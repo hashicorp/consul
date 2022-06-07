@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // TODO(partitions): test partitioned nodes here
@@ -254,7 +255,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	// the read side.
 	require.Equal(t, append(updates, badUpdate), dump)
 
-	runStep(t, "restore the values into a new state store", func(t *testing.T) {
+	testutil.RunStep(t, "restore the values into a new state store", func(t *testing.T) {
 		s := testStateStore(t)
 		restore := s.Restore()
 		require.NoError(t, restore.Coordinates(6, dump))

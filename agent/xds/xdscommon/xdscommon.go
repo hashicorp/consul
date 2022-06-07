@@ -96,6 +96,39 @@ func MakePluginConfiguration(cfgSnap *proxycfg.ConfigSnapshot) PluginConfigurati
 	}
 
 	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		connectProxies := make(map[proxycfg.UpstreamID]struct{})
+		for uid, upstreamData := range cfgSnap.ConnectProxy.WatchedUpstreamEndpoints {
+			for _, serviceNodes := range upstreamData {
+				// Lambdas and likely other integrations won't be attached to nodes.
+				// After agentless, we may need to reconsider this.
+				if len(serviceNodes) == 0 {
+					connectProxies[uid] = struct{}{}
+				}
+				for _, serviceNode := range serviceNodes {
+					if serviceNode.Service.Kind == structs.ServiceKindTypical || serviceNode.Service.Kind == structs.ServiceKindConnectProxy {
+						connectProxies[uid] = struct{}{}
+					}
+				}
+			}
+		}
+
+		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
+			if _, ok := connectProxies[uid]; !ok {
+				continue
+			}
+
+			serviceConfigs[upstreamIDToCompoundServiceName(uid)] = ServiceConfig{
+				Meta: dc.ServiceMeta,
+				Kind: api.ServiceKindConnectProxy,
+			}
+
+			compoundServiceName := upstreamIDToCompoundServiceName(uid)
+			meta := uid.EnterpriseMeta
+			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			sniMappings[sni] = compoundServiceName
+			envoyIDMappings[uid.EnvoyID()] = compoundServiceName
+		}
 	case structs.ServiceKindTerminatingGateway:
 		for svc, c := range cfgSnap.TerminatingGateway.ServiceConfigs {
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
@@ -133,5 +166,13 @@ func serviceNameToCompoundServiceName(svc structs.ServiceName) api.CompoundServi
 		Name:      svc.Name,
 		Partition: svc.PartitionOrDefault(),
 		Namespace: svc.NamespaceOrDefault(),
+	}
+}
+
+func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServiceName {
+	return api.CompoundServiceName{
+		Name:      uid.Name,
+		Partition: uid.PartitionOrDefault(),
+		Namespace: uid.NamespaceOrDefault(),
 	}
 }

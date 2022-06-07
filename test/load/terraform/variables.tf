@@ -106,6 +106,5 @@ variable "consul_download_url" {
 variable "consul_version" {
   type        = string
   description = "Version of the Consul binary to install"
-  default     = "1.9.0"
+  default     = "1.12.0"
 }
-

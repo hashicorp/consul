@@ -1,15 +1,9 @@
 @keyframes icon-clock-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-clock-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-clock-24);
-    mask-image: var(--icon-clock-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-clock-fill-500, currentColor));
     -webkit-mask-image: var(--icon-clock-16);
     mask-image: var(--icon-clock-16);
+    background-color: var(--icon-color, var(--color-clock-fill-500, currentColor));
+
   }
 }

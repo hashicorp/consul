@@ -10,9 +10,9 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -387,7 +387,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.RequestTimeout > 0 {
-					routeAction.Route.Timeout = ptypes.DurationProto(destination.RequestTimeout)
+					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -699,12 +699,12 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 				cookie.Path = policy.CookieConfig.Path
 
 				if policy.CookieConfig.TTL != 0*time.Second {
-					cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+					cookie.Ttl = durationpb.New(policy.CookieConfig.TTL)
 				}
 
 				// Envoy will generate a session cookie if the ttl is present and zero.
 				if policy.CookieConfig.Session {
-					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
+					cookie.Ttl = durationpb.New(0 * time.Second)
 				}
 			}
 			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{

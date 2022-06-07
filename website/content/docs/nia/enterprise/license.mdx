@@ -17,9 +17,14 @@ All CTS Enterprise features are available with a valid Consul Enterprise license
 
 To get a trial license for CTS, you can sign-up for the [trial license for Consul Enterprise](/docs/enterprise/license/faq#q-where-can-users-get-a-trial-license-for-consul-enterprise).
 
-## Setting the License
+## Automatic License Retrieval
+CTS automatically retrieves a license from Consul on startup and then attempts to retrieve a new license once a day. If the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/docs/nia/enterprise/license#license-expiration-handling).
 
-Choose one of the following methods (in order of precedence) to set the license:
+~> Enabling automatic license retrieval is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
+
+## Setting the License Manually
+
+If a license needs to be manually set, choose one of the following methods (in order of precedence) to set the license:
 
 1. Set the `CONSUL_LICENSE` environment variable to the license string.
 
@@ -33,7 +38,15 @@ Choose one of the following methods (in order of precedence) to set the license:
    export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
    ```
 
-1. Configure the [`license_path`](/docs/nia/configuration#license_path) option in the configuration file to point to the file containing the license.
+1. To point to the file containing the license, in the configuration file, configure the [`license`](/docs/nia/configuration#license) path option.
+
+   ```hcl
+   license {
+     path = "<PATH>/<TO>/<FILE>"
+   }
+   ```
+
+1. To point to the file containing the license, in the configuration file, configure the [`license_path`](/docs/nia/configuration#license_path) option i. **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/docs/nia/configuration#license) instead.**
 
    ```hcl
    license_path = "<PATH>/<TO>/<FILE>"
@@ -42,30 +55,29 @@ Choose one of the following methods (in order of precedence) to set the license:
 ~> **Note**: the [options to set the license and the order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
 Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 
-### Updating the License
-
-The previous section describes options for [setting the license](#setting-the-license) needed to start running CTS Enterprise. Use the following procedure to update the license when it expires or is near the expiration date:
+### Updating the License Manually
+To update the license when it expires or is near the expiration date and automatic license retrieval is disabled:
 
 1. Update the license environment variable or configuration with the new license value or path to the new license file
 1. Stop and restart CTS Enterprise
 
 Once CTS Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
 
-## Notification and Termination Behavior
+## License Expiration Handling
 
 Licenses have an expiration date and a termination date. The termination date is a time at or after the license expires. CTS Enterprise will cease to function once the termination date has passed.
 
 The time between the expiration and termination dates is a grace period. Grace periods are generally 24-hours, but you should refer to your license agreement for complete terms of your grace period.
 
-When approaching expiration and termination, CTS Enterprise will provide notifications in the system logs:
+When approaching expiration and termination, by default, CTS Enterprise will attempt to retrieve a new license. If auto-retrieval is disabled, CTS Enterprise will provide notifications in the system logs:
 
-| Time period                                 | Behavior                          |
-| ------------------------------------------- | --------------------------------- |
-| 30 days before expiration                   | Warning-level log every 24-hours  |
-| 7 days before expiration                    | Warning-level log every 1 hour    |
-| 1 hour before expiration                    | Warning-level log every 1 minute  |
-| 1 day before expiration                     | Warning-level log every 5 minutes |
-| At or after expiration (before termination) | Error-level log every 1 minute    |
-| At or after termination                     | Error-level log and exit          |
+| Time period                                 | Behavior - auto-retrieval enabled (default) |Behavior - auto-retrieval disabled |
+| ------------------------------------------- |-------------------------------------------- |---------------------------------- |
+| 30 days before expiration                   | License retrieval attempt every 24-hours    | Warning-level log every 24-hours  |
+| 7 days before expiration                    | License retrieval attempt every 1 hour      | Warning-level log every 1 hour    |
+| 1 day before expiration                     | License retrieval attempt every 5 minutes   | Warning-level log every 5 minutes |
+| 1 hour before expiration                    | License retrieval attempt every 1 minute    | Warning-level log every 1 minute  |
+| At or after expiration (before termination) | License retrieval attempt every 1 minute    | Error-level log every 1 minute    |
+| At or after termination                     | Error-level log and exit                    | Error-level log and exit          |
 
 ~> **Note**: Notification frequency and [grace period](/docs/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire) behavior is the same as Consul Enterprise.

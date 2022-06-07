@@ -28,7 +28,7 @@ Before deploying the ACL controller for the first time, you must [create the fol
 | Bootstrap ACL Token     | Set            | `my-consul-bootstrap-token`    |
 | Consul Client ACL Token | Empty          | `<PREFIX>-consul-client-token` |
 
-The secret for the client token must be intially empty. The ACL controller creates the client token in Consul
+The secret for the client token must be initially empty. The ACL controller creates the client token in Consul
 and stores the token in Secrets Manager. In the secret name, `<PREFIX>` should be replaced with the
 [secret name prefix](/docs/ecs/manual/acl-controller#secret-name-prefix) of your choice.
 

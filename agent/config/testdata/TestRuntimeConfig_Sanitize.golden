@@ -428,6 +428,7 @@
             "Registerer": null,
             "SummaryDefinitions": []
         },
+        "RetryFailedConfiguration": false,
         "StatsdAddr": "",
         "StatsiteAddr": ""
     },
@@ -458,6 +459,7 @@
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
     "Version": "",
+    "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": []
 }

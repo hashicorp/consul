@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
@@ -242,11 +243,21 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				// is received but lets not panic about it.
 				continue
 			}
+
+			nodeName := node.GetMetadata().GetFields()["node_name"].GetStringValue()
+			if nodeName == "" {
+				nodeName = s.NodeName
+			}
+
 			// Start authentication process, we need the proxyID
 			proxyID = structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
 
 			// Start watching config for that proxy
-			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
+			var err error
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, public.TokenFromContext(stream.Context()))
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
 			// the end of the current loop iteration. We have to do it in the loop

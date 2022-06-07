@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/mapstructure"
 
@@ -58,6 +58,10 @@ type ProxyConfig struct {
 	// enable proxies in network namespaces to bind to a different port
 	// than the host port being advertised.
 	BindPort int `mapstructure:"bind_port"`
+
+	// MaxInboundConnections is the maximum number of inbound connections to
+	// the proxy. If not set, the default is 0 (no limit).
+	MaxInboundConnections int `mapstructure:"max_inbound_connections"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an
@@ -159,7 +163,7 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 	}
 
 	if p.Interval != 0 {
-		od.Interval = ptypes.DurationProto(p.Interval)
+		od.Interval = durationpb.New(p.Interval)
 	}
 	if p.MaxFailures != 0 {
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}

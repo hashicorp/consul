@@ -126,6 +126,9 @@ meta {
 transparent_proxy {
 	mesh_destinations_only = true
 }
+http {
+    sanitize_x_forwarded_client_cert = true
+}
 `)
 
 		ui := cli.NewMockUi()
@@ -143,6 +146,9 @@ transparent_proxy {
 		proxy, ok := entry.(*api.MeshConfigEntry)
 		require.True(t, ok)
 		require.Equal(t, map[string]string{"foo": "bar", "gir": "zim"}, proxy.Meta)
+		require.True(t, proxy.TransparentProxy.MeshDestinationsOnly)
+
+		require.True(t, proxy.HTTP.SanitizeXForwardedClientCert)
 	})
 }
 
@@ -485,7 +491,7 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-defaults: kitchen sink",
+			name: "service-defaults: kitchen sink (upstreams edition)",
 			snake: `
 				kind = "service-defaults"
 				name = "main"
@@ -783,6 +789,118 @@ func TestParseConfigEntry(t *testing.T) {
 							Interval:    4 * time.Second,
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults: kitchen sink (destination edition)",
+			snake: `
+				kind = "service-defaults"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				protocol = "grpc"
+				mesh_gateway {
+					mode = "remote"
+				}
+				mode = "transparent"
+				transparent_proxy = {
+					outbound_listener_port = 10101
+					dialed_directly = true
+				}
+				destination = {
+					address = "10.0.0.0/16",
+					port = 443
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Protocol = "grpc"
+				MeshGateway {
+					Mode = "remote"
+				}
+				Mode = "transparent"
+				TransparentProxy = {
+					outbound_listener_port = 10101
+					dialed_directly = true
+				}
+				Destination = {
+					Address = "10.0.0.0/16",
+					Port = 443
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "service-defaults",
+				"name": "main",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"protocol": "grpc",
+				"mesh_gateway": {
+					"mode": "remote"
+				},
+				"mode": "transparent",
+				"transparent_proxy": {
+					"outbound_listener_port": 10101,
+					"dialed_directly": true
+				},
+				"destination": {
+					"address": "10.0.0.0/16",
+					"port": 443
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-defaults",
+				"Name": "main",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Protocol": "grpc",
+				"MeshGateway": {
+					"Mode": "remote"
+				},
+				"Mode": "transparent",
+				"TransparentProxy": {
+					"OutboundListenerPort": 10101,
+					"DialedDirectly": true
+				},
+				"Destination": {
+					"Address": "10.0.0.0/16",
+					"Port": 443
+				}
+			}
+			`,
+			expect: &api.ServiceConfigEntry{
+				Kind: "service-defaults",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Protocol: "grpc",
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: api.MeshGatewayModeRemote,
+				},
+				Mode: api.ProxyModeTransparent,
+				TransparentProxy: &api.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
+				},
+				Destination: &api.DestinationConfig{
+					Address: "10.0.0.0/16",
+					Port:    443,
 				},
 			},
 		},

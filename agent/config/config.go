@@ -272,6 +272,7 @@ type Config struct {
 	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
 	Version                    *string  `mapstructure:"version"`
 	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
+	VersionMetadata            *string  `mapstructure:"version_metadata"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
@@ -505,6 +506,7 @@ type Upstream struct {
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
 	DestinationPartition *string `mapstructure:"destination_partition"`
+	DestinationPeer      *string `mapstructure:"destination_peer"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -672,6 +674,7 @@ type Telemetry struct {
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
+	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection"`
 	FilterDefault                      *bool    `mapstructure:"filter_default"`
 	PrefixFilter                       []string `mapstructure:"prefix_filter"`
 	MetricsPrefix                      *string  `mapstructure:"metrics_prefix"`
@@ -868,4 +871,17 @@ type TLS struct {
 	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
 	HTTPS       TLSProtocolConfig `mapstructure:"https"`
 	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+
+	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
+	// modified by the deprecated field mapping (as apposed to a user-provided
+	// a grpc stanza). This prevents us from emitting a warning about an
+	// ineffectual grpc stanza when we modify GRPC to honor the legacy behaviour
+	// that setting `verify_incoming = true` at the top-level *does not* enable
+	// client certificate verification on the gRPC port.
+	//
+	// See: applyDeprecatedTLSConfig.
+	//
+	// Note: we use a *struct{} here because a simple bool isn't supported by our
+	// config merging logic.
+	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
 }

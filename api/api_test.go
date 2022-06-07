@@ -51,6 +51,23 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 	})
 }
 
+func makeClientWithCA(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t,
+		func(c *Config) {
+			c.TLSConfig = TLSConfig{
+				Address:  "consul.test",
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			}
+		},
+		func(c *testutil.TestServerConfig) {
+			c.CAFile = "../test/client_certs/rootca.crt"
+			c.CertFile = "../test/client_certs/server.crt"
+			c.KeyFile = "../test/client_certs/server.key"
+		})
+}
+
 func makeClientWithConfig(
 	t *testing.T,
 	cb1 configCallback,
@@ -1100,6 +1117,62 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	}
 
 	require.Equal(t, expected, c.GenerateEnv())
+}
+
+// TestAPI_PrefixPath() validates that Config.Address is split into
+// Config.Address and Config.PathPrefix as expected.  If we want to add end to
+// end testing in the future this will require configuring and running an
+// API gateway / reverse proxy (e.g. nginx)
+func TestAPI_PrefixPath(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		addr         string
+		expectAddr   string
+		expectPrefix string
+	}{
+		{
+			name:         "with http and prefix",
+			addr:         "http://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with https and prefix",
+			addr:         "https://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with http and no prefix",
+			addr:         "http://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "with https and no prefix",
+			addr:         "https://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "no scheme and no prefix",
+			addr:         "localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Config{Address: tc.addr}
+			client, err := NewClient(c)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectAddr, client.config.Address)
+			require.Equal(t, tc.expectPrefix, client.config.PathPrefix)
+		})
+	}
 }
 
 func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {

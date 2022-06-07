@@ -7,8 +7,8 @@ import (
 	"time"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/golang/protobuf/ptypes"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -141,6 +141,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+		},
+		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
 		},
 		{
 			name: "ingress-with-chain-and-router-header-manip",
@@ -332,7 +336,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
-								Ttl:  ptypes.DurationProto(0 * time.Second),
+								Ttl:  durationpb.New(0 * time.Second),
 							},
 						},
 					},
@@ -437,7 +441,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
-								Ttl:  ptypes.DurationProto(10 * time.Second),
+								Ttl:  durationpb.New(10 * time.Second),
 								Path: "/oven",
 							},
 						},
@@ -446,7 +450,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "chocolate-chip",
-								Ttl:  ptypes.DurationProto(0 * time.Second),
+								Ttl:  durationpb.New(0 * time.Second),
 								Path: "/oven",
 							},
 						},

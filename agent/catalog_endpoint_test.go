@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/serf/coordinate"
@@ -1050,6 +1051,249 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Len(t, nodes, 1)
 	assert.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 	assert.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
+}
+
+func registerService(t *testing.T, a *TestAgent) (registerServiceReq *structs.RegisterRequest) {
+	t.Helper()
+	entMeta := acl.DefaultEnterpriseMeta()
+	registerServiceReq = structs.TestRegisterRequestProxy(t)
+	registerServiceReq.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.EnterpriseMeta = *entMeta
+	registerServiceReq.Service.Proxy.Upstreams = structs.TestAddDefaultsToUpstreams(t, registerServiceReq.Service.Proxy.Upstreams, *entMeta)
+	registerServiceReq.Check = &structs.HealthCheck{
+		Node: registerServiceReq.Node,
+		Name: "check1",
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", registerServiceReq, &out))
+
+	return
+}
+
+func registerProxyDefaults(t *testing.T, a *TestAgent) (proxyGlobalEntry structs.ProxyConfigEntry) {
+	t.Helper()
+	// Register proxy-defaults
+	proxyGlobalEntry = structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Mode: structs.ProxyModeDirect,
+		Config: map[string]interface{}{
+			"local_connect_timeout_ms": uint64(1000),
+			"handshake_timeout_ms":     uint64(1000),
+		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	proxyDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &proxyGlobalEntry,
+	}
+	var proxyDefaultsConfigEntryResp bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &proxyDefaultsConfigEntryReq, &proxyDefaultsConfigEntryResp))
+	return
+}
+
+func registerServiceDefaults(t *testing.T, a *TestAgent, serviceName string) (serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
+	t.Helper()
+	limits := 512
+	serviceDefaultsConfigEntry = structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: serviceName,
+		Mode: structs.ProxyModeTransparent,
+		UpstreamConfig: &structs.UpstreamConfiguration{
+			Defaults: &structs.UpstreamConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeLocal,
+				},
+				Limits: &structs.UpstreamLimits{
+					MaxConnections: &limits,
+				},
+			},
+		},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	serviceDefaultsConfigEntryReq := &structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      &serviceDefaultsConfigEntry,
+	}
+	var serviceDefaultsConfigEntryResp bool
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &serviceDefaultsConfigEntryReq, &serviceDefaultsConfigEntryResp))
+	return
+}
+
+func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
+	registerServiceReq *structs.RegisterRequest,
+	proxyGlobalEntry structs.ProxyConfigEntry,
+	serviceDefaultsConfigEntry structs.ServiceConfigEntry) {
+
+	t.Helper()
+	require.Equal(t, registerServiceReq.Service.Service, v.ServiceName)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, v.ServiceProxy.Config)
+	// validate service defaults override proxy-defaults/global
+	require.NotEqual(t, proxyGlobalEntry.Mode, v.ServiceProxy.Mode)
+	require.Equal(t, serviceDefaultsConfigEntry.Mode, v.ServiceProxy.Mode)
+	// validate service defaults are resolved in the merged service config
+	// expected number of upstreams = (number of upstreams defined in the register request proxy config +
+	//	1 centrally configured default from service defaults)
+	require.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+	for _, up := range v.ServiceProxy.Upstreams {
+		if up.DestinationType != "" && up.DestinationType != structs.UpstreamDestTypeService {
+			continue
+		}
+		require.Contains(t, up.Config, "limits")
+		upstreamLimits := up.Config["limits"].(*structs.UpstreamLimits)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.Limits.MaxConnections, upstreamLimits.MaxConnections)
+		require.Equal(t, serviceDefaultsConfigEntry.UpstreamConfig.Defaults.MeshGateway.Mode, up.MeshGateway.Mode)
+	}
+}
+
+func TestListServiceNodes_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+	// Register service-defaults
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+
+	type testCase struct {
+		testCaseName string
+		serviceName  string
+		connect      bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		url := fmt.Sprintf("/v1/catalog/service/%s?merge-central-config", tc.serviceName)
+		if tc.connect {
+			url = fmt.Sprintf("/v1/catalog/connect/%s?merge-central-config", tc.serviceName)
+		}
+		req, _ := http.NewRequest("GET", url, nil)
+		resp := httptest.NewRecorder()
+		var obj interface{}
+		var err error
+		if tc.connect {
+			obj, err = a.srv.CatalogConnectServiceNodes(resp, req)
+		} else {
+			obj, err = a.srv.CatalogServiceNodes(resp, req)
+		}
+
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		serviceNodes := obj.(structs.ServiceNodes)
+
+		// validate response
+		require.Len(t, serviceNodes, 1)
+		v := serviceNodes[0]
+
+		validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+	}
+	testCases := []testCase{
+		{
+			testCaseName: "List service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Service,
+		},
+		{
+			testCaseName: "List connect capable service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Proxy.DestinationServiceName,
+			connect:      true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestCatalogServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Run the query
+	rpcReq := structs.ServiceSpecificRequest{
+		Datacenter:         "dc1",
+		ServiceName:        registerServiceReq.Service.Service,
+		MergeCentralConfig: true,
+	}
+	var rpcResp structs.IndexedServiceNodes
+	require.NoError(t, a.RPC("Catalog.ServiceNodes", &rpcReq, &rpcResp))
+
+	require.Len(t, rpcResp.ServiceNodes, 1)
+	serviceNode := rpcResp.ServiceNodes[0]
+	require.Equal(t, registerServiceReq.Service.Service, serviceNode.ServiceName)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, serviceNode.ServiceProxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, serviceNode.ServiceProxy.Mode)
+
+	// Async cause a change - register service defaults
+	waitIndex := rpcResp.Index
+	start := time.Now()
+	var serviceDefaultsConfigEntry structs.ServiceConfigEntry
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		// Register service-defaults
+		serviceDefaultsConfigEntry = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	}()
+
+	const waitDuration = 3 * time.Second
+RUN_BLOCKING_QUERY:
+	url := fmt.Sprintf("/v1/catalog/service/%s?merge-central-config&wait=%s&index=%d",
+		registerServiceReq.Service.Service, waitDuration.String(), waitIndex)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	elapsed := time.Since(start)
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad index returned: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	serviceNodes := obj.(structs.ServiceNodes)
+
+	// validate response
+	require.Len(t, serviceNodes, 1)
+	v := serviceNodes[0]
+
+	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
 }
 
 // Test that the Connect-compatible endpoints can be queried for a

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1121,6 +1122,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
@@ -1154,6 +1156,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
@@ -2385,7 +2388,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other", 0)
 	})
 
@@ -2398,7 +2401,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 	// web -> api (allow)
 	registerIntentionUpstreamEntries(t, codec, "")
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other", 1)
 	})
 }
