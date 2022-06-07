@@ -35,7 +35,7 @@ Add the following configuration to all Consul clients:
 ### Configure IAM Permissions for Envoy
 
 The Envoy proxy that invokes Lambda must have the `lambda:InvokeFunction` AWS IAM
-permissions to invoke the Lambda. In the following example, the IAM policy
+permissions. In the following example, the IAM policy
 enables an IAM user or role to invoke the `example` Lambda function:
 ```json
 {
@@ -67,8 +67,7 @@ If you intend to invoke Lambda services through a terminating gateway, the gatew
 
 To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`
-configuration entry. Refer to [Invoke Lambda Functions](/docs/lambda/invocation) for
-more instructions on how to invoke Lambda functions.
+configuration entry. 
 
 ### Optional: Run a Mesh Gateway
 
@@ -84,8 +83,10 @@ entry](/docs/connect/config-entries/exported-services).
 
 ## Automatic Lambda Function Registration
 
-You can deploy the Lambda registrator to your environment to automatically register and deregister Lambda functions with Consul based on the function's tags (refer to the [AWS Lambda tags documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) to learn about tags).
-The registrator runs as a Lambda function that is invoked by AWS EventBridge (refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information).
+You can deploy the Lambda registrator to your environment to automatically register and deregister Lambda functions with Consul based on the function's tags. Refer to the [AWS Lambda tags documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) to learn about tags.
+
+The registrator runs as a Lambda function that is invoked by AWS EventBridge. Refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information.
+
 EventBridge invokes the registrator using either [AWS CloudTrail](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) to syncronize with Consul in real-time or in [scheduled intervals](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html).
 
 CloudTrail events typically synchronize updates, registration, and deregistration within one minute but are occasionally delayed.
@@ -122,7 +123,7 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 #### Optional: Store the CA Certificate in Parameter Store
 
-When Consul makes a request to the [HTTP API](/api-docs) over HTTPS, Lambda registrator presents a CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information. You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
+When Consul makes a request to the [HTTP API](/api-docs) over HTTPS, Lambda registrator presents a CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information). You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
 
 ```hcl
 resource "aws_ssm_parameter" "ca-cert" {
@@ -185,7 +186,7 @@ deployed. The following procedure describes how to register Lambda functions wit
 interface, or Cloud Development Kit (CDK):
 
 1. Add the `aws_lambda_function` resource to your Terraform configuration and specify the name of the Lambda function.
-1. Add a `tags` block to the resource and specify the tags you want to use to register the function (refer to [Supported Tags](#supported-tags).
+1. Add a `tags` block to the resource and specify the tags you want to use to register the function (refer to [Supported Tags](#supported-tags)).
 
 In the following example, the `example` Lambda function is registered using the `enabled`, `payload-passthrough`, and `invocation-mode` tags:
 
@@ -218,24 +219,22 @@ The following tags are supported. In all cases, the `<PREFIX>` should be
 
 ## Manual Configuration
 You can manually register Lambda functions if you are unable to automate the process using the Lambda registrator.
-### Register the Service
-
-`<SERVICE_NAME>` specifies the Consul service name for the Lambda function.
-Replace `<SERVICE_NAME>` and store the following in `lambda.json`:
-```json
-{
-  "Node": "lambdas",
-  "SkipNodeUpdate": true,
-  "NodeMeta": {
-    "external-node": "true",
-    "external-probe": "true"
-  },
-  "Service": {
-    "Service": "<SERVICE_NAME>"
-  }
-}
-```
-
+1. Create a configuration for registering the service. You can copy the following example and replace `<SERVICE_NAME>` with your Consul service name for the Lambda function:
+    <CodeBlockConfig filename="lambda.json">
+    ```json
+    {
+          "Node": "lambdas",
+          "SkipNodeUpdate": true,
+          "NodeMeta": {
+            "external-node": "true",
+            "external-probe": "true"
+          },
+          "Service": {
+            "Service": "<SERVICE_NAME>"
+          }
+        }
+    ```
+1. Save the configuration to `lambda.json`.
 1. Send the configuration to the `catalog/register` API endpoint to register the service, for example:
     ```shell-session
     $ `curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register`

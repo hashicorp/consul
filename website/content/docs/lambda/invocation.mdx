@@ -13,7 +13,6 @@ This topic describes how to invoke AWS Lambda functions from the Consul service 
 
 You can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connect proxies.
 
-We recommend invoking Lambda functions through terminating gateways because Consul intentions and transparent proxy are unsupported when invoking Lambda functions through connect proxies.
 
 ### Terminating Gateway
 
@@ -74,6 +73,9 @@ service mesh.
     ```
 1. Issue the `consul services register` command to store the configuration:
     ```shell-sesion
-     $ consul services register api-sidecar-proxy.hcl`.
+     $ consul services register api-sidecar-proxy.hcl
     ```
-1. Call `curl localhost:2345` from `api` to invoke the `authentication` service.
+1. Call the upstream service to invoke the Lambda function. In the following example, the `api` service invokes the `authentication` service at `localhost:2345`:
+    ```shell-session
+     $ curl https://localhost:2345
+    ```
