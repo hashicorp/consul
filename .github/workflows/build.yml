@@ -218,22 +218,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["386", "amd64", "arm", "arm64"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
       - uses: actions/checkout@v2
-      - name: Download artifact for arm verification
-        uses: actions/download-artifact@v2
-        if: ${{ matrix.arch == 'arm64' || matrix.arch == 'arm' }}
-        with:
-          name: ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
-      - name: Unzip for ${{ matrix.arch }} linux zip
-        if: ${{ matrix.arch == 'arm64' || matrix.arch == 'arm' }}
-        run: |
-          unzip ${{ env.PKG_NAME }}_${{ env.version }}_linux_${{ matrix.arch }}.zip
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
@@ -246,17 +237,7 @@ jobs:
           dev_tags: |
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
-          smoke_test: .github/scripts/docker_smoke.sh
-      - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          docker run --platform=linux/arm64 -v $(pwd):/workdir -w /workdir  \
-            arm64v8/debian ./consul version
-      - name: Run verification in qemu docker for ${{ matrix.arch }} linux zip
-        if: ${{ matrix.arch == 'arm' }}
-        run: |
-          docker run --platform=linux/arm/v7 -v $(pwd):/workdir -w /workdir  \
-            arm32v7/debian ./consul version
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   build-docker-redhat:
     name: Docker Build UBI Image for RedHat
@@ -276,29 +257,39 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
-          smoke_test: .github/scripts/docker_smoke.sh
-  verify:
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+
+  verify-linux:
     needs:
       - get-product-version
       - build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["386", "amd64"]
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
-      version: ${{needs.get-product-version.outputs.product-version}}
-    name: Verify ${{ matrix.arch }} linux zip
+      version: ${{ needs.get-product-version.outputs.product-version }}
+      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+
+    name: Verify ${{ matrix.arch }} linux binary
     steps:
       - uses: actions/checkout@v2
-      - name: Download artifact
-        uses: actions/download-artifact@v2
+
+      - name: Download ${{ matrix.arch  }} zip
+        uses: actions/download-artifact@v3
         with:
-          name: ${{ env.PKG_NAME }}_${{ env.version }}_linux_${{ matrix.arch }}.zip
-      - name: Run verification for ${{ matrix.arch }} linux zip
-        run: |
-          unzip ${{ env.PKG_NAME }}_${{env.version}}_linux_${{ matrix.arch }}.zip
-          ./consul version
+          name: ${{ env.zip_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        with:
+          # this should be a comma-separated string as opposed to an array
+          platforms: arm,arm64
+
+      - name: Run verification for ${{ matrix.arch }} binary
+        run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
 
   verify-darwin:
     needs:
@@ -306,60 +297,96 @@ jobs:
       - build-darwin
     runs-on: macos-latest
     strategy:
-      matrix:
-        arch: ["amd64", "arm64"]
       fail-fast: true
     env:
       version: ${{needs.get-product-version.outputs.product-version}}
-    name: Verify ${{ matrix.arch }} darwin zip
+      zip_name: consul_${{ needs.get-product-version.outputs.product-version }}_darwin_amd64.zip
+
+    name: Verify amd64 darwin binary
     steps:
       - uses: actions/checkout@v2
-      - name: Download artifact
-        uses: actions/download-artifact@v2
+
+      - name: Download amd64 darwin zip
+        uses: actions/download-artifact@v3
         with:
-          name: ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
-      - name: Run verification for ${{ matrix.arch }} linux zip
-        if: ${{ matrix.arch == 'amd64' }}
-        run: |
-          unzip ${{ env.PKG_NAME }}_${{env.version}}_darwin_${{ matrix.arch }}.zip
-          ./consul version
+          name: ${{ env.zip_name }}
+
+      - name: Unzip amd64 darwin zip
+        run: unzip ${{ env.zip_name }}
+
+      - name: Run verification for amd64 darwin binary
+        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
 
   verify-linux-packages-deb:
-    needs: build
+    needs:
+      - build
+      - get-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [ "amd64", "arm", "arm64", "i386" ]
-      fail-fast: true
+        arch: ["i386", "amd64", "arm", "arm64"]
+      # fail-fast: true
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
       - uses: actions/checkout@v2
-
-      - name: Download ${{ matrix.arch }} debian package
+        
+      - name: Set package version
         run: |
-          echo "TODO: download ${{ matrix.arch }} debian package"
+          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV 
+
+      - name: Set package name
+        run: |
+          echo "pkg_name=consul_${{ env.pkg_version }}-1_${{ matrix.arch }}.deb" >> $GITHUB_ENV 
+
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.pkg_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
 
       - name: Verify ${{ matrix.arch }} debian package
-        run: |
-          echo "TODO: run verification for ${{ matrix.arch }} debian package"
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
 
   verify-linux-packages-rpm:
-    needs: build
+    needs:
+      - build
+      - get-product-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [ "aarch64", "arm", "i386", "x86_64" ]
-      fail-fast: true
+        arch: ["i386", "x86_64", "arm", "aarch64"]
+      # fail-fast: true
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
 
-    name: Verify ${{ matrix.arch }} rpm package
+    name: Verify ${{ matrix.arch }} rpm
     steps:
       - uses: actions/checkout@v2
 
-      - name: Download ${{ matrix.arch }} rpm package
+      - name: Set package version
         run: |
-          echo "TODO: download ${{ matrix.arch }} rpm package"
+          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV 
 
-      - name: Verify ${{ matrix.arch }} rpm package
+      - name: Set package name
         run: |
-          echo "TODO: run verification for ${{ matrix.arch }} rpm package"
+          echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV 
+        
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.pkg_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Verify ${{ matrix.arch }} rpm 
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}

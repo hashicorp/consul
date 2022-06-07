@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTrustBundles(t *testing.T) {
+func TestTrustBundle(t *testing.T) {
 	client := NewMockTrustBundleReader(t)
 	typ := &TrustBundle{Client: client}
 
@@ -43,7 +43,7 @@ func TestTrustBundles(t *testing.T) {
 	}, result)
 }
 
-func TestTrustBundles_badReqType(t *testing.T) {
+func TestTrustBundle_badReqType(t *testing.T) {
 	client := pbpeering.NewPeeringServiceClient(nil)
 	typ := &TrustBundle{Client: client}
 
@@ -55,7 +55,7 @@ func TestTrustBundles_badReqType(t *testing.T) {
 }
 
 // This test asserts that we can continuously poll this cache type, given that it doesn't support blocking.
-func TestTrustBundles_MultipleUpdates(t *testing.T) {
+func TestTrustBundle_MultipleUpdates(t *testing.T) {
 	c := cache.New(cache.Options{})
 
 	client := NewMockTrustBundleReader(t)

@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-func AssertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+func AssertDeepEqual(t testing.TB, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 
 	opts = append(opts, protocmp.Transform())

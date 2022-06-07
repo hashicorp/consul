@@ -58,6 +58,10 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return DefaultNamespaceName
 }
 
+func EqualNamespaces(_, _ string) bool {
+	return true
+}
+
 func NamespaceOrDefault(_ string) string {
 	return DefaultNamespaceName
 }

@@ -24,6 +24,8 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 		refundsUID = NewUpstreamID(&refundsUpstream)
 	)
 
+	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
+
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Upstreams = structs.Upstreams{
 			paymentsUpstream,
@@ -37,7 +39,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 			},
 		},
 		{
-			CorrelationID: "upstream-target:payments.default.default.dc1:" + paymentsUID.String(),
+			CorrelationID: upstreamPeerWatchIDPrefix + paymentsUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: []structs.CheckServiceNode{
 					{
@@ -51,7 +53,13 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 							Port:    443,
 							Connect: structs.ServiceConnect{
 								PeerMeta: &structs.PeeringServiceMeta{
-									SpiffeID: []string{"spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/payments"},
+									SNI: []string{
+										"payments.default.default.cloud.external." + peerTrustDomain,
+									},
+									SpiffeID: []string{
+										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/payments",
+									},
+									Protocol: "tcp",
 								},
 							},
 						},
@@ -60,7 +68,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 			},
 		},
 		{
-			CorrelationID: "upstream-target:refunds.default.default.dc1:" + refundsUID.String(),
+			CorrelationID: upstreamPeerWatchIDPrefix + refundsUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: []structs.CheckServiceNode{
 					{
@@ -74,7 +82,13 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 							Port:    443,
 							Connect: structs.ServiceConnect{
 								PeerMeta: &structs.PeeringServiceMeta{
-									SpiffeID: []string{"spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/refunds"},
+									SNI: []string{
+										"refunds.default.default.cloud.external." + peerTrustDomain,
+									},
+									SpiffeID: []string{
+										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/refunds",
+									},
+									Protocol: "tcp",
 								},
 							},
 						},

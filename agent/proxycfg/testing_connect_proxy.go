@@ -1,12 +1,15 @@
 package proxycfg
 
 import (
+	"time"
+
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 // TestConfigSnapshot returns a fully populated snapshot
@@ -220,6 +223,33 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		Meta:            nil,
 		TaggedAddresses: nil,
 	}, nsFn, nil, baseEvents)
+}
+
+func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
+	return TestConfigSnapshot(t,
+		func(ns *structs.NodeService) {
+			ns.Address = "1.2.3.4"
+			ns.Port = 8080
+			ns.Proxy.Upstreams = nil
+			ns.Proxy.Expose = structs.ExposeConfig{
+				Checks: true,
+			}
+		},
+		[]UpdateEvent{
+			{
+				CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("web", nil),
+				Result: []structs.CheckType{{
+					CheckID:   types.CheckID("http"),
+					Name:      "http",
+					HTTP:      "http://127.0.0.1:8181/debug",
+					ProxyHTTP: "http://:21500/debug",
+					Method:    "GET",
+					Interval:  10 * time.Second,
+					Timeout:   1 * time.Second,
+				}},
+			},
+		},
+	)
 }
 
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {

@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -79,6 +79,11 @@ type ConfigSnapshotUpstreams struct {
 	//
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
+
+	// PeerUpstreamEndpoints is a map of UpstreamID -> (set of IP addresses)
+	// and used to determine the backing endpoints of an upstream in another
+	// peer.
+	PeerUpstreamEndpoints map[UpstreamID]structs.CheckServiceNodes
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -122,6 +127,9 @@ func gatewayKeyFromString(s string) GatewayKey {
 type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
+	PeeringTrustBundlesSet bool
+	PeeringTrustBundles    []*pbpeering.PeeringTrustBundle
+
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
 
@@ -152,7 +160,9 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
-		!c.MeshConfigSet
+		!c.PeeringTrustBundlesSet &&
+		!c.MeshConfigSet &&
+		len(c.PeerUpstreamEndpoints) == 0
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -321,6 +331,33 @@ type configSnapshotMeshGateway struct {
 	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameDatacenters map[string]structs.CheckServiceNodes
+
+	// TODO(peering):
+	ExportedServicesSlice []structs.ServiceName
+
+	// TODO(peering): svc -> peername slice
+	ExportedServicesWithPeers map[structs.ServiceName][]string
+
+	// TODO(peering):  discard this maybe
+	WatchedExportedServices map[string]structs.ServiceList
+
+	// TODO(peering):
+	WatchedExportedServicesSet bool
+
+	// TODO(peering):
+	DiscoveryChain map[structs.ServiceName]*structs.CompiledDiscoveryChain
+
+	// TODO(peering):
+	WatchedDiscoveryChains map[structs.ServiceName]context.CancelFunc
+}
+
+func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
+	if c == nil || len(c.ExportedServicesWithPeers) == 0 {
+		return false
+	}
+
+	_, ok := c.ExportedServicesWithPeers[svc]
+	return ok
 }
 
 func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
@@ -366,7 +403,22 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
 		len(c.ConsulServers) == 0 &&
-		len(c.HostnameDatacenters) == 0
+		len(c.HostnameDatacenters) == 0 &&
+		c.isEmptyPeering()
+}
+
+// isEmptyPeering is a test helper
+func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
+	if c == nil {
+		return true
+	}
+
+	return len(c.ExportedServicesSlice) == 0 &&
+		len(c.ExportedServicesWithPeers) == 0 &&
+		len(c.WatchedExportedServices) == 0 &&
+		!c.WatchedExportedServicesSet &&
+		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedDiscoveryChains) == 0
 }
 
 type configSnapshotIngressGateway struct {
@@ -486,7 +538,8 @@ func (s *ConfigSnapshot) Valid() bool {
 			}
 		}
 		return s.Roots != nil &&
-			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
+			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0) &&
+			s.MeshGateway.WatchedExportedServicesSet
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
@@ -512,8 +565,11 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
+		// common with connect-proxy and ingress-gateway
 		snap.ConnectProxy.WatchedUpstreams = nil
 		snap.ConnectProxy.WatchedGateways = nil
+		snap.ConnectProxy.WatchedDiscoveryChains = nil
+		snap.ConnectProxy.WatchedPeerTrustBundles = nil
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = nil
 		snap.TerminatingGateway.WatchedIntentions = nil
@@ -524,9 +580,12 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.MeshGateway.WatchedGateways = nil
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
+		// common with connect-proxy and ingress-gateway
 		snap.IngressGateway.WatchedUpstreams = nil
 		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
+		snap.IngressGateway.WatchedPeerTrustBundles = nil
+		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
 
@@ -580,4 +639,45 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 		return nil
 	}
 	return mesh.TLS.Outgoing
+}
+
+func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
+	nodes := u.PeerUpstreamEndpoints[uid]
+	if len(nodes) == 0 {
+		return structs.PeeringServiceMeta{}
+	}
+
+	// In agent/rpc/peering/subscription_manager.go we denormalize the
+	// PeeringServiceMeta data onto each replicated service instance to convey
+	// this information back to the importing side of the peering.
+	//
+	// This data is guaranteed (subject to any eventual consistency lag around
+	// updates) to be the same across all instances, so we only need to take
+	// the first item.
+	//
+	// TODO(peering): consider replicating this "common to all instances" data
+	// using a different replication type and persist it separately in the
+	// catalog to avoid this weird construction.
+	csn := nodes[0]
+	if csn.Service == nil {
+		return structs.PeeringServiceMeta{}
+	}
+	return *csn.Service.Connect.PeerMeta
+}
+
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
+	out := make([]UpstreamID, 0, len(u.UpstreamConfig))
+	for uid := range u.UpstreamConfig {
+		if uid.Peer == "" {
+			continue
+		}
+
+		if _, ok := u.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
+			continue
+		}
+
+		out = append(out, uid)
+	}
+	return out
 }

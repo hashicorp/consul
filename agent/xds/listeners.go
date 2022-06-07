@@ -11,12 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -25,7 +19,6 @@ import (
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
-
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
@@ -38,11 +31,17 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
+	"github.com/hashicorp/consul/types"
 )
 
 const virtualIPTag = "virtual"
@@ -225,6 +224,73 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
+	// Looping over explicit upstreams is only needed for cross-peer because
+	// they do not have discovery chains.
+	//
+	// TODO(peering): make this work for tproxy
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstreamCfg, peerMeta)
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				s.Logger.Error("failed to parse envoy_listener_json",
+					"upstream", uid,
+					"error", err)
+				continue
+			}
+			resources = append(resources, upstreamListener)
+			continue
+		}
+
+		// TODO(peering): if we replicated service metadata separately from the
+		// instances we wouldn't have to flip/flop this cluster name like this.
+		clusterName := peerMeta.PrimarySNI()
+		if clusterName == "" {
+			clusterName = uid.EnvoyID()
+		}
+
+		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
+		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				clusterName: clusterName,
+				filterName:  uid.EnvoyID(),
+				routeName:   uid.EnvoyID(),
+				protocol:    cfg.Protocol,
+				useRDS:      false,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, upstreamListener)
+
+			// Avoid creating filter chains below for upstreams that have dedicated listeners
+			continue
+		}
+
+		// The rest of this loop is used exclusively for transparent proxies.
+		// Below we create a filter chain per upstream, rather than a listener per upstream
+		// as we do for explicit upstreams above.
+
+		// TODO(peering): tproxy
+
+	}
+
 	if outboundListener != nil {
 		// Add a passthrough for every mesh endpoint that can be dialed directly,
 		// as opposed to via a virtual IP.
@@ -332,7 +398,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// Add service health checks to the list of paths to create listeners for if needed
 	if cfgSnap.Proxy.Expose.Checks {
 		psid := structs.NewServiceID(cfgSnap.Proxy.DestinationServiceID, &cfgSnap.ProxyID.EnterpriseMeta)
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
+		for _, check := range cfgSnap.ConnectProxy.WatchedServiceChecks[psid] {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Warn("failed to create listener for", "check", check.CheckID, "error", err)
@@ -777,6 +843,100 @@ func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.Con
 	return nil
 }
 
+//
+// NOTE: This method MUST only be used for connect proxy public listeners,
+// since TLS validation will be done against root certs for all peers
+// that might dial this proxy.
+func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
+	if cfgSnap.Kind != structs.ServiceKindConnectProxy {
+		return fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
+	}
+
+	// Create TLS validation context for mTLS with leaf certificate and root certs.
+	tlsContext := makeCommonTLSContext(
+		cfgSnap.Leaf(),
+		cfgSnap.RootPEMs(),
+		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
+	)
+
+	// Inject peering trust bundles if this service is exported to peered clusters.
+	if len(cfgSnap.ConnectProxy.PeeringTrustBundles) > 0 {
+		spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), cfgSnap.ConnectProxy.PeeringTrustBundles)
+		if err != nil {
+			return err
+		}
+
+		typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
+		if !ok {
+			return fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
+		}
+
+		// makeCommonTLSFromLead injects the local trust domain's CA root certs as the TrustedCA.
+		// We nil it out here since the local roots are included in the SPIFFE validator config.
+		typ.ValidationContext.TrustedCa = nil
+		typ.ValidationContext.CustomValidatorConfig = &envoy_core_v3.TypedExtensionConfig{
+			// The typed config name is hard-coded because it is not available as a wellknown var in the control plane lib.
+			Name:        "envoy.tls.cert_validator.spiffe",
+			TypedConfig: spiffeConfig,
+		}
+	}
+
+	transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
+		CommonTlsContext:         tlsContext,
+		RequireClientCertificate: &wrappers.BoolValue{Value: true},
+	})
+	if err != nil {
+		return err
+	}
+
+	for idx := range listener.FilterChains {
+		listener.FilterChains[idx].TransportSocket = transportSocket
+	}
+	return nil
+}
+
+// SPIFFECertValidatorConfig is used to validate certificates from trust domains other than our own.
+// With cluster peering we expect peered clusters to have independent certificate authorities.
+// This means that we cannot use a single set of root CA certificates to validate client certificates for mTLS,
+// but rather we need to validate against different roots depending on the trust domain of the certificate presented.
+func makeSpiffeValidatorConfig(trustDomain, roots string, peerBundles []*pbpeering.PeeringTrustBundle) (*any.Any, error) {
+	// Store the trust bundle for the local trust domain.
+	bundles := map[string]string{trustDomain: roots}
+
+	// Store the trust bundle for each trust domain of the peers this proxy is exported to.
+	// This allows us to validate traffic from other trust domains.
+	for _, b := range peerBundles {
+		var pems string
+		for _, pem := range b.RootPEMs {
+			pems += lib.EnsureTrailingNewline(pem)
+		}
+		bundles[b.TrustDomain] = pems
+	}
+
+	cfg := &envoy_tls_v3.SPIFFECertValidatorConfig{
+		TrustDomains: make([]*envoy_tls_v3.SPIFFECertValidatorConfig_TrustDomain, 0, len(bundles)),
+	}
+
+	for domain, bundle := range bundles {
+		cfg.TrustDomains = append(cfg.TrustDomains, &envoy_tls_v3.SPIFFECertValidatorConfig_TrustDomain{
+			Name: domain,
+			TrustBundle: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: bundle,
+				},
+			},
+		})
+	}
+
+	// Sort the trust domains so that the output is stable.
+	// This benefits tests but also prevents Envoy from mistakenly thinking the listener
+	// changed and needs to be drained only because this ordering is different.
+	sort.Slice(cfg.TrustDomains, func(i int, j int) bool {
+		return cfg.TrustDomains[i].Name < cfg.TrustDomains[j].Name
+	})
+	return ptypes.MarshalAny(cfg)
+}
+
 func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name string) (proto.Message, error) {
 	var l *envoy_listener_v3.Listener
 	var err error
@@ -899,7 +1059,7 @@ func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v
 	}
 
 	// Always apply TLS certificates
-	if err := s.injectConnectTLSOnFilterChains(cfgSnap, l); err != nil {
+	if err := s.injectConnectTLSForPublicListener(cfgSnap, l); err != nil {
 		return nil
 	}
 
@@ -1211,6 +1371,59 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
+	// Add in TCP filter chains for plain peered passthrough.
+	//
+	// TODO(peering): make this work for L7 as well
+	// TODO(peering): make failover work
+	for _, svc := range cfgSnap.MeshGateway.ExportedServicesSlice {
+		peerNames, ok := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
+		if !ok {
+			continue // not possible
+		}
+		chain, ok := cfgSnap.MeshGateway.DiscoveryChain[svc]
+		if !ok {
+			continue // ignore; not ready
+		}
+
+		if structs.IsProtocolHTTPLike(chain.Protocol) {
+			continue // temporary skip
+		}
+
+		target, err := simpleChainTarget(chain)
+		if err != nil {
+			return nil, err
+		}
+		clusterName := CustomizeClusterName(target.Name, chain)
+
+		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
+		if err != nil {
+			return nil, err
+		}
+
+		var peeredServerNames []string
+		for _, peerName := range peerNames {
+			peeredSNI := connect.PeeredServiceSNI(
+				svc.Name,
+				svc.NamespaceOrDefault(),
+				svc.PartitionOrDefault(),
+				peerName,
+				cfgSnap.Roots.TrustDomain,
+			)
+			peeredServerNames = append(peeredServerNames, peeredSNI)
+		}
+
+		l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+				ServerNames: peeredServerNames,
+			},
+			Filters: []*envoy_listener_v3.Filter{
+				dcTCPProxy,
+			},
+		})
+	}
+
 	// We need 1 Filter Chain per remote cluster
 	keys := cfgSnap.MeshGateway.GatewayKeys()
 	for _, key := range keys {
@@ -1387,6 +1600,46 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 
 	// set back on the config so that we can use it from return value
 	cfg.Protocol = protocol
+
+	return cfg
+}
+
+func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
+	uid proxycfg.UpstreamID,
+	u *structs.Upstream,
+	peerMeta structs.PeeringServiceMeta,
+) structs.UpstreamConfig {
+	var (
+		cfg structs.UpstreamConfig
+		err error
+	)
+
+	configMap := make(map[string]interface{})
+	if u != nil {
+		configMap = u.Config
+	}
+
+	cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
+	}
+
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = peerMeta.Protocol
+	}
+	if protocol == "" {
+		protocol = "tcp"
+	}
+
+	// set back on the config so that we can use it from return value
+	cfg.Protocol = protocol
+
+	if cfg.ConnectTimeoutMs == 0 {
+		cfg.ConnectTimeoutMs = 5000
+	}
 
 	return cfg
 }

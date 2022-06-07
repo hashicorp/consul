@@ -219,3 +219,32 @@ func NewInitiateRequestFromAPI(req *api.PeeringInitiateRequest) *InitiateRequest
 	InitiateRequestFromAPI(req, t)
 	return t
 }
+
+func (r *TrustBundleListByServiceRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		// TODO(peering): Revisit whether this is the token to use once request types accept a token.
+		Token:          r.Token(),
+		Datacenter:     r.Datacenter,
+		MinIndex:       0,
+		Timeout:        0,
+		MustRevalidate: false,
+
+		// TODO(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
+		//                Using an exponential backoff when the result hasn't changed may be preferable.
+		MaxAge: 1 * time.Second,
+	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Partition,
+		r.Namespace,
+		r.ServiceName,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}

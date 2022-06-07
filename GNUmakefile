@@ -339,6 +339,13 @@ else
 		go test -v -timeout=30m ./upgrade --tags $(GOTAGS) --target-version local --latest-version latest
 endif
 
+.PHONY: test-metrics-integ
+test-metrics-integ: dev-docker
+	@docker tag consul-dev:latest consul:local
+	@docker run --rm -t consul:local consul version
+	@cd ./test/integration/consul-container && \
+		go test -v -timeout=7m ./metrics --target-version local
+
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI

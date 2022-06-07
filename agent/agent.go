@@ -248,6 +248,9 @@ type Agent struct {
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[structs.CheckID]*checks.CheckTCP
 
+	// checkUDPs maps the check ID to an associated UDP check
+	checkUDPs map[structs.CheckID]*checks.CheckUDP
+
 	// checkGRPCs maps the check ID to an associated GRPC check
 	checkGRPCs map[structs.CheckID]*checks.CheckGRPC
 
@@ -401,6 +404,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkHTTPs:      make(map[structs.CheckID]*checks.CheckHTTP),
 		checkH2PINGs:    make(map[structs.CheckID]*checks.CheckH2PING),
 		checkTCPs:       make(map[structs.CheckID]*checks.CheckTCP),
+		checkUDPs:       make(map[structs.CheckID]*checks.CheckUDP),
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
@@ -646,6 +650,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
 		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
+		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
+		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
 	}
 	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
@@ -822,7 +828,6 @@ func (a *Agent) listenAndServeGRPC() error {
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
-		a,
 		a,
 	)
 	a.xdsServer.Register(a.publicGRPCServer)
@@ -1495,6 +1500,9 @@ func (a *Agent) ShutdownAgent() error {
 		chk.Stop()
 	}
 	for _, chk := range a.checkTCPs {
+		chk.Stop()
+	}
+	for _, chk := range a.checkUDPs {
 		chk.Stop()
 	}
 	for _, chk := range a.checkGRPCs {
@@ -2796,6 +2804,31 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tcp.Start()
 			a.checkTCPs[cid] = tcp
 
+		case chkType.IsUDP():
+			if existing, ok := a.checkUDPs[cid]; ok {
+				existing.Stop()
+				delete(a.checkUDPs, cid)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
+				chkType.Interval = checks.MinInterval
+			}
+
+			udp := &checks.CheckUDP{
+				CheckID:       cid,
+				ServiceID:     sid,
+				UDP:           chkType.UDP,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				StatusHandler: statusHandler,
+			}
+			udp.Start()
+			a.checkUDPs[cid] = udp
+
 		case chkType.IsGRPC():
 			if existing, ok := a.checkGRPCs[cid]; ok {
 				existing.Stop()
@@ -3094,6 +3127,10 @@ func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	if check, ok := a.checkTCPs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTCPs, checkID)
+	}
+	if check, ok := a.checkUDPs[checkID]; ok {
+		check.Stop()
+		delete(a.checkUDPs, checkID)
 	}
 	if check, ok := a.checkGRPCs[checkID]; ok {
 		check.Stop()
@@ -4100,8 +4137,12 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.TrustBundleReadName, &cachetype.TrustBundle{Client: a.rpcClientPeering})
 
+	a.cache.RegisterType(cachetype.ExportedPeeredServicesName, &cachetype.ExportedPeeredServices{RPC: a})
+
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
+
+	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
 
 	a.registerEntCache()
 }

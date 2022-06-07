@@ -333,6 +333,7 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
+	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
 	TLSServerName          string              `json:",omitempty"`

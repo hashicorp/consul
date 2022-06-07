@@ -160,7 +160,6 @@ func newTestServerDeltaScenario(
 		serverlessPluginEnabled,
 		mgr,
 		resolveToken,
-		nil, /*checkFetcher HTTPCheckFetcher*/
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {

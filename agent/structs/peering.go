@@ -8,10 +8,9 @@ type PeeringToken struct {
 	PeerID          string
 }
 
-// PeeredService is a service that has been configured with an exported-service config entry to be exported to a peer.
-type PeeredService struct {
-	Name     ServiceName
-	PeerName string
+type IndexedExportedServiceList struct {
+	Services map[string]ServiceList
+	QueryMeta
 }
 
 // NOTE: this is not serialized via msgpack so it can be changed without concern.

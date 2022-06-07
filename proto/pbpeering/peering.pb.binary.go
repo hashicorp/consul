@@ -286,3 +286,13 @@ func (msg *ReplicationMessage_Terminated) MarshalBinary() ([]byte, error) {
 func (msg *ReplicationMessage_Terminated) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *LeaderAddress) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *LeaderAddress) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

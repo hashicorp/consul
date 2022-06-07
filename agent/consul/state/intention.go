@@ -1036,6 +1036,16 @@ func (s *Store) intentionTopologyTxn(
 			maxIdx = index
 		}
 		services = append(services, ingress...)
+	} else {
+		// destinations can only ever be upstream, since they are only allowed as intention destination.
+		index, destinations, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+		if err != nil {
+			return index, nil, fmt.Errorf("failed to list destination names: %v", err)
+		}
+		if index > maxIdx {
+			maxIdx = index
+		}
+		services = append(services, destinations...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding

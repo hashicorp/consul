@@ -40,120 +40,124 @@ func testIndexerTableConfigEntries() map[string]indexerTestCase {
 	}
 }
 
-func TestStore_ExportedServices(t *testing.T) {
+func TestStore_peersForService(t *testing.T) {
+	queryName := "foo"
+
 	type testCase struct {
 		name   string
-		write  []structs.ConfigEntry
-		query  string
-		expect []*structs.ExportedServicesConfigEntry
+		write  structs.ConfigEntry
+		expect []string
 	}
 
 	cases := []testCase{
 		{
 			name:   "empty everything",
-			write:  []structs.ConfigEntry{},
-			query:  "foo",
-			expect: []*structs.ExportedServicesConfigEntry{},
+			expect: nil,
 		},
 		{
-			name: "no matching exported services",
-			write: []structs.ConfigEntry{
-				&structs.ProxyConfigEntry{Name: "foo"},
-				&structs.ProxyConfigEntry{Name: "bar"},
-				&structs.ExportedServicesConfigEntry{
-					Name: "baz",
-					Services: []structs.ExportedService{
-						{Name: "baz"},
+			name: "service is not exported",
+			write: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "not-" + queryName,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "zip",
+							},
+						},
 					},
 				},
 			},
-			query:  "foo",
-			expect: []*structs.ExportedServicesConfigEntry{},
+			expect: nil,
 		},
 		{
-			name: "exact match service name",
-			write: []structs.ConfigEntry{
-				&structs.ExportedServicesConfigEntry{
-					Name: "foo",
-					Services: []structs.ExportedService{
-						{Name: "foo"},
+			name: "wildcard name matches",
+			write: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "not-" + queryName,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "zip",
+							},
+						},
 					},
-				},
-				&structs.ExportedServicesConfigEntry{
-					Name: "bar",
-					Services: []structs.ExportedService{
-						{Name: "bar"},
+					{
+						Name: structs.WildcardSpecifier,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "bar",
+							},
+							{
+								PeerName: "baz",
+							},
+						},
 					},
 				},
 			},
-			query: "bar",
-			expect: []*structs.ExportedServicesConfigEntry{
-				{
-					Name: "bar",
-					Services: []structs.ExportedService{
-						{Name: "bar"},
-					},
-				},
-			},
+			expect: []string{"bar", "baz"},
 		},
 		{
-			name: "wildcard match on service name",
-			write: []structs.ConfigEntry{
-				&structs.ExportedServicesConfigEntry{
-					Name: "foo",
-					Services: []structs.ExportedService{
-						{Name: "foo"},
+			name: "exact name takes precedence over wildcard",
+			write: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: queryName,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "baz",
+							},
+						},
 					},
-				},
-				&structs.ExportedServicesConfigEntry{
-					Name: "wildcard",
-					Services: []structs.ExportedService{
-						{Name: structs.WildcardSpecifier},
-					},
-				},
-			},
-			query: "foo",
-			expect: []*structs.ExportedServicesConfigEntry{
-				{
-					Name: "foo",
-					Services: []structs.ExportedService{
-						{Name: "foo"},
-					},
-				},
-				{
-					Name: "wildcard",
-					Services: []structs.ExportedService{
-						{Name: structs.WildcardSpecifier},
+					{
+						Name: structs.WildcardSpecifier,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "zip",
+							},
+						},
 					},
 				},
 			},
+			expect: []string{"baz"},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := testStateStore(t)
+			var lastIdx uint64
 
-			// Write the entries.
-			for idx, entry := range tc.write {
-				require.NoError(t, s.EnsureConfigEntry(uint64(idx+1), entry))
+			// Write the entry.
+			if tc.write != nil {
+				require.NoError(t, tc.write.Normalize())
+				require.NoError(t, tc.write.Validate())
+
+				lastIdx++
+				require.NoError(t, s.EnsureConfigEntry(lastIdx, tc.write))
 			}
 
 			// Read the entries back.
 			tx := s.db.ReadTxn()
 			defer tx.Abort()
-			idx, entries, err := getExportedServiceConfigEntriesTxn(tx, nil, tc.query, acl.DefaultEnterpriseMeta())
+
+			idx, peers, err := peersForServiceTxn(tx, nil, queryName, acl.DefaultEnterpriseMeta())
 			require.NoError(t, err)
-			require.Equal(t, uint64(len(tc.write)), idx)
+
+			// This is a little weird, but when there are no results, the index returned should be the max index for the
+			// config entries table so that the caller can watch for changes to it
+			if len(peers) == 0 {
+				require.Equal(t, maxIndexTxn(tx, tableConfigEntries), idx)
+			} else {
+				require.Equal(t, lastIdx, idx)
+			}
 
 			// Verify the result.
-			require.Len(t, entries, len(tc.expect))
-			for idx, got := range entries {
-				// ignore raft fields
-				got.ModifyIndex = 0
-				got.CreateIndex = 0
-				require.Equal(t, tc.expect[idx], got)
-			}
+			require.Len(t, peers, len(tc.expect))
+			require.Equal(t, tc.expect, peers)
 		})
 	}
 }

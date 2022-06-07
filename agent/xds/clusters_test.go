@@ -638,7 +638,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					setupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)

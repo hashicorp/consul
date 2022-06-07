@@ -56,6 +56,28 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfter: ReadableDuration(160 * time.Second),
 				},
 			},
+			{
+				CheckID: "bor",
+				Status:  "critical",
+				Definition: HealthCheckDefinition{
+					UDP:                            "1.1.1.1",
+					Interval:                       ReadableDuration(5 * time.Second),
+					Timeout:                        ReadableDuration(10 * time.Second),
+					DeregisterCriticalServiceAfter: ReadableDuration(20 * time.Second),
+				},
+				Type: "udp",
+			},
+			{
+				CheckID: "bur",
+				Status:  "passing",
+				Definition: HealthCheckDefinition{
+					UDP:                            "2.2.2.2",
+					Interval:                       ReadableDuration(5 * time.Second),
+					Timeout:                        ReadableDuration(10 * time.Second),
+					DeregisterCriticalServiceAfter: ReadableDuration(20 * time.Second),
+				},
+				Type: "udp",
+			},
 		},
 	}
 	_, err = catalog.Register(reg, nil)
@@ -115,6 +137,18 @@ func TestAPI_ClientTxn(t *testing.T) {
 				Check: HealthCheck{Node: "foo", CheckID: "baz"},
 			},
 		},
+		&TxnOp{
+			Check: &CheckTxnOp{
+				Verb:  CheckGet,
+				Check: HealthCheck{Node: "foo", CheckID: "bor"},
+			},
+		},
+		&TxnOp{
+			Check: &CheckTxnOp{
+				Verb:  CheckGet,
+				Check: HealthCheck{Node: "foo", CheckID: "bur"},
+			},
+		},
 	}
 	ok, ret, _, err := txn.Txn(ops, nil)
 	if err != nil {
@@ -141,7 +175,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 		t.Fatalf("transaction failure")
 	}
 
-	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 6 {
+	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 8 {
 		t.Fatalf("bad: %v", ret)
 	}
 	expected := TxnResults{
@@ -224,6 +258,48 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
 				},
 				Type:        "tcp",
+				Partition:   splitDefaultPartition,
+				Namespace:   splitDefaultNamespace,
+				CreateIndex: ret.Results[4].Check.CreateIndex,
+				ModifyIndex: ret.Results[4].Check.CreateIndex,
+			},
+		},
+		&TxnResult{
+			Check: &HealthCheck{
+				Node:    "foo",
+				CheckID: "bor",
+				Status:  "critical",
+				Definition: HealthCheckDefinition{
+					UDP:                                    "1.1.1.1",
+					Interval:                               ReadableDuration(5 * time.Second),
+					IntervalDuration:                       5 * time.Second,
+					Timeout:                                ReadableDuration(10 * time.Second),
+					TimeoutDuration:                        10 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(20 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
+				},
+				Type:        "udp",
+				Partition:   splitDefaultPartition,
+				Namespace:   splitDefaultNamespace,
+				CreateIndex: ret.Results[4].Check.CreateIndex,
+				ModifyIndex: ret.Results[4].Check.CreateIndex,
+			},
+		},
+		&TxnResult{
+			Check: &HealthCheck{
+				Node:    "foo",
+				CheckID: "bur",
+				Status:  "passing",
+				Definition: HealthCheckDefinition{
+					UDP:                                    "2.2.2.2",
+					Interval:                               ReadableDuration(5 * time.Second),
+					IntervalDuration:                       5 * time.Second,
+					Timeout:                                ReadableDuration(10 * time.Second),
+					TimeoutDuration:                        10 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(20 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
+				},
+				Type:        "udp",
 				Partition:   splitDefaultPartition,
 				Namespace:   splitDefaultNamespace,
 				CreateIndex: ret.Results[4].Check.CreateIndex,

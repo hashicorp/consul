@@ -85,6 +85,12 @@ There are several different kinds of checks:
   It is possible to configure a custom TCP check timeout value by specifying the
   `timeout` field in the check definition.
 
+- `UDP + Interval` - These checks direct the client to periodically send UDP datagrams
+  to the specified IP/hostname and port. The duration specified in the `interval` field sets the amount of time 
+  between attempts, such as `30s` to indicate 30 seconds. The check is logged as healthy if any response from the UDP server is received. Any other result sets the status to `critical`.
+  The default interval for, UDP checks is `10s`, but you can configure a custom UDP check timeout value by specifying the
+  `timeout` field in the check definition. If any timeout on read exists, the check is still considered healthy.
+
 - `Time to Live (TTL)` ((#ttl)) - These checks retain their last known state
   for a given TTL. The state of the check must be updated periodically over the HTTP
   interface. If an external system fails to update the status within a given TTL,
@@ -235,6 +241,35 @@ check = {
     "id": "ssh",
     "name": "SSH TCP on port 22",
     "tcp": "localhost:22",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
+</CodeTabs>
+
+A UDP check:
+
+<CodeTabs heading="UDP Check">
+
+```hcl
+check = {
+  id = "dns"
+  name = "DNS UDP on port 53"
+  udp = "localhost:53"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
+```json
+{
+  "check": {
+    "id": "dns",
+    "name": "DNS UDP on port 53",
+    "udp": "localhost:53",
     "interval": "10s",
     "timeout": "1s"
   }
@@ -429,7 +464,7 @@ used for any interaction with the catalog for the check, including
 For Alias checks, this token is used if a remote blocking query is necessary
 to watch the state of the aliased node or service.
 
-Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
+Script, TCP, UDP, HTTP, Docker, and gRPC checks must include an `interval` field. This
 field is parsed by Go's `time` package, and has the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration):
 

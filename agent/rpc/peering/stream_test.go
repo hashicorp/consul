@@ -47,6 +47,9 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 			leader: func() bool {
 				return false
 			},
+			leaderAddress: &leaderAddress{
+				addr: "expected:address",
+			},
 		})
 
 	client := NewMockClient(context.Background())
@@ -63,10 +66,20 @@ func TestStreamResources_Server_Follower(t *testing.T) {
 		}
 	}()
 
+	// expect error
 	msg, err := client.Recv()
 	require.Nil(t, msg)
 	require.Error(t, err)
 	require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = cannot establish a peering stream on a follower node")
+
+	// expect a status error
+	st, ok := status.FromError(err)
+	require.True(t, ok, "need to get back a grpc status error")
+	deets := st.Details()
+
+	// expect a LeaderAddress message
+	exp := []interface{}{&pbpeering.LeaderAddress{Address: "expected:address"}}
+	prototest.AssertDeepEqual(t, exp, deets)
 }
 
 // TestStreamResources_Server_LeaderBecomesFollower simulates a srv that is a leader when the
@@ -94,6 +107,9 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 			store:  store,
 			pub:    publisher,
 			leader: leaderFunc,
+			leaderAddress: &leaderAddress{
+				addr: "expected:address",
+			},
 		})
 
 	client := NewMockClient(context.Background())
@@ -147,10 +163,20 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	err2 := client.Send(input2)
 	require.NoError(t, err2)
 
+	// expect error
 	msg2, err2 := client.Recv()
 	require.Nil(t, msg2)
 	require.Error(t, err2)
 	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+
+	// expect a status error
+	st, ok := status.FromError(err2)
+	require.True(t, ok, "need to get back a grpc status error")
+	deets := st.Details()
+
+	// expect a LeaderAddress message
+	exp := []interface{}{&pbpeering.LeaderAddress{Address: "expected:address"}}
+	prototest.AssertDeepEqual(t, exp, deets)
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
@@ -901,28 +927,28 @@ func makeClient(
 }
 
 type testStreamBackend struct {
-	pub               state.EventPublisher
-	store             *state.Store
-	leader            func() bool
-	leadershipMonitor *leadershipMonitor
+	pub           state.EventPublisher
+	store         *state.Store
+	leader        func() bool
+	leaderAddress *leaderAddress
 }
 
-var _ LeadershipMonitor = (*leadershipMonitor)(nil)
+var _ LeaderAddress = (*leaderAddress)(nil)
 
-type leadershipMonitor struct {
+type leaderAddress struct {
+	addr string
 }
 
-func (l *leadershipMonitor) UpdateLeaderAddr(addr string) {
+func (l *leaderAddress) Set(addr string) {
 	// noop
 }
 
-func (l *leadershipMonitor) GetLeaderAddr() string {
-	// noop
-	return ""
+func (l *leaderAddress) Get() string {
+	return l.addr
 }
 
-func (b *testStreamBackend) LeadershipMonitor() LeadershipMonitor {
-	return b.leadershipMonitor
+func (b *testStreamBackend) LeaderAddress() LeaderAddress {
+	return b.leaderAddress
 }
 
 func (b *testStreamBackend) IsLeader() bool {

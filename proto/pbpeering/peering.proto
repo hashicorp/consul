@@ -181,15 +181,17 @@ message PeeringDeleteResponse {}
 // @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleListByServiceRequest {
   string ServiceName = 1;
-  string Partition = 2;
+  string Namespace = 2;
+  string Partition = 3;
 
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 3;
+  string Datacenter = 4;
 }
 
 message TrustBundleListByServiceResponse {
-  repeated PeeringTrustBundle Bundles = 1;
+  uint64 Index = 1;
+  repeated PeeringTrustBundle Bundles = 2;
 }
 
 // @consul-rpc-glue: Datacenter,ReadTODO
@@ -362,4 +364,11 @@ message ReplicationMessage {
   // Terminated is sent when a peering is deleted locally.
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
+}
+
+// LeaderAddress is sent when the peering service runs on a consul node
+// that is not a leader. The node either lost leadership, or never was a leader.
+message LeaderAddress {
+  // address is an ip:port best effort hint at what could be the cluster leader's address
+  string address = 1;
 }

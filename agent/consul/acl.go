@@ -1940,6 +1940,16 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 	case *structs.IndexedServiceList:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&v.Services)
 
+	case *structs.IndexedExportedServiceList:
+		for peer, peerServices := range v.Services {
+			v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&peerServices)
+			if len(peerServices) == 0 {
+				delete(v.Services, peer)
+			} else {
+				v.Services[peer] = peerServices
+			}
+		}
+
 	case *structs.IndexedGatewayServices:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterGatewayServices(&v.Services)
 
