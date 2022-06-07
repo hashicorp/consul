@@ -224,6 +224,27 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreams", args, reply); done {
 		return err
 	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetService)
+}
+
+// IntentionUpstreamsDestination returns the upstreams of a service. Upstreams are inferred from intentions.
+// If intentions allow a connection from the target to some candidate destination, the candidate destination is considered
+// an upstream of the target.this is performs the same logic as  IntentionUpstreams endpoint but for destination upstreams only.
+func (m *Internal) IntentionUpstreamsDestination(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreamsDestination", args, reply); done {
+		return err
+	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetDestination)
+}
+
+func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList, intentionTarget structs.IntentionTargetType) error {
 
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
@@ -244,7 +265,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, intentionTarget)
 			if err != nil {
 				return err
 			}
@@ -272,7 +293,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		})
 }
 
-// GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
+// GatewayServiceDump returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
 	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, reply); done {
 		return err
@@ -350,7 +371,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
-// Match returns the set of intentions that match the given source/destination.
+// GatewayIntentions Match returns the set of intentions that match the given source/destination.
 func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
 	// Forward if necessary
 	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, reply); done {

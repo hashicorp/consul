@@ -2323,6 +2323,50 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 	})
 }
 
+func TestInternal_IntentionUpstreamsDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, "")
+
+	t.Run("api.example.com", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			var out structs.IndexedServiceList
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.IntentionUpstreamsDestination", &args, &out))
+
+			// foo/api
+			require.Len(r, out.Services, 1)
+
+			expectUp := structs.ServiceList{
+				structs.NewServiceName("api.example.com", structs.DefaultEnterpriseMetaInDefaultPartition()),
+			}
+			require.Equal(r, expectUp, out.Services)
+		})
+	})
+}
+
 func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

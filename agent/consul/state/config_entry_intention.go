@@ -299,7 +299,8 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 						results = append(results, entry.ToIntention(src))
 					}
 				case structs.IntentionTargetDestination:
-					if kind == structs.GatewayServiceKindDestination {
+					// wildcard is needed here to be able to consider destinations in the wildcard intentions
+					if kind == structs.GatewayServiceKindDestination || entry.HasWildcardDestination() {
 						results = append(results, entry.ToIntention(src))
 					}
 				default:
