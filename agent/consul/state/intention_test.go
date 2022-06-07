@@ -1199,6 +1199,131 @@ func TestStore_IntentionsList(t *testing.T) {
 	})
 }
 
+func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
+	type testcase struct {
+		name   string
+		input  []*structs.ServiceIntentionsConfigEntry
+		query  structs.IntentionQueryMatch
+		expect []structs.Intentions
+	}
+	run := func(t *testing.T, tc testcase) {
+		s := testConfigStateStore(t)
+		idx := uint64(0)
+		for _, conf := range tc.input {
+			require.NoError(t, conf.Normalize())
+			require.NoError(t, conf.Validate())
+			idx++
+			require.NoError(t, s.EnsureConfigEntry(idx, conf))
+		}
+
+		_, matches, err := s.IntentionMatch(nil, &tc.query)
+		require.NoError(t, err)
+
+		// clear raft indexes for easier comparison
+		for _, match := range matches {
+			for _, ixn := range match {
+				ixn.CreateIndex = 0
+				ixn.ModifyIndex = 0
+			}
+		}
+		require.Equal(t, tc.expect, matches)
+	}
+	tcs := []testcase{
+		{
+			name: "peered intention matched with destination query",
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "foo",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "example",
+							Peer:   "bar",
+						},
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "*",
+							Peer:   "baz",
+						},
+					},
+				},
+			},
+			query: structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchDestination,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						Namespace: "default",
+						Name:      "foo",
+					},
+				},
+			},
+			expect: []structs.Intentions{
+				{
+					{
+						Action:               structs.IntentionActionAllow,
+						SourceType:           structs.IntentionSourceConsul,
+						DestinationPartition: acl.DefaultPartitionName,
+						DestinationNS:        "default",
+						DestinationName:      "foo",
+						SourcePeer:           "bar",
+						SourceNS:             "default",
+						SourceName:           "example",
+						SourcePartition:      "", // note that SourcePartition does not get normalized
+						Precedence:           9,
+					},
+					{
+						Action:               structs.IntentionActionAllow,
+						SourceType:           structs.IntentionSourceConsul,
+						DestinationPartition: acl.DefaultPartitionName,
+						DestinationNS:        "default",
+						DestinationName:      "foo",
+						SourcePeer:           "baz",
+						SourceNS:             "default",
+						SourceName:           "*",
+						SourcePartition:      "", // note that SourcePartition does not get normalized
+						Precedence:           8,
+					},
+				},
+			},
+		},
+		{
+			// This behavior may change in the future but this test is in place
+			// to ensure peered intentions cannot accidentally be queried by source
+			name: "peered intention cannot be queried by source",
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "foo",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "example",
+							Peer:   "bar",
+						},
+					},
+				},
+			},
+			query: structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchSource,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						// We don't expose a Peer field
+						Namespace: "default",
+						Name:      "example",
+					},
+				},
+			},
+			expect: []structs.Intentions{nil},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 // Test the matrix of match logic.
 //
 // Note that this doesn't need to test the intention sort logic exhaustively
