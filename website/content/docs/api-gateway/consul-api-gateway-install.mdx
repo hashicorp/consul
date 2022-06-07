@@ -268,7 +268,7 @@ Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s
 
 #### Scaling
 
-A logical gateway object can be scaled to multiple instances within the bounds set in its associated GatewayClassConfig by using the [`kubectl scale`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment) command.
+You can scale a logical gateway object to multiple instances with the [`kubectl scale`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment) command. The object scales according to the bounds set in GatewayClassConfig.
 
 ```
 $ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
