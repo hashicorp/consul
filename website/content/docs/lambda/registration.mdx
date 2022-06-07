@@ -5,29 +5,34 @@ description: >-
   This topic describes how to register AWS Lambda functions with Consul service mesh.
 ---
 
-# Registration
+# Register Lambda Functions
 
-Registering AWS Lambda functions into Consul requires:
-1. Registering a service into Consul.
-2. Writing a [service defaults configuration entry](/docs/connect/config-entries/service-defaults) for the Lambda.
+You can either manually register AWS Lambda functions with Consul or use the [Lambda registrator](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator)
+to automatically synchronize Lambda state into Consul. 
 
-To keep this configuration up to date, we recommend using the [Lambda registrator](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator)
-to automatically synchronize Lambda state into Consul. Lambda Registrator
-automatically registers, reconfigures, and deregisters Lambdas based on the
-[Lambda's tags](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html).
+To manually register AWS Lambda functions into Consul, you must register a service into Consul and then write a [service defaults configuration entry](/docs/connect/config-entries/service-defaults) for the Lambda.
 
-Lambdas can also be manually registered into Consul when using Lambda
-registrator is not possible.
+The registrator automatically registers, reconfigures, and deregisters Lambdas based on the
+Lambda function's tags (refer to the [AWS tag configuration documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) for details about tags). 
+
+We recommend using the Lambda registrator when possible so that you can keep the configuration entry up to date. 
+
+## Requirements
+
+* Consul 1.12.1 and later
 
 ## Prerequisites
 
+Complete the following prerequisites prior to registering your Lambda functions. You only need to perform these steps once.
+
 ### Enable the Serverless Plugin
 
-Lambda integration is only available in Consul 1.12.1 and later. It requires
-including `connect { enable_serverless_plugin = true, connect = true }` in the
-configuration for all Consul clients.
+Add the following configuration to all Consul clients: 
 
-### Allow Envoy to Invoke the Lambda
+`connect { enable_serverless_plugin = true, connect = true }`
+
+
+### Configure IAM Permissions for Envoy
 
 The Envoy proxy that invokes Lambda must have the `lambda:InvokeFunction` AWS IAM
 permissions to invoke the Lambda. The policy for invoking a Lambda will look
@@ -48,57 +53,46 @@ like the following:
 }
 ```
 
-AWS IAM credentials should be defined in environment variables, EC2 metadata or
-ECS metadata. On [AWS EKS](https://aws.amazon.com/eks/), users must associate an IAM role with the proxy's
-`ServiceAccount` by following [these
-instructions](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
+Define AWS IAM credentials in environment variables, EC2 metadata or
+ECS metadata. On [AWS EKS](https://aws.amazon.com/eks/), associate an IAM role with the proxy's `ServiceAccount`. Refer to the [AWS IAM roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) documentation for instructions.
 
 
-### Optional: Run and Configure a Terminating Gateway
+### Optional: Set up a Terminating Gateway
 
-When invoking Lambda services through a [Terminating Gateway](/docs/connect/gateways#terminating-gateways), a terminating
-gateway must be registered and running in the Consul datacenter. [This learn
-guide](https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services)
-describes how to manually set up a terminating gateway on VMs and [this
-guide](/docs/k8s/connect/terminating-gateways) describes how to run one on
-Kubernetes.
+If you intend to invoke Lambda services through a terminating gateway, the gateway must be registered and running in the Consul datacenter. Refer to the following documentation and tutorials for instructions on how to set up a terminating gateway:
 
-A Lambda service can be registered to a terminating gateway by adding it to the
+*  [Terminating gateways documentation](/docs/connect/gateways#terminating-gateways)
+*  [Terminating gateways on Kubernetes documentation](/docs/k8s/connect/terminating-gateways)
+*  [Connect External Services to Consul With Terminating Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services)
+
+To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`
-configuration entry. See the [invocation page](/docs/lambda/invocation) for
-more information about the ways Consul can invoke Lambdas.
+configuration entry. Refer to [Invoke Lambda Functions](/docs/lambda/invocation) for
+more instructions on how to invoke Lambda functions.
 
 ### Optional: Run a Mesh Gateway
 
-If a [mesh gateway](/docs/connect/gateways#mesh-gateways) will be used to invoke a Lambda service across admin
-partitions or datacenters, a mesh gateway must be running and registered in
-relevant Consul datacenters and partitions. [This learn
-guide](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
-describes how to manually set up a mesh gateway and [this learn
-guide](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways?in=consul/kubernetes)
-describes how to run one on Kubernetes.
+You can set up a mesh gateway so that you can invoke Lambda services across datacenters and admin partitions. The mesh gateway must be running and registered in the relevant Consul datacenters and partitions. Refer to the following documentation and tutorials for instructions on how to set up mesh gateways:
 
-When using admin partitions, Lambda services need to be added to the `Services`
+* [Mesh gateway documentation](/docs/connect/gateways#mesh-gateways)
+* [Connect Services Across Datacenters with Mesh Gateways tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
+* [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways?in=consul/kubernetes)
+
+When using admin partitions, you must add Lambda services to the `Services`
 field of [the `exported-services` configuration
 entry](/docs/connect/config-entries/exported-services).
 
-## Lambda Registrator
+## Automatic Lambda Function Registration
 
-Lambda Registrator is responsible for automatically registering and
-deregistering Lambdas into Consul based on [the Lambda's
-tags](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html). It
-runs as a Lambda function that is invoked by EventBridge in two ways:
-- [CloudTrail Lambda
-  events](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) - This syncs updates and deletes from Lambda into Consul in real-time.
-    Typically, Lambda registrator syncs Lambdas into Consul within one minute,
-    but CloudTrail events are occasionally delayed.
-- [Schedules](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html) - This periodically does a full sync between Lambda and Consul to prevent
-  entropy. By default, EventBridge triggers a full sync every five minutes.
+You can deploy the Lambda registrator to your environment to automatically register and deregister Lambda functions with Consul based on the function's tags (refer to the [AWS Lambda tags documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) to learn about tags). 
+The registrator runs as a Lambda function that is invoked by AWS EventBridge (refer to the [AWS EventBridge documentation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) for additional information). 
+EventBridge invokes the registrator using either [AWS CloudTrail](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) to syncronize with Consul in real-time or in [scheduled intervals](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html). 
 
+CloudTrail events typically synchronize updates, registration, and deregistration within one minute but are occasionally delayed.
 
-### Architecture
+Scheduled events fully synchronize functions betwen Lambda and Consul to prevent entropy. By default, EventBridge triggers a full sync every five minutes.
 
-This diagram shows the flow of events from EventBridge into Consul:
+The following diagram shows the flow of events from EventBridge into Consul:
 
 <ImageConfig width={500}>
 
@@ -106,34 +100,29 @@ This diagram shows the flow of events from EventBridge into Consul:
 
 </ImageConfig>
 
-1. EventBridge invokes Lambda registrator. This is either done based on
-   CloudTrail Lambda events or a schedule.
+1. EventBridge invokes the Lambda registrator based on CloudTrail Lambda events or a schedule.
 2. Lambda registrator determines how to reconcile Lambda's control plane state
-   with Consul state and ensures they are in sync by registering, updating and
+   with Consul state and ensures they are in sync by registering, updating, and
    deregistering Lambda services.
 
 ### Deploy Lambda Registrator
 
-#### Deploy Lambda Registrator
+1. Create a Terraform configuration and specify the `lambda-registrator` module. In the following example, the Lambda registrator is deployed to `https://consul.example.com:8501`. Refer to the Lambda registrator module documentation for additional usage information:
+   ```hcl
+       module "lambda-registrator" {
+           source  = "hashicorp/consul-lambda-registrator/aws//modules/lambda-registrator"
+           name = "consul-lambda-registrator"
+           consul_http_addr = "https://consul.example.com:8501"
+           ca_cert_path = aws_ssm_parameter.ca-cert.name
+           http_token_path = aws_ssm_parameter.acl-token.name
+           }   
+     ```
 
-Here is an example usage of the Lambda registrator terraform module:
-```hcl
-module "lambda-registrator" {
-  source  = "hashicorp/consul-lambda-registrator/aws//modules/lambda-registrator"
-  name = "consul-lambda-registrator"
-  consul_http_addr = "https://consul.example.com:8501"
-  ca_cert_path = aws_ssm_parameter.ca-cert.name
-  http_token_path = aws_ssm_parameter.acl-token.name
-}
-```
-
-Deploy Lambda registrator with `terraform apply`.
+1. Deploy Lambda registrator with `terraform apply`.
 
 #### Optional: Store the CA Certificate in Parameter Store
 
-When Consul making request to the [HTTP API](/api-docs) over HTTPS, Lambda
-registrator uses a CA Certificate stored in Parameter Store. Consul’s Server CA
-can be stored into Parameter Store by applying the following Terraform:
+When Consul makes a request to the [HTTP API](/api-docs) over HTTPS, Lambda registrator presents a CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information. You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
 
 ```hcl
 resource "aws_ssm_parameter" "ca-cert" {
@@ -145,49 +134,57 @@ resource "aws_ssm_parameter" "ca-cert" {
 
 #### Optional: Store the ACL Token in Parameter Store
 
-When Consul has ACLs enabled, Lambda registrator uses an ACL token stored in
-Parameter Store. This can be done with the CLI, API, or Terraform provider.
-With the CLI, it is done by:
-1. Write the following to rules.hcl:
-```hcl
-service_prefix "" {
-  policy = "write"
-}
-```
+If [Consul access control lists (ACLs)](/docs/security/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
 
-2. Create the policy with `consul acl policy create -name "lambda-registrator-policy" -rules @rules.hcl`.
-3. Create the token with `consul acl token create -policy-name "lambda-registrator-policy"`.
-4. Store the token in Parameter Store by applying the following Terraform:
-```hcl
-resource "aws_ssm_parameter" "acl-token" {
-  name        = "/lambda-registrator/acl-token"
-  type        = "SecureString"
-  value       = <VALUE>
-}
-```
+1. Create an ACL policy that includes the following rule: 
+    <CodeBlockConfig filename="rules.hcl">
+    ```hcl
+         service_prefix "" {
+         policy = "write"
+     }
+    ```
+    </CodeBlockConfig>
+1. Issue `consul acl policy create` command to create the policy. The following example creates a policy called `lambda-registrator-policy` containing permissions specified in `rules.hcl`:   
+    ```shell-session
+     $ `consul acl policy create -name "lambda-registrator-policy" -rules @rules.hcl`
+    ```
+1. Issue the `consul acl token create` command to create the token. The following example creates a token linked to the `lambda-registrator-policy` policy:  
+    ```shell-session
+     $ `consul acl token create -policy-name "lambda-registrator-policy"`
+    ```
+1. Store the token in Parameter Store by applying the following Terraform:
+    ```hcl
+    resource "aws_ssm_parameter" "acl-token" {
+        name        = "/lambda-registrator/acl-token"
+        type        = "SecureString"
+        value       = <VALUE>
+     }
+    ```
 
-#### Configuration Options
+#### Lambda Registrator Configuration Options
 
 | Name | Type |  Description |
 | - | - | - | - |
-| `name` | Configuring AWS services | This is used to name Lambda registrator’s Lambda function and to construct the Identity and Access Management (IAM) role and policy names used by the Lambda function. |
-| `schedule_frequency_in_minutes` | Configuring AWS services | The interval EventBridge uses to trigger a full synchronization. This defaults to 5 minutes. |
+| `name` | Configuring AWS services | Specifies the name name of the Lambda function associated with the Lambda registrator. The name is also used to construct the Identity and Access Management (IAM) role and policy names used by the Lambda function. |
+| `schedule_frequency_in_minutes` | Configuring AWS services | Specifies the interval in minutes that EventBridge uses to trigger a full synchronization. Default is `5`. |
 | `timeout` |Configuring AWS services | The maximum number of seconds Lambda registrator can run per invocation before timing out. |
-| `consul_http_addr` | Runtime | This is directly used to configure the Consul API client. |
-| `consul_ca_cert_path` | Runtime | This parameter only needs to be set when the Consul server is configured to use TLS. Its value is the AWS Parameter Store path to the CA Certificate for the Consul Cluster Lambda registrator uses. At startup, Lambda registrator pulls the CA Certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`. |
-| `consul_http_token_path` | Runtime |  This parameter only needs to be set when the Consul server has ACLs enabled. Its value is an AWS Parameter Store path to the ACL Token Lambda registrator uses. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. |
-| `node_name` | Runtime |  The Consul node name that Lambdas will be registered to. This defaults to "lambdas". |
+| `consul_http_addr` | Runtime | Specifies the address of the Consul API client. |
+| `consul_ca_cert_path` | Runtime | Specifies the AWS Parameter Store path to the CA certificate for the Consul cluster Lambda registrator uses. This parameter is only required when the Consul server is configured to use TLS. At startup, Lambda registrator pulls the CA certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`.  Also see [Optional: Store the CA Certificate in Parameter Store](#optional-store-the-ca-certificate-in-parameter-store)|
+| `consul_http_token_path` | Runtime |  Specifies the AWS Parameter Store path to the ACL Token Lambda registrator uses. This parameter only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also see [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store)|
+| `node_name` | Runtime |  The Consul node name that Lambdas will be registered to. This defaults to `lambdas`. |
 | `enterprise` | Runtime |  <EnterpriseAlert inline />Determines if the Consul server at `consul_http_addr` is running open source or enterprise. |
 | `partitions` | Runtime |  <EnterpriseAlert inline />The partitions that Lambda registrator manages. |
 
-### Registering Lambdas
+### Register Lambda Functions
 
-#### Overview
+Lambda registrator registers Lambda functions into Consul, regardless of how the functions are
+deployed. The following procedure describes how to register Lambda functions with the Lambda registrator using Terraform, but you can also deploy a Lambda function with CloudFormation, the AWS user
+interface, or Cloud Development Kit (CDK):
 
-Lambda registrator registers Lambdas into Consul, no matter how they are
-deployed, as long as they’re [tagged](https://docs.aws.amazon.com/lambda/latest/dg/configuration-tags.html) correctly. The following example uses
-Terraform, but deploying a Lambda with CloudFormation, the AWS user
-interface, and Cloud Development Kit (CDK) works too.
+1. Add the `aws_lambda_function` resource to your Terraform configuration and specify the name of the Lambda function. 
+1. Add a `tags` block to the resource and specify the tags you want to use to register the function (refer to [Supported Tags](#supported-tags). 
+
+In the following example, the `example` Lambda function is registered using the `enabled`, `payload-passthrough`, and `invocation-mode` tags:  
 
 ```hcl
 resource "aws_lambda_function" "example" {
@@ -217,7 +214,7 @@ The following tags are supported. In all cases, the `<PREFIX>` should be
 | `<PREFIX>/aliases` | This tag specifies a `+`-separated string of Lambda aliases that will be registered into Consul. If this is set to `dev+staging+prod`, the `dev`, `staging`, and `prod` aliases of the Lambda function will be registered into Consul. |
 
 ## Manual Configuration
-
+You can manually register Lambda functions if you are unable to automate the process using the Lambda registrator. 
 ### Register the Service
 
 `<SERVICE_NAME>` specifies the Consul service name for the Lambda function.
@@ -236,25 +233,28 @@ Replace `<SERVICE_NAME>` and store the following in `lambda.json`:
 }
 ```
 
-Run `curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register`
-to register the service.
+1. Send the configuration to the `catalog/register` API endpoint to register the service, for example:
+    ```shell-session
+    $ `curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register`
+    ```
 
-### Store the `service-defaults` Config Entry
-
-Store the following in `lambda-service-defaults.hcl`:
-```hcl
-Kind = "service-defaults"
-Name = "lambda"
-Protocol  = "http"
-Meta = {
-  "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
-  "serverless.consul.hashicorp.com/v1alpha1/lambda/arn" = "<<INSERT ARN HERE>"
-  "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthroughgh" = "true"
-  "serverless.consul.hashicorp.com/v1alpha1/lambda/region" = "us-east-2"
-}
-```
-
-Store the configuration with `consul config write lambda-service-defaults.hcl`.
+1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `Meta` field (see [Supported `Meta` Fields](#supported-meta-fields). The following example creates a `service-defaults` configuration entry named `lambda`:
+    <CodeBlockConfig filename="lambda-service-defaults.hcl">
+    ```hcl
+    Kind = "service-defaults"
+    Name = "lambda"
+    Protocol  = "http"
+    Meta = {
+      "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
+      "serverless.consul.hashicorp.com/v1alpha1/lambda/arn" = "<<INSERT ARN HERE>"
+      "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthroughgh" = "true"
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/region" = "us-east-2"
+    }
+    ```
+1. Issue the `consul config write` command to store the configuration entry. For example: 
+   ```shell-session
+   $ `consul config write lambda-service-defaults.hcl`
+    ````
 
 ### Supported `Meta` Fields
 

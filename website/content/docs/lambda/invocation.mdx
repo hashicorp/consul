@@ -40,12 +40,12 @@ The following diagram shows the invocation procedure:
 You can invoke Lambda functions directly from a service's Connect proxy.
 This method has the following limitations:
 - Intentions are unsupported. Consul enforces intentions by validating the client certificates presented when a connection is received. Lambda does not support client certificate validation, which prevents Consul from supporting intentions using this method.
-- Transparent proxies are unsupported - Lambda services are not
-  registered to a proxy, so transparent proxying is not supported.
+- Transparent proxies are unsupported. This is because Lambda services are not
+  registered to a proxy.
 
-This approach is secure because the correct AWS IAM permissions are required to invoke Lambda functions. Additionally, invocation takes place over Amazon’s TLS. The Envoy sidecar proxy must have the correct AWS IAM credentials to invoke the function.
-You can define the credentials in environment variables, EC2 metadata or ECS
-task metadata.
+This method is secure because AWS IAM permissions is required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources. 
+
+The Envoy sidecar proxy must have the correct AWS IAM credentials to invoke the function. You can define the credentials in environment variables, EC2 metadata, or ECS task metadata.
 
 The following diagram shows the invocation procedure:
 

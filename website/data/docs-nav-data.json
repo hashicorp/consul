@@ -751,11 +751,11 @@
         "path": "lambda"
       },
       {
-        "title": "Registration",
+        "title": "Register Lambda Functions",
         "path": "lambda/registration"
       },
       {
-        "title": "Invocation",
+        "title": "Invoke Lambda Functions",
         "path": "lambda/invocation"
       }
     ]
