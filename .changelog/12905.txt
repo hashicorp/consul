@@ -1,0 +1,3 @@
+```release-note:improvement
+middleware: RequestRecorder records service RPC calls as a decimal number when when are <1ms.
+```

@@ -224,33 +224,9 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
-	})
-
-	t.Run("RPC calls with elapsed time below 1ms are reported as decimal", func(t *testing.T) {
-		metricsPrefix := "new_rpc_metrics_3"
-		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
-		hcl := fmt.Sprintf(`
-		telemetry = {
-			prometheus_retention_time = "5s"
-			disable_hostname = true
-			metrics_prefix = "%s"
-			prefix_filter = ["+%s"]
-		}
-		`, metricsPrefix, allowRPCMetricRule)
-
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
-		defer a.Shutdown()
-
-		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
-		require.NoError(t, err)
-
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
-
+		// make sure rpc calls with elapsed time below 1ms are reported as decimal
 		assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
 	})
-
 }
 
 // TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus adds testing around
