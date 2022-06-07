@@ -101,8 +101,17 @@ func (s *ServiceIntentionSourceIndex) FromObject(obj interface{}) (bool, [][]byt
 
 	vals := make([][]byte, 0, len(ixnEntry.Sources))
 	for _, src := range ixnEntry.Sources {
-		sn := src.SourceServiceName()
-		vals = append(vals, []byte(sn.String()+"\x00"))
+		peer := src.Peer
+		if peer == "" {
+			peer = structs.LocalPeerKeyword
+		}
+		sn := src.SourceServiceName().String()
+
+		// add 2 for null separator after each string
+		buf := newIndexBuilder(len(peer) + len(sn) + 2)
+		buf.String(peer)
+		buf.String(sn)
+		vals = append(vals, buf.Bytes())
 	}
 
 	if len(vals) == 0 {
