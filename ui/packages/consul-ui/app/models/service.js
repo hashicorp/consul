@@ -36,6 +36,7 @@ export default class Service extends Model {
   @attr('string') Namespace;
   @attr('string') Partition;
   @attr('string') Kind;
+  @attr('string') PeerName;
   @attr('number') ChecksPassing;
   @attr('number') ChecksCritical;
   @attr('number') ChecksWarning;
