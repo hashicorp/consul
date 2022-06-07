@@ -86,6 +86,7 @@ Defines the Consul checks for the service. Each check may contain these fields.
 | `method` | `string` | optional | Specifies the HTTP method to be used for an HTTP check. When no value is specified, `GET` is used.  |
 | `name` | `string` | optional | The name of the check.  |
 | `notes` | `string` | optional | Specifies arbitrary information for humans. This is not used by Consul internally.  |
+| `os_service` | `string` | optional | Specifies an `OS Service` check. Must be the name of the service which status will be checked every `interval`.  |
 | `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or`null`. |
 | `successBeforePassing` | `integer` | optional | Specifies the number of consecutive successful results required before check status transitions to passing.  |
 | `tcp` | `string` | optional | Specifies this is a TCP check. Must be an IP/hostname plus port to which a TCP connection is made every `interval`.  |
