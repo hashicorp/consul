@@ -405,7 +405,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 					Partition: gs.Service.PartitionOrDefault(),
 					Name:      gs.Service.Name,
 				}
-				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)
+				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination, structs.IntentionTargetService)
 				if err != nil {
 					return err
 				}

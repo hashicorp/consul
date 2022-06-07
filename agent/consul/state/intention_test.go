@@ -1533,7 +1533,7 @@ func TestStore_IntentionMatchOne_table(t *testing.T) {
 					Namespace: "default",
 					Name:      query,
 				}
-				_, matches, err := s.IntentionMatchOne(nil, entry, typ)
+				_, matches, err := s.IntentionMatchOne(nil, entry, typ, structs.IntentionTargetService)
 				require.NoError(t, err)
 
 				// Verify matches
@@ -1873,7 +1873,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 				Partition: acl.DefaultPartitionName,
 				Name:      tc.src,
 			}
-			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource, structs.IntentionTargetService)
 			if err != nil {
 				require.NoError(t, err)
 			}

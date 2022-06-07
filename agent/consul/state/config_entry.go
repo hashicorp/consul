@@ -356,11 +356,15 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			if gsKind == structs.GatewayServiceKindDestination {
 				gsKind = structs.GatewayServiceKindUnknown
 			}
-			if err := checkGatewayWildcardsAndUpdate(tx, idx, &structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}, gsKind); err != nil {
+			serviceName := structs.NewServiceName(c.GetName(), c.GetEnterpriseMeta())
+			if err := checkGatewayWildcardsAndUpdate(tx, idx, &serviceName, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
-			if err := checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: c.GetName(), EnterpriseMeta: *c.GetEnterpriseMeta()}, gsKind); err != nil {
+			if err := checkGatewayAndUpdate(tx, idx, &serviceName, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := cleanupKindServiceName(tx, idx, serviceName, structs.ServiceKindDestination); err != nil {
+				return fmt.Errorf("failed to cleanup service name: \"%s\"; err: %v", serviceName, err)
 			}
 		}
 	}
@@ -421,6 +425,10 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			}
 			if err := checkGatewayAndUpdate(tx, idx, &sn, gsKind); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+
+			if err := upsertKindServiceName(tx, idx, structs.ServiceKindDestination, sn); err != nil {
+				return fmt.Errorf("failed to persist service name: %v", err)
 			}
 		}
 	}

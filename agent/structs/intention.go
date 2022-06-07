@@ -494,6 +494,15 @@ const (
 	IntentionSourceConsul IntentionSourceType = "consul"
 )
 
+type IntentionTargetType string
+
+const (
+	// IntentionTargetService is a service within the Consul catalog.
+	IntentionTargetService IntentionTargetType = "service"
+	// IntentionTargetDestination is a destination defined through a service-default config entry.
+	IntentionTargetDestination IntentionTargetType = "destination"
+)
+
 // Intentions is a list of intentions.
 type Intentions []*Intention
 

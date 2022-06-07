@@ -1178,6 +1178,11 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindDestination is a Destination  for the Connect feature.
+	// This service allows external traffic to exit the mesh through a terminating gateway
+	//based on centralized configuration.
+	ServiceKindDestination ServiceKind = "destination"
 )
 
 // Type to hold a address and port of a service

@@ -764,7 +764,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		Partition: query.SourcePartition,
 		Name:      query.SourceName,
 	}
-	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource, structs.IntentionTargetService)
 	if err != nil {
 		return fmt.Errorf("failed to query intentions for %s/%s", query.SourceNS, query.SourceName)
 	}
