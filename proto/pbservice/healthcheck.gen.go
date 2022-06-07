@@ -29,6 +29,7 @@ func CheckTypeToStructs(s *CheckType, t *structs.CheckType) {
 	t.Shell = s.Shell
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
+	t.OSService = s.OSService
 	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Timeout = structs.DurationFromProto(s.Timeout)
@@ -66,6 +67,7 @@ func CheckTypeFromStructs(t *structs.CheckType, s *CheckType) {
 	s.Shell = t.Shell
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
+	s.OSService = t.OSService
 	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Timeout = structs.DurationToProto(t.Timeout)

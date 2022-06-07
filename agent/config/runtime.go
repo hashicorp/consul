@@ -434,6 +434,7 @@ type RuntimeConfig struct {
 	//     tls_skip_verify = (true|false)
 	//     timeout = "duration"
 	//     ttl = "duration"
+	//     os_service = string
 	//     success_before_passing = int
 	//     failures_before_warning = int
 	//     failures_before_critical = int

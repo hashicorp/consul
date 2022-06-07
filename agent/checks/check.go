@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1045,6 +1046,99 @@ func (c *CheckGRPC) Stop() {
 		c.stop = true
 		close(c.stopCh)
 	}
+}
+
+type CheckOSService struct {
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
+	OSService     string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        hclog.Logger
+	StatusHandler *StatusHandler
+	Client        *OSServiceClient
+
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+	stopWg   sync.WaitGroup
+}
+
+func (c *CheckOSService) CheckType() structs.CheckType {
+	return structs.CheckType{
+		CheckID:   c.CheckID.ID,
+		OSService: c.OSService,
+		Interval:  c.Interval,
+		Timeout:   c.Timeout,
+	}
+}
+
+func (c *CheckOSService) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	c.stopWg.Add(1)
+	go c.run()
+}
+
+func (c *CheckOSService) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+
+	// Wait for the c.run() goroutine to complete before returning.
+	c.stopWg.Wait()
+}
+
+func (c *CheckOSService) run() {
+	defer c.stopWg.Done()
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+func (c *CheckOSService) doCheck() (string, error) {
+
+	target := c.OSService
+	if c.OSService != "" {
+		target = c.OSService
+	}
+
+	err := c.Client.Check(target)
+	if err == nil {
+		return api.HealthPassing, nil
+	}
+	if errors.Is(err, ErrOSServiceStatusCritical) {
+		return api.HealthCritical, err
+	}
+
+	return api.HealthWarning, err
+}
+
+func (c *CheckOSService) check() {
+	var out string
+	status, err := c.doCheck()
+	if err != nil {
+		c.Logger.Debug("Check failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		out = err.Error()
+	}
+	c.StatusHandler.updateCheck(c.CheckID, status, out)
 }
 
 // StatusHandler keep tracks of successive error/success counts and ensures
