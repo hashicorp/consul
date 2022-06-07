@@ -67,7 +67,7 @@ If you intend to invoke Lambda services through a terminating gateway, the gatew
 
 To register a Lambda service with a terminating gateway, add the service to the
 `Services` field of the terminating gateway's `terminating-gateway`
-configuration entry. 
+configuration entry.
 
 ### Optional: Run a Mesh Gateway
 
@@ -110,14 +110,14 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 1. Create a Terraform configuration and specify the `lambda-registrator` module. In the following example, the Lambda registrator is deployed to `https://consul.example.com:8501`. Refer to the Lambda registrator module documentation for additional usage information:
    ```hcl
-       module "lambda-registrator" {
-           source  = "hashicorp/consul-lambda-registrator/aws//modules/lambda-registrator"
-           name = "consul-lambda-registrator"
-           consul_http_addr = "https://consul.example.com:8501"
-           ca_cert_path = aws_ssm_parameter.ca-cert.name
-           http_token_path = aws_ssm_parameter.acl-token.name
-           }
-     ```
+   module "lambda-registrator" {
+       source  = "hashicorp/consul-lambda-registrator/aws//modules/lambda-registrator"
+       name = "consul-lambda-registrator"
+       consul_http_addr = "https://consul.example.com:8501"
+       ca_cert_path = aws_ssm_parameter.ca-cert.name
+       http_token_path = aws_ssm_parameter.acl-token.name
+   }
+   ```
 
 1. Deploy Lambda registrator with `terraform apply`.
 
@@ -221,23 +221,27 @@ The following tags are supported. In all cases, the `<PREFIX>` should be
 You can manually register Lambda functions if you are unable to automate the process using the Lambda registrator.
 1. Create a configuration for registering the service. You can copy the following example and replace `<SERVICE_NAME>` with your Consul service name for the Lambda function:
     <CodeBlockConfig filename="lambda.json">
+
     ```json
     {
-          "Node": "lambdas",
-          "SkipNodeUpdate": true,
-          "NodeMeta": {
-            "external-node": "true",
-            "external-probe": "true"
-          },
-          "Service": {
-            "Service": "<SERVICE_NAME>"
-          }
-        }
+      "Node": "lambdas",
+      "SkipNodeUpdate": true,
+      "NodeMeta": {
+        "external-node": "true",
+        "external-probe": "true"
+      },
+      "Service": {
+        "Service": "<SERVICE_NAME>"
+      }
+    }
     ```
+
+    </CodeBlockConfig>
+
 1. Save the configuration to `lambda.json`.
 1. Send the configuration to the `catalog/register` API endpoint to register the service, for example:
     ```shell-session
-    $ `curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register`
+    $ curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register
     ```
 
 1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `Meta` field (see [Supported `Meta` Fields](#supported-meta-fields). The following example creates a `service-defaults` configuration entry named `lambda`:
@@ -260,7 +264,7 @@ You can manually register Lambda functions if you are unable to automate the pro
 
 1. Issue the `consul config write` command to store the configuration entry. For example:
    ```shell-session
-   $ `consul config write lambda-service-defaults.hcl`
+   $ consul config write lambda-service-defaults.hcl
     ````
 
 ### Supported `Meta` Fields
