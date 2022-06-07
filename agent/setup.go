@@ -202,6 +202,13 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		},
 	}
 
+	serverGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"server", "isLeader"},
+			Help: "Tracks if the server is a leader.",
+		},
+	}
+
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -214,6 +221,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		CertExpirationGauges,
 		Gauges,
 		raftGauges,
+		serverGauges,
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc
