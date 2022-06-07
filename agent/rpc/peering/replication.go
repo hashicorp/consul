@@ -247,7 +247,7 @@ func (s *Service) handleUpdateService(
 
 	structsNodes, err := pbNodes.CheckServiceNodesToStruct()
 	if err != nil {
-		return fmt.Errorf("failed to convert protobuf instances to structs")
+		return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
 	}
 
 	// Normalize the data into a convenient form for operation.
@@ -300,7 +300,7 @@ func (s *Service) handleUpdateService(
 		// Missing nodes are not assumed to be deleted because there may be other service names
 		// registered on them.
 		// Inside we also track a map of node checks associated with the node.
-		unusedNodes = make(map[types.NodeID]struct{})
+		unusedNodes = make(map[string]struct{})
 
 		// deletedNodeChecks tracks node checks that were not present in the latest response.
 		// A single node check will be attached to all service instances of a node, so this
@@ -309,7 +309,7 @@ func (s *Service) handleUpdateService(
 	)
 	for _, csn := range storedInstances {
 		if _, ok := snap.Nodes[csn.Node.ID]; !ok {
-			unusedNodes[csn.Node.ID] = struct{}{}
+			unusedNodes[string(csn.Node.ID)] = struct{}{}
 
 			// Since the node is not in the snapshot we can know the associated service
 			// instance is not in the snapshot either, since a service instance can't
@@ -322,7 +322,7 @@ func (s *Service) handleUpdateService(
 				PeerName:       peerName,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to deregister service: %w", err)
+				return fmt.Errorf("failed to deregister service %q: %w", csn.Service.CompoundServiceID(), err)
 			}
 
 			// We can't know if a node check was deleted from the exporting cluster
@@ -342,7 +342,8 @@ func (s *Service) handleUpdateService(
 				PeerName:       peerName,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to deregister service: %w", err)
+				ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/service_id:%s", csn.Service.PartitionOrDefault(), peerName, csn.Node.Node, csn.Service.ID)
+				return fmt.Errorf("failed to deregister service %q: %w", ident, err)
 			}
 
 			// When a service is deleted all associated checks also get deleted as a side effect.
@@ -374,7 +375,8 @@ func (s *Service) handleUpdateService(
 					PeerName:       peerName,
 				})
 				if err != nil {
-					return fmt.Errorf("failed to deregister check: %w", err)
+					ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/check_id:%s", chk.PartitionOrDefault(), peerName, chk.Node, chk.CheckID)
+					return fmt.Errorf("failed to deregister check %q: %w", ident, err)
 				}
 			}
 		}
@@ -382,20 +384,23 @@ func (s *Service) handleUpdateService(
 
 	// Delete all deduplicated node checks.
 	for chk := range deletedNodeChecks {
+		nodeMeta := structs.NodeEnterpriseMetaInPartition(sn.PartitionOrDefault())
 		err := s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
 			Node:           chk.node,
 			CheckID:        chk.checkID,
-			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(sn.PartitionOrDefault()),
+			EnterpriseMeta: *nodeMeta,
 			PeerName:       peerName,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to deregister check: %w", err)
+			ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/check_id:%s", nodeMeta.PartitionOrDefault(), peerName, chk.node, chk.checkID)
+			return fmt.Errorf("failed to deregister node check %q: %w", ident, err)
 		}
 	}
 
 	// Delete any nodes that do not have any other services registered on them.
 	for node := range unusedNodes {
-		_, ns, err := s.Backend.Store().NodeServices(nil, string(node), &sn.EnterpriseMeta, peerName)
+		nodeMeta := structs.NodeEnterpriseMetaInPartition(sn.PartitionOrDefault())
+		_, ns, err := s.Backend.Store().NodeServices(nil, node, nodeMeta, peerName)
 		if err != nil {
 			return fmt.Errorf("failed to query services on node: %w", err)
 		}
@@ -406,11 +411,13 @@ func (s *Service) handleUpdateService(
 
 		// All services on the node were deleted, so the node is also cleaned up.
 		err = s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
-			Node:     string(node),
-			PeerName: peerName,
+			Node:           node,
+			PeerName:       peerName,
+			EnterpriseMeta: *nodeMeta,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to deregister node: %w", err)
+			ident := fmt.Sprintf("partition:%s/peer:%s/node:%s", nodeMeta.PartitionOrDefault(), peerName, node)
+			return fmt.Errorf("failed to deregister node %q: %w", ident, err)
 		}
 	}
 	return nil

@@ -1480,7 +1480,6 @@ func TestHandleUpdateService(t *testing.T) {
 							Node:      "node-foo",
 							Partition: defaultMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
-							Address:   "10.0.0.1",
 						},
 						Service: &structs.NodeService{
 							ID:             "api-2",
