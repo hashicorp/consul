@@ -52,6 +52,7 @@
     <span>
       {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'instance' without-count=true}}
     </span>
+    <Consul::Peer @item={{item}} />
   {{/if}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <span data-test-associated-service-count>
