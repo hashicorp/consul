@@ -225,7 +225,7 @@ func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *str
 
 func configIntentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet, matchEntry structs.IntentionMatchEntry, matchType structs.IntentionMatchType, destinationType structs.IntentionTargetType) (uint64, structs.Intentions, error) {
 	switch matchType {
-	// destination type is only relevant for Source match, as destinations can only be targets
+	// targetType is only relevant for Source matches as egress Destinations can only be Intention Destinations in the mesh
 	case structs.IntentionMatchSource:
 		return readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta(), destinationType)
 	case structs.IntentionMatchDestination:
