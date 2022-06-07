@@ -93,6 +93,10 @@ func (x ReplicationMessage_Response_Operation) GoString() string {
 	return x.String()
 }
 
+func (x PeeringState) GoString() string {
+	return x.String()
+}
+
 func (r *TrustBundleReadRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		// TODO(peering): Revisit whether this is the token to use once request types accept a token.
