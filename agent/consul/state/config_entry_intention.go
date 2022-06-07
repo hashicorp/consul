@@ -129,8 +129,15 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 	if !ok {
 		return nil, fmt.Errorf("argument must be a structs.ServiceID: %#v", args[0])
 	}
+	// Intention queries cannot use a peered service as a source
+	peer := structs.LocalPeerKeyword
+	sn := arg.String()
+	// add 2 for null separator after each string
+	buf := newIndexBuilder(len(peer) + len(sn) + 2)
+	buf.String(peer)
+	buf.String(sn)
 	// Add the null character as a terminator
-	return []byte(arg.String() + "\x00"), nil
+	return buf.Bytes(), nil
 }
 
 func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
