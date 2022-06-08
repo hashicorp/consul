@@ -9,7 +9,7 @@
       {{css-prop '--paged-row-height' returns=pager.rowHeight}}
       {{css-prop 'max-height' returns=pager.maxHeight}}
       class={{class-map
-        (array 'paged-collection-scroll' (contains pager.type (array 'virtual-scroll' 'native-scroll')))
+        (array 'paged-collection-scroll' (includes pager.type (array 'virtual-scroll' 'native-scroll')))
       }}
       ...attributes
     >
