@@ -290,7 +290,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 			if src.SourceServiceName() == sn {
 				kind := structs.GatewayServiceKindService
 				entMeta := entry.DestinationServiceName().EnterpriseMeta
-				if entMeta.Namespace != acl.WildcardName && entMeta.Partition != acl.WildcardName {
+				if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
 					kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
 					if err != nil {
 						return nil, err
