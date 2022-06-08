@@ -113,7 +113,7 @@
     "ember-cli-yadda": "^0.6.0",
     "ember-collection": "^1.0.0-alpha.9",
     "ember-compatibility-helpers": "^1.2.5",
-    "ember-composable-helpers": "~4.0.0",
+    "ember-composable-helpers": "^5.0.0",
     "ember-data": "~3.20.4",
     "ember-data-model-fragments": "5.0.0-beta.0",
     "ember-decorators": "^6.1.1",
