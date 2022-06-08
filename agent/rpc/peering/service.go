@@ -140,7 +140,6 @@ type Store interface {
 // Apply provides a write-only interface for persisting Peering data.
 type Apply interface {
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
-	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
@@ -395,7 +394,35 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 	// TODO(peering): ACL check request token
 
 	// TODO(peering): handle blocking queries
-	err = s.Backend.Apply().PeeringDelete(req)
+
+	q := state.Query{
+		Value:          strings.ToLower(req.Name),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	}
+	_, existing, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil || !existing.IsActive() {
+		// Return early when the Peering doesn't exist or is already marked for deletion.
+		// We don't return nil because the pb will fail to marshal.
+		return &pbpeering.PeeringDeleteResponse{}, nil
+	}
+	// We are using a write request due to needing to perform a deferred deletion.
+	// The peering gets marked for deletion by setting the DeletedAt field,
+	// and a leader routine will handle deleting the peering.
+	writeReq := &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			// We only need to include the name and partition for the peering to be identified.
+			// All other data associated with the peering can be discarded because once marked
+			// for deletion the peering is effectively gone.
+			Name:      req.Name,
+			Partition: req.Partition,
+			DeletedAt: structs.TimeToProto(time.Now().UTC()),
+		},
+	}
+	err = s.Backend.Apply().PeeringWrite(writeReq)
 	if err != nil {
 		return nil, err
 	}

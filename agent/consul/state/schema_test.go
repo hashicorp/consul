@@ -56,6 +56,8 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableTombstones: testIndexerTableTombstones,
 		// config
 		tableConfigEntries: testIndexerTableConfigEntries,
+		// peerings
+		tablePeering: testIndexerTablePeering,
 	}
 	addEnterpriseIndexerTestCases(testcases)
 

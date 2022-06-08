@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // PeeringState enumerates all the states a peering can be in
@@ -36,6 +37,8 @@ type Peering struct {
 	Name string
 	// Partition is the local partition connecting to the peer.
 	Partition string `json:",omitempty"`
+	// DeletedAt is the time when the Peering was marked for deletion
+	DeletedAt *time.Time `json:",omitempty" alias:"deleted_at"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 	// State is one of the valid PeeringState values to represent the status of

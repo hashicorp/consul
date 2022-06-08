@@ -4,9 +4,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
@@ -175,6 +177,15 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	}
 }
 
+func (p *Peering) IsActive() bool {
+	if p == nil || p.DeletedAt == nil {
+		return true
+	}
+
+	// The minimum protobuf timestamp is the Unix epoch rather than go's zero.
+	return structs.IsZeroProtoTime(p.DeletedAt)
+}
+
 func (p *Peering) ToAPI() *api.Peering {
 	var t api.Peering
 	PeeringToAPI(p, &t)
@@ -251,4 +262,19 @@ func (r *TrustBundleListByServiceRequest) CacheInfo() cache.RequestInfo {
 	}
 
 	return info
+}
+
+func TimePtrFromProto(s *timestamp.Timestamp) *time.Time {
+	if s == nil {
+		return nil
+	}
+	t := structs.TimeFromProto(s)
+	return &t
+}
+
+func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
+	if s == nil {
+		return nil
+	}
+	return structs.TimeToProto(*s)
 }

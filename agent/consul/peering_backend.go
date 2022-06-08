@@ -148,11 +148,6 @@ func (a *peeringApply) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	return err
 }
 
-func (a *peeringApply) PeeringDelete(req *pbpeering.PeeringDeleteRequest) error {
-	_, err := a.srv.raftApplyProtobuf(structs.PeeringDeleteType, req)
-	return err
-}
-
 // TODO(peering): This needs RPC metrics interceptor since it's not triggered by an RPC.
 func (a *peeringApply) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error {
 	_, err := a.srv.raftApplyProtobuf(structs.PeeringTerminateByIDType, req)

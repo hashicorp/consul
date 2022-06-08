@@ -115,3 +115,14 @@ func indexFromString(raw interface{}) ([]byte, error) {
 	b.String(strings.ToLower(q))
 	return b.Bytes(), nil
 }
+
+func indexDeletedFromBoolQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(BoolQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
+	}
+
+	var b indexBuilder
+	b.Bool(q.Value)
+	return b.Bytes(), nil
+}

@@ -73,6 +73,7 @@ func PeeringToAPI(s *Peering, t *api.Peering) {
 	t.ID = s.ID
 	t.Name = s.Name
 	t.Partition = s.Partition
+	t.DeletedAt = TimePtrFromProto(s.DeletedAt)
 	t.Meta = s.Meta
 	t.State = PeeringStateToAPI(s.State)
 	t.PeerID = s.PeerID
@@ -89,6 +90,7 @@ func PeeringFromAPI(t *api.Peering, s *Peering) {
 	s.ID = t.ID
 	s.Name = t.Name
 	s.Partition = t.Partition
+	s.DeletedAt = TimePtrToProto(t.DeletedAt)
 	s.Meta = t.Meta
 	s.State = PeeringStateFromAPI(t.State)
 	s.PeerID = t.PeerID
