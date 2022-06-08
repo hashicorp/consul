@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
 )
 
@@ -49,17 +50,26 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 
 // Check if the target of this GrpcHealthProbe is healthy
 // If nil is returned, target is healthy, otherwise target is not healthy
-func (probe *GrpcHealthProbe) Check(target string) error {
+func (probe *GrpcHealthProbe) Check(target string, header map[string][]string) error {
 	serverAndService := strings.SplitN(target, "/", 2)
 	serverWithScheme := fmt.Sprintf("%s:///%s", resolver.GetDefaultScheme(), serverAndService[0])
 
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	defer cancel()
 
+	var headerMD map[string]string = make(map[string]string)
+	for k, v := range header {
+		headerMD[k] = strings.Join(v, ", ")
+	}
+
+	md := metadata.New(headerMD)
+	ctx = metadata.NewOutgoingContext(context.Background(), md)
+
 	connection, err := grpc.DialContext(ctx, serverWithScheme, probe.dialOptions...)
 	if err != nil {
 		return err
 	}
+
 	defer connection.Close()
 
 	client := hv1.NewHealthClient(connection)

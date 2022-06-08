@@ -975,6 +975,7 @@ type CheckGRPC struct {
 	TLSClientConfig *tls.Config
 	Logger          hclog.Logger
 	StatusHandler   *StatusHandler
+	Header          map[string][]string
 
 	probe    *GrpcHealthProbe
 	stop     bool
@@ -993,6 +994,7 @@ func (c *CheckGRPC) CheckType() structs.CheckType {
 		ProxyGRPC: c.ProxyGRPC,
 		Interval:  c.Interval,
 		Timeout:   c.Timeout,
+		Header:    c.Header,
 	}
 }
 
@@ -1030,7 +1032,9 @@ func (c *CheckGRPC) check() {
 		target = c.ProxyGRPC
 	}
 
-	err := c.probe.Check(target)
+	header := c.Header
+
+	err := c.probe.Check(target, header)
 	if err != nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 	} else {
