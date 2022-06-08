@@ -28,7 +28,7 @@ as |route|>
   @src={{uri 'settings://consul:theme'}}
 as |source|>
 {{#each-in source.data as |key value|}}
-  {{#if (and value (contains key (array "color-scheme" "contrast")))}}
+  {{#if (and value (includes key (array "color-scheme" "contrast")))}}
     {{document-attrs class=(concat 'prefers-' key '-' value)}}
   {{/if}}
 {{/each-in}}
