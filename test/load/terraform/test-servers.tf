@@ -54,6 +54,9 @@ resource "aws_instance" "test-server" {
   vpc_security_group_ids      = toset([aws_security_group.test-servers.id])
   associate_public_ip_address = var.test_public_ip
   subnet_id                   = (module.vpc.public_subnets)[0]
+  tags = {
+    Name = "consul-load-generator-server-${local.random_name}"
+  }
   provisioner "remote-exec" {
     inline = [
       "export LB_ENDPOINT=${module.alb.this_lb_dns_name}",
