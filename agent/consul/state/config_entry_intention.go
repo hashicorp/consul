@@ -283,12 +283,11 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 		return nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
-
+	kind := structs.GatewayServiceKindService
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				kind := structs.GatewayServiceKindService
 				entMeta := entry.DestinationServiceName().EnterpriseMeta
 				if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
 					kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
