@@ -54,16 +54,16 @@ func (probe *GrpcHealthProbe) Check(target string, header map[string][]string) e
 	serverAndService := strings.SplitN(target, "/", 2)
 	serverWithScheme := fmt.Sprintf("%s:///%s", resolver.GetDefaultScheme(), serverAndService[0])
 
-	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
-	defer cancel()
-
 	var headerMD map[string]string = make(map[string]string)
 	for k, v := range header {
 		headerMD[k] = strings.Join(v, ", ")
 	}
 
 	md := metadata.New(headerMD)
-	ctx = metadata.NewOutgoingContext(context.Background(), md)
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
+	defer cancel()
 
 	connection, err := grpc.DialContext(ctx, serverWithScheme, probe.dialOptions...)
 	if err != nil {
