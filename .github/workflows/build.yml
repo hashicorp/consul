@@ -7,7 +7,6 @@ on:
       # Push events on the main branch
       - main
       - release/1.12.x
-      - backport/CTIA-17-verify-linux-packages/1.12
 
 env:
   PKG_NAME: consul
