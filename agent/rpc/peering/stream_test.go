@@ -990,7 +990,11 @@ func (b *testStreamBackend) DecodeToken([]byte) (*structs.PeeringToken, error) {
 	return nil, nil
 }
 
-func (b *testStreamBackend) EnterpriseCheckPartitions(partition string) error {
+func (b *testStreamBackend) EnterpriseCheckPartitions(_ string) error {
+	return nil
+}
+
+func (b *testStreamBackend) EnterpriseCheckNamespaces(_ string) error {
 	return nil
 }
 

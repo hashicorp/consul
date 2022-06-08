@@ -100,6 +100,8 @@ type Backend interface {
 
 	EnterpriseCheckPartitions(partition string) error
 
+	EnterpriseCheckNamespaces(namespace string) error
+
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 
 	// IsLeader indicates whether the consul server is in a leader state or not.
@@ -436,6 +438,9 @@ func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundl
 
 func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+	if err := s.Backend.EnterpriseCheckNamespaces(req.Namespace); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 

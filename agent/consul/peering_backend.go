@@ -112,6 +112,10 @@ func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {
 	return b.enterpriseCheckPartitions(partition)
 }
 
+func (b *peeringBackend) EnterpriseCheckNamespaces(namespace string) error {
+	return b.enterpriseCheckNamespaces(namespace)
+}
+
 func (b *peeringBackend) IsLeader() bool {
 	return b.srv.IsLeader()
 }
