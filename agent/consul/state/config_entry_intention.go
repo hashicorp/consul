@@ -288,10 +288,13 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
+				kind := structs.GatewayServiceKindService
 				entMeta := entry.DestinationServiceName().EnterpriseMeta
-				kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-				if err != nil {
-					return nil, err
+				if entMeta.Namespace != acl.WildcardName && entMeta.Partition != acl.WildcardName {
+					kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+					if err != nil {
+						return nil, err
+					}
 				}
 				switch targetType {
 				case structs.IntentionTargetService:
