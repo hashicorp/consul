@@ -283,18 +283,21 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 		return nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
-	kind := structs.GatewayServiceKindService
+
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		entMeta := entry.DestinationServiceName().EnterpriseMeta
+		// if we have a wildcard namespace or partition assume we are querying a service intention
+		// as destination intentions will never be queried as wildcard
+		kind := structs.GatewayServiceKindService
+		if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
+			kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+			if err != nil {
+				return nil, err
+			}
+		}
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				entMeta := entry.DestinationServiceName().EnterpriseMeta
-				if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
-					kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-					if err != nil {
-						return nil, err
-					}
-				}
 				switch targetType {
 				case structs.IntentionTargetService:
 					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
