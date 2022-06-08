@@ -6,7 +6,6 @@ on:
     branches:
     # Provide the release branch
       - release/1.10.x
-      - backport/CTIA-17-verify-linux-packages/explicitly-loyal-manatee
 
 env:
   PKG_NAME: consul
