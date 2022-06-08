@@ -190,7 +190,7 @@ Service registration requires that the [Consul token](/docs/nia/configuration#co
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
 | `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul.| `true` |
-| `service_name` | Optional | string | The service name for CTS. | `Consul-Terraform-Sync` |
+| `service_name` | Optional | string | The service name for CTS. | `consul-terraform-sync` |
 | `address` | Optional | string | The IP address or hostname for CTS. | IP address of the Consul agent node |
 | `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
