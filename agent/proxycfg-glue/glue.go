@@ -71,6 +71,12 @@ func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsName}
 }
 
+// CacheIntentionUpstreamsDestination satisfies the proxycfg.IntentionUpstreamsDestination interface
+// by sourcing data from the agent cache.
+func CacheIntentionUpstreamsDestination(c *cache.Cache) proxycfg.IntentionUpstreams {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsDestinationName}
+}
+
 // CacheInternalServiceDump satisfies the proxycfg.InternalServiceDump
 // interface by sourcing data from the agent cache.
 func CacheInternalServiceDump(c *cache.Cache) proxycfg.InternalServiceDump {

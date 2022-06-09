@@ -949,6 +949,7 @@ func NewTestDataSources() *TestDataSources {
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
 		Intentions:                      NewTestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
+		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
@@ -973,6 +974,7 @@ type TestDataSources struct {
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
 	Intentions                      *TestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
+	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
@@ -986,23 +988,24 @@ type TestDataSources struct {
 
 func (t *TestDataSources) ToDataSources() DataSources {
 	ds := DataSources{
-		CARoots:                t.CARoots,
-		CompiledDiscoveryChain: t.CompiledDiscoveryChain,
-		ConfigEntry:            t.ConfigEntry,
-		ConfigEntryList:        t.ConfigEntryList,
-		Datacenters:            t.Datacenters,
-		GatewayServices:        t.GatewayServices,
-		Health:                 t.Health,
-		HTTPChecks:             t.HTTPChecks,
-		Intentions:             t.Intentions,
-		IntentionUpstreams:     t.IntentionUpstreams,
-		InternalServiceDump:    t.InternalServiceDump,
-		LeafCertificate:        t.LeafCertificate,
-		PreparedQuery:          t.PreparedQuery,
-		ResolvedServiceConfig:  t.ResolvedServiceConfig,
-		ServiceList:            t.ServiceList,
-		TrustBundle:            t.TrustBundle,
-		TrustBundleList:        t.TrustBundleList,
+		CARoots:                       t.CARoots,
+		CompiledDiscoveryChain:        t.CompiledDiscoveryChain,
+		ConfigEntry:                   t.ConfigEntry,
+		ConfigEntryList:               t.ConfigEntryList,
+		Datacenters:                   t.Datacenters,
+		GatewayServices:               t.GatewayServices,
+		Health:                        t.Health,
+		HTTPChecks:                    t.HTTPChecks,
+		Intentions:                    t.Intentions,
+		IntentionUpstreams:            t.IntentionUpstreams,
+		IntentionUpstreamsDestination: t.IntentionUpstreamsDestination,
+		InternalServiceDump:           t.InternalServiceDump,
+		LeafCertificate:               t.LeafCertificate,
+		PreparedQuery:                 t.PreparedQuery,
+		ResolvedServiceConfig:         t.ResolvedServiceConfig,
+		ServiceList:                   t.ServiceList,
+		TrustBundle:                   t.TrustBundle,
+		TrustBundleList:               t.TrustBundleList,
 	}
 	t.fillEnterpriseDataSources(&ds)
 	return ds

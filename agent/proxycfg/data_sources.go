@@ -61,6 +61,10 @@ type DataSources struct {
 	// notification channel.
 	IntentionUpstreams IntentionUpstreams
 
+	// IntentionUpstreamsDestination provides intention-inferred upstream updates on a
+	// notification channel.
+	IntentionUpstreamsDestination IntentionUpstreamsDestination
+
 	// InternalServiceDump provides updates about a (gateway) service on a
 	// notification channel.
 	InternalServiceDump InternalServiceDump
@@ -111,7 +115,7 @@ type ConfigEntry interface {
 	Notify(ctx context.Context, req *structs.ConfigEntryQuery, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// ConfigEntry is the interface used to consume updates about a list of config
+// ConfigEntryList is the interface used to consume updates about a list of config
 // entries.
 type ConfigEntryList interface {
 	Notify(ctx context.Context, req *structs.ConfigEntryQuery, correlationID string, ch chan<- UpdateEvent) error
@@ -155,6 +159,12 @@ type Intentions interface {
 // IntentionUpstreams is the interface used to consume updates about upstreams
 // inferred from service intentions.
 type IntentionUpstreams interface {
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// IntentionUpstreamsDestination is the interface used to consume updates about upstreams destination
+// inferred from service intentions.
+type IntentionUpstreamsDestination interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 

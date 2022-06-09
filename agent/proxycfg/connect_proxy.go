@@ -116,6 +116,16 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if err != nil {
 			return snap, err
 		}
+		// When in transparent proxy we will infer upstreams from intentions with this source
+		err = s.dataSources.IntentionUpstreamsDestination.Notify(ctx, &structs.ServiceSpecificRequest{
+			Datacenter:     s.source.Datacenter,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			ServiceName:    s.proxyCfg.DestinationServiceName,
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		}, intentionUpstreamsDestinationID, s.ch)
+		if err != nil {
+			return snap, err
+		}
 	}
 
 	// Watch for updates to service endpoints for all upstreams
