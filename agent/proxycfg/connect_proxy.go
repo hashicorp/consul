@@ -28,6 +28,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 	snap.ConnectProxy.PreparedQueryEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
+	snap.ConnectProxy.DestinationsUpstream = make(map[UpstreamID]structs.ConfigEntry)
 	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
@@ -457,8 +458,15 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				return err
 			}
 		}
-	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID+":"):
-		// TODO (egress-gtw): add storing the upstream into a new table
+	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID):
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		pq := strings.TrimPrefix(u.CorrelationID, "DestinationConfigEntryID:")
+		uid := UpstreamIDFromString(pq)
+
+		snap.ConnectProxy.DestinationsUpstream[uid] = resp.Entry
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {

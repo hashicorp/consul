@@ -2451,6 +2451,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
+						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 0)
 						//TODO (egress-gtw): add more checks
 					},
 				},
@@ -2469,7 +2470,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
-						//TODO (egress-gtw): add more checks
+						require.True(t, snap.Valid(), "should still be valid")
+						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 1)
 					},
 				},
 			},
