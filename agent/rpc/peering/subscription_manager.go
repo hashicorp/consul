@@ -394,6 +394,7 @@ func (m *subscriptionManager) subscribeCARoots(
 				TrustDomain:       m.trustDomain,
 				RootPEMs:          rootPems,
 				ExportedPartition: partition,
+				// TODO(peering): revisit decision not to validate datacenter in RBAC
 			},
 		}
 	}

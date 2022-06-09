@@ -214,7 +214,6 @@ func intentionToIntermediateRBACForm(ixn *structs.Intention, isHTTP bool, bundle
 	}
 
 	// imported services will have addition metadata used to override SpiffeID creation
-	// TODO(peering): is this true? Can there be a race condition where the bundle is not yet replicated before xds runs?
 	if bundle != nil {
 		rixn.Source.exportedPartition = bundle.ExportedPartition
 		rixn.Source.trustDomain = bundle.TrustDomain
@@ -556,6 +555,8 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 // - (default/web, default/*) 		=> true,  because "all services in the default NS" includes "default/web"
 // - (default/*, */*)         		=> true,  "any service in any NS" includes "all services in the default NS"
 // - (default/default/*, other/*/*) => false, "any service in "other" partition" does NOT include services in the default partition"
+//
+// Peer and partition must be exact names and cannot be compared with wildcards.
 func ixnSourceMatches(tester, against rbacService) bool {
 	// We assume that we can't have the same intention twice before arriving
 	// here.

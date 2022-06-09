@@ -525,7 +525,8 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.ConnectProxy.Leaf != nil &&
 			s.ConnectProxy.IntentionsSet &&
-			s.ConnectProxy.MeshConfigSet
+			s.ConnectProxy.MeshConfigSet &&
+			s.ConnectProxy.PeeringTrustBundlesSet
 
 	case structs.ServiceKindTerminatingGateway:
 		return s.Roots != nil &&
