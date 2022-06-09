@@ -1,14 +1,8 @@
 #!/bin/bash
-SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
-pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
-SCRIPT_DIR=$(pwd)
-pushd ../.. > /dev/null
-SOURCE_DIR=$(pwd)
-popd > /dev/null
-pushd ../functions > /dev/null
-FN_DIR=$(pwd)
-popd > /dev/null
-popd > /dev/null
+readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
+readonly SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
+readonly SOURCE_DIR="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+readonly FN_DIR="$(dirname "${SCRIPT_DIR}")/functions"
 
 source "${SCRIPT_DIR}/functions.sh"
 
