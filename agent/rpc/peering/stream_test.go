@@ -619,12 +619,6 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 }
 
 func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
-	testStreamResources_Server_ServiceUpdates(t, true)
-}
-func TestStreamResources_Server_ServiceUpdates_EnableMeshGateways(t *testing.T) {
-	testStreamResources_Server_ServiceUpdates(t, false)
-}
-func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways bool) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
@@ -638,9 +632,8 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 	srv := NewService(
 		testutil.Logger(t),
 		Config{
-			Datacenter:             "dc1",
-			ConnectEnabled:         true,
-			DisableMeshGatewayMode: disableMeshGateways,
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
 		}, &testStreamBackend{
 			store: store,
 			pub:   publisher,
@@ -658,15 +651,6 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
-
-	lastIdx++
-	require.NoError(t, store.EnsureService(lastIdx, "foo", &structs.NodeService{
-		ID:      "mysql-sidecar-proxy",
-		Service: "mysql-sidecar-proxy",
-		Kind:    structs.ServiceKindConnectProxy,
-		Port:    5000,
-		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "mysql"},
-	}))
 
 	var (
 		mongoSN      = structs.NewServiceName("mongo", nil).String()
@@ -703,12 +687,14 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				// Roots tested in TestStreamResources_Server_CARootUpdates
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// no mongo instances exist
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
 				require.Nil(t, msg.GetResponse().Resource)
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// proxies can't export because no mesh gateway exists yet
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
@@ -722,6 +708,41 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				var nodes pbservice.IndexedCheckServiceNodes
 				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
 				require.Len(t, nodes.Nodes, 1)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// proxies can't export because no mesh gateway exists yet
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+		)
+	})
+
+	testutil.RunStep(t, "register mesh gateway to send proxy updates", func(t *testing.T) {
+		gateway := &structs.CheckServiceNode{Node: &structs.Node{Node: "mgw", Address: "10.1.1.1"},
+			Service: &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443},
+			// TODO: checks
+		}
+
+		lastIdx++
+		require.NoError(t, store.EnsureNode(lastIdx, gateway.Node))
+
+		lastIdx++
+		require.NoError(t, store.EnsureService(lastIdx, "mgw", gateway.Service))
+
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
+
+				var nodes pbservice.IndexedCheckServiceNodes
+				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				require.Len(t, nodes.Nodes, 1)
+
+				svid := "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo"
+				require.Equal(t, []string{svid}, nodes.Nodes[0].Service.Connect.PeerMeta.SpiffeID)
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
@@ -1196,9 +1217,11 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 		}
 	}
 
+	const timeout = 10 * time.Second
+
 	var out []*pbpeering.ReplicationMessage
 	for len(out) < num {
-		msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+		msg, err := client.RecvWithTimeout(timeout)
 		if err == io.EOF && msg == nil {
 			t.Fatalf("timed out with %d of %d events", len(out), num)
 		}

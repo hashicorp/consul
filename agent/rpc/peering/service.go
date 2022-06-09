@@ -48,8 +48,6 @@ func (e *errPeeringInvalidServerAddress) Error() string {
 type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
-	// TODO(peering): remove this when we're ready
-	DisableMeshGatewayMode bool
 }
 
 // Service implements pbpeering.PeeringService to provide RPC operations for
@@ -62,7 +60,6 @@ type Service struct {
 }
 
 func NewService(logger hclog.Logger, cfg Config, backend Backend) *Service {
-	cfg.DisableMeshGatewayMode = true
 	return &Service{
 		Backend: backend,
 		logger:  logger,
@@ -735,8 +732,7 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 		case update := <-subCh:
 			var resp *pbpeering.ReplicationMessage
 			switch {
-			case strings.HasPrefix(update.CorrelationID, subExportedService),
-				strings.HasPrefix(update.CorrelationID, subExportedProxyService):
+			case strings.HasPrefix(update.CorrelationID, subExportedService):
 				resp = makeServiceResponse(logger, update)
 
 			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
