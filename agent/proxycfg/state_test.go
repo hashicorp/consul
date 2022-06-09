@@ -1735,11 +1735,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages: []verificationStage{
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
-						meshConfigEntryID:    genVerifyMeshConfigWatch("dc1"),
-						rootsWatchID:         genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						meshConfigEntryID:               genVerifyMeshConfigWatch("dc1"),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1820,11 +1821,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Empty on initialization
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
-						meshConfigEntryID:    genVerifyMeshConfigWatch("dc1"),
-						rootsWatchID:         genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						meshConfigEntryID:               genVerifyMeshConfigWatch("dc1"),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1879,10 +1881,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Receiving an intention should lead to spinning up a discovery chain watch
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
-						rootsWatchID:         genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
 					},
 					events: []UpdateEvent{
 						{
@@ -2310,10 +2313,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					// Empty list of upstreams should clean up map keys
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
-						rootsWatchID:         genVerifyDCSpecificWatch("dc1"),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
 					},
 					events: []UpdateEvent{
 						{
@@ -2337,6 +2341,135 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Empty(t, snap.ConnectProxy.IntentionUpstreams)
 						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams)
 						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+					},
+				},
+			},
+		},
+		"transparent-proxy-handle-update-destination": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "api-proxy",
+				Service: "api-proxy",
+				Address: "10.0.1.1",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+					Mode:                   structs.ProxyModeTransparent,
+					Upstreams: structs.Upstreams{
+						{
+							CentrallyConfigured:  true,
+							DestinationName:      structs.WildcardSpecifier,
+							DestinationNamespace: structs.WildcardSpecifier,
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 6000,
+							},
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+					},
+				},
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				// Empty on initialization
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						meshConfigEntryID:               genVerifyMeshConfigWatch("dc1"),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
+
+						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
+						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
+
+						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
+						wcUID := NewUpstreamIDFromServiceName(wc)
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wcUID)
+					},
+				},
+				// Valid snapshot after roots, leaf, and intentions
+				{
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: leafWatchID,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						{
+							CorrelationID: intentionsWatchID,
+							Result:        TestIntentions(),
+							Err:           nil,
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									TransparentProxy: structs.TransparentProxyMeshConfig{},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Equal(t, issuedCert, snap.Leaf())
+						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
+						require.True(t, snap.ConnectProxy.MeshConfigSet)
+						require.NotNil(t, snap.ConnectProxy.MeshConfig)
+					},
+				},
+				// Receiving an intention should lead to spinning up a DestinationConfigEntryID
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						rootsWatchID:                    genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                     genVerifyLeafWatch("api", "dc1"),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: intentionUpstreamsDestinationID,
+							Result: &structs.IndexedServiceList{
+								Services: structs.ServiceList{
+									db,
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "should still be valid")
+						//TODO (egress-gtw): add more checks
+					},
+				},
+				// DestinationConfigEntryID updates should be stored
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						DestinationConfigEntryID + ":" + dbUID.String(): genVerifyConfigEntryWatch(structs.ServiceDefaults, db.Name, "dc1"),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: DestinationConfigEntryID + ":" + dbUID.String(),
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						//TODO (egress-gtw): add more checks
 					},
 				},
 			},
@@ -2376,9 +2509,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Empty on initialization
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
-						meshConfigEntryID:    genVerifyMeshConfigWatch("dc1"),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						meshConfigEntryID:               genVerifyMeshConfigWatch("dc1"),
 						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",
@@ -2476,8 +2610,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// be deleted from the snapshot.
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						intentionUpstreamsID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
+						intentionUpstreamsID:            genVerifyServiceSpecificRequest("api", "", "dc1", false),
+						intentionUpstreamsDestinationID: genVerifyServiceSpecificRequest("api", "", "dc1", false),
 						"discovery-chain:" + upstreamIDForDC2(dbUID).String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "db",
 							EvaluateInDatacenter: "dc2",

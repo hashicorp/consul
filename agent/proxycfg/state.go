@@ -40,6 +40,7 @@ const (
 	upstreamPeerWatchIDPrefix          = "upstream-peer:"
 	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	DestinationConfigEntryID           = "destination"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second

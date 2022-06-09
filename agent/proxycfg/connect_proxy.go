@@ -439,7 +439,26 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				delete(snap.ConnectProxy.DiscoveryChain, uid)
 			}
 		}
-
+	case u.CorrelationID == intentionUpstreamsDestinationID:
+		resp, ok := u.Result.(*structs.IndexedServiceList)
+		if !ok {
+			return fmt.Errorf("invalid type for response %T", u.Result)
+		}
+		// Get information about the entire service mesh.
+		for _, svc := range resp.Services {
+			err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
+				Kind:           structs.ServiceDefaults,
+				Name:           svc.Name,
+				Datacenter:     s.source.Datacenter,
+				QueryOptions:   structs.QueryOptions{Token: s.token},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+			}, DestinationConfigEntryID+":"+NewUpstreamIDFromServiceName(svc).String(), s.ch)
+			if err != nil {
+				return err
+			}
+		}
+	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID+":"):
+		// TODO (egress-gtw): add storing the upstream into a new table
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {
