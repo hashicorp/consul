@@ -1,3 +1,4 @@
+/* eslint no-console: ["error", { allow: ["debug"] }] */
 import { runInDebug } from '@ember/debug';
 
 // if we can't find the message, take the last part of the identifier and
