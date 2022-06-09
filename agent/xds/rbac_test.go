@@ -42,8 +42,8 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 	}
 
 	var (
-		nameWild        = structs.NewServiceName("*", nil)
-		nameWeb         = structs.NewServiceName("web", nil)
+		nameWild        = rbacService{ServiceName: structs.NewServiceName("*", nil)}
+		nameWeb         = rbacService{ServiceName: structs.NewServiceName("web", nil)}
 		permSlashPrefix = &structs.IntentionPermission{
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
@@ -159,7 +159,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			expect: []*rbacIntention{
 				{
 					Source: nameWild,
-					NotSources: []structs.ServiceName{
+					NotSources: []rbacService{
 						nameWeb,
 					},
 					Action:      intentionActionDeny,
@@ -231,7 +231,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 				},
 				{
 					Source: nameWild,
-					NotSources: []structs.ServiceName{
+					NotSources: []rbacService{
 						nameWeb,
 					},
 					Action:      intentionActionDeny,
@@ -295,7 +295,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 				},
 				{
 					Source: nameWild,
-					NotSources: []structs.ServiceName{
+					NotSources: []rbacService{
 						nameWeb,
 					},
 					Action:      intentionActionAllow,
@@ -350,7 +350,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			expect: []*rbacIntention{
 				{
 					Source: nameWild,
-					NotSources: []structs.ServiceName{
+					NotSources: []rbacService{
 						nameWeb,
 					},
 					Action:      intentionActionAllow,
@@ -372,7 +372,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http)
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http, nil)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
 			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
 
@@ -710,7 +710,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Run("network filter", func(t *testing.T) {
-				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow)
+				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, nil)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -720,7 +720,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, nil)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -851,21 +851,21 @@ func TestIxnSourceMatches(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%s cmp %s", tc.tester, tc.against), func(t *testing.T) {
 			matches := ixnSourceMatches(
-				structs.ServiceNameFromString(tc.tester),
-				structs.ServiceNameFromString(tc.against),
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.tester)},
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.against)},
 			)
 			assert.Equal(t, tc.matches, matches)
 		})
 	}
 }
 
-func makeServiceNameSlice(slice []string) []structs.ServiceName {
+func makeServiceNameSlice(slice []string) []rbacService {
 	if len(slice) == 0 {
 		return nil
 	}
-	var out []structs.ServiceName
+	var out []rbacService
 	for _, src := range slice {
-		out = append(out, structs.ServiceNameFromString(src))
+		out = append(out, rbacService{ServiceName: structs.ServiceNameFromString(src)})
 	}
 	return out
 }
