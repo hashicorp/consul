@@ -1,9 +1,8 @@
 config_entries {
   bootstrap = [
     {
-      kind      = "proxy-defaults"
-      name      = "global"
-      partition = "default"
+      kind = "proxy-defaults"
+      name = "global"
 
       config {
         protocol = "tcp"

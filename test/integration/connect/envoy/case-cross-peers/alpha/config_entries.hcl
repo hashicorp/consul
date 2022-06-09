@@ -1,18 +1,16 @@
 config_entries {
   bootstrap = [
     {
-      kind      = "proxy-defaults"
-      name      = "global"
-      partition = "default"
+      kind = "proxy-defaults"
+      name = "global"
 
       config {
         protocol = "tcp"
       }
     },
     {
-      kind      = "exported-services"
-      name      = "default"
-      partition = "default"
+      kind = "exported-services"
+      name = "default"
       services = [
         {
           name = "s2"
