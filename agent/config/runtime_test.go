@@ -2472,7 +2472,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Checks = []*structs.CheckDefinition{
 				{Name: "a",
 					OSService:     "foo",
-					Interval:      time.Duration(30 * time.Second),
+					Interval:      30 * time.Second,
 					OutputMaxSize: checks.DefaultBufSize,
 				},
 			}
