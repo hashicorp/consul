@@ -463,7 +463,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		pq := strings.TrimPrefix(u.CorrelationID, "DestinationConfigEntryID:")
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID+":")
 		uid := UpstreamIDFromString(pq)
 
 		snap.ConnectProxy.DestinationsUpstream[uid] = resp.Entry

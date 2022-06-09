@@ -2452,7 +2452,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 0)
-						//TODO (egress-gtw): add more checks
 					},
 				},
 				// DestinationConfigEntryID updates should be stored
@@ -2472,6 +2471,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 1)
+						require.Equal(t, &structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}}, snap.ConnectProxy.DestinationsUpstream[dbUID])
 					},
 				},
 			},
