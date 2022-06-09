@@ -18,7 +18,7 @@
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['access overview', 'read zones'],
+            abilities: ['read servers']
           },
         },
         cataloghealth: {
@@ -30,7 +30,7 @@
         license: {
           _options: {
             path: '/license',
-            abilities: ['access overview', 'read licence'],
+            abilities: ['read license']
           },
         },
       },
