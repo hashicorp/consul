@@ -60,9 +60,8 @@ func (probe *GrpcHealthProbe) Check(target string, header map[string][]string) e
 	}
 
 	md := metadata.New(headerMD)
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), md), probe.timeout)
 	defer cancel()
 
 	connection, err := grpc.DialContext(ctx, serverWithScheme, probe.dialOptions...)
