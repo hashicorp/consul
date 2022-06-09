@@ -805,7 +805,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
 		// What is a sensible default for BuildDate?
-		BuildDate: timeValWithDefault(c.BuildDate, time.Now()),
+		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),

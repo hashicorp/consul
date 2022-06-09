@@ -25,7 +25,8 @@ var (
 	VersionPrerelease = "dev"
 
 	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
-	BuildDate string = "2022-06-02T18:28:32Z"
+	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
+	BuildDate string = "1970-01-01T00:00:01Z"
 )
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
