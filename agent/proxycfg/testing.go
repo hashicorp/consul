@@ -747,6 +747,7 @@ func testConfigSnapshotFixture(
 			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
 			Intentions:                      &noopDataSource[*structs.IntentionQueryRequest]{},
 			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
+			IntentionUpstreamsDestination:   &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
 			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
