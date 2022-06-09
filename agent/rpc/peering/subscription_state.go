@@ -25,9 +25,8 @@ type subscriptionState struct {
 	// plain data
 	exportList *structs.ExportedServiceList
 
-	watchedServices      map[structs.ServiceName]context.CancelFunc
-	watchedProxyServices map[structs.ServiceName]context.CancelFunc // TODO(peering): remove
-	connectServices      map[structs.ServiceName]string             // value:protocol
+	watchedServices map[structs.ServiceName]context.CancelFunc
+	connectServices map[structs.ServiceName]string // value:protocol
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"
 	// not the "correlationID"
@@ -46,12 +45,11 @@ type subscriptionState struct {
 
 func newSubscriptionState(peerName, partition string) *subscriptionState {
 	return &subscriptionState{
-		peerName:             peerName,
-		partition:            partition,
-		watchedServices:      make(map[structs.ServiceName]context.CancelFunc),
-		watchedProxyServices: make(map[structs.ServiceName]context.CancelFunc),
-		connectServices:      make(map[structs.ServiceName]string),
-		eventVersions:        make(map[string]string),
+		peerName:        peerName,
+		partition:       partition,
+		watchedServices: make(map[structs.ServiceName]context.CancelFunc),
+		connectServices: make(map[structs.ServiceName]string),
+		eventVersions:   make(map[string]string),
 	}
 }
 
@@ -103,14 +101,6 @@ func (s *subscriptionState) cleanupEventVersions(logger hclog.Logger) {
 				keep = true
 			}
 
-		case strings.HasPrefix(id, proxyServicePayloadIDPrefix):
-			name := strings.TrimPrefix(id, proxyServicePayloadIDPrefix)
-			sn := structs.ServiceNameFromString(name)
-
-			if _, ok := s.watchedProxyServices[sn]; ok {
-				keep = true
-			}
-
 		case strings.HasPrefix(id, discoveryChainPayloadIDPrefix):
 			name := strings.TrimPrefix(id, discoveryChainPayloadIDPrefix)
 			sn := structs.ServiceNameFromString(name)
@@ -142,7 +132,6 @@ const (
 	caRootsPayloadID              = "roots"
 	meshGatewayPayloadID          = "mesh-gateway"
 	servicePayloadIDPrefix        = "service:"
-	proxyServicePayloadIDPrefix   = "proxy-service:" // TODO(peering): remove
 	discoveryChainPayloadIDPrefix = "chain:"
 )
 

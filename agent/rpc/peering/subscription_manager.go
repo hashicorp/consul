@@ -75,12 +75,9 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 
 	// Wrap our bare state store queries in goroutines that emit events.
 	go m.notifyExportedServicesForPeerID(ctx, state, peerID)
-	if !m.config.DisableMeshGatewayMode && m.config.ConnectEnabled {
-		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
-	}
-
-	// If connect is enabled, watch for updates to CA roots.
 	if m.config.ConnectEnabled {
+		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
+		// If connect is enabled, watch for updates to CA roots.
 		go m.notifyRootCAUpdates(ctx, state.updateCh)
 	}
 
@@ -129,12 +126,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, pending, evt.Services)
-		if m.config.DisableMeshGatewayMode {
-			m.syncProxyServices(ctx, state, pending, evt.Services)
-		} else {
-			if m.config.ConnectEnabled {
-				m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
-			}
+		if m.config.ConnectEnabled {
+			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
 		}
 		state.sendPendingEvents(ctx, m.logger, pending)
 
@@ -152,32 +145,25 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		// Clear this raft index before exporting.
 		csn.Index = 0
 
-		if !m.config.DisableMeshGatewayMode {
-			// Ensure that connect things are scrubbed so we don't mix-and-match
-			// with the synthetic entries that point to mesh gateways.
-			filterConnectReferences(csn)
+		// Ensure that connect things are scrubbed so we don't mix-and-match
+		// with the synthetic entries that point to mesh gateways.
+		filterConnectReferences(csn)
 
-			// Flatten health checks
-			for _, instance := range csn.Nodes {
-				instance.Checks = flattenChecks(
-					instance.Node.Node,
-					instance.Service.ID,
-					instance.Service.Service,
-					instance.Service.EnterpriseMeta,
-					instance.Checks,
-				)
-			}
+		// Flatten health checks
+		for _, instance := range csn.Nodes {
+			instance.Checks = flattenChecks(
+				instance.Node.Node,
+				instance.Service.ID,
+				instance.Service.Service,
+				instance.Service.EnterpriseMeta,
+				instance.Checks,
+			)
 		}
 
 		// Scrub raft indexes
 		for _, instance := range csn.Nodes {
 			instance.Node.RaftIndex = nil
 			instance.Service.RaftIndex = nil
-			if m.config.DisableMeshGatewayMode {
-				for _, chk := range instance.Checks {
-					chk.RaftIndex = nil
-				}
-			}
 			// skip checks since we just generated one from scratch
 		}
 
@@ -197,61 +183,6 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		}
 		state.sendPendingEvents(ctx, m.logger, pending)
 
-	case strings.HasPrefix(u.CorrelationID, subExportedProxyService):
-		csn, ok := u.Result.(*pbservice.IndexedCheckServiceNodes)
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-
-		if !m.config.DisableMeshGatewayMode {
-			return nil // ignore event
-		}
-
-		sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, subExportedProxyService))
-		spiffeID := connect.SpiffeIDService{
-			Host:       m.trustDomain,
-			Partition:  sn.PartitionOrDefault(),
-			Namespace:  sn.NamespaceOrDefault(),
-			Datacenter: m.config.Datacenter,
-			Service:    sn.Name,
-		}
-		sni := connect.PeeredServiceSNI(
-			sn.Name,
-			sn.NamespaceOrDefault(),
-			sn.PartitionOrDefault(),
-			state.peerName,
-			m.trustDomain,
-		)
-		peerMeta := &pbservice.PeeringServiceMeta{
-			SNI:      []string{sni},
-			SpiffeID: []string{spiffeID.URI().String()},
-			Protocol: "tcp",
-		}
-
-		// skip checks since we just generated one from scratch
-		// Set peerMeta on all instances and scrub the raft indexes.
-		for _, instance := range csn.Nodes {
-			instance.Service.Connect.PeerMeta = peerMeta
-
-			instance.Node.RaftIndex = nil
-			instance.Service.RaftIndex = nil
-			if m.config.DisableMeshGatewayMode {
-				for _, chk := range instance.Checks {
-					chk.RaftIndex = nil
-				}
-			}
-		}
-		csn.Index = 0
-
-		id := proxyServicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedProxyService)
-
-		// Just ferry this one directly along to the destination.
-		pending := &pendingPayload{}
-		if err := pending.Add(id, u.CorrelationID, csn); err != nil {
-			return err
-		}
-		state.sendPendingEvents(ctx, m.logger, pending)
-
 	case strings.HasPrefix(u.CorrelationID, subMeshGateway):
 		csn, ok := u.Result.(*pbservice.IndexedCheckServiceNodes)
 		if !ok {
@@ -260,7 +191,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		partition := strings.TrimPrefix(u.CorrelationID, subMeshGateway)
 
-		if m.config.DisableMeshGatewayMode || !m.config.ConnectEnabled {
+		if !m.config.ConnectEnabled {
 			return nil // ignore event
 		}
 
@@ -510,57 +441,6 @@ func (m *subscriptionManager) syncNormalServices(
 	}
 }
 
-// TODO(peering): remove
-func (m *subscriptionManager) syncProxyServices(
-	ctx context.Context,
-	state *subscriptionState,
-	pending *pendingPayload,
-	services []structs.ServiceName,
-) {
-	// seen contains the set of exported service names and is used to reconcile the list of watched services.
-	seen := make(map[structs.ServiceName]struct{})
-
-	// Ensure there is a subscription for each service exported to the peer.
-	for _, svc := range services {
-		seen[svc] = struct{}{}
-
-		if _, ok := state.watchedProxyServices[svc]; ok {
-			// Exported service is already being watched, nothing to do.
-			continue
-		}
-
-		notifyCtx, cancel := context.WithCancel(ctx)
-		if err := m.NotifyConnectProxyService(notifyCtx, svc, state.updateCh); err != nil {
-			cancel()
-			m.logger.Error("failed to subscribe to proxy service", "service", svc.String())
-			continue
-		}
-
-		state.watchedProxyServices[svc] = cancel
-	}
-
-	// For every subscription without an exported service, call the associated cancel fn.
-	for svc, cancel := range state.watchedProxyServices {
-		if _, ok := seen[svc]; !ok {
-			cancel()
-
-			delete(state.watchedProxyServices, svc)
-
-			// Send an empty event to the stream handler to trigger sending a DELETE message.
-			// Cancelling the subscription context above is necessary, but does not yield a useful signal on its own.
-			err := pending.Add(
-				proxyServicePayloadIDPrefix+svc.String(),
-				subExportedProxyService+svc.String(),
-				&pbservice.IndexedCheckServiceNodes{},
-			)
-			if err != nil {
-				m.logger.Error("failed to send event for proxy service", "service", svc.String(), "error", err)
-				continue
-			}
-		}
-	}
-}
-
 func (m *subscriptionManager) syncDiscoveryChains(
 	ctx context.Context,
 	state *subscriptionState,
@@ -761,10 +641,9 @@ func flattenChecks(
 }
 
 const (
-	subExportedServiceList  = "exported-service-list"
-	subExportedService      = "exported-service:"
-	subExportedProxyService = "exported-proxy-service:"
-	subMeshGateway          = "mesh-gateway:"
+	subExportedServiceList = "exported-service-list"
+	subExportedService     = "exported-service:"
+	subMeshGateway         = "mesh-gateway:"
 )
 
 // NotifyStandardService will notify the given channel when there are updates
@@ -776,14 +655,6 @@ func (m *subscriptionManager) NotifyStandardService(
 ) error {
 	sr := newExportedStandardServiceRequest(m.logger, svc, m.backend)
 	return m.viewStore.Notify(ctx, sr, subExportedService+svc.String(), updateCh)
-}
-func (m *subscriptionManager) NotifyConnectProxyService(
-	ctx context.Context,
-	svc structs.ServiceName,
-	updateCh chan<- cache.UpdateEvent,
-) error {
-	sr := newExportedConnectProxyServiceRequest(m.logger, svc, m.backend)
-	return m.viewStore.Notify(ctx, sr, subExportedProxyService+svc.String(), updateCh)
 }
 
 // syntheticProxyNameSuffix is the suffix to add to synthetic proxies we

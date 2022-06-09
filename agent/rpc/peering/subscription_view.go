@@ -37,20 +37,6 @@ func newExportedStandardServiceRequest(logger hclog.Logger, svc structs.ServiceN
 	}
 }
 
-// TODO(peering): remove
-func newExportedConnectProxyServiceRequest(logger hclog.Logger, svc structs.ServiceName, sub Subscriber) *exportedServiceRequest {
-	req := structs.ServiceSpecificRequest{
-		ServiceName:    svc.Name,
-		Connect:        true,
-		EnterpriseMeta: svc.EnterpriseMeta,
-	}
-	return &exportedServiceRequest{
-		logger: logger,
-		req:    req,
-		sub:    sub,
-	}
-}
-
 // CacheInfo implements submatview.Request
 func (e *exportedServiceRequest) CacheInfo() cache.RequestInfo {
 	return e.req.CacheInfo()
