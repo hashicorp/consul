@@ -21,9 +21,9 @@ import (
 func makeRBACNetworkFilter(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
-	peeringTrustBundles []*pbpeering.PeeringTrustBundle,
+	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
 ) (*envoy_listener_v3.Filter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, false, peeringTrustBundles)
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, false, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +38,9 @@ func makeRBACNetworkFilter(
 func makeRBACHTTPFilter(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
-	peeringTrustBundles []*pbpeering.PeeringTrustBundle,
+	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
 ) (*envoy_http_v3.HttpFilter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, true, peeringTrustBundles)
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, true, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +421,7 @@ func makeRBACRules(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	isHTTP bool,
-	peeringTrustBundles []*pbpeering.PeeringTrustBundle,
+	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
 ) (*envoy_rbac_v3.RBAC, error) {
 	// Note that we DON'T explicitly validate the trust-domain matches ours.
 	//
@@ -437,12 +437,8 @@ func makeRBACRules(
 
 	// TODO(banks,rb): Implement revocation list checking?
 
-	trustBundlesByPeer := make(map[string]*pbpeering.PeeringTrustBundle, len(peeringTrustBundles))
-	for _, ptb := range peeringTrustBundles {
-		trustBundlesByPeer[ptb.PeerName] = ptb
-	}
 	// First build up just the basic principal matches.
-	rbacIxns := intentionListToIntermediateRBACForm(intentions, isHTTP, trustBundlesByPeer)
+	rbacIxns := intentionListToIntermediateRBACForm(intentions, isHTTP, peerTrustBundles)
 
 	// Normalize: if we are in default-deny then all intentions must be allows and vice versa
 	intentionDefaultAction := intentionActionFromBool(intentionDefaultAllow)
