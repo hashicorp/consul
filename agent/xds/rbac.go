@@ -64,7 +64,13 @@ func intentionListToIntermediateRBACForm(
 	rbacIxns := make([]*rbacIntention, 0, len(intentions))
 	for _, ixn := range intentions {
 		// trustBundle is only applicable to imported services
-		trustBundle := trustBundlesByPeer[ixn.SourcePeer]
+		trustBundle, ok := trustBundlesByPeer[ixn.SourcePeer]
+		if ixn.SourcePeer != "" && !ok {
+			// If the intention defines a source peer, we expect to
+			// see a trust bundle. Otherwise the config snapshot may
+			// not have yet received the bundles and we fail silently
+			continue
+		}
 
 		rixn := intentionToIntermediateRBACForm(ixn, isHTTP, trustBundle)
 		rbacIxns = append(rbacIxns, rixn)
