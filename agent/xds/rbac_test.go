@@ -13,24 +13,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestRemoveIntentionPrecedence(t *testing.T) {
-	testIntention := func(t *testing.T, src, dst string, action structs.IntentionAction) *structs.Intention {
+	type ixnOpts struct {
+		src    string
+		peer   string
+		action structs.IntentionAction
+	}
+	testIntention := func(t *testing.T, opts ixnOpts) *structs.Intention {
 		t.Helper()
 		ixn := structs.TestIntention(t)
-		ixn.SourceName = src
-		ixn.DestinationName = dst
-		ixn.Action = action
+		ixn.SourceName = opts.src
+		ixn.SourcePeer = opts.peer
+		ixn.Action = opts.action
+
+		// Destination is hardcoded, since RBAC rules are generated for a single destination
+		ixn.DestinationName = "api"
+
 		//nolint:staticcheck
 		ixn.UpdatePrecedence()
 		return ixn
 	}
-	testSourceIntention := func(src string, action structs.IntentionAction) *structs.Intention {
-		return testIntention(t, src, "api", action)
+	testSourceIntention := func(opts ixnOpts) *structs.Intention {
+		return testIntention(t, opts)
 	}
 	testSourcePermIntention := func(src string, perms ...*structs.IntentionPermission) *structs.Intention {
-		ixn := testIntention(t, src, "api", "")
+		opts := ixnOpts{src: src}
+		ixn := testIntention(t, opts)
 		ixn.Permissions = perms
 		return ixn
 	}
@@ -40,10 +51,21 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		})
 		return structs.Intentions(ixns)
 	}
+	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
+		"peer1": {
+			PeerName:          "peer1",
+			TrustDomain:       "peer1.domain",
+			ExportedPartition: "part1",
+		},
+	}
 
 	var (
-		nameWild        = rbacService{ServiceName: structs.NewServiceName("*", nil)}
-		nameWeb         = rbacService{ServiceName: structs.NewServiceName("web", nil)}
+		nameWild       = rbacService{ServiceName: structs.NewServiceName("*", nil)}
+		nameWeb        = rbacService{ServiceName: structs.NewServiceName("web", nil)}
+		nameWildPeered = rbacService{ServiceName: structs.NewServiceName("*", nil),
+			peer: "peer1", trustDomain: "peer1.domain", exportedPartition: "part1"}
+		nameWebPeered = rbacService{ServiceName: structs.NewServiceName("web", nil),
+			peer: "peer1", trustDomain: "peer1.domain", exportedPartition: "part1"}
 		permSlashPrefix = &structs.IntentionPermission{
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
@@ -154,7 +176,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
-				testSourceIntention("*", structs.IntentionActionDeny),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionDeny}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -182,7 +204,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
-				testSourceIntention("*", structs.IntentionActionDeny),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionDeny}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -209,7 +231,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
-				testSourceIntention("*", structs.IntentionActionDeny),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionDeny}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -254,7 +276,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
-				testSourceIntention("*", structs.IntentionActionDeny),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionDeny}),
 			),
 			expect: []*rbacIntention{},
 		},
@@ -264,7 +286,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
-				testSourceIntention("*", structs.IntentionActionAllow),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionAllow}),
 			),
 			expect: []*rbacIntention{},
 		},
@@ -273,7 +295,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
-				testSourceIntention("*", structs.IntentionActionAllow),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionAllow}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -318,7 +340,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
-				testSourceIntention("*", structs.IntentionActionAllow),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionAllow}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -340,12 +362,12 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 				},
 			},
 		},
-		"default-deny-allow-all-and-path-deny": {
+		"default-deny-deny-all-and-path-allow-peered": {
 			intentionDefaultAllow: false,
 			http:                  true,
 			intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
-				testSourceIntention("*", structs.IntentionActionAllow),
+				testSourceIntention(ixnOpts{src: "*", action: structs.IntentionActionAllow}),
 			),
 			expect: []*rbacIntention{
 				{
@@ -368,11 +390,56 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 				},
 			},
 		},
+		// ========= Sanity check that peers get passed through
+		"default-deny-peered": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourceIntention(ixnOpts{
+					src:    "*",
+					action: structs.IntentionActionAllow,
+					peer:   "peer1",
+				}),
+				testSourceIntention(ixnOpts{
+					src:    "web",
+					action: structs.IntentionActionAllow,
+					peer:   "peer1",
+				}),
+			),
+			expect: []*rbacIntention{
+				{
+					Source:            nameWebPeered,
+					Action:            intentionActionAllow,
+					Permissions:       nil,
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWebPeered),
+				},
+				{
+					Source: nameWildPeered,
+					Action: intentionActionAllow,
+					NotSources: []rbacService{
+						nameWebPeered,
+					},
+					Permissions: nil,
+					Precedence:  8,
+					Skip:        false,
+					ComputedPrincipal: andPrincipals(
+						[]*envoy_rbac_v3.Principal{
+							idPrincipal(nameWildPeered),
+							notPrincipal(
+								idPrincipal(nameWebPeered),
+							),
+						},
+					),
+				},
+			},
+		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http, nil)
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http, testPeerTrustBundle)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
 			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
 
@@ -395,10 +462,22 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 	testSourceIntention := func(src string, action structs.IntentionAction) *structs.Intention {
 		return testIntention(t, src, "api", action)
 	}
+	testIntentionPeered := func(src string, peer string, action structs.IntentionAction) *structs.Intention {
+		ixn := testIntention(t, src, "api", action)
+		ixn.SourcePeer = peer
+		return ixn
+	}
 	testSourcePermIntention := func(src string, perms ...*structs.IntentionPermission) *structs.Intention {
 		ixn := testIntention(t, src, "api", "")
 		ixn.Permissions = perms
 		return ixn
+	}
+	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
+		"peer1": {
+			PeerName:          "peer1",
+			TrustDomain:       "peer1.domain",
+			ExportedPartition: "part1",
+		},
 	}
 	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
@@ -483,6 +562,14 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("unsafe", structs.IntentionActionAllow),
 				testSourceIntention("cron", structs.IntentionActionDeny),
 				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+		},
+		"default-deny-peered-kitchen-sink": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourceIntention("web", structs.IntentionActionAllow),
+				testIntentionPeered("*", "peer1", structs.IntentionActionAllow),
+				testIntentionPeered("web", "peer1", structs.IntentionActionDeny),
 			),
 		},
 		// ========================
@@ -710,7 +797,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Run("network filter", func(t *testing.T) {
-				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, nil)
+				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -720,7 +807,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, nil)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -738,6 +825,16 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 		t.Helper()
 		ixn := structs.TestIntention(t)
 		ixn.SourceName = src
+		ixn.DestinationName = dst
+		//nolint:staticcheck
+		ixn.UpdatePrecedence()
+		return ixn
+	}
+	testIntentionPeered := func(t *testing.T, src, dst, peer string) *structs.Intention {
+		t.Helper()
+		ixn := structs.TestIntention(t)
+		ixn.SourceName = src
+		ixn.SourcePeer = peer
 		ixn.DestinationName = dst
 		//nolint:staticcheck
 		ixn.UpdatePrecedence()
@@ -790,6 +887,20 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 				testIntention(t, "*", "foo"),
 			),
 		},
+		"kitchen sink with peers": {
+			in: sorted(
+				testIntention(t, "bar", "foo"),
+				testIntentionPeered(t, "bar", "foo", "peer1"),
+				testIntentionPeered(t, "bar", "*", "peer1"),
+				testIntentionPeered(t, "*", "foo", "peer1"),
+				testIntentionPeered(t, "*", "*", "peer1"),
+			),
+			expect: sorted(
+				testIntention(t, "bar", "foo"),
+				testIntentionPeered(t, "bar", "foo", "peer1"),
+				testIntentionPeered(t, "*", "foo", "peer1"),
+			),
+		},
 	}
 
 	for name, tc := range tests {
@@ -836,23 +947,35 @@ func TestSimplifyNotSourceSlice(t *testing.T) {
 
 func TestIxnSourceMatches(t *testing.T) {
 	tests := []struct {
-		tester, against string
-		matches         bool
+		tester      string
+		testerPeer  string
+		against     string
+		againstPeer string
+		matches     bool
 	}{
 		// identical precedence
-		{"web", "api", false},
-		{"*", "*", false},
+		{"web", "", "api", "", false},
+		{"*", "", "*", "", false},
 		// backwards precedence
-		{"*", "web", false},
+		{"*", "", "web", "", false},
 		// name wildcards
-		{"web", "*", true},
+		{"web", "", "*", "", true},
+
+		// peered cmp peered
+		{"web", "peer1", "api", "peer1", false},
+		{"*", "peer1", "*", "peer1", false},
+		// no match if peer is different
+		{"web", "peer1", "web", "", false},
+		{"*", "peer1", "*", "peer2", false},
+		// name wildcards with peer
+		{"web", "peer1", "*", "peer1", true},
 	}
 
 	for _, tc := range tests {
-		t.Run(fmt.Sprintf("%s cmp %s", tc.tester, tc.against), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s%s cmp %s%s", tc.testerPeer, tc.tester, tc.againstPeer, tc.against), func(t *testing.T) {
 			matches := ixnSourceMatches(
-				rbacService{ServiceName: structs.ServiceNameFromString(tc.tester)},
-				rbacService{ServiceName: structs.ServiceNameFromString(tc.against)},
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.tester), peer: tc.testerPeer},
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.against), peer: tc.againstPeer},
 			)
 			assert.Equal(t, tc.matches, matches)
 		})
