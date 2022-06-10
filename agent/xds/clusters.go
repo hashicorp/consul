@@ -577,10 +577,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
-			Name:                 clusterName,
-			AltStatName:          clusterName,
-			ConnectTimeout:       durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+			Name:           clusterName,
+			AltStatName:    clusterName,
+			ConnectTimeout: durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
 					Value: 0, // disable panic threshold
