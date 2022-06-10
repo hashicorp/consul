@@ -1,0 +1,64 @@
+{
+  "name": "envoy.filters.network.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
+            {
+              "any": true
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            },
+            {
+              "andIds": {
+                "ids": [
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+$"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notId": {
+                      "authenticated": {
+                        "principalName": {
+                          "safeRegex": {
+                            "googleRe2": {
+
+                            },
+                            "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/web$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "statPrefix": "connect_authz"
+  }
+}
