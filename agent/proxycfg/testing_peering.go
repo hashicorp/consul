@@ -52,11 +52,11 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 							Kind:    structs.ServiceKindConnectProxy,
 							Port:    443,
 							TaggedAddresses: map[string]structs.ServiceAddress{
-								structs.TaggedAddressLAN: structs.ServiceAddress{
+								structs.TaggedAddressLAN: {
 									Address: "85.252.102.31",
 									Port:    443,
 								},
-								structs.TaggedAddressWAN: structs.ServiceAddress{
+								structs.TaggedAddressWAN: {
 									Address: "123.us-east-1.elb.notaws.com",
 									Port:    8443,
 								},
