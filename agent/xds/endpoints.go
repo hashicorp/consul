@@ -109,7 +109,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				GatewayKey{ /*empty so it never matches*/ },
+				proxycfg.GatewayKey{ /*empty so it never matches*/ },
 			)
 			resources = append(resources, la)
 		}
