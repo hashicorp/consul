@@ -10,7 +10,7 @@ import "proto/pbstatus/status.proto";
 // between disparate Consul clusters.
 service PeeringService {
   rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse);
-  rpc Initiate(InitiateRequest) returns (InitiateResponse);
+  rpc Establish(EstablishRequest) returns (EstablishResponse);
   rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse);
   rpc PeeringList(PeeringListRequest) returns (PeeringListResponse);
   rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse);
@@ -273,10 +273,10 @@ message GenerateTokenResponse {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringInitiateRequest
+// target=github.com/hashicorp/consul/api.PeeringEstablishRequest
 // output=peering.gen.go
 // name=API
-message InitiateRequest {
+message EstablishRequest {
   // Name of the remote peer.
   string PeerName = 1;
 
@@ -298,10 +298,10 @@ message InitiateRequest {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringInitiateResponse
+// target=github.com/hashicorp/consul/api.PeeringEstablishResponse
 // output=peering.gen.go
 // name=API
-message InitiateResponse {}
+message EstablishResponse {}
 
 message ReplicationMessage {
   oneof Payload {

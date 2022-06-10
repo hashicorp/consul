@@ -11,13 +11,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -124,7 +123,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		}
 	}()
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
@@ -311,7 +310,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	}
 	srv.streams.timeNow = it.Now
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	var (
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
@@ -380,7 +379,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	// Set the initial roots and CA configuration.
 	_, rootA := writeInitialRootsAndCA(t, store)
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	var (
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
@@ -624,7 +623,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
@@ -832,7 +831,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
 
 	srv := NewService(
 		testutil.Logger(t),
@@ -1163,9 +1162,9 @@ func Test_processResponse_Validation(t *testing.T) {
 	}
 }
 
-// writeInitiatedPeering creates a peering with the provided name and ensures
+// writeEstablishedPeering creates a peering with the provided name and ensures
 // the PeerID field is set for the ID of the remote peer.
-func writeInitiatedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
+func writeEstablishedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
 	remotePeerID, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 
