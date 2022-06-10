@@ -208,15 +208,15 @@ func intentionToIntermediateRBACForm(ixn *structs.Intention, isHTTP bool, bundle
 	rixn := &rbacIntention{
 		Source: rbacService{
 			ServiceName: ixn.SourceServiceName(),
-			peer:        ixn.SourcePeer,
+			Peer:        ixn.SourcePeer,
 		},
 		Precedence: ixn.Precedence,
 	}
 
 	// imported services will have addition metadata used to override SpiffeID creation
 	if bundle != nil {
-		rixn.Source.exportedPartition = bundle.ExportedPartition
-		rixn.Source.trustDomain = bundle.TrustDomain
+		rixn.Source.ExportedPartition = bundle.ExportedPartition
+		rixn.Source.TrustDomain = bundle.TrustDomain
 	}
 
 	if len(ixn.Permissions) > 0 {
@@ -269,9 +269,9 @@ type rbacService struct {
 	// peer, exportedPartition, and trustDomain are
 	// only applicable to imported services and are
 	// used to override SPIFFEID fields.
-	peer              string
-	exportedPartition string
-	trustDomain       string
+	Peer              string
+	ExportedPartition string
+	TrustDomain       string
 }
 
 type rbacIntention struct {
@@ -566,7 +566,7 @@ func ixnSourceMatches(tester, against rbacService) bool {
 	}
 
 	matchesAP := tester.PartitionOrDefault() == against.PartitionOrDefault()
-	matchesPeer := tester.peer == against.peer
+	matchesPeer := tester.Peer == against.Peer
 	matchesNS := tester.NamespaceOrDefault() == against.NamespaceOrDefault() || against.NamespaceOrDefault() == structs.WildcardSpecifier
 	matchesName := tester.Name == against.Name || against.Name == structs.WildcardSpecifier
 	return matchesAP && matchesPeer && matchesNS && matchesName
@@ -578,7 +578,7 @@ func countWild(src rbacService) int {
 	if src.PartitionOrDefault() == structs.WildcardSpecifier {
 		panic("invalid state: intention references wildcard partition")
 	}
-	if src.peer == structs.WildcardSpecifier {
+	if src.Peer == structs.WildcardSpecifier {
 		panic("invalid state: intention references wildcard peer")
 	}
 
@@ -648,7 +648,7 @@ func makeSpiffePattern(src rbacService) string {
 	if ap == structs.WildcardSpecifier {
 		panic("not possible to have a wildcarded source partition")
 	}
-	if src.peer == structs.WildcardSpecifier {
+	if src.Peer == structs.WildcardSpecifier {
 		panic("not possible to have a wildcarded source peer")
 	}
 
@@ -662,9 +662,9 @@ func makeSpiffePattern(src rbacService) string {
 
 	// If service is imported from a peer, the SpiffeID must
 	// refer to its remote partition and trust domain.
-	if src.peer != "" {
-		ap = src.exportedPartition
-		host = src.trustDomain
+	if src.Peer != "" {
+		ap = src.ExportedPartition
+		host = src.TrustDomain
 	}
 
 	id := connect.SpiffeIDService{

@@ -63,9 +63,9 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		nameWild       = rbacService{ServiceName: structs.NewServiceName("*", nil)}
 		nameWeb        = rbacService{ServiceName: structs.NewServiceName("web", nil)}
 		nameWildPeered = rbacService{ServiceName: structs.NewServiceName("*", nil),
-			peer: "peer1", trustDomain: "peer1.domain", exportedPartition: "part1"}
+			Peer: "peer1", TrustDomain: "peer1.domain", ExportedPartition: "part1"}
 		nameWebPeered = rbacService{ServiceName: structs.NewServiceName("web", nil),
-			peer: "peer1", trustDomain: "peer1.domain", exportedPartition: "part1"}
+			Peer: "peer1", TrustDomain: "peer1.domain", ExportedPartition: "part1"}
 		permSlashPrefix = &structs.IntentionPermission{
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
@@ -974,8 +974,8 @@ func TestIxnSourceMatches(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%s%s cmp %s%s", tc.testerPeer, tc.tester, tc.againstPeer, tc.against), func(t *testing.T) {
 			matches := ixnSourceMatches(
-				rbacService{ServiceName: structs.ServiceNameFromString(tc.tester), peer: tc.testerPeer},
-				rbacService{ServiceName: structs.ServiceNameFromString(tc.against), peer: tc.againstPeer},
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.tester), Peer: tc.testerPeer},
+				rbacService{ServiceName: structs.ServiceNameFromString(tc.against), Peer: tc.againstPeer},
 			)
 			assert.Equal(t, tc.matches, matches)
 		})
