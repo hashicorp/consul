@@ -467,9 +467,9 @@ using the [`advertise-wan`](/docs/agent/config/cli-flags#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs) configuration
 options.
 
-## Namespaced/Partitioned Services <EnterpriseAlert inline />
+## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
 
-Consul Enterprise supports resolving namespaced and partitioned services via DNS.
+Consul Enterprise supports resolving namespaced and partitioned services and nodes via DNS.
 To maintain backwards compatibility existing queries can be used and these will
 resolve services within the `default` namespace and partition. However, for resolving
 services from other namespaces or partitions the following form can be used:
@@ -478,12 +478,19 @@ services from other namespaces or partitions the following form can be used:
 [tag.]<service>.service.<namespace>.ns.<partition>.ap.<datacenter>.dc.<domain>
 ```
 
-This is the canonical name of a Consul Enterprise service. Currently all parts must be
-present - in a future version (once the
+This is the canonical name of a Consul Enterprise service. Currently at least 2 of
+`[namespace, partition, datacenter]` must be present - in a future version (once the
 [`prefer_namespace` configuration](/docs/agent/config/config-files#dns_prefer_namespace) has been
-deprecated), the namespace, partition and datacenter components will become optional
+deprecated), the namespace, partition and datacenter components will all become optional
 and may be individually omitted to default to the `default` namespace, local partition
 or local datacenter respectively.
+
+For node lookups, only the partition and datacenter need to be specified (nodes cannot be
+namespaced):
+
+```text
+[tag.]<service>.service.<partition>.ap.<datacenter>.dc.<domain>
+```
 
 ## DNS with ACLs
 
