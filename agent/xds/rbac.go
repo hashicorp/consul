@@ -641,7 +641,7 @@ const anyPath = `[^/]+`
 
 func makeSpiffePattern(src rbacService) string {
 	var (
-		host = anyPath
+		host = anyPath // TODO(peering): We match trust domain on any value but should be defaulting to the local trust domain
 		ap   = src.PartitionOrDefault()
 		ns   = src.NamespaceOrDefault()
 		svc  = src.Name

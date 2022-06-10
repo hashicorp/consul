@@ -362,7 +362,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 				},
 			},
 		},
-		"default-deny-deny-all-and-path-allow-peered": {
+		"default-deny-allow-all-and-path-deny": {
 			intentionDefaultAllow: false,
 			http:                  true,
 			intentions: sorted(

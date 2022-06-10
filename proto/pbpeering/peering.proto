@@ -116,13 +116,13 @@ message PeeringTrustBundle {
 
   // ExportedPartition references the remote partition of the peer
   // which sent this trust bundle. Used for generating SpiffeIDs.
-  string ExportedPartition = 7;
+  string ExportedPartition = 5;
 
   // CreateIndex is the Raft index at which the trust domain was created.
-  uint64 CreateIndex = 5;
+  uint64 CreateIndex = 6;
 
   // ModifyIndex is the latest Raft index at which the trust bundle was modified.
-  uint64 ModifyIndex = 6;
+  uint64 ModifyIndex = 7;
 }
 
 // @consul-rpc-glue: Datacenter,ReadTODO
