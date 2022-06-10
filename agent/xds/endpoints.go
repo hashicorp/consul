@@ -96,6 +96,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			clusterName = uid.EnvoyID()
 		}
 
+		// Also skip peer instances with a hostname as their address. EDS
+		// cannot resolve hostnames, so we provide them through CDS instead.
+		if _, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpointsUseHostnames[uid]; ok {
+			continue
+		}
+
 		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid]
 		if ok {
 			la := makeLoadAssignment(
