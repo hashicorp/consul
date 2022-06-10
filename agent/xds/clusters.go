@@ -1097,7 +1097,7 @@ func configureClusterWithHostnames(
 	dnsDiscoveryType string,
 	// hostnameEndpoints is a list of endpoints with a hostname as their address
 	hostnameEndpoints structs.CheckServiceNodes,
-	// isRemote determines whether the cluster is in a remote DC and we should prefer a WAN address
+	// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
 	isRemote bool,
 	// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
 	onlyPassing bool,
