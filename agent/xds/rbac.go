@@ -272,7 +272,7 @@ func intentionActionFromString(s structs.IntentionAction) intentionAction {
 type rbacService struct {
 	structs.ServiceName
 
-	// peer, exportedPartition, and trustDomain are
+	// Peer, ExportedPartition, and TrustDomain are
 	// only applicable to imported services and are
 	// used to override SPIFFEID fields.
 	Peer              string
