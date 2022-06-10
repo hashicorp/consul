@@ -32,6 +32,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 	snap.ConnectProxy.PeerUpstreamEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
+	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{

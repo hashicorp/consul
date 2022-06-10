@@ -83,7 +83,8 @@ type ConfigSnapshotUpstreams struct {
 	// PeerUpstreamEndpoints is a map of UpstreamID -> (set of IP addresses)
 	// and used to determine the backing endpoints of an upstream in another
 	// peer.
-	PeerUpstreamEndpoints map[UpstreamID]structs.CheckServiceNodes
+	PeerUpstreamEndpoints             map[UpstreamID]structs.CheckServiceNodes
+	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
 }
 
 // indexedTarget is used to associate the Raft modify index of a resource
@@ -162,7 +163,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.IntentionUpstreams) == 0 &&
 		!c.PeeringTrustBundlesSet &&
 		!c.MeshConfigSet &&
-		len(c.PeerUpstreamEndpoints) == 0
+		len(c.PeerUpstreamEndpoints) == 0 &&
+		len(c.PeerUpstreamEndpointsUseHostnames) == 0
 }
 
 type configSnapshotTerminatingGateway struct {
