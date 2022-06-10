@@ -52,32 +52,32 @@ func (msg *GenerateTokenRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryT
 }
 
 // IsRead implements structs.RPCInfo
-func (req *InitiateRequest) IsRead() bool {
+func (req *EstablishRequest) IsRead() bool {
 	return false
 }
 
 // AllowStaleRead implements structs.RPCInfo
-func (req *InitiateRequest) AllowStaleRead() bool {
+func (req *EstablishRequest) AllowStaleRead() bool {
 	return false
 }
 
 // TokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) TokenSecret() string {
+func (req *EstablishRequest) TokenSecret() string {
 	return req.Token
 }
 
 // SetTokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) SetTokenSecret(token string) {
+func (req *EstablishRequest) SetTokenSecret(token string) {
 	req.Token = token
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (req *InitiateRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
+func (req *EstablishRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 // Timeout implements structs.RPCInfo
-func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+func (msg *EstablishRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
 	return rpcHoldTimeout
 }
 
@@ -198,9 +198,9 @@ func (resp *GenerateTokenResponse) ToAPI() *api.PeeringGenerateTokenResponse {
 }
 
 // TODO consider using mog for this
-func (resp *InitiateResponse) ToAPI() *api.PeeringInitiateResponse {
-	var t api.PeeringInitiateResponse
-	InitiateResponseToAPI(resp, &t)
+func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
+	var t api.PeeringEstablishResponse
+	EstablishResponseToAPI(resp, &t)
 	return &t
 }
 
@@ -215,12 +215,12 @@ func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *Gener
 }
 
 // convenience
-func NewInitiateRequestFromAPI(req *api.PeeringInitiateRequest) *InitiateRequest {
+func NewEstablishRequestFromAPI(req *api.PeeringEstablishRequest) *EstablishRequest {
 	if req == nil {
 		return nil
 	}
-	t := &InitiateRequest{}
-	InitiateRequestFromAPI(req, t)
+	t := &EstablishRequest{}
+	EstablishRequestFromAPI(req, t)
 	return t
 }
 

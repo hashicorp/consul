@@ -34,7 +34,7 @@ var (
 	errPeeringTokenEmptyPeerID          = errors.New("peering token peer ID value is empty")
 )
 
-// errPeeringInvalidServerAddress is returned when an initiate request contains
+// errPeeringInvalidServerAddress is returned when an establish request contains
 // an invalid server address.
 type errPeeringInvalidServerAddress struct {
 	addr string
@@ -226,13 +226,13 @@ func (s *Service) GenerateToken(
 	return resp, err
 }
 
-// Initiate implements the PeeringService RPC method to finalize peering
+// Establish implements the PeeringService RPC method to finalize peering
 // registration. Given a valid token output from a peer's GenerateToken endpoint,
 // a peering is registered.
-func (s *Service) Initiate(
+func (s *Service) Establish(
 	ctx context.Context,
-	req *pbpeering.InitiateRequest,
-) (*pbpeering.InitiateResponse, error) {
+	req *pbpeering.EstablishRequest,
+) (*pbpeering.EstablishResponse, error) {
 	// validate prior to forwarding to the leader, this saves a network hop
 	if err := dns.ValidateLabel(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
@@ -249,17 +249,17 @@ func (s *Service) Initiate(
 		return nil, fmt.Errorf("meta tags failed validation: %w", err)
 	}
 
-	resp := &pbpeering.InitiateResponse{}
+	resp := &pbpeering.EstablishResponse{}
 	handled, err := s.Backend.Forward(req, func(conn *grpc.ClientConn) error {
 		var err error
-		resp, err = pbpeering.NewPeeringServiceClient(conn).Initiate(ctx, req)
+		resp, err = pbpeering.NewPeeringServiceClient(conn).Establish(ctx, req)
 		return err
 	})
 	if handled || err != nil {
 		return resp, err
 	}
 
-	defer metrics.MeasureSince([]string{"peering", "initiate"}, time.Now())
+	defer metrics.MeasureSince([]string{"peering", "establish"}, time.Now())
 
 	// convert ServiceAddress values to strings
 	serverAddrs := make([]string, len(tok.ServerAddresses))

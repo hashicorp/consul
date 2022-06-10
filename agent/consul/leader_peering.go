@@ -125,7 +125,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 
 		// TODO(peering): If there is new peering data and a connected stream, should we tear down the stream?
 		//                If the data in the updated token is bad, the user wouldn't know until the old servers/certs become invalid.
-		//                Alternatively we could do a basic Ping from the initiate peering endpoint to avoid dealing with that here.
+		//                Alternatively we could do a basic Ping from the establish peering endpoint to avoid dealing with that here.
 		if found && status.Connected {
 			// Nothing to do when we already have an active stream to the peer.
 			continue

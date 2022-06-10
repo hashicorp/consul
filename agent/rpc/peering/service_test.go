@@ -18,22 +18,21 @@ import (
 	gogrpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/state"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/prototest"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -112,7 +111,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	require.Equal(t, expect, peers[0])
 }
 
-func TestPeeringService_Initiate(t *testing.T) {
+func TestPeeringService_Establish(t *testing.T) {
 	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
 	validTokenJSON, _ := json.Marshal(&validToken)
 	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
@@ -123,8 +122,8 @@ func TestPeeringService_Initiate(t *testing.T) {
 
 	type testcase struct {
 		name          string
-		req           *pbpeering.InitiateRequest
-		expectResp    *pbpeering.InitiateResponse
+		req           *pbpeering.EstablishRequest
+		expectResp    *pbpeering.EstablishResponse
 		expectPeering *pbpeering.Peering
 		expectErr     string
 	}
@@ -132,7 +131,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.Initiate(ctx, tc.req)
+		resp, err := client.Establish(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -160,12 +159,12 @@ func TestPeeringService_Initiate(t *testing.T) {
 	tcs := []testcase{
 		{
 			name:      "invalid peer name",
-			req:       &pbpeering.InitiateRequest{PeerName: "--AA--"},
+			req:       &pbpeering.EstablishRequest{PeerName: "--AA--"},
 			expectErr: "--AA-- is not a valid peer name",
 		},
 		{
 			name: "invalid token (base64)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "+++/+++",
 			},
@@ -173,7 +172,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "invalid token (JSON)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "Cg==", // base64 of "-"
 			},
@@ -181,7 +180,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "invalid token (empty)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "e30K", // base64 of "{}"
 			},
@@ -189,7 +188,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "too many meta tags",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
 				Meta:         generateTooManyMetaKeys(),
@@ -198,12 +197,12 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "success",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
 				Meta:         map[string]string{"foo": "bar"},
 			},
-			expectResp: &pbpeering.InitiateResponse{},
+			expectResp: &pbpeering.EstablishResponse{},
 			expectPeering: peering.TestPeering(
 				"peer1-usw1",
 				pbpeering.PeeringState_INITIAL,

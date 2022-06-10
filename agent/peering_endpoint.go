@@ -107,30 +107,30 @@ func (s *HTTPHandlers) PeeringGenerateToken(resp http.ResponseWriter, req *http.
 	return out.ToAPI(), nil
 }
 
-// PeeringInitiate handles POSTs to the /v1/peering/initiate endpoint. The request
+// PeeringEstablish handles POSTs to the /v1/peering/establish endpoint. The request
 // will always be forwarded via RPC to the local leader.
-func (s *HTTPHandlers) PeeringInitiate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) PeeringEstablish(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Body == nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "The peering arguments must be provided in the body"}
 	}
 
-	apiRequest := &api.PeeringInitiateRequest{
+	apiRequest := &api.PeeringEstablishRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 	if err := lib.DecodeJSON(req.Body, apiRequest); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Body decoding failed: %v", err)}
 	}
-	args := pbpeering.NewInitiateRequestFromAPI(apiRequest)
+	args := pbpeering.NewEstablishRequestFromAPI(apiRequest)
 
 	if args.PeerName == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeerName is required in the payload when initiating a peering."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeerName is required in the payload when establishing a peering."}
 	}
 
 	if args.PeeringToken == "" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeeringToken is required in the payload when initiating a peering."}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeeringToken is required in the payload when establishing a peering."}
 	}
 
-	out, err := s.agent.rpcClientPeering.Initiate(req.Context(), args)
+	out, err := s.agent.rpcClientPeering.Establish(req.Context(), args)
 	if err != nil {
 		return nil, err
 	}
