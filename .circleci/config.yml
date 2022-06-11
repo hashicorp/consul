@@ -852,7 +852,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_3: &ENVOY_TESTS
+  envoy-integration-test-1_19_5: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
