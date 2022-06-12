@@ -386,7 +386,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 				TokenIDs: []string{token.AccessorID},
 			}
 
-			_, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+			_, err := s.raftApplyMsgpack(structs.ACLTokenDeleteRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("failed to remove token with a redacted secret: %v", err)
 			}
@@ -420,7 +420,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			req := structs.ACLPolicyBatchSetRequest{
 				Policies: structs.ACLPolicies{&newPolicy},
 			}
-			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
+			_, err := s.raftApplyMsgpack(structs.ACLPolicySetRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("failed to create global-management policy: %v", err)
 			}
@@ -467,7 +467,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						Token:      token,
 						ResetIndex: 0,
 					}
-					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
+					if _, err := s.raftApplyMsgpack(structs.ACLBootstrapRequestType, &req); err == nil {
 						s.logger.Info("Bootstrapped ACL initial management token from configuration")
 						done = true
 					} else {
@@ -484,7 +484,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 						Tokens: structs.ACLTokens{&token},
 						CAS:    false,
 					}
-					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+					if _, err := s.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req); err != nil {
 						return fmt.Errorf("failed to create initial management token: %v", err)
 					}
 
@@ -513,7 +513,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 				Tokens: structs.ACLTokens{token},
 				CAS:    false,
 			}
-			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
+			_, err := s.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("failed to create anonymous token: %v", err)
 			}
@@ -602,7 +602,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
 
-		_, err = s.raftApply(structs.ACLTokenSetRequestType, req)
+		_, err = s.raftApplyMsgpack(structs.ACLTokenSetRequestType, req)
 		if err != nil {
 			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
 		}
@@ -1124,7 +1124,7 @@ AFTER_CHECK:
 		req.NodeMeta = node.Meta
 	}
 
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	_, err = s.raftApplyMsgpack(structs.RegisterRequestType, &req)
 	return err
 }
 
@@ -1186,7 +1186,7 @@ func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.Enterpr
 		// clobber it.
 		SkipNodeUpdate: true,
 	}
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	_, err = s.raftApplyMsgpack(structs.RegisterRequestType, &req)
 	return err
 }
 
@@ -1249,7 +1249,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeE
 		Node:           member.Name,
 		EnterpriseMeta: *nodeEntMeta,
 	}
-	_, err = s.raftApply(structs.DeregisterRequestType, &req)
+	_, err = s.raftApplyMsgpack(structs.DeregisterRequestType, &req)
 	return err
 }
 
@@ -1310,7 +1310,7 @@ func (s *Server) reapTombstones(index uint64) {
 		Op:         structs.TombstoneReap,
 		ReapIndex:  index,
 	}
-	_, err := s.raftApply(structs.TombstoneRequestType, &req)
+	_, err := s.raftApplyMsgpack(structs.TombstoneRequestType, &req)
 	if err != nil {
 		s.logger.Error("failed to reap tombstones up to index",
 			"index", index,

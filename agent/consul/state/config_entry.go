@@ -98,7 +98,7 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 
 // ConfigEntry is called to get a given config entry.
 func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return configEntryTxn(tx, ws, kind, name, entMeta)
 }
@@ -133,7 +133,7 @@ func (s *Store) ConfigEntries(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (u
 // ConfigEntriesByKind is called to get all config entry objects with the given kind.
 // If kind is empty, all config entries will be returned.
 func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return configEntriesByKindTxn(tx, ws, kind, entMeta)
 }
