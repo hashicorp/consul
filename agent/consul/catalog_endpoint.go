@@ -142,7 +142,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return err
 	}
 
-	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
+	_, err = c.srv.raftApplyMsgpack(structs.RegisterRequestType, args)
 	return err
 }
 
@@ -386,7 +386,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 		return err
 	}
 
-	_, err = c.srv.raftApply(structs.DeregisterRequestType, args)
+	_, err = c.srv.raftApplyMsgpack(structs.DeregisterRequestType, args)
 	return err
 }
 

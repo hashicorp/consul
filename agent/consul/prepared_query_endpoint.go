@@ -129,7 +129,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	}
 
 	// Commit the query to the state store.
-	_, err = p.srv.raftApply(structs.PreparedQueryRequestType, args)
+	_, err = p.srv.raftApplyMsgpack(structs.PreparedQueryRequestType, args)
 	if err != nil {
 		return fmt.Errorf("raft apply failed: %w", err)
 	}

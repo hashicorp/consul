@@ -231,7 +231,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 
 	req.Token.SetHash(true)
 
-	_, err = a.srv.raftApply(structs.ACLBootstrapRequestType, &req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLBootstrapRequestType, &req)
 	if err != nil {
 		return err
 	}
@@ -594,7 +594,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		TokenIDs: []string{args.TokenID},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLTokenDeleteRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token delete request: %v", err)
 	}
@@ -919,7 +919,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		Policies: structs.ACLPolicies{policy},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLPolicySetRequestType, req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLPolicySetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply policy upsert request: %v", err)
 	}
@@ -979,7 +979,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		PolicyIDs: []string{args.PolicyID},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLPolicyDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
@@ -1333,7 +1333,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		Roles: structs.ACLRoles{role},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLRoleSetRequestType, req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLRoleSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply role upsert request: %v", err)
 	}
@@ -1389,7 +1389,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		RoleIDs: []string{args.RoleID},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLRoleDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply role delete request: %v", err)
 	}
@@ -1654,7 +1654,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		BindingRules: structs.ACLBindingRules{rule},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLBindingRuleSetRequestType, req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLBindingRuleSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule upsert request: %v", err)
 	}
@@ -1706,7 +1706,7 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 		BindingRuleIDs: []string{args.BindingRuleID},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLBindingRuleDeleteRequestType, &req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLBindingRuleDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule delete request: %v", err)
 	}
@@ -1898,7 +1898,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		AuthMethods: structs.ACLAuthMethods{method},
 	}
 
-	_, err = a.srv.raftApply(structs.ACLAuthMethodSetRequestType, req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLAuthMethodSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply auth method upsert request: %v", err)
 	}
@@ -1956,7 +1956,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		EnterpriseMeta:  args.EnterpriseMeta,
 	}
 
-	_, err = a.srv.raftApply(structs.ACLAuthMethodDeleteRequestType, &req)
+	_, err = a.srv.raftApplyMsgpack(structs.ACLAuthMethodDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply auth method delete request: %v", err)
 	}

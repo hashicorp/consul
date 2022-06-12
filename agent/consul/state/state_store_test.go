@@ -93,7 +93,7 @@ func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opt
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	n, err := tx.First(tableNodes, indexID, Query{
 		Value:          nodeID,
@@ -126,7 +126,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
@@ -159,7 +159,7 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
@@ -190,7 +190,7 @@ func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID), EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition)})
 	if err != nil {
@@ -243,7 +243,7 @@ func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	e, err := tx.First(tableKVs, indexID, entry)

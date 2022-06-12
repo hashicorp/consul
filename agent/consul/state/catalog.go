@@ -473,7 +473,7 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 
 // GetNode is used to retrieve a node registration by node name ID.
 func (s *Store) GetNode(nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.Node, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -524,7 +524,7 @@ func getNodeIDTxn(tx ReadTxn, id types.NodeID, entMeta *acl.EnterpriseMeta, peer
 
 // GetNodeID is used to retrieve a node registration by node ID.
 func (s *Store) GetNodeID(id types.NodeID, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.Node, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -541,7 +541,7 @@ func (s *Store) GetNodeID(id types.NodeID, entMeta *acl.EnterpriseMeta, peerName
 
 // Nodes is used to return all of the known nodes.
 func (s *Store) Nodes(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.Nodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -572,7 +572,7 @@ func (s *Store) Nodes(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName s
 
 // NodesByMeta is used to return all nodes with the given metadata key/value pairs.
 func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.Nodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -1088,7 +1088,7 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 
 // Services returns all services along with a list of associated tags.
 func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.Services, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -1128,7 +1128,7 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 }
 
 func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return serviceListTxn(tx, ws, entMeta, peerName)
@@ -1166,7 +1166,7 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, 
 
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
 func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.Services, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -1421,7 +1421,7 @@ func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, index string, q Query) (uint
 // ServiceTagNodes returns the nodes associated with a given service, filtering
 // out services that don't contain the given tags.
 func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -1494,7 +1494,7 @@ func serviceTagsFilter(sn *structs.ServiceNode, tags []string) bool {
 // ServiceAddressNodes returns the nodes associated with a given service, filtering
 // out services that don't match the given serviceAddress
 func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// List all the services.
@@ -1585,7 +1585,7 @@ func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNo
 // NodeService is used to retrieve a specific service associated with the given
 // node.
 func (s *Store) NodeService(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeService, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -1659,7 +1659,7 @@ func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.Ent
 		return 0, nil, ErrNodeNotFound
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -1675,7 +1675,7 @@ func (s *Store) ServiceNode(nodeID, nodeName, serviceID string, entMeta *acl.Ent
 }
 
 func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string, allowWildcard bool) (bool, uint64, *structs.Node, memdb.ResultIterator, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value for entMeta
@@ -2193,7 +2193,7 @@ func (s *Store) ensureCheckTxn(tx WriteTxn, idx uint64, preserveIndexes bool, hc
 // NodeCheck is used to retrieve a specific check associated with the given
 // node.
 func (s *Store) NodeCheck(nodeName string, checkID types.CheckID, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.HealthCheck, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return getNodeCheckTxn(tx, nodeName, checkID, entMeta, peerName)
@@ -2231,7 +2231,7 @@ func getNodeCheckTxn(tx ReadTxn, nodeName string, checkID types.CheckID, entMeta
 // NodeChecks is used to retrieve checks associated with the
 // given node from the state store.
 func (s *Store) NodeChecks(ws memdb.WatchSet, nodeName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	if entMeta == nil {
@@ -2263,7 +2263,7 @@ func (s *Store) NodeChecks(ws memdb.WatchSet, nodeName string, entMeta *acl.Ente
 // given service ID. The query is performed against a service
 // _name_ instead of a service ID.
 func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -2294,7 +2294,7 @@ func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *ac
 // given service ID, filtered by the given node metadata values. The query
 // is performed against a service _name_ instead of a service ID.
 func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string, filters map[string]string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -2320,7 +2320,7 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string, f
 // ChecksInState is used to query the state store for all checks
 // which are in the provided state.
 func (s *Store) ChecksInState(ws memdb.WatchSet, state string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	idx, iter, err := checksInStateTxn(tx, ws, state, entMeta, peerName)
@@ -2338,7 +2338,7 @@ func (s *Store) ChecksInState(ws memdb.WatchSet, state string, entMeta *acl.Ente
 // ChecksInStateByNodeMeta is used to query the state store for all checks
 // which are in the provided state, filtered by the given node metadata values.
 func (s *Store) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters map[string]string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	idx, iter, err := checksInStateTxn(tx, ws, state, entMeta, peerName)
@@ -2627,7 +2627,7 @@ func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, 
 // CheckIngressServiceNodes is used to query all nodes and checks for ingress
 // endpoints for a given service.
 func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	maxIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindIngressGateway, entMeta, structs.DefaultPeerKeyword)
@@ -2663,7 +2663,7 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 }
 
 func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta, peerName)
@@ -2806,7 +2806,7 @@ func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, con
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
 func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -2839,7 +2839,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 
 // GatewayServices is used to query all services associated with a gateway
 func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	iter, err := tx.Get(tableGatewayServices, indexGateway, structs.NewServiceName(gateway, entMeta))
@@ -2858,7 +2858,7 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 }
 
 func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	vip, err := tx.First(tableServiceVirtualIPs, indexID, sn)
@@ -2877,7 +2877,7 @@ func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
 }
 
 func (s *Store) ServiceNamesOfKind(ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
@@ -3031,7 +3031,7 @@ func parseCheckServiceNodes(
 // NodeInfo is used to generate a dump of a single node. The dump includes
 // all services and checks which are registered against the node.
 func (s *Store) NodeInfo(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.NodeDump, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	if entMeta == nil {
@@ -3058,7 +3058,7 @@ func (s *Store) NodeInfo(ws memdb.WatchSet, node string, entMeta *acl.Enterprise
 // as it has to query every node, service, and check. The response can also
 // be quite large since there is currently no filtering applied.
 func (s *Store) NodeDump(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.NodeDump, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	if entMeta == nil {
@@ -3082,7 +3082,7 @@ func (s *Store) NodeDump(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 }
 
 func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	if useKind {
@@ -4536,7 +4536,7 @@ func cleanupKindServiceName(tx WriteTxn, idx uint64, name structs.ServiceName, k
 // In Enterprise, this will return entries across all partitions and namespaces.
 // TODO(peering) make this peering aware?
 func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	contents := &structs.CatalogContents{}
 
 	nodes, err := tx.Get(tableNodes, indexID)

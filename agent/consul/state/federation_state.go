@@ -126,7 +126,7 @@ func federationStateSetTxn(tx WriteTxn, idx uint64, config *structs.FederationSt
 
 // FederationStateGet is called to get a federation state.
 func (s *Store) FederationStateGet(ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return federationStateGetTxn(tx, ws, datacenter)
 }
@@ -156,7 +156,7 @@ func federationStateGetTxn(tx ReadTxn, ws memdb.WatchSet, datacenter string) (ui
 
 // FederationStateList is called to get all federation state objects.
 func (s *Store) FederationStateList(ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return federationStateListTxn(tx, ws)
 }

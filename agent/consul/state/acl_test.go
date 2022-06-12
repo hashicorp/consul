@@ -4107,7 +4107,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		links := []*pbacl.ACLLink{
@@ -4130,7 +4130,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		links := []*pbacl.ACLLink{
@@ -4163,7 +4163,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		links := []*pbacl.ACLLink{
@@ -4209,7 +4209,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
@@ -4236,7 +4236,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
@@ -4268,7 +4268,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
@@ -4295,7 +4295,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		t.Parallel()
 		s := testStateStore(t)
 
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		_, _, err := fixupACLLinks(tx, links, func(ReadTxn, string) (string, error) {

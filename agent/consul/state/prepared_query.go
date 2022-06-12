@@ -278,7 +278,7 @@ func preparedQueryDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 
 // PreparedQueryGet returns the given prepared query by ID.
 func (s *Store) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *structs.PreparedQuery, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -297,7 +297,7 @@ func (s *Store) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *st
 // Name. If the query was looked up by name and it's a template, then the
 // template will be rendered before it is returned.
 func (s *Store) PreparedQueryResolve(queryIDOrName string, source structs.QuerySource) (uint64, *structs.PreparedQuery, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.
@@ -371,7 +371,7 @@ func (s *Store) PreparedQueryResolve(queryIDOrName string, source structs.QueryS
 
 // PreparedQueryList returns all the prepared queries.
 func (s *Store) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.PreparedQueries, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.

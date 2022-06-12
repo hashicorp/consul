@@ -132,7 +132,7 @@ func (s *Restore) LegacyIntention(ixn *structs.Intention) error {
 // AreIntentionsInConfigEntries determines which table is the canonical store
 // for intentions data.
 func (s *Store) AreIntentionsInConfigEntries() (bool, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return areIntentionsInConfigEntries(tx, nil)
 }
@@ -151,7 +151,7 @@ func areIntentionsInConfigEntries(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
 // LegacyIntentions is like Intentions() but only returns legacy intentions.
 // This is exposed for migration purposes.
 func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	idx, results, _, err := legacyIntentionsListTxn(tx, ws, entMeta)
@@ -160,7 +160,7 @@ func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta)
 
 // Intentions returns the list of all intentions. The boolean response value is true if it came from config entries.
 func (s *Store) Intentions(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
@@ -570,7 +570,7 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 
 // IntentionGet returns the given intention by ID.
 func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
@@ -610,7 +610,7 @@ func legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *s
 
 // IntentionGetExact returns the given intention by it's full unique name.
 func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
@@ -795,7 +795,7 @@ func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.Intention
 // intention precedence rules. i.e. result[0][0] is the highest precedent
 // rule to match for the first entry.
 func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
@@ -845,7 +845,7 @@ func (s *Store) IntentionMatchOne(
 	matchType structs.IntentionMatchType,
 	destinationType structs.IntentionTargetType,
 ) (uint64, structs.Intentions, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return compatIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)

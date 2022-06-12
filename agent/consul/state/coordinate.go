@@ -130,7 +130,7 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
 func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value
@@ -159,7 +159,7 @@ func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.Enterpri
 
 // Coordinates queries for all nodes with coordinates.
 func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Coordinates, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer value

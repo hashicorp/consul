@@ -178,7 +178,7 @@ func kvsSetTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry, updateSession b
 
 // KVSGet is used to retrieve a key/value pair from the state store.
 func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *acl.EnterpriseMeta) (uint64, *structs.DirEntry, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer entMeta
@@ -215,7 +215,7 @@ func kvsGetTxn(tx ReadTxn,
 func (s *Store) KVSList(ws memdb.WatchSet,
 	prefix string, entMeta *acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// TODO: accept non-pointer entMeta

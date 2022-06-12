@@ -103,7 +103,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) er
 
 // CanBootstrapACLToken checks if bootstrapping is possible and returns the reset index
 func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 
 	// Lookup the bootstrap sentinel
 	out, err := tx.First(tableIndex, indexID, "acl-token-bootstrap")
@@ -583,7 +583,7 @@ func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string, entMet
 
 // aclTokenGet looks up a token using one of the indexes provided
 func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	token, err := aclTokenGetTxn(tx, ws, value, index, entMeta)
@@ -596,7 +596,7 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, entMeta *acl
 }
 
 func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64, structs.ACLTokens, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	tokens := make(structs.ACLTokens, 0)
@@ -642,7 +642,7 @@ func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta 
 
 // ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	var iter memdb.ResultIterator
@@ -721,7 +721,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 
 // TODO(ACL-Legacy-Compat): remove in phase 2
 func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	iter, err := tx.Get(tableACLTokens, "needs-upgrade", true)
@@ -743,7 +743,7 @@ func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan stru
 }
 
 func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	item, err := tx.First(tableACLTokens, s.expiresIndexName(local))
@@ -763,7 +763,7 @@ func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
 // ACLTokenListExpires lists tokens that are expired as of the provided time.
 // The returned set will be no larger than the max value provided.
 func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (structs.ACLTokens, <-chan struct{}, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	iter, err := tx.Get(tableACLTokens, s.expiresIndexName(local))
@@ -985,7 +985,7 @@ func aclPolicyGetByName(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (<
 }
 
 func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	policies := make(structs.ACLPolicies, 0)
@@ -1024,7 +1024,7 @@ func getPolicyWithTxn(tx ReadTxn, ws memdb.WatchSet, value string, fn aclPolicyG
 }
 
 func (s *Store) aclPolicyGet(ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	policy, err := getPolicyWithTxn(tx, ws, value, fn, entMeta)
@@ -1038,7 +1038,7 @@ func (s *Store) aclPolicyGet(ws memdb.WatchSet, value string, fn aclPolicyGetFn,
 }
 
 func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLPolicies, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	iter, err := tx.Get(tableACLPolicies, indexName+"_prefix", entMeta)
@@ -1218,7 +1218,7 @@ func aclRoleGetByName(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (<-c
 }
 
 func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLRoles, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	roles := make(structs.ACLRoles, 0, len(ids))
@@ -1258,7 +1258,7 @@ func getRoleWithTxn(tx ReadTxn, ws memdb.WatchSet, value string, fn aclRoleGetFn
 }
 
 func (s *Store) aclRoleGet(ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	role, err := getRoleWithTxn(tx, ws, value, fn, entMeta)
@@ -1272,7 +1272,7 @@ func (s *Store) aclRoleGet(ws memdb.WatchSet, value string, fn aclRoleGetFn, ent
 }
 
 func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLRoles, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	var iter memdb.ResultIterator
@@ -1423,7 +1423,7 @@ func (s *Store) ACLBindingRuleGetByID(ws memdb.WatchSet, id string, entMeta *acl
 }
 
 func (s *Store) aclBindingRuleGet(ws memdb.WatchSet, value string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLBindingRule, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	watchCh, rawRule, err := aclBindingRuleGetByID(tx, value, entMeta)
@@ -1443,7 +1443,7 @@ func (s *Store) aclBindingRuleGet(ws memdb.WatchSet, value string, entMeta *acl.
 }
 
 func (s *Store) ACLBindingRuleList(ws memdb.WatchSet, methodName string, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLBindingRules, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	var (
@@ -1602,7 +1602,7 @@ func (s *Store) ACLAuthMethodGetByName(ws memdb.WatchSet, name string, entMeta *
 }
 
 func (s *Store) aclAuthMethodGet(ws memdb.WatchSet, name string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLAuthMethod, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	method, err := getAuthMethodWithTxn(tx, ws, name, entMeta)
@@ -1630,7 +1630,7 @@ func getAuthMethodWithTxn(tx ReadTxn, ws memdb.WatchSet, name string, entMeta *a
 }
 
 func (s *Store) ACLAuthMethodList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLAuthMethods, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	iter, err := aclAuthMethodList(tx, entMeta)

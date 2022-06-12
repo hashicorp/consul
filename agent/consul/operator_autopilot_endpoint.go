@@ -62,7 +62,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// Apply the update
-	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
+	resp, err := op.srv.raftApplyMsgpack(structs.AutopilotRequestType, args)
 	if err != nil {
 		return fmt.Errorf("raft apply failed: %w", err)
 	}

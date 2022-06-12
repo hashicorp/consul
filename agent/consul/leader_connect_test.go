@@ -719,7 +719,7 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 		activePrimaryRoot.SigningKeyID = primaryRootSigningKeyID
 
 		// Store the root cert in raft
-		_, err = s1pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		_, err = s1pre.raftApplyMsgpack(structs.ConnectCARequestType, &structs.CARequest{
 			Op:    structs.CAOpSetRoots,
 			Index: idx,
 			Roots: []*structs.CARoot{activePrimaryRoot},
@@ -820,7 +820,7 @@ func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 		activeSecondaryRoot.SigningKeyID = secondaryRootSigningKeyID
 
 		// Store the root cert in raft
-		_, err = s2pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		_, err = s2pre.raftApplyMsgpack(structs.ConnectCARequestType, &structs.CARequest{
 			Op:    structs.CAOpSetRoots,
 			Index: idx,
 			Roots: []*structs.CARoot{activeSecondaryRoot},

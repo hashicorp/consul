@@ -52,7 +52,7 @@ func (s *Restore) Autopilot(config *structs.AutopilotConfig) error {
 
 // AutopilotConfig is used to get the current Autopilot configuration.
 func (s *Store) AutopilotConfig() (uint64, *structs.AutopilotConfig, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the autopilot config

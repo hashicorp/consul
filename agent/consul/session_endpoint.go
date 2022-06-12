@@ -144,7 +144,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 
 	// Apply the update
-	resp, err := s.srv.raftApply(structs.SessionRequestType, args)
+	resp, err := s.srv.raftApplyMsgpack(structs.SessionRequestType, args)
 	if err != nil {
 		return fmt.Errorf("apply failed: %w", err)
 	}

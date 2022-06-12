@@ -119,7 +119,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	}
 
 	// Apply the update.
-	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
+	resp, err := k.srv.raftApplyMsgpack(structs.KVSRequestType, args)
 	if err != nil {
 		return fmt.Errorf("raft apply failed: %w", err)
 	}

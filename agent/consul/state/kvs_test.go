@@ -498,7 +498,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	}
 
 	// The entry was removed from the state store
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	e, err := tx.First(tableKVs, indexID, Query{Value: "foo"})
@@ -658,7 +658,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Check that nothing was actually stored
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	if e, err := tx.First(tableKVs, indexID, Query{Value: "foo"}); e != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", e, err)
 	}
@@ -863,7 +863,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Check that all the matching keys were deleted
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	entries, err := tx.Get(tableKVs, indexID)

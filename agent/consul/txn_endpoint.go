@@ -156,7 +156,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	}
 
 	// Apply the update.
-	resp, err := t.srv.raftApply(structs.TxnRequestType, args)
+	resp, err := t.srv.raftApplyMsgpack(structs.TxnRequestType, args)
 	if err != nil {
 		return fmt.Errorf("raft apply failed: %w", err)
 	}

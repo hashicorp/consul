@@ -294,7 +294,7 @@ func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 func (s *Store) SessionGet(ws memdb.WatchSet,
 	sessionID string, entMeta *acl.EnterpriseMeta) (uint64, *structs.Session, error) {
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	idx := maxIndexTxnSessions(tx, entMeta)
@@ -320,7 +320,7 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
 func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *acl.EnterpriseMeta) (uint64, structs.Sessions, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.

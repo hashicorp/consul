@@ -108,7 +108,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		if req.Op != structs.IntentionOpDelete {
 			req2.Intention.Hash = req.Intention.Hash // not part of Clone
 		}
-		_, err := s.raftApply(structs.IntentionRequestType, req2)
+		_, err := s.raftApplyMsgpack(structs.IntentionRequestType, req2)
 		return err
 	}
 
@@ -435,7 +435,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	var retained []*structs.Intention
 	for _, ixn := range ixns {
 		ixn2 := *ixn
-		_, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
+		_, err := s1pre.raftApplyMsgpack(structs.IntentionRequestType, &structs.IntentionRequest{
 			Op:        structs.IntentionOpCreate,
 			Intention: &ixn2,
 		})

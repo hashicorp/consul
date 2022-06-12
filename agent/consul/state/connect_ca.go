@@ -106,7 +106,7 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 
 // CAConfig is used to get the current CA configuration.
 func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return caConfigTxn(tx, ws)
@@ -224,7 +224,7 @@ func (s *Restore) CARoot(r *structs.CARoot) error {
 
 // CARoots returns the list of all CA roots.
 func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	return caRootsTxn(tx, ws)
@@ -360,7 +360,7 @@ func (s *Restore) CAProviderState(state *structs.CAConsulProviderState) error {
 
 // CAProviderState is used to get the Consul CA provider state for the given ID.
 func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderState, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the index
@@ -448,7 +448,7 @@ func (s *Store) CALeafSetIndex(idx uint64, index uint64) error {
 }
 
 func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *structs.CAConfiguration, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	confIdx, config, err := caConfigTxn(tx, ws)

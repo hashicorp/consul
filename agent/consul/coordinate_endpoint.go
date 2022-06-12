@@ -110,7 +110,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 		t := structs.CoordinateBatchUpdateType | structs.IgnoreUnknownTypeFlag
 
 		slice := updates[start:end]
-		_, err := c.srv.raftApply(t, slice)
+		_, err := c.srv.raftApplyMsgpack(t, slice)
 		if err != nil {
 			return err
 		}

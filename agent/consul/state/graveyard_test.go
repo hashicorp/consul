@@ -36,7 +36,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Check some prefixes.
 	func() {
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
@@ -75,7 +75,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Check prefixes to see that the reap took effect at the right index.
 	func() {
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
@@ -201,7 +201,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 
 	// Dump them as if we are doing a snapshot.
 	dump := func() []*Tombstone {
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		iter, err := g.DumpTxn(tx)
@@ -255,7 +255,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		}
 
 		dump := func() []*Tombstone {
-			tx := s.db.Txn(false)
+			tx := s.db.ReadTxn()
 			defer tx.Abort()
 
 			iter, err := g.DumpTxn(tx)

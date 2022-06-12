@@ -911,7 +911,7 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 	upstreamIDs []structs.ServiceID,
 	proxyMode structs.ProxyMode,
 ) (uint64, *configentry.ResolvedServiceConfigSet, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	var res configentry.ResolvedServiceConfigSet
@@ -1048,7 +1048,7 @@ func (s *Store) readDiscoveryChainConfigEntries(
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta *acl.EnterpriseMeta,
 ) (uint64, *configentry.DiscoveryChainSet, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, overrides, entMeta)
 }

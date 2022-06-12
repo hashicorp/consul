@@ -123,7 +123,7 @@ func (s *Server) pruneCARoots() error {
 	args.Op = structs.CAOpSetRoots
 	args.Index = idx
 	args.Roots = newRoots
-	_, err = s.raftApply(structs.ConnectCARequestType, args)
+	_, err = s.raftApplyMsgpack(structs.ConnectCARequestType, args)
 	return err
 }
 

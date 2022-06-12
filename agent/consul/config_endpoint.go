@@ -110,7 +110,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return nil
 	}
 
-	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
+	resp, err := c.srv.raftApplyMsgpack(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err
 	}
@@ -413,7 +413,7 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		return nil
 	}
 
-	rsp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
+	rsp, err := c.srv.raftApplyMsgpack(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err
 	}

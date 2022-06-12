@@ -163,7 +163,7 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 
 // SessionList returns a slice containing all of the active sessions.
 func (s *Store) SessionList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Sessions, error) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Get the table index.

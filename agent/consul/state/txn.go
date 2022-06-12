@@ -413,7 +413,7 @@ func (s *Store) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, struc
 // store. You must verify outside this function that no write operations are
 // present, otherwise you'll get an error from the state store.
 func (s *Store) TxnRO(ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	results, errors := s.txnDispatch(tx, 0, ops)

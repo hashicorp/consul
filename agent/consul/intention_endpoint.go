@@ -155,7 +155,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	args.Mutation = mut
 	args.Intention = nil
 
-	_, err = s.srv.raftApply(structs.IntentionRequestType, args)
+	_, err = s.srv.raftApplyMsgpack(structs.IntentionRequestType, args)
 	return err
 }
 

@@ -175,7 +175,7 @@ func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) 
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
 func (s *Store) Snapshot() *Snapshot {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 
 	var tables []string
 	for table := range s.schema.Tables {
@@ -265,7 +265,7 @@ func (s *Store) Abandon() {
 // maxIndex is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func (s *Store) maxIndex(tables ...string) uint64 {
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	return maxIndexTxn(tx, tables...)
 }

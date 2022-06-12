@@ -1530,7 +1530,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 
 	// Associated service was removed. Need to query this directly out of
 	// the DB to make sure it is actually gone.
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	services, err := tx.Get(tableServices, indexID, NodeServiceQuery{Node: "node1", Service: "service1"})
 	if err != nil {
@@ -2563,7 +2563,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 
 	// Check doesn't exist. Check using the raw DB so we can test
 	// that it actually is removed in the state store.
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	check, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: "node1", CheckID: "check1"})
 	if err != nil || check != nil {
@@ -3441,7 +3441,7 @@ func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID s
 // Ensure index exist, if expectedIndex = -1, ensure the index does not exists
 func ensureIndexForService(t *testing.T, s *Store, serviceName string, expectedIndex uint64) {
 	t.Helper()
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	transaction, err := tx.First(tableIndex, "id", serviceIndexName(serviceName, nil, ""))
 	if err == nil {
@@ -4925,7 +4925,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	roTxn := s.db.Txn(false)
+	roTxn := s.db.ReadTxn()
 	_, nsRead, err := s.NodeService(nil, "node1", "foo", nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
@@ -4940,7 +4940,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	roTxn = s.db.Txn(false)
+	roTxn = s.db.ReadTxn()
 	_, nsRead, err = s.NodeService(nil, "node1", "foo", nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
@@ -4955,7 +4955,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure the update happened
-	roTxn = s.db.Txn(false)
+	roTxn = s.db.ReadTxn()
 	_, nsRead, err = s.NodeService(nil, "node1", "foo", nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)

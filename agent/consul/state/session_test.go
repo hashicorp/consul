@@ -137,7 +137,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	// Check mappings were inserted
@@ -384,7 +384,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 	}
 
 	// Make sure the session is really gone.
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	sessions, err := tx.Get(tableSessions, indexID)
 	if err != nil || sessions.Next() != nil {
 		t.Fatalf("session should not exist")
@@ -506,7 +506,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		}
 
 		// Manually verify that the session check mapping got restored.
-		tx := s.db.Txn(false)
+		tx := s.db.ReadTxn()
 		defer tx.Abort()
 
 		check, err := tx.First(tableSessionChecks, indexSession, Query{Value: session1})
@@ -729,7 +729,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	}
 
 	// Manually make sure the session checks mapping is clear.
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	mapping, err := tx.First(tableSessionChecks, indexSession, Query{Value: session.ID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
