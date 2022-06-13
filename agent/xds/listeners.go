@@ -347,8 +347,27 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		// Filter chains are stable sorted to avoid draining if the list is provided out of order
 		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
-			return outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix <
-				outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
+			si := ""
+			sj := ""
+			if len(outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges) > 0 {
+				si += outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix +
+					"/" + outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges[0].PrefixLen.String() +
+					":" + outboundListener.FilterChains[i].FilterChainMatch.DestinationPort.String()
+			}
+			if len(outboundListener.FilterChains[i].FilterChainMatch.ServerNames) > 0 {
+				si += outboundListener.FilterChains[i].FilterChainMatch.ServerNames[0]
+			}
+
+			if len(outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
+				sj += outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix +
+					"/" + outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].PrefixLen.String() +
+					":" + outboundListener.FilterChains[j].FilterChainMatch.DestinationPort.String()
+			}
+			if len(outboundListener.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
+				sj += outboundListener.FilterChains[j].FilterChainMatch.ServerNames[0]
+			}
+
+			return si < sj
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to destinations outside the mesh
@@ -483,7 +502,10 @@ func makeFilterChainMatchFromAddressWithPort(address string, Port int) *envoy_li
 
 	ip := net.ParseIP(address)
 	if ip == nil {
-		return nil
+		return &envoy_listener_v3.FilterChainMatch{
+			ServerNames:     []string{address},
+			DestinationPort: &wrappers.UInt32Value{Value: uint32(Port)},
+		}
 	}
 
 	pfxLen := uint32(32)
@@ -1703,12 +1725,15 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForListener(
 			cfg.EnvoyListenerJSON = ""
 		}
 	}
-
 	protocol := cfg.Protocol
-	if protocol == "" {
-		protocol = chain.Protocol
-	}
-	if protocol == "" {
+	if chain != nil {
+		if protocol == "" {
+			protocol = chain.Protocol
+		}
+		if protocol == "" {
+			protocol = "tcp"
+		}
+	} else {
 		protocol = "tcp"
 	}
 

@@ -769,6 +769,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
 		{
+			name:   "transparent-proxy-destination-hostname",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
+		},
+		{
 			name:   "transparent-proxy-dial-instances-directly",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
