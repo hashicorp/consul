@@ -18,7 +18,7 @@
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['read servers']
+            abilities: ['read servers'],
           },
         },
         cataloghealth: {
@@ -30,7 +30,7 @@
         license: {
           _options: {
             path: '/license',
-            abilities: ['read license']
+            abilities: ['read license'],
           },
         },
       },
@@ -39,8 +39,8 @@
         index: {
           _options: {
             path: '/',
-          }
-        }
+          },
+        },
       },
       services: {
         _options: { path: '/services' },
@@ -64,7 +64,12 @@
           },
         },
         show: {
-          _options: { path: '/:name' },
+          _options: {
+            path: '/:name',
+            queryParams: {
+              peer: 'peer',
+            },
+          },
           instances: {
             _options: {
               path: '/instances',
