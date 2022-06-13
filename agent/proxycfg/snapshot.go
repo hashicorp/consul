@@ -137,9 +137,10 @@ type configSnapshotConnectProxy struct {
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
 	// intentions.
-	Intentions           structs.Intentions
-	IntentionsSet        bool
-	DestinationsUpstream map[UpstreamID]structs.ConfigEntry
+	Intentions                  structs.Intentions
+	IntentionsSet               bool
+	DestinationsUpstream        map[UpstreamID]structs.ConfigEntry
+	WatchedDestinationsUpstream map[UpstreamID]context.CancelFunc
 }
 
 // isEmpty is a test helper

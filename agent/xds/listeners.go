@@ -226,6 +226,28 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
+	for uid, configEntry := range cfgSnap.ConnectProxy.DestinationsUpstream {
+		destination, ok := configEntry.(*structs.ServiceConfigEntry)
+		if !ok {
+			continue
+		}
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, nil)
+		filterName := fmt.Sprintf("%s.%s.%s.%s", destination.GetName(), destination.Namespace, destination.Partition, cfgSnap.Datacenter)
+		clusterName := filterName
+		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+			routeName:   uid.EnvoyID(),
+			clusterName: clusterName,
+			filterName:  filterName,
+			protocol:    cfg.Protocol,
+			useRDS:      cfg.Protocol != "tcp",
+		})
+		if err != nil {
+			return nil, err
+		}
+		filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort(destination.Destination.Address, destination.Destination.Port)
+		outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+	}
 	// Looping over explicit upstreams is only needed for cross-peer because
 	// they do not have discovery chains.
 	//
@@ -453,6 +475,29 @@ func makeFilterChainMatchFromAddrs(addrs map[string]struct{}) *envoy_listener_v3
 
 	return &envoy_listener_v3.FilterChainMatch{
 		PrefixRanges: ranges,
+	}
+}
+
+func makeFilterChainMatchFromAddressWithPort(address string, Port int) *envoy_listener_v3.FilterChainMatch {
+	ranges := make([]*envoy_core_v3.CidrRange, 0)
+
+	ip := net.ParseIP(address)
+	if ip == nil {
+		return nil
+	}
+
+	pfxLen := uint32(32)
+	if ip.To4() == nil {
+		pfxLen = 128
+	}
+	ranges = append(ranges, &envoy_core_v3.CidrRange{
+		AddressPrefix: address,
+		PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+	})
+
+	return &envoy_listener_v3.FilterChainMatch{
+		PrefixRanges:    ranges,
+		DestinationPort: &wrappers.UInt32Value{Value: uint32(Port)},
 	}
 }
 

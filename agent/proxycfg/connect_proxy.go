@@ -34,6 +34,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 	snap.ConnectProxy.PeerUpstreamEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
 	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
+	snap.ConnectProxy.WatchedDestinationsUpstream = make(map[UpstreamID]context.CancelFunc)
 
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -446,7 +447,11 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response %T", u.Result)
 		}
 		// Get information about the entire service mesh.
+		seenUpstreams := make(map[UpstreamID]struct{})
 		for _, svc := range resp.Services {
+			uid := NewUpstreamIDFromServiceName(svc)
+			seenUpstreams[uid] = struct{}{}
+			ctx, cancel := context.WithCancel(ctx)
 			err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 				Kind:           structs.ServiceDefaults,
 				Name:           svc.Name,
@@ -457,16 +462,29 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			if err != nil {
 				return err
 			}
+
+			snap.ConnectProxy.WatchedDestinationsUpstream[uid] = cancel
+
+		}
+		for uid, cancel := range snap.ConnectProxy.WatchedDestinationsUpstream {
+			if _, ok := snap.ConnectProxy.DestinationsUpstream[uid]; ok {
+				continue
+			}
+			if _, ok := seenUpstreams[uid]; !ok {
+				cancel()
+				delete(snap.ConnectProxy.WatchedDestinationsUpstream, uid)
+			}
 		}
 	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID):
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
 		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID+":")
 		uid := UpstreamIDFromString(pq)
-
 		snap.ConnectProxy.DestinationsUpstream[uid] = resp.Entry
+
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {
