@@ -322,6 +322,19 @@
         ]
       },
       {
+        "title": "Cluster Peering",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/cluster-peering"
+          },
+          {
+            "title": "Create and Manage Peering Connections",
+            "path": "connect/cluster-peering/create-manage-peering"
+          }
+        ]
+      },
+      {
         "title": "Nomad",
         "path": "connect/nomad"
       },
