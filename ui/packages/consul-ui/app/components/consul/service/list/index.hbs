@@ -32,8 +32,11 @@
         (hash
           partition=item.Partition
           nspace=item.Namespace
+          query=(hash peer=item.PeerName)
         )
-        (hash)
+        (hash
+          query=(hash peer=item.PeerName)
+        )
       )
     }}
   >
