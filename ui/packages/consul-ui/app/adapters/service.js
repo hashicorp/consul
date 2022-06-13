@@ -1,7 +1,7 @@
 import Adapter from './application';
 
 export default class ServiceAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, gateway, uri, withPeers }) {
     if (typeof gateway !== 'undefined') {
       return request`
         GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
@@ -15,7 +15,19 @@ export default class ServiceAdapter extends Adapter {
         }}
       `;
     } else {
-      return request`
+      if (withPeers) {
+        return request`
+        GET /v1/internal/ui/services?${{ dc }}&with-imports=true
+        X-Request-ID: ${uri}
+
+        ${{
+          ns,
+          partition,
+          index,
+        }}
+    `;
+      } else {
+        return request`
         GET /v1/internal/ui/services?${{ dc }}
         X-Request-ID: ${uri}
 
@@ -25,6 +37,7 @@ export default class ServiceAdapter extends Adapter {
           index,
         }}
     `;
+      }
     }
   }
 

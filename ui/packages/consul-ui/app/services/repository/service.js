@@ -7,7 +7,7 @@ export default class ServiceService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:partition/:ns/:dc/services')
+  @dataSource('/:partition/:ns/:dc/:withPeers/services')
   async findAllByDatacenter() {
     return super.findAll(...arguments);
   }
