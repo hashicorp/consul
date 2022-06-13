@@ -460,6 +460,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
 			}, DestinationConfigEntryID+":"+NewUpstreamIDFromServiceName(svc).String(), s.ch)
 			if err != nil {
+				cancel()
 				return err
 			}
 
