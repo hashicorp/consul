@@ -24,24 +24,26 @@ For detailed instructions on setting up cluster peering with the Consul CLI, ref
 
 WAN Federation and cluster peering are different ways to connect clusters across datacenters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it uses the gossip protocol to replicate global states like ACLs. As a result, WAN Federation requires a “primary datacenter" to serve as an authority for replicated data.
 
-Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either peering method to issue cross-datacenter queries for data including service endpoints and key/value stores.
+Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either peering method to issue cross-datacenter queries for data, including service endpoints.
 
-|                                                   | WAN Federation | Cluster Peering |
-| :------------------------------------------------ | :------------: | :-------------: |
-| Connects clusters across datacenters              |    &#10003;    |    &#10003;     |
-| Shares queries, service endpoints, and key/values |    &#10003;    |    &#10003;     |
-| Connects clusters owned by different operators    |    &#10005;    |    &#10003;     |
-| Functions without declaring “primary datacenter”  |    &#10005;    |    &#10003;     |
-| Uses gossip protocol                              |    &#10003;    |    &#10005;     |
-
-## Mesh gateways
-
-Mesh gateways for service to service traffic between clusters are available. Currently, mesh gateways for server to server traffic are not available.
+|                                                  | WAN Federation | Cluster Peering |
+| :----------------------------------------------- | :------------: | :-------------: |
+| Connects clusters across datacenters             |    &#9989;     |    &#9989;      |
+| Shares support queries and service endpoints     |    &#9989;     |    &#9989;      |
+| Connects clusters owned by different operators   |    &#10060;    |    &#9989;      |
+| Functions without declaring “primary datacenter” |    &#10060;    |    &#9989;      |
+| Shares key/value stores                          |    &#9989;     |    &#10060;     |
+| Uses gossip protocol                             |    &#9989;     |    &#10060;     |
 
 ## Technical preview limitations
 Not all features and functionality are available in the technical preview release. In particular, be aware of the following limitations:
 
+- Mesh gateways for _service to service traffic_ between clusters are available. However, mesh gateways for _server to server traffic_ are not available.
 - Services exported to peered clusters must not be configured as HTTP.
 - Support for dynamic routing such as splits, custom routes, or redirects is not available at this time.
 - The ``consul intention` CLI command is not supported.
-- L7 permissions are not supported.
+- [L7 permissions](/docs/connect/l7-traffic) are not supported.
+- Configuring service failover across peers is not supported.
+- Accessing key/value stores across peers is not supported.
+- Consul datacenters that are already federated stay federated.
+- Non-enterprise Consul instances cannot sync services with namespaces outside of the default namespace.
