@@ -804,6 +804,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
+		// What is a sensible default for BuildDate?
+		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
@@ -1942,6 +1944,13 @@ func stringValWithDefault(v *string, defaultVal string) string {
 func stringVal(v *string) string {
 	if v == nil {
 		return ""
+	}
+	return *v
+}
+
+func timeValWithDefault(v *time.Time, defaultVal time.Time) time.Time {
+	if v == nil {
+		return defaultVal
 	}
 	return *v
 }

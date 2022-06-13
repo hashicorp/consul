@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 
@@ -261,18 +262,19 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	AEInterval                 *string  `mapstructure:"ae_interval"`
-	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
-	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
-	Consul                     Consul   `mapstructure:"consul"`
-	Revision                   *string  `mapstructure:"revision"`
-	SegmentLimit               *int     `mapstructure:"segment_limit"`
-	SegmentNameLimit           *int     `mapstructure:"segment_name_limit"`
-	SyncCoordinateIntervalMin  *string  `mapstructure:"sync_coordinate_interval_min"`
-	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
-	Version                    *string  `mapstructure:"version"`
-	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
-	VersionMetadata            *string  `mapstructure:"version_metadata"`
+	AEInterval                 *string    `mapstructure:"ae_interval"`
+	CheckDeregisterIntervalMin *string    `mapstructure:"check_deregister_interval_min"`
+	CheckReapInterval          *string    `mapstructure:"check_reap_interval"`
+	Consul                     Consul     `mapstructure:"consul"`
+	Revision                   *string    `mapstructure:"revision"`
+	SegmentLimit               *int       `mapstructure:"segment_limit"`
+	SegmentNameLimit           *int       `mapstructure:"segment_name_limit"`
+	SyncCoordinateIntervalMin  *string    `mapstructure:"sync_coordinate_interval_min"`
+	SyncCoordinateRateTarget   *float64   `mapstructure:"sync_coordinate_rate_target"`
+	Version                    *string    `mapstructure:"version"`
+	VersionPrerelease          *string    `mapstructure:"version_prerelease"`
+	VersionMetadata            *string    `mapstructure:"version_metadata"`
+	BuildDate                  *time.Time `mapstructure:"build_date"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
