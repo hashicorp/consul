@@ -1,15 +1,9 @@
 @keyframes icon-bolt {
-  50% {
-
-    background-color: var(--icon-color, var(--color-bolt-500, currentColor));
-    -webkit-mask-image: var(--icon-zap-24);
-    mask-image: var(--icon-zap-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-bolt-500, currentColor));
     -webkit-mask-image: var(--icon-zap-16);
     mask-image: var(--icon-zap-16);
+    background-color: var(--icon-color, var(--color-bolt-500, currentColor));
+
   }
 }

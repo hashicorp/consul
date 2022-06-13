@@ -1694,6 +1694,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1722,6 +1725,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1748,6 +1754,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 						},
 					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},

@@ -1,7 +1,7 @@
 FROM golang:latest
 
 WORKDIR /go/src
-COPY ./test-sds-server .
+COPY ./ .
 
 RUN go build -v -o test-sds-server sds.go
 

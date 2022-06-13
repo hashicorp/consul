@@ -22,6 +22,10 @@ func TestEventBufferFuzz(t *testing.T) {
 
 	b := newEventBuffer()
 
+	// Load head here so all subscribers start from the same point or they might
+	// not run until several appends have already happened.
+	head := b.Head()
+
 	// Start a write goroutine that will publish 10000 messages with sequential
 	// indexes and some jitter in timing (to allow clients to "catch up" and block
 	// waiting for updates).
@@ -49,10 +53,6 @@ func TestEventBufferFuzz(t *testing.T) {
 
 	// Run n subscribers following and verifying
 	errCh := make(chan error, nReaders)
-
-	// Load head here so all subscribers start from the same point or they might
-	// not run until several appends have already happened.
-	head := b.Head()
 
 	for i := 0; i < nReaders; i++ {
 		go func(i int) {

@@ -1,15 +1,9 @@
 @keyframes icon-git-repo {
-  50% {
-
-    background-color: var(--icon-color, var(--color-git-repo-500, currentColor));
-    -webkit-mask-image: var(--icon-git-repo-24);
-    mask-image: var(--icon-git-repo-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-git-repo-500, currentColor));
     -webkit-mask-image: var(--icon-git-repo-16);
     mask-image: var(--icon-git-repo-16);
+    background-color: var(--icon-color, var(--color-git-repo-500, currentColor));
+
   }
 }

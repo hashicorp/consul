@@ -1,15 +1,9 @@
 @keyframes icon-cancel-plain {
-  50% {
-
-    background-color: var(--icon-color, var(--color-cancel-plain-500, currentColor));
-    -webkit-mask-image: var(--icon-x-24);
-    mask-image: var(--icon-x-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-cancel-plain-500, currentColor));
     -webkit-mask-image: var(--icon-x-16);
     mask-image: var(--icon-x-16);
+    background-color: var(--icon-color, var(--color-cancel-plain-500, currentColor));
+
   }
 }

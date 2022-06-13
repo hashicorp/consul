@@ -14,8 +14,8 @@ project "consul" {
       "release/1.8.x",
       "release/1.9.x",
       "release/1.10.x",
-      "release/1.11.x"
-      "release/1.12.x"
+      "release/1.11.x",
+      "release/1.12.x",
     ]
   }
 }
@@ -165,6 +165,20 @@ event "verify" {
   }
 }
 
+event "promote-dev-docker" {
+  depends = ["verify"]
+  action "promote-dev-docker" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-dev-docker"
+    depends = ["verify"]
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
 ## These are promotion and post-publish events
 ## they should be added to the end of the file after the verify event stanza.
 
@@ -179,6 +193,7 @@ event "promote-staging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "promote-staging"
+    config = "release-metadata.hcl"
   }
 
   notification {

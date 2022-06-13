@@ -1,15 +1,9 @@
 @keyframes icon-source-file {
-  50% {
-
-    background-color: var(--icon-color, var(--color-source-file-500, currentColor));
-    -webkit-mask-image: var(--icon-file-source-24);
-    mask-image: var(--icon-file-source-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-source-file-500, currentColor));
     -webkit-mask-image: var(--icon-file-source-16);
     mask-image: var(--icon-file-source-16);
+    background-color: var(--icon-color, var(--color-source-file-500, currentColor));
+
   }
 }

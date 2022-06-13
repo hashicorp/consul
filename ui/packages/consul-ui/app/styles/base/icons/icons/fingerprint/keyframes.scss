@@ -1,15 +1,9 @@
 @keyframes icon-fingerprint {
-  50% {
-
-    background-color: var(--icon-color, var(--color-fingerprint-500, currentColor));
-    -webkit-mask-image: var(--icon-fingerprint-24);
-    mask-image: var(--icon-fingerprint-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-fingerprint-500, currentColor));
     -webkit-mask-image: var(--icon-fingerprint-16);
     mask-image: var(--icon-fingerprint-16);
+    background-color: var(--icon-color, var(--color-fingerprint-500, currentColor));
+
   }
 }

@@ -549,17 +549,17 @@ jobs:
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.10
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: v0.8.7
     steps: &NOMAD_INTEGRATION_TEST_STEPS
       - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
 
       # make dev build of nomad
       - run:
@@ -589,10 +589,10 @@ jobs:
   # run integration tests on nomad/main
   nomad-integration-main:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
+      - image: docker.mirror.hashicorp.services/cimg/go:1.18
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
@@ -803,9 +803,58 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
+  compatibility-integration-test:
+    machine:
+      image: ubuntu-2004:202201-02
+      docker_layer_caching: true
+    parallelism: 1
+    steps:
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      # Build the consul-dev image from the already built binary
+      - run:
+          command: |
+            sudo rm -rf /usr/local/go
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+          environment:
+            <<: *ENVIRONMENT
+      - run: *install-gotestsum
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - run:
+          name: Compatibility Integration Tests
+          command: |
+            subtests=$(ls -d test/integration/consul-container/*/ | grep -v libs | xargs -n 1 basename | circleci tests split)
+            echo "Running $(echo $subtests | wc -w) subtests"
+            echo "$subtests"
+            subtests_formatted=$(echo "$subtests" |  sed 's/^/.\//g' | xargs)
+            mkdir -p /tmp/test-results/
+            docker run consul:local consul version
+            cd ./test/integration/consul-container
+            echo "$subtests_formatted"
+            gotestsum -- -timeout=30m ./$subtests_formatted --target-version local --latest-version latest
+            ls -lrt
+          environment:
+            # this is needed because of incompatibility between RYUK container and circleci
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/consul-container/upgrade/workdir/logs
+          destination: container-logs
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
+
   envoy-integration-test-1_19_3: &ENVOY_TESTS
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:202201-02
     parallelism: 4
     resource_class: medium
     environment:
@@ -879,19 +928,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *notify-slack-failure
-
-  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
-  cherry-picker:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress git bash curl ncurses jq openssh-client
-      - checkout
-      - add_ssh_keys: # needs a key to push cherry-picked commits back to github
-          fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
-      - run: .circleci/scripts/cherry-picker.sh
       - run: *notify-slack-failure
 
   trigger-oss-merge:
@@ -1038,6 +1074,7 @@ workflows:
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1077,6 +1114,7 @@ workflows:
           requires:
             - dev-build
           context: consul-ci
+      - noop
   test-integrations:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1110,7 +1148,7 @@ workflows:
       - envoy-integration-test-1_22_0:
           requires:
             - dev-build
-
+      - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1143,6 +1181,7 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
+      - noop
   workflow-automation:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1153,13 +1192,7 @@ workflows:
               only:
                 - main
                 - /release\/\d+\.\d+\.x$/
-      - cherry-picker:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
+
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:

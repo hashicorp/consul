@@ -167,6 +167,27 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "http-public-listener-no-xfcc",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t,
+					func(ns *structs.NodeService) {
+						ns.Proxy.Config["protocol"] = "http"
+					},
+					[]cache.UpdateEvent{
+						{
+							CorrelationID: "mesh",
+							Result: &structs.ConfigEntryResponse{
+								Entry: &structs.MeshConfigEntry{
+									HTTP: &structs.MeshHTTPConfig{
+										SanitizeXForwardedClientCert: true,
+									},
+								},
+							},
+						},
+					})
+			},
+		},
+		{
 			name: "http-listener-with-timeouts",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -651,6 +672,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+		},
+		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
 		},
 		{
 			name: "terminating-gateway-no-api-cert",

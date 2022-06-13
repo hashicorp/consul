@@ -1,15 +1,9 @@
 @keyframes icon-swap-vertical {
-  50% {
-
-    background-color: var(--icon-color, var(--color-swap-vertical-500, currentColor));
-    -webkit-mask-image: var(--icon-swap-vertical-24);
-    mask-image: var(--icon-swap-vertical-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-swap-vertical-500, currentColor));
     -webkit-mask-image: var(--icon-swap-vertical-16);
     mask-image: var(--icon-swap-vertical-16);
+    background-color: var(--icon-color, var(--color-swap-vertical-500, currentColor));
+
   }
 }

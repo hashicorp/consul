@@ -24,7 +24,6 @@
       {{@item.Name}}
     </dd>
 
-{{#if (not @item.ReadReplica)}}
     <dt class={{class-map
       'health-status'
       (array 'healthy' @item.Healthy)
@@ -34,7 +33,6 @@
     <dd>
       {{if (contains @item.Status (array 'leader' 'voter')) 'Active voter' 'Backup voter'}}
     </dd>
-{{/if}}
 
   </dl>
 </div>

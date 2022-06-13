@@ -1,15 +1,9 @@
 @keyframes icon-collections {
-  50% {
-
-    background-color: var(--icon-color, var(--color-collections-500, currentColor));
-    -webkit-mask-image: var(--icon-collections-24);
-    mask-image: var(--icon-collections-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-collections-500, currentColor));
     -webkit-mask-image: var(--icon-collections-16);
     mask-image: var(--icon-collections-16);
+    background-color: var(--icon-color, var(--color-collections-500, currentColor));
+
   }
 }

@@ -14,3 +14,9 @@
     @extend %frame-blue-200;
   }
 }
+
+.consul-intention-view {
+  h2 {
+    @extend %h200;
+  }
+}

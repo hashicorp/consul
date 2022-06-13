@@ -1,15 +1,9 @@
 @keyframes icon-hashicorp {
-  50% {
-
-    background-color: var(--icon-color, var(--color-hashicorp-500, currentColor));
-    -webkit-mask-image: var(--icon-hashicorp-color-24);
-    mask-image: var(--icon-hashicorp-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-hashicorp-500, currentColor));
     -webkit-mask-image: var(--icon-hashicorp-color-16);
     mask-image: var(--icon-hashicorp-color-16);
+    background-color: var(--icon-color, var(--color-hashicorp-500, currentColor));
+
   }
 }

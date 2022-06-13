@@ -275,8 +275,8 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		// Validate that http features aren't being used with tcp or another non-supported protocol.
-		if listener.Protocol != "http" && len(listener.Services) > 1 {
-			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
+		if !IsProtocolHTTPLike(listener.Protocol) && len(listener.Services) > 1 {
+			return fmt.Errorf("Multiple services per listener are only supported for L7 protocols, 'http', 'grpc' and 'http2' (listener on port %d)",
 				listener.Port)
 		}
 

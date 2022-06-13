@@ -1,15 +1,9 @@
 @keyframes icon-triangle {
-  50% {
-
-    background-color: var(--icon-color, var(--color-triangle-500, currentColor));
-    -webkit-mask-image: var(--icon-triangle-24);
-    mask-image: var(--icon-triangle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-triangle-500, currentColor));
     -webkit-mask-image: var(--icon-triangle-16);
     mask-image: var(--icon-triangle-16);
+    background-color: var(--icon-color, var(--color-triangle-500, currentColor));
+
   }
 }

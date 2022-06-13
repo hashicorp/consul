@@ -5,6 +5,8 @@ dc:
       title: Server status
       unassigned: Unassigned Zones
       tolerance:
+        link: |
+          <a href="{CONSUL_DOCS_URL}/architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance" target="_blank" rel="noopener noreferrer">Learn how to improve fault tolerance</a>
         header: Server fault tolerance
         immediate:
           header: Immediate
@@ -35,7 +37,7 @@ dc:
         body: |
           <ul>
             <li>
-              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire">
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire" target="_blank" rel="noopener noreferrer">
                 License expiration
               </a>
             </li>
@@ -45,7 +47,7 @@ dc:
               </a>
             </li>
             <li>
-              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise">
+              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise" target="_blank" rel="noopener noreferrer">
                 Applying a new license
               </a>
             </li>
@@ -179,7 +181,7 @@ dc:
               </p>
           wildcard-intention:
             header: Permissive Intention
-            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this vizualization more useful.
+            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this visualization more useful.
             footer: |
               <p>
                 <a href="{route_intentions}">Edit Intentions</a>

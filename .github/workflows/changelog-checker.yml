@@ -12,8 +12,8 @@ on:
 jobs:
   # checks that a .changelog entry is present for a PR
   changelog-check:
-    # If there  a `pr/no-changelog` label we ignore this check
-    if: "!contains(github.event.pull_request.labels.*.name, 'pr/no-changelog')"
+    # If there  a `pr/no-changelog` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-changelog') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )" 
     runs-on: ubuntu-latest
 
     steps:

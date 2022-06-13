@@ -47,10 +47,11 @@ func TestGetPatcherBySNI(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			config := sampleConfig()
+			config.Kind = tc.kind
 			if tc.config != nil {
 				config = *tc.config
 			}
-			patcher := getPatcherBySNI(config, tc.kind, tc.sni)
+			patcher := getPatcherBySNI(config, tc.sni)
 
 			if tc.expected == nil {
 				require.Empty(t, patcher)
@@ -69,6 +70,7 @@ var (
 
 func sampleConfig() xdscommon.PluginConfiguration {
 	return xdscommon.PluginConfiguration{
+		Kind: api.ServiceKindTerminatingGateway,
 		ServiceConfigs: map[api.CompoundServiceName]xdscommon.ServiceConfig{
 			lambdaService: {
 				Kind: api.ServiceKindTerminatingGateway,

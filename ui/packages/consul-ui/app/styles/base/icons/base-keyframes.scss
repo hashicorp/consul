@@ -1,9 +1,14 @@
 *::before, *::after {
   display: inline-block;
-  animation-play-state: paused;
-  animation-fill-mode: forwards;
-  animation-iteration-count: var(--icon-resolution, 1);
   vertical-align: text-top;
+
+  background-repeat: no-repeat;
+  background-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+
 }
 *::before {
   animation-name: var(--icon-name-start, var(--icon-name)),
@@ -85,5 +90,11 @@
   100% {
     width: 1.750rem; /* 28px */
     height: 1.750rem; /* 28px */
+  }
+}
+@keyframes icon-999 {
+  100% {
+    width: 100%;
+    height: 100%;
   }
 }

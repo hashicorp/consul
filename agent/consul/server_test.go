@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1145,7 +1146,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	storage := make(map[string]float32)
+	storage := &sync.Map{} // string -> float32
 	keyMakingFunc := func(key []string, labels []metrics.Label) string {
 		allKey := strings.Join(key, "+")
 
@@ -1159,7 +1160,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 	}
 
 	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
-		storage[keyMakingFunc(key, labels)] = val
+		storage.Store(keyMakingFunc(key, labels), val)
 	}
 
 	t.Run("test no net/rpc interceptor metric with nil func", func(t *testing.T) {
@@ -1193,7 +1194,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
-		if _, ok := storage[key]; ok {
+		if _, ok := storage.Load(key); ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
 		}
 	})
@@ -1234,7 +1235,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
-		if _, ok := storage[key]; ok {
+		if _, ok := storage.Load(key); ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
 		}
 	})
@@ -1294,9 +1295,8 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	deps := newDefaultDeps(t, conf)
 
 	// The method used to record metric observations here is similar to that used in
-	// interceptors_test.go; at present, we don't have a need to lock yet but if we do
-	// we can imitate that set up further or just factor it out as a "mock" metrics backend
-	storage := make(map[string]float32)
+	// interceptors_test.go.
+	storage := &sync.Map{} // string -> float32
 	keyMakingFunc := func(key []string, labels []metrics.Label) string {
 		allKey := strings.Join(key, "+")
 
@@ -1308,7 +1308,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	}
 
 	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
-		storage[keyMakingFunc(key, labels)] = val
+		storage.Store(keyMakingFunc(key, labels), val)
 	}
 	deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
 		// for the purposes of this test, we don't need isLeader or localDC
@@ -1352,7 +1352,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
 
-		if _, ok := storage[key]; !ok {
+		if _, ok := storage.Load(key); !ok {
 			// the compound key will look like: "rpc+server+call+Status.Ping+false+read+test+unreported"
 			t.Fatalf("Did not find key %s in the metrics log, ", key)
 		}
