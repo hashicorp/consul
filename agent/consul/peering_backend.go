@@ -169,5 +169,10 @@ func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 	return err
 }
 
+func (a *peeringApply) CatalogDeregister(req *structs.DeregisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Deregister", structs.DeregisterRequestType, req)
+	return err
+}
+
 var _ peering.Apply = (*peeringApply)(nil)
 var _ peering.LeaderAddress = (*leaderAddr)(nil)
