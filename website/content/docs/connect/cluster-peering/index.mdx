@@ -1,8 +1,8 @@
 ---
 layout: docs
 page_title: What is Cluster Peering?
-description: |-
-This page details the cluster peering process for connecting Consul clusters across datacenters, including differences between cluster peering and the similar concept of WAN federation.
+description: >-
+    This page details the cluster peering process for connecting Consul clusters across datacenters, including differences between cluster peering and the similar concept of WAN federation.
 ---
 
 # What is Cluster Peering?
@@ -20,14 +20,14 @@ Cluster peering allows Consul clusters in different datacenters to communicate w
 
 For detailed instructions on setting up cluster peering with the Consul CLI, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering). If you prefer to use Kubernetes, refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s).
 
-### Differences between WAN Federation and cluster peering
+### Differences between WAN federation and cluster peering
 
-WAN Federation and cluster peering are different ways to connect clusters across datacenters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it uses the gossip protocol to replicate global states like ACLs. As a result, WAN Federation requires a “primary” datacenter to serve as an authority for replicated data.
+WAN Federation and cluster peering are different ways to connect clusters across datacenters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it uses the gossip protocol to replicate global states like ACLs. As a result, WAN Federation requires a “primary datacenter" to serve as an authority for replicated data.
 
 Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either peering method to issue cross-datacenter queries for data including service endpoints and key/value stores.
 
 |                                                   | WAN Federation | Cluster Peering |
-| ------------------------------------------------- | -------------- | --------------- |
+| :------------------------------------------------ | :------------: | :-------------: |
 | Connects clusters across datacenters              |    &#10003;    |    &#10003;     |
 | Shares queries, service endpoints, and key/values |    &#10003;    |    &#10003;     |
 | Connects clusters owned by different operators    |    &#10005;    |    &#10003;     |
