@@ -114,12 +114,18 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 	for _, peer := range peers {
 		logger.Trace("evaluating stored peer", "peer", peer.Name, "should_dial", peer.ShouldDial(), "sequence_id", seq)
 
-		if !peer.ShouldDial() {
+		if !peer.IsActive() {
+			// The peering is marked for deletion, no need to dial or track them.
 			continue
 		}
 
-		// TODO(peering) Account for deleted peers that are still in the state store
+		// Track all active peerings,since the reconciliation loop below applies to the token generator as well.
 		stored[peer.ID] = struct{}{}
+
+		if !peer.ShouldDial() {
+			// We do not need to dial peerings where we generated the peering token.
+			continue
+		}
 
 		status, found := s.peeringService.StreamStatus(peer.ID)
 
@@ -179,6 +185,8 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 }
 
 func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer *pbpeering.Peering, cancelFns map[string]context.CancelFunc) error {
+	logger = logger.With("peer_name", peer.Name, "peer_id", peer.ID)
+
 	tlsOption := grpc.WithInsecure()
 	if len(peer.PeerCAPems) > 0 {
 		var haveCerts bool
@@ -208,7 +216,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 		buffer = buffer.Next()
 	}
 
-	logger.Trace("establishing stream to peer", "peer_id", peer.ID)
+	logger.Trace("establishing stream to peer")
 
 	retryCtx, cancel := context.WithCancel(ctx)
 	cancelFns[peer.ID] = cancel
@@ -224,7 +232,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 			return fmt.Errorf("peer server address type %T is not a string", buffer.Value)
 		}
 
-		logger.Trace("dialing peer", "peer_id", peer.ID, "addr", addr)
+		logger.Trace("dialing peer", "addr", addr)
 		conn, err := grpc.DialContext(retryCtx, addr,
 			grpc.WithContextDialer(newPeerDialer(addr)),
 			grpc.WithBlock(),
@@ -241,16 +249,23 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 			return err
 		}
 
-		err = s.peeringService.HandleStream(peering.HandleStreamRequest{
+		streamReq := peering.HandleStreamRequest{
 			LocalID:   peer.ID,
 			RemoteID:  peer.PeerID,
 			PeerName:  peer.Name,
 			Partition: peer.Partition,
 			Stream:    stream,
-		})
+		}
+		err = s.peeringService.HandleStream(streamReq)
+		// A nil error indicates that the peering was deleted and the stream needs to be gracefully shutdown.
 		if err == nil {
+			stream.CloseSend()
+			s.peeringService.DrainStream(streamReq)
+
 			// This will cancel the retry-er context, letting us break out of this loop when we want to shut down the stream.
 			cancel()
+
+			logger.Info("closed outbound stream")
 		}
 		return err
 

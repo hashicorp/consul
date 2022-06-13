@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package peering;
 
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
@@ -71,33 +72,38 @@ message Peering {
   // Partition is the local partition connecting to the peer.
   string Partition = 3;
 
+  // DeletedAt is the time when the Peering was marked for deletion
+  // This is nullable so that we can omit if empty when encoding in JSON
+  // mog: func-to=TimePtrFromProto func-from=TimePtrToProto
+  google.protobuf.Timestamp DeletedAt = 4;
+
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 11;
+  map<string, string> Meta = 5;
 
   // State is one of the valid PeeringState values to represent the status of
   // peering relationship.
   //
   // mog: func-to=PeeringStateToAPI func-from=PeeringStateFromAPI
-  PeeringState State = 4;
+  PeeringState State = 6;
 
   // PeerID is the ID that our peer assigned to this peering.
   // This ID is to be used when dialing the peer, so that it can know who dialed it.
-  string PeerID = 5;
+  string PeerID = 7;
 
   // PeerCAPems contains all the CA certificates for the remote peer.
-  repeated string PeerCAPems = 6;
+  repeated string PeerCAPems = 8;
 
   // PeerServerName is the name of the remote server as it relates to TLS.
-  string PeerServerName = 7;
+  string PeerServerName = 9;
 
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
-  repeated string PeerServerAddresses = 8;
+  repeated string PeerServerAddresses = 10;
 
   // CreateIndex is the Raft index at which the Peering was created.
-  uint64 CreateIndex = 9;
+  uint64 CreateIndex = 11;
 
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
-  uint64 ModifyIndex = 10;
+  uint64 ModifyIndex = 12;
 }
 
 // PeeringTrustBundle holds the trust information for validating requests from a peer.

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -343,12 +344,18 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 		require.Equal(t, "", resp.Body.String())
 	})
 
-	t.Run("now the token is deleted, a read should 404", func(t *testing.T) {
+	t.Run("now the token is marked for deletion", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/peering/foo", nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusNotFound, resp.Code)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		var p pbpeering.Peering
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.NoError(t, protojson.Unmarshal(body, &p))
+		require.False(t, p.IsActive())
 	})
 
 	t.Run("delete a token that does not exist", func(t *testing.T) {

@@ -42,6 +42,15 @@ func peeringTableSchema() *memdb.TableSchema {
 					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
+			indexDeleted: {
+				Name:         indexDeleted,
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: indexerSingle{
+					readIndex:  indexDeletedFromBoolQuery,
+					writeIndex: indexDeletedFromPeering,
+				},
+			},
 		},
 	}
 }
@@ -79,6 +88,17 @@ func indexIDFromPeering(raw interface{}) ([]byte, error) {
 	}
 	var b indexBuilder
 	b.Raw(uuid)
+	return b.Bytes(), nil
+}
+
+func indexDeletedFromPeering(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*pbpeering.Peering)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for *pbpeering.Peering index", raw)
+	}
+
+	var b indexBuilder
+	b.Bool(!p.IsActive())
 	return b.Bytes(), nil
 }
 
@@ -205,10 +225,19 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 	}
 
 	if existing != nil {
+		// Prevent modifications to Peering marked for deletion
+		if !existing.IsActive() {
+			return fmt.Errorf("cannot write to peering that is marked for deletion")
+		}
+
 		p.CreateIndex = existing.CreateIndex
 		p.ID = existing.ID
 
 	} else {
+		if !p.IsActive() {
+			return fmt.Errorf("cannot create a new peering marked for deletion")
+		}
+
 		// TODO(peering): consider keeping PeeringState enum elsewhere?
 		p.State = pbpeering.PeeringState_INITIAL
 		p.CreateIndex = idx
@@ -230,8 +259,6 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 	return tx.Commit()
 }
 
-// TODO(peering): replace with deferred deletion since this operation
-// should involve cleanup of data associated with the peering.
 func (s *Store) PeeringDelete(idx uint64, q Query) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -243,6 +270,10 @@ func (s *Store) PeeringDelete(idx uint64, q Query) error {
 
 	if existing == nil {
 		return nil
+	}
+
+	if existing.(*pbpeering.Peering).IsActive() {
+		return fmt.Errorf("cannot delete a peering without first marking for deletion")
 	}
 
 	if err := tx.Delete(tablePeering, existing); err != nil {
@@ -499,7 +530,7 @@ func peeringsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, en
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		if peering == nil {
+		if peering == nil || !peering.IsActive() {
 			continue
 		}
 		peerings = append(peerings, peering)
@@ -733,4 +764,29 @@ func peersForServiceTxn(
 		}
 	}
 	return idx, results, nil
+}
+
+func (s *Store) PeeringListDeleted(ws memdb.WatchSet) (uint64, []*pbpeering.Peering, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	return peeringListDeletedTxn(tx, ws)
+}
+
+func peeringListDeletedTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []*pbpeering.Peering, error) {
+	iter, err := tx.Get(tablePeering, indexDeleted, BoolQuery{Value: true})
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed peering lookup: %v", err)
+	}
+
+	// Instead of watching iter.WatchCh() we only need to watch the index entry for the peering table
+	// This is sufficient to pick up any changes to peerings.
+	idx := maxIndexWatchTxn(tx, ws, tablePeering)
+
+	var result []*pbpeering.Peering
+	for t := iter.Next(); t != nil; t = iter.Next() {
+		result = append(result, t.(*pbpeering.Peering))
+	}
+
+	return idx, result, nil
 }

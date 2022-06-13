@@ -216,6 +216,7 @@ func TestPeeringService_Establish(t *testing.T) {
 		})
 	}
 }
+
 func TestPeeringService_Read(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
@@ -270,6 +271,37 @@ func TestPeeringService_Read(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestPeeringService_Delete(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+
+	p := &pbpeering.Peering{
+		Name:                "foo",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}
+	err := s.Server.FSM().State().PeeringWrite(10, p)
+	require.NoError(t, err)
+	require.Nil(t, p.DeletedAt)
+	require.True(t, p.IsActive())
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
+	require.NoError(t, err)
+
+	// "foo" peering must only be marked for deletion, rather than actually be deleted.
+	_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
+	require.NoError(t, err)
+	require.NotNil(t, resp.DeletedAt)
+	require.False(t, resp.IsActive())
 }
 
 func TestPeeringService_List(t *testing.T) {

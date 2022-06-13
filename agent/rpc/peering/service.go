@@ -140,7 +140,6 @@ type Store interface {
 // Apply provides a write-only interface for persisting Peering data.
 type Apply interface {
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
-	PeeringDelete(req *pbpeering.PeeringDeleteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
@@ -395,7 +394,35 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 	// TODO(peering): ACL check request token
 
 	// TODO(peering): handle blocking queries
-	err = s.Backend.Apply().PeeringDelete(req)
+
+	q := state.Query{
+		Value:          strings.ToLower(req.Name),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	}
+	_, existing, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil || !existing.IsActive() {
+		// Return early when the Peering doesn't exist or is already marked for deletion.
+		// We don't return nil because the pb will fail to marshal.
+		return &pbpeering.PeeringDeleteResponse{}, nil
+	}
+	// We are using a write request due to needing to perform a deferred deletion.
+	// The peering gets marked for deletion by setting the DeletedAt field,
+	// and a leader routine will handle deleting the peering.
+	writeReq := &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			// We only need to include the name and partition for the peering to be identified.
+			// All other data associated with the peering can be discarded because once marked
+			// for deletion the peering is effectively gone.
+			Name:      req.Name,
+			Partition: req.Partition,
+			DeletedAt: structs.TimeToProto(time.Now().UTC()),
+		},
+	}
+	err = s.Backend.Apply().PeeringWrite(writeReq)
 	if err != nil {
 		return nil, err
 	}
@@ -529,17 +556,24 @@ func (s *Service) StreamResources(stream pbpeering.PeeringService_StreamResource
 
 	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
 	// TODO(peering): Store subscription request so that an event publisher can separately handle pushing messages for it
-	s.logger.Info("accepted initial replication request from peer", "peer_id", req.PeerID)
+	s.logger.Info("accepted initial replication request from peer", "peer_id", p.ID)
 
-	// For server peers both of these ID values are the same, because we generated a token with a local ID,
-	// and the client peer dials using that same ID.
-	return s.HandleStream(HandleStreamRequest{
+	streamReq := HandleStreamRequest{
 		LocalID:   p.ID,
 		RemoteID:  p.PeerID,
 		PeerName:  p.Name,
 		Partition: p.Partition,
 		Stream:    stream,
-	})
+	}
+	err = s.HandleStream(streamReq)
+	// A nil error indicates that the peering was deleted and the stream needs to be gracefully shutdown.
+	if err == nil {
+		s.DrainStream(streamReq)
+		return nil
+	}
+
+	s.logger.Error("error handling stream", "peer_name", p.Name, "peer_id", req.PeerID, "error", err)
+	return err
 }
 
 type HandleStreamRequest struct {
@@ -559,10 +593,28 @@ type HandleStreamRequest struct {
 	Stream BidirectionalStream
 }
 
+// DrainStream attempts to gracefully drain the stream when the connection is going to be torn down.
+// Tearing down the connection too quickly can lead our peer receiving a context cancellation error before the stream termination message.
+// Handling the termination message is important to set the expectation that the peering will not be reestablished unless recreated.
+func (s *Service) DrainStream(req HandleStreamRequest) {
+	for {
+		// Ensure that we read until an error, or the peer has nothing more to send.
+		if _, err := req.Stream.Recv(); err != nil {
+			if err != io.EOF {
+				s.logger.Warn("failed to tear down stream gracefully: peer may not have received termination message",
+					"peer_name", req.PeerName, "peer_id", req.LocalID, "error", err)
+			}
+			break
+		}
+		// Since the peering is being torn down we discard all replication messages without an error.
+		// We want to avoid importing new data at this point.
+	}
+}
+
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
 func (s *Service) HandleStream(req HandleStreamRequest) error {
-	logger := s.logger.Named("stream").With("peer_id", req.LocalID)
+	logger := s.logger.Named("stream").With("peer_name", req.PeerName, "peer_id", req.LocalID)
 	logger.Trace("handling stream for peer")
 
 	status, err := s.streams.connected(req.LocalID)
@@ -619,25 +671,20 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 		defer close(recvChan)
 		for {
 			msg, err := req.Stream.Recv()
+			if err == nil {
+				logTraceRecv(logger, msg)
+				recvChan <- msg
+				continue
+			}
+
 			if err == io.EOF {
 				logger.Info("stream ended by peer")
 				status.trackReceiveError(err.Error())
 				return
 			}
-			if e, ok := grpcstatus.FromError(err); ok {
-				// Cancelling the stream is not an error, that means we or our peer intended to terminate the peering.
-				if e.Code() == codes.Canceled {
-					return
-				}
-			}
-			if err != nil {
-				logger.Error("failed to receive from stream", "error", err)
-				status.trackReceiveError(err.Error())
-				return
-			}
-
-			logTraceRecv(logger, msg)
-			recvChan <- msg
+			logger.Error("failed to receive from stream", "error", err)
+			status.trackReceiveError(err.Error())
+			return
 		}
 	}()
 
@@ -666,13 +713,12 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 
 		case msg, open := <-recvChan:
 			if !open {
-				// No longer receiving data on the stream.
+				logger.Trace("no longer receiving data on the stream")
 				return nil
 			}
 
 			if !s.Backend.IsLeader() {
 				// we are not the leader anymore so we will hang up on the dialer
-
 				logger.Error("node is not a leader anymore; cannot continue streaming")
 
 				st, err := grpcstatus.New(codes.FailedPrecondition,
@@ -723,11 +769,11 @@ func (s *Service) HandleStream(req HandleStreamRequest) error {
 			}
 
 			if term := msg.GetTerminated(); term != nil {
-				logger.Info("received peering termination message, cleaning up imported resources")
+				logger.Info("peering was deleted by our peer: marking peering as terminated and cleaning up imported resources")
 
 				// Once marked as terminated, a separate deferred deletion routine will clean up imported resources.
 				if err := s.Backend.Apply().PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: req.LocalID}); err != nil {
-					return err
+					logger.Error("failed to mark peering as terminated: %w", err)
 				}
 				return nil
 			}

@@ -88,10 +88,12 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 		require.True(r, status.Connected)
 	})
 
-	// Delete the peering to trigger the termination sequence
-	require.NoError(t, s2.fsm.State().PeeringDelete(2000, state.Query{
-		Value: "my-peer-s1",
-	}))
+	// Delete the peering to trigger the termination sequence.
+	deleted := &pbpeering.Peering{
+		Name:      "my-peer-s1",
+		DeletedAt: structs.TimeToProto(time.Now()),
+	}
+	require.NoError(t, s2.fsm.State().PeeringWrite(2000, deleted))
 	s2.logger.Trace("deleted peering for my-peer-s1")
 
 	retry.Run(t, func(r *retry.R) {
@@ -175,10 +177,12 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		require.True(r, status.Connected)
 	})
 
-	// Delete the peering from the server peer to trigger the termination sequence
-	require.NoError(t, s1.fsm.State().PeeringDelete(2000, state.Query{
-		Value: "my-peer-s2",
-	}))
+	// Delete the peering from the server peer to trigger the termination sequence.
+	deleted := &pbpeering.Peering{
+		Name:      "my-peer-s2",
+		DeletedAt: structs.TimeToProto(time.Now()),
+	}
+	require.NoError(t, s1.fsm.State().PeeringWrite(2000, deleted))
 	s2.logger.Trace("deleted peering for my-peer-s1")
 
 	retry.Run(t, func(r *retry.R) {
@@ -186,7 +190,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		require.False(r, found)
 	})
 
-	// s2 should have received the termination message and updated the peering state
+	// s2 should have received the termination message and updated the peering state.
 	retry.Run(t, func(r *retry.R) {
 		_, peering, err := s2.fsm.State().PeeringRead(nil, state.Query{
 			Value: "my-peer-s1",
