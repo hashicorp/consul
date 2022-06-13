@@ -342,7 +342,8 @@ func (s *Service) handleUpdateService(
 				PeerName:       peerName,
 			})
 			if err != nil {
-				ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/service_id:%s", csn.Service.PartitionOrDefault(), peerName, csn.Node.Node, csn.Service.ID)
+				ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/ns:%s/service_id:%s",
+					csn.Service.PartitionOrDefault(), peerName, csn.Node.Node, csn.Service.NamespaceOrDefault(), csn.Service.ID)
 				return fmt.Errorf("failed to deregister service %q: %w", ident, err)
 			}
 
@@ -375,7 +376,8 @@ func (s *Service) handleUpdateService(
 					PeerName:       peerName,
 				})
 				if err != nil {
-					ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/check_id:%s", chk.PartitionOrDefault(), peerName, chk.Node, chk.CheckID)
+					ident := fmt.Sprintf("partition:%s/peer:%s/node:%s/ns:%s/check_id:%s",
+						chk.PartitionOrDefault(), peerName, chk.Node, chk.NamespaceOrDefault(), chk.CheckID)
 					return fmt.Errorf("failed to deregister check %q: %w", ident, err)
 				}
 			}
