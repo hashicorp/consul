@@ -2,7 +2,46 @@
 layout: docs
 page_title: What is Cluster Peering?
 description: |-
-
+This page details the cluster peering process for connecting Consul clusters across datacenters, including differences between cluster peering and the similar concept of WAN federation.
 ---
 
 # What is Cluster Peering?
+
+~> This page covers features that are currently in _technical preview_. Features and functionality are subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may face performance and scaling issues, with limited support options available.
+
+Cluster peering is a Consul feature to allow service connectivity between two independent clusters. Similar to WAN Federation, you can use cluster peering to enable service connectivity between partitions in different datacenters.
+
+## Overview
+
+Cluster peering allows Consul clusters in different datacenters to communicate with each other. The cluster peering process consists of the following steps:
+1. Create a peering token to share with other clusters
+1. Establish a connection between clusters
+1. Make services available to other clusters
+
+For detailed instructions on setting up cluster peering with the Consul CLI, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering). If you prefer to use Kubernetes, refer to [Cluster Peering on Kubernetes](/docs/connect/cluster-peering/k8s).
+
+### Differences between WAN Federation and cluster peering
+
+WAN Federation and cluster peering are different ways to connect clusters across datacenters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it uses the gossip protocol to replicate global states like ACLs. As a result, WAN Federation requires a “primary” datacenter to serve as an authority for replicated data.
+
+Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either peering method to issue cross-datacenter queries for data including service endpoints and key/value stores.
+
+|                                                   | WAN Federation | Cluster Peering |
+| ------------------------------------------------- | -------------- | --------------- |
+| Connects clusters across datacenters              |    &#10003;    |    &#10003;     |
+| Shares queries, service endpoints, and key/values |    &#10003;    |    &#10003;     |
+| Connects clusters owned by different operators    |    &#10005;    |    &#10003;     |
+| Functions without declaring “primary datacenter”  |    &#10005;    |    &#10003;     |
+| Uses gossip protocol                              |    &#10003;    |    &#10005;     |
+
+## Mesh gateways
+
+Mesh gateways for service to service traffic between clusters are available. Currently, mesh gateways for server to server traffic are not available.
+
+## Technical preview limitations
+Not all features and functionality are available in the technical preview release. In particular, be aware of the following limitations:
+
+- Services exported to peered clusters must not be configured as HTTP.
+- Support for dynamic routing such as splits, custom routes, or redirects is not available at this time.
+- The ``consul intention` CLI command is not supported.
+- L7 permissions are not supported.
