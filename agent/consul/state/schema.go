@@ -64,7 +64,10 @@ type IndexEntry struct {
 	Value uint64
 }
 
-const tableIndex = "index"
+const (
+	tableIndex   = "index"
+	indexDeleted = "deleted"
+)
 
 // indexTableSchema returns a new table schema used for tracking various the
 // latest raft index for a table or entities within a table.

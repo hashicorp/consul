@@ -1051,8 +1051,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				},
 				{
 					peering: &pbpeering.Peering{
-						Name:  "peer2",
-						State: pbpeering.PeeringState_TERMINATED,
+						Name: "peer2",
 					},
 					delete: true,
 				},

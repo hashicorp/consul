@@ -88,7 +88,7 @@ func (msg *EstablishRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime 
 // If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0 && p.State != PeeringState_TERMINATED
+	return len(p.PeerServerAddresses) > 0
 }
 
 func (x ReplicationMessage_Response_Operation) GoString() string {
@@ -178,6 +178,9 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 }
 
 func (p *Peering) IsActive() bool {
+	if p != nil && p.State == PeeringState_TERMINATED {
+		return false
+	}
 	if p == nil || p.DeletedAt == nil {
 		return true
 	}

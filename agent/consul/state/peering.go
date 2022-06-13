@@ -17,8 +17,6 @@ import (
 const (
 	tablePeering             = "peering"
 	tablePeeringTrustBundles = "peering-trust-bundles"
-
-	indexDeleted = "deleted"
 )
 
 func peeringTableSchema() *memdb.TableSchema {
