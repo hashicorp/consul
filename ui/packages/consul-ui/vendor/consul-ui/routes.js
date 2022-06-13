@@ -36,6 +36,11 @@
       },
       peers: {
         _options: { path: '/peers' },
+        index: {
+          _options: {
+            path: '/',
+          }
+        }
       },
       services: {
         _options: { path: '/services' },
