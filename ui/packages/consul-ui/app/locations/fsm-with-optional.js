@@ -219,8 +219,12 @@ export default class FSMWithOptionalLocation {
     let url;
     try {
       url = router.generate(routeName, ...params, {
-        queryParams: {},
+        queryParams: {
+          ...hash.query,
+        },
       });
+      // delete the query otherise formatURL will break
+      delete hash.query;
     } catch (e) {
       // if the previous generation throws due to params not being available
       // its probably due to the view wanting to re-render even though we are
