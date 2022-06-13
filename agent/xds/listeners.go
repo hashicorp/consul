@@ -233,7 +233,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, nil)
-		filterName := fmt.Sprintf("%s.%s.%s.%s", destination.GetName(), destination.Namespace, destination.Partition, cfgSnap.Datacenter)
+		filterName := fmt.Sprintf("%s.%s.%s.%s", destination.GetName(), destination.GetEnterpriseMeta().NamespaceOrDefault(), destination.GetEnterpriseMeta().PartitionOrDefault(), cfgSnap.Datacenter)
 		clusterName := filterName
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			routeName:   uid.EnvoyID(),
