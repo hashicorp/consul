@@ -24,6 +24,6 @@ For additional customization you can add [tags](https://docs.datadoghq.com/getti
 Within the `loadtest-ami/` directory
 
 1) Set the AWS_DEFAULT_REGION for Packer, ex: `export AWS_DEFAULT_REGION=us-east-1`
-2) Run the command `packer build loadtest.json` 
+2) Run the command `packer build loadtest.pkr.hcl`
 
 The script that k6 runs is found within `scripts/loadtest.js`. This script can be updated to send requests to more Consul endpoints. For additional information on k6 please check out their [guides](https://k6.io/docs/getting-started/running-k6). 
