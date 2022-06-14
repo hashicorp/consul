@@ -126,6 +126,7 @@ const (
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
+	peeringDeletionRoutineName            = "peering deferred deletion"
 )
 
 var (
