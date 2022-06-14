@@ -120,7 +120,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 		logger.Trace("evaluating stored peer", "peer", peer.Name, "should_dial", peer.ShouldDial(), "sequence_id", seq)
 
 		if !peer.IsActive() {
-			// The peering is marked for deletion, no need to dial or track them.
+			// The peering was marked for deletion by ourselves or our peer, no need to dial or track them.
 			continue
 		}
 
@@ -334,22 +334,23 @@ func (s *Server) runPeeringDeletions(ctx context.Context) error {
 		}
 
 		for _, p := range peerings {
-			s.removePeeringAndData(ctx, logger, raftLimiter, p.Name, acl.PartitionOrDefault(p.Partition))
+			s.removePeeringAndData(ctx, logger, raftLimiter, p)
 		}
 	}
 }
 
 // removepPeeringAndData removes data imported for a peering and the peering itself.
-func (s *Server) removePeeringAndData(ctx context.Context, logger hclog.Logger, limiter *rate.Limiter, peer string, partition string) {
-	logger = logger.With("peer", peer, "partition", partition)
+func (s *Server) removePeeringAndData(ctx context.Context, logger hclog.Logger, limiter *rate.Limiter, peer *pbpeering.Peering) {
+	logger = logger.With("peer_name", peer.Name, "peer_id", peer.ID)
+	entMeta := *structs.NodeEnterpriseMetaInPartition(peer.Partition)
 
 	// First delete all imported data.
 	// By deleting all imported nodes we also delete all services and checks registered on them.
-	if err := s.deleteAllNodes(ctx, limiter, *structs.NodeEnterpriseMetaInPartition(partition), peer); err != nil {
+	if err := s.deleteAllNodes(ctx, limiter, entMeta, peer.Name); err != nil {
 		logger.Error("Failed to remove Nodes for peer", "error", err)
 		return
 	}
-	if err := s.deleteTrustBundleFromPeer(ctx, limiter, *structs.NodeEnterpriseMetaInPartition(partition), peer); err != nil {
+	if err := s.deleteTrustBundleFromPeer(ctx, limiter, entMeta, peer.Name); err != nil {
 		logger.Error("Failed to remove trust bundle for peer", "error", err)
 		return
 	}
@@ -358,12 +359,18 @@ func (s *Server) removePeeringAndData(ctx context.Context, logger hclog.Logger, 
 		return
 	}
 
-	// Once all imported data is deleted, the peering itself is also deleted.
-	req := pbpeering.PeeringDeleteRequest{
-		Name:      peer,
-		Partition: partition,
+	if peer.State == pbpeering.PeeringState_TERMINATED {
+		// For peerings terminated by our peer we only clean up the local data, we do not delete the peering itself.
+		// This is to avoid a situation where the peering disappears without the local operator's knowledge.
+		return
 	}
-	_, err := s.raftApplyProtobuf(structs.PeeringDeleteType, &req)
+
+	// Once all imported data is deleted, the peering itself is also deleted.
+	req := &pbpeering.PeeringDeleteRequest{
+		Name:      peer.Name,
+		Partition: acl.PartitionOrDefault(peer.Partition),
+	}
+	_, err := s.raftApplyProtobuf(structs.PeeringDeleteType, req)
 	if err != nil {
 		logger.Error("failed to apply full peering deletion", "error", err)
 		return
@@ -402,7 +409,7 @@ func (s *Server) deleteAllNodes(ctx context.Context, limiter *rate.Limiter, entM
 			ops = append(ops, &op)
 
 			// Add entries to the transaction until it reaches the max batch size
-			batchSize += len(entry.Node) + len(entry.Partition)
+			batchSize += len(entry.Node) + len(entry.Partition) + len(entry.PeerName)
 		}
 
 		// Send each batch as a TXN Req to avoid sending one at a time
@@ -441,10 +448,10 @@ func (s *Server) deleteTrustBundleFromPeer(ctx context.Context, limiter *rate.Li
 		return err
 	}
 
-	req := pbpeering.PeeringTrustBundleDeleteRequest{
+	req := &pbpeering.PeeringTrustBundleDeleteRequest{
 		Name:      peerName,
 		Partition: entMeta.PartitionOrDefault(),
 	}
-	_, err = s.raftApplyProtobuf(structs.PeeringTrustBundleDeleteType, &req)
+	_, err = s.raftApplyProtobuf(structs.PeeringTrustBundleDeleteType, req)
 	return err
 }
