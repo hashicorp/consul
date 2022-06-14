@@ -153,6 +153,12 @@ as |item|}}
               <dt>Node Name</dt>
               <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
             </dl>
+            {{#if item.Service.PeerName}}
+              <dl>
+                <dt>Peer Name</dt>
+                <dd>{{item.Service.PeerName}}</dd>
+              </dl>
+            {{/if}}
           </BlockSlot>
           <BlockSlot @name="actions">
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
