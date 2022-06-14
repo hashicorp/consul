@@ -531,13 +531,18 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svc.Datacenter
 	} else {
 		filter := fmt.Sprintf("ID == %q", c.proxyID)
-		svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{Filter: filter})
+		svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName,
+			&api.QueryOptions{Filter: filter, MergeCentralConfig: true})
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch proxy config from catalog for node %q: %w", c.nodeName, err)
 		}
-		if len(svcList.Services) != 1 {
-			return nil, fmt.Errorf("expected to find only one proxy service with ID: %q", c.proxyID)
+		if len(svcList.Services) == 0 {
+			return nil, fmt.Errorf("Proxy service with ID %q not found", c.proxyID)
 		}
+		if len(svcList.Services) > 1 {
+			return nil, fmt.Errorf("Expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+		}
+
 		svcProxyConfig = svcList.Services[0].Proxy
 		serviceName = svcList.Services[0].Service
 		ns = svcList.Services[0].Namespace
