@@ -6,8 +6,9 @@
 to pulling from latest.
 4. Set either `consul_version` or `consul_download_url`. If neither is set it will default to utilizing Consul 1.9.0
 5. AWS Variables are set off of environment variables. Make sure to export necessary variables [shown here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#environment-variables).
-6. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
-7. Upon completion k6 should run and push metrics to the desired Datadog dashboard.
+6. Run `terraform init` once to setup the working directory.
+7. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
+8. Upon completion k6 should run and push metrics to the desired Datadog dashboard.
 
 An example of a `vars.tfvars` :
 
