@@ -7,7 +7,7 @@ package proxysupport
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	"1.22.1",
+	"1.22.2",
 	"1.21.3",
 	"1.20.4",
 	"1.19.5",
