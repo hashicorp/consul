@@ -43,11 +43,17 @@
             "Datacenter":"dc1",
             "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},
             "Meta":{"${service}-network-segment":""},
+${typeof location.search.peer !== 'undefined' ? `
+            "PeerName": "${location.search.peer}",
+` : ``}
             "CreateIndex":5,
             "ModifyIndex":6
           },
           "Service":{
             "ID": "${ i === 0 ? id : fake.helpers.randomize([service, service + '-ID'])}",
+${typeof location.search.peer !== 'undefined' ? `
+            "PeerName": "${location.search.peer}",
+` : ``}
             "Service":"${service}",
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
