@@ -15,7 +15,7 @@ To peer clusters, you must complete the following steps in order:
 
 1. Create a peering token
 1. Establish a connection between clusters
-1. Connect service endpoints
+1. Export service endpoints
 1. Authorize connections between peers
 
 ## Create a peering token
@@ -24,31 +24,30 @@ You can generate peering tokens and initiate connections from either the server 
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
-In “cluster-01,” run the `generate-token` command.
+In “cluster-01,” issue a request for a peering token using the HTTP API.
 
 ```shell-session
-$ consul peering generate-token -peer="cluster-02"
+$ curl -X POST --data '{"PeerName":"cluster-02"}' http://localhost:8500/v1/peering/token
 ```
 
 The CLI outputs the peering token, which is an encoded string of alphanumeric characters and symbols.
 
-For the peering token to function correctly, you must enter the second cluster’s exact name in the `peer` parameter.
 
 ## Establish a connection between clusters
 
-Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” run the ``peering establish`` command. This command does not generate an output.
+Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” establish the peering using the HTTP API. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ consul peering establish -peer="cluster-01" -token="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
 ```
 
-In the peer parameter, specify the first cluster’s exact name. The `token` parameter should include the entire peering token created in the first cluster.
+In the peer parameter, specify a name for the first cluster. The `PeeringToken` parameter should include the entire peering token created in the first cluster.
 
-When you connect server agents through cluster peering, they will peer through their default partitions. To connect other partitions through server agents, you must specify the partitions you want to peer using the `partition` parameter.
+When you connect server agents through cluster peering, they will peer their default partitions. To establish peerings for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
 
 ## Connect service endpoints
 
-After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to make services and support queries for service mesh available to peered clusters.
+After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to replicate service definitions and support service mesh connections across clusters.
 
 First, create a configuration entry and specify the `Kind` as `“exported-services”`.
 
@@ -125,14 +124,14 @@ $ curl \
     http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01
 ```
 
-Successful connections include `"Status": "passing"` in the output.
+Successful connections include service definitions in the output.
 
 ## Remove peering connections
 
 After you create a peering connection between clusters in different datacenters, you can “unpeer” the connected clusters. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
 
-In “cluster-01,” run the `peering delete` command.
+In “cluster-01,” request the deletion via the HTTP API.
 
 ```shell-session
-$ consul peering delete -peer="cluster-02"
+$ curl -X DELETE http://127.0.0.1:8500/v1/peering/cluster-02
 ```
