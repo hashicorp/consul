@@ -36,6 +36,13 @@ export default class ServiceSerializer extends Serializer {
                 });
               }
             });
+          body.forEach(item => {
+            // the API sends an empty string which means there is no peering
+            if (item.PeerName === '') {
+              item.PeerName = undefined;
+            }
+          });
+
           return cb(headers, body);
         }),
       query
