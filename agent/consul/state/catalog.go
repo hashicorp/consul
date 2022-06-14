@@ -2880,6 +2880,40 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
+// ServicesGatewayServices is used to query all services associated with a gateway
+func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMeta *acl.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
+	var results structs.ServiceNodes
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := tx.Get(tableGatewayServices, indexService, structs.NewServiceName(service, entMeta))
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	for obj := iter.Next(); obj != nil; obj = iter.Next() {
+		gs := obj.(*structs.GatewayService)
+		q := Query{
+			Value:          gs.Gateway.Name,
+			EnterpriseMeta: gs.Gateway.EnterpriseMeta,
+		}
+		if s, err := tx.First(tableServices, indexService, q); err == nil {
+			gatewayService := s.(*structs.ServiceNode)
+			results = append(results, gatewayService)
+		}
+
+	}
+
+	if err != nil {
+		return 0, nil, err
+	}
+	idx := maxIndexTxn(tx, tableGatewayServices)
+
+	return idx, results, nil
+}
+
 func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()

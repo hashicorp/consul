@@ -2609,3 +2609,262 @@ func TestInternal_CatalogOverview_ACLDeny(t *testing.T) {
 	arg.Token = opReadToken.SecretID
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out))
 }
+
+func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Register gateway and two service instances that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "db2",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db2-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "db2",
+			},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+
+	// Register terminating-gateway config entry, linking it to db, api, and redis (dne)
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "db",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	var out structs.IndexedServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceGateways", &req, &out))
+
+	serviceNodes := out.ServiceNodes
+
+	for _, n := range serviceNodes {
+		n.RaftIndex = structs.RaftIndex{}
+	}
+
+	expect := structs.ServiceNodes{
+		{
+			Node:        "foo",
+			ServiceKind: structs.ServiceKindTerminatingGateway,
+			ServiceName: "terminating-gateway",
+			ServiceID:   "terminating-gateway",
+			ServiceTaggedAddresses: map[string]structs.ServiceAddress{
+				"consul-virtual:default/default/db":    {Address: "240.0.0.1"},
+				"consul-virtual:default/default/redis": {Address: "240.0.0.2"},
+			},
+			ServiceWeights: structs.Weights{Passing: 1, Warning: 1},
+			ServicePort:    443,
+			ServiceTags:    []string{},
+			ServiceMeta:    map[string]string{},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			RaftIndex:      structs.RaftIndex{},
+		},
+	}
+	assert.ElementsMatch(t, expect, serviceNodes)
+}
+
+func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+
+	// Create the ACL.
+	token, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `
+  	service "db" { policy = "read" }
+	service "terminating-gateway" { policy = "read" }
+	node_prefix "" { policy = "read" }`)
+	require.NoError(t, err)
+
+	// Register gateway and two service instances that will be associated with it
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db-warning",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+		arg = structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				ID:      "api",
+				Service: "api",
+			},
+			Check: &structs.HealthCheck{
+				Name:      "api-passing",
+				Status:    api.HealthPassing,
+				ServiceID: "api",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+
+	// Register terminating-gateway config entry, linking it to db and api
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{Name: "db"},
+				{Name: "api"},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:           structs.ConfigEntryUpsert,
+			Datacenter:   "dc1",
+			Entry:        args,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	var out structs.IndexedServiceNodes
+
+	// Not passing a token with service:read on Gateway leads to PermissionDenied
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "terminating-gateway",
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Internal.ServiceGateways", &req, &out)
+	require.Error(t, err, acl.ErrPermissionDenied)
+
+	// Passing a token without service:read on api leads to it getting filtered out
+	req = structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "db",
+		QueryOptions: structs.QueryOptions{Token: token.SecretID},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceGateways", &req, &out))
+
+	nodes := out.ServiceNodes
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "terminating-gateway")
+	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+}
