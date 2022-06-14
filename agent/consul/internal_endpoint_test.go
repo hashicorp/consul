@@ -2787,6 +2787,27 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 		}
 		var out struct{}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+		{
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					ID:      "terminating-gateway2",
+					Service: "terminating-gateway2",
+					Kind:    structs.ServiceKindTerminatingGateway,
+					Port:    444,
+				},
+				Check: &structs.HealthCheck{
+					Name:      "terminating connect",
+					Status:    api.HealthPassing,
+					ServiceID: "terminating-gateway2",
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+			var out struct{}
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+		}
 
 		arg = structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -2845,12 +2866,34 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 		require.True(t, out)
 	}
 
+	// Register terminating-gateway config entry, linking it to db and api
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway2",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{Name: "db"},
+				{Name: "api"},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:           structs.ConfigEntryUpsert,
+			Datacenter:   "dc1",
+			Entry:        args,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
 	var out structs.IndexedServiceNodes
 
 	// Not passing a token with service:read on Gateway leads to PermissionDenied
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
-		ServiceName: "terminating-gateway",
+		ServiceName: "db",
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Internal.ServiceGateways", &req, &out)
 	require.Error(t, err, acl.ErrPermissionDenied)
@@ -2865,7 +2908,10 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 
 	nodes := out.ServiceNodes
 	require.Len(t, nodes, 1)
-	require.Equal(t, nodes[0].Node, "terminating-gateway")
+	require.Equal(t, "foo", nodes[0].Node)
+	require.Equal(t, structs.ServiceKindTerminatingGateway, nodes[0].ServiceKind)
+	require.Equal(t, "terminating-gateway", nodes[0].ServiceName)
+	require.Equal(t, "terminating-gateway", nodes[0].ServiceID)
 	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
