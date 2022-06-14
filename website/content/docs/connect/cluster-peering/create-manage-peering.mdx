@@ -90,7 +90,7 @@ Before you can call services from peered clusters, you must set service intentio
 
 First, create a configuration entry and specify the `Kind` as `“service-intentions”`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "backend-service" can access "frontend-service."
 
-<CodeBlockConfig filename="peering-intentions.hcl">
+<CodeBlockConfig filename="peering-intentions.hcl" highlight="1" hideClipboard>
 
 ```shell-session
 Kind      = "service-intentions"
