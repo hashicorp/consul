@@ -1145,7 +1145,7 @@ workflows:
       - envoy-integration-test-1_21_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_22_1:
+      - envoy-integration-test-1_22_2:
           requires:
             - dev-build
       - noop
