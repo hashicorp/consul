@@ -109,7 +109,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 			Value: "my-peer-s2",
 		})
 		require.NoError(r, err)
-		require.Nil(r, peering)
+		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
 	})
 }
 
@@ -198,7 +198,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 			Value: "my-peer-s1",
 		})
 		require.NoError(r, err)
-		require.Nil(r, peering)
+		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
 	})
 }
 

@@ -12,12 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 var validCA = `
@@ -346,7 +347,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	t.Run("now the token is deleted and reads should yield a 404", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/peering/foo", nil)
-			require.NoError(t, err)
+			require.NoError(r, err)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(r, http.StatusNotFound, resp.Code)
