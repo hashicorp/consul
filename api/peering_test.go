@@ -212,11 +212,12 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 
-		// Read to see if the token is marked for deletion
-		resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
-		require.NoError(t, err)
-		require.NotNil(t, qm)
-		require.NotNil(t, resp)
-		require.False(t, resp.DeletedAt.IsZero())
+		// Read to see if the token is gone
+		retry.Run(t, func(r *retry.R) {
+			resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.Nil(r, resp)
+		})
 	})
 }
