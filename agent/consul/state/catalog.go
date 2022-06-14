@@ -2899,7 +2899,11 @@ func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMe
 			Value:          gs.Gateway.Name,
 			EnterpriseMeta: gs.Gateway.EnterpriseMeta,
 		}
-		if s, err := tx.First(tableServices, indexService, q); err == nil {
+		iterService, err := tx.Get(tableServices, indexService, q)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+		}
+		for s := iterService.Next(); s != nil; s = iterService.Next() {
 			gatewayService := s.(*structs.ServiceNode)
 			results = append(results, gatewayService)
 		}

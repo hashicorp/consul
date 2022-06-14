@@ -2868,3 +2868,107 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Node, "terminating-gateway")
 	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
+
+func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Register gateway and two service instances that will be associated with it
+	{
+		arg := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Name:        "google",
+				Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &arg, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Register terminating-gateway config entry, linking it to db, api, and redis (dne)
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+	{
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "google",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	var out structs.IndexedServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "google",
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceGateways", &req, &out))
+
+	serviceNodes := out.ServiceNodes
+
+	for _, n := range serviceNodes {
+		n.RaftIndex = structs.RaftIndex{}
+	}
+
+	expect := structs.ServiceNodes{
+		{
+			Node:        "foo",
+			ServiceKind: structs.ServiceKindTerminatingGateway,
+			ServiceName: "terminating-gateway",
+			ServiceID:   "terminating-gateway",
+			ServiceTaggedAddresses: map[string]structs.ServiceAddress{
+				"consul-virtual:default/default/google": {Address: "240.0.0.1"},
+			},
+			ServiceWeights: structs.Weights{Passing: 1, Warning: 1},
+			ServicePort:    443,
+			ServiceTags:    []string{},
+			ServiceMeta:    map[string]string{},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			RaftIndex:      structs.RaftIndex{},
+		},
+	}
+	assert.Equal(t, expect, serviceNodes)
+}
