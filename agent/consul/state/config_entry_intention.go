@@ -202,10 +202,10 @@ func (s *Store) configIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *
 		return idx, nil, nil, nil
 	}
 
-	sn := structs.NewServiceName(args.SourceName, args.SourceEnterpriseMeta())
+	psn := structs.NewPeeredServiceName(args.SourcePeer, args.SourceName, args.SourceEnterpriseMeta())
 
 	for _, src := range entry.Sources {
-		if sn == src.SourceServiceName() {
+		if psn.Peer == src.Peer && psn.ServiceName == src.SourceServiceName() {
 			return idx, entry, entry.ToIntention(src), nil
 		}
 	}

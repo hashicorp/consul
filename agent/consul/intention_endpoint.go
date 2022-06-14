@@ -432,7 +432,7 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 	}
 
 	if args.Exact != nil {
-		// // Finish defaulting the namespace fields.
+		// Finish defaulting the namespace fields.
 		if args.Exact.SourceNS == "" {
 			args.Exact.SourceNS = entMeta.NamespaceOrDefault()
 		}

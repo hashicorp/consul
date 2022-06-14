@@ -2165,6 +2165,13 @@ type ServiceName struct {
 	acl.EnterpriseMeta
 }
 
+func NewPeeredServiceName(peerName, serviceName string, entMeta *acl.EnterpriseMeta) PeeredServiceName {
+	return PeeredServiceName{
+		Peer:        peerName,
+		ServiceName: NewServiceName(serviceName, entMeta),
+	}
+}
+
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
