@@ -1209,13 +1209,15 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 			Name: "foo",
 			Sources: []*structs.SourceIntention{
 				{
-					Action: structs.IntentionActionAllow,
-					Name:   "bar",
-					Peer:   "peer1",
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Peer:        "peer1",
+					Description: "peered service intention",
 				},
 				{
-					Action: structs.IntentionActionAllow,
-					Name:   "bar",
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Description: "local service intention",
 				},
 			},
 		},
@@ -1243,6 +1245,7 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 		require.NotNil(t, entry)
 		require.NotNil(t, ixn)
 		require.Equal(t, "peer1", ixn.SourcePeer)
+		require.Equal(t, "peered service intention", ixn.Description)
 		require.Equal(t, uint64(1), idx)
 	}
 
@@ -1259,6 +1262,7 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 		require.NotNil(t, entry)
 		require.NotNil(t, ixn)
 		require.Empty(t, ixn.SourcePeer)
+		require.Equal(t, "local service intention", ixn.Description)
 		require.Equal(t, uint64(1), idx)
 	}
 }
