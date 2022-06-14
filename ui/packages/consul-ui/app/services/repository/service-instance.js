@@ -30,7 +30,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id/:peer')
   async findBySlug(params, configuration = {}) {
     return super.findBySlug(...arguments);
   }
