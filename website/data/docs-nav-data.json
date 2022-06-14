@@ -331,6 +331,10 @@
           {
             "title": "Create and Manage Peering Connections",
             "path": "connect/cluster-peering/create-manage-peering"
+          },
+          {
+            "title": "Cluster Peering on Kubernetes",
+            "path": "connect/cluster-peering/k8s"
           }
         ]
       },
