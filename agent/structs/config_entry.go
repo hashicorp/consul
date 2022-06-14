@@ -65,7 +65,7 @@ type ConfigEntry interface {
 	// has permission to read or write to the config entry, respectively.
 	// TODO(acl-error-enhancements) This should be ACLResolveResult or similar but we have to wait until we move things to the acl package
 	CanRead(acl.Authorizer) error
-	CanWrite(acl.Authorizer) error
+	CanWrite(acl.Authorizer, ConfigEntry) error
 
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
@@ -238,9 +238,28 @@ func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) error {
+// CanWrite for ServiceConfigEntries requires Mesh Write access for entries that define or modify a destination,
+// otherwise only Service Write access is required.
+func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer, existing ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
+
+	if e.Destination != nil {
+		return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+	}
+
+	if existing != nil {
+		existingServiceConfig, ok := existing.(*ServiceConfigEntry)
+		if !ok {
+			return fmt.Errorf("Error look up existing ServiceConfigEntry in state store")
+		}
+
+		if existingServiceConfig.Destination != nil {
+			return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+		}
+	}
+
+	// Fallback to service write privileges
 	return authz.ToAllowAuthorizer().ServiceWriteAllowed(e.Name, &authzContext)
 }
 
@@ -368,7 +387,7 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) error {
 	return nil
 }
 
-func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)

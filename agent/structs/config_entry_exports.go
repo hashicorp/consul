@@ -150,7 +150,7 @@ func (e *ExportedServicesConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
-func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ExportedServicesConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)

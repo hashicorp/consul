@@ -406,7 +406,7 @@ func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
@@ -548,7 +548,7 @@ func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().ServiceReadAllowed(e.Name, &authzContext)
 }
 
-func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)

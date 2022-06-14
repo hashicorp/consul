@@ -34,7 +34,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	}
 
 	cases := []testcase{
-		// =================== proxy-defaults ===================
+		//=================== proxy-defaults ===================
 		{
 			name:  "proxy-defaults",
 			entry: &ProxyConfigEntry{},
@@ -156,16 +156,150 @@ func TestConfigEntries_ACLs(t *testing.T) {
 				},
 			},
 		},
+		// =================== service-defaults ===================
+		{
+			name: "service-defaults without destination",
+			entry: &ServiceConfigEntry{
+				Name: "test",
+			},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "read service",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "read" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "read service with only mesh privileges",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "write service",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "deny overwrite service",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "write" } mesh = "read"`),
+					canRead:    true,
+					canWrite:   false,
+					currentEntry: &ServiceConfigEntry{
+						Name: "test",
+						Destination: &DestinationConfig{
+							Address: "1.2.3.4.",
+							Port:    80,
+						},
+					},
+				},
+				{
+					name:       "allow overwrite service",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    false, // still need service read here
+					canWrite:   true,
+					currentEntry: &ServiceConfigEntry{
+						Name: "test",
+						Destination: &DestinationConfig{
+							Address: "1.2.3.4.",
+							Port:    80,
+						},
+					},
+				},
+				{
+					name:       "allow operator overwrite service",
+					authorizer: newAuthz(t, `operator = "write"`),
+					canRead:    false, // still need service read here
+					canWrite:   true,
+					currentEntry: &ServiceConfigEntry{
+						Name: "test",
+						Destination: &DestinationConfig{
+							Address: "1.2.3.4.",
+							Port:    80,
+						},
+					},
+				},
+				{
+					name:       "allow overwrite service and read",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "read" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+					currentEntry: &ServiceConfigEntry{
+						Name: "test",
+						Destination: &DestinationConfig{
+							Address: "1.2.3.4.",
+							Port:    80,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-defaults with destination",
+			entry: &ServiceConfigEntry{
+				Name: "test",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4",
+					Port:    80,
+				},
+			},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "read service destination",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "read" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "read service destination with only mesh privileges",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "write service destination w/o mesh write",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "write service destination",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "write service destination and read",
+					authorizer: newAuthz(t, `service_prefix "" { policy = "read" } mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
 	}
 
 	testConfigEntries_ListRelatedServices_AndACLs(t, cases)
 }
 
 type configEntryTestACL struct {
-	name       string
-	authorizer acl.Authorizer
-	canRead    bool
-	canWrite   bool
+	name         string
+	authorizer   acl.Authorizer
+	canRead      bool
+	canWrite     bool
+	currentEntry ConfigEntry
 }
 
 type configEntryACLTestCase struct {
@@ -202,7 +336,7 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 							require.Error(t, canRead)
 							require.True(t, acl.IsErrPermissionDenied(canRead))
 						}
-						canWrite := tc.entry.CanWrite(a.authorizer)
+						canWrite := tc.entry.CanWrite(a.authorizer, a.currentEntry)
 						if a.canWrite {
 							require.Nil(t, canWrite)
 						} else {

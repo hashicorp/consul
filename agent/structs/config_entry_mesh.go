@@ -105,7 +105,7 @@ func (e *MeshConfigEntry) CanRead(authz acl.Authorizer) error {
 	return nil
 }
 
-func (e *MeshConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *MeshConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)

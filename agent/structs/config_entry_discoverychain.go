@@ -255,7 +255,7 @@ func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -598,7 +598,7 @@ func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 
@@ -1073,7 +1073,7 @@ func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) error {
 	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	return canWriteDiscoveryChain(e, authz)
 }
 

@@ -819,7 +819,7 @@ func (e *ServiceIntentionsConfigEntry) CanRead(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().IntentionReadAllowed(e.GetName(), &authzContext)
 }
 
-func (e *ServiceIntentionsConfigEntry) CanWrite(authz acl.Authorizer) error {
+func (e *ServiceIntentionsConfigEntry) CanWrite(authz acl.Authorizer, entry ConfigEntry) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().IntentionWriteAllowed(e.GetName(), &authzContext)

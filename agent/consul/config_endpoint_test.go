@@ -271,6 +271,96 @@ operator = "write"
 	require.NoError(t, err)
 }
 
+// Make sure that the fields of an existing config entry are used to evaluate the ACL write
+func TestConfigEntry_Apply_ACLDenyExistingEntry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy service configs with a Destination so we can check overwrite permissions
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+		Destination: &structs.DestinationConfig{
+			Address: "5.6.7.8",
+			Port:    443,
+		},
+	}))
+
+	denyRules := `
+service "" {
+	policy = "write"
+}
+mesh = "read"
+`
+	denyId := createToken(t, codec, denyRules)
+
+	// Overwrite should fail since the existing object has a destination
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry: &structs.ServiceConfigEntry{
+			Name: "foo",
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: structs.MeshGatewayModeRemote,
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: denyId},
+	}
+	out := false
+	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Writing a new entry with a Destination should also fail
+	args.Entry = &structs.ServiceConfigEntry{
+		Name: "db",
+		Destination: &structs.DestinationConfig{
+			Address: "1.2.3.4",
+			Port:    80,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	allowRules := `
+mesh = "write"
+`
+	allowId := createTokenWithPolicyNameFull(t, codec, "the-policy-too", allowRules, "root").SecretID
+	args.WriteRequest = structs.WriteRequest{Token: allowId}
+
+	// Write a new destination should work with mesh write permissions
+	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
+	require.NoError(t, err)
+
+	// Overwrite delete of an existing destination should work with mesh write permissions
+	args.Entry = &structs.ServiceConfigEntry{
+		Name: "foo",
+		MeshGateway: structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeRemote,
+		},
+	}
+	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
+	require.NoError(t, err)
+}
+
 func TestConfigEntry_Get(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1005,6 +1095,74 @@ operator = "write"
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
 
 	_, existing, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+	require.NoError(t, err)
+	require.Nil(t, existing)
+}
+
+// Make sure that the fields of an existing config entry are used to evaluate the ACL write
+func TestConfigEntry_Delete_ACLDenyExistingEntry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	denyRules := `
+service "" {
+	policy = "write"
+}
+mesh = "read"
+`
+	denyId := createToken(t, codec, denyRules)
+
+	// Create a dummy service configs to be looked up.
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+		Destination: &structs.DestinationConfig{
+			Address: "1.2.3.4",
+			Port:    80,
+		},
+	}))
+
+	// This should fail since we don't have mesh write permissions
+	args := structs.ConfigEntryRequest{
+		Datacenter: s1.config.Datacenter,
+		Entry: &structs.ServiceConfigEntry{
+			Name: "foo",
+		},
+		WriteRequest: structs.WriteRequest{Token: denyId},
+	}
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	allowRules := `
+mesh = "write"
+`
+	allowId := createTokenWithPolicyNameFull(t, codec, "the-policy-too", allowRules, "root").SecretID
+
+	// The "foo" service should work with the new token
+	args.WriteRequest = structs.WriteRequest{Token: allowId}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
+
+	// Verify the entry was deleted.
+	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(t, err)
 	require.Nil(t, existing)
 }

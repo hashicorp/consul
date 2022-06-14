@@ -95,7 +95,12 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		}
 	}
 
-	if err := args.Entry.CanWrite(authz); err != nil {
+	currentEntry, err := c.getExistingEntry(args)
+	if err != nil {
+		return err
+	}
+
+	if err := args.Entry.CanWrite(authz, currentEntry); err != nil {
 		return err
 	}
 
@@ -103,7 +108,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		args.Op = structs.ConfigEntryUpsert
 	}
 
-	if skip, err := c.shouldSkipOperation(args); err != nil {
+	if skip, err := c.shouldSkipOperation(args, currentEntry); err != nil {
 		return err
 	} else if skip {
 		*reply = true
@@ -127,13 +132,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 // It is ok if this incorrectly detects something as changed when it
 // in fact has not, the important thing is that it doesn't do
 // the reverse and incorrectly detect a change as a no-op.
-func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (bool, error) {
-	state := c.srv.fsm.State()
-	_, currentEntry, err := state.ConfigEntry(nil, args.Entry.GetKind(), args.Entry.GetName(), args.Entry.GetEnterpriseMeta())
-	if err != nil {
-		return false, fmt.Errorf("error reading current config entry value: %w", err)
-	}
-
+func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest, currentEntry structs.ConfigEntry) (bool, error) {
 	switch args.Op {
 	case structs.ConfigEntryUpsert, structs.ConfigEntryUpsertCAS:
 		return c.shouldSkipUpsertOperation(currentEntry, args.Entry)
@@ -142,6 +141,17 @@ func (c *ConfigEntry) shouldSkipOperation(args *structs.ConfigEntryRequest) (boo
 	default:
 		return false, fmt.Errorf("invalid config entry operation type: %v", args.Op)
 	}
+}
+
+// getExistingEntry looks up the ConfigEntryRequest in the state store to see if it already exists.
+// this can be used to make decisions if an update or special authz is required.
+func (c *ConfigEntry) getExistingEntry(args *structs.ConfigEntryRequest) (structs.ConfigEntry, error) {
+	state := c.srv.fsm.State()
+	_, currentEntry, err := state.ConfigEntry(nil, args.Entry.GetKind(), args.Entry.GetName(), args.Entry.GetEnterpriseMeta())
+	if err != nil {
+		return nil, fmt.Errorf("error reading current config entry value: %w", err)
+	}
+	return currentEntry, nil
 }
 
 func (c *ConfigEntry) shouldSkipUpsertOperation(currentEntry, updatedEntry structs.ConfigEntry) (bool, error) {
@@ -394,7 +404,12 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		return err
 	}
 
-	if err := args.Entry.CanWrite(authz); err != nil {
+	currentEntry, err := c.getExistingEntry(args)
+	if err != nil {
+		return err
+	}
+
+	if err := args.Entry.CanWrite(authz, currentEntry); err != nil {
 		return err
 	}
 
@@ -406,7 +421,7 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		args.Op = structs.ConfigEntryDelete
 	}
 
-	if skip, err := c.shouldSkipOperation(args); err != nil {
+	if skip, err := c.shouldSkipOperation(args, currentEntry); err != nil {
 		return err
 	} else if skip {
 		reply.Deleted = true
