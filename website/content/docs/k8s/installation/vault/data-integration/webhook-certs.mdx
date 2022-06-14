@@ -54,13 +54,13 @@ First, we need to bootstrap the Vault cluster by enabling and configuring the PK
 
 
 ## Overview
-In a Consul Helm chart configuration that does not use Vault, webhook-cert-manager normally fulfills the role of ensuring that a valid certificate is updated to the mutatingwebhook configuration of either controller or connect inject to ensure that Kubernetes can communicate with each of these services. 
+In a Consul Helm chart configuration that does not use Vault, webhook-cert-manager normally fulfills the role of ensuring that a valid certificate is updated to the `mutatingwebhookconfiguration` of either controller or connect inject to ensure that Kubernetes can communicate with each of these services. 
 
 When Vault is configured as the controller and connect inject Webhook Certificate Provider on Kubernetes: 
-  - webhook-cert-manager is no longer deployed to the cluster.
+  - `webhook-cert-manager` is no longer deployed to the cluster.
   - controller and connect inject each get their webhook certificates from its own Vault PKI mount via the injected Vault Agent.
   - controller and connect inject each need to be configured with its own Vault Role that has necessary permissions to receive certificates from its respective PKI mount.
-  - controller and connect inject each locally update their mutatingwebhookconfigurations so that Kubernetes can relay events.
+  - controller and connect inject each locally update its own `mutatingwebhookconfiguration` so that Kubernetes can relay events.
   - Vault will manage certificate rotation and each of these webhooks will seamlessly received rotated certificates.
 
 To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
