@@ -62,9 +62,10 @@ func TestIntentionList(t *testing.T) {
 			ids = append(ids, reply)
 		}
 
+		// set up an intention for a peered service
 		// TODO(peering): when we handle Upserts, we can use the for loop above. But it may be that we
 		// rip out legacy intentions before supporting that use case so run a config entry request instead here.
-		testutil.RunStep(t, "set up peered intention", func(t *testing.T) {
+		{
 			configEntryIntention := structs.ServiceIntentionsConfigEntry{
 				Kind: structs.ServiceIntentions,
 				Name: "bar",
@@ -89,7 +90,7 @@ func TestIntentionList(t *testing.T) {
 			} else {
 				t.Fatal("ConfigApply returns a boolean type")
 			}
-		})
+		}
 
 		// Request
 		req, err := http.NewRequest("GET", "/v1/connect/intentions", nil)
@@ -118,6 +119,9 @@ func TestIntentionList(t *testing.T) {
 				value[3].ID,
 				value[4].ID,
 			})
+
+		// check that a source peer exists for the intention of the peered service
+		require.Equal(t, "peer1", value[3].SourcePeer)
 	})
 }
 
