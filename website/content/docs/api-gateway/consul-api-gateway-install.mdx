@@ -244,7 +244,56 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for details about configuring gateways:
+For a listener's `certificateRef` to reference a secret in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+
+The following example creates a `Gateway` named `example-gateway` in namespace `gateway-namespace`. This `Gateway` has a `certificateRef` in namespace `secret-namespace`.
+The reference is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `secret-namespace`, allows `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
+
+<CodeBlockConfig filename="gateway_with_referencepolicy.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: gateway-namespace
+  annotations:
+    'external-dns.alpha.kubernetes.io/hostname': DNS_HOSTNAME
+spec:
+  gatewayClassName: test-gateway-class
+  listeners:
+    - protocol: HTTPS
+      hostname: DNS_HOSTNAME
+      port: 443
+      name: https
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        certificateRefs:
+          - name: gateway-production-certificate
+            namespace: secret-namespace
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: secret-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: gateway-namespace
+  to:
+    - group: ""
+      kind: Secret
+      name: gateway-production-certificate
+```
+
+</CodeBlockConfig>
+
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for further details about configuring gateways.
 
 #### Listeners
 
