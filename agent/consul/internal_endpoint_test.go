@@ -2624,6 +2624,16 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
+	db := structs.NodeService{
+		ID:      "db2",
+		Service: "db",
+	}
+
+	redis := structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+	}
+
 	// Register gateway and two service instances that will be associated with it
 	{
 		arg := structs.RegisterRequest{
@@ -2665,10 +2675,7 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 			Datacenter: "dc1",
 			Node:       "baz",
 			Address:    "127.0.0.3",
-			Service: &structs.NodeService{
-				ID:      "db2",
-				Service: "db",
-			},
+			Service:    &db,
 			Check: &structs.HealthCheck{
 				Name:      "db2-passing",
 				Status:    api.HealthPassing,
@@ -2726,8 +2733,8 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 			ServiceName: "terminating-gateway",
 			ServiceID:   "terminating-gateway",
 			ServiceTaggedAddresses: map[string]structs.ServiceAddress{
-				"consul-virtual:default/default/db":    {Address: "240.0.0.1"},
-				"consul-virtual:default/default/redis": {Address: "240.0.0.2"},
+				"consul-virtual:" + db.CompoundServiceName().String():    {Address: "240.0.0.1"},
+				"consul-virtual:" + redis.CompoundServiceName().String(): {Address: "240.0.0.2"},
 			},
 			ServiceWeights: structs.Weights{Passing: 1, Warning: 1},
 			ServicePort:    443,
@@ -2737,7 +2744,7 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 			RaftIndex:      structs.RaftIndex{},
 		},
 	}
-	assert.ElementsMatch(t, expect, serviceNodes)
+	assert.Equal(t, expect, serviceNodes)
 }
 
 func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
@@ -2929,14 +2936,20 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
+	google := structs.NodeService{
+		ID:      "google",
+		Service: "google",
+	}
+
 	// Register gateway and two service instances that will be associated with it
 	{
 		arg := structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
 			Datacenter: "dc1",
 			Entry: &structs.ServiceConfigEntry{
-				Name:        "google",
-				Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443},
+				Name:           "google",
+				Destination:    &structs.DestinationConfig{Address: "www.google.com", Port: 443},
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		}
 		var configOutput bool
@@ -3006,7 +3019,7 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 			ServiceName: "terminating-gateway",
 			ServiceID:   "terminating-gateway",
 			ServiceTaggedAddresses: map[string]structs.ServiceAddress{
-				"consul-virtual:default/default/google": {Address: "240.0.0.1"},
+				"consul-virtual:" + google.CompoundServiceName().String(): {Address: "240.0.0.1"},
 			},
 			ServiceWeights: structs.Weights{Passing: 1, Warning: 1},
 			ServicePort:    443,
