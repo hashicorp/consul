@@ -62,6 +62,35 @@ func TestIntentionList(t *testing.T) {
 			ids = append(ids, reply)
 		}
 
+		// TODO(peering): when we handle Upserts, we can use the for loop above. But it may be that we
+		// rip out legacy intentions before supporting that use case so run a config entry request instead here.
+		testutil.RunStep(t, "set up peered intention", func(t *testing.T) {
+			configEntryIntention := structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "bar",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "peered",
+						Peer:   "peer1",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			}
+
+			req, err := http.NewRequest("PUT", "/v1/config", jsonReader(configEntryIntention))
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+
+			obj, err := a.srv.ConfigApply(resp, req)
+			require.NoError(t, err)
+
+			if applied, ok := obj.(bool); ok {
+				require.True(t, applied)
+			} else {
+				t.Fatal("ConfigApply returns a boolean type")
+			}
+		})
+
 		// Request
 		req, err := http.NewRequest("GET", "/v1/connect/intentions", nil)
 		require.NoError(t, err)
@@ -71,21 +100,23 @@ func TestIntentionList(t *testing.T) {
 		require.NoError(t, err)
 
 		value := obj.(structs.Intentions)
-		require.Len(t, value, 4)
+		require.Len(t, value, 5)
 
-		require.Equal(t, []string{"bar->db", "foo->db", "zim->gir", "*->db"},
+		require.Equal(t, []string{"bar->db", "foo->db", "zim->gir", "peered->bar", "*->db"},
 			[]string{
 				value[0].SourceName + "->" + value[0].DestinationName,
 				value[1].SourceName + "->" + value[1].DestinationName,
 				value[2].SourceName + "->" + value[2].DestinationName,
 				value[3].SourceName + "->" + value[3].DestinationName,
+				value[4].SourceName + "->" + value[4].DestinationName,
 			})
-		require.Equal(t, []string{ids[2], ids[1], "", ids[0]},
+		require.Equal(t, []string{ids[2], ids[1], "", "", ids[0]},
 			[]string{
 				value[0].ID,
 				value[1].ID,
 				value[2].ID,
 				value[3].ID,
+				value[4].ID,
 			})
 	})
 }
