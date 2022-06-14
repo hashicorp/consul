@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
@@ -297,11 +298,14 @@ func TestPeeringService_Delete(t *testing.T) {
 	_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
 	require.NoError(t, err)
 
-	// "foo" peering must only be marked for deletion, rather than actually be deleted.
-	_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
-	require.NoError(t, err)
-	require.NotNil(t, resp.DeletedAt)
-	require.False(t, resp.IsActive())
+	retry.Run(t, func(r *retry.R) {
+		_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
+		require.NoError(r, err)
+
+		// Initially the peering will be marked for deletion but eventually the leader
+		// routine will clean it up.
+		require.Nil(r, resp)
+	})
 }
 
 func TestPeeringService_List(t *testing.T) {

@@ -12,12 +12,17 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -296,4 +301,150 @@ func newPeerDialer(peerAddr string) func(context.Context, string) (net.Conn, err
 
 		return conn, nil
 	}
+}
+
+func (s *Server) startPeeringDeferredDeletion(ctx context.Context) {
+	s.leaderRoutineManager.Start(ctx, peeringDeletionRoutineName, s.runPeeringDeletions)
+}
+
+// runPeeringDeletions watches for peerings marked for deletions and then cleans up data for them.
+func (s *Server) runPeeringDeletions(ctx context.Context) error {
+	logger := s.loggers.Named(logging.Peering)
+
+	// This limiter's purpose is to control the rate of raft applies caused by the deferred deletion
+	// process. This includes deletion of the peerings themselves in addition to any peering data
+	raftLimiter := rate.NewLimiter(defaultDeletionApplyRate, int(defaultDeletionApplyRate))
+	for {
+		ws := memdb.NewWatchSet()
+		state := s.fsm.State()
+		_, peerings, err := s.fsm.State().PeeringListDeleted(ws)
+		if err != nil {
+			logger.Warn("encountered an error while searching for deleted peerings", "error", err)
+			continue
+		}
+
+		if len(peerings) == 0 {
+			ws.Add(state.AbandonCh())
+
+			// wait for a peering to be deleted or the routine to be cancelled
+			if err := ws.WatchCtx(ctx); err != nil {
+				return err
+			}
+			continue
+		}
+
+		for _, p := range peerings {
+			s.removePeeringAndData(ctx, logger, raftLimiter, p.Name, acl.PartitionOrDefault(p.Partition))
+		}
+	}
+}
+
+// removepPeeringAndData removes data imported for a peering and the peering itself.
+func (s *Server) removePeeringAndData(ctx context.Context, logger hclog.Logger, limiter *rate.Limiter, peer string, partition string) {
+	logger = logger.With("peer", peer, "partition", partition)
+
+	// First delete all imported data.
+	// By deleting all imported nodes we also delete all services and checks registered on them.
+	if err := s.deleteAllNodes(ctx, limiter, *structs.NodeEnterpriseMetaInPartition(partition), peer); err != nil {
+		logger.Error("Failed to remove Nodes for peer", "error", err)
+		return
+	}
+	if err := s.deleteTrustBundleFromPeer(ctx, limiter, *structs.NodeEnterpriseMetaInPartition(partition), peer); err != nil {
+		logger.Error("Failed to remove trust bundle for peer", "error", err)
+		return
+	}
+
+	if err := limiter.Wait(ctx); err != nil {
+		return
+	}
+
+	// Once all imported data is deleted, the peering itself is also deleted.
+	req := pbpeering.PeeringDeleteRequest{
+		Name:      peer,
+		Partition: partition,
+	}
+	_, err := s.raftApplyProtobuf(structs.PeeringDeleteType, &req)
+	if err != nil {
+		logger.Error("failed to apply full peering deletion", "error", err)
+		return
+	}
+}
+
+// deleteAllNodes will delete all nodes in a partition or all nodes imported from a given peer name.
+func (s *Server) deleteAllNodes(ctx context.Context, limiter *rate.Limiter, entMeta acl.EnterpriseMeta, peerName string) error {
+	// Same as ACL batch upsert size
+	nodeBatchSizeBytes := 256 * 1024
+
+	_, nodes, err := s.fsm.State().NodeDump(nil, &entMeta, peerName)
+	if err != nil {
+		return err
+	}
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	i := 0
+	for {
+		var ops structs.TxnOps
+		for batchSize := 0; batchSize < nodeBatchSizeBytes && i < len(nodes); i++ {
+			entry := nodes[i]
+
+			op := structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeDelete,
+					Node: structs.Node{
+						Node:      entry.Node,
+						Partition: entry.Partition,
+						PeerName:  entry.PeerName,
+					},
+				},
+			}
+			ops = append(ops, &op)
+
+			// Add entries to the transaction until it reaches the max batch size
+			batchSize += len(entry.Node) + len(entry.Partition)
+		}
+
+		// Send each batch as a TXN Req to avoid sending one at a time
+		req := structs.TxnRequest{
+			Datacenter: s.config.Datacenter,
+			Ops:        ops,
+		}
+		if len(req.Ops) > 0 {
+			if err := limiter.Wait(ctx); err != nil {
+				return err
+			}
+
+			_, err := s.raftApplyMsgpack(structs.TxnRequestType, &req)
+			if err != nil {
+				return err
+			}
+		} else {
+			break
+		}
+	}
+
+	return nil
+}
+
+// deleteTrustBundleFromPeer deletes the trust bundle imported from a peer, if present.
+func (s *Server) deleteTrustBundleFromPeer(ctx context.Context, limiter *rate.Limiter, entMeta acl.EnterpriseMeta, peerName string) error {
+	_, bundle, err := s.fsm.State().PeeringTrustBundleRead(nil, state.Query{Value: peerName, EnterpriseMeta: entMeta})
+	if err != nil {
+		return err
+	}
+	if bundle == nil {
+		return nil
+	}
+
+	if err := limiter.Wait(ctx); err != nil {
+		return err
+	}
+
+	req := pbpeering.PeeringTrustBundleDeleteRequest{
+		Name:      peerName,
+		Partition: entMeta.PartitionOrDefault(),
+	}
+	_, err = s.raftApplyProtobuf(structs.PeeringTrustBundleDeleteType, &req)
+	return err
 }
