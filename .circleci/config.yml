@@ -847,15 +847,15 @@ jobs:
     environment:
       ENVOY_VERSION: "1.18.6"
 
-  envoy-integration-test-1_19_3:
+  envoy-integration-test-1_19_5:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.19.3"
+      ENVOY_VERSION: "1.19.5"
 
-  envoy-integration-test-1_20_2:
+  envoy-integration-test-1_20_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.2"
+      ENVOY_VERSION: "1.20.4"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1092,10 +1092,10 @@ workflows:
       - envoy-integration-test-1_18_6:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_3:
+      - envoy-integration-test-1_19_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_2:
+      - envoy-integration-test-1_20_4:
           requires:
             - dev-build
       - noop
