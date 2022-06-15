@@ -40,10 +40,10 @@ Not all features and functionality are available in the technical preview releas
 
 - Mesh gateways for _service to service traffic_ between clusters are available. However, mesh gateways for _server to server traffic_ are not available.
 - Services exported to peered clusters must not be configured as HTTP.
-- Support for dynamic routing such as splits, custom routes, or redirects is not available at this time.
+- Support for dynamic routing such as splits, custom routes, or redirects is not available.
 - The `consul intention CLI` command is not supported.
 - [L7 permissions](/docs/connect/l7-traffic) are not supported.
 - Configuring service failover across peers is not supported.
 - Accessing key/value stores across peers is not supported.
 - Consul datacenters that are already federated stay federated.
-- Non-enterprise Consul instances cannot sync services with namespaces outside of the default namespace.
+- Non-enterprise Consul instances cannot sync services with namespaces outside of the `default` namespace.
