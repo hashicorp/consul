@@ -30,7 +30,7 @@ Complete the following prerequisites prior to registering your Lambda functions.
 Add the following configuration to all Consul clients:
 
 `connect { enable_serverless_plugin = true, connect = true }`
-
+Refer to the [`enable_serverless_plugin`](/docs/agent/config/config-files#connect_enable_serverless_plugin) configuration documentation for additional information.
 
 ### Configure IAM Permissions for Envoy
 
@@ -89,7 +89,7 @@ The registrator runs as a Lambda function that is invoked by AWS EventBridge. Re
 
 EventBridge invokes the registrator using either [AWS CloudTrail](https://docs.aws.amazon.com/lambda/latest/dg/logging-using-cloudtrail.html) to syncronize with Consul in real-time or in [scheduled intervals](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html).
 
-CloudTrail events typically synchronize updates, registration, and deregistration within one minute but are occasionally delayed.
+CloudTrail events typically synchronize updates, registration, and deregistration within one minute, but events may occasionally be delayed.
 
 Scheduled events fully synchronize functions betwen Lambda and Consul to prevent entropy. By default, EventBridge triggers a full sync every five minutes.
 
@@ -108,7 +108,7 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 ### Deploy Lambda Registrator
 
-1. Create a Terraform configuration and specify the `lambda-registrator` module. In the following example, the Lambda registrator is deployed to `https://consul.example.com:8501`. Refer to the Lambda registrator module documentation for additional usage information:
+1. Create a Terraform configuration and specify the `lambda-registrator` module. In the following example, the Lambda registrator is deployed to `https://consul.example.com:8501`. Refer to [the Lambda registrator module documentation](https://registry.terraform.io/modules/hashicorp/consul-lambda-registrator/aws/0.1.0-beta1/submodules/lambda-registrator) for additional usage information:
    ```hcl
    module "lambda-registrator" {
        source  = "hashicorp/consul-lambda-registrator/aws//modules/lambda-registrator"
@@ -174,7 +174,7 @@ If [Consul access control lists (ACLs)](/docs/security/acl) are enabled, Lambda 
 | `timeout` | The maximum number of seconds Lambda registrator can run per invocation before timing out. |
 | `consul_http_addr` | Specifies the address of the Consul API client. |
 | `consul_ca_cert_path` | Specifies the AWS Parameter Store path to the CA certificate for the Consul cluster Lambda registrator uses. This parameter is only required when the Consul server is configured to use TLS. At startup, Lambda registrator pulls the CA certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`.  Also see [Optional: Store the CA Certificate in Parameter Store](#optional-store-the-ca-certificate-in-parameter-store)|
-| `consul_http_token_path` |  Specifies the AWS Parameter Store path to the ACL Token Lambda registrator uses. This parameter only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also see [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store)|
+| `consul_http_token_path` |  Specifies the path to the ACL token stored in AWS Parameter Store that Lambda registrator presents to access resources. This parameter only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also see [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store)|
 | `node_name` | The Consul node name that Lambdas will be registered to. This defaults to `lambdas`. |
 | `enterprise` | <EnterpriseAlert inline />Determines if the Consul server at `consul_http_addr` is running open source or enterprise. |
 | `partitions` | <EnterpriseAlert inline />The partitions that Lambda registrator manages. |
@@ -212,10 +212,10 @@ The following tags are supported. In all cases, the `<PREFIX>` should be
 | - | - |
 | `<PREFIX>/enabled` | Determines if Lambda registrator will sync the Lambda into Consul. |
 | `<PREFIX>/payload-passthrough` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda. This attribute is optional and defaults to `false`. |
-| `<PREFIX>/invocation-mode` | Specifies the [Lambda invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html) Consul uses to invoke the Lambda. This tag will default to `SYNCHRONOUS`, but also supports `ASYNCHRONOUS` invocations. |
-| `<PREFIX>/namespace` | <EnterpriseAlert inline />This tag specifies the Consul namespace the service will be registered in. If `enterprise` is enabled on Lambda registrator, this defaults to `default`. |
-| `<PREFIX>/partition` | <EnterpriseAlert inline />This tag specifies the Consul partition the service will be registered in. If `enterprise` is enabled on Lambda registrator, this defaults to `default`. |
-| `<PREFIX>/aliases` | This tag specifies a `+`-separated string of Lambda aliases that will be registered into Consul. If this is set to `dev+staging+prod`, the `dev`, `staging`, and `prod` aliases of the Lambda function will be registered into Consul. |
+| `<PREFIX>/invocation-mode` | Specifies the [Lambda invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html) Consul uses to invoke the Lambda. The default is `SYNCHRONOUS`, but `ASYNCHRONOUS` invocations are also supported. |
+| `<PREFIX>/namespace` | <EnterpriseAlert inline />Specifies the Consul namespace the service will be registered in. Default is `default` if `enterprise` is enabled. |
+| `<PREFIX>/partition` | <EnterpriseAlert inline />Specifies the Consul partition the service will be registered in. Defaults is `default` if `enterprise` is enabled. |
+| `<PREFIX>/aliases` | Specifies a `+`-separated string of Lambda aliases that will be registered into Consul. For example, if set to `dev+staging+prod`, the `dev`, `staging`, and `prod` aliases of the Lambda function will be registered into Consul. |
 
 ## Manual Configuration
 You can manually register Lambda functions if you are unable to automate the process using the Lambda registrator.
