@@ -1,4 +1,4 @@
-## 1.13.0-techpreview1 (June 15, 2022)
+## 1.13.0-alpha1 (June 15, 2022)
 
 BREAKING CHANGES:
 

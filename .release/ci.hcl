@@ -15,7 +15,7 @@ project "consul" {
       "release/1.10.x",
       "release/1.11.x",
       "release/1.12.x",
-      "release/1.13.0-techpreview1",
+      "release/1.13.0-alpha1",
     ]
   }
 }

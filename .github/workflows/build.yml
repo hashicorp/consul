@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
       # Push events on the main branch
-      - release/1.13.0-techpreview1
+      - release/1.13.0-alpha1
 
 env:
   PKG_NAME: consul
