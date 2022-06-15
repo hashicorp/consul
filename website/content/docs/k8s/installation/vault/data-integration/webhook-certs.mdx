@@ -64,7 +64,7 @@ When Vault is configured as the controller and connect inject Webhook Certificat
   - controller and connect inject each get their webhook certificates from its own Vault PKI mount via the injected Vault Agent.
   - controller and connect inject each need to be configured with its own Vault Role that has necessary permissions to receive certificates from its respective PKI mount.
   - controller and connect inject each locally update its own `mutatingwebhookconfiguration` so that Kubernetes can relay events.
-  - Vault will manage certificate rotation and each of these webhooks will seamlessly received rotated certificates.
+  - Vault manages certificate rotation and rotates certificates to each webhook.
 
 To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
