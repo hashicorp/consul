@@ -228,6 +228,16 @@ func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 	}
 }
 
+func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*pbpeering.TrustBundleListByServiceRequest)
+		require.True(t, ok)
+		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Kind)
+		require.True(t, acl.EqualPartitions(partition, reqReal.Partition), "%q != %q", partition, reqReal.Partition)
+		require.Empty(t, reqReal.ServiceName)
+	}
+}
+
 func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
@@ -730,6 +740,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -743,6 +755,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							CorrelationID: exportedServiceListWatchID,
 							Result: &structs.IndexedExportedServiceList{
 								Services: nil,
+							},
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
 							},
 						},
 					},
@@ -798,6 +820,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					events: []UpdateEvent{
 						rootWatchEvent(),
@@ -814,7 +838,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 									{Name: "web"},
 								},
 							},
-							Err: nil,
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
+							},
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {

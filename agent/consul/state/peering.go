@@ -63,9 +63,10 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  indexPeeringFromQuery, // same as peering table since we'll use the query.Value
-					writeIndex: indexFromPeeringTrustBundle,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexPeeringFromQuery, // same as peering table since we'll use the query.Value
+					writeIndex:  indexFromPeeringTrustBundle,
+					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
 		},
@@ -566,6 +567,30 @@ func (s *Store) TrustBundleListByService(ws memdb.WatchSet, service string, entM
 		}
 	}
 	return maxIdx, resp, nil
+}
+
+// PeeringTrustBundleList returns the peering trust bundles for all peers.
+func (s *Store) PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	return peeringTrustBundleListTxn(tx, ws, entMeta)
+}
+
+func peeringTrustBundleListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error) {
+	iter, err := tx.Get(tablePeeringTrustBundles, indexID+"_prefix", entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed peering trust bundle lookup: %w", err)
+	}
+
+	idx := maxIndexWatchTxn(tx, ws, partitionedIndexEntryName(tablePeeringTrustBundles, entMeta.PartitionOrDefault()))
+
+	var result []*pbpeering.PeeringTrustBundle
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		result = append(result, entry.(*pbpeering.PeeringTrustBundle))
+	}
+
+	return idx, result, nil
 }
 
 // PeeringTrustBundleRead returns the peering trust bundle for the peer name given as the query value.

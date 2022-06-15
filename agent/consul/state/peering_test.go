@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -556,6 +557,42 @@ func TestStore_PeeringTerminateByID(t *testing.T) {
 	_, p, err := s.PeeringReadByID(nil, id)
 	require.NoError(t, err)
 	require.Equal(t, pbpeering.PeeringState_TERMINATED, p.State)
+}
+
+func TestStateStore_PeeringTrustBundleList(t *testing.T) {
+	s := NewStateStore(nil)
+	insertTestPeeringTrustBundles(t, s)
+
+	type testcase struct {
+		name    string
+		entMeta acl.EnterpriseMeta
+		expect  []*pbpeering.PeeringTrustBundle
+	}
+
+	entMeta := structs.NodeEnterpriseMetaInDefaultPartition()
+
+	expect := []*pbpeering.PeeringTrustBundle{
+		{
+			TrustDomain: "bar.com",
+			PeerName:    "bar",
+			Partition:   entMeta.PartitionOrEmpty(),
+			RootPEMs:    []string{"bar certificate bundle"},
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		},
+		{
+			TrustDomain: "foo.com",
+			PeerName:    "foo",
+			Partition:   entMeta.PartitionOrEmpty(),
+			RootPEMs:    []string{"foo certificate bundle"},
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+
+	_, bundles, err := s.PeeringTrustBundleList(nil, *entMeta)
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, expect, bundles)
 }
 
 func TestStateStore_PeeringTrustBundleRead(t *testing.T) {

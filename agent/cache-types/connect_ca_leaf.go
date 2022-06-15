@@ -558,8 +558,19 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
 		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
+	} else if req.Kind != "" {
+		if req.Kind != structs.ServiceKindMeshGateway {
+			return result, fmt.Errorf("unsupported kind: %s", req.Kind)
+		}
+
+		id = &connect.SpiffeIDMeshGateway{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Partition:  req.TargetPartition(),
+		}
+		dnsNames = append(dnsNames, req.DNSSAN...)
 	} else {
-		return result, errors.New("URI must be either service or agent")
+		return result, errors.New("URI must be either service, agent, or kind")
 	}
 
 	// Create a new private key
@@ -665,8 +676,9 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 type ConnectCALeafRequest struct {
 	Token          string
 	Datacenter     string
-	Service        string // Service name, not ID
-	Agent          string // Agent name, not ID
+	Service        string              // Service name, not ID
+	Agent          string              // Agent name, not ID
+	Kind           structs.ServiceKind // only mesh-gateway for now
 	DNSSAN         []string
 	IPSAN          []net.IP
 	MinQueryIndex  uint64
@@ -677,20 +689,38 @@ type ConnectCALeafRequest struct {
 }
 
 func (r *ConnectCALeafRequest) Key() string {
-	if len(r.Agent) > 0 {
-		return fmt.Sprintf("agent:%s", r.Agent)
-	}
-
 	r.EnterpriseMeta.Normalize()
 
-	v, err := hashstructure.Hash([]interface{}{
-		r.Service,
-		r.EnterpriseMeta,
-		r.DNSSAN,
-		r.IPSAN,
-	}, nil)
-	if err == nil {
-		return fmt.Sprintf("service:%d", v)
+	switch {
+	case r.Agent != "":
+		v, err := hashstructure.Hash([]interface{}{
+			r.Agent,
+			r.PartitionOrDefault(),
+		}, nil)
+		if err == nil {
+			return fmt.Sprintf("agent:%d", v)
+		}
+	case r.Kind == structs.ServiceKindMeshGateway:
+		v, err := hashstructure.Hash([]interface{}{
+			r.PartitionOrDefault(),
+			r.DNSSAN,
+			r.IPSAN,
+		}, nil)
+		if err == nil {
+			return fmt.Sprintf("kind:%d", v)
+		}
+	case r.Kind != "":
+		// this is not valid
+	default:
+		v, err := hashstructure.Hash([]interface{}{
+			r.Service,
+			r.EnterpriseMeta,
+			r.DNSSAN,
+			r.IPSAN,
+		}, nil)
+		if err == nil {
+			return fmt.Sprintf("service:%d", v)
+		}
 	}
 
 	// If there is an error, we don't set the key. A blank key forces

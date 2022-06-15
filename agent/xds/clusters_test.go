@@ -725,6 +725,9 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 		case structs.ServiceKindIngressGateway:
 			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
 			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindMeshGateway:
+			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		}
 	}
 	if snap.Roots != nil {

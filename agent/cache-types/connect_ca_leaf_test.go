@@ -1104,29 +1104,64 @@ func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface
 }
 
 func TestConnectCALeaf_Key(t *testing.T) {
-	r1 := ConnectCALeafRequest{Service: "web"}
-	r2 := ConnectCALeafRequest{Service: "api"}
-
-	r3 := ConnectCALeafRequest{DNSSAN: []string{"a.com"}}
-	r4 := ConnectCALeafRequest{DNSSAN: []string{"b.com"}}
-
-	r5 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.139")}}
-	r6 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.140")}}
-	// hashstructure will hash the service name + ent meta to produce this key
-	r1Key := r1.Key()
-	r2Key := r2.Key()
-
-	r3Key := r3.Key()
-	r4Key := r4.Key()
-
-	r5Key := r5.Key()
-	r6Key := r6.Key()
-
-	require.True(t, strings.HasPrefix(r1Key, "service:"), "Key %s does not start with service:", r1Key)
-	require.True(t, strings.HasPrefix(r2Key, "service:"), "Key %s does not start with service:", r2Key)
-	require.NotEqual(t, r1Key, r2Key, "Cache keys for different services are not equal")
-	require.NotEqual(t, r3Key, r4Key, "Cache keys for different DNSSAN are not equal")
-	require.NotEqual(t, r5Key, r6Key, "Cache keys for different IPSAN are not equal")
-	r := ConnectCALeafRequest{Agent: "abc"}
-	require.Equal(t, "agent:abc", r.Key())
+	key := func(r ConnectCALeafRequest) string {
+		return r.Key()
+	}
+	t.Run("service", func(t *testing.T) {
+		t.Run("name", func(t *testing.T) {
+			r1 := key(ConnectCALeafRequest{Service: "web"})
+			r2 := key(ConnectCALeafRequest{Service: "api"})
+			require.True(t, strings.HasPrefix(r1, "service:"), "Key %s does not start with service:", r1)
+			require.True(t, strings.HasPrefix(r2, "service:"), "Key %s does not start with service:", r2)
+			require.NotEqual(t, r1, r2, "Cache keys for different services should not be equal")
+		})
+		t.Run("dns-san", func(t *testing.T) {
+			r3 := key(ConnectCALeafRequest{Service: "foo", DNSSAN: []string{"a.com"}})
+			r4 := key(ConnectCALeafRequest{Service: "foo", DNSSAN: []string{"b.com"}})
+			require.NotEqual(t, r3, r4, "Cache keys for different DNSSAN should not be equal")
+		})
+		t.Run("ip-san", func(t *testing.T) {
+			r5 := key(ConnectCALeafRequest{Service: "foo", IPSAN: []net.IP{net.ParseIP("192.168.4.139")}})
+			r6 := key(ConnectCALeafRequest{Service: "foo", IPSAN: []net.IP{net.ParseIP("192.168.4.140")}})
+			require.NotEqual(t, r5, r6, "Cache keys for different IPSAN should not be equal")
+		})
+	})
+	t.Run("agent", func(t *testing.T) {
+		t.Run("name", func(t *testing.T) {
+			r1 := key(ConnectCALeafRequest{Agent: "abc"})
+			require.True(t, strings.HasPrefix(r1, "agent:"), "Key %s does not start with agent:", r1)
+		})
+		t.Run("dns-san ignored", func(t *testing.T) {
+			r3 := key(ConnectCALeafRequest{Agent: "foo", DNSSAN: []string{"a.com"}})
+			r4 := key(ConnectCALeafRequest{Agent: "foo", DNSSAN: []string{"b.com"}})
+			require.Equal(t, r3, r4, "DNSSAN is ignored for agent type")
+		})
+		t.Run("ip-san ignored", func(t *testing.T) {
+			r5 := key(ConnectCALeafRequest{Agent: "foo", IPSAN: []net.IP{net.ParseIP("192.168.4.139")}})
+			r6 := key(ConnectCALeafRequest{Agent: "foo", IPSAN: []net.IP{net.ParseIP("192.168.4.140")}})
+			require.Equal(t, r5, r6, "IPSAN is ignored for agent type")
+		})
+	})
+	t.Run("kind", func(t *testing.T) {
+		t.Run("invalid", func(t *testing.T) {
+			r1 := key(ConnectCALeafRequest{Kind: "terminating-gateway"})
+			require.Empty(t, r1)
+		})
+		t.Run("mesh-gateway", func(t *testing.T) {
+			t.Run("normal", func(t *testing.T) {
+				r1 := key(ConnectCALeafRequest{Kind: "mesh-gateway"})
+				require.True(t, strings.HasPrefix(r1, "kind:"), "Key %s does not start with kind:", r1)
+			})
+			t.Run("dns-san", func(t *testing.T) {
+				r3 := key(ConnectCALeafRequest{Kind: "mesh-gateway", DNSSAN: []string{"a.com"}})
+				r4 := key(ConnectCALeafRequest{Kind: "mesh-gateway", DNSSAN: []string{"b.com"}})
+				require.NotEqual(t, r3, r4, "Cache keys for different DNSSAN should not be equal")
+			})
+			t.Run("ip-san", func(t *testing.T) {
+				r5 := key(ConnectCALeafRequest{Kind: "mesh-gateway", IPSAN: []net.IP{net.ParseIP("192.168.4.139")}})
+				r6 := key(ConnectCALeafRequest{Kind: "mesh-gateway", IPSAN: []net.IP{net.ParseIP("192.168.4.140")}})
+				require.NotEqual(t, r5, r6, "Cache keys for different IPSAN should not be equal")
+			})
+		})
+	})
 }
