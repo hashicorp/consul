@@ -7,7 +7,10 @@ description: >-
 
 # Cluster Peering on Kubernetes
 
-~> This page covers features that are currently in _technical preview_. Features and functionality are subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may face performance and scaling issues, with limited support options available.
+~> **Cluster peering is currently in technical preview:** Functionality associated
+with cluster peering is subject to change. You should never use the technical
+preview release in secure environments or production scenarios. Features in
+technical preview may have performance issues, scaling issues, and limited support.
 
 To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions for each side of the peering.
 
@@ -21,6 +24,7 @@ The following Custom Resource Definitions (CRDs) are used to create and manage a
 To create and use cluster peering connections with Kubernetes, you need at least two Kubernetes clusters running in a flat network with Consul on Kubernetes v.0.45 or later.
 
 ### Helm chart configuration
+
 To establish cluster peering through Kubernetes, deploy clusters with the following Helm values.
 
 ```yaml
