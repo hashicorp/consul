@@ -77,7 +77,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 		return ErrConnectNotEnabled
 	}
 
-	if args.Intention.SourcePeer != "" {
+	if args.Intention != nil && args.Intention.SourcePeer != "" {
 		return fmt.Errorf("SourcePeer field is not supported on this endpoint. Use config entries instead")
 	}
 

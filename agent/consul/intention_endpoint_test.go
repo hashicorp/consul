@@ -283,9 +283,7 @@ func TestIntentionApply_NoSourcePeer(t *testing.T) {
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	waitForLeaderEstablishment(t, s1)
 
