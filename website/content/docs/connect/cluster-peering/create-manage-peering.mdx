@@ -7,7 +7,7 @@ description: >-
 
 # Create and Manage Peering Connections
 
-~> This page covers features that are currently in _technical preview_. Features and functionality are subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may face performance and scaling issues, with limited support options available.
+~> **Cluster peering is currently in technical preview:** Functionality associated with cluster peering is subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may have performance issues, scaling issues, and limited support.
 
 A peering token enables cluster peering between different datacenters. Once you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and authorize other clusters to call those services.
 
@@ -20,17 +20,17 @@ To peer clusters, you must complete the following steps in order:
 
 ## Create a peering token
 
-You can generate peering tokens and initiate connections from either the server agents or the client agents in your clusters. For the current release, we recommend you initiate peering through the client agents in the partitions you want to connect.
+You can generate peering tokens and initiate connections using the Consul API on any available agent. However, we recommend performing these operations through a client agent in the partition you want to connect.
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
 In “cluster-01,” issue a request for a peering token using the HTTP API.
 
 ```shell-session
-$ curl -X POST --data '{"PeerName":"cluster-02"}' http://localhost:8500/v1/peering/token
+$ curl --request POST --data '{"PeerName":"cluster-02"}' --url http://localhost:8500/v1/peering/token
 ```
 
-The CLI outputs the peering token, which is an encoded string of alphanumeric characters and symbols.
+The CLI outputs the peering token, which is a base64-encoded string containing the token details.
 
 Create a JSON file that contains the first cluster's name and the peering token.
 
@@ -67,7 +67,6 @@ First, create a configuration entry and specify the `Kind` as `“exported-servi
 
 ```hcl
 Kind = "exported-services"
-Partition = "partition-name"
 
 Services = [
   {
