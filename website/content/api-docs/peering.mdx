@@ -1,0 +1,322 @@
+---
+layout: api
+page_title: Cluster Peering - HTTP API
+description: The /peering endpoints allow for managing cluster peerings.
+---
+
+# Cluster Peering - HTTP API
+
+~> **Cluster peering is currently in technical preview:** Functionality associated
+with cluster peering is subject to change. You should never use the technical
+preview release in secure environments or production scenarios. Features in
+technical preview may have performance issues, scaling issues, and limited support.
+
+The functionality described here is available only in
+[Consul](https://www.hashicorp.com/products/consul/) version 1.13.0 and later.
+
+## Generate a Peering Token
+
+This endpoint generates a peering token.
+
+| Method  | Path                 | Produces           |
+| ------- | -------------------- | ------------------ |
+| `POST`  | `/peering/token`     | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `none`           |
+
+### JSON Request Body Schema
+
+- `PeerName` `(string: <required>)` - The name assigned to the peer cluster.
+  The `PeerName` is used to reference the peer cluster in service discovery queries
+  and configuration entries such as `service-intentions`. This field must be a
+  valid DNS hostname label.
+
+- `Partition` `(string: "")` - <EnterpriseAlert inline /> The admin partition that the
+  peering token is generated from. Uses `default` when not specified.
+
+- `Datacenter` `(string: "")` - Specifies the datacenter. Defaults to the
+  agent's datacenter when not specified.
+
+- `Token` `(string: "")` - Specifies the ACL token to use in the request. Takes precedence
+  over the token specified in the `token` query parameter, `X-Consul-Token` request header,
+  and `CONSUL_HTTP_TOKEN` environment variable.
+
+- `Meta` `(map<string|string>: <optional>)` - Specifies KV metadata to associate with
+  the peering. This parameter is not required and does not directly impact the cluster
+  peering process.
+
+### Sample Payload
+
+```json
+{
+  "PeerName": "cluster-02",
+  "Meta": {
+    "env": "production"
+  }
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl --request POST \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+   --data @payload.json \
+   http://127.0.0.1:8500/v1/peering/token
+```
+
+### Sample Response
+
+```json
+{
+    "PeeringToken": "eyJDQSI6bnVsbCwiU2V..."
+}
+```
+
+## Establish a Peering
+
+This endpoint establishes a peering with a given peering token.
+
+| Method  | Path                 | Produces           |
+| ------- | -------------------- | ------------------ |
+| `POST`  | `/peering/establish` | `application/json` |
+
+This endpoint returns no data. Success or failure is indicated by the status
+code returned.
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `none`           |
+
+### JSON Request Body Schema
+
+- `PeerName` `(string: <required>)` - The name assigned to the peer cluster.
+  The `PeerName` is used to reference the peer cluster in service discovery queries
+  and configuration entries such as `service-intentions`. This field must be a
+  valid DNS hostname label.
+
+- `Partition` `(string: "")` - <EnterpriseAlert inline /> The admin partition
+  that peers to the cluster that generated the peering token. Uses `default`
+  when not specified.
+
+- `PeeringToken` `(string: <required>)` - The peering token fetched from the
+  peer cluster.
+
+- `Datacenter` `(string: "")` - Specifies the datacenter. Defaults to the
+  agent's datacenter when not specified.
+
+- `Token` `(string: "")` - Specifies the ACL token to use in the request. Takes precedence
+  over the token specified in the `token` query parameter, `X-Consul-Token` request header,
+  and `CONSUL_HTTP_TOKEN` environment variable.
+
+- `Meta` `(map<string|string>: <optional>)` - Specifies KV metadata to associate with
+  the peering. This parameter is not required and does not directly impact the cluster
+  peering process.
+
+### Sample Payload
+
+```json
+{
+  "PeerName": "cluster-01",
+  "PeeringToken": "eyJDQSI6bnVsbCwiU2V...",
+  "Meta": {
+    "env": "production"
+  }
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl --request POST \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+   --data @payload.json \
+   http://127.0.0.1:8500/v1/peering/establish
+```
+
+### Sample Response
+
+```json
+{}
+```
+
+## Read a Peering
+
+This endpoint reads a peering with the given name.
+
+| Method | Path               | Produces           |
+| ------ | ------------------ | ------------------ |
+| `GET`  | `/peering/:name`   | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `consistent`      | `none`        | `none`       |
+
+### Path Parameters
+
+- `name` `(string: <required>)` - Specifies the peering to read.
+
+### Query Parameters
+
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition of the peering
+  to read. If not specified will default to `default`.
+
+### Sample Request
+
+```shell-session
+$ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+   http://127.0.0.1:8500/v1/peering/cluster-02
+```
+
+### Sample Response
+
+```json
+{
+    "ID": "462c45e8-018e-f19d-85eb-1fc1bcc2ef12",
+    "Name": "cluster-02",
+    "State": "INITIAL",
+    "PeerID": "e83a315c-027e-bcb1-7c0c-a46650904a05",
+    "PeerServerName": "server.dc1.consul",
+    "PeerServerAddresses": [
+        "10.0.0.1:8300"
+    ],
+    "CreateIndex": 89,
+    "ModifyIndex": 89
+}
+```
+
+## Delete a Peering
+
+This endpoint marks a peering for deletion. Once marked, Consul will
+delete all the data imported from the peer in the background. Only once
+all associated data has been deleted will the peering actually disappear.
+Until then, further reads can be performed on the peering and a `DeletedAt`
+field will be populated with the timestamp of when the peering was
+marked for deletion.
+
+| Method   | Path               | Produces |
+| -------- | ------------------ | -------- |
+| `DELETE` | `/peering/:name`   | N/A      |
+
+This endpoint returns no data. Success or failure is indicated by the status
+code returned.
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `none`        |
+
+### Path Parameters
+
+- `name` `(string: <required>)` - Specifies the name of the peering to delete.
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition of the peering
+  to delete. Uses `default` when not specified.
+
+### Sample Request
+
+```shell-session
+$ curl --request DELETE \
+   --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+   http://127.0.0.1:8500/v1/peering/cluster-02
+```
+
+### Sample Read Output After Deletion Prior to Removal
+
+```json
+{
+    "ID": "462c45e8-018e-f19d-85eb-1fc1bcc2ef12",
+    "Name": "cluster-02",
+    "State": "TERMINATED",
+    "PeerID": "e83a315c-027e-bcb1-7c0c-a46650904a05",
+    "PeerServerName": "server.dc1.consul",
+    "PeerServerAddresses": [
+        "10.0.0.1:8300"
+    ],
+    "DeletedAt": "2022-12-14T23:00:00Z",
+    "CreateIndex": 89,
+    "ModifyIndex": 89
+}
+```
+
+## List all Peerings
+
+This endpoint lists all the peerings.
+
+@include 'http_api_results_filtered_by_acls.mdx'
+
+| Method | Path          | Produces           |
+| ------ | ------------- | ------------------ |
+| `GET`  | `/peerings`   | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `consistent`      | `none`        | `none`        |
+
+### Sample Request
+
+```shell-session
+$ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
+   http://127.0.0.1:8500/v1/peerings
+```
+
+### Sample Response
+
+```json
+[
+    {
+        "ID": "462c45e8-018e-f19d-85eb-1fc1bcc2ef12",
+        "Name": "cluster-02",
+        "State": "ACTIVE",
+        "Partition": "default",
+        "PeerID": "e83a315c-027e-bcb1-7c0c-a46650904a05",
+        "PeerServerName": "server.dc1.consul",
+        "PeerServerAddresses": [
+            "10.0.0.1:8300"
+        ],
+        "CreateIndex": 89,
+        "ModifyIndex": 89
+    },
+    {
+        "ID": "1460ada9-26d2-f30d-3359-2968aa7dc47d",
+        "Name": "cluster-03",
+        "State": "INITIAL",
+        "Partition": "default",
+        "Meta": {
+            "env": "production"
+        },
+        "CreateIndex": 109,
+        "ModifyIndex": 119
+    },
+]
+```
