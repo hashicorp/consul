@@ -68,15 +68,14 @@ When Vault is configured as the controller and connect inject Webhook Certificat
 
 To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
-### One time setup in Vault
-  1. Create a Vault policy that authorizes the desired level of access to the secret.
-
 ### Setup per Consul datacenter
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
   1. (Added) Create Vault PKI roles for controller and connect inject each that establish the domains that each is allowed to issue certificates for.
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Configure the Vault Kubernetes auth roles in the Consul on Kubernetes helm chart.
 
-## One time setup in Vault
+## Setup per Consul datacenter
+You will need to preform the following steps for each datacenter that you would like to manage controller and connect inject webhook certificates in Vault.  You will want to take care to create different names per datacenter for every pki mount, role, and policy. 
 
 ### Create a Vault policy that authorizes the desired level of access to the secret
 To use Vault to issue controller or connect inject webhook certificates, you will need to create the Vault policies that will allow either controller or connect inject to access its respective certificate-issuing URL.
@@ -125,8 +124,6 @@ path connect-inject/cert/ca {
 }
 EOF
 ```
-
-## Setup per Consul datacenter
 ### Configure allowed domains for PKI certificates
 
 Issue the following command to create a Vault role for the controller PKI engine and set the default parameters for issuing certificates:
