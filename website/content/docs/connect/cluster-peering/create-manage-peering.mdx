@@ -50,7 +50,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” establish the peering using the HTTP API. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
-$ consul peering establish -peer="cluster-01" -token="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
+$ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
 ```
 
 In the peer parameter, specify a name for the first cluster. The `PeeringToken` parameter should include the entire peering token created in the first cluster.
@@ -92,7 +92,7 @@ Then, add the configuration entry to your cluster.
 $ consul config write peering-config.hcl
 ```
 
-Before you proceed, wait for the clusters to sync and make services available to their peers
+Before you proceed, wait for the clusters to sync and make services available to their peers. You can issue an endpoint query to [check the peered cluster status](#check-peered-cluster-status).
 
 ## Authorize connections from peers
 
