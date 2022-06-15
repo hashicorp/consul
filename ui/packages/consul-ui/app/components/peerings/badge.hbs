@@ -3,6 +3,6 @@
 
   {{tooltip this.tooltip options=(hash hideTooltip=(not this.tooltip))}}
 >
-  <Peerings::Badge::Icon @state="{{@peering.state}}" class="mr-1" />
-  <span class="text-xs font-semibold">{{capitalize (lowercase @peering.state)}}</span>
+  <Peerings::Badge::Icon @state="{{@peering.State}}" class="mr-1" />
+  <span class="text-xs font-semibold">{{capitalize (lowercase @peering.State)}}</span>
 </div>

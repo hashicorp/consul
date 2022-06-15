@@ -20,8 +20,7 @@ const BADGE_LOOKUP = {
   TERMINATED: {
     bg: 'bg-[#F1F2F3]',
     color: 'text-[#3B3D45]',
-    tooltip:
-      'Someone in the other peer may have deleted this peering connection.',
+    tooltip: 'Someone in the other peer may have deleted this peering connection.',
   },
   UNDEFINED: {
     bg: 'bg-[#F1F2F3]',
@@ -31,10 +30,10 @@ const BADGE_LOOKUP = {
 export default class PeeingsBadge extends Component {
   get styles() {
     const {
-      peering: { state },
+      peering: { State },
     } = this.args;
 
-    return BADGE_LOOKUP[state];
+    return BADGE_LOOKUP[State];
   }
 
   get background() {

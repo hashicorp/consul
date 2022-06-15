@@ -17,7 +17,7 @@ export default class PeersController extends Controller {
     if (filter) {
       const filterRegex = new RegExp(`${filter}`, 'gi');
 
-      return peers.filter(peer => peer.name.match(filterRegex));
+      return peers.filter(peer => peer.Name.match(filterRegex));
     }
 
     return peers;
