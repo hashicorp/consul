@@ -98,17 +98,17 @@ Before you proceed, wait for the clusters to sync and make services available to
 
 Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
 
-First, create a configuration entry and specify the `Kind` as `“service-intentions”`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "backend-service" can access "frontend-service."
+First, create a configuration entry and specify the `Kind` as `“service-intentions”`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
 
 <CodeBlockConfig filename="peering-intentions.hcl" highlight="1" hideClipboard>
 
 ```hcl
 Kind      = "service-intentions"
-Name      = "frontend-service"
+Name      = "backend"-service"
 
 Sources = [
   {
-    Name   = "backend-service"
+    Name   = "frontend-service"
     Peer   = "cluster-02"
     Action = "allow"
   }
