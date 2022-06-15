@@ -32,6 +32,18 @@ $ curl -X POST --data '{"PeerName":"cluster-02"}' http://localhost:8500/v1/peeri
 
 The CLI outputs the peering token, which is an encoded string of alphanumeric characters and symbols.
 
+Create a JSON file that contains the first cluster's name and the peering token.
+
+<CodeBlockConfig filename="peering_token.json" hideClipboard>
+
+```json
+{
+    "PeerName": "cluster-01",
+    "PeeringToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
+}
+```
+
+</CodeBlockConfig>
 
 ## Establish a connection between clusters
 
@@ -53,7 +65,7 @@ First, create a configuration entry and specify the `Kind` as `“exported-servi
 
 <CodeBlockConfig filename="peering-config.hcl" highlight="1" hideClipboard>
 
-```shell-session
+```hcl
 Kind = "exported-services"
 Partition = "partition-name"
 
@@ -91,14 +103,14 @@ First, create a configuration entry and specify the `Kind` as `“service-intent
 
 <CodeBlockConfig filename="peering-intentions.hcl" highlight="1" hideClipboard>
 
-```shell-session
+```hcl
 Kind      = "service-intentions"
 Name      = "frontend-service"
 Partition = "partition-name"
 
 Sources = [
   {
-    Name   = "backend-service" 
+    Name   = "backend-service"
     Peer   = "cluster-02"
     Action = "allow"
   }
