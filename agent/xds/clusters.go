@@ -13,10 +13,12 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -575,21 +577,12 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
-			Name:                 clusterName,
-			AltStatName:          clusterName,
-			ConnectTimeout:       durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+			Name:           clusterName,
+			AltStatName:    clusterName,
+			ConnectTimeout: durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
 					Value: 0, // disable panic threshold
-				},
-			},
-			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
-				EdsConfig: &envoy_core_v3.ConfigSource{
-					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
-					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
-						Ads: &envoy_core_v3.AggregatedConfigSource{},
-					},
 				},
 			},
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
@@ -602,6 +595,35 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 				return c, err
 			}
 		}
+
+		useEDS := true
+		if _, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpointsUseHostnames[uid]; ok {
+			useEDS = false
+		}
+
+		// If none of the service instances are addressed by a hostname we
+		// provide the endpoint IP addresses via EDS
+		if useEDS {
+			c.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
+			c.EdsClusterConfig = &envoy_cluster_v3.Cluster_EdsClusterConfig{
+				EdsConfig: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+				},
+			}
+		} else {
+			configureClusterWithHostnames(
+				s.Logger,
+				c,
+				"", /*TODO:make configurable?*/
+				cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid],
+				true,  /*isRemote*/
+				false, /*onlyPassing*/
+			)
+		}
+
 	}
 
 	rootPEMs := cfgSnap.RootPEMs()
@@ -1054,9 +1076,31 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 				},
 			},
 		}
-		return cluster
+	} else {
+		configureClusterWithHostnames(
+			s.Logger,
+			cluster,
+			cfg.DNSDiscoveryType,
+			opts.hostnameEndpoints,
+			opts.isRemote,
+			opts.onlyPassing,
+		)
 	}
 
+	return cluster
+}
+
+func configureClusterWithHostnames(
+	logger hclog.Logger,
+	cluster *envoy_cluster_v3.Cluster,
+	dnsDiscoveryType string,
+	// hostnameEndpoints is a list of endpoints with a hostname as their address
+	hostnameEndpoints structs.CheckServiceNodes,
+	// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
+	isRemote bool,
+	// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
+	onlyPassing bool,
+) {
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
 	// by setting a DNS cluster type and passing the hostname endpoints via CDS.
 	rate := 10 * time.Second
@@ -1064,7 +1108,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 	cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_V4_ONLY
 
 	discoveryType := envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS}
-	if cfg.DNSDiscoveryType == "strict_dns" {
+	if dnsDiscoveryType == "strict_dns" {
 		discoveryType.Type = envoy_cluster_v3.Cluster_STRICT_DNS
 	}
 	cluster.ClusterDiscoveryType = &discoveryType
@@ -1077,11 +1121,11 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		idx      int
 		fallback *envoy_endpoint_v3.LbEndpoint
 	)
-	for i, e := range opts.hostnameEndpoints {
-		_, addr, port := e.BestAddress(opts.isRemote)
+	for i, e := range hostnameEndpoints {
+		_, addr, port := e.BestAddress(isRemote)
 		uniqueHostnames[addr] = true
 
-		health, weight := calculateEndpointHealthAndWeight(e, opts.onlyPassing)
+		health, weight := calculateEndpointHealthAndWeight(e, onlyPassing)
 		if health == envoy_core_v3.HealthStatus_UNHEALTHY {
 			fallback = makeLbEndpoint(addr, port, health, weight)
 			continue
@@ -1096,18 +1140,18 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		}
 	}
 
-	dc := opts.hostnameEndpoints[idx].Node.Datacenter
-	service := opts.hostnameEndpoints[idx].Service.CompoundServiceName()
+	dc := hostnameEndpoints[idx].Node.Datacenter
+	service := hostnameEndpoints[idx].Service.CompoundServiceName()
 
 	// Fall back to last unhealthy endpoint if none were healthy
 	if len(endpoints) == 0 {
-		s.Logger.Warn("upstream service does not contain any healthy instances",
+		logger.Warn("upstream service does not contain any healthy instances",
 			"dc", dc, "service", service.String())
 
 		endpoints = append(endpoints, fallback)
 	}
 	if len(uniqueHostnames) > 1 {
-		s.Logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
+		logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
 			"dc", dc, "service", service.String())
 	}
 
@@ -1119,7 +1163,6 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 			},
 		},
 	}
-	return cluster
 }
 
 func makeThresholdsIfNeeded(limits *structs.UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {

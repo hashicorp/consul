@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -235,8 +236,8 @@ func TestStore_Peering_Watch(t *testing.T) {
 		// foo write should fire watch
 		lastIdx++
 		err = s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			Name:  "foo",
-			State: pbpeering.PeeringState_FAILING,
+			Name:      "foo",
+			DeletedAt: structs.TimeToProto(time.Now()),
 		})
 		require.NoError(t, err)
 		require.True(t, watchFired(ws))
@@ -245,28 +246,36 @@ func TestStore_Peering_Watch(t *testing.T) {
 		idx, p, err := s.PeeringRead(ws, Query{Value: "foo"})
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Equal(t, pbpeering.PeeringState_FAILING, p.State)
+		require.False(t, p.IsActive())
 	})
 
 	t.Run("delete fires watch", func(t *testing.T) {
 		// watch on existing foo
-		ws := newWatch(t, Query{Value: "foo"})
+		ws := newWatch(t, Query{Value: "bar"})
 
-		// delete on bar shouldn't fire watch
 		lastIdx++
-		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{Name: "bar"}))
-		lastIdx++
-		require.NoError(t, s.PeeringDelete(lastIdx, Query{Value: "bar"}))
+		require.NoError(t, s.PeeringDelete(lastIdx, Query{Value: "foo"}))
 		require.False(t, watchFired(ws))
 
-		// delete on foo should fire watch
+		// mark for deletion before actually deleting
 		lastIdx++
-		err := s.PeeringDelete(lastIdx, Query{Value: "foo"})
+		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			Name:      "bar",
+			DeletedAt: structs.TimeToProto(time.Now()),
+		})
 		require.NoError(t, err)
 		require.True(t, watchFired(ws))
 
-		// check foo is gone
-		idx, p, err := s.PeeringRead(ws, Query{Value: "foo"})
+		ws = newWatch(t, Query{Value: "bar"})
+
+		// delete on bar should fire watch
+		lastIdx++
+		err = s.PeeringDelete(lastIdx, Query{Value: "bar"})
+		require.NoError(t, err)
+		require.True(t, watchFired(ws))
+
+		// check bar is gone
+		idx, p, err := s.PeeringRead(ws, Query{Value: "bar"})
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Nil(t, p)
@@ -320,13 +329,13 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 		return ws
 	}
 
-	t.Run("insert fires watch", func(t *testing.T) {
+	testutil.RunStep(t, "insert fires watch", func(t *testing.T) {
 		ws := newWatch(t, acl.EnterpriseMeta{})
 
 		lastIdx++
 		// insert a peering
 		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			Name:      "bar",
+			Name:      "foo",
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 		})
 		require.NoError(t, err)
@@ -341,27 +350,16 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 		require.Len(t, pp, count)
 	})
 
-	t.Run("update fires watch", func(t *testing.T) {
-		// set up initial write
-		lastIdx++
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			Name:      "foo",
-			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-		})
-		require.NoError(t, err)
-		count++
-
+	testutil.RunStep(t, "update fires watch", func(t *testing.T) {
 		ws := newWatch(t, acl.EnterpriseMeta{})
 
 		// update peering
 		lastIdx++
-		err = s.PeeringWrite(lastIdx, &pbpeering.Peering{
+		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
 			Name:      "foo",
-			State:     pbpeering.PeeringState_FAILING,
+			DeletedAt: structs.TimeToProto(time.Now()),
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-		})
-		require.NoError(t, err)
-
+		}))
 		require.True(t, watchFired(ws))
 
 		idx, pp, err := s.PeeringList(ws, acl.EnterpriseMeta{})
@@ -370,21 +368,12 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 		require.Len(t, pp, count)
 	})
 
-	t.Run("delete fires watch", func(t *testing.T) {
-		// set up initial write
-		lastIdx++
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			Name:      "baz",
-			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-		})
-		require.NoError(t, err)
-		count++
-
+	testutil.RunStep(t, "delete fires watch", func(t *testing.T) {
 		ws := newWatch(t, acl.EnterpriseMeta{})
 
 		// delete peering
 		lastIdx++
-		err = s.PeeringDelete(lastIdx, Query{Value: "baz"})
+		err := s.PeeringDelete(lastIdx, Query{Value: "foo"})
 		require.NoError(t, err)
 		count--
 
@@ -398,14 +387,22 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 }
 
 func TestStore_PeeringWrite(t *testing.T) {
+	// Note that all test cases in this test share a state store and must be run sequentially.
+	// Each case depends on the previous.
 	s := NewStateStore(nil)
-	insertTestPeerings(t, s)
+
 	type testcase struct {
-		name  string
-		input *pbpeering.Peering
+		name      string
+		input     *pbpeering.Peering
+		expectErr string
 	}
 	run := func(t *testing.T, tc testcase) {
-		require.NoError(t, s.PeeringWrite(10, tc.input))
+		err := s.PeeringWrite(10, tc.input)
+		if tc.expectErr != "" {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
 
 		q := Query{
 			Value:          tc.input.Name,
@@ -414,6 +411,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		_, p, err := s.PeeringRead(nil, q)
 		require.NoError(t, err)
 		require.NotNil(t, p)
+
 		if tc.input.State == 0 {
 			require.Equal(t, pbpeering.PeeringState_INITIAL, p.State)
 		}
@@ -428,16 +426,46 @@ func TestStore_PeeringWrite(t *testing.T) {
 			},
 		},
 		{
-			name: "update foo",
+			name: "update baz",
 			input: &pbpeering.Peering{
-				Name:      "foo",
+				Name:      "baz",
 				State:     pbpeering.PeeringState_FAILING,
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 		},
+		{
+			name: "mark baz for deletion",
+			input: &pbpeering.Peering{
+				Name:      "baz",
+				State:     pbpeering.PeeringState_TERMINATED,
+				DeletedAt: structs.TimeToProto(time.Now()),
+				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+		},
+		{
+			name: "cannot update peering marked for deletion",
+			input: &pbpeering.Peering{
+				Name: "baz",
+				// Attempt to add metadata
+				Meta: map[string]string{
+					"source": "kubernetes",
+				},
+				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			expectErr: "cannot write to peering that is marked for deletion",
+		},
+		{
+			name: "cannot create peering marked for deletion",
+			input: &pbpeering.Peering{
+				Name:      "foo",
+				DeletedAt: structs.TimeToProto(time.Now()),
+				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
+			expectErr: "cannot create a new peering marked for deletion",
+		},
 	}
 	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
 	}
@@ -495,13 +523,25 @@ func TestStore_PeeringDelete(t *testing.T) {
 	s := NewStateStore(nil)
 	insertTestPeerings(t, s)
 
-	q := Query{Value: "foo"}
+	testutil.RunStep(t, "cannot delete without marking for deletion", func(t *testing.T) {
+		q := Query{Value: "foo"}
+		err := s.PeeringDelete(10, q)
+		testutil.RequireErrorContains(t, err, "cannot delete a peering without first marking for deletion")
+	})
 
-	require.NoError(t, s.PeeringDelete(10, q))
+	testutil.RunStep(t, "can delete after marking for deletion", func(t *testing.T) {
+		require.NoError(t, s.PeeringWrite(11, &pbpeering.Peering{
+			Name:      "foo",
+			DeletedAt: structs.TimeToProto(time.Now()),
+		}))
 
-	_, p, err := s.PeeringRead(nil, q)
-	require.NoError(t, err)
-	require.Nil(t, p)
+		q := Query{Value: "foo"}
+		require.NoError(t, s.PeeringDelete(12, q))
+
+		_, p, err := s.PeeringRead(nil, q)
+		require.NoError(t, err)
+		require.Nil(t, p)
+	})
 }
 
 func TestStore_PeeringTerminateByID(t *testing.T) {
@@ -903,10 +943,14 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 }
 
 func TestStateStore_PeeringsForService(t *testing.T) {
+	type testPeering struct {
+		peering *pbpeering.Peering
+		delete  bool
+	}
 	type testCase struct {
 		name      string
 		services  []structs.ServiceName
-		peerings  []*pbpeering.Peering
+		peerings  []testPeering
 		entry     *structs.ExportedServicesConfigEntry
 		query     []string
 		expect    [][]*pbpeering.Peering
@@ -918,12 +962,24 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 
 		var lastIdx uint64
 		// Create peerings
-		for _, peering := range tc.peerings {
+		for _, tp := range tc.peerings {
 			lastIdx++
-			require.NoError(t, s.PeeringWrite(lastIdx, peering))
+			require.NoError(t, s.PeeringWrite(lastIdx, tp.peering))
+
+			// New peerings can't be marked for deletion so there is a two step process
+			// of first creating the peering and then marking it for deletion by setting DeletedAt.
+			if tp.delete {
+				lastIdx++
+
+				copied := pbpeering.Peering{
+					Name:      tp.peering.Name,
+					DeletedAt: structs.TimeToProto(time.Now()),
+				}
+				require.NoError(t, s.PeeringWrite(lastIdx, &copied))
+			}
 
 			// make sure it got created
-			q := Query{Value: peering.Name}
+			q := Query{Value: tp.peering.Name}
 			_, p, err := s.PeeringRead(nil, q)
 			require.NoError(t, err)
 			require.NotNil(t, p)
@@ -976,10 +1032,53 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			services: []structs.ServiceName{
 				{Name: "foo"},
 			},
-			peerings: []*pbpeering.Peering{},
+			peerings: []testPeering{},
 			entry:    nil,
 			query:    []string{"foo"},
 			expect:   [][]*pbpeering.Peering{{}},
+		},
+		{
+			name: "peerings marked for deletion are excluded",
+			services: []structs.ServiceName{
+				{Name: "foo"},
+			},
+			peerings: []testPeering{
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer1",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
+				{
+					peering: &pbpeering.Peering{
+						Name: "peer2",
+					},
+					delete: true,
+				},
+			},
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "foo",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "peer1",
+							},
+							{
+								PeerName: "peer2",
+							},
+						},
+					},
+				},
+			},
+			query: []string{"foo"},
+			expect: [][]*pbpeering.Peering{
+				{
+					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+				},
+			},
+			expectIdx: uint64(6), // config	entries max index
 		},
 		{
 			name: "config entry with exact service name",
@@ -987,9 +1086,19 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "foo"},
 				{Name: "bar"},
 			},
-			peerings: []*pbpeering.Peering{
-				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
-				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+			peerings: []testPeering{
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer1",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer2",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
 			},
 			entry: &structs.ExportedServicesConfigEntry{
 				Name: "default",
@@ -1029,10 +1138,25 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{Name: "foo"},
 				{Name: "bar"},
 			},
-			peerings: []*pbpeering.Peering{
-				{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
-				{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
-				{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+			peerings: []testPeering{
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer1",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer2",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
+				{
+					peering: &pbpeering.Peering{
+						Name:  "peer3",
+						State: pbpeering.PeeringState_INITIAL,
+					},
+				},
 			},
 			entry: &structs.ExportedServicesConfigEntry{
 				Name: "default",
@@ -1269,7 +1393,10 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 	testutil.RunStep(t, "deleting the peering excludes its trust bundle", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, store.PeeringDelete(lastIdx, Query{Value: "peer1"}))
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			Name:      "peer1",
+			DeletedAt: structs.TimeToProto(time.Now()),
+		}))
 
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
@@ -1293,4 +1420,63 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.Len(t, resp, 1)
 		require.Equal(t, []string{"peer-root-2"}, resp[0].RootPEMs)
 	})
+}
+
+func TestStateStore_Peering_ListDeleted(t *testing.T) {
+	s := testStateStore(t)
+
+	// Insert one active peering and two marked for deletion.
+	{
+		tx := s.db.WriteTxn(0)
+		defer tx.Abort()
+
+		err := tx.Insert(tablePeering, &pbpeering.Peering{
+			Name:        "foo",
+			Partition:   acl.DefaultPartitionName,
+			ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			DeletedAt:   structs.TimeToProto(time.Now()),
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		})
+		require.NoError(t, err)
+
+		err = tx.Insert(tablePeering, &pbpeering.Peering{
+			Name:        "bar",
+			Partition:   acl.DefaultPartitionName,
+			ID:          "5ebcff30-5509-4858-8142-a8e580f1863f",
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		})
+		require.NoError(t, err)
+
+		err = tx.Insert(tablePeering, &pbpeering.Peering{
+			Name:        "baz",
+			Partition:   acl.DefaultPartitionName,
+			ID:          "432feb2f-5476-4ae2-b33c-e43640ca0e86",
+			DeletedAt:   structs.TimeToProto(time.Now()),
+			CreateIndex: 3,
+			ModifyIndex: 3,
+		})
+		require.NoError(t, err)
+
+		err = tx.Insert(tableIndex, &IndexEntry{
+			Key:   tablePeering,
+			Value: 3,
+		})
+		require.NoError(t, err)
+		require.NoError(t, tx.Commit())
+
+	}
+
+	idx, deleted, err := s.PeeringListDeleted(nil)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), idx)
+	require.Len(t, deleted, 2)
+
+	var names []string
+	for _, peering := range deleted {
+		names = append(names, peering.Name)
+	}
+
+	require.ElementsMatch(t, []string{"foo", "baz"}, names)
 }

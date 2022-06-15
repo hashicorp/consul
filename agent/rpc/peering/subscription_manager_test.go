@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -23,12 +22,6 @@ import (
 )
 
 func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
-	testSubscriptionManager_RegisterDeregister(t, true)
-}
-func TestSubscriptionManager_RegisterDeregister_EnableMeshGateways(t *testing.T) {
-	testSubscriptionManager_RegisterDeregister(t, false)
-}
-func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateways bool) {
 	backend := newTestSubscriptionBackend(t)
 	// initialCatalogIdx := backend.lastIdx
 
@@ -40,9 +33,8 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
-		Datacenter:             "dc1",
-		ConnectEnabled:         true,
-		DisableMeshGatewayMode: disableMeshGateways,
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
 	}, connect.TestTrustDomain, backend)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
@@ -52,18 +44,12 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
 
 		mysqlProxyCorrID = subExportedService + structs.NewServiceName("mysql-sidecar-proxy", nil).String()
-
-		mysqlProxyCorrID_temp = subExportedProxyService + structs.NewServiceName("mysql", nil).String()
 	)
 
-	if disableMeshGateways {
-		expectEvents(t, subCh)
-	} else {
-		// Expect just the empty mesh gateway event to replicate.
-		expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-			checkEvent(t, got, gatewayCorrID, 0)
-		})
-	}
+	// Expect just the empty mesh gateway event to replicate.
+	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
+		checkEvent(t, got, gatewayCorrID, 0)
+	})
 
 	testutil.RunStep(t, "initial export syncs empty instance lists", func(t *testing.T) {
 		backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
@@ -84,25 +70,14 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 			},
 		})
 
-		if disableMeshGateways {
-			expectEvents(t, subCh,
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlProxyCorrID_temp, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlCorrID, 0)
-				},
-			)
-		} else {
-			expectEvents(t, subCh,
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlCorrID, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlProxyCorrID, 0)
-				},
-			)
-		}
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mysqlCorrID, 0)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mysqlProxyCorrID, 0)
+			},
+		)
 	})
 
 	mysql1 := &structs.CheckServiceNode{
@@ -125,17 +100,10 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 
 			require.Len(t, res.Nodes, 1)
 
-			if disableMeshGateways {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService_temp("", "mysql-1", "mysql", 5000, nil),
-				}, res.Nodes[0])
-			} else {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService("", "mysql-1", "mysql", 5000, nil),
-				}, res.Nodes[0])
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+			}, res.Nodes[0])
 		})
 
 		backend.ensureCheck(t, mysql1.Checks[0])
@@ -148,23 +116,13 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 
 			require.Len(t, res.Nodes, 1)
 
-			if disableMeshGateways {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService_temp("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck_temp("foo", "mysql-1", "mysql", "mysql-check", "critical", nil),
-					},
-				}, res.Nodes[0])
-			} else {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck("foo", "mysql-1", "mysql", "critical", nil),
-					},
-				}, res.Nodes[0])
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
 		})
 	})
 
@@ -188,31 +146,17 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 
 			require.Len(t, res.Nodes, 2)
 
-			if disableMeshGateways {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService_temp("", "mysql-2", "mysql", 5000, nil),
-				}, res.Nodes[0])
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService_temp("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck_temp("foo", "mysql-1", "mysql", "mysql-check", "critical", nil),
-					},
-				}, res.Nodes[1])
-			} else {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService("", "mysql-2", "mysql", 5000, nil),
-				}, res.Nodes[0])
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck("foo", "mysql-1", "mysql", "critical", nil),
-					},
-				}, res.Nodes[1])
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+			}, res.Nodes[0])
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[1])
 		})
 
 		backend.ensureCheck(t, mysql2.Checks[0])
@@ -224,37 +168,20 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 2)
-			if disableMeshGateways {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService_temp("", "mysql-2", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck_temp("bar", "mysql-2", "mysql", "mysql-2-check", "critical", nil),
-					},
-				}, res.Nodes[0])
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService_temp("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck_temp("foo", "mysql-1", "mysql", "mysql-check", "critical", nil),
-					},
-				}, res.Nodes[1])
-			} else {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService("", "mysql-2", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck("bar", "mysql-2", "mysql", "critical", nil),
-					},
-				}, res.Nodes[0])
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("foo", "10.0.0.1", partition),
-					Service: pbService("", "mysql-1", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck("foo", "mysql-1", "mysql", "critical", nil),
-					},
-				}, res.Nodes[1])
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("bar", "mysql-2", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("foo", "10.0.0.1", partition),
+				Service: pbService("", "mysql-1", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("foo", "mysql-1", "mysql", "critical", nil),
+				},
+			}, res.Nodes[1])
 		})
 	})
 
@@ -284,31 +211,17 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 			require.Equal(t, uint64(0), res.Index)
 
 			require.Len(t, res.Nodes, 1)
-			if disableMeshGateways {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService_temp("", "mysql-2", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck_temp("bar", "mysql-2", "mysql", "mysql-2-check", "critical", nil),
-					},
-				}, res.Nodes[0])
-			} else {
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node:    pbNode("bar", "10.0.0.2", partition),
-					Service: pbService("", "mysql-2", "mysql", 5000, nil),
-					Checks: []*pbservice.HealthCheck{
-						pbCheck("bar", "mysql-2", "mysql", "critical", nil),
-					},
-				}, res.Nodes[0])
-			}
+			prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+				Node:    pbNode("bar", "10.0.0.2", partition),
+				Service: pbService("", "mysql-2", "mysql", 5000, nil),
+				Checks: []*pbservice.HealthCheck{
+					pbCheck("bar", "mysql-2", "mysql", "critical", nil),
+				},
+			}, res.Nodes[0])
 		})
 	})
 
 	testutil.RunStep(t, "register mesh gateway to send proxy updates", func(t *testing.T) {
-		if disableMeshGateways {
-			t.Skip()
-			return
-		}
 		gateway := &structs.CheckServiceNode{
 			Node:    &structs.Node{Node: "mgw", Address: "10.1.1.1"},
 			Service: &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443},
@@ -381,10 +294,6 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 	})
 
 	testutil.RunStep(t, "deregister mesh gateway to send proxy removals", func(t *testing.T) {
-		if disableMeshGateways {
-			t.Skip()
-			return
-		}
 		backend.deleteService(t, "mgw", "gateway-1")
 
 		expectEvents(t, subCh,
@@ -407,12 +316,6 @@ func testSubscriptionManager_RegisterDeregister(t *testing.T, disableMeshGateway
 }
 
 func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
-	testSubscriptionManager_InitialSnapshot(t, true)
-}
-func TestSubscriptionManager_InitialSnapshot_EnableMeshGateways(t *testing.T) {
-	testSubscriptionManager_InitialSnapshot(t, false)
-}
-func testSubscriptionManager_InitialSnapshot(t *testing.T, disableMeshGateways bool) {
 	backend := newTestSubscriptionBackend(t)
 	// initialCatalogIdx := backend.lastIdx
 
@@ -424,9 +327,8 @@ func testSubscriptionManager_InitialSnapshot(t *testing.T, disableMeshGateways b
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
-		Datacenter:             "dc1",
-		ConnectEnabled:         true,
-		DisableMeshGatewayMode: disableMeshGateways,
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
 	}, connect.TestTrustDomain, backend)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
@@ -455,20 +357,12 @@ func testSubscriptionManager_InitialSnapshot(t *testing.T, disableMeshGateways b
 		mysqlProxyCorrID = subExportedService + structs.NewServiceName("mysql-sidecar-proxy", nil).String()
 		mongoProxyCorrID = subExportedService + structs.NewServiceName("mongo-sidecar-proxy", nil).String()
 		chainProxyCorrID = subExportedService + structs.NewServiceName("chain-sidecar-proxy", nil).String()
-
-		mysqlProxyCorrID_temp = subExportedProxyService + structs.NewServiceName("mysql", nil).String()
-		mongoProxyCorrID_temp = subExportedProxyService + structs.NewServiceName("mongo", nil).String()
-		chainProxyCorrID_temp = subExportedProxyService + structs.NewServiceName("chain", nil).String()
 	)
 
-	if disableMeshGateways {
-		expectEvents(t, subCh)
-	} else {
-		// Expect just the empty mesh gateway event to replicate.
-		expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
-			checkEvent(t, got, gatewayCorrID, 0)
-		})
-	}
+	// Expect just the empty mesh gateway event to replicate.
+	expectEvents(t, subCh, func(t *testing.T, got cache.UpdateEvent) {
+		checkEvent(t, got, gatewayCorrID, 0)
+	})
 
 	// At this point in time we'll have a mesh-gateway notification with no
 	// content stored and handled.
@@ -497,56 +391,29 @@ func testSubscriptionManager_InitialSnapshot(t *testing.T, disableMeshGateways b
 			},
 		})
 
-		if disableMeshGateways {
-			expectEvents(t, subCh,
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, chainProxyCorrID_temp, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mongoProxyCorrID_temp, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlProxyCorrID_temp, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, chainCorrID, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mongoCorrID, 1, "mongo", string(structs.ServiceKindTypical))
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlCorrID, 1, "mysql", string(structs.ServiceKindTypical))
-				},
-			)
-		} else {
-			expectEvents(t, subCh,
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, chainCorrID, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, chainProxyCorrID, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mongoCorrID, 1, "mongo", string(structs.ServiceKindTypical))
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mongoProxyCorrID, 0)
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlCorrID, 1, "mysql", string(structs.ServiceKindTypical))
-				},
-				func(t *testing.T, got cache.UpdateEvent) {
-					checkEvent(t, got, mysqlProxyCorrID, 0)
-				},
-			)
-		}
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, chainCorrID, 0)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, chainProxyCorrID, 0)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mongoCorrID, 1, "mongo", string(structs.ServiceKindTypical))
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mongoProxyCorrID, 0)
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mysqlCorrID, 1, "mysql", string(structs.ServiceKindTypical))
+			},
+			func(t *testing.T, got cache.UpdateEvent) {
+				checkEvent(t, got, mysqlProxyCorrID, 0)
+			},
+		)
 	})
 
 	testutil.RunStep(t, "registering a mesh gateway triggers connect replies", func(t *testing.T) {
-		if disableMeshGateways {
-			t.Skip()
-			return
-		}
 		gateway := &structs.CheckServiceNode{
 			Node:    &structs.Node{Node: "mgw", Address: "10.1.1.1"},
 			Service: &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443},
@@ -850,29 +717,6 @@ func pbService(kind, id, name string, port int32, entMeta *pbcommon.EnterpriseMe
 	}
 }
 
-func pbService_temp(kind, id, name string, port int32, entMeta *pbcommon.EnterpriseMeta) *pbservice.NodeService {
-	if entMeta == nil {
-		entMeta = pbcommon.DefaultEnterpriseMeta
-	}
-	return &pbservice.NodeService{
-		ID:      id,
-		Kind:    kind,
-		Service: name,
-		Port:    port,
-		Weights: &pbservice.Weights{
-			Passing: 1,
-			Warning: 1,
-		},
-		EnterpriseMeta: entMeta,
-		Connect:        &pbservice.ServiceConnect{},
-		Proxy: &pbservice.ConnectProxyConfig{
-			MeshGateway:      &pbservice.MeshGatewayConfig{},
-			Expose:           &pbservice.ExposeConfig{},
-			TransparentProxy: &pbservice.TransparentProxyConfig{},
-		},
-	}
-}
-
 func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMeta) *pbservice.HealthCheck {
 	if entMeta == nil {
 		entMeta = pbcommon.DefaultEnterpriseMeta
@@ -885,25 +729,5 @@ func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMe
 		ServiceID:      svcID,
 		ServiceName:    svcName,
 		EnterpriseMeta: entMeta,
-	}
-}
-
-func pbCheck_temp(node, svcID, svcName, checkID, status string, entMeta *pbcommon.EnterpriseMeta) *pbservice.HealthCheck {
-	if entMeta == nil {
-		entMeta = pbcommon.DefaultEnterpriseMeta
-	}
-	return &pbservice.HealthCheck{
-		Node:           node,
-		CheckID:        checkID,
-		Status:         status,
-		ServiceID:      svcID,
-		ServiceName:    svcName,
-		EnterpriseMeta: entMeta,
-		Definition: &pbservice.HealthCheckDefinition{
-			DeregisterCriticalServiceAfter: durationpb.New(0),
-			Interval:                       durationpb.New(0),
-			TTL:                            durationpb.New(0),
-			Timeout:                        durationpb.New(0),
-		},
 	}
 }

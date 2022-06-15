@@ -134,10 +134,10 @@ func TestAPI_Peering_GenerateToken(t *testing.T) {
 // TODO(peering): cover the following test cases: bad/ malformed input, peering with wrong token,
 // peering with the wrong PeerName
 
-// TestAPI_Peering_GenerateToken_Read_Initiate_Delete tests the following use case:
-// a server creates a peering token, reads the token, then another server calls initiate peering
+// TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:
+// a server creates a peering token, reads the token, then another server calls establish peering
 // finally, we delete the token on the first server
-func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
+func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithCA(t)
@@ -181,15 +181,15 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 	})
 	defer s2.Stop()
 
-	testutil.RunStep(t, "initiate peering", func(t *testing.T) {
-		i := PeeringInitiateRequest{
+	testutil.RunStep(t, "establish peering", func(t *testing.T) {
+		i := PeeringEstablishRequest{
 			Datacenter:   c2.config.Datacenter,
 			PeerName:     "peer1",
 			PeeringToken: token1,
 			Meta:         map[string]string{"foo": "bar"},
 		}
 
-		_, wm, err := c2.Peerings().Initiate(ctx, i, nil)
+		_, wm, err := c2.Peerings().Establish(ctx, i, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 
@@ -212,10 +212,12 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 
-		// Read to see if the token is "gone"
-		resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
-		require.NoError(t, err)
-		require.NotNil(t, qm)
-		require.Nil(t, resp)
+		// Read to see if the token is gone
+		retry.Run(t, func(r *retry.R) {
+			resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.Nil(r, resp)
+		})
 	})
 }

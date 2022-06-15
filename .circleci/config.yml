@@ -30,7 +30,7 @@ references:
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v8-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -852,13 +852,13 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_3: &ENVOY_TESTS
+  envoy-integration-test-1_19_5: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
     environment:
-      ENVOY_VERSION: "1.19.3"
+      ENVOY_VERSION: "1.19.5"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -891,20 +891,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_20_2:
+  envoy-integration-test-1_20_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.20.2"
+      ENVOY_VERSION: "1.20.4"
 
-  envoy-integration-test-1_21_1:
+  envoy-integration-test-1_21_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.21.1"
+      ENVOY_VERSION: "1.21.3"
 
-  envoy-integration-test-1_22_0:
+  envoy-integration-test-1_22_2:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.22.0"
+      ENVOY_VERSION: "1.22.2"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1131,16 +1131,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_3:
+      - envoy-integration-test-1_19_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_2:
+      - envoy-integration-test-1_20_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_21_1:
+      - envoy-integration-test-1_21_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_22_0:
+      - envoy-integration-test-1_22_2:
           requires:
             - dev-build
       - compatibility-integration-test:

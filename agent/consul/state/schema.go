@@ -64,7 +64,10 @@ type IndexEntry struct {
 	Value uint64
 }
 
-const tableIndex = "index"
+const (
+	tableIndex   = "index"
+	indexDeleted = "deleted"
+)
 
 // indexTableSchema returns a new table schema used for tracking various the
 // latest raft index for a table or entities within a table.
@@ -113,5 +116,16 @@ func indexFromString(raw interface{}) ([]byte, error) {
 
 	var b indexBuilder
 	b.String(strings.ToLower(q))
+	return b.Bytes(), nil
+}
+
+func indexDeletedFromBoolQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(BoolQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
+	}
+
+	var b indexBuilder
+	b.Bool(q.Value)
 	return b.Bytes(), nil
 }

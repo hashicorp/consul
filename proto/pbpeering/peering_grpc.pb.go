@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PeeringServiceClient interface {
 	GenerateToken(ctx context.Context, in *GenerateTokenRequest, opts ...grpc.CallOption) (*GenerateTokenResponse, error)
-	Initiate(ctx context.Context, in *InitiateRequest, opts ...grpc.CallOption) (*InitiateResponse, error)
+	Establish(ctx context.Context, in *EstablishRequest, opts ...grpc.CallOption) (*EstablishResponse, error)
 	PeeringRead(ctx context.Context, in *PeeringReadRequest, opts ...grpc.CallOption) (*PeeringReadResponse, error)
 	PeeringList(ctx context.Context, in *PeeringListRequest, opts ...grpc.CallOption) (*PeeringListResponse, error)
 	PeeringDelete(ctx context.Context, in *PeeringDeleteRequest, opts ...grpc.CallOption) (*PeeringDeleteResponse, error)
@@ -58,9 +58,9 @@ func (c *peeringServiceClient) GenerateToken(ctx context.Context, in *GenerateTo
 	return out, nil
 }
 
-func (c *peeringServiceClient) Initiate(ctx context.Context, in *InitiateRequest, opts ...grpc.CallOption) (*InitiateResponse, error) {
-	out := new(InitiateResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/Initiate", in, out, opts...)
+func (c *peeringServiceClient) Establish(ctx context.Context, in *EstablishRequest, opts ...grpc.CallOption) (*EstablishResponse, error) {
+	out := new(EstablishResponse)
+	err := c.cc.Invoke(ctx, "/peering.PeeringService/Establish", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (x *peeringServiceStreamResourcesClient) Recv() (*ReplicationMessage, error
 // for forward compatibility
 type PeeringServiceServer interface {
 	GenerateToken(context.Context, *GenerateTokenRequest) (*GenerateTokenResponse, error)
-	Initiate(context.Context, *InitiateRequest) (*InitiateResponse, error)
+	Establish(context.Context, *EstablishRequest) (*EstablishResponse, error)
 	PeeringRead(context.Context, *PeeringReadRequest) (*PeeringReadResponse, error)
 	PeeringList(context.Context, *PeeringListRequest) (*PeeringListResponse, error)
 	PeeringDelete(context.Context, *PeeringDeleteRequest) (*PeeringDeleteResponse, error)
@@ -182,8 +182,8 @@ type UnimplementedPeeringServiceServer struct {
 func (UnimplementedPeeringServiceServer) GenerateToken(context.Context, *GenerateTokenRequest) (*GenerateTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateToken not implemented")
 }
-func (UnimplementedPeeringServiceServer) Initiate(context.Context, *InitiateRequest) (*InitiateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Initiate not implemented")
+func (UnimplementedPeeringServiceServer) Establish(context.Context, *EstablishRequest) (*EstablishResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Establish not implemented")
 }
 func (UnimplementedPeeringServiceServer) PeeringRead(context.Context, *PeeringReadRequest) (*PeeringReadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PeeringRead not implemented")
@@ -236,20 +236,20 @@ func _PeeringService_GenerateToken_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PeeringService_Initiate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitiateRequest)
+func _PeeringService_Establish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EstablishRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PeeringServiceServer).Initiate(ctx, in)
+		return srv.(PeeringServiceServer).Establish(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/Initiate",
+		FullMethod: "/peering.PeeringService/Establish",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PeeringServiceServer).Initiate(ctx, req.(*InitiateRequest))
+		return srv.(PeeringServiceServer).Establish(ctx, req.(*EstablishRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -400,8 +400,8 @@ var PeeringService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PeeringService_GenerateToken_Handler,
 		},
 		{
-			MethodName: "Initiate",
-			Handler:    _PeeringService_Initiate_Handler,
+			MethodName: "Establish",
+			Handler:    _PeeringService_Establish_Handler,
 		},
 		{
 			MethodName: "PeeringRead",

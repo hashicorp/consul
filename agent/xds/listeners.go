@@ -695,6 +695,7 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 	authzFilter, err := makeRBACNetworkFilter(
 		cfgSnap.ConnectProxy.Intentions,
 		cfgSnap.IntentionDefaultAllow,
+		cfgSnap.ConnectProxy.PeerTrustBundles,
 	)
 	if err != nil {
 		return err
@@ -963,6 +964,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			httpAuthzFilter, err := makeRBACHTTPFilter(
 				cfgSnap.ConnectProxy.Intentions,
 				cfgSnap.IntentionDefaultAllow,
+				cfgSnap.ConnectProxy.PeerTrustBundles,
 			)
 			if err != nil {
 				return nil, err
@@ -1019,6 +1021,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
+			cfgSnap.ConnectProxy.PeerTrustBundles,
 		)
 		if err != nil {
 			return nil, err
@@ -1295,6 +1298,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		authFilter, err := makeRBACNetworkFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
+			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
 			return nil, err
@@ -1319,6 +1323,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
+			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
 			return nil, err
