@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
@@ -820,37 +821,27 @@ func injectHTTPFilterOnFilterChains(
 	return nil
 }
 
-// Ensure every filter chain uses our TLS certs. We might allow users to work
-// around this later if there is a good use case but this is actually a feature
-// for now as it allows them to specify custom listener params in config but
-// still get our certs delivered dynamically and intentions enforced without
-// coming up with some complicated templating/merging solution.
-func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
+// NOTE: This method MUST only be used for connect proxy public listeners,
+// since TLS validation will be done against root certs for all peers
+// that might dial this proxy.
+func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
+	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.PeeringTrustBundles())
+	if err != nil {
+		return err
+	}
+
 	for idx := range listener.FilterChains {
-		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContext(
-				cfgSnap.Leaf(),
-				cfgSnap.RootPEMs(),
-				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
-			),
-			RequireClientCertificate: &wrappers.BoolValue{Value: true},
-		}
-		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-		if err != nil {
-			return err
-		}
 		listener.FilterChains[idx].TransportSocket = transportSocket
 	}
 	return nil
 }
 
-//
-// NOTE: This method MUST only be used for connect proxy public listeners,
-// since TLS validation will be done against root certs for all peers
-// that might dial this proxy.
-func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
-	if cfgSnap.Kind != structs.ServiceKindConnectProxy {
-		return fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
+func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+	case structs.ServiceKindMeshGateway:
+	default:
+		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
@@ -861,15 +852,19 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 	)
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
-	if len(cfgSnap.ConnectProxy.PeeringTrustBundles) > 0 {
-		spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), cfgSnap.ConnectProxy.PeeringTrustBundles)
+	if len(peerBundles) > 0 {
+		spiffeConfig, err := makeSpiffeValidatorConfig(
+			cfgSnap.Roots.TrustDomain,
+			cfgSnap.RootPEMs(),
+			peerBundles,
+		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 		if !ok {
-			return fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
+			return nil, fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
 		}
 
 		// makeCommonTLSFromLead injects the local trust domain's CA root certs as the TrustedCA.
@@ -882,18 +877,10 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 		}
 	}
 
-	transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
+	return makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext:         tlsContext,
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	})
-	if err != nil {
-		return err
-	}
-
-	for idx := range listener.FilterChains {
-		listener.FilterChains[idx].TransportSocket = transportSocket
-	}
-	return nil
 }
 
 // SPIFFECertValidatorConfig is used to validate certificates from trust domains other than our own.
@@ -1390,7 +1377,11 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 			continue // ignore; not ready
 		}
 
-		if structs.IsProtocolHTTPLike(chain.Protocol) {
+		useHTTPFilter := structs.IsProtocolHTTPLike(chain.Protocol)
+		if useHTTPFilter {
+			if cfgSnap.MeshGateway.Leaf == nil {
+				continue // ignore not ready
+			}
 			continue // temporary skip
 		}
 
@@ -1402,7 +1393,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 
 		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
+		tcpProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
 		if err != nil {
 			return nil, err
 		}
@@ -1419,14 +1410,31 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 			peeredServerNames = append(peeredServerNames, peeredSNI)
 		}
 
-		l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+		filterChain := &envoy_listener_v3.FilterChain{
 			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
 				ServerNames: peeredServerNames,
 			},
 			Filters: []*envoy_listener_v3.Filter{
-				dcTCPProxy,
+				tcpProxy,
 			},
-		})
+		}
+
+		if useHTTPFilter {
+			var peerBundles []*pbpeering.PeeringTrustBundle
+			for _, bundle := range cfgSnap.MeshGateway.PeeringTrustBundles {
+				if stringslice.Contains(peerNames, bundle.PeerName) {
+					peerBundles = append(peerBundles, bundle)
+				}
+			}
+
+			peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, peerBundles)
+			if err != nil {
+				return nil, err
+			}
+			filterChain.TransportSocket = peeredTransportSocket
+		}
+
+		l.FilterChains = append(l.FilterChains, filterChain)
 	}
 
 	// We need 1 Filter Chain per remote cluster

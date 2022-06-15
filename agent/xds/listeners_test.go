@@ -812,6 +812,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
+					// TODO: it would be nice to be able to ensure these snapshots are always valid before we use them in a test.
+					// require.True(t, snap.Valid())
+
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!

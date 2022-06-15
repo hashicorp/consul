@@ -10,10 +10,11 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
+	roots, leaf := TestCertsForMeshGateway(t)
 
 	var (
 		populateServices    = true
@@ -43,8 +44,8 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				CorrelationID: exportedServiceListWatchID,
 				Result: &structs.IndexedExportedServiceList{
 					Services: map[string]structs.ServiceList{
-						"peer1": []structs.ServiceName{fooSN, barSN},
-						"peer2": []structs.ServiceName{girSN},
+						"peer-a": []structs.ServiceName{fooSN, barSN},
+						"peer-b": []structs.ServiceName{girSN},
 					},
 				},
 			},
@@ -65,6 +66,14 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				Result: &structs.DiscoveryChainResponse{
 					Chain: girChain,
 				},
+			},
+			UpdateEvent{
+				CorrelationID: peeringTrustBundlesWatchID,
+				Result:        TestPeerTrustBundles(t),
+			},
+			UpdateEvent{
+				CorrelationID: leafWatchID,
+				Result:        leaf,
 			},
 		)
 	case "federation-states":
@@ -326,6 +335,18 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		{
 			CorrelationID: datacentersWatchID,
 			Result:        &[]string{"dc1"},
+		},
+		{
+			CorrelationID: peeringTrustBundlesWatchID,
+			Result: &pbpeering.TrustBundleListByServiceResponse{
+				Bundles: nil,
+			},
+		},
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil,
+			},
 		},
 	}
 

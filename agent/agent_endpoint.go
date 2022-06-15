@@ -1527,6 +1527,8 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
+	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
+
 	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}

@@ -334,23 +334,49 @@ type configSnapshotMeshGateway struct {
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 
-	// TODO(peering):
+	// ExportedServicesSlice is a sorted slice of services that are exported to
+	// connected peers.
 	ExportedServicesSlice []structs.ServiceName
 
-	// TODO(peering): svc -> peername slice
+	// ExportedServicesWithPeers is a map of exported service name to a sorted
+	// slice of peers that they are exported to.
 	ExportedServicesWithPeers map[structs.ServiceName][]string
 
-	// TODO(peering):  discard this maybe
-	WatchedExportedServices map[string]structs.ServiceList
+	// ExportedServicesSet indicates that the watch on the list of
+	// peer-exported services has completed at least once.
+	ExportedServicesSet bool
 
-	// TODO(peering):
-	WatchedExportedServicesSet bool
-
-	// TODO(peering):
+	// DiscoveryChain is a map of the peer-exported service names to their
+	// local compiled discovery chain. This will be populated regardless of
+	// L4/L7 status of the chain.
 	DiscoveryChain map[structs.ServiceName]*structs.CompiledDiscoveryChain
 
-	// TODO(peering):
+	// WatchedDiscoveryChains is a map of peer-exported service names to a
+	// cancel function.
 	WatchedDiscoveryChains map[structs.ServiceName]context.CancelFunc
+
+	// MeshConfig is the mesh config entry that should be used for services
+	// fronted by this mesh gateway.
+	MeshConfig *structs.MeshConfigEntry
+
+	// MeshConfigSet indicates that the watch on the mesh config entry has
+	// completed at least once.
+	MeshConfigSet bool
+
+	// Leaf is the leaf cert to be used by this mesh gateway.
+	Leaf *structs.IssuedCert
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
+
+	// PeeringTrustBundles is the list of trust bundles for peers where
+	// services have been exported to using this mesh gateway.
+	PeeringTrustBundles []*pbpeering.PeeringTrustBundle
+
+	// PeeringTrustBundlesSet indicates that the watch on the peer trust
+	// bundles has completed at least once.
+	PeeringTrustBundlesSet bool
 }
 
 func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
@@ -417,10 +443,14 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 
 	return len(c.ExportedServicesSlice) == 0 &&
 		len(c.ExportedServicesWithPeers) == 0 &&
-		len(c.WatchedExportedServices) == 0 &&
-		!c.WatchedExportedServicesSet &&
+		!c.ExportedServicesSet &&
 		len(c.DiscoveryChain) == 0 &&
-		len(c.WatchedDiscoveryChains) == 0
+		len(c.WatchedDiscoveryChains) == 0 &&
+		!c.MeshConfigSet &&
+		c.LeafCertWatchCancel == nil &&
+		c.Leaf == nil &&
+		len(c.PeeringTrustBundles) == 0 &&
+		!c.PeeringTrustBundlesSet
 }
 
 type configSnapshotIngressGateway struct {
@@ -541,7 +571,9 @@ func (s *ConfigSnapshot) Valid() bool {
 		}
 		return s.Roots != nil &&
 			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0) &&
-			s.MeshGateway.WatchedExportedServicesSet
+			s.MeshGateway.ExportedServicesSet &&
+			s.MeshGateway.MeshConfigSet &&
+			s.MeshGateway.PeeringTrustBundlesSet
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
@@ -600,6 +632,19 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.ConnectProxy.Leaf
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.Leaf
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.Leaf
+	default:
+		return nil
+	}
+}
+
+func (s *ConfigSnapshot) PeeringTrustBundles() []*pbpeering.PeeringTrustBundle {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.PeeringTrustBundles
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.PeeringTrustBundles
 	default:
 		return nil
 	}
@@ -622,6 +667,8 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.IngressGateway.MeshConfig
 	case structs.ServiceKindTerminatingGateway:
 		return s.TerminatingGateway.MeshConfig
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.MeshConfig
 	default:
 		return nil
 	}

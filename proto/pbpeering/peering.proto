@@ -193,10 +193,11 @@ message TrustBundleListByServiceRequest {
   string ServiceName = 1;
   string Namespace = 2;
   string Partition = 3;
+  string Kind = 4;
 
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 4;
+  string Datacenter = 5;
 }
 
 message TrustBundleListByServiceResponse {

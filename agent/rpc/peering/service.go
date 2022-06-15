@@ -128,6 +128,7 @@ type Store interface {
 	PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error)
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
+	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
@@ -463,6 +464,7 @@ func (s *Service) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundl
 	}, nil
 }
 
+// TODO(peering): rename rpc & request/response to drop the "service" part
 func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
@@ -487,7 +489,23 @@ func (s *Service) TrustBundleListByService(ctx context.Context, req *pbpeering.T
 	// TODO(peering): handle blocking queries
 
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-	idx, bundles, err := s.Backend.Store().TrustBundleListByService(nil, req.ServiceName, entMeta)
+
+	var (
+		idx     uint64
+		bundles []*pbpeering.PeeringTrustBundle
+	)
+
+	switch {
+	case req.ServiceName != "":
+		idx, bundles, err = s.Backend.Store().TrustBundleListByService(nil, req.ServiceName, entMeta)
+	case req.Kind == string(structs.ServiceKindMeshGateway):
+		idx, bundles, err = s.Backend.Store().PeeringTrustBundleList(nil, entMeta)
+	case req.Kind != "":
+		return nil, grpcstatus.Error(codes.InvalidArgument, "kind must be mesh-gateway if set")
+	default:
+		return nil, grpcstatus.Error(codes.InvalidArgument, "one of service or kind is required")
+	}
+
 	if err != nil {
 		return nil, err
 	}
