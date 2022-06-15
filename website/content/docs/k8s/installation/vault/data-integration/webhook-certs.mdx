@@ -21,6 +21,12 @@ When Vault is configured as the controller and connect inject Webhook Certificat
 
 To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
+### Setup per Consul datacenter
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+  1. (Added) Create Vault PKI roles for controller and connect inject each that establish the domains that each is allowed to issue certificates for.
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Configure the Vault Kubernetes auth roles in the Consul on Kubernetes helm chart.
+
 ## Prerequisites
 Complete the following prerequisites prior to implementing the integration described in this topic: 
 1. Verify that you have completed the steps described in [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
@@ -66,12 +72,6 @@ The first step is to bootstrap the Vault cluster. Issue the following commands t
           common_name="<helm release name>-connect-injector" \
           ttl=87600h
   ```
-### Setup per Consul datacenter
-  1. Create a Vault policy that authorizes the desired level of access to the secret.
-  1. (Added) Create Vault PKI roles for controller and connect inject each that establish the domains that each is allowed to issue certificates for.
-  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth roles in the Consul on Kubernetes helm chart.
-
 ## Setup per Consul datacenter
 You will need to preform the following steps for each datacenter that you would like to manage controller and connect inject webhook certificates in Vault.  You will want to take care to create different names per datacenter for every pki mount, role, and policy. 
 
