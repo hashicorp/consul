@@ -37,7 +37,7 @@ resource "aws_security_group" "test-servers" {
     from_port   = 22
     to_port     = 22
     protocol    = "6"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_allwed_ssh_cidr]
   }
   egress {
     from_port   = 0
