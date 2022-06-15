@@ -325,7 +325,7 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "Overview",
+            "title": "What is Cluster Peering",
             "path": "connect/cluster-peering"
           },
           {
