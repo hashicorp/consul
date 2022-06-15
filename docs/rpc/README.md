@@ -33,6 +33,24 @@ The main entrypoint to RPC routing is `handleConn` in [agent/consul/rpc.go].
 [agent/consul/rpc.go]: https://github.com/hashicorp/consul/blob/main/agent/consul/rpc.go
 
 
+### Development
+
+Multiplexing several protocols over a single server port helps to reduce our
+network requirements, but also makes interacting with Consul using local
+development tools such as [grpcurl] difficult.
+
+[grpcurl]: https://github.com/fullstorydev/grpcurl
+
+You can get a "plain" TCP connection to the gRPC server using this proxy script:
+
+```
+$ go run tools/private-grpc-proxy/main.go localhost:8300
+Proxying connections to Consul's private gRPC server
+Use this address: 127.0.0.1:64077
+```
+
+Pass the returned proxy address to your tool of choice.
+
 ## RPC Endpoints
 
 This section is a work in progress, it will eventually cover topics like:
@@ -51,4 +69,3 @@ Routing RPC request to Consul servers and for connection pooling.
 
 - [agent/router](https://github.com/hashicorp/consul/tree/main/agent/router)
 - [agent/pool](https://github.com/hashicorp/consul/tree/main/agent/pool)
-
