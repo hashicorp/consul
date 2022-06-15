@@ -10,7 +10,7 @@ description: >-
 This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault in the Consul controller and connect inject webhooks.
 
 ## Prerequisites
-Prior to setting up this data integration between Vault and Consul on Kubernetes, you will need to:  
+Complete the following prerequisites prior to implementing the integration described in this topic: 
 1. Read and complete the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 1. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/server-tls) 
@@ -45,13 +45,13 @@ The first step is to bootstrap the Vault cluster. Issue the following commands t
 
   ```shell-session
   $ vault write -field=certificate controller/root/generate/internal \
-          common_name="<RELEASE NAME>-controller-webhook" \
+          common_name="<helm release name>-controller-webhook" \
           ttl=87600h
   ```
 
   ```shell-session
   $ vault write -field=certificate connect-inject/root/generate/internal \
-          common_name="<RELEASE NAME>-connect-injector" \
+          common_name="<helm release name>-connect-injector" \
           ttl=87600h
   ```
 
