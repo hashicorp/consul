@@ -59,7 +59,7 @@ When you connect server agents through cluster peering, they will peer their def
 
 ## Connect service endpoints
 
-After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to replicate service definitions and support service mesh connections across clusters.
+After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
 First, create a configuration entry and specify the `Kind` as `“exported-services”`.
 
@@ -105,7 +105,6 @@ First, create a configuration entry and specify the `Kind` as `“service-intent
 ```hcl
 Kind      = "service-intentions"
 Name      = "frontend-service"
-Partition = "partition-name"
 
 Sources = [
   {
@@ -128,14 +127,14 @@ $ consul config write peering-intentions.hcl
 
 ## Check peered cluster status
 
-To confirm that you peered your clusters, you can [query the `/health/service` endpoint](https://www.consul.io/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` parameter to the end of the URL.
+To confirm that you peered your clusters, you can [query the `/health/service` endpoint](/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` query parameter to the end of the URL.
 
 ```shell-session
 $ curl \
-    http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01
+    "http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01"
 ```
 
-Successful connections include service definitions in the output.
+A successful query will include service information in the output.
 
 ## Remove peering connections
 
@@ -144,5 +143,5 @@ After you create a peering connection between clusters in different datacenters,
 In “cluster-01,” request the deletion via the HTTP API.
 
 ```shell-session
-$ curl -X DELETE http://127.0.0.1:8500/v1/peering/cluster-02
+$ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
 ```
