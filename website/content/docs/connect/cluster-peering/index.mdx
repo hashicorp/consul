@@ -9,7 +9,7 @@ description: >-
 
 ->**Cluster peering is currently in technical preview**: Functionality associated with cluster peering is subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may have performance issues, scaling issues, and limited support.
 
-You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can to communicate. 
+You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can to communicate.
 
 ## Overview
 
@@ -35,13 +35,13 @@ Regardless of whether you connect your clusters through WAN Federation or cluste
 | Shares key/value stores                          |    &#9989;     |    &#10060;     |
 | Uses gossip protocol                             |    &#9989;     |    &#10060;     |
 
-## Technical preview limitations
-Not all features and functionality are available in the technical preview release. In particular, be aware of the following limitations:
+## Technical preview constraints
+Not all features and functionality are available in the technical preview release. In particular, consider the following technical constraints:
 
 - Mesh gateways for _service to service traffic_ between clusters are available. However, mesh gateways for _server to server traffic_ are not available.
 - Services exported to peered clusters must not be configured as HTTP.
 - Support for dynamic routing such as splits, custom routes, or redirects is not available at this time.
-- The ``consul intention`` CLI command is not supported.
+- The `consul intention CLI` command is not supported.
 - [L7 permissions](/docs/connect/l7-traffic) are not supported.
 - Configuring service failover across peers is not supported.
 - Accessing key/value stores across peers is not supported.
