@@ -869,6 +869,11 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -878,10 +883,55 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 
+			mergedServices := services
+			var cfgIndex uint64
+			if services != nil && args.MergeCentralConfig {
+				var mergedNodeServices []*structs.NodeService
+				for _, ns := range services.Services {
+					mergedns := ns
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = mergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+					}
+					mergedNodeServices = append(mergedNodeServices, mergedns)
+				}
+				if len(mergedNodeServices) > 0 {
+					mergedServices.Services = mergedNodeServices
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
 			reply.Index = index
 
-			if services != nil {
-				reply.NodeServices = *services
+			if mergedServices != nil {
+				reply.NodeServices = *mergedServices
 
 				raw, err := filter.Execute(reply.NodeServices.Services)
 				if err != nil {
