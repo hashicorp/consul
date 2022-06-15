@@ -66,9 +66,6 @@
         show: {
           _options: {
             path: '/:name',
-            queryParams: {
-              peer: 'peer',
-            },
           },
           instances: {
             _options: {
