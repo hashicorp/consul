@@ -20,6 +20,9 @@ import (
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -34,27 +37,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 		overrideGoldenName string
 		generatorSetup     func(*ResourceGenerator)
 	}{
-		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-exported-to-peers",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This test is only concerned about the SPIFFE cert validator config in the public listener
-					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
-					ns.Proxy.Upstreams = structs.Upstreams{}
-				}, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "peering-trust-bundles",
-						Result:        proxycfg.TestPeerTrustBundles(t),
-					},
-				})
-			},
-		},
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -474,12 +456,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-no-services",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "no-services", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-with-exported-peered-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "peered-services", nil, nil)
 			},
 		},
 		{
