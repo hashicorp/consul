@@ -744,6 +744,23 @@
     ]
   },
   {
+    "title": "AWS Lambda <sup>BETA</sup>",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "lambda"
+      },
+      {
+        "title": "Register Lambda Functions",
+        "path": "lambda/registration"
+      },
+      {
+        "title": "Invoke Lambda Functions",
+        "path": "lambda/invocation"
+      }
+    ]
+  },
+  {
     "title": "Network Infrastructure Automation",
     "routes": [
       {

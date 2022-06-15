@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: AWS Lambda
+description: >-
+  Consul supports registering AWS Lambda functions as Consul services. This
+  section documents the process of integrating AWS Lambda with Consul services.
+---
+
+# AWS Lambda
+
+Lambda functions are programs or scripts that run in AWS Lambda. The functions process events and return responses. Refer to the [AWS Lambda website](https://aws.amazon.com/lambda/) for additional information.
+
+## How AWS Lambda Functions on Consul Work
+
+You can register AWS Lambda functions in Consul and invoke them from mesh services.
+### Registering Lambda Functions
+
+Registering AWS Lambda functions into Consul requires [registering a service](/docs/discovery/services)
+and storing a [service defaults configuration entry](/docs/connect/config-entries/service-defaults)
+into Consul.
+
+We recommend using [Lambda registrator](https://github.com/hashicorp/terraform-aws-consul-lambda-registrator)
+to automatically synchronize Lambda functions into Consul. Lambda functions can
+also be manually registered into Consul when using Lambda registrator is not possible.
+
+See the [Registration page](/docs/lambda/registration) for more information
+about registring Lambda functions into Consul.
+
+### Invoking Lambda Functions
+
+Lambda functions can be invoked by any mesh service directly from connect proxies or
+through terminating gateways. The [Invocation page](/docs/lambda/invocation)
+explains how to invoke Lambda functions from Consul connect services.
