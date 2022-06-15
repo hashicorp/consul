@@ -273,6 +273,44 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	}
 }
 
+// TestIntentionApply_NoSourcePeer makes sure that no intention is created with a SourcePeer since this is not supported
+func TestIntentionApply_NoSourcePeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			SourcePeer:      "peer1",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			SourceType:      structs.IntentionSourceConsul,
+			Meta:            map[string]string{},
+		},
+	}
+	var reply string
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
+	require.Error(t, err)
+	require.Contains(t, err, "SourcePeer field is not supported on this endpoint. Use config entries instead")
+	require.Empty(t, reply)
+}
+
 // Shouldn't be able to update a non-existent intention
 func TestIntentionApply_updateNonExist(t *testing.T) {
 	if testing.Short() {
