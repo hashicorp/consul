@@ -9,7 +9,7 @@ description: >-
 
 ->**Cluster peering is currently in technical preview**: Functionality associated with cluster peering is subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may have performance issues, scaling issues, and limited support.
 
-Cluster peering is a Consul feature to allow service connectivity between two independent clusters. Similar to WAN Federation, you can use cluster peering to enable service connectivity between partitions in different datacenters.
+You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can to communicate. 
 
 ## Overview
 
@@ -22,9 +22,9 @@ For detailed instructions on setting up cluster peering with the Consul CLI, ref
 
 ### Differences between WAN federation and cluster peering
 
-WAN Federation and cluster peering are different ways to connect clusters across datacenters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it uses the gossip protocol to replicate global states like ACLs. As a result, WAN Federation requires a “primary datacenter" to serve as an authority for replicated data.
+WAN Federation and cluster peering are different ways to connect clusters. The most important distinction is that WAN Federation assumes clusters are owned by the same operators, so it maintains and replicates global states like ACLs and Configuration Entries. As a result, WAN Federation requires a “primary datacenter" to serve as an authority for replicated data.
 
-Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either peering method to issue cross-datacenter queries for data, including service endpoints.
+Regardless of whether you connect your clusters through WAN Federation or cluster peering, human and machine users can use either method to discover services in other clusters or dial them through the service mesh.
 
 |                                                  | WAN Federation | Cluster Peering |
 | :----------------------------------------------- | :------------: | :-------------: |
