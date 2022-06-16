@@ -263,7 +263,7 @@ jobs:
           version: ${{env.version}}
           target: ubi
           arch: amd64
-          redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
+          redhat_tag: scan.connect.redhat.com/ospid-60f9fdbec3a80eac643abedf/${{env.repo}}:${{env.version}}-ubi
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   verify-linux:
@@ -339,14 +339,14 @@ jobs:
     name: Verify ${{ matrix.arch }} debian package
     steps:
       - uses: actions/checkout@v2
-        
+
       - name: Set package version
         run: |
-          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV 
+          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
 
       - name: Set package name
         run: |
-          echo "pkg_name=consul_${{ env.pkg_version }}-1_${{ matrix.arch }}.deb" >> $GITHUB_ENV 
+          echo "pkg_name=consul_${{ env.pkg_version }}-1_${{ matrix.arch }}.deb" >> $GITHUB_ENV
 
       - name: Download workflow artifacts
         uses: actions/download-artifact@v3
@@ -379,12 +379,12 @@ jobs:
 
       - name: Set package version
         run: |
-          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV 
+          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
 
       - name: Set package name
         run: |
-          echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV 
-        
+          echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV
+
       - name: Download workflow artifacts
         uses: actions/download-artifact@v3
         with:
@@ -395,5 +395,5 @@ jobs:
         with:
           platforms: all
 
-      - name: Verify ${{ matrix.arch }} rpm 
+      - name: Verify ${{ matrix.arch }} rpm
         run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
