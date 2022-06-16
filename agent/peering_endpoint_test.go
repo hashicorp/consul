@@ -84,8 +84,11 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 	// TODO(peering): add more failure cases
 
 	t.Run("Success", func(t *testing.T) {
-		body := &pbpeering.GenerateTokenRequest{
+		body := &api.PeeringGenerateTokenRequest{
 			PeerName: "peering-a",
+			ServerAddresses: []string{
+				"127.0.0.2:1234",
+			},
 		}
 
 		bodyBytes, err := json.Marshal(body)
@@ -107,7 +110,7 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
 		require.Nil(t, token.CA)
-		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.ServerPort)}, token.ServerAddresses)
+		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.ServerPort), "127.0.0.2:1234"}, token.ServerAddresses)
 		require.Equal(t, "server.dc1.consul", token.ServerName)
 
 		// The PeerID in the token is randomly generated so we don't assert on its value.
