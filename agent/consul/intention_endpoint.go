@@ -77,6 +77,10 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 		return ErrConnectNotEnabled
 	}
 
+	if args.Intention != nil && args.Intention.SourcePeer != "" {
+		return fmt.Errorf("SourcePeer field is not supported on this endpoint. Use config entries instead")
+	}
+
 	// Ensure that all service-intentions config entry writes go to the primary
 	// datacenter. These will then be replicated to all the other datacenters.
 	args.Datacenter = s.srv.config.PrimaryDatacenter
