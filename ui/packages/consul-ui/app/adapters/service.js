@@ -23,7 +23,7 @@ export default class ServiceAdapter extends Adapter {
           ns,
           partition,
           index,
-          ['with-imports']: true,
+          ['with-peers']: true,
         }}
     `;
     }
