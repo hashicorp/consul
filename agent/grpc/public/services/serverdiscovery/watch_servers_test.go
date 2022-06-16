@@ -7,7 +7,13 @@ import (
 	"testing"
 	"time"
 
+	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	acl "github.com/hashicorp/consul/acl"
+	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc/public"
@@ -15,10 +21,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	mock "github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const testACLToken = "eb61f1ed-65a4-4da6-8d3d-0564bd16c965"
@@ -193,7 +195,7 @@ func TestWatchServers_ACLToken_PermissionDenied(t *testing.T) {
 
 	resolver := newMockACLResolver(t)
 	resolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(acl.DenyAll(), nil).Once()
+		Return(testutils.TestAuthorizerDenyAll(t), nil).Once()
 
 	// add the token to the requests context
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
@@ -222,9 +224,9 @@ func TestWatchServers_ACLToken_Unauthenticated(t *testing.T) {
 	// setup the event publisher and snapshot handler
 	_, publisher := setupPublisher(t)
 
-	resolver := newMockACLResolver(t)
-	resolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(nil, acl.ErrNotFound).Once()
+	aclResolver := newMockACLResolver(t)
+	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
+		Return(resolver.Result{}, acl.ErrNotFound).Once()
 
 	// add the token to the requests context
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
@@ -233,7 +235,7 @@ func TestWatchServers_ACLToken_Unauthenticated(t *testing.T) {
 	server := NewServer(Config{
 		Publisher:   publisher,
 		Logger:      testutil.Logger(t),
-		ACLResolver: resolver,
+		ACLResolver: aclResolver,
 	})
 
 	// Run the server and get a test client for it

@@ -4,18 +4,20 @@ import (
 	"context"
 	"testing"
 
-	acl "github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/grpc/public"
-	"github.com/hashicorp/consul/agent/grpc/public/testutils"
-	structs "github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	acl "github.com/hashicorp/consul/acl"
+	resolver "github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/grpc/public"
+	"github.com/hashicorp/consul/agent/grpc/public/testutils"
+	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -215,7 +217,7 @@ func TestGetEnvoyBootstrapParams_Unauthenticated(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, acl.ErrNotFound)
+		Return(resolver.Result{}, acl.ErrNotFound)
 	ctx := public.ContextWithToken(context.Background(), testToken)
 	store := testutils.TestStateStore(t, nil)
 	server := NewServer(Config{
@@ -234,7 +236,7 @@ func TestGetEnvoyBootstrapParams_PermissionDenied(t *testing.T) {
 	// Mock the ACL resolver to return a deny all authorizer
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-		Return(acl.DenyAll(), nil)
+		Return(testutils.TestAuthorizerDenyAll(t), nil)
 	ctx := public.ContextWithToken(context.Background(), testToken)
 	store := testutils.TestStateStore(t, nil)
 	registerReq := structs.TestRegisterRequestProxy(t)

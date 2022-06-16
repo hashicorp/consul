@@ -17,6 +17,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -47,7 +48,7 @@ type asyncResolutionResult struct {
 	err   error
 }
 
-func verifyAuthorizerChain(t *testing.T, expected ACLResolveResult, actual ACLResolveResult) {
+func verifyAuthorizerChain(t *testing.T, expected resolver.Result, actual resolver.Result) {
 	t.Helper()
 	expectedChainAuthz, ok := expected.Authorizer.(*acl.ChainedAuthorizer)
 	require.True(t, ok, "expected Authorizer is not a ChainedAuthorizer")
@@ -735,7 +736,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	authz, err := r.ResolveToken("does not exist")
-	require.Equal(t, ACLResolveResult{Authorizer: acl.ManageAll()}, authz)
+	require.Equal(t, resolver.Result{Authorizer: acl.ManageAll()}, authz)
 	require.Nil(t, err)
 }
 
@@ -810,7 +811,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		expected := ACLResolveResult{
+		expected := resolver.Result{
 			Authorizer:  acl.DenyAll(),
 			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
 		}
@@ -838,7 +839,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		expected := ACLResolveResult{
+		expected := resolver.Result{
 			Authorizer:  acl.AllowAll(),
 			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
 		}
