@@ -65,7 +65,7 @@ type StateStore interface {
 //
 //   1. To access data it must use the passed in StoreType (which will be a state.Store when
 //      everything gets stiched together outside of unit tests).
-//   2. It must return an index greather than the minIndex if the results returned by the query
+//   2. It must return an index greater than the minIndex if the results returned by the query
 //      have changed.
 //   3. Any channels added to the memdb.WatchSet must unblock when the results
 //      returned by the query have changed.
