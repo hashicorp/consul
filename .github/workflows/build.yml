@@ -263,7 +263,7 @@ jobs:
           version: ${{env.version}}
           target: ubi
           arch: amd64
-          redhat_tag: scan.connect.redhat.com/ospid-612d01d49f14588c41ebf67c/${{env.repo}}:${{env.version}}-ubi
+          redhat_tag: scan.connect.redhat.com/ospid-60f9fdbec3a80eac643abedf/${{env.repo}}:${{env.version}}-ubi
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   verify-linux:
