@@ -3,12 +3,11 @@
 as |route|>
 
   <DataLoader @src={{
-    uri '/${partition}/${nspace}/${dc}/${withPeers}/services'
+    uri '/${partition}/${nspace}/${dc}/services'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-        withPeers=true
       )
   }} as |api|>
 
