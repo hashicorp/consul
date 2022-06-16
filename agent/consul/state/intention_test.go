@@ -1231,8 +1231,7 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(idx, input))
 	}
 
-	// assert that we can get the peered intention
-	testutil.RunStep(t, "assert that we can get the peered intention", func(t *testing.T) {
+	t.Run("assert that we can get the peered intention", func(t *testing.T) {
 		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
 			SourceNS:        "default",
 			SourceName:      "bar",
@@ -1249,7 +1248,7 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 		require.Equal(t, uint64(1), idx)
 	})
 
-	testutil.RunStep(t, "assert that we can get the local intention", func(t *testing.T) {
+	t.Run("assert that we can get the local intention", func(t *testing.T) {
 		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
 			SourceNS:        "default",
 			SourceName:      "bar",
