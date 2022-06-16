@@ -641,6 +641,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
 		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
 		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		ServiceGateways:                 proxycfgglue.CacheServiceGateways(a.cache),
 		Health:                          proxycfgglue.Health(a.rpcClientHealth),
 		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
 		Intentions:                      proxycfgglue.CacheIntentions(a.cache),

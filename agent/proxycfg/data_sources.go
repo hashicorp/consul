@@ -47,6 +47,10 @@ type DataSources struct {
 	// notification channel.
 	GatewayServices GatewayServices
 
+	// GatewayServices provides updates about a gateway's upstream services on a
+	// notification channel.
+	ServiceGateways ServiceGateways
+
 	// Health provides service health updates on a notification channel.
 	Health Health
 
@@ -136,6 +140,11 @@ type FederationStateListMeshGateways interface {
 // GatewayServices is the interface used to consume updates about a gateway's
 // upstream services.
 type GatewayServices interface {
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// ServiceGateways is the interface used to consume updates about a service terminating gateways
+type ServiceGateways interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 

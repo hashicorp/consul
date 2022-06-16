@@ -141,6 +141,8 @@ type configSnapshotConnectProxy struct {
 	IntentionsSet               bool
 	DestinationsUpstream        map[UpstreamID]structs.ConfigEntry
 	WatchedDestinationsUpstream map[UpstreamID]context.CancelFunc
+	DestinationGateways         map[UpstreamID]structs.ServiceNodes
+	WatchedDestinationGateways  map[UpstreamID]context.CancelFunc
 }
 
 // isEmpty is a test helper

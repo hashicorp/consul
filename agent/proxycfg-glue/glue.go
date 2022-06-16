@@ -53,6 +53,12 @@ func CacheGatewayServices(c *cache.Cache) proxycfg.GatewayServices {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.GatewayServicesName}
 }
 
+// CacheServiceGateways satisfies the proxycfg.ServiceGateways interface by
+// sourcing data from the agent cache.
+func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
+}
+
 // CacheHTTPChecks satisifies the proxycfg.HTTPChecks interface by sourcing
 // data from the agent cache.
 func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {

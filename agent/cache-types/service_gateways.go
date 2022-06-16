@@ -8,7 +8,7 @@ import (
 )
 
 // Recommended name for registration.
-const ServicesGatewaysName = "service-gateways"
+const ServiceGatewaysName = "service-gateways"
 
 // GatewayUpstreams supports fetching upstreams for a given gateway name.
 type ServiceGateways struct {
