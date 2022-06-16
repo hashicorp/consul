@@ -40,6 +40,7 @@ func GenerateTokenRequestToAPI(s *GenerateTokenRequest, t *api.PeeringGenerateTo
 	}
 	t.PeerName = s.PeerName
 	t.Partition = s.Partition
+	t.ServerAddresses = s.ServerAddresses
 	t.Datacenter = s.Datacenter
 	t.Token = s.Token
 	t.Meta = s.Meta
@@ -50,6 +51,7 @@ func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *Generate
 	}
 	s.PeerName = t.PeerName
 	s.Partition = t.Partition
+	s.ServerAddresses = t.ServerAddresses
 	s.Datacenter = t.Datacenter
 	s.Token = t.Token
 	s.Meta = t.Meta

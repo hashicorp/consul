@@ -260,13 +260,17 @@ message GenerateTokenRequest {
   // Partition is the local partition being peered.
   string Partition = 2;
 
+  // ServerAddresses is an optional list of ip:port addresses
+  // that the remote peer should dial to reach this cluster.
+  repeated string ServerAddresses = 3;
+
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 3;
-  string Token = 4;
+  string Datacenter = 4;
+  string Token = 5;
 
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 5;
+  map<string, string> Meta = 6;
 }
 
 // mog annotation:

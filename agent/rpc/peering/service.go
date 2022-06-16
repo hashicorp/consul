@@ -189,6 +189,9 @@ func (s *Service) GenerateToken(
 		return nil, err
 	}
 
+	// If the request provided fallback addresses, add them
+	serverAddrs = append(serverAddrs, req.ServerAddresses...)
+
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name: req.PeerName,

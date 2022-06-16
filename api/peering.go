@@ -67,9 +67,12 @@ type PeeringGenerateTokenRequest struct {
 	// PeerName is the name of the remote peer.
 	PeerName string
 	// Partition to be peered.
-	Partition  string `json:",omitempty"`
-	Datacenter string `json:",omitempty"`
-	Token      string `json:",omitempty"`
+	Partition string `json:",omitempty"`
+	// ServerAddresses is an optional list of ip:port addresses
+	// that the remote peer should dial to reach this cluster.
+	ServerAddresses []string `json:",omitempty"`
+	Datacenter      string   `json:",omitempty"`
+	Token           string   `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 }
