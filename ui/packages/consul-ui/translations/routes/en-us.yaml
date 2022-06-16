@@ -75,11 +75,12 @@ dc:
         title: Metadata
       sessions:
         title: Lock Sessions
-        header: Welcome to Lock Sessions
-        body: |
-          <p>
-          Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
-          </p>
+        empty:
+          header: Welcome to Lock Sessions
+          body: |
+            <p>
+            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
+            </p>
       services:
         title: Service Instances
         empty: |
