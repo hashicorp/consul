@@ -38,7 +38,7 @@ Ensure that the following requirements are met prior to upgrading:
   You should receive the following response:
 
   ```log
-  "hashicorp/consul-api-gateway:0.1.0"
+  "hashicorp/consul-api-gateway:0.2.1"
   ```
 
 1. Retrieve all gateways that have a secret in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
@@ -430,7 +430,7 @@ This is the upgrade path to use when there are no version specific steps to take
 1. Issue the following command to upgrade your Consul installation:
 
   ```shell-session
-  $ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> hashicorp/consul <DEPLOYMENT_NAME>
+  $ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> <DEPLOYMENT_NAME> hashicorp/consul
   ```
 
   Note that the upgrade will cause the Consul API Gateway controller shut down and restart with the new version.
