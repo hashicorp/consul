@@ -30,6 +30,7 @@ Complete the following prerequisites prior to registering your Lambda functions.
 Add the following configuration to all Consul clients:
 
 `connect { enable_serverless_plugin = true, connect = true }`
+
 Refer to the [`enable_serverless_plugin`](/docs/agent/config/config-files#connect_enable_serverless_plugin) configuration documentation for additional information.
 
 ### Configure IAM Permissions for Envoy
@@ -123,7 +124,7 @@ The following diagram shows the flow of events from EventBridge into Consul:
 
 #### Optional: Store the CA Certificate in Parameter Store
 
-When Consul makes a request to the [HTTP API](/api-docs) over HTTPS, Lambda registrator presents a CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information). You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
+When Lambda registrator makes a request to Consul's [HTTP API](/api-docs) over HTTPS and the Consul API is signed by a custom CA, Lambda registrator uses the CA certificate stored in AWS Parameter Store (refer to the [Parameter Store documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) for additional information) to verify the authenticity of the Consul API.  You can apply the following Terraform configuration to store Consul’s server CA in Parameter Store:
 
 ```hcl
 resource "aws_ssm_parameter" "ca-cert" {
@@ -173,7 +174,7 @@ If [Consul access control lists (ACLs)](/docs/security/acl) are enabled, Lambda 
 | `schedule_frequency_in_minutes` | Specifies the interval in minutes that EventBridge uses to trigger a full synchronization. Default is `5`. |
 | `timeout` | The maximum number of seconds Lambda registrator can run per invocation before timing out. |
 | `consul_http_addr` | Specifies the address of the Consul API client. |
-| `consul_ca_cert_path` | Specifies the AWS Parameter Store path to the CA certificate for the Consul cluster Lambda registrator uses. This parameter is only required when the Consul server is configured to use TLS. At startup, Lambda registrator pulls the CA certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`.  Also see [Optional: Store the CA Certificate in Parameter Store](#optional-store-the-ca-certificate-in-parameter-store)|
+| `consul_ca_cert_path` | Specifies the path to the CA certificate stored in the AWS Parameter Store. When Lambda registrator makes an HTTPS request to Consul's API and the Consul API is signed by a custom CA, Lambda registrator uses this CA certificate to verify the authenticity of the Consul API. At startup, Lambda registrator pulls the CA certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`.  Also see [Optional: Store the CA Certificate in Parameter Store](#optional-store-the-ca-certificate-in-parameter-store)|
 | `consul_http_token_path` |  Specifies the path to the ACL token stored in AWS Parameter Store that Lambda registrator presents to access resources. This parameter only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also see [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store)|
 | `node_name` | The Consul node name that Lambdas will be registered to. This defaults to `lambdas`. |
 | `enterprise` | <EnterpriseAlert inline />Determines if the Consul server at `consul_http_addr` is running open source or enterprise. |
