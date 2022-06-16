@@ -19,8 +19,23 @@ You can invoke Lambda functions from the Consul service mesh through terminating
 We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
 proxies, intentions, and all other Consul service mesh features.
 
-The terminating gateway must have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy)
-to invoke the function.
+The terminating gateway must:
+* Have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) to invoke the Lambda function.
+* Have the Lambda function's Consul service linked to it. This is done by:
+  1. Ensuring the Lambda service is linked to the terminating gateway's configuration:
+      <CodeBlockConfig filename="terminating-gateway.hcl">
+
+      ```hcl
+      Kind = "terminating-gateway"
+      Name = "terminating-gateway"
+      Services = [
+        {
+          Name = "<LAMBDA_SERVICE_NAME>"
+        }
+      ]
+      ```
+      </CodeBlockConfig>
+  1. Issuing `consul config write terminating-gateway.hcl` to update the terminating gateway's configuration.
 
 The following diagram shows the invocation procedure:
 
@@ -42,7 +57,7 @@ This method has the following limitations:
 - Transparent proxies are unsupported. This is because Lambda services are not
   registered to a proxy.
 
-This method is secure because AWS IAM permissions is required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources. 
+This method is secure because [AWS IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) is required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources.
 
 The Envoy sidecar proxy must have the correct AWS IAM credentials to invoke the function. You can define the credentials in environment variables, EC2 metadata, or ECS task metadata.
 
