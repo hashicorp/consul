@@ -81,9 +81,9 @@ $ curl --request POST \
 }
 ```
 
-## Establish a Peering
+## Establish a Peering Connection
 
-This endpoint establishes a peering with a given peering token.
+This endpoint establishes a peering connection with a given peering token.
 
 | Method  | Path                 | Produces           |
 | ------- | -------------------- | ------------------ |
@@ -154,9 +154,9 @@ $ curl --request POST \
 {}
 ```
 
-## Read a Peering
+## Read a Peering Connection
 
-This endpoint reads a peering with the given name.
+This endpoint returns information about a peering connection for the specified peer name.
 
 | Method | Path               | Produces           |
 | ------ | ------------------ | ------------------ |
@@ -205,14 +205,11 @@ $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
 }
 ```
 
-## Delete a Peering
+## Delete a Peering Connection
 
-This endpoint marks a peering for deletion. Once marked, Consul will
-delete all the data imported from the peer in the background. Only once
-all associated data has been deleted will the peering actually disappear.
-Until then, further reads can be performed on the peering and a `DeletedAt`
-field will be populated with the timestamp of when the peering was
-marked for deletion.
+Call this endpoint to delete a peering connection. Consul deletes all data imported from the peer in the background. The peering connection is removed after all associated data has been deleted.
+Operators can still read the peering connections while the data is being removed. A `DeletedAt`
+field will be populated with the timestamp of when the peering was marked for deletion.
 
 | Method   | Path               | Produces |
 | -------- | ------------------ | -------- |

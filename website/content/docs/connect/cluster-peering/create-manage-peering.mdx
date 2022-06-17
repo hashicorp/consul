@@ -47,7 +47,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 ## Establish a connection between clusters
 
-Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” establish the peering using the HTTP API. This endpoint does not generate an output unless there is an error.
+Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” establish the peering connection using the HTTP API. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
@@ -55,7 +55,7 @@ $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peerin
 
 In the peer parameter, specify a name for the first cluster. The `PeeringToken` parameter should include the entire peering token created in the first cluster.
 
-When you connect server agents through cluster peering, they will peer their default partitions. To establish peerings for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
+When you connect server agents through cluster peering, they will peer their default partitions. To establish peering connections for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
 
 ## Connect service endpoints
 
@@ -117,7 +117,7 @@ Sources = [
 
 </CodeBlockConfig>
 
-**Tip:** If the peer’s name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
+If the peer’s name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
 
 Then, add the configuration entry to your cluster.
 
@@ -138,7 +138,7 @@ A successful query will include service information in the output.
 
 ## Remove peering connections
 
-After you create a peering connection between clusters in different datacenters, you can “unpeer” the connected clusters. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
+After you create a peering connection between clusters in different datacenters, you can disconnect the peered clusters. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
 
 In “cluster-01,” request the deletion via the HTTP API.
 
