@@ -7,7 +7,9 @@ description: >-
 
 # Manual Installation
 
-The following instructions describe how to manually create the ECS task definition using the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs) without Terraform. Refer to the [Consul ECS Terraform module](/docs/ecs/terraform/install) documentation for an alternative method for installing Consul on ECS.
+The following instructions describe how to manually create the ECS task definition using the [`consul-ecs` Docker image](https://gallery.ecr.aws/hashicorp/consul-ecs) without Terraform. Refer to the [Consul ECS Terraform module](/docs/ecs/terraform/install) documentation for an alternative method for installing Consul on ECS. 
+
+If you intend to peer the service mesh to multiple Consul datacenters or partitions, you must use the Consul ECS Terraform module to install your service mesh on ECS. Manually configuring mesh gateways without using the `gateway-task` Terraform module is not supported.
 
 This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the linked guides in the [Getting Started](/docs/ecs#getting-started) section for complete, runnable examples.
 
@@ -17,13 +19,13 @@ You should have some familiarity with AWS ECS. See [What is Amazon Elastic Conta
 
 ## Task Definition
 
-You must create a task definition, which includes the following containers:
+Create a task definition configured to create the containers:
 
 * Your application container
 * An Envoy sidecar-proxy container
 * A Consul client container
 * A `consul-ecs-mesh-init` container for service mesh setup
-* Optionally, a `consul-ecs-health-sync` container to sync ECS health checks into Consul
+* (Optional) A `consul-ecs-health-sync` container to sync ECS health checks into Consul
 
 ## Top-level fields
 
