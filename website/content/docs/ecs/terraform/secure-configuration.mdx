@@ -7,16 +7,22 @@ description: >-
 
 # Secure Configuration
 
-For a production-ready installation of Consul on ECS, you will need to make sure that the cluster is secured.
-A secure Consul cluster should include the following:
+This topic describes how to enable Consul security features for your production workloads. The following overview describes the process:
 
-1. [TLS Encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
-1. [Gossip Encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
-1. [Access Control (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+1. Enable the security features on your Consul server cluster per the [Prerequisites](#prerequisites).
+1. Deploy the ACL controller.
+1. Deploy your services.
 
--> **NOTE:** This page assumes that you have already configured your Consul server with the above features.
+## Prerequisites
 
-## Deploy ACL Controller
+Implement the following configurations before proceeding: 
+
+1. [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+1. [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+1. [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+
+
+## Deploy the ACL controller
 
 Before deploying your service, you will need to deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller) so that it can provision the necessary tokens
 for tasks on the service mesh. To learn more about the ACL Controller, please see [Automatic ACL Token Provisioning](/docs/ecs/architecture#automatic-acl-token-provisioning).
@@ -60,18 +66,17 @@ module "acl_controller" {
 ```
 
 The `name_prefix` parameter is used to prefix any secrets that the ACL controller will
-update in AWS Secrets Manager.
+update in AWS Secrets Manager. The `name_prefix` parameter value must be unique for each ECS cluster where you are deploying this controller.
 
--> **NOTE:** Make sure that the `name_prefix` is unique for each ECS cluster where you are
-deploying this controller.
+## Deploy your services
 
-## Deploy Services
+Follow the instructions described in [Create a task definition](/docs/ecs/terraform/install#create-the-task-definition) to create the basic configuration for the task module. Add the following additional configurations to make the configuration production-ready.
 
-Once the ACL controller is up and running, you will be able to deploy services on the mesh using the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
-Start with the basic configuration for the [Task Module](/docs/ecs/terraform/install#task-module) and specify additional settings to make the configuration production-ready.
+### Create an AWS Secrets Manager secret 
 
-First, you will need to create an AWS Secrets Manager secret for the gossip encryption key that the Consul clients
-should use.
+The secret stores the gossip encryption key that the Consul clients will use.
+
+<CodeBlock>
 
 ```hcl
 resource "aws_secretsmanager_secret" "gossip_key" {
@@ -83,8 +88,11 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
   secret_string = "<Gossip encryption key>"
 }
 ```
+</CodeBlock>
 
-Next, add the following configurations to enable secure deployment. Note that the `acl_secret_name_prefix`
+### Enable secure deployment
+
+Add the following configurations to enable secure deployment. The `acl_secret_name_prefix`
 should be the same as the `name_prefix` you provide to the ACL controller module.
 
 ```hcl
@@ -104,5 +112,8 @@ module "my_task" {
 }
 ```
 
-Now you can deploy your services! Follow the rest of the steps in the [Installation instructions](/docs/ecs/terraform/install#task-module)
-to deploy and connect your services.
+Complete the following steps described in the Installation with Terraform chapter to deploy and connect your services:
+
+1. [Run Terraform](/docs/ecs/terraform/install#run-terraform)
+1. [Configure routes](/docs/ecs/terraform/install#configure-routes)
+1. [Configure the bind address](/docs/ecs/terraform/install#configure-the-bind-address)
