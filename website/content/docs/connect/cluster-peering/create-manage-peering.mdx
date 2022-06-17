@@ -24,7 +24,7 @@ You can generate peering tokens and initiate connections using the Consul API on
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
-In “cluster-01,” issue a request for a peering token using the HTTP API.
+In `cluster-01`, issue a request for a peering token using the [HTTP API](/api-docs/peering).
 
 ```shell-session
 $ curl --request POST --data '{"PeerName":"cluster-02"}' --url http://localhost:8500/v1/peering/token
