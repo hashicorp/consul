@@ -15,6 +15,7 @@ import (
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -160,7 +161,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz ACLResolveResult, authzCtxFill func(*acl.AuthorizerContext)) error {
+func servicePreApply(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -230,7 +231,7 @@ func checkPreApply(check *structs.HealthCheck) {
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
 func vetRegisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.RegisterRequest,
 	ns *structs.NodeServices,
 ) error {
@@ -396,7 +397,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
 func vetDeregisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.DeregisterRequest,
 	ns *structs.NodeService,
 	nc *structs.HealthCheck,

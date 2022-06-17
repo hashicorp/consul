@@ -697,7 +697,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		Publisher:   s.publisher,
 		GetStore:    func() connectca.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		CAManager:   s.caManager,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
@@ -709,13 +709,13 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
 	}).Register(s.publicGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 
