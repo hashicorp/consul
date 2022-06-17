@@ -42,7 +42,7 @@ The table below shows this endpoint's support for
 - `Partition` `(string: "")` - <EnterpriseAlert inline /> The admin partition that the
   peering token is generated from. Uses `default` when not specified.
 
-- `Datacenter` `(string: "")` - Specifies the datacenter. Defaults to the
+- `Datacenter` `(string: "")` - Specifies the datacenter where the peering token is generated. Defaults to the
   agent's datacenter when not specified.
 
 - `Token` `(string: "")` - Specifies the ACL token to use in the request. Takes precedence
@@ -116,7 +116,7 @@ The table below shows this endpoint's support for
 - `PeeringToken` `(string: <required>)` - The peering token fetched from the
   peer cluster.
 
-- `Datacenter` `(string: "")` - Specifies the datacenter. Defaults to the
+- `Datacenter` `(string: "")` - Specifies the datacenter where the peering token is generated. Defaults to the
   agent's datacenter when not specified.
 
 - `Token` `(string: "")` - Specifies the ACL token to use in the request. Takes precedence
