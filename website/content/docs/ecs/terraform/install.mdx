@@ -176,7 +176,7 @@ The `kind` parameter is the only required input. The value must be set to `mesh-
 | `consul_image` | string | Specifies the Consul Docker image to use. Default is `public.ecr.aws/hashicorp/consul:1.13.0` |
 | `consul_ecs_image` | string | Specifies the Consul on ECS Docker image to use. Default is `public.ecr.aws/hashicorp/consul-ecs:0.6.0` |
 | `consul_namespace` | string | <EnterpriseAlert inline /> Specifies which Consul namespace to register the service. Default is `default`.|
-| `consul_partition` | <EnterpriseAlert inline /> | Specifies which Consul admin partition to register the service. Default is `default`. |
+| `consul_partition` | string | <EnterpriseAlert inline /> Specifies which Consul admin partition to register the service. Default is `default`. |
 | `envoy_image` | string | Specifies the name of the Envoy Docker image to use. Default is `envoyproxy/envoy-alpine:v1.21.2` |
 | `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. |
 | `consul_server_ca_cert_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate for Consul's internal remote procedure calls (RPC). |
@@ -318,21 +318,22 @@ module "web" {
 }
 ```
 
-## Bind Address
+## Configure the bind address
 
 To ensure that your application only receives traffic through the service mesh,
-you must change the address that your application is listening on to only the loopback address
-(also known as `localhost`, `lo`, and `127.0.0.1`)
-so that only the sidecar proxy running in the same task can make requests to it.
+you must change the address that your application is listening on to only the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`.
+Binding to the loopback address allows the sidecar proxy running in the same task to only make requests within the service mesh.
 
-If your application is listening on all interfaces, e.g. `0.0.0.0`, then other
+If your application is listening on all interfaces, e.g., `0.0.0.0`, then other
 applications can call it directly, bypassing its sidecar proxy.
 
 Changing the listening address is specific to the language and framework you're
 using in your application. Regardless of which language/framework you're using,
-it's a good practice to make the address configurable via environment variable.
+it is a good practice to make the address configurable via environment variable.
 
-For example in Go, you would use:
+The following examples demonstrate how to bind the loopback address in golang and Django (Python):
+
+<CodeTabs>
 
 ```go
 s := &http.Server{
@@ -342,13 +343,13 @@ s := &http.Server{
 log.Fatal(s.ListenAndServe())
 ```
 
-In Django you'd use:
-
 ```bash
 python manage.py runserver "127.0.0.1:8080"
 ```
 
-## Next Steps
+</CodeTabs>
+
+## Next steps
 
 - Follow the [Secure Configuration](/docs/ecs/terraform/secure-configuration) to get production-ready.
 - Now that your applications are running in the service mesh, read about
