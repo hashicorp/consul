@@ -90,10 +90,12 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
   -> **Note:** If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
 
-  - **Recommended value:** Your allocated Vault token.  If running Vault in dev mode, this can be set to to `root`.
-    ```shell-session
-    $ export VAULT_ADDR=<vault token>
-    ```
+  - VAULT_TOKEN
+      
+      **Recommended value:** Your allocated Vault token.  If running Vault in dev mode, this can be set to to `root`.
+      ```shell-session
+      $ export VAULT_TOKEN=<vault token>
+      ```
 
 ## Install Vault Injector in Consul k8s cluster
 
