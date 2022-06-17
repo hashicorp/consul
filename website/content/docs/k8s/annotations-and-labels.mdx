@@ -9,8 +9,8 @@ description: >-
 
 ## Overview
 
-Consul on Kubernetes provides a few options for customizing how connect-inject behavior should be configured. 
-This allows the user to configure natively configure Consul on select Kubernetes resources (i.e. pods, services).  
+Consul on Kubernetes provides a few options for customizing how connect-inject behavior should be configured.
+This allows the user to configure natively configure Consul on select Kubernetes resources (i.e. pods, services).
 
 - [Annotations](#annotations)
 - [Labels](#labels)
@@ -155,7 +155,7 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
     consul.hashicorp.com/service-meta-foo: baz
     consul.hashicorp.com/service-meta-bar: baz
   ```
-  
+
 - `consul.hashicorp.com/sidecar-proxy-` - Override default resource settings for
   the sidecar proxy container.
   The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
@@ -164,6 +164,9 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
   - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
+
+- `consul.hashicorp.com/consul-envoy-proxy-concurrency` - Override the default envoy worker thread count. This should be set low for sidecar
+  usecases and can be raised for edge proxies like gateways.
 
 - `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
   the `consul-sidecar` container.
@@ -185,7 +188,7 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
 
 ## Labels
 
-Resource labels could be used on a Kubernetes service to control connect-inject behavior. 
+Resource labels could be used on a Kubernetes service to control connect-inject behavior.
 
 - `consul.hashicorp.com/service-ignore` - This label can be set on a Kubernetes Service.
   If set to "true", the service will not be used to register a Consul endpoint. This can be
