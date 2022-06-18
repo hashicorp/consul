@@ -295,9 +295,9 @@ registrations](/docs/discovery/services#service-definition-parameter-case).
 - `outbound_listener_port` `(int: 15001)` - The port the proxy should listen on for outbound traffic.
    This must be the port where outbound application traffic is captured and redirected to.
 - `dialed_directly` `(bool: false)` - Determines whether this proxy instance's IP address can be dialed
-   directly by transparent proxies. Typically transparent proxies dial upstreams using the "virtual"
-   tagged address, which load balances across instances. Dialing individual instances can be helpful
-   in cases like stateful services such as a database cluster with a leader.
+   directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual"
+   tagged address, which load balances across instances. A database cluster with a leader is an example
+   where dialing individual instances can be helpful.
 
   ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
      Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
