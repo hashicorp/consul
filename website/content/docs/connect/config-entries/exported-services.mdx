@@ -8,13 +8,13 @@ description: >-
 
 # Exported Services
 
-This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions. See [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions).
 
 -> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
 ## Introduction
 
-You can configure Consul to export services contained in a Consul Enteprise admin partition or Consul OSS datacenter to one or more additional clusters by declaring the `exported-services` configuration entry in the `kind` field. This enables you to route traffic between services in different clusters.
+To configure Consul to export services contained in a Consul Enterprise admin partition or Consul OSS datacenter to one or more additional clusters, create a new configuration entry and declare `exported-services` in the `kind` field. This configuration entry enables you to route traffic between services in different clusters.
 
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
@@ -47,7 +47,7 @@ Services = [
     Name = "<name of service to export>"
     Consumers = [
       {
-        PeerName = "<name of the peered cluster that will dial the exported service>"
+        PeerName = "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -63,7 +63,7 @@ spec:
   services:
     - name: <name of service to export>
       consumers:
-        - peerName: <name of the peered cluster that will dial the exported service>
+        - peerName: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -74,7 +74,7 @@ spec:
     "Name": "<name of service to export>",
     "Consumers": [
       {
-        "PeerName": "<name of the peered cluster that will dial the exported service>"
+        "PeerName": "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -97,7 +97,7 @@ Services = [
     Namespace = "<namespace in the partition containing the service to export>"
     Consumers = [
       {
-        PeerName = "<name of the peered cluster that will dial the exported service>"
+        PeerName = "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -114,7 +114,7 @@ spec:
     - name: <name of service to export>
       namespace: <namespace in the partition containing the service to export>
       consumers:
-        - peerName: <name of the peered cluster that will dial the exported service>
+        - peerName: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -127,7 +127,7 @@ spec:
     "Namespace": "<namespace in the partition containing the service to export>"
     "Consumers": [
       {
-        "PeerName": "<name of the peered cluster that will dial the exported service>"
+        "PeerName": "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -150,7 +150,7 @@ Services = [
     Namespace = "<namespace in the partition containing the service to export>"
     Consumers = [
       {
-        Partition = "<name of the partition that will dial the exported service>"
+        Partition = "<name of the partition that dials the exported service>"
       }
     ]
   }
@@ -167,7 +167,7 @@ spec:
     - name: <name of service to export>
       namespace: <namespace in the partition containing the service to export>
       consumers:
-        - partition: <name of the partition that will dial the exported service>
+        - partition: <name of the partition that dials the exported service>
 ```
 
 ```json
@@ -180,7 +180,7 @@ spec:
     "Namespace": "<namespace in the partition containing the service to export>"
     "Consumers": [
       {
-        "Partition": "<name of partition that will dial the exported service>"
+        "Partition": "<name of partition that dials the exported service>"
       }
     ]
   }
@@ -200,16 +200,16 @@ The following table describes the parameters associated with the `exported-servi
 | `Kind`      | String value that enables the configuration entry. The value should always be `exported-services` (HCL and JSON) or `ExportedServices` (YAML)                                    | Required | None    |
 | `Partition` | <EnterpriseAlert inline /> String value that specifies the name of the partition that contains the services you want to export.                                              | Required | None    |
 | `Name`      | String value that specifies the name of the partition that contains the services you want to export. Must be `default` in Consul OSS.                                          | Required | None    |
-| `Services`  | List of objects that specify which services to export. See [`Services`](#services) for details.                                                                                  | Required | None    |
+| `Services`  | List of objects that specify which services to export. For details, refer to [`Services`](#services).                                                                            | Required | None    |
 | `Meta`      | Object that defines a map of the max 64 key/value pairs.                                                                                                                         | Optional | None    |
 
 ### Services
 
 The `Services` parameter contains a list of one or more parameters that specify which services to export, which namespaces the services reside, and the destination cluster for the exported services. Each item in the `Services` list must contain the following parameters:
 
-- `Name`: Specifies the name of the service to export. You can use a asterisk wildcard (`*`) to include all services in the namespace.
-- `Namespace`: <EnterpriseAlert inline /> Specifies the namespace containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.
-- `Consumers`: Specifies one ore more objects that identify a destination cluster for the exported services.
+- `Name`: Specifies the name of the service to export. You can use an asterisk wildcard (`*`) to include all services in the namespace.
+- `Namespace`: <EnterpriseAlert inline /> Specifies the namespace containing the services to export. You can use an asterisk wildcard (`*`) to include all namespaces in the partition.
+- `Consumers`: Specifies one or more objects that identify a destination cluster for the exported services.
 
 ### Consumers
 
@@ -674,8 +674,8 @@ $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 </Tab>
 </Tabs>
 
-An ACL token with `service:write` permissions is required for the cluster from which the query is made. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request will require a token with `write` permissions to `web` in the `frontend` partition.
+An ACL token with `service:write` permissions is required for the cluster the query is made from. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires a token with `write` permissions to `web` in the `frontend` partition.
 
-Exports are available to all services in the consumer cluster. In the previous example, any service with `write` permissions for the `frontend` partition will be able to read exports.
+Exports are available to all services in the consumer cluster. In the previous example, any service with `write` permissions for the `frontend` partition can read exports.
 
-See [Health HTTP Endpoint](/api-docs/health) for additional information.
+For additional information, refer to [Health HTTP Endpoint](/api-docs/health).
