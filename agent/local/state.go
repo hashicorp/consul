@@ -46,10 +46,6 @@ var StateCounters = []prometheus.CounterDefinition{
 		Name: []string{"acl", "blocked", "node", "registration"},
 		Help: "Increments whenever a registration fails for a node (blocked by an ACL)",
 	},
-	{
-		Name: []string{"acl", "blocked", "node", "deregistration"},
-		Help: "Increments whenever a deregistration fails for a node (blocked by an ACL)",
-	},
 }
 
 const fullSyncReadMaxStale = 2 * time.Second
