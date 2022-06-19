@@ -2,6 +2,7 @@ package get
 
 import (
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -416,5 +417,117 @@ func TestKVGetCommand_DetailedBase64(t *testing.T) {
 
 	if !strings.Contains(output, base64.StdEncoding.EncodeToString([]byte("bar"))) {
 		t.Fatalf("bad %#v, value is not base64 encoded", output)
+	}
+}
+
+func TestKVGetCommand_KeysRecurse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	keys := map[string]string{
+		"foo/":   "",
+		"foo/a":  "Hello World 2",
+		"foo1/a": "Hello World 1",
+	}
+	for k, v := range keys {
+		var pair *api.KVPair
+		switch k {
+		case "":
+			pair = &api.KVPair{Key: k, Value: nil}
+		default:
+			pair = &api.KVPair{Key: k, Value: []byte(v)}
+		}
+		if _, err := client.KV().Put(pair, nil); err != nil {
+			t.Fatalf("err: %#v", err)
+		}
+	}
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-recurse",
+		"-keys",
+		"foo",
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	output := ui.OutputWriter.String()
+	fmt.Println(output)
+	for key, value := range keys {
+		if !strings.Contains(output, key) {
+			t.Fatalf("bad %#v missing %q", output, key)
+		}
+		if strings.Contains(output, key+":"+base64.StdEncoding.EncodeToString([]byte(value))) {
+			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
+		}
+	}
+}
+func TestKVGetCommand_DetailedKeysRecurse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	keys := map[string]string{
+		"foo/":   "",
+		"foo/a":  "Hello World 2",
+		"foo1/a": "Hello World 1",
+	}
+	for k, v := range keys {
+		var pair *api.KVPair
+		switch k {
+		case "":
+			pair = &api.KVPair{Key: k, Value: nil}
+		default:
+			pair = &api.KVPair{Key: k, Value: []byte(v)}
+		}
+		if _, err := client.KV().Put(pair, nil); err != nil {
+			t.Fatalf("err: %#v", err)
+		}
+	}
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-recurse",
+		"-keys",
+		"-detailed",
+		"foo",
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	output := ui.OutputWriter.String()
+	fmt.Println(output)
+	for key, value := range keys {
+		for _, key := range []string{
+			"CreateIndex",
+			"LockIndex",
+			"ModifyIndex",
+			"Flags",
+			"Session",
+		} {
+			if !strings.Contains(output, key) {
+				t.Fatalf("bad %#v, missing %q", output, key)
+			}
+		}
+		if value != "" && strings.Contains(output, value) {
+			t.Fatalf("bad %#v expected no values for keys %q but received %q", output, key, value)
+		}
 	}
 }
