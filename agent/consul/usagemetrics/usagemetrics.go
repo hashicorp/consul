@@ -17,35 +17,35 @@ import (
 
 var Gauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "state", "nodes"},
+		Name: []string{"state", "nodes"},
 		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
-		Name: []string{"consul", "state", "services"},
+		Name: []string{"state", "services"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
-		Name: []string{"consul", "state", "service_instances"},
+		Name: []string{"state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
-		Name: []string{"consul", "members", "clients"},
+		Name: []string{"members", "clients"},
 		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
-		Name: []string{"consul", "members", "servers"},
+		Name: []string{"members", "servers"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
-		Name: []string{"consul", "kv", "entries"},
+		Name: []string{"kv", "entries"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.10.3.",
 	},
 	{
-		Name: []string{"consul", "state", "connect_instances"},
+		Name: []string{"state", "connect_instances"},
 		Help: "Measures the current number of unique connect service instances registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
 	},
 	{
-		Name: []string{"consul", "state", "config_entries"},
+		Name: []string{"state", "config_entries"},
 		Help: "Measures the current number of unique configuration entries registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
 	},
 }

@@ -20,10 +20,6 @@ import (
 
 var IntentionSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "intention", "apply"},
-		Help: "",
-	},
-	{
 		Name: []string{"intention", "apply"},
 		Help: "",
 	},
@@ -88,7 +84,6 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	if done, err := s.srv.ForwardRPC("Intention.Apply", args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"intention", "apply"}, time.Now())
 
 	if err := s.legacyUpgradeCheck(); err != nil {

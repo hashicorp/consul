@@ -55,16 +55,8 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 		Help: "Measures the time it takes to apply the given autopilot update to the FSM.",
 	},
 	{
-		Name: []string{"consul", "fsm", "intention"},
-		Help: "Deprecated - use fsm_intention instead",
-	},
-	{
 		Name: []string{"fsm", "intention"},
 		Help: "Measures the time it takes to apply an intention operation to the FSM.",
-	},
-	{
-		Name: []string{"consul", "fsm", "ca"},
-		Help: "Deprecated - use fsm_ca instead",
 	},
 	{
 		Name: []string{"fsm", "ca"},
@@ -347,12 +339,6 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	// TODO(kit): We should deprecate this first metric that writes the metrics_prefix itself,
-	//  the config we use to flag this out, telemetry.disable_compat_1.9 is on the agent - how do
-	//  we access it here?
-	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "intention"}, time.Now(),
-		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
-
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 
@@ -384,8 +370,6 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "ca"}, time.Now(),
-		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "ca"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 
