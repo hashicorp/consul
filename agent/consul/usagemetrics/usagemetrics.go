@@ -37,8 +37,8 @@ var Gauges = []prometheus.GaugeDefinition{
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
-		Name: []string{"consul", "kv", "entries"},
-		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.10.3.",
+		Name: []string{"consul", "state", "kv_entries"},
+		Help: "Measures the current number of entries in the Consul KV store. It is only emitted by Consul servers. Added in v1.10.3.",
 	},
 	{
 		Name: []string{"consul", "state", "connect_instances"},
