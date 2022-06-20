@@ -65,7 +65,7 @@ export default class ConsulBucketList extends Component {
   _addService(items) {
     const { service, item } = this.args;
 
-    if (service === item.Service) {
+    if (service && item.Service) {
       items.push({
         type: 'service',
         label: 'Service',
