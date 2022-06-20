@@ -159,7 +159,7 @@ Ensure that the following requirements are met prior to upgrading:
   apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: ReferencePolicy
   metadata:
-    name: reference-grant
+    name: reference-policy
     namespace: secret-namespace
   spec:
     from:
@@ -273,7 +273,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `backendRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-grant)).
+  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-policy)).
 
   After completing this step, you will have a list of all routes similar to the following:
 
@@ -348,7 +348,7 @@ Ensure that the following requirements are met prior to upgrading:
   </CodeBlockConfig>
 
   If your output is empty, proceed with the [standard-upgrade](#standard-upgrade).
-<a name="create-reference-grant"/>
+<a name="create-reference-policy"/>
 
 1. Using the list of routes you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic for each route service pair.
   The `ReferencePolicy` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
@@ -365,7 +365,7 @@ Ensure that the following requirements are met prior to upgrading:
   apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: ReferencePolicy
   metadata:
-    name: reference-grant
+    name: reference-policy
     namespace: gateway-namespace
   spec:
     from:
