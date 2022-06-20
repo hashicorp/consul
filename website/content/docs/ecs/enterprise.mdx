@@ -11,7 +11,7 @@ You can run Consul Enterprise on ECS by specifying the Consul Enterprise Docker 
 
 ## Specify the Consul image
 
-When instantiating the [`mesh-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) or [`gateway-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task) module,
+When you set up an instance of the [`mesh-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) or [`gateway-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task) module,
 set the parameter `consul_image` to a Consul Enterprise image. The following example instructs the `mesh-task` module to import Consul Enterprise version 1.12.0:
 
 ```hcl
@@ -63,10 +63,10 @@ If client support is required for any of the features, then you must use a Consu
 
 Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) and [namespaces](/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used. These features have the following requirements:
 
-* ACLs must be enabled.
-* ACL controller must run in the ECS cluster.
-* `mesh-tasks` must use a Consul Enterprise client image.
-* `gateway-task`s must use a Consul Enterprise client image. 
+- ACLs must be enabled.
+- ACL controller must run in the ECS cluster.
+- `mesh-task` must use a Consul Enterprise client image.
+- `gateway-task` must use a Consul Enterprise client image. 
 
 The ACL controller automatically manages ACL policies and token provisioning for clients and services on the service mesh.
 It also creates admin partitions and namespaces if they do not already exist.

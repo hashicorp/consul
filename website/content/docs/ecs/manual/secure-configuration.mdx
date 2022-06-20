@@ -13,11 +13,11 @@ This topic describes how to enable Consul security features for your production 
 
 The following features must be configured for your Consul server cluster:
 
-* [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
-* [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
-* [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+- [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+- [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+- [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
-You should already have followed the [installation instructions](/docs/ecs/manual/install) to understand how to define the necessary components of the task definition for Consul on ECS.
+You should already have followed the [manual installation instructions](/docs/ecs/manual/install) to define the necessary components of the task definition for Consul on ECS.
 
 You should be familiar with [specifying sensitive data](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) on ECS.
 
@@ -36,7 +36,7 @@ This section describes how to manually create ACL tokens. You can install the AC
 
 ### Define policies
 
-Confiture the following ACL policy for the Consul client token:
+Configure the following ACL policy for the Consul client token:
 
 ```hcl
 node_prefix "" {
@@ -58,12 +58,12 @@ If you intend to create a gateway for connecting multiple Consul datacenters, yo
 Mesh gateways must run in the default namespace.
 
 ```hcl
-namespace "default" {    // If namespaces enabled
+namespace "default" {    ## If namespaces enabled
     service "<Service Name>" {
        policy = "write"
     }
 }
-namespace_prefix "" {    // If namespaces enabled
+namespace_prefix "" {    ## If namespaces enabled
     service_prefix "" {
        policy = "read"
     }
@@ -78,8 +78,8 @@ agent_prefix "" {
 #### Terminating gateway policy
 
 ```hcl
-partition "<partition>" {    // If partitions enabled
-  namespace "<namespace>" {  // If namespaces enabled
+partition "<partition>" {    ## If partitions enabled
+  namespace "<namespace>" {  ## If namespaces enabled
     service "<Service Name>" {
        policy = "write"
     }
@@ -93,8 +93,8 @@ partition "<partition>" {    // If partitions enabled
 #### Ingress gateway policy
 
 ```hcl
-partition "<partition>" {      // If partitions enabled
-  namespace "<namespace>" {    // If namespaces enabled
+partition "<partition>" {      ## If partitions enabled
+  namespace "<namespace>" {    ## If namespaces enabled
     service "<Service Name>" {
        policy = "write"
     }
@@ -114,12 +114,12 @@ partition "<partition>" {      // If partitions enabled
 Create the Consul client token and the service tokens after adding the necessary policies. Service tokens should be associated with a service identity. The service identity includes `service:write` permissions for the service and sidecar proxy.
 
 You can create tokens using the [`consul acl token create`](/commands/acl/token/create) command or the [`[PUT] /v1/acl/token`](/api-docs/acl/tokens#create-a-token) API endpoint.
-The following example shows how to use the Consul CLI to create a service token for a service named example-client-app:
+The following example shows how to use the Consul CLI to create a service token for a service named `example-client-app`:
 
 ```shell-session
 $ consul acl token create -service-identity=example-client-app ...
 ```
-You will need to create one service token for each registered Consul service in ECS, including when new services are added to the service mesh.
+You need to create one service token for each registered Consul service in ECS. When you add new services to the service mesh, you must create new tokens for each service.
 
 
 ## Secret storage
