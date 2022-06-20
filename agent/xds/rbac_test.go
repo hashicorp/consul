@@ -58,10 +58,13 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 			ExportedPartition: "part1",
 		},
 	}
+	testTrustDomain := "test.consul"
 
 	var (
-		nameWild       = rbacService{ServiceName: structs.NewServiceName("*", nil)}
-		nameWeb        = rbacService{ServiceName: structs.NewServiceName("web", nil)}
+		nameWild = rbacService{ServiceName: structs.NewServiceName("*", nil),
+			TrustDomain: testTrustDomain}
+		nameWeb = rbacService{ServiceName: structs.NewServiceName("web", nil),
+			TrustDomain: testTrustDomain}
 		nameWildPeered = rbacService{ServiceName: structs.NewServiceName("*", nil),
 			Peer: "peer1", TrustDomain: "peer1.domain", ExportedPartition: "part1"}
 		nameWebPeered = rbacService{ServiceName: structs.NewServiceName("web", nil),
@@ -439,7 +442,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http, testPeerTrustBundle)
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, testTrustDomain, tt.http, testPeerTrustBundle)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
 			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
 
@@ -472,13 +475,14 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
-	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
-		"peer1": {
+	testPeerTrustBundle := []*pbpeering.PeeringTrustBundle{
+		{
 			PeerName:          "peer1",
 			TrustDomain:       "peer1.domain",
 			ExportedPartition: "part1",
 		},
 	}
+	testTrustDomain := "test.consul"
 	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
@@ -797,7 +801,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Run("network filter", func(t *testing.T) {
-				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, testPeerTrustBundle)
+				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, testTrustDomain, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -807,7 +811,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testPeerTrustBundle)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testTrustDomain, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
