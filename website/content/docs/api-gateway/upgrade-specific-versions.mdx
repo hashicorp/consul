@@ -12,7 +12,7 @@ This topic describes how to upgrade Consul API Gateway.
 
 ## v0.3.0
 
-Consul API Gateway v0.3.0 introduces a breaking change for people upgrading from lower versions. Gateways with a `secret` defined in a different namespace now require a [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant) that explicitly allows `Gateways` from the gateway's namesapce to use `Secrets` in the secret's namespace.
+Consul API Gateway v0.3.0 introduces a breaking change for people upgrading from lower versions. Gateways with a `secret` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `Secrets` in the secret's namespace.
 
 ### Requirements
 
@@ -23,7 +23,7 @@ Ensure that the following requirements are met prior to upgrading:
 - `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
 - You should have the following permission rights on your Kubernetes cluster:
   - `Gateway.read`
-  - `ReferenceGrant.create`
+  - `ReferencePolicy.create`
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
 ### Procedure
@@ -97,7 +97,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `secret` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `secret` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `secret`. Otherwise, note the `namespace` field values for `secret` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferenceGrant` that explicitly allows each cross-namespace secret-to-gateway pair to prevent the route from breaking (see [step 5](#create-secret-reference-grant)).
+  If a `namespace` field is not defined in the `secret` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `secret`. Otherwise, note the `namespace` field values for `secret` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace secret-to-gateway pair to prevent the route from breaking (see [step 5](#create-secret-reference-grant)).
 
   After completing this step, you will have a list of all secrets similar to the following:
 
@@ -114,14 +114,14 @@ Ensure that the following requirements are met prior to upgrading:
   Proceed with the [standard-upgrade](#standard-upgrade) if your list is empty.
 <a name="jq-command-secrets"/>
 
-1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `Gateways` and filter for secrets that require a `ReferenceGrant`.
+1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `Gateways` and filter for secrets that require a `ReferencePolicy`.
 
   ```shell-session
   $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
   ```
 
 
-  The output will resemble the following response if gateways that require a new `ReferenceGrant` are returned:
+  The output will resemble the following response if gateways that require a new `ReferencePolicy` are returned:
 
   <CodeBlockConfig hideClipboard>
 
@@ -144,20 +144,20 @@ Ensure that the following requirements are met prior to upgrading:
   If your output is empty, proceed with the [standard-upgrade](#standard-upgrade).
 <a name="create-reference-grant-secret"/>
 
-1. Using the list of secrets you created earlier as a guide, create a [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant) to allow each gateway cross namespace secret access.
-  The `ReferenceGrant` explicitly allows each cross-namespace gateway to secret pair. The `ReferenceGrant` must be created in the same `namespace` as the `Secret`.
+1. Using the list of secrets you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow each gateway cross namespace secret access.
+  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `Secret`.
 
-  Skip to the next step if you've already created a `ReferenceGrant`.
+  Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
   TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
   --->
-  The following example `ReferenceGrant` enables `example-gateway` in `gateway-namespace` to utilize secrets in the `secret-namespace` namespace:
+  The following example `ReferencePolicy` enables `example-gateway` in `gateway-namespace` to utilize secrets in the `secret-namespace` namespace:
 
-  <CodeBlockConfig filename="referencegrant.yaml">
+  <CodeBlockConfig filename="referencepolicy.yaml">
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
-  kind: ReferenceGrant
+  kind: ReferencePolicy
   metadata:
     name: reference-grant
     namespace: secret-namespace
@@ -173,20 +173,20 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferenceGrant`, modify it to allow your route and save it as `referencegrant.yaml`. Note that each `ReferenceGrant` only supports one `to` field and one `from` field (refer the [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferenceGrant`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
 1. Issue the following command to apply it to your cluster:
 
   ```shell-session
-  $ kubectl apply --filename referencegrant.yaml
+  $ kubectl apply --filename referencepolicy.yaml
   ```
 
-  Repeat this step as needed until each of your cross-namespace secrets have a corresponding `ReferenceGrant`.
+  Repeat this step as needed until each of your cross-namespace secrets have a corresponding `ReferencePolicy`.
 
 
 ## v0.2.0
 
-Consul API Gateway v0.2.0 introduces a breaking change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
+Consul API Gateway v0.2.0 introduces a breaking change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
 
 ### Requirements
 
@@ -198,7 +198,7 @@ Ensure that the following requirements are met prior to upgrading:
 - You should have the following permission rights on your Kubernetes cluster:
   - `HTTPRoute.read`
   - `TCPRoute.read`
-  - `ReferenceGrant.create`
+  - `ReferencePolicy.create`
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
 ### Procedure
@@ -273,7 +273,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `backendRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferenceGrant` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-grant)).
+  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-grant)).
 
   After completing this step, you will have a list of all routes similar to the following:
 
@@ -304,7 +304,7 @@ Ensure that the following requirements are met prior to upgrading:
   Proceed with [standard-upgrade](#standard-upgrade) if your list is empty.
 <a name="jq-command"/>
 
-1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferenceGrant`.
+1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferencePolicy`.
 
   ```shell-session
   $ kubectl get HTTPRoute,TCPRoute -o json -A | jq -r '.items[] | {name: .metadata.name, namespace: .metadata.namespace, kind: .kind, crossNamespaceBackendReferences: ( .metadata.namespace as $parentnamespace | .spec.rules[] .backendRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
@@ -312,7 +312,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   Note that the command retrieves all `HTTPRoutes` and `TCPRoutes`. `TLSRoutes` and `UDPRoutes` are not supported in v0.1.0.
 
-  The output will resemble the following response if routes that require a new `ReferenceGrant` are returned:
+  The output will resemble the following response if routes that require a new `ReferencePolicy` are returned:
 
   <CodeBlockConfig hideClipboard>
 
@@ -350,20 +350,20 @@ Ensure that the following requirements are met prior to upgrading:
   If your output is empty, proceed with the [standard-upgrade](#standard-upgrade).
 <a name="create-reference-grant"/>
 
-1. Using the list of routes you created earlier as a guide, create a [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant) to allow cross namespace traffic for each route service pair.
-  The `ReferenceGrant` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferenceGrant` must be created in the same `namespace` as the backend `Service`.
+1. Using the list of routes you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic for each route service pair.
+  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
 
-  Skip to the next step if you've already created a `ReferenceGrant`.
+  Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
   TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
   --->
-  The following example `ReferenceGrant` enables `HTTPRoute` traffic from the `example-namespace` to Kubernetes Services in the `web-backend` namespace:
+  The following example `ReferencePolicy` enables `HTTPRoute` traffic from the `example-namespace` to Kubernetes Services in the `web-backend` namespace:
 
-  <CodeBlockConfig filename="referencegrant.yaml">
+  <CodeBlockConfig filename="referencepolicy.yaml">
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
-  kind: ReferenceGrant
+  kind: ReferencePolicy
   metadata:
     name: reference-grant
     namespace: gateway-namespace
@@ -380,15 +380,15 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferenceGrant`, modify it to allow your route and save it as `referencegrant.yaml`. Note that each `ReferenceGrant` only supports one `to` field and one `from` field (refer the [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferenceGrant`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
 1. Issue the following command to apply it to your cluster:
 
   ```shell-session
-  $ kubectl apply --filename referencegrant.yaml
+  $ kubectl apply --filename referencepolicy.yaml
   ```
 
-  Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferenceGrant`.
+  Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
 
 ## Standard Upgrade
 
