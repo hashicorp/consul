@@ -26,9 +26,10 @@ as |item index|>
     </a>
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if (eq item.Address @leader.Address)}}
-    <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
-  {{/if}}
+    <Consul::Node::PeerInfo @item={{item}} />
+    {{#if (eq item.Address @leader.Address)}}
+      <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
+    {{/if}}
     <span>
       {{format-number item.MeshServiceInstances.length}} {{pluralize item.MeshServiceInstances.length 'Service' without-count=true}}
     </span>
