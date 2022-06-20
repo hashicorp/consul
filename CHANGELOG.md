@@ -1,3 +1,47 @@
+## 1.13.0-alpha1 (June 15, 2022)
+
+BREAKING CHANGES:
+
+* config-entry: Exporting a specific service name across all namespace is invalid.
+
+FEATURES:
+
+* acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
+* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
+to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
+* ca: Leaf certificates can now be obtained via the gRPC API: `Sign` [[GH-12787](https://github.com/hashicorp/consul/issues/12787)]
+* checks: add UDP health checks.. [[GH-12722](https://github.com/hashicorp/consul/issues/12722)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-12825](https://github.com/hashicorp/consul/issues/12825)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-1717](https://github.com/hashicorp/consul/issues/1717)]
+* grpc: New gRPC service and endpoint to return the list of supported consul dataplane features [[GH-12695](https://github.com/hashicorp/consul/issues/12695)]
+
+IMPROVEMENTS:
+
+* api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13001](https://github.com/hashicorp/consul/issues/13001)]
+* api: add the ability to specify a path prefix for when consul is behind a reverse proxy or API gateway [[GH-12914](https://github.com/hashicorp/consul/issues/12914)]
+* connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
+This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration. [[GH-12881](https://github.com/hashicorp/consul/issues/12881)]
+* Support Vault namespaces in Connect CA by adding RootPKINamespace and
+IntermediatePKINamespace fields to the config. [[GH-12904](https://github.com/hashicorp/consul/issues/12904)]
+* acl: Clarify node/service identities must be lowercase [[GH-12807](https://github.com/hashicorp/consul/issues/12807)]
+* connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance. [[GH-13143](https://github.com/hashicorp/consul/issues/13143)]
+* dns: Added support for specifying admin partition in node lookups. [[GH-13421](https://github.com/hashicorp/consul/issues/13421)]
+* grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed. [[GH-12819](https://github.com/hashicorp/consul/issues/12819)]
+* telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines [[GH-12865](https://github.com/hashicorp/consul/issues/12865)]
+* telemetry: Added a `consul.server.isLeader` metric to track if a server is a leader or not. [[GH-13304](https://github.com/hashicorp/consul/issues/13304)]
+* ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities [[GH-10996](https://github.com/hashicorp/consul/issues/10996)]
+* ui: upgrade ember-composable-helpers to v5.x [[GH-13394](https://github.com/hashicorp/consul/issues/13394)]
+
+BUG FIXES:
+
+* acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter. [[GH-12885](https://github.com/hashicorp/consul/issues/12885)]
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13256](https://github.com/hashicorp/consul/issues/13256)]
+* deps: Update go-grpc/grpc, resolving connection memory leak [[GH-13051](https://github.com/hashicorp/consul/issues/13051)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+* proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering. [[GH-13012](https://github.com/hashicorp/consul/issues/13012)]
+* raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election. [[GH-12844](https://github.com/hashicorp/consul/issues/12844)]
+* serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed [[GH-13062](https://github.com/hashicorp/consul/issues/13062)]
+
 ## 1.12.2 (June 3, 2022)
 
 BUG FIXES:
