@@ -1,0 +1,34 @@
+.peerings-badge {
+  display: flex;
+  align-items: center;
+  justify-content: centeR;
+  padding: 2px 8px;
+  border-radius: 5px;
+  gap: 4px;
+
+  &.active {
+    background: #f2fbf6;
+    color: #00781e;
+  }
+  &.initial {
+    background: #f9f2ff;
+    color: #911ced;
+  }
+  &.failing {
+    background: #fff5f5;
+    color: #c00005;
+  }
+  &.terminated {
+    background: #f1f2f3;
+    color: #3b3d45;
+  }
+  &.undefined {
+    background: #f1f2f3;
+    color: #3b3d45;
+  }
+
+  .peerings-badge__text {
+    font-weight: 500;
+    font-size: 13px;
+  }
+}

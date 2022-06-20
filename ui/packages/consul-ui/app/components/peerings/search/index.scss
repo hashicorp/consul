@@ -1,0 +1,36 @@
+.peerings-search {
+  display: flex;
+  padding: 4px 8px;
+  background: rgb(var(--gray-010));
+
+  .peerings-search__input {
+    position: relative;
+    border-width: 1px;
+    border-radius: 0.125rem;
+  }
+
+  .peerings-search__input__label {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 100%;
+  }
+
+  .peerings-search__input__input {
+    padding: 8px 32px;
+    border-radius: 2px;
+    border: 1px solid rgb(var(--gray-300));
+  }
+
+  .peerings-search__input__clear-button {
+    position: absolute;
+    right: 4px;
+    top: 0px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
