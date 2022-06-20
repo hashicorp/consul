@@ -9,7 +9,7 @@ description: >-
 
 This topic describes how to use HashiCorp’s Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual-installation) page to install Consul on ECS without Terraform.
 
-This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete, runnable examples.
+This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete and runnable examples.
 
 ## Overview
 
@@ -17,8 +17,8 @@ The following procedure describes the general workflow:
 
 1. Create Terraform configuration files for the necessary components:
 
-    * [ECS task definition](#create-the-task-definition): Use the HashiCorp Terraform modules to create the ECS task definition.
-    * [ECS service](#ecs-service): Use the `aws_ecs_service` resource to create an ECS service that schedules service mesh tasks to run on ECS.
+    - [ECS task definition](#create-the-task-definition): Use the HashiCorp Terraform modules to create the ECS task definition.
+    - [ECS service](#ecs-service): Use the `aws_ecs_service` resource to create an ECS service that schedules service mesh tasks to run on ECS.
 
 2. [Run Terraform](#running-terraform) to deploy the resources in AWS
 
@@ -32,17 +32,17 @@ If you want to operate Consul with ACLs enabled (recommended), follow the instru
 
 ## Create the task definition
 
-To run an application in ECS with Consul service mesh, you must create an ECS task definition. The task defintion includes your application container(s) and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container. 
+To run an application in ECS with Consul service mesh, you must create an ECS task definition. The task definition includes your application containers and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container. 
 
 Create a Terraform configuration file and include the `mesh-task` module. The module automatically adds the necessary sidecar containers. 
 
-If you intend to peer the service mesh to multiple Consul datacenters or partitions, you can also include the `gateway-task` module. The `gateway-task` enables connectivity between datacenters across service meshes. 
+If you intend to peer the service mesh to multiple Consul datacenters or partitions, you can also include the `gateway-task` module. The module enables connectivity between datacenters across service meshes. 
 
 ### Configure the mesh task module
 
-Create a Terraform configuration file (e.g., `mesh-task.tf`) and specify the `mesh-task` module in the `source` field. The [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) will automatically include the necessary sidecar containers.
+Create a Terraform configuration file and specify the `mesh-task` module in the `source` field. The [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) automatically includes the necessary sidecar containers.
 
-In the following example, the a Terraform configuration file called `mesh-task.tf` creates a task definition with an application container called `example-client-app`:
+In the following example, the Terraform configuration file called `mesh-task.tf` creates a task definition with an application container called `example-client-app`:
 
 <CodeBlockConfig filename="mesh-task.tf">
 
@@ -116,19 +116,18 @@ resource "aws_ecs_service" "my_task" {
 
 </CodeBlockConfig>
 
-This is a partial configuration to highlight some important fields.
-See the [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) documentation for a complete reference.
+The example shows a partially configured ECS service to highlight significant fields. Refer to  [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) for a complete configuration reference.
 
 | Input Variable    | Type    | Description                                                                                                         |
 | ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `name`            | string  | The name of the ECS service. This is required by AWS but is not used by Consul service mesh.                        |
-| `task_definition` | string  | The task definition used to start tasks. Set this to the task definition ARN returned by the `mesh-task` module.    |
+| `name`            | string  | The name of the ECS service. This name is required by AWS but is not used by Consul service mesh.                        |
+| `task_definition` | string  | The task definition used to start tasks. Set this option to the task definition ARN returned by the `mesh-task` module.    |
 | `launch_type`     | string  | The launch type. Consul on ECS supports the `FARGATE` and `EC2` launch types.                                       |
-| `propagate_tags`  | string  | This must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
+| `propagate_tags`  | string  | This option must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
 
 After including the ECS service in your Terraform configuration, run `terraform apply`
-from your project directory to create the ECS service resource. The ECS service will
-soon start your application in a task. The task will automatically register itself
+from your project directory to create the ECS service resource. The ECS service 
+then starts your application in a task. The task automatically registers itself
 into the Consul service catalog during startup.
 
 -> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
@@ -145,9 +144,9 @@ You must add and configure a `gateway-task` for each Consul datacenter in your n
 
 The module creates an ECS service and a task definition that includes the following containers:
 
-* Consul client
-* Envoy gateway proxy
-* Mesh init
+- Consul client
+- Envoy gateway proxy
+- Mesh init
 
 You will need to provide inputs for the artifacts created by the `gateway-task` module. The following example defines a mesh gateway task called `my-gateway` in a file called `mesh-gateway.tf`:
 
@@ -197,14 +196,16 @@ The following table describes the inputs for configuring the ECS service in your
 | `ecs_cluster_arn` | string | Specifies the ECS cluster where tasks should be launched. |
 | `launch_type` | string | Specifies the ECS service launch type. Can be either `fargate` or `ec2`. |
 | `desired_count` | integer | Specifies the number instances for the service to create. Defaults to `0`. |
-| `subnets` | string | Specifies the subnet IDs where the tasks will launch. |
+| `subnets` | string | Specifies the subnet IDs where the tasks launch. |
 | `security_group_ids` | string | Specifies the security group IDs to assign to the task ENI. |
 | `assign_public_ip` | Boolean | Set to `true` to create a task accessible at a public IP address. Default is `false`. <br/>If set to `true` and `wan_address` is not configured, the WAN address will be set to the public IP of the task. |
-| `load_balancer_target_group_arn` | string | Specifies the ARN of an existing load balancer target group. The load balancer target group allows ingress to the gateway task. <br/>No additional load balancer configuration is necessary. Only NLBs and ALBs are supported. The container name and port will be automatically set based on other fields. |
+| `load_balancer_target_group_arn` | string | Specifies the ARN of an existing load balancer target group. The load balancer target group allows ingress to the gateway task. <br/>No additional load balancer configuration is necessary. Only NLBs and ALBs are supported. The container name and port are set automatically based on other fields. |
 
 #### Mesh init
 
-The `mesh-init` container is a short-lived container that sets up the initial configurations for Consul and Envoy (refer to [Task Startup](/docs/ecs/architecture#task-startup) for additional information). The `gateway-task` module automatically configures the `mesh-init` container based on the inputs specified in the [task definition](#task-definition) and [ECS service](#ecs-service) configuration.
+The `mesh-init` container is a short-lived container that sets up the initial configurations for Consul and Envoy. The `gateway-task` module automatically configures the `mesh-init` container based on the inputs specified in the [task definition](#task-definition) and [ECS service](#ecs-service) configuration.
+
+For additional information, refer to [Task Startup](/docs/ecs/architecture#task-startup) for additional information.
 
 #### Gateway task configuration examples
 
@@ -217,7 +218,7 @@ Mesh gateways need to be reachable over the WAN to route traffic between datacen
 | Option | Type | Description |
 | ---    | ---  | ---         |
 | `lb_enabled` | Boolean | Set to `true` to automatically deploy and configure a network load balancer for ingress to the mesh gateway. |
-| `lb_vpc_id` | string | Specifies the VPC in which to launch the load balancer. |
+| `lb_vpc_id` | string | Specifies the VPC to launch the load balancer in. |
 | `lb_subnets` | list of strings | Specifies one or more public subnets to associate with the load balancer. |
 
 <CodeBlockConfig filename="mesh-gateway.tf">
