@@ -38,6 +38,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 ## Technical preview constraints
 Not all features and functionality are available in the technical preview release. In particular, consider the following technical constraints:
 
+- Consul ACLs must be disabled or the ACL `default_policy` must be set to `allow`.
 - Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available. 
 - Services exported to peered clusters must not be configured as HTTP.
 - Support for dynamic routing such as splits, custom routes, or redirects is not available.
