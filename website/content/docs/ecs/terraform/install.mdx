@@ -24,10 +24,11 @@ The following procedure describes the general workflow:
 
 If you want to operate Consul with ACLs enabled (recommended), follow the instructions in the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation. ACLs provide network security for production-grade deployments.
 
-## Prerequisites
+## Requirements
 
 * You should have some familiarity with using Terraform. Refer to the [Terraform documentation](https://www.terraform.io/docs) to learn about infrastructure as code and how to get started with Terraform.
 * You should also be familiar with AWS ECS before following these instructions. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
+* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled (refer to [Encryption](/docs/security/encryption) for instructions). 
 
 ## Create the task definition
 
@@ -88,138 +89,6 @@ The following fields are required. Refer to the [module reference documentation]
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
 | `retry_join`            | list     | This is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                 |
-
-## Configuring a Mesh Gateway
-
-The `gateway-task` Terraform module can be used to deploy mesh gateways to enable service to service communication across the WAN.
-Mesh gateways can also be used to federate service mesh traffic across Consul admin partitions and Consul datacenters over the WAN.
-
-~> This topic requires familiarity with [mesh gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters).
-
-Using the `gateway-task` module to deploy mesh gateways requires that all Consul server and client agents in all datacenters have TLS and gossip encryption enabled.
-Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
-
-The following example shows a Terraform configuration that creates a mesh gateway task called `my-gateway` in a file called `mesh-gateway.tf`:
-
-<CodeBlockConfig filename="mesh-gateway.tf">
-
-```hcl
-module "my_mesh_gateway" {
-  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
-  version = "<latest version>"
-  kind    = "mesh-gateway"
-
-  family                    = "my-gateway"
-  ecs_cluster_arn           = "<ECS cluster ARN>"
-  subnets                   = ["<subnet ID>"]
-  retry_join                = ["<address of the Consul server>"]
-  consul_server_ca_cert_arn = "<Secrets Manager secret ARN>"
-  gossip_key_secret_arn     = "<Secrets Manager secret ARN>"
-}
-```
-
-</CodeBlockConfig>
-
-The following fields are required. Refer to the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task?tab=inputs) for a complete reference.
-
-| Input Variable              | Type     | Description                                                                                                                                                                                          |
-| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source`                    | string   | Must be set to the source location of the `gateway-task` module, `hashicorp/consul-ecs/aws//modules/gateway-task`.                                                                                   |
-| `version`                   | string   | Must be set to the version of the `gateway-task` module.                                                                                                                                             |
-| `kind`                      | string   | The kind of gateway to create. Must be set to `"mesh-gateway"` to create a mesh-gateway.                                                                                                             |
-| `family`                    | string   | The [ECS task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The family is also used as the Consul service name by default. |
-| `ecs_cluster_arn`           | string   | ARN of the ECS cluster to deploy the mesh gateway task to.                                                                                                                                           |
-| `subnets`                   | list     | The list of subnet IDs associated with the mesh gateway task.                                                                                                                                        |
-| `retry_join`                | list     | This is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul client agent, which specifies the locations of the Consul servers in the local datacenter.                         |
-| `consul_server_ca_cert_arn` | string   | ARN of the Secrets Manager secret that contains the Consul CA certificate.                                                                                                                           |
-| `gossip_key_secret_arn`     | string   | ARN of the Secrets Manager secret that contains the Consul gossip encryption key.                                                                                                                    |
-
-
-### Mesh Gateway Ingress
-
-To route traffic between datacenters, mesh gateways need to be reachable over the WAN.
-Providing the `lb_enabled = true` flag will cause the `gateway-task` module to automatically deploy and configure a Network Load Balancer for ingress to the mesh-gateway.
-You also need to provide the VPC identifier and at least one public subnet to associate with the load balancer.
-
-<CodeBlockConfig filename="mesh-gateway.tf">
-
-```hcl
-module "my_mesh_gateway" {
-  ...
-
-  lb_enabled = true
-  lb_vpc_id  = "<VPC ID>"
-  lb_subnets = ["<public subnet IDs>"]
-}
-```
-
-</CodeBlockConfig>
-
-Alternatively, you can manually configure ingress to the mesh gateway and provide the `wan_address` and `wan_port` inputs to the
-`gateway-task` module.
-
-~> Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure an Elastic Load Balancer for ingress to a mesh gateway you must use a Network Load Balancer or a Classic Load Balancer.
-
-
-<CodeBlockConfig filename="mesh-gateway.tf">
-
-```hcl
-module "my_mesh_gateway" {
-  ...
-
-  wan_address = "<public WAN address>"
-  wan_port    = <public WAN port>
-}
-```
-
-</CodeBlockConfig>
-
-The `wan_port` field is optional. If it is not provided, port `8443` is used by default.
-
-### ACLs
-
-The following example shows how to configure the `gateway-task` when ACLs are enabled.
-
-<CodeBlockConfig filename="mesh-gateway.tf">
-
-```hcl
-module "my_mesh_gateway" {
-  ...
-
-  acls                         = true
-  consul_http_addr          = "<HTTP address of the Consul server>"
-  consul_https_ca_cert_arn  = "<Secrets Manager secret ARN>"
-}
-```
-
-</CodeBlockConfig>
-
-The `consul_http_addr` input is the HTTP `address:port` of the Consul server and is required for the mesh gateway task to log in to Consul via the IAM Auth Method to obtain its client and service tokens.
-The `consul_https_ca_cert_arn` input is the ARN of the Secrets Manager secret that contains the certificate for the Consul HTTPS API.
-
-
-### WAN Federation with Mesh Gateways
-
-The following example shows how to configure the `gateway-task` module to enable [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
-
-<CodeBlockConfig filename="mesh-gateway.tf">
-
-```hcl
-module "my_mesh_gateway" {
-  ...
-
-  consul_datacenter                  = "<name of the local Consul datacenter>"
-  consul_primary_datacenter          = "<name of the primary Consul datacenter>"
-  enable_mesh_gateway_wan_federation = true
-  enable_acl_token_replication       = true
-}
-```
-
-</CodeBlockConfig>
-
-~> When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
-
-
 ### Configure an ECS service for the mesh task module
 
 [ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
@@ -267,53 +136,55 @@ in their [`network_configuration`](https://registry.terraform.io/providers/hashi
 
 ### Configure the gateway task module
 
-Add the `gateway-task` to your Terraform configuration if you want to federate multiple service meshes across Consul datacenters over the WAN. Refer to [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) to learn more about the federation deployment model. 
+Add the `gateway-task` to your Terraform configuration if you want to deploy a mesh gateway. Mesh gateways enable service to service communication across the WAN, as well as federate service mesh traffic across Consul admin partitions and Consul datacenters over the WAN. Refer to the following documentation to learn more about mesh gateways:
 
-You must add and configure a `gateway-task` for each Consul datacenter in your network. The module creates an ECS service and a task definition that includes the following containers:
+* [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+* [Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters).
+
+You must add and configure a `gateway-task` for each Consul datacenter in your network. You must also enable TLS and gossip encryption on all server and client agents in all data centers per the [Requirements](#requirements). Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
+
+The module creates an ECS service and a task definition that includes the following containers:
 
 * Consul client
 * Envoy gateway proxy
 * Mesh init
 
-You will need to provide inputs for the artifacts created by the `gateway-task` module.
+You will need to provide inputs for the artifacts created by the `gateway-task` module. The following example defines a mesh gateway task called `my-gateway` in a file called `mesh-gateway.tf`:
 
-#### Task definition
+<CodeBlockConfig filename="mesh-gateway.tf">
 
-The `kind` parameter is the only required input. The value must be set to `mesh-gateway`. The following table describes optional inputs for the task definition. Refer to the [example gateway task configuration](#example-gateway-task-configuration) for a fully-configured task definition.
+```hcl
+module "my_mesh_gateway" {
+  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  version = "<latest version>"
+  kind    = "mesh-gateway"
+
+  family                    = "my-gateway"
+  ecs_cluster_arn           = "<ECS cluster ARN>"
+  subnets                   = ["<subnet ID>"]
+  retry_join                = ["<address of the Consul server>"]
+  consul_server_ca_cert_arn = "<Secrets Manager secret ARN>"
+  gossip_key_secret_arn     = "<Secrets Manager secret ARN>"
+}
+```
+
+</CodeBlockConfig>
+
+The following fields are required. Refer to the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task?tab=inputs) for a complete reference.
 
 | Input variable | Type | Description |
-| ---            | ---  | ---         |
-| `kind` | string | Specifies the kind of gateway to create. The value must be set to `mesh-gateway`. |
-| `lan_address` | string | Specifies the LAN address for the gateway. The address is also used as the service address. Defaults to the node address. |
-| `lan_port` | integer | Specifies the LAN port for the gateway. Also used as the service port. Defaults to `8443`. |
-| `wan_address` | string | Specifies the WAN address for the gateway. Defaults to the `lan_address`. <br/>If the `assign_public_ip` is set to `true`, the WAN address will be set to the public IP address. <br/>If the `load_balancer_target_group_arn` is specified but no value for `wan_address` is provided, then the WAN address will be set to the load balancer’s DNS name. <br/>To set a static WAN address, specify an explicit value for `wan_address` and `wan_port`. |
-| `wan_port` | integer | Specifies the WAN port for the gateway. Defaults to the `lan_port`. |
-| `family` | string | Specifies the ECS task definition family. The family is also used as the Consul service name by default. |
-| `requires_compatibilities` | list of strings | Specifies one or more launch types required by the task. Defaults to `[“FARGATE”, “EC2”]` |
-| `cpu` | integer | Specifies the number of CPUs used by the task. Defaults to `256`. |
-| `memory` | integer | Specifies the mount (in MiB) of memory used by the task. Default is `512`. |
-| `task_role` | object | Specifies the ECS task role to include in the task definition. If not provided, a role is created. Defaults to `{ "arn": null, "id": null }` |
-| `execution_role` | object | Specifies the ECS execution role to include in the task definition. If not provided, a role is created. Defaults to `{ "arn": null, "id": null }` |
-| `additional_task_role_policies` | list of strings | Specifies additional policy ARNs to attach to the task role. Default is `[]`. |
-| `addition_task_execution_role_policies` | | |
-| `log_configuration` | object | Specifies configurations for the task definition log. See [LogConfiguration](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html) in the AWS documentation. Default is `{}`.|
-| `tags` | object | Defines tags to add to all resources. Default is `{}`.|
-| `consul_agent_configuration` | string | Specifies the contents of a configuration file for the Consul agent in HCL format. Default is `""`. |
-| `consul_datacenter` | string | Specifies the name of the Consul datacenter that the client belongs to. Default is `dc1`.|
-| `consul_service_name` | string | Specifies the name for the service when it registers will Consul. Defaults to the task family name. |
-| `consul_service_tags` | list of strings | Defines a list of tags to include in the Consul service registration. Default is `[]`.|
-| `consul_service_meta` | object | Defines metadata to attach to the Consul service registration. |
-| `consul_image` | string | Specifies the Consul Docker image to use. Default is `public.ecr.aws/hashicorp/consul:1.13.0` |
-| `consul_ecs_image` | string | Specifies the Consul on ECS Docker image to use. Default is `public.ecr.aws/hashicorp/consul-ecs:0.6.0` |
-| `consul_namespace` | string | <EnterpriseAlert inline /> Specifies which Consul namespace to register the service. Default is `default`.|
-| `consul_partition` | string | <EnterpriseAlert inline /> Specifies which Consul admin partition to register the service. Default is `default`. |
-| `envoy_image` | string | Specifies the name of the Envoy Docker image to use. Default is `envoyproxy/envoy-alpine:v1.21.2` |
-| `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. |
-| `consul_server_ca_cert_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate for Consul's internal remote procedure calls (RPC). |
-| `consul_client_token_secret_arn` | | |
+| --- | --- | --- |
+| `source` | string | Specifies the source location of the `gateway-task` module. Must be set to `hashicorp/consul-ecs/aws//modules/gateway-task`. |
+| `version` | string | Specifies the version of the `gateway-task` module. |
+| `kind` | string | Declares the kind of gateway to create. Must be set to `mesh-gateway` to create a mesh-gateway. |
+| `family` | string   | Specifies the [ECS task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The family is also used as the Consul service name by default. |
+| `ecs_cluster_arn` | string | Specifies the ARN of the ECS cluster where the mesh gateway task should be launched. |
+| `subnets` | list of strings | Specifies the subnet IDs where the task will be launched. |
+| `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. The arguments specify locations of the Consul servers in the local datacenter that Consul client agents can connect to. |
+| `consul_server_ca_cert_arn` | string   | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate |
 | `gossip_key_secret_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul's gossip encryption key. |
-| `acls` | Boolean | Set to `true` to enable Consul's [access control lists (ACLs)](/docs/security/acl/index). Default is `false`.|
-| `acl_secret_name_prefix` | | |
+
+Refer to the [gateway task configuration examples](#gateway-task-configuration-examples) for additional example configurations.
 
 #### ECS service
 
@@ -335,7 +206,105 @@ The following table describes the inputs for configuring the ECS service in your
 
 The `mesh-init` container is a short-lived container that sets up the initial configurations for Consul and Envoy (refer to [Task Startup](/docs/ecs/architecture#task-startup) for additional information). The `gateway-task` module automatically configures the `mesh-init` container based on the inputs specified in the [task definition](#task-definition) and [ECS service](#ecs-service) configuration.
 
-### Example gateway task configuration 
+#### Gateway task configuration examples
+
+The following examples illustrate how to configure the `gateway-task` for different use cases.
+
+##### Ingress
+
+Mesh gateways need to be reachable over the WAN to route traffic between datacenters. Configure the following options in the `gateway-task` to enable ingress through the mesh gateway.
+
+| Option | Type | Description |
+| ---    | ---  | ---         |
+| `lb_enabled` | Boolean | Set to `true` to automatically deploy and configure a network load balancer for ingress to the mesh gateway. |
+| `lb_vpc_id` | string | Specifies the VPC in which to launch the load balancer. |
+| `lb_subnets` | list of strings | Specifies one or more public subnets to associate with the load balancer. |
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  lb_enabled = true
+  lb_vpc_id  = "<VPC ID>"
+  lb_subnets = ["<public subnet IDs>"]
+}
+```
+
+</CodeBlockConfig>
+
+Alternatively, you can manually configure ingress to the mesh gateway and provide the `wan_address` and `wan_port` inputs to the `gateway-task` module. The `wan_port` field is optional. Port `8443` is used by default.
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  wan_address = "<public WAN address>"
+  wan_port    = <public WAN port>
+}
+```
+
+</CodeBlockConfig>
+
+Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) for ingress to a mesh gateway, you must use an AWS [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) or a [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html).
+
+
+#### ACLs
+
+Configure the following options in the `gateway-task` when ACLs are enabled.
+
+| Option | Type | Description |
+| ---    | ---  | ---         |
+| `acl` | Boolean | Set to `true` if ACLs are enabled. |
+| `consul_http_addr` | string |  Specifies the HTTP `address:port` of the Consul server. Required for the mesh gateway task to log into Consul via the IAM Auth Method to obtain its client and service tokens. |
+| `consul_https_ca_cert_arn` | string |  Specifies ARN of the Secrets Manager secret that contains the certificate for the Consul HTTPS API. |
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  acls                         = true
+  consul_http_addr          = "<HTTP address of the Consul server>"
+  consul_https_ca_cert_arn  = "<Secrets Manager secret ARN>"
+}
+```
+
+</CodeBlockConfig>
+
+#### WAN federation
+
+Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+
+| Option | Type | Description |
+| ---    | ---  | ---         |
+| `consul_datacenter` | string | Specifies the name of the local Consul datacenter. |
+| `consul_primary_datacenter` | string | Specifies the name of the primary Consul datacenter. |
+| `enable_mesh_gateway_wan_federation` | Boolean | Set to `true` to enable WAN federation. |
+| `enable_acl_token_replication` | Boolean | Set to `true` to enable ACL token replication and allow the creation of local tokens secondary datacenters. |
+
+The following example shows how to configure the `gateway-task` module.
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  consul_datacenter                  = "<name of the local Consul datacenter>"
+  consul_primary_datacenter          = "<name of the primary Consul datacenter>"
+  enable_mesh_gateway_wan_federation = true
+  enable_acl_token_replication       = true
+}
+```
+
+</CodeBlockConfig>
+
+When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
 
 ## Run Terraform
 
