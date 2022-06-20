@@ -10,12 +10,13 @@ as |route|>
     )
   }} as |tomography|>
   <DataLoader
-    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}/${peer}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.name
+        peer=route.params.peer
       )
     }}
   as |loader|>

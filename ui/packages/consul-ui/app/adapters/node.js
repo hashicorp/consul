@@ -24,7 +24,7 @@ export default class NodeAdapter extends Adapter {
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri, peer }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -34,6 +34,7 @@ export default class NodeAdapter extends Adapter {
 
       ${{
         ns,
+        peer,
         partition,
         index,
       }}
