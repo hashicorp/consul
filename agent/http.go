@@ -1139,18 +1139,6 @@ func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	}
 }
 
-func getPathSuffixUnescaped(path string, prefixToTrim string) (string, error) {
-	// The suffix may be URL-encoded, so attempt to decode
-	suffixRaw := strings.TrimPrefix(path, prefixToTrim)
-	suffixUnescaped, err := url.PathUnescape(suffixRaw)
-
-	if err != nil {
-		return suffixRaw, fmt.Errorf("failure in unescaping path param %q: %v", suffixRaw, err)
-	}
-
-	return suffixUnescaped, nil
-}
-
 func setMetaProtobuf(resp http.ResponseWriter, queryMeta *pbcommon.QueryMeta) {
 	qm := new(structs.QueryMeta)
 	pbcommon.QueryMetaToStructs(queryMeta, qm)

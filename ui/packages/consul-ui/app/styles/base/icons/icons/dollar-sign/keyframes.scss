@@ -1,15 +1,9 @@
 @keyframes icon-dollar-sign {
-  50% {
-
-    background-color: var(--icon-color, var(--color-dollar-sign-500, currentColor));
-    -webkit-mask-image: var(--icon-dollar-sign-24);
-    mask-image: var(--icon-dollar-sign-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-dollar-sign-500, currentColor));
     -webkit-mask-image: var(--icon-dollar-sign-16);
     mask-image: var(--icon-dollar-sign-16);
+    background-color: var(--icon-color, var(--color-dollar-sign-500, currentColor));
+
   }
 }

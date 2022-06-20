@@ -75,11 +75,12 @@ dc:
         title: Metadata
       sessions:
         title: Lock Sessions
-        header: Welcome to Lock Sessions
-        body: |
-          <p>
-          Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
-          </p>
+        empty:
+          header: Welcome to Lock Sessions
+          body: |
+            <p>
+            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
+            </p>
       services:
         title: Service Instances
         empty: |
@@ -181,7 +182,7 @@ dc:
               </p>
           wildcard-intention:
             header: Permissive Intention
-            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this vizualization more useful.
+            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this visualization more useful.
             footer: |
               <p>
                 <a href="{route_intentions}">Edit Intentions</a>

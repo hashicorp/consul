@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
@@ -45,7 +46,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 			var snap *proxycfg.ConfigSnapshot
 
-			runStep(t, "initial setup", func(t *testing.T) {
+			testutil.RunStep(t, "initial setup", func(t *testing.T) {
 				snap = newTestSnapshot(t, nil, "")
 
 				// Send initial cluster discover. We'll assume we are testing a partial
@@ -66,7 +67,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 				mgr.DeliverConfig(t, sid, snap)
 			})
 
-			runStep(t, "first sync", func(t *testing.T) {
+			testutil.RunStep(t, "first sync", func(t *testing.T) {
 				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 					TypeUrl: xdscommon.ClusterType,
 					Nonce:   hexString(1),
@@ -163,7 +164,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 					snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
 			}
 
-			runStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
+			testutil.RunStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
 				envoy.SendDeltaReq(t, xdscommon.EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 					ResourceNamesUnsubscribe: []string{
 						"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
@@ -181,7 +182,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 				assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 			})
 
-			runStep(t, "restore endpoint subscription", func(t *testing.T) {
+			testutil.RunStep(t, "restore endpoint subscription", func(t *testing.T) {
 				// Fix the snapshot
 				snap = newTestSnapshot(t, snap, "")
 				mgr.DeliverConfig(t, sid, snap)
@@ -209,7 +210,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 			})
 
 			// NOTE: this has to be the last subtest since it kills the stream
-			runStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
+			testutil.RunStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
 				// Force sends to fail
 				envoy.SetSendErr(errors.New("test error"))
 
@@ -247,7 +248,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 
 	var snap *proxycfg.ConfigSnapshot
 
-	runStep(t, "initial setup", func(t *testing.T) {
+	testutil.RunStep(t, "initial setup", func(t *testing.T) {
 		snap = newTestSnapshot(t, nil, "")
 
 		// Plug in a bad port for the public listener
@@ -265,7 +266,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		mgr.DeliverConfig(t, sid, snap)
 	})
 
-	runStep(t, "first sync", func(t *testing.T) {
+	testutil.RunStep(t, "first sync", func(t *testing.T) {
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ClusterType,
 			Nonce:   hexString(1),
@@ -331,7 +332,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	runStep(t, "simulate envoy NACKing a listener update", func(t *testing.T) {
+	testutil.RunStep(t, "simulate envoy NACKing a listener update", func(t *testing.T) {
 		// Correct the port and deliver a new snapshot
 		snap.Port = 9999
 		mgr.DeliverConfig(t, sid, snap)
@@ -390,7 +391,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	})
 	mgr.DeliverConfig(t, sid, snap)
 
-	runStep(t, "no-rds", func(t *testing.T) {
+	testutil.RunStep(t, "no-rds", func(t *testing.T) {
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ClusterType,
 			Nonce:   hexString(1),
@@ -468,7 +469,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	})
 	mgr.DeliverConfig(t, sid, snap)
 
-	runStep(t, "with-rds", func(t *testing.T) {
+	testutil.RunStep(t, "with-rds", func(t *testing.T) {
 		// Just the "db" listener sees a change
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ListenerType,
@@ -546,7 +547,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 	mgr.RegisterProxy(t, sid)
 
 	var snap *proxycfg.ConfigSnapshot
-	runStep(t, "get into initial state", func(t *testing.T) {
+	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
 		snap = newTestSnapshot(t, nil, "")
 
 		// Send initial cluster discover.
@@ -626,7 +627,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 	// Disable hack. Need to wait for one more event to wake up the loop.
 	atomic.StoreUint32(&slowHackDisabled, 1)
 
-	runStep(t, "delayed endpoint update finally comes in", func(t *testing.T) {
+	testutil.RunStep(t, "delayed endpoint update finally comes in", func(t *testing.T) {
 		// Trigger the xds.Server select{} to wake up and notice our hack is disabled.
 		// The actual contents of this change are irrelevant.
 		snap = newTestSnapshot(t, snap, "")
@@ -671,7 +672,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 	mgr.RegisterProxy(t, sid)
 
 	var snap *proxycfg.ConfigSnapshot
-	runStep(t, "get into initial state", func(t *testing.T) {
+	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
 		snap = newTestSnapshot(t, nil, "")
 
 		// Send initial cluster discover.
@@ -746,7 +747,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 3)
 	})
 
-	runStep(t, "trigger cluster update needing implicit endpoint replacements", func(t *testing.T) {
+	testutil.RunStep(t, "trigger cluster update needing implicit endpoint replacements", func(t *testing.T) {
 		// Update the snapshot in a way that causes a single cluster update.
 		snap = newTestSnapshot(t, snap, "", &structs.ServiceResolverConfigEntry{
 			Kind:           structs.ServiceResolver,
@@ -808,7 +809,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 
 	var snap *proxycfg.ConfigSnapshot
 
-	runStep(t, "get into initial state", func(t *testing.T) {
+	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
 		// Send initial cluster discover (empty payload)
 		envoy.SendDeltaReq(t, xdscommon.ClusterType, nil)
 
@@ -908,7 +909,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	runStep(t, "trigger listener update needing implicit route replacements", func(t *testing.T) {
+	testutil.RunStep(t, "trigger listener update needing implicit route replacements", func(t *testing.T) {
 		// Update the snapshot in a way that causes a single listener update.
 		//
 		// Downgrade from http2 to http

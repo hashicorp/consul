@@ -32,15 +32,15 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 
 	supportedFeatures := []*pbdataplane.DataplaneFeatureSupport{
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_WATCH_SERVERS,
+			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_WATCH_SERVERS,
 			Supported:   true,
 		},
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_EDGE_CERTIFICATE_MANAGEMENT,
+			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT,
 			Supported:   true,
 		},
 		{
-			FeatureName: pbdataplane.DataplaneFeatures_ENVOY_BOOTSTRAP_CONFIGURATION,
+			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION,
 			Supported:   true,
 		},
 	}

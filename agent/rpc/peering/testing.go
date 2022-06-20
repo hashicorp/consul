@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"sync"
-	"testing"
 	"time"
 
 	"google.golang.org/grpc/metadata"
@@ -59,9 +58,8 @@ func TestPeering(peerName string, state pbpeering.PeeringState, meta map[string]
 		PeerServerAddresses: []string{validAddress},
 		PeerServerName:      validServerName,
 		State:               state,
-		// uncomment once #1613 lands
-		// PeerID: validPeerID
-		Meta: meta,
+		PeerID:              validPeerID,
+		Meta:                meta,
 	}
 }
 
@@ -76,52 +74,52 @@ func TestPeeringToken(peerID string) structs.PeeringToken {
 	}
 }
 
-type mockClient struct {
-	mu    sync.Mutex
-	errCh chan error
+type MockClient struct {
+	mu sync.Mutex
 
-	replicationStream *mockStream
+	ErrCh             chan error
+	ReplicationStream *MockStream
 }
 
-func (c *mockClient) Send(r *pbpeering.ReplicationMessage) error {
-	c.replicationStream.recvCh <- r
+func (c *MockClient) Send(r *pbpeering.ReplicationMessage) error {
+	c.ReplicationStream.recvCh <- r
 	return nil
 }
 
-func (c *mockClient) Recv() (*pbpeering.ReplicationMessage, error) {
+func (c *MockClient) Recv() (*pbpeering.ReplicationMessage, error) {
 	select {
-	case err := <-c.errCh:
+	case err := <-c.ErrCh:
 		return nil, err
-	case r := <-c.replicationStream.sendCh:
+	case r := <-c.ReplicationStream.sendCh:
 		return r, nil
 	case <-time.After(10 * time.Millisecond):
 		return nil, io.EOF
 	}
 }
 
-func (c *mockClient) RecvWithTimeout(dur time.Duration) (*pbpeering.ReplicationMessage, error) {
+func (c *MockClient) RecvWithTimeout(dur time.Duration) (*pbpeering.ReplicationMessage, error) {
 	select {
-	case err := <-c.errCh:
+	case err := <-c.ErrCh:
 		return nil, err
-	case r := <-c.replicationStream.sendCh:
+	case r := <-c.ReplicationStream.sendCh:
 		return r, nil
 	case <-time.After(dur):
 		return nil, io.EOF
 	}
 }
 
-func (c *mockClient) Close() {
-	close(c.replicationStream.recvCh)
+func (c *MockClient) Close() {
+	close(c.ReplicationStream.recvCh)
 }
 
-func newMockClient(ctx context.Context) *mockClient {
-	return &mockClient{
-		replicationStream: newTestReplicationStream(ctx),
+func NewMockClient(ctx context.Context) *MockClient {
+	return &MockClient{
+		ReplicationStream: newTestReplicationStream(ctx),
 	}
 }
 
-// mockStream mocks peering.PeeringService_StreamResourcesServer
-type mockStream struct {
+// MockStream mocks peering.PeeringService_StreamResourcesServer
+type MockStream struct {
 	sendCh chan *pbpeering.ReplicationMessage
 	recvCh chan *pbpeering.ReplicationMessage
 
@@ -129,10 +127,10 @@ type mockStream struct {
 	mu  sync.Mutex
 }
 
-var _ pbpeering.PeeringService_StreamResourcesServer = (*mockStream)(nil)
+var _ pbpeering.PeeringService_StreamResourcesServer = (*MockStream)(nil)
 
-func newTestReplicationStream(ctx context.Context) *mockStream {
-	return &mockStream{
+func newTestReplicationStream(ctx context.Context) *MockStream {
+	return &MockStream{
 		sendCh: make(chan *pbpeering.ReplicationMessage, 1),
 		recvCh: make(chan *pbpeering.ReplicationMessage, 1),
 		ctx:    ctx,
@@ -140,13 +138,13 @@ func newTestReplicationStream(ctx context.Context) *mockStream {
 }
 
 // Send implements pbpeering.PeeringService_StreamResourcesServer
-func (s *mockStream) Send(r *pbpeering.ReplicationMessage) error {
+func (s *MockStream) Send(r *pbpeering.ReplicationMessage) error {
 	s.sendCh <- r
 	return nil
 }
 
 // Recv implements pbpeering.PeeringService_StreamResourcesServer
-func (s *mockStream) Recv() (*pbpeering.ReplicationMessage, error) {
+func (s *MockStream) Recv() (*pbpeering.ReplicationMessage, error) {
 	r := <-s.recvCh
 	if r == nil {
 		return nil, io.EOF
@@ -155,32 +153,32 @@ func (s *mockStream) Recv() (*pbpeering.ReplicationMessage, error) {
 }
 
 // Context implements grpc.ServerStream and grpc.ClientStream
-func (s *mockStream) Context() context.Context {
+func (s *MockStream) Context() context.Context {
 	return s.ctx
 }
 
 // SendMsg implements grpc.ServerStream and grpc.ClientStream
-func (s *mockStream) SendMsg(m interface{}) error {
+func (s *MockStream) SendMsg(m interface{}) error {
 	return nil
 }
 
 // RecvMsg implements grpc.ServerStream and grpc.ClientStream
-func (s *mockStream) RecvMsg(m interface{}) error {
+func (s *MockStream) RecvMsg(m interface{}) error {
 	return nil
 }
 
 // SetHeader implements grpc.ServerStream
-func (s *mockStream) SetHeader(metadata.MD) error {
+func (s *MockStream) SetHeader(metadata.MD) error {
 	return nil
 }
 
 // SendHeader implements grpc.ServerStream
-func (s *mockStream) SendHeader(metadata.MD) error {
+func (s *MockStream) SendHeader(metadata.MD) error {
 	return nil
 }
 
 // SetTrailer implements grpc.ServerStream
-func (s *mockStream) SetTrailer(metadata.MD) {}
+func (s *MockStream) SetTrailer(metadata.MD) {}
 
 type incrementalTime struct {
 	base time.Time
@@ -190,11 +188,4 @@ type incrementalTime struct {
 func (t *incrementalTime) Now() time.Time {
 	t.next++
 	return t.base.Add(time.Duration(t.next) * time.Second)
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }

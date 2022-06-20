@@ -647,6 +647,7 @@ telemetry {
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
+    retry_failed_connection = true
     filter_default = true
     prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
     metrics_prefix = "ftO6DySn"

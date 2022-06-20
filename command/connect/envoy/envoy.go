@@ -41,6 +41,7 @@ type cmd struct {
 	meshGateway           bool
 	gateway               string
 	proxyID               string
+	nodeName              string
 	sidecarFor            string
 	adminAccessLogPath    string
 	adminBind             string
@@ -80,6 +81,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.proxyID, "proxy-id", os.Getenv("CONNECT_PROXY_ID"),
 		"The proxy's ID on the local agent.")
+
+	c.flags.StringVar(&c.nodeName, "node-name", "",
+		"[Experimental] The node name where the proxy service is registered. It requires proxy-id to be specified. ")
 
 	// Deprecated in favor of `gateway`
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
@@ -231,6 +235,12 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) run(args []string) int {
+
+	if c.nodeName != "" && c.proxyID == "" {
+		c.UI.Error("'-node-name' requires '-proxy-id'")
+		return 1
+	}
+
 	// Fixup for deprecated mesh-gateway flag
 	if c.meshGateway && c.gateway != "" {
 		c.UI.Error("The mesh-gateway flag is deprecated and cannot be used alongside the gateway flag")
@@ -297,6 +307,10 @@ func (c *cmd) run(args []string) int {
 	}
 
 	if c.register {
+		if c.nodeName != "" {
+			c.UI.Error("'-register' cannot be used with '-node-name'")
+			return 1
+		}
 		if c.gateway == "" {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
@@ -478,6 +492,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		GRPC:                  xdsAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
+		NodeName:              c.nodeName,
 		ProxySourceService:    proxySourceService,
 		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
@@ -501,6 +516,72 @@ func (c *cmd) generateConfig() ([]byte, error) {
 
 	var bsCfg BootstrapConfig
 
+	// Fetch any customization from the registration
+	var svcProxyConfig *api.AgentServiceConnectProxyConfig
+	var serviceName, ns, partition, datacenter string
+	if c.nodeName == "" {
+		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
+		}
+		svcProxyConfig = svc.Proxy
+		serviceName = svc.Service
+		ns = svc.Namespace
+		partition = svc.Partition
+		datacenter = svc.Datacenter
+	} else {
+		filter := fmt.Sprintf("ID == %q", c.proxyID)
+		svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName,
+			&api.QueryOptions{Filter: filter, MergeCentralConfig: true})
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch proxy config from catalog for node %q: %w", c.nodeName, err)
+		}
+		if len(svcList.Services) == 0 {
+			return nil, fmt.Errorf("Proxy service with ID %q not found", c.proxyID)
+		}
+		if len(svcList.Services) > 1 {
+			return nil, fmt.Errorf("Expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+		}
+
+		svcProxyConfig = svcList.Services[0].Proxy
+		serviceName = svcList.Services[0].Service
+		ns = svcList.Services[0].Namespace
+		partition = svcList.Services[0].Partition
+		datacenter = svcList.Node.Datacenter
+		c.gatewayKind = svcList.Services[0].Kind
+	}
+	if svcProxyConfig == nil {
+		return nil, errors.New("service is not a Connect proxy or gateway")
+	}
+
+	if svcProxyConfig.DestinationServiceName != "" {
+		// Override cluster now we know the actual service name
+		args.ProxyCluster = svcProxyConfig.DestinationServiceName
+		args.ProxySourceService = svcProxyConfig.DestinationServiceName
+	} else {
+		// Set the source service name from the proxy's own registration
+		args.ProxySourceService = serviceName
+	}
+
+	// In most cases where namespaces and partitions are enabled they will already be set
+	// correctly because the http client that fetched this will provide them explicitly.
+	// However, if these arguments were not provided, they will be empty even
+	// though Namespaces and Partitions are actually being used.
+	// Overriding them ensures that we always set the Namespace and Partition args
+	// if the cluster is using them. This prevents us from defaulting to the "default"
+	// when a non-default partition or namespace was inferred from the ACL token.
+	if ns != "" {
+		args.Namespace = ns
+	}
+	if partition != "" {
+		args.Partition = partition
+	}
+
+	if datacenter != "" {
+		// The agent will definitely have the definitive answer here.
+		args.Datacenter = datacenter
+	}
+
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {
 		lanAddr := c.lanAddress.String()
@@ -512,46 +593,9 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		bsCfg.ReadyBindAddr = lanAddr
 	}
 
-	// Fetch any customization from the registration
-	svc, _, err := c.client.Agent().Service(c.proxyID, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
-	}
-	if svc.Proxy == nil {
-		return nil, errors.New("service is not a Connect proxy or gateway")
-	}
-
-	if svc.Proxy.DestinationServiceName != "" {
-		// Override cluster now we know the actual service name
-		args.ProxyCluster = svc.Proxy.DestinationServiceName
-		args.ProxySourceService = svc.Proxy.DestinationServiceName
-	} else {
-		// Set the source service name from the proxy's own registration
-		args.ProxySourceService = svc.Service
-	}
-
-	// In most cases where namespaces and partitions are enabled they will already be set
-	// correctly because the http client that fetched this will provide them explicitly.
-	// However, if these arguments were not provided, they will be empty even
-	// though Namespaces and Partitions are actually being used.
-	// Overriding them ensures that we always set the Namespace and Partition args
-	// if the cluster is using them. This prevents us from defaulting to the "default"
-	// when a non-default partition or namespace was inferred from the ACL token.
-	if svc.Namespace != "" {
-		args.Namespace = svc.Namespace
-	}
-	if svc.Partition != "" {
-		args.Partition = svc.Partition
-	}
-
-	if svc.Datacenter != "" {
-		// The agent will definitely have the definitive answer here.
-		args.Datacenter = svc.Datacenter
-	}
-
 	if !c.disableCentralConfig {
 		// Parse the bootstrap config
-		if err := mapstructure.WeakDecode(svc.Proxy.Config, &bsCfg); err != nil {
+		if err := mapstructure.WeakDecode(svcProxyConfig.Config, &bsCfg); err != nil {
 			return nil, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
 	}

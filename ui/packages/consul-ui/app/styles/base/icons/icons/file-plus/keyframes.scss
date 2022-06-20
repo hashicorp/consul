@@ -1,15 +1,9 @@
 @keyframes icon-file-plus {
-  50% {
-
-    background-color: var(--icon-color, var(--color-file-plus-500, currentColor));
-    -webkit-mask-image: var(--icon-file-plus-24);
-    mask-image: var(--icon-file-plus-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-file-plus-500, currentColor));
     -webkit-mask-image: var(--icon-file-plus-16);
     mask-image: var(--icon-file-plus-16);
+    background-color: var(--icon-color, var(--color-file-plus-500, currentColor));
+
   }
 }

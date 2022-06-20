@@ -47,6 +47,9 @@ var LeaderSummaries = []prometheus.SummaryDefinition{
 const (
 	newLeaderEvent      = "consul:new-leader"
 	barrierWriteTimeout = 2 * time.Minute
+
+	defaultDeletionRoundBurst int        = 5  // number replication round bursts
+	defaultDeletionApplyRate  rate.Limit = 10 // raft applies per second
 )
 
 var (
@@ -72,6 +75,12 @@ func (s *Server) monitorLeadership() {
 	var leaderLoop sync.WaitGroup
 	for {
 		select {
+		case <-time.After(s.config.MetricsReportingInterval):
+			if s.IsLeader() {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(1))
+			} else {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(0))
+			}
 		case isLeader := <-raftNotifyCh:
 			switch {
 			case isLeader:
@@ -306,6 +315,8 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	s.startFederationStateAntiEntropy(ctx)
 
 	s.startPeeringStreamSync(ctx)
+
+	s.startDeferredDeletion(ctx)
 
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
@@ -743,6 +754,16 @@ func (s *Server) stopACLReplication() {
 	s.leaderRoutineManager.Stop(aclPolicyReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclRoleReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
+}
+
+func (s *Server) startDeferredDeletion(ctx context.Context) {
+	s.startPeeringDeferredDeletion(ctx)
+	s.startTenancyDeferredDeletion(ctx)
+}
+
+func (s *Server) stopDeferredDeletion() {
+	s.leaderRoutineManager.Stop(peeringDeletionRoutineName)
+	s.stopTenancyDeferredDeletion()
 }
 
 func (s *Server) startConfigReplication(ctx context.Context) {

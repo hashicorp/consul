@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering.
+```

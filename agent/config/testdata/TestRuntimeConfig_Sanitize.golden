@@ -76,6 +76,7 @@
     "BindAddr": "127.0.0.1",
     "Bootstrap": false,
     "BootstrapExpect": 0,
+    "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
@@ -118,7 +119,8 @@
             "TLSSkipVerify": false,
             "TTL": "0s",
             "Timeout": "0s",
-            "Token": "hidden"
+            "Token": "hidden",
+            "UDP": ""
         }
     ],
     "ClientAddrs": [],
@@ -324,7 +326,8 @@
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
                 "TTL": "0s",
-                "Timeout": "0s"
+                "Timeout": "0s",
+                "UDP": ""
             },
             "Checks": [],
             "Connect": null,
@@ -428,6 +431,7 @@
             "Registerer": null,
             "SummaryDefinitions": []
         },
+        "RetryFailedConfiguration": false,
         "StatsdAddr": "",
         "StatsiteAddr": ""
     },

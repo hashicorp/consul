@@ -15,12 +15,13 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
@@ -705,6 +706,12 @@ type ServiceSpecificRequest struct {
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
 
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -751,6 +758,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.PeerName,
 		r.Ingress,
 		r.ServiceKind,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -768,9 +776,15 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter         string
-	Node               string
-	PeerName           string
+	Datacenter string
+	Node       string
+	PeerName   string
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -793,6 +807,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Node,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -853,6 +868,20 @@ func (n *Node) BestAddress(wan bool) string {
 		}
 	}
 	return n.Address
+}
+
+func (n *Node) ToRegisterRequest() RegisterRequest {
+	return RegisterRequest{
+		ID:              n.ID,
+		Node:            n.Node,
+		Datacenter:      n.Datacenter,
+		Address:         n.Address,
+		TaggedAddresses: n.TaggedAddresses,
+		NodeMeta:        n.Meta,
+		RaftIndex:       n.RaftIndex,
+		EnterpriseMeta:  *n.GetEnterpriseMeta(),
+		PeerName:        n.PeerName,
+	}
 }
 
 type Nodes []*Node
@@ -1119,6 +1148,18 @@ func (k ServiceKind) Normalized() string {
 	return string(k)
 }
 
+// IsProxy returns whether the ServiceKind is a connect proxy or gateway.
+func (k ServiceKind) IsProxy() bool {
+	switch k {
+	case ServiceKindConnectProxy,
+		ServiceKindMeshGateway,
+		ServiceKindTerminatingGateway,
+		ServiceKindIngressGateway:
+		return true
+	}
+	return false
+}
+
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is
 	// represented by the absence of a value. This was chosen for ease of
@@ -1144,6 +1185,11 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindDestination is a Destination  for the Connect feature.
+	// This service allows external traffic to exit the mesh through a terminating gateway
+	// based on centralized configuration.
+	ServiceKindDestination ServiceKind = "destination"
 )
 
 // Type to hold a address and port of a service
@@ -1210,6 +1256,20 @@ type NodeService struct {
 	PeerName string
 
 	RaftIndex `bexpr:"-"`
+}
+
+// PeeringServiceMeta is read-only information provided from an exported peer.
+type PeeringServiceMeta struct {
+	SNI      []string `json:",omitempty"`
+	SpiffeID []string `json:",omitempty"`
+	Protocol string   `json:",omitempty"`
+}
+
+func (m *PeeringServiceMeta) PrimarySNI() string {
+	if m == nil || len(m.SNI) == 0 {
+		return ""
+	}
+	return m.SNI[0]
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
@@ -1282,6 +1342,8 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
+
+	PeerMeta *PeeringServiceMeta `json:",omitempty" bexpr:"-"`
 }
 
 func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
@@ -1306,7 +1368,8 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
-	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
+	return s.Kind == ServiceKindConnectProxy &&
+		(s.Proxy.DestinationServiceID != "" || s.Proxy.DestinationServiceName != "")
 }
 
 func (s *NodeService) IsGateway() bool {
@@ -1619,7 +1682,7 @@ type HealthCheck struct {
 	ServiceID   string        // optional associated service
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
-	Type        string        // Check type: http/ttl/tcp/etc
+	Type        string        // Check type: http/ttl/tcp/udp/etc
 
 	Interval string // from definition
 	Timeout  string // from definition
@@ -1684,6 +1747,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
+	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
@@ -1834,6 +1898,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
+		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
@@ -2096,6 +2161,12 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+// PeeredServiceName is a basic tuple of ServiceName and peer
+type PeeredServiceName struct {
+	ServiceName ServiceName
+	Peer        string
+}
+
 type ServiceName struct {
 	Name string
 	acl.EnterpriseMeta
@@ -2126,6 +2197,14 @@ func ServiceGatewayVirtualIPTag(sn ServiceName) string {
 }
 
 type ServiceList []ServiceName
+
+// Len implements sort.Interface.
+func (s ServiceList) Len() int { return len(s) }
+
+// Swap implements sort.Interface.
+func (s ServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList
@@ -2793,23 +2872,19 @@ func (m MessageType) String() string {
 }
 
 func DurationToProto(d time.Duration) *duration.Duration {
-	return ptypes.DurationProto(d)
+	return durationpb.New(d)
 }
 
 func DurationFromProto(d *duration.Duration) time.Duration {
-	ret, _ := ptypes.Duration(d)
-	return ret
-
+	return d.AsDuration()
 }
 
 func TimeFromProto(s *timestamp.Timestamp) time.Time {
-	ret, _ := ptypes.Timestamp(s)
-	return ret
+	return s.AsTime()
 }
 
 func TimeToProto(s time.Time) *timestamp.Timestamp {
-	ret, _ := ptypes.TimestampProto(s)
-	return ret
+	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp

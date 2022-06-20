@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,9 +19,6 @@ import (
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/rpc/middleware"
-	"github.com/hashicorp/consul/ipaddr"
-
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -28,8 +26,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1167,7 +1167,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	storage := make(map[string]float32)
+	storage := &sync.Map{} // string -> float32
 	keyMakingFunc := func(key []string, labels []metrics.Label) string {
 		allKey := strings.Join(key, "+")
 
@@ -1181,7 +1181,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 	}
 
 	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
-		storage[keyMakingFunc(key, labels)] = val
+		storage.Store(keyMakingFunc(key, labels), val)
 	}
 
 	t.Run("test no net/rpc interceptor metric with nil func", func(t *testing.T) {
@@ -1215,7 +1215,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
-		if _, ok := storage[key]; ok {
+		if _, ok := storage.Load(key); ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
 		}
 	})
@@ -1256,7 +1256,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, []metrics.Label{{Name: "method", Value: "Status.Ping"}})
 
-		if _, ok := storage[key]; ok {
+		if _, ok := storage.Load(key); ok {
 			t.Fatalf("Did not expect to find key %s in the metrics log, ", key)
 		}
 	})
@@ -1316,9 +1316,8 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	deps := newDefaultDeps(t, conf)
 
 	// The method used to record metric observations here is similar to that used in
-	// interceptors_test.go; at present, we don't have a need to lock yet but if we do
-	// we can imitate that set up further or just factor it out as a "mock" metrics backend
-	storage := make(map[string]float32)
+	// interceptors_test.go.
+	storage := &sync.Map{} // string -> float32
 	keyMakingFunc := func(key []string, labels []metrics.Label) string {
 		allKey := strings.Join(key, "+")
 
@@ -1330,7 +1329,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 	}
 
 	simpleRecorderFunc := func(key []string, val float32, labels []metrics.Label) {
-		storage[keyMakingFunc(key, labels)] = val
+		storage.Store(keyMakingFunc(key, labels), val)
 	}
 	deps.NewRequestRecorderFunc = func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder {
 		// for the purposes of this test, we don't need isLeader or localDC
@@ -1374,7 +1373,7 @@ func TestServer_RPC_MetricsIntercept(t *testing.T) {
 
 		key := keyMakingFunc(middleware.OneTwelveRPCSummary[0].Name, expectedLabels)
 
-		if _, ok := storage[key]; !ok {
+		if _, ok := storage.Load(key); !ok {
 			// the compound key will look like: "rpc+server+call+Status.Ping+false+read+test+unreported"
 			t.Fatalf("Did not find key %s in the metrics log, ", key)
 		}
@@ -1951,4 +1950,51 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+// TestServer_Peering_LeadershipCheck tests that a peering service can receive the leader address
+// through the LeaderAddress IRL.
+func TestServer_Peering_LeadershipCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// given two servers: s1 (leader), s2 (follower)
+	_, conf1 := testServerConfig(t)
+	s1, err := newServer(t, conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s1.Shutdown()
+
+	_, conf2 := testServerConfig(t)
+	conf2.Bootstrap = false
+	s2, err := newServer(t, conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s2.Shutdown()
+
+	// Try to join
+	joinLAN(t, s2, s1)
+
+	// Verify Raft has established a peer
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
+
+	// the actual tests
+	// when leadership has been established s2 should have the address of s1
+	// in the peering service
+	peeringLeaderAddr := s2.peeringService.Backend.LeaderAddress().Get()
+
+	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
+	// test corollary by transitivity to future-proof against any setup bugs
+	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
 }

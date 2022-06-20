@@ -38,12 +38,12 @@ Specify the value of the `SecretID` attribute with the `token` parameter when co
 <CodeBlockConfig lineNumbers highlight="6">
 
 ```hcl
-"service" = {
-  "id" = "redis"
-  "name" = "redis"
+service = {
+  id = "redis"
+  name = "redis"
   ...
-  "namespace" = "foo"
-  "token" = "233b604b-b92e-48c8-a253-5f11514e4b50"
+  namespace = "foo"
+  token = "233b604b-b92e-48c8-a253-5f11514e4b50"
 }
 ```
 
@@ -85,16 +85,11 @@ In the following example, the agent is configured to use a default token:
 
 <CodeTabs>
 
-<CodeBlockConfig>
-
 ```hcl
-"tokens" = {
-  "default" = "233b604b-b92e-48c8-a253-5f11514e4b50"
+tokens = {
+  default = "233b604b-b92e-48c8-a253-5f11514e4b50"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -103,8 +98,6 @@ In the following example, the agent is configured to use a default token:
   }
 }
 ```
-
-</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -127,7 +120,7 @@ You can export tokens to environment variables on the local machine, which enabl
 
 ### API Requests
 
-Specify the token in the HTTP `X-Consul-Token` header field to make an API request. Refer to the [HTTP API documentation](/api-docs/index#authentication) for details.
+Specify the token in the HTTP `X-Consul-Token` header field to make an API request. Refer to the [HTTP API documentation](/api-docs#authentication) for details.
 
 The following example shows the header for a GET request to the `agent/members` endpoint.
 
@@ -144,12 +137,12 @@ Refer to the [API](/api-docs/acl/token) or [command line](/commands/acl/token) d
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------- |
 | `AccessorID`        | Used for [audit logging](/docs/enterprise/audit-logging). The accessor ID is also returned in API responses to identify the token without revealing the secret ID.                                                                                         | String    | auto-generated |
 | `SecretID`          | Used to request access to resources, data, and APIs.                                                                                                                                                                                                       | String    | auto-generated |
-| `Partition`         | <EnterpriseAlert inline/> Specifies the name of the admin partition in which the token is valid. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.                                                                     | `default` |
+| `Partition`         | <EnterpriseAlert inline/> Specifies the name of the admin partition in which the token is valid. See [Admin Partitions](/docs/enterprise/admin-partitions) for additional information.                                                                     | String    | `default`      |
 | `Namespace`         | <EnterpriseAlert inline/> Specifies the name of the Consul namespace in which the token is valid. See [Namespaces](/docs/enterprise/namespaces) for additional information.                                                                                | String    | `default`      |
 | `Description`       | Human-readable description for documenting the purpose of the token.                                                                                                                                                                                       | String    | none           |
 | `Local`             | Indicates whether the token should be replicated globally or local to the datacenter. <br/> Set to `false` to replicate globally across all reachable datacenters. <br/>Setting to `true` configures the token to functional in the local datacenter only. | Boolean   | `false`        |
-| `ServiceIdentities` | Specifies a list of nodes to apply to the token. See [Service Identities](/docs/security/acl/acl-roles#service-identities) in the "Roles" topic for additional information.                                                                                        | Array     | none           |
-| `NodeIdentities`    | Specifies a list of nodes to apply to the token. See [Node Identities](/docs/security/acl/acl-roles#node-identities) in the "Roles" topic for additional information.                                                                                             | Array     | none           |
+| `ServiceIdentities` | Specifies a list of service identities to apply to the token. See [Service Identities](/docs/security/acl/acl-roles#service-identities) in the "Roles" topic for additional information.                                                                   | Array     | none           |
+| `NodeIdentities`    | Specifies a list of node identities to apply to the token. See [Node Identities](/docs/security/acl/acl-roles#node-identities) in the "Roles" topic for additional information.                                                                            | Array     | none           |
 | `Legacy`            | Indicates if the token was created using the the legacy ACL system.                                                                                                                                                                                        | Boolean   | `false`        |
 | `Policies`          | List of policies linked to the token, including the policy ID and name.                                                                                                                                                                                    | String    | none           |
 
@@ -169,7 +162,7 @@ All reserved tokens except the `initial_management` token can be created or upda
 
 ### Snapshot Tokens
 
-Snapshots are artifacts created with the [snapshot API](/api-docs/snapshot) for backup and recovery purposes. Snapshots contain ACL tokens and require, and interacting with them requires a token with `write` privileges.
+Snapshots are artifacts created with the [snapshot API](/api-docs/snapshot) for backup and recovery purposes. Snapshots contain ACL tokens and interacting with them requires a token with `acl:write` privileges.
 
 ### ACL Agent Token
 
@@ -180,6 +173,8 @@ The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special toke
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
+
+<CodeBlockConfig heading="Example agent policy permitting internal operations">
 
 ```hcl
 node "mynode" {
@@ -193,18 +188,9 @@ key_prefix "_rexec" {
 }
 ```
 
+</CodeBlockConfig>
+
 The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.
-
-<!-- Consider removing this content now that we have versioned docs
-
-In Consul 1.4 - 1.10, the following special tokens were known by different names:
-
-| New Name (1.11+)                                                                     | Old Name (1.4 - 1.10)                                                    |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [`acl.tokens.agent_recovery`](/docs/agent/options#acl_tokens_agent_recovery)         | [`acl.tokens.agent_master`](/docs/agent/options#acl_tokens_agent_master) |
-| [`acl.tokens.initial_management`](/docs/agent/options#acl_tokens_initial_management) | [`acl.tokens.master`](/docs/agent/options#acl_tokens_master)             |
-
--->
 
 ## Built-in Tokens
 
@@ -222,7 +208,8 @@ The description and policies may be updated, but the anonymous token cannot be d
 
 ### Initial Management Token
 
-Including an initial management token in the Consul configuration creates the token and links it with the built-in global management policy.
+Including an initial management token in the Consul configuration creates the
+token and links it with the built-in [global management](/docs/security/acl/acl-policies#global-management) policy.
 The bearer will have have unrestricted privileges to resources and APIs.
 The `SecretID` attribute will be set to the value of the configuration entry.
 

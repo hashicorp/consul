@@ -205,13 +205,16 @@ metadata:
 spec:
   services:
     - name: example-https
-      caFile: /etc/ssl/cert.pem
+      caFile: /etc/ssl/certs/ca-certificates.crt
 ```
 
 </CodeBlockConfig>
 
-~> If TLS is enabled a `caFile` must be provided, it must point to the system trust store of the terminating gateway
-container (`/etc/ssl/cert.pem`).
+If TLS is enabled, you must include the `caFile` parameter  that points to the system trust store of the terminating gateway container. By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
+
+Configure the `caFile` parameter to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+ * Consul Helm chart 0.43 or older 
+ * Or an Envoy image with an alpine base image
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 

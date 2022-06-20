@@ -1,15 +1,9 @@
 @keyframes icon-microsoft {
-  50% {
-
-    background-color: var(--icon-color, var(--color-microsoft-500, currentColor));
-    -webkit-mask-image: var(--icon-microsoft-color-24);
-    mask-image: var(--icon-microsoft-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-microsoft-500, currentColor));
     -webkit-mask-image: var(--icon-microsoft-color-16);
     mask-image: var(--icon-microsoft-color-16);
+    background-color: var(--icon-color, var(--color-microsoft-500, currentColor));
+
   }
 }

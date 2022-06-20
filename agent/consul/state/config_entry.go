@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 type ConfigEntryLinkIndex struct {
@@ -135,6 +136,36 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *acl
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return configEntriesByKindTxn(tx, ws, kind, entMeta)
+}
+
+func listDiscoveryChainNamesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	// Get the index and watch for updates
+	idx := maxIndexWatchTxn(tx, ws, tableConfigEntries)
+
+	// List all discovery chain top nodes.
+	seen := make(map[structs.ServiceName]struct{})
+	for _, kind := range []string{
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+		structs.ServiceResolver,
+	} {
+		iter, err := getConfigEntryKindsWithTxn(tx, kind, &entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
+		}
+		ws.Add(iter.WatchCh())
+
+		for v := iter.Next(); v != nil; v = iter.Next() {
+			entry := v.(structs.ConfigEntry)
+			sn := structs.NewServiceName(entry.GetName(), entry.GetEnterpriseMeta())
+			seen[sn] = struct{}{}
+		}
+	}
+
+	results := maps.SliceOfKeys(seen)
+	structs.ServiceList(results).Sort()
+
+	return idx, results, nil
 }
 
 func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
@@ -313,6 +344,31 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 			return fmt.Errorf("failed updating gateway-services index: %v", err)
 		}
 	}
+
+	c := existing.(structs.ConfigEntry)
+	switch x := c.(type) {
+	case *structs.ServiceConfigEntry:
+		if x.Destination != nil {
+			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", sn.Name, err)
+			}
+			if gsKind == structs.GatewayServiceKindDestination {
+				gsKind = structs.GatewayServiceKindUnknown
+			}
+			serviceName := structs.NewServiceName(c.GetName(), c.GetEnterpriseMeta())
+			if err := checkGatewayWildcardsAndUpdate(tx, idx, &serviceName, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayAndUpdate(tx, idx, &serviceName, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := cleanupKindServiceName(tx, idx, serviceName, structs.ServiceKindDestination); err != nil {
+				return fmt.Errorf("failed to cleanup service name: \"%s\"; err: %v", serviceName, err)
+			}
+		}
+	}
+
 	// Also clean up associations in the mesh topology table for ingress gateways
 	if kind == structs.IngressGateway {
 		if _, err := tx.DeleteAll(tableMeshTopology, indexDownstream, sn); err != nil {
@@ -345,10 +401,35 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
+
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
+		}
+	}
+
+	switch conf.GetKind() {
+	case structs.ServiceDefaults:
+		if conf.(*structs.ServiceConfigEntry).Destination != nil {
+			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
+			gsKind, err := GatewayServiceKind(tx, sn.Name, &sn.EnterpriseMeta)
+			if gsKind == structs.GatewayServiceKindUnknown {
+				gsKind = structs.GatewayServiceKindDestination
+			}
+			if err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayWildcardsAndUpdate(tx, idx, &sn, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+			if err := checkGatewayAndUpdate(tx, idx, &sn, gsKind); err != nil {
+				return fmt.Errorf("failed updating gateway mapping: %s", err)
+			}
+
+			if err := upsertKindServiceName(tx, idx, structs.ServiceKindDestination, sn); err != nil {
+				return fmt.Errorf("failed to persist service name: %v", err)
+			}
 		}
 	}
 
@@ -530,6 +611,10 @@ func validateProposedConfigEntryInServiceGraph(
 	wildcardEntMeta := kindName.WithWildcardNamespace()
 
 	switch kindName.Kind {
+	case structs.ExportedServices, structs.MeshConfig:
+		// Exported services and mesh config do not influence discovery chains.
+		return nil
+
 	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
 		// somehow omit the ones that have a default protocol configured.
@@ -1341,52 +1426,6 @@ func configEntryWithOverridesTxn(
 	return configEntryTxn(tx, ws, kind, name, entMeta)
 }
 
-// getExportedServicesConfigEntriesTxn fetches exported-service config entries and
-// filters their exported services to only those that match serviceName and entMeta.
-// Because the resulting config entries may have had their exported services modified,
-// they *should not* be used in subsequent writes.
-func getExportedServiceConfigEntriesTxn(
-	tx ReadTxn,
-	ws memdb.WatchSet,
-	serviceName string,
-	entMeta *acl.EnterpriseMeta,
-) (uint64, []*structs.ExportedServicesConfigEntry, error) {
-	var exportedServicesEntries []*structs.ExportedServicesConfigEntry
-	// slice of names to match config entries against
-	matchCandidates := getExportedServicesMatchServiceNames(serviceName, entMeta)
-	// matcher func generator for currying the matcher func over EnterpriseMeta values
-	// from the associated config entry
-	matchFunc := func(matchMeta *acl.EnterpriseMeta) func(structs.ExportedService) bool {
-		return func(exportedService structs.ExportedService) bool {
-			matchSvcName := structs.NewServiceName(exportedService.Name, matchMeta)
-			for _, candidate := range matchCandidates {
-				if candidate.Matches(matchSvcName) {
-					return true
-				}
-			}
-			return false
-		}
-	}
-	idx, entries, err := configEntriesByKindTxn(tx, ws, structs.ExportedServices, entMeta)
-	if err != nil {
-		return 0, nil, err
-	}
-	for _, entry := range entries {
-		esEntry, ok := entry.(*structs.ExportedServicesConfigEntry)
-		if !ok {
-			return 0, nil, fmt.Errorf("type %T is not a %s config entry", esEntry, structs.ExportedServices)
-		}
-		// get a copy of the config entry with Services filtered to match serviceName
-		newEntry := filterExportedServices(esEntry, matchFunc(entry.GetEnterpriseMeta()))
-		// the filter will return a new entry, so checking to see if its services is empty says that there
-		// were matches and that we should include it in the results
-		if len(newEntry.Services) > 0 {
-			exportedServicesEntries = append(exportedServicesEntries, newEntry)
-		}
-	}
-	return idx, exportedServicesEntries, nil
-}
-
 // protocolForService returns the service graph protocol associated to the
 // provided service, checking all relevant config entries.
 func protocolForService(
@@ -1427,23 +1466,6 @@ func protocolForService(
 		return 0, "", err
 	}
 	return maxIdx, chain.Protocol, nil
-}
-
-// filterExportedServices returns the slice of ExportedService that matc ffor matching service names
-// returning a copy of entry with only the services that match one of the
-// services in candidates.
-func filterExportedServices(
-	entry *structs.ExportedServicesConfigEntry,
-	testFunc func(structs.ExportedService) bool,
-) *structs.ExportedServicesConfigEntry {
-	newEntry := *entry
-	newEntry.Services = []structs.ExportedService{}
-	for _, ceSvc := range entry.Services {
-		if testFunc(ceSvc) {
-			newEntry.Services = append(newEntry.Services, ceSvc)
-		}
-	}
-	return &newEntry
 }
 
 func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {

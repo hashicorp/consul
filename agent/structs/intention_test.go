@@ -242,58 +242,85 @@ func TestIntentionValidate(t *testing.T) {
 }
 
 func TestIntentionPrecedenceSorter(t *testing.T) {
+	type fields struct {
+		SrcPeer string
+		SrcNS   string
+		SrcN    string
+		DstNS   string
+		DstN    string
+	}
 	cases := []struct {
 		Name     string
-		Input    [][]string // SrcNS, SrcN, DstNS, DstN
-		Expected [][]string // Same structure as Input
+		Input    []fields
+		Expected []fields
 	}{
 		{
 			"exhaustive list",
-			[][]string{
-				{"*", "*", "exact", "*"},
-				{"*", "*", "*", "*"},
-				{"exact", "*", "exact", "exact"},
-				{"*", "*", "exact", "exact"},
-				{"exact", "exact", "*", "*"},
-				{"exact", "exact", "exact", "exact"},
-				{"exact", "exact", "exact", "*"},
-				{"exact", "*", "exact", "*"},
-				{"exact", "*", "*", "*"},
+			[]fields{
+				// Peer fields
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
+
+				{SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
+				{SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
+				{SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
+				{SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
+				{SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
 			},
-			[][]string{
-				{"exact", "exact", "exact", "exact"},
-				{"exact", "*", "exact", "exact"},
-				{"*", "*", "exact", "exact"},
-				{"exact", "exact", "exact", "*"},
-				{"exact", "*", "exact", "*"},
-				{"*", "*", "exact", "*"},
-				{"exact", "exact", "*", "*"},
-				{"exact", "*", "*", "*"},
-				{"*", "*", "*", "*"},
+			[]fields{
+				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
+				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
+				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
+				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
+				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
+				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
 			},
 		},
 		{
 			"tiebreak deterministically",
-			[][]string{
-				{"a", "*", "a", "b"},
-				{"a", "*", "a", "a"},
-				{"b", "a", "a", "a"},
-				{"a", "b", "a", "a"},
-				{"a", "a", "b", "a"},
-				{"a", "a", "a", "b"},
-				{"a", "a", "a", "a"},
+			[]fields{
+				{SrcNS: "a", SrcN: "*", DstNS: "a", DstN: "b"},
+				{SrcNS: "a", SrcN: "*", DstNS: "a", DstN: "a"},
+				{SrcNS: "b", SrcN: "a", DstNS: "a", DstN: "a"},
+				{SrcNS: "a", SrcN: "b", DstNS: "a", DstN: "a"},
+				{SrcNS: "a", SrcN: "a", DstNS: "b", DstN: "a"},
+				{SrcNS: "a", SrcN: "a", DstNS: "a", DstN: "b"},
+				{SrcNS: "a", SrcN: "a", DstNS: "a", DstN: "a"},
 			},
-			[][]string{
+			[]fields{
 				// Exact matches first in lexicographical order (arbitrary but
 				// deterministic)
-				{"a", "a", "a", "a"},
-				{"a", "a", "a", "b"},
-				{"a", "a", "b", "a"},
-				{"a", "b", "a", "a"},
-				{"b", "a", "a", "a"},
+				{SrcNS: "a", SrcN: "a", DstNS: "a", DstN: "a"},
+				{SrcNS: "a", SrcN: "a", DstNS: "a", DstN: "b"},
+				{SrcNS: "a", SrcN: "a", DstNS: "b", DstN: "a"},
+				{SrcNS: "a", SrcN: "b", DstNS: "a", DstN: "a"},
+				{SrcNS: "b", SrcN: "a", DstNS: "a", DstN: "a"},
 				// Wildcards next, lexicographical
-				{"a", "*", "a", "a"},
-				{"a", "*", "a", "b"},
+				{SrcNS: "a", SrcN: "*", DstNS: "a", DstN: "a"},
+				{SrcNS: "a", SrcN: "*", DstNS: "a", DstN: "b"},
 			},
 		},
 	}
@@ -304,10 +331,11 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			var input Intentions
 			for _, v := range tc.Input {
 				input = append(input, &Intention{
-					SourceNS:        v[0],
-					SourceName:      v[1],
-					DestinationNS:   v[2],
-					DestinationName: v[3],
+					SourcePeer:      v.SrcPeer,
+					SourceNS:        v.SrcNS,
+					SourceName:      v.SrcN,
+					DestinationNS:   v.DstNS,
+					DestinationName: v.DstN,
 				})
 			}
 
@@ -320,13 +348,14 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			sort.Sort(IntentionPrecedenceSorter(input))
 
 			// Get back into a comparable form
-			var actual [][]string
+			var actual []fields
 			for _, v := range input {
-				actual = append(actual, []string{
-					v.SourceNS,
-					v.SourceName,
-					v.DestinationNS,
-					v.DestinationName,
+				actual = append(actual, fields{
+					SrcPeer: v.SourcePeer,
+					SrcNS:   v.SourceNS,
+					SrcN:    v.SourceName,
+					DstNS:   v.DestinationNS,
+					DstN:    v.DestinationName,
 				})
 			}
 			assert.Equal(t, tc.Expected, actual)
@@ -442,6 +471,15 @@ func TestIntention_String(t *testing.T) {
 				},
 			},
 			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Permissions: 2)`,
+		},
+		"L4 allow with source peer": {
+			&Intention{
+				SourceName:      "foo",
+				SourcePeer:      "billing",
+				DestinationName: "bar",
+				Action:          IntentionActionAllow,
+			},
+			`peer(billing)/default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: ALLOW)`,
 		},
 	}
 

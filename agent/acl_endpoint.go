@@ -122,10 +122,7 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	policyID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/")
-	if err != nil {
-		return nil, err
-	}
+	policyID := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/")
 	if policyID == "" && req.Method != "PUT" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing policy ID"}
 	}
@@ -170,10 +167,7 @@ func (s *HTTPHandlers) ACLPolicyReadByName(resp http.ResponseWriter, req *http.R
 		return nil, aclDisabled
 	}
 
-	policyName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/name/")
-	if err != nil {
-		return nil, err
-	}
+	policyName := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/name/")
 	if policyName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing policy Name"}
 	}
@@ -308,10 +302,7 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	tokenID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/token/")
-	if err != nil {
-		return nil, err
-	}
+	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
 	if strings.HasSuffix(tokenID, "/clone") && req.Method == "PUT" {
 		tokenID = tokenID[:len(tokenID)-6]
 		fn = s.ACLTokenClone
@@ -541,10 +532,7 @@ func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	roleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/")
-	if err != nil {
-		return nil, err
-	}
+	roleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/")
 	if roleID == "" && req.Method != "PUT" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing role ID"}
 	}
@@ -557,10 +545,7 @@ func (s *HTTPHandlers) ACLRoleReadByName(resp http.ResponseWriter, req *http.Req
 		return nil, aclDisabled
 	}
 
-	roleName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/name/")
-	if err != nil {
-		return nil, err
-	}
+	roleName := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/name/")
 	if roleName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing role Name"}
 	}
@@ -711,10 +696,7 @@ func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Re
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	bindingRuleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/binding-rule/")
-	if err != nil {
-		return nil, err
-	}
+	bindingRuleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/binding-rule/")
 	if bindingRuleID == "" && req.Method != "PUT" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing binding rule ID"}
 	}
@@ -857,10 +839,7 @@ func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Req
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	methodName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/auth-method/")
-	if err != nil {
-		return nil, err
-	}
+	methodName := strings.TrimPrefix(req.URL.Path, "/v1/acl/auth-method/")
 	if methodName == "" && req.Method != "PUT" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing auth method name"}
 	}

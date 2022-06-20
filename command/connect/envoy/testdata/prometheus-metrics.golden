@@ -9,7 +9,7 @@
     }
   },
   "node": {
-    "cluster": "test-proxy",
+    "cluster": "test",
     "id": "test-proxy",
     "metadata": {
       "namespace": "default",
@@ -231,11 +231,11 @@
       },
       {
         "tag_name": "local_cluster",
-        "fixed_value": "test-proxy"
+        "fixed_value": "test"
       },
       {
         "tag_name": "consul.source.service",
-        "fixed_value": "test-proxy"
+        "fixed_value": "test"
       },
       {
         "tag_name": "consul.source.namespace",

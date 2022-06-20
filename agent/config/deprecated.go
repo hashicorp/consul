@@ -180,9 +180,11 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 	var warns []string
 
-	defaults := &cfg.TLS.Defaults
-	internalRPC := &cfg.TLS.InternalRPC
-	https := &cfg.TLS.HTTPS
+	tls := &cfg.TLS
+	defaults := &tls.Defaults
+	internalRPC := &tls.InternalRPC
+	https := &tls.HTTPS
+	grpc := &tls.GRPC
 
 	if v := dep.CAFile; v != nil {
 		if defaults.CAFile == nil {
@@ -239,6 +241,16 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 		if defaults.VerifyIncoming == nil {
 			defaults.VerifyIncoming = v
 		}
+
+		// Prior to Consul 1.12 it was not possible to enable client certificate
+		// verification on the gRPC port. We must override GRPC.VerifyIncoming to
+		// prevent it from inheriting Defaults.VerifyIncoming when we've mapped the
+		// deprecated top-level verify_incoming field.
+		if grpc.VerifyIncoming == nil {
+			grpc.VerifyIncoming = pBool(false)
+			tls.GRPCModifiedByDeprecatedConfig = &struct{}{}
+		}
+
 		warns = append(warns, deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"))
 	}
 

@@ -1,15 +1,9 @@
 @keyframes icon-zap-off {
-  50% {
-
-    background-color: var(--icon-color, var(--color-zap-off-500, currentColor));
-    -webkit-mask-image: var(--icon-zap-off-24);
-    mask-image: var(--icon-zap-off-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-zap-off-500, currentColor));
     -webkit-mask-image: var(--icon-zap-off-16);
     mask-image: var(--icon-zap-off-16);
+    background-color: var(--icon-color, var(--color-zap-off-500, currentColor));
+
   }
 }

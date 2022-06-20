@@ -1,15 +1,9 @@
 @keyframes icon-plus-plain {
-  50% {
-
-    background-color: var(--icon-color, var(--color-plus-plain-500, currentColor));
-    -webkit-mask-image: var(--icon-plus-24);
-    mask-image: var(--icon-plus-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-plus-plain-500, currentColor));
     -webkit-mask-image: var(--icon-plus-16);
     mask-image: var(--icon-plus-16);
+    background-color: var(--icon-color, var(--color-plus-plain-500, currentColor));
+
   }
 }

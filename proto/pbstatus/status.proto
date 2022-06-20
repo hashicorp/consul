@@ -15,15 +15,8 @@
 syntax = "proto3";
 
 package status;
-option go_package = "github.com/hashicorp/consul/proto/pbstatus";
 
 import "google/protobuf/any.proto";
-
-option cc_enable_arenas = true;
-option java_multiple_files = true;
-option java_outer_classname = "StatusProto";
-option java_package = "com.google.rpc";
-option objc_class_prefix = "RPC";
 
 // The `Status` type defines a logical error model that is suitable for
 // different programming environments, including REST APIs and RPC APIs. It is

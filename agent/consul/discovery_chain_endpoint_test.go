@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -313,7 +314,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other")
 	})
 
@@ -329,7 +330,7 @@ func TestDiscoveryChainEndpoint_Get_BlockOnNoChange(t *testing.T) {
 		require.True(t, out)
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other")
 	})
 }

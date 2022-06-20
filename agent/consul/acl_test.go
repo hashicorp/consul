@@ -17,6 +17,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -47,7 +48,7 @@ type asyncResolutionResult struct {
 	err   error
 }
 
-func verifyAuthorizerChain(t *testing.T, expected ACLResolveResult, actual ACLResolveResult) {
+func verifyAuthorizerChain(t *testing.T, expected resolver.Result, actual resolver.Result) {
 	t.Helper()
 	expectedChainAuthz, ok := expected.Authorizer.(*acl.ChainedAuthorizer)
 	require.True(t, ok, "expected Authorizer is not a ChainedAuthorizer")
@@ -735,7 +736,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	authz, err := r.ResolveToken("does not exist")
-	require.Equal(t, ACLResolveResult{Authorizer: acl.ManageAll()}, authz)
+	require.Equal(t, resolver.Result{Authorizer: acl.ManageAll()}, authz)
 	require.Nil(t, err)
 }
 
@@ -810,7 +811,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		expected := ACLResolveResult{
+		expected := resolver.Result{
 			Authorizer:  acl.DenyAll(),
 			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
 		}
@@ -838,7 +839,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		expected := ACLResolveResult{
+		expected := resolver.Result{
 			Authorizer:  acl.AllowAll(),
 			ACLIdentity: &missingIdentity{reason: "primary-dc-down", token: "foo"},
 		}
@@ -1524,7 +1525,7 @@ func TestACLResolver_Client(t *testing.T) {
 		// then the policy will be resolved but resolution will return ACL not found
 		// resolution will stop with the not found error (even though we still have the
 		// policies within the cache)
-		authz, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
+		_, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
 		require.EqualError(t, err, acl.ErrNotFound.Error())
 
 		require.True(t, modified)
@@ -3944,14 +3945,14 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken)
 	require.NoError(t, err)
 
-	runStep(t, "first resolve", func(t *testing.T) {
+	testutil.RunStep(t, "first resolve", func(t *testing.T) {
 		authz, err := srv.ACLResolver.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
 	})
 
-	runStep(t, "update the policy and resolve again", func(t *testing.T) {
+	testutil.RunStep(t, "update the policy and resolve again", func(t *testing.T) {
 		reqPolicy := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
@@ -3970,7 +3971,7 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
 	})
 
-	runStep(t, "delete the token", func(t *testing.T) {
+	testutil.RunStep(t, "delete the token", func(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      respToken.AccessorID,

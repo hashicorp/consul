@@ -1,15 +1,9 @@
 @keyframes icon-zoom-in {
-  50% {
-
-    background-color: var(--icon-color, var(--color-zoom-in-500, currentColor));
-    -webkit-mask-image: var(--icon-zoom-in-24);
-    mask-image: var(--icon-zoom-in-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-zoom-in-500, currentColor));
     -webkit-mask-image: var(--icon-zoom-in-16);
     mask-image: var(--icon-zoom-in-16);
+    background-color: var(--icon-color, var(--color-zoom-in-500, currentColor));
+
   }
 }

@@ -6,14 +6,11 @@ import (
 	"sort"
 	"testing"
 	"text/template"
-	"time"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -23,6 +20,9 @@ import (
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -38,15 +38,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 		generatorSetup     func(*ResourceGenerator)
 	}{
 		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
-		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -65,7 +59,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -84,7 +78,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -103,7 +97,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -159,6 +153,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "listener-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 222
+				}, nil)
+			},
+		},
+		{
 			name: "http-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -173,7 +175,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					func(ns *structs.NodeService) {
 						ns.Proxy.Config["protocol"] = "http"
 					},
-					[]cache.UpdateEvent{
+					[]proxycfg.UpdateEvent{
 						{
 							CorrelationID: "mesh",
 							Result: &structs.ConfigEntryResponse{
@@ -430,32 +432,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			// NOTE: if IPv6 is not supported in the kernel per
 			// kernelSupportsIPv6() then this test will fail because the golden
 			// files were generated assuming ipv6 support was present
-			name: "expose-checks",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
-					ns.Proxy.Expose = structs.ExposeConfig{
-						Checks: true,
-					}
-				})
-			},
+			name:   "expose-checks",
+			create: proxycfg.TestConfigSnapshotExposeChecks,
 			generatorSetup: func(s *ResourceGenerator) {
 				s.CfgFetcher = configFetcherFunc(func() string {
 					return "192.0.2.1"
-				})
-
-				s.CheckFetcher = httpCheckFetcherFunc(func(sid structs.ServiceID) []structs.CheckType {
-					if sid != structs.NewServiceID("web", nil) {
-						return nil
-					}
-					return []structs.CheckType{{
-						CheckID:   types.CheckID("http"),
-						Name:      "http",
-						HTTP:      "http://127.0.0.1:8181/debug",
-						ProxyHTTP: "http://:21500/debug",
-						Method:    "GET",
-						Interval:  10 * time.Second,
-						Timeout:   1 * time.Second,
-					}}
 				})
 			},
 		},
@@ -580,7 +561,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -599,7 +580,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -618,7 +599,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "terminating-gateway-with-tls-incoming-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -674,10 +655,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+		},
+		{
 			name: "terminating-gateway-no-api-cert",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				api := structs.NewServiceName("api", nil)
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
 						Result:        nil,                            // tombstone this
@@ -791,6 +776,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 		},
+		{
+			name: "transparent-proxy-terminating-gateway-destinations-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -803,6 +794,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
+					// TODO: it would be nice to be able to ensure these snapshots are always valid before we use them in a test.
+					// require.True(t, snap.Valid())
+
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
@@ -813,7 +807,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 					if tt.generatorSetup != nil {
 						tt.generatorSetup(g)
@@ -961,14 +955,6 @@ func customHTTPListenerJSON(t testinf.T, opts customHTTPListenerJSONOptions) str
 	var buf bytes.Buffer
 	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))
 	return buf.String()
-}
-
-type httpCheckFetcherFunc func(serviceID structs.ServiceID) []structs.CheckType
-
-var _ HTTPCheckFetcher = (httpCheckFetcherFunc)(nil)
-
-func (f httpCheckFetcherFunc) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType {
-	return f(serviceID)
 }
 
 type configFetcherFunc func() string

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1121,6 +1122,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
@@ -1154,6 +1156,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				Service:     structs.NewServiceName("db", nil),
 				GatewayKind: "terminating-gateway",
+				ServiceKind: structs.GatewayServiceKindService,
 			},
 		},
 		{
@@ -2320,6 +2323,50 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 	})
 }
 
+func TestInternal_IntentionUpstreamsDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, "")
+
+	t.Run("api.example.com", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			var out structs.IndexedServiceList
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.IntentionUpstreamsDestination", &args, &out))
+
+			// foo/api
+			require.Len(r, out.Services, 1)
+
+			expectUp := structs.ServiceList{
+				structs.NewServiceName("api.example.com", structs.DefaultEnterpriseMetaInDefaultPartition()),
+			}
+			require.Equal(r, expectUp, out.Services)
+		})
+	})
+}
+
 func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2385,7 +2432,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other", 0)
 	})
 
@@ -2398,7 +2445,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 	// web -> api (allow)
 	registerIntentionUpstreamEntries(t, codec, "")
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other", 1)
 	})
 }

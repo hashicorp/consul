@@ -17,7 +17,6 @@
   display: inline;
   visibility: visible;
   content: '■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■';
-  background-color: var(--transparent);
 }
 %secret-button input:checked ~ em::before {
   display: none;

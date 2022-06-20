@@ -1,15 +1,9 @@
 @keyframes icon-speaker {
-  50% {
-
-    background-color: var(--icon-color, var(--color-speaker-500, currentColor));
-    -webkit-mask-image: var(--icon-speaker-24);
-    mask-image: var(--icon-speaker-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-speaker-500, currentColor));
     -webkit-mask-image: var(--icon-speaker-16);
     mask-image: var(--icon-speaker-16);
+    background-color: var(--icon-color, var(--color-speaker-500, currentColor));
+
   }
 }

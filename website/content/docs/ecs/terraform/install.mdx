@@ -64,6 +64,7 @@ module "my_task" {
 
   port       = 9090
   retry_join = ["<address of the Consul server>"]
+  consul_datacenter = "<name of your Consul datacenter>"
 }
 ```
 
@@ -105,7 +106,6 @@ module "my_mesh_gateway" {
   ecs_cluster_arn           = "<ECS cluster ARN>"
   subnets                   = ["<subnet ID>"]
   retry_join                = ["<address of the Consul server>"]
-  tls                       = true
   consul_server_ca_cert_arn = "<Secrets Manager secret ARN>"
   gossip_key_secret_arn     = "<Secrets Manager secret ARN>"
 }

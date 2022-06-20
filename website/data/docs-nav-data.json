@@ -541,6 +541,10 @@
                   {
                     "title": "Snapshot Agent Config",
                     "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  },
+                  {
+                    "title": "Webhook Certificates",
+                    "path": "k8s/installation/vault/data-integration/webhook-certs"
                   }
                 ]
               },
@@ -744,6 +748,23 @@
     ]
   },
   {
+    "title": "AWS Lambda <sup>BETA</sup>",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "lambda"
+      },
+      {
+        "title": "Register Lambda Functions",
+        "path": "lambda/registration"
+      },
+      {
+        "title": "Invoke Lambda Functions",
+        "path": "lambda/invocation"
+      }
+    ]
+  },
+  {
     "title": "Network Infrastructure Automation",
     "routes": [
       {
@@ -789,6 +810,10 @@
           {
             "title": "Tasks",
             "path": "nia/api/tasks"
+          },
+          {
+            "title": "Health",
+            "path": "nia/api/health"
           }
         ]
       },
@@ -802,6 +827,10 @@
           {
             "title": "task",
             "path": "nia/cli/task"
+          },
+          {
+            "title": "start",
+            "path": "nia/cli/start"
           }
         ]
       },
@@ -1253,6 +1282,10 @@
       {
         "title": "Consul Terraform Sync",
         "routes": [
+          {
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
+          },
           {
             "title": "v0.5.x",
             "path": "release-notes/consul-terraform-sync/v0_5_x"

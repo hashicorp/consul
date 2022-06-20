@@ -357,7 +357,6 @@ function get_upstream_endpoint_in_status_count {
   local HEALTH_STATUS=$3
   run curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
-  # echo "$output" >&3
   echo "$output" | jq --raw-output "
 .cluster_statuses[]
 | select(.name|startswith(\"${CLUSTER_NAME}\"))
@@ -477,8 +476,11 @@ function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
   local NS=$3
+  local AP=$4
+  local PEER_NAME=$5
 
-  run curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
+  run curl -s -f ${HEADERS} "consul-${DC}:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
+
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
@@ -508,9 +510,11 @@ function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
-  local NS=$4
+  local NS=${4:-}
+  local AP=${5:-}
+  local PEER_NAME=${6:-}
 
-  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS")
+  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS" "$AP" "$PEER_NAME")
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -519,9 +523,11 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
-  local NS=$4
+  local NS=${4:-}
+  local AP=${5:-}
+  local PEER_NAME=${6:-}
 
-  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS"
+  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS" "$AP" "$PEER_NAME"
   [ "$status" -eq 0 ]
 }
 
@@ -941,3 +947,20 @@ function assert_expected_fortio_host_header {
     return 1
   fi
 }
+
+function create_peering {
+  local GENERATE_PEER=$1
+  local ESTABLISH_PEER=$2
+  run curl -sL -XPOST "http://consul-${GENERATE_PEER}:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
+  # echo "$output" >&3
+  [ "$status" == 0 ]
+
+  local token
+  token="$(echo "$output" | jq -r .PeeringToken)"
+  [ -n "$token" ]
+
+  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  # echo "$output" >&3
+  [ "$status" == 0 ]
+}
+

@@ -45,9 +45,14 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
 func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	// TODO: this estimate is wrong
 	resources := make([]proto.Message, 0,
-		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
+		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+
+			len(cfgSnap.ConnectProxy.PeerUpstreamEndpoints)+
+			len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
+	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
+	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
@@ -66,6 +71,48 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[uid],
 		)
 		resources = append(resources, es...)
+	}
+
+	// NOTE: Any time we skip an upstream below we MUST also skip that same
+	// upstream in clusters.go so that the sets of endpoints generated matches
+	// the sets of clusters.
+	//
+	// TODO(peering): make this work for tproxy
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+
+		explicit := upstreamCfg.HasLocalPortOrSocket()
+		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			// Not associated with a known explicit or implicit upstream so it is skipped.
+			continue
+		}
+
+		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
+
+		// TODO(peering): if we replicated service metadata separately from the
+		// instances we wouldn't have to flip/flop this cluster name like this.
+		clusterName := peerMeta.PrimarySNI()
+		if clusterName == "" {
+			clusterName = uid.EnvoyID()
+		}
+
+		// Also skip peer instances with a hostname as their address. EDS
+		// cannot resolve hostnames, so we provide them through CDS instead.
+		if _, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpointsUseHostnames[uid]; ok {
+			continue
+		}
+
+		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid]
+		if ok {
+			la := makeLoadAssignment(
+				clusterName,
+				[]loadAssignmentEndpointGroup{
+					{Endpoints: endpoints},
+				},
+				proxycfg.GatewayKey{ /*empty so it never matches*/ },
+			)
+			resources = append(resources, la)
+		}
 	}
 
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains

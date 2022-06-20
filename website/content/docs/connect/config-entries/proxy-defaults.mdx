@@ -47,7 +47,6 @@ Configure the following parameters to define a `proxy-defaults` configuration en
 <Tab heading="Consul OSS">
 
 <CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -80,9 +79,6 @@ Expose {
 }
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ProxyDefaults
@@ -107,9 +103,6 @@ spec:
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -143,7 +136,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -153,7 +145,6 @@ spec:
 namespace and it will configure proxies in **all** namespaces.
 
 <CodeTabs heading="Proxy defaults configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -187,9 +178,6 @@ Expose {
 }
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ProxyDefaults
@@ -215,9 +203,6 @@ spec:
         listenerPort: <port where the proxy will listen for connections>
         protocol:= <protocol of the listener>
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```json
 {
@@ -252,7 +237,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -441,7 +425,6 @@ The following example configures the default protocol for all sidecar proxies.
 <Tab heading="Consul OSS">
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -450,9 +433,6 @@ Config {
   protocol = "http"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -464,9 +444,6 @@ spec:
     protocol: http
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -477,7 +454,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -487,7 +463,6 @@ spec:
 namespace and it will configure proxies in **all** namespaces.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -497,9 +472,6 @@ Config {
   protocol = "http"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -512,9 +484,6 @@ spec:
     protocol: http
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -526,7 +495,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 </Tab>
@@ -537,7 +505,6 @@ spec:
 The following example configures all sidecar proxies to expose Prometheus metrics.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -546,9 +513,6 @@ Config {
   envoy_prometheus_bind_addr = "0.0.0.0:9102"
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -560,9 +524,6 @@ spec:
     envoy_prometheus_bind_addr: '0.0.0.0:9102'
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -573,7 +534,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Proxy-specific defaults
@@ -581,7 +541,6 @@ spec:
 The following example configures some custom default values for all sidecar proxies.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-<CodeBlockConfig>
 
 ```hcl
 Kind      = "proxy-defaults"
@@ -591,9 +550,6 @@ Config {
   handshake_timeout_ms     = 10000
 }
 ```
-
-</CodeBlockConfig>
-<CodeBlockConfig>
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -606,9 +562,6 @@ spec:
     handshake_timeout_ms: 10000
 ```
 
-</CodeBlockConfig>
-<CodeBlockConfig>
-
 ```json
 {
   "Kind": "proxy-defaults",
@@ -620,7 +573,6 @@ spec:
 }
 ```
 
-</CodeBlockConfig>
 </CodeTabs>
 
 ## ACLs

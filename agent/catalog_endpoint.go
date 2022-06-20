@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -356,12 +357,12 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		args.TagFilter = true
 	}
 
-	// Pull out the service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, pathPrefix)
-	if err != nil {
-		return nil, err
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
 	}
+
+	// Pull out the service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
@@ -432,11 +433,7 @@ func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
@@ -497,13 +494,13 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node-services/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node-services/")
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
+	}
+
+	if _, ok := req.URL.Query()["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
 	}
 
 	// Make the RPC request
@@ -548,11 +545,7 @@ func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the gateway's service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/gateway-services/")
-	if err != nil {
-		return nil, err
-	}
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/gateway-services/")
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing gateway name"}
 	}

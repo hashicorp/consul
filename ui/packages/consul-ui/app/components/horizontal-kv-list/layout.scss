@@ -1,6 +1,7 @@
 %horizontal-kv-list {
   display: inline-flex;
   flex-wrap: nowrap;
+  align-items: center;
 }
 %horizontal-kv-list-reversed {
   flex-direction: row-reverse;

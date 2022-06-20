@@ -141,6 +141,26 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+		},
+		"http features: multiple services on tcp listener": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
 						Protocol: "tcp",
 						Services: []IngressService{
 							{
@@ -153,7 +173,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Multiple services per listener are only supported for protocol",
+			validateErr: "Multiple services per listener are only supported for L7",
 		},
 		// ==========================
 		"tcp listener requires a defined service": {

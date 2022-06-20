@@ -19,13 +19,9 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 1. Issue the following command to install the CRDs:
 
-   <CodeBlockConfig>
-
    ```shell-session
    $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
    ```
-
-   </CodeBlockConfig>
 
 1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
 
@@ -47,13 +43,9 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
-   <CodeBlockConfig>
-
    ```shell-session
    $ helm install consul hashicorp/consul --version 0.43.0 --values values.yaml --create-namespace --namespace consul
    ```
-
-   </CodeBlockConfig>
 
 ## Usage
 
@@ -73,13 +65,9 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 1. Issue the `kubectl apply` command to implement the configurations, e.g.:
 
-   <CodeBlockConfig>
-
    ```shell-session
    $ kubectl apply -f gateway.yaml routes.yaml
    ```
-
-   </CodeBlockConfig>
 
 <!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
 

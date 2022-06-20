@@ -1,15 +1,9 @@
 @keyframes icon-truck {
-  50% {
-
-    background-color: var(--icon-color, var(--color-truck-500, currentColor));
-    -webkit-mask-image: var(--icon-truck-24);
-    mask-image: var(--icon-truck-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-truck-500, currentColor));
     -webkit-mask-image: var(--icon-truck-16);
     mask-image: var(--icon-truck-16);
+    background-color: var(--icon-color, var(--color-truck-500, currentColor));
+
   }
 }

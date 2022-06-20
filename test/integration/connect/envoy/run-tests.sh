@@ -10,7 +10,7 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 DEBUG=${DEBUG:-}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.22.2"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -127,13 +127,21 @@ function start_consul {
     '-p=9411:9411'
     '-p=16686:16686'
   )
-  if [[ $DC == 'secondary' ]]; then
+  case "$DC" in
+    secondary)
       ports=(
         '-p=9500:8500'
         '-p=9502:8502'
       )
-  fi
-  
+      ;;
+    alpha)
+      ports=(
+        '-p=9510:8500'
+        '-p=9512:8502'
+      )
+      ;;
+  esac
+
   license="${CONSUL_LICENSE:-}"
   # load the consul license so we can pass it into the consul
   # containers as an env var in the case that this is a consul
@@ -269,7 +277,10 @@ function capture_logs {
   then
     services="$services consul-ap1"
   fi
-
+  if is_set $REQUIRE_PEERS
+  then
+      services="$services consul-alpha"
+  fi
 
   if [ -f "${CASE_DIR}/capture.sh" ]
   then
@@ -289,7 +300,7 @@ function stop_services {
   # Teardown
   docker_kill_rm $REQUIRED_SERVICES
 
-  docker_kill_rm consul-primary consul-secondary consul-ap1
+  docker_kill_rm consul-primary consul-secondary consul-ap1 consul-alpha
 }
 
 function init_vars {
@@ -332,6 +343,10 @@ function run_tests {
   then
     init_workdir ap1
   fi
+  if is_set $REQUIRE_PEERS
+  then
+    init_workdir alpha
+  fi
 
   global_setup
 
@@ -357,6 +372,9 @@ function run_tests {
     docker_consul "primary" consul partition create -name ap1 > /dev/null
     start_partitioned_client ap1
   fi
+  if is_set $REQUIRE_PEERS; then
+    start_consul alpha
+  fi
 
   echo "Setting up the primary datacenter"
   pre_service_setup primary
@@ -369,6 +387,10 @@ function run_tests {
     echo "Setting up the non-default partition"
     pre_service_setup ap1
   fi
+  if is_set $REQUIRE_PEERS; then
+    echo "Setting up the alpha peer"
+    pre_service_setup alpha
+  fi
 
   echo "Starting services"
   start_services
@@ -380,6 +402,10 @@ function run_tests {
   if is_set $REQUIRE_SECONDARY; then
     echo "Verifying the secondary datacenter"
     verify secondary
+  fi
+  if is_set $REQUIRE_PEERS; then
+    echo "Verifying the alpha peer"
+    verify alpha
   fi
 }
 
@@ -435,13 +461,13 @@ function suite_setup {
 }
 
 function suite_teardown {
-    docker_kill_rm verify-primary verify-secondary
+    docker_kill_rm verify-primary verify-secondary verify-alpha
 
     # this is some hilarious magic
     docker_kill_rm $(grep "^function run_container_" $self_name | \
         sed 's/^function run_container_\(.*\) {/\1/g')
 
-    docker_kill_rm consul-primary consul-secondary consul-ap1
+    docker_kill_rm consul-primary consul-secondary consul-ap1 consul-alpha
 
     if docker network inspect envoy-tests &>/dev/null ; then
         echo -n "Deleting network 'envoy-tests'..."
@@ -530,6 +556,14 @@ function run_container_s3-ap1 {
   common_run_container_service s3 ap1 8580 8579
 }
 
+function run_container_s1-alpha {
+  common_run_container_service s1-alpha alpha 8080 8079
+}
+
+function run_container_s2-alpha {
+  common_run_container_service s2-alpha alpha 8181 8179
+}
+
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
@@ -544,7 +578,7 @@ function common_run_container_sidecar_proxy {
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
-    -l debug \
+    -l trace \
     --disable-hot-restart \
     --drain-time-s 1 >/dev/null
 }
@@ -564,7 +598,7 @@ function run_container_s1-sidecar-proxy-consul-exec {
     consul connect envoy -sidecar-for s1 \
     -envoy-version ${ENVOY_VERSION} \
     -- \
-    -l debug >/dev/null
+    -l trace >/dev/null
 }
 
 function run_container_s2-sidecar-proxy {
@@ -606,6 +640,13 @@ function run_container_s3-ap1-sidecar-proxy {
   common_run_container_sidecar_proxy s3 ap1
 }
 
+function run_container_s1-sidecar-proxy-alpha {
+  common_run_container_sidecar_proxy s1 alpha
+}
+function run_container_s2-sidecar-proxy-alpha {
+  common_run_container_sidecar_proxy s2 alpha
+}
+
 function common_run_container_gateway {
   local name="$1"
   local DC="$2"
@@ -620,7 +661,7 @@ function common_run_container_gateway {
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
-    -l debug \
+    -l trace \
     --disable-hot-restart \
     --drain-time-s 1 >/dev/null
 }
@@ -630,6 +671,9 @@ function run_container_gateway-primary {
 }
 function run_container_gateway-secondary {
   common_run_container_gateway mesh-gateway secondary
+}
+function run_container_gateway-alpha {
+  common_run_container_gateway mesh-gateway alpha
 }
 
 function run_container_ingress-gateway-primary {
@@ -698,6 +742,10 @@ function run_container_tcpdump-primary {
 function run_container_tcpdump-secondary {
     # To use add "tcpdump-secondary" to REQUIRED_SERVICES
     common_run_container_tcpdump secondary
+}
+function run_container_tcpdump-alpha {
+    # To use add "tcpdump-alpha" to REQUIRED_SERVICES
+    common_run_container_tcpdump alpha
 }
 
 function common_run_container_tcpdump {

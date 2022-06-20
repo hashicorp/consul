@@ -139,56 +139,11 @@ function build_ui {
    # Copy UI over ready to be packaged into the binary
    if test ${ret} -eq 0
    then
-      rm -rf ${1}/pkg/web_ui
-      mkdir -p ${1}/pkg
-      cp -r ${1}/ui/dist ${1}/pkg/web_ui
+      rm -rf ${1}/agent/uiserver/dist
+      cp -r ${1}/ui/dist ${1}/agent/uiserver/
    fi
 
    popd > /dev/null
-   return $ret
-}
-
-function build_assetfs {
-   # Arguments:
-   #   $1 - Path to the top level Consul source
-   #   $2 - The docker image to run the build within (optional)
-   #
-   # Returns:
-   #   0 - success
-   #   * - error
-   #
-   # Note:
-   #   The GIT_COMMIT and GIT_DIRTY environment variables will be used if present
-
-   if ! test -d "$1"
-   then
-      err "ERROR: '$1' is not a directory. build_assetfs must be called with the path to the top level source as the first argument'"
-      return 1
-   fi
-
-   local sdir="$1"
-   local image_name=${GO_BUILD_CONTAINER_DEFAULT}
-   if test -n "$2"
-   then
-      image_name="$2"
-   fi
-
-   pushd ${sdir} > /dev/null
-   status "Creating the Go Build Container with image: ${image_name}"
-   local container_id=$(docker create -it -e GIT_COMMIT=${GIT_COMMIT} -e GIT_DIRTY=${GIT_DIRTY} ${image_name} make static-assets ASSETFS_PATH=bindata_assetfs.go)
-   local ret=$?
-   if test $ret -eq 0
-   then
-      status "Copying the sources from '${sdir}/(pkg/web_ui|GNUmakefile)' to /consul/pkg"
-      (
-         tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/consul &&
-         status "Running build in container" && docker start -i ${container_id} &&
-         status "Copying back artifacts" && docker cp ${container_id}:/consul/bindata_assetfs.go ${sdir}/agent/uiserver/bindata_assetfs.go
-      )
-      ret=$?
-      docker rm ${container_id} > /dev/null
-   fi
-   popd >/dev/null
    return $ret
 }
 

@@ -9,8 +9,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -18,7 +16,7 @@ type handlerUpstreams struct {
 	handlerState
 }
 
-func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -89,6 +87,34 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
 		}
+
+	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		uidString := strings.TrimPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix)
+
+		uid := UpstreamIDFromString(uidString)
+
+		filteredNodes := hostnameEndpoints(
+			s.logger,
+			GatewayKey{ /*empty so it never matches*/ },
+			resp.Nodes,
+		)
+		if len(filteredNodes) > 0 {
+			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = filteredNodes
+			upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+		} else {
+			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = resp.Nodes
+			delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+		}
+
+		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
+			return nil
+		}
+
+		s.logger.Warn("skipping transparent proxy update for peered upstream")
 
 	case strings.HasPrefix(u.CorrelationID, "upstream-target:"):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
@@ -315,12 +341,12 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 
 		ctx, cancel := context.WithCancel(ctx)
 		opts := gatewayWatchOpts{
-			notifier:   s.cache,
-			notifyCh:   s.ch,
-			source:     *s.source,
-			token:      s.token,
-			key:        gwKey,
-			upstreamID: uid,
+			internalServiceDump: s.dataSources.InternalServiceDump,
+			notifyCh:            s.ch,
+			source:              *s.source,
+			token:               s.token,
+			key:                 gwKey,
+			upstreamID:          uid,
 		}
 		err := watchMeshGateway(ctx, opts)
 		if err != nil {
@@ -373,7 +399,7 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 		PeerName:   opts.upstreamID.Peer,
 		Datacenter: opts.datacenter,
 		QueryOptions: structs.QueryOptions{
@@ -414,7 +440,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+	err := s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
 		Datacenter:             s.source.Datacenter,
 		QueryOptions:           structs.QueryOptions{Token: s.token},
 		Name:                   opts.name,

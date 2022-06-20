@@ -1,15 +1,9 @@
 @keyframes icon-sidebar-hide {
-  50% {
-
-    background-color: var(--icon-color, var(--color-sidebar-hide-500, currentColor));
-    -webkit-mask-image: var(--icon-sidebar-hide-24);
-    mask-image: var(--icon-sidebar-hide-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-sidebar-hide-500, currentColor));
     -webkit-mask-image: var(--icon-sidebar-hide-16);
     mask-image: var(--icon-sidebar-hide-16);
+    background-color: var(--icon-color, var(--color-sidebar-hide-500, currentColor));
+
   }
 }

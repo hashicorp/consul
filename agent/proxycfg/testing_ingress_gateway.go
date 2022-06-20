@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -21,7 +20,7 @@ func TestConfigSnapshotIngressGateway(
 	variation string,
 	nsFn func(ns *structs.NodeService),
 	configFn func(entry *structs.IngressGatewayConfigEntry),
-	extraUpdates []cache.UpdateEvent,
+	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, placeholderLeaf := TestCerts(t)
@@ -47,7 +46,7 @@ func TestConfigSnapshotIngressGateway(
 		configFn(entry)
 	}
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -71,7 +70,7 @@ func TestConfigSnapshotIngressGateway(
 	}
 
 	if populateServices {
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
@@ -155,7 +154,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *Con
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -270,7 +269,7 @@ func TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel_HTTP(t testing.
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -344,7 +343,7 @@ func TestConfigSnapshotIngressGatewaySDS_ServiceLevel(t testing.T) *ConfigSnapsh
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -434,7 +433,7 @@ func TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel(t testing.T) *C
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -519,7 +518,7 @@ func TestConfigSnapshotIngressGatewaySDS_MixedNoTLS(t testing.T) *ConfigSnapshot
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -601,7 +600,7 @@ func TestConfigSnapshotIngressGateway_MixedListeners(t testing.T) *ConfigSnapsho
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -717,7 +716,7 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -801,6 +800,109 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 	})
 }
 
+func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot {
+	// We do not add baz/qux here so that we test the chain.IsDefault() case
+	entries := []structs.ConfigEntry{
+		&structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "foo",
+			ConnectTimeout: 22 * time.Second,
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "bar",
+			ConnectTimeout: 22 * time.Second,
+		},
+	}
+
+	var (
+		foo      = structs.NewServiceName("foo", nil)
+		fooUID   = NewUpstreamIDFromServiceName(foo)
+		fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+
+		bar      = structs.NewServiceName("bar", nil)
+		barUID   = NewUpstreamIDFromServiceName(bar)
+		barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+	)
+
+	require.False(t, fooChain.Default)
+	require.False(t, barChain.Default)
+
+	return TestConfigSnapshotIngressGateway(t, false, "http", "default", nil, func(entry *structs.IngressGatewayConfigEntry) {
+		entry.Listeners = []structs.IngressListener{
+			{
+				Port:     8080,
+				Protocol: "grpc",
+				Services: []structs.IngressService{
+					{
+						Name: "foo",
+						Hosts: []string{
+							"test1.example.com",
+							"test2.example.com",
+							"test2.example.com:8080",
+						},
+					},
+					{Name: "bar"},
+				},
+			},
+		}
+	}, []UpdateEvent{
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service:  foo,
+						Port:     8080,
+						Protocol: "grpc",
+						Hosts: []string{
+							"test1.example.com",
+							"test2.example.com",
+							"test2.example.com:8080",
+						},
+					},
+					{
+						Service:  bar,
+						Port:     8080,
+						Protocol: "grpc",
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: "discovery-chain:" + fooUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: fooChain,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:" + fooChain.ID() + ":" + fooUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodes(t, "foo"),
+			},
+		},
+		{
+			CorrelationID: "discovery-chain:" + barUID.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: barChain,
+			},
+		},
+		{
+			CorrelationID: "upstream-target:" + barChain.ID() + ":" + barUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodes(t, "bar"),
+			},
+		},
+	})
+}
+
 func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
 	var (
 		foo      = structs.NewServiceName("foo", nil)
@@ -830,7 +932,7 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 				},
 			},
 		}
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -893,7 +995,7 @@ func TestConfigSnapshotIngressGatewayWithChain(
 	}
 
 	var (
-		updates  []cache.UpdateEvent
+		updates  []UpdateEvent
 		configFn func(entry *structs.IngressGatewayConfigEntry)
 
 		populateServices                      bool
@@ -1088,7 +1190,7 @@ func TestConfigSnapshotIngressGatewayWithChain(
 			fooEntMeta.PartitionOrDefault(), "dc1",
 			connect.TestClusterID+".consul", nil, entries...)
 
-		updates = []cache.UpdateEvent{
+		updates = []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1218,7 +1320,7 @@ func TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults(t te
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1336,7 +1438,7 @@ func TestConfigSnapshotIngressGateway_SingleTLSListener(t testing.T) *ConfigSnap
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{
@@ -1436,7 +1538,7 @@ func TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners(t testing.T) *
 					},
 				},
 			}
-		}, []cache.UpdateEvent{
+		}, []UpdateEvent{
 			{
 				CorrelationID: gatewayServicesWatchID,
 				Result: &structs.IndexedGatewayServices{

@@ -7,14 +7,13 @@ description: >-
 
 # Vault as the Secrets Backend - Data Integration
 
-## Prerequisites
-Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
-
 ## Overview
+
+This topic describes an overview of how to configure Vault and Consul in order to share secrets for use within Consul.
 
 ### General Integration Steps 
 
-Generally, for each secret you wish to store in Vault, the process to integrate the date between Vault and Consul on Kubernetes is: 
+Generally, for each secret you wish to store in Vault, the process to integrate the data between Vault and Consul on Kubernetes is: 
 
 #### One time setup in Vault
   1. Store the secret in Vault.
@@ -22,7 +21,10 @@ Generally, for each secret you wish to store in Vault, the process to integrate 
   
 #### Setup per Consul datacenter
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
+  1. Update the Consul on Kubernetes helm chart.
+
+## Prerequisites
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ### Example - Gossip Encryption Key Integration
 
@@ -41,7 +43,7 @@ Following the general integration steps, a more detailed workflow for integratio
       - Both Consul servers and Consul clients need access to the gossip encryption key, so you create two Vault Kubernetes:
         - A role called `consul-server` that maps the Kubernetes namespace and service account name for your consul servers to the `gossip-policy` created in [step 2](#one-time-setup-in-vault) of One time setup in Vault.
         - A role called `consul-client` that maps the Kubernetes namespace and service account name for your consul clients to the `gossip-policy` created in [step 2](#one-time-setup-in-vault) of One time setup in Vault..
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
+  1. Update the Consul on Kubernetes helm chart.
       - Configure the Vault Kubernetes auth roles created for the gossip encryption key:
         - [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole) is set to the `consul-server` Vault Kubernetes auth role created previously.
         - [`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole) is set to the `consul-client` Vault Kubernetes auth role created previously.
@@ -64,6 +66,7 @@ It includes things like terminating gateways, ingress gateways, etc.)
 |[Snapshot Agent config](/docs/k8s/installation/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
 |[Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
 |[Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
+|[Webhook TLS certificates for controller and connect inject](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
 
 ### Secondary Datacenters
 The mapping for secondary data centers is similar with the following differences:
@@ -80,7 +83,7 @@ The mapping for secondary data centers is similar with the following differences
 |[Snapshot Agent config](/docs/k8s/installation/vault/data-integration/snapshot-agent-config) | Consul snapshot agent | [`global.secretsBackend.vault.consulSnapshotAgentRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulsnapshotagentrole)|
 |[Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) | Consul servers<br/>Consul clients<br/>Consul components | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)<br/>[`global.secretsBackend.vault.consulClientRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulclientrole)<br/>[`global.secretsBackend.vault.consulCARole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulcarole)|
 |[Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul servers | [`global.secretsBackend.vault.consulServerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-consulserverrole)|
-
+|[Webhook TLS certificates for controller and connect inject](/docs/k8s/installation/vault/data-integration/connect-ca) | Consul controllers<br/>Consul connect inject | [`global.secretsBackend.vault.controllerRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)<br />[`global.secretsBackend.vault.connectInjectRole`](/docs/k8s/helm#v-global-secretsbackend-vault-controllerrole)|
 ### Combining policies within roles
 As you can see in the table above, depending upon your needs, a Consul on Kubernetes service account could have the need to request more than one secret.  In these cases, you will want to create one role for the Consul on Kubernetes service account that is mapped to multiple policies, each of which allows it access to a given secret.  
 
@@ -155,6 +158,7 @@ The following secrets can be stored in Vault KV secrets engine, which is meant t
 The following TLS certificates and keys can generated and managed by Vault the Vault PKI Engine, which is meant to handle things like certificate expiration and rotation:
 - [Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls)
 - [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
+- [Vault as the Webhook Certificate Provider for Consul Controller and Connect Inject on Kubernetes](/docs/k8s/installation/vault/data-integration/webhook-certs)
 
 ## Secrets to Service Account Mapping
 Read through the [detailed data integration guides](#detailed-data-integration-guides) that are pertinent to your environment.

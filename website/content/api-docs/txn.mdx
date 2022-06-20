@@ -51,11 +51,17 @@ The table below shows this endpoint's support for
   <sup>2</sup> The ACL required depends on the operations in the transaction.
 </p>
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default
   to the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
+
+### JSON Request Body Schema
+
+A JSON array of operations objects, each with
+a key of the operation name (`KV`, `Node`, `Service`, or `Check`), and
+a value of an object specific to that operation.
 
 - `KV` operations have the following fields:
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/connect"
 )
@@ -91,16 +90,4 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 		}
 	}
 	return nil
-}
-
-// EnsureTrailingNewline this is used to fix a case where the provider do not return a new line after
-// the certificate as per the specification see GH-8178 for more context
-func EnsureTrailingNewline(cert string) string {
-	if cert == "" {
-		return cert
-	}
-	if strings.HasSuffix(cert, "\n") {
-		return cert
-	}
-	return fmt.Sprintf("%s\n", cert)
 }

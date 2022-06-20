@@ -39,6 +39,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
@@ -73,6 +74,7 @@ func TestUIServerIndex(t *testing.T) {
 			},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
@@ -95,6 +97,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
 			wantUICfgJSON: `{
 				"ACLsEnabled": true,
+				"HCPEnabled": false,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
@@ -114,6 +117,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": true,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
@@ -143,6 +147,7 @@ func TestUIServerIndex(t *testing.T) {
 			},
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
+				"HCPEnabled": false,
 				"SSOEnabled": true,
 				"LocalDatacenter": "dc1",
 				"PrimaryDatacenter": "dc1",
@@ -413,6 +418,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		expected := `{
 		"ACLsEnabled": false,
+		"HCPEnabled": false,
 		"LocalDatacenter": "dc1",
 		"PrimaryDatacenter": "dc1",
 		"ContentPath": "/ui/",
@@ -437,6 +443,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		expected := `{
 			"ACLsEnabled": false,
+			"HCPEnabled": false,
 			"LocalDatacenter": "dc1",
 			"PrimaryDatacenter": "dc1",
 			"ContentPath": "/ui/",

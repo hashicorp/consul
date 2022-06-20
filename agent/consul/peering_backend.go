@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"google.golang.org/grpc"
 
@@ -15,9 +16,11 @@ import (
 )
 
 type peeringBackend struct {
+	// TODO(peering): accept a smaller interface; maybe just funcs from the server that we actually need: DC, IsLeader, etc
 	srv      *Server
 	connPool GRPCClientConner
 	apply    *peeringApply
+	addr     *leaderAddr
 }
 
 var _ peering.Backend = (*peeringBackend)(nil)
@@ -28,9 +31,11 @@ func NewPeeringBackend(srv *Server, connPool GRPCClientConner) peering.Backend {
 		srv:      srv,
 		connPool: connPool,
 		apply:    &peeringApply{srv: srv},
+		addr:     &leaderAddr{},
 	}
 }
 
+// Forward should not be used to initiate forwarding over bidirectional streams
 func (b *peeringBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	// Only forward the request if the dc in the request matches the server's datacenter.
 	if info.RequestDatacenter() != "" && info.RequestDatacenter() != b.srv.config.Datacenter {
@@ -99,8 +104,39 @@ func (b *peeringBackend) Apply() peering.Apply {
 	return b.apply
 }
 
+func (b *peeringBackend) LeaderAddress() peering.LeaderAddress {
+	return b.addr
+}
+
 func (b *peeringBackend) EnterpriseCheckPartitions(partition string) error {
 	return b.enterpriseCheckPartitions(partition)
+}
+
+func (b *peeringBackend) EnterpriseCheckNamespaces(namespace string) error {
+	return b.enterpriseCheckNamespaces(namespace)
+}
+
+func (b *peeringBackend) IsLeader() bool {
+	return b.srv.IsLeader()
+}
+
+type leaderAddr struct {
+	lock       sync.RWMutex
+	leaderAddr string
+}
+
+func (m *leaderAddr) Set(addr string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.leaderAddr = addr
+}
+
+func (m *leaderAddr) Get() string {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	return m.leaderAddr
 }
 
 type peeringApply struct {
@@ -112,15 +148,26 @@ func (a *peeringApply) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	return err
 }
 
-func (a *peeringApply) PeeringDelete(req *pbpeering.PeeringDeleteRequest) error {
-	_, err := a.srv.raftApplyProtobuf(structs.PeeringDeleteType, req)
-	return err
-}
-
 // TODO(peering): This needs RPC metrics interceptor since it's not triggered by an RPC.
 func (a *peeringApply) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error {
 	_, err := a.srv.raftApplyProtobuf(structs.PeeringTerminateByIDType, req)
 	return err
 }
 
+func (a *peeringApply) PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error {
+	_, err := a.srv.raftApplyProtobuf(structs.PeeringTrustBundleWriteType, req)
+	return err
+}
+
+func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Register", structs.RegisterRequestType, req)
+	return err
+}
+
+func (a *peeringApply) CatalogDeregister(req *structs.DeregisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Deregister", structs.DeregisterRequestType, req)
+	return err
+}
+
 var _ peering.Apply = (*peeringApply)(nil)
+var _ peering.LeaderAddress = (*leaderAddr)(nil)

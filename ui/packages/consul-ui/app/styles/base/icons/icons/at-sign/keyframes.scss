@@ -1,15 +1,9 @@
 @keyframes icon-at-sign {
-  50% {
-
-    background-color: var(--icon-color, var(--color-at-sign-500, currentColor));
-    -webkit-mask-image: var(--icon-at-sign-24);
-    mask-image: var(--icon-at-sign-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-at-sign-500, currentColor));
     -webkit-mask-image: var(--icon-at-sign-16);
     mask-image: var(--icon-at-sign-16);
+    background-color: var(--icon-color, var(--color-at-sign-500, currentColor));
+
   }
 }

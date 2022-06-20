@@ -1,0 +1,50 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "dynamic_forward_proxy_cluster",
+      "clusterType": {
+        "name": "envoy.clusters.dynamic_forward_proxy",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig",
+          "dnsCacheConfig": {
+            "name": "dynamic_forward_proxy_cache_config"
+          }
+        }
+      },
+      "connectTimeout": "5s",
+      "lbPolicy": "CLUSTER_PROVIDED"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "STATIC",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "192.168.0.1",
+                      "portValue": 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "outlierDetection": {
+
+      }
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "nonce": "00000001"
+}
