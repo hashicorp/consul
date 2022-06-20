@@ -19,6 +19,7 @@ export default class NodeAdapter extends Adapter {
         ns,
         partition,
         index,
+        ['with-peers']: true,
       }}
     `;
   }
