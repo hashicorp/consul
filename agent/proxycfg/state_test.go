@@ -2472,7 +2472,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Result: &structs.IndexedServiceNodes{
 								ServiceNodes: []*structs.ServiceNode{
 									{ServiceName: "gtwy1", TaggedAddresses: map[string]string{
-										structs.ServiceGatewayVirtualIPTag(structs.ServiceName{"db", *structs.DefaultEnterpriseMetaInDefaultPartition()}): "172.0.0.1"},
+										structs.ServiceGatewayVirtualIPTag(structs.ServiceName{Name: "db", EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}): "172.0.0.1"},
 									},
 								},
 							},
