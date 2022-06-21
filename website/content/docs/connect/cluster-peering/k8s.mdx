@@ -49,6 +49,9 @@ Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml
 
 ```shell-session 
 $ export HELM_RELEASE_NAME=cluster-name
+```
+
+```shell-session
 $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.45.0" --values server.yaml
 ```
 
