@@ -38,6 +38,8 @@ This section describes how to manually create ACL tokens. Alternatively, you can
 
 Configure the following ACL policy for the Consul client token:
 
+<CodeBlockConfig filename="client-token-policy.hcl">
+
 ```hcl
 node_prefix "" {
   policy = "write"
@@ -47,19 +49,19 @@ service_prefix "" {
 }
 ```
 
+</CodeBlockConfig>
+
 The policy allows `node:write` for any node name, which is necessary because the Consul node names on ECS are not known until runtime.
 
 You can add the policy in Consul using the [`consul acl policy create`](/commands/acl/policy/create) command or the [`[PUT] /v1/acl/policy`](/api-docs/acl/policies#create-a-policy) API endpoint.
 
-If you intend to create a gateway for connecting multiple Consul datacenters, you will need additional policies to specify the permission scope.
+If you intend to create a gateway for connecting multiple Consul datacenters, you will need to configure a mesh gateway policy. If namespaces are enabled, the mesh gateway must run in the default namespace. 
 
-#### Mesh gateway policy
-
-Mesh gateways must run in the default namespace.
+<CodeBlockConfig filename="mesh-gateway-policy.hcl">
 
 ```hcl
 namespace "default" {    ## If namespaces enabled
-    service "<Service Name>" {
+    service "<service name>" {
        policy = "write"
     }
 }
@@ -75,39 +77,8 @@ agent_prefix "" {
    policy = "read"
 }
 ```
-#### Terminating gateway policy
 
-```hcl
-partition "<partition>" {    ## If partitions enabled
-  namespace "<namespace>" {  ## If namespaces enabled
-    service "<service Name>" {
-       policy = "write"
-    }
-    node_prefix "" {
-      policy = "read"
-    }
-  }
-}   
-```
-
-#### Ingress gateway policy
-
-```hcl
-partition "<partition>" {      ## If partitions enabled
-  namespace "<namespace>" {    ## If namespaces enabled
-    service "<Service Name>" {
-       policy = "write"
-    }
-    node_prefix "" {
-      policy = "read"
-    }
-    service_prefix "" {
-      policy = "read"
-    }
-  }
-}
-```
-
+</CodeBlockConfig>
 
 ### Create service tokens
 
