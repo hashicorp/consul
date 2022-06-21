@@ -469,8 +469,8 @@ options.
 
 ## Namespaced/Partitioned Services and Nodes <EnterpriseAlert inline />
 
-The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions,
-and nodes assigned to partitions via DNS.
+The DNS server in Consul Enterprise can resolve services assigned to namespaces and partitions.
+The The DNS server can also resolve nodes assigned to partitions.
 To maintain backwards compatibility existing queries can be used and these will
 resolve services within the `default` namespace and partition. However, for resolving
 services from other namespaces or partitions the following form can be used:
