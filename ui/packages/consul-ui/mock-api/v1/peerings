@@ -1,12 +1,5 @@
 [
   {
-    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca687",
-    "Name": "billing",
-    "State": "INITIAL",
-    "CreateIndex": 16,
-    "ModifyIndex": 16
-  },
-  {
     "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
     "Name": "web",
     "State": "ACTIVE",
@@ -14,11 +7,32 @@
     "ModifyIndex": 18
   },
   {
+    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca687",
+    "Name": "billing",
+    "State": "PENDING",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
+    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca688",
+    "Name": "peer-1",
+    "State": "ESTABLISHING",
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
     "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b95",
     "Name": "db",
     "State": "FAILING",
     "CreateIndex": 19,
     "ModifyIndex": 19
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b98",
+    "Name": "legacy deleted",
+    "State": "DELETING",
+    "CreateIndex": 20,
+    "ModifyIndex": 20
   },
   {
     "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b96",
