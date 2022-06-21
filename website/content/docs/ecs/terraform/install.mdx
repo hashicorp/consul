@@ -22,13 +22,13 @@ The following procedure describes the general workflow:
 
 2. [Run Terraform](#running-terraform) to deploy the resources in AWS
 
-If you want to operate Consul with ACLs enabled (recommended), follow the instructions in the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation. ACLs provide network security for production-grade deployments.
+If you want to operate Consul in production environments, follow the instructions in the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation. The instructions describe how to enable ACLs and TLS and gossip encyption, which provide network security for production-grade deployments.
 
 ## Requirements
 
 * You should have some familiarity with using Terraform. Refer to the [Terraform documentation](https://www.terraform.io/docs) to learn about infrastructure as code and how to get started with Terraform.
 * You should also be familiar with AWS ECS before following these instructions. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
-* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled (refer to [Encryption](/docs/security/encryption) for instructions). 
+* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation for instructions. 
 
 ## Create the task definition
 
