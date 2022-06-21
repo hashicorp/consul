@@ -2467,10 +2467,26 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: DestinationGatewayID + dbUID.String(),
+							Result: &structs.IndexedServiceNodes{
+								ServiceNodes: []*structs.ServiceNode{
+									{ServiceName: "gtwy1", TaggedAddresses: map[string]string{
+										structs.ServiceGatewayVirtualIPTag(structs.ServiceName{"db", *structs.DefaultEnterpriseMetaInDefaultPartition()}): "172.0.0.1"},
+									},
+								},
+							},
+							Err: nil,
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 1)
+						require.Len(t, snap.ConnectProxy.DestinationGateways, 1)
+						for k, _ := range snap.ConnectProxy.DestinationsUpstream {
+							_, ok := snap.ConnectProxy.DestinationGateways[k]
+							require.True(t, ok)
+						}
 						require.Equal(t, &structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}}, snap.ConnectProxy.DestinationsUpstream[dbUID])
 					},
 				},
