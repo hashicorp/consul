@@ -329,8 +329,8 @@ func TestServerLocalNotify_Validations(t *testing.T) {
 }
 
 func TestServerLocalNotify(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	notifyCtx, notifyCancel := context.WithCancel(context.Background())
+	t.Cleanup(notifyCancel)
 
 	abandonCh := make(chan struct{})
 
@@ -346,25 +346,25 @@ func TestServerLocalNotify(t *testing.T) {
 	provider.On("query", mock.Anything, store).
 		Return(uint64(4), &testResult{value: "foo"}, nil).
 		Once()
-	provider.On("notify", ctx, "test", &testResult{value: "foo"}, nil).Once()
+	provider.On("notify", notifyCtx, t.Name(), &testResult{value: "foo"}, nil).Once()
 	provider.On("query", mock.Anything, store).
 		Return(uint64(6), &testResult{value: "bar"}, nil).
 		Once()
-	provider.On("notify", ctx, "test", &testResult{value: "bar"}, nil).Once()
+	provider.On("notify", notifyCtx, t.Name(), &testResult{value: "bar"}, nil).Once()
 	provider.On("query", mock.Anything, store).
 		Return(uint64(7), &testResult{value: "baz"}, context.Canceled).
 		Run(func(mock.Arguments) {
-			cancel()
+			notifyCancel()
 		})
 
-	err := ServerLocalNotify(ctx, "test", provider.getStore, provider.query, provider.notify)
+	doneCtx, routineDone := context.WithCancel(context.Background())
+	err := serverLocalNotify(notifyCtx, t.Name(), provider.getStore, provider.query, provider.notify, routineDone, defaultWaiter())
 	require.NoError(t, err)
 
-	// wait for the context cancellation which will happen when the "query" func is run the third time
-	<-ctx.Done()
-	// wait another 100ms so that when the mock expectations are checked we would have had time to pick
-	// up on any extra invocations if the notification wasn't cancelled successfully.
-	time.Sleep(100 * time.Millisecond)
+	// Wait for the context cancellation which will happen when the "query" func is run the third time. The doneCtx gets "cancelled"
+	// by the backgrounded go routine when it is actually finished. We need to wait for this to ensure that all mocked calls have been
+	// made and that no extra calls get made.
+	<-doneCtx.Done()
 }
 
 func TestServerLocalNotify_internal(t *testing.T) {
@@ -406,7 +406,7 @@ func TestServerLocalNotify_internal(t *testing.T) {
 	}
 
 	// all the mock expectations should ensure things are working properly
-	serverLocalNotifyWithWaiter(ctx, "test", provider.getStore, provider.query, provider.notify, &waiter)
+	serverLocalNotifyRoutine(ctx, "test", provider.getStore, provider.query, provider.notify, noopDone, &waiter)
 }
 
 func addReadyWatchSet(args mock.Arguments) {

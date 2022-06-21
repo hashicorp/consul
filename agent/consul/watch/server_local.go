@@ -26,6 +26,30 @@ type StateStore interface {
 	AbandonCh() <-chan struct{}
 }
 
+const (
+	defaultWaiterMinFailures uint = 1
+	defaultWaiterMinWait          = time.Second
+	defaultWaiterMaxWait          = 60 * time.Second
+	defaultWaiterFactor           = 2 * time.Second
+)
+
+var (
+	defaultWaiterJitter = retry.NewJitter(100)
+)
+
+func defaultWaiter() *retry.Waiter {
+	return &retry.Waiter{
+		MinFailures: defaultWaiterMinFailures,
+		MinWait:     defaultWaiterMinWait,
+		MaxWait:     defaultWaiterMaxWait,
+		Jitter:      defaultWaiterJitter,
+		Factor:      defaultWaiterFactor,
+	}
+}
+
+// noopDone can be passed to serverLocalNotifyWithWaiter
+func noopDone() {}
+
 // ServerLocalBlockingQuery performs a blocking query similar to the pre-existing blockingQuery
 // method on the agent/consul.Server type. There are a few key differences.
 //
@@ -183,6 +207,34 @@ func ServerLocalNotify[ResultType any, StoreType StateStore](
 	query func(memdb.WatchSet, StoreType) (uint64, ResultType, error),
 	notify func(ctx context.Context, correlationID string, result ResultType, err error),
 ) error {
+	return serverLocalNotify(
+		ctx,
+		correlationID,
+		getStore,
+		query,
+		notify,
+		// Public callers should not need to know when the internal go routines are finished.
+		// Being able to provide a done function to the internal version of this function is
+		// to allow our tests to be more determinstic and to eliminate arbitrary sleeps.
+		noopDone,
+		// Public callers do not get to override the error backoff configuration. Internally
+		// we want to allow for this to enable our unit tests to run much more quickly.
+		defaultWaiter(),
+	)
+}
+
+// serverLocalNotify is the internal version of ServerLocalNotify. It takes
+// two additional arguments of the waiter to use and a function to call
+// when the notification go routine has finished
+func serverLocalNotify[ResultType any, StoreType StateStore](
+	ctx context.Context,
+	correlationID string,
+	getStore func() StoreType,
+	query func(memdb.WatchSet, StoreType) (uint64, ResultType, error),
+	notify func(ctx context.Context, correlationID string, result ResultType, err error),
+	done func(),
+	waiter *retry.Waiter,
+) error {
 	if ctx == nil {
 		return errNilContext
 	}
@@ -199,41 +251,36 @@ func ServerLocalNotify[ResultType any, StoreType StateStore](
 		return errNilNotify
 	}
 
-	// set up the failure backoff waiter
-	waiter := retry.Waiter{
-		MinFailures: 1,
-		MinWait:     1 * time.Second,
-		MaxWait:     60 * time.Second,
-		Jitter:      retry.NewJitter(100),
-		Factor:      2 * time.Second,
-	}
-
-	go serverLocalNotifyWithWaiter(
+	go serverLocalNotifyRoutine(
 		ctx,
 		correlationID,
 		getStore,
 		query,
 		notify,
-		&waiter,
+		done,
+		waiter,
 	)
 	return nil
 }
 
-// serverLocalNotifyWithWaiter is the function intended to be run within a new
+// serverLocalNotifyRoutine is the function intended to be run within a new
 // go routine to process the updates. It will not check to ensure callbacks
 // are non-nil nor perform other parameter validation. It is assumed that
 // the in-package caller of this method will have already done that. It also
 // takes the backoff waiter in as an argument so that unit tests within this
 // package can override the default values that the exported ServerLocalNotify
 // function would have set up.
-func serverLocalNotifyWithWaiter[ResultType any, StoreType StateStore](
+func serverLocalNotifyRoutine[ResultType any, StoreType StateStore](
 	ctx context.Context,
 	correlationID string,
 	getStore func() StoreType,
 	query func(memdb.WatchSet, StoreType) (uint64, ResultType, error),
 	notify func(ctx context.Context, correlationID string, result ResultType, err error),
+	done func(),
 	waiter *retry.Waiter,
 ) {
+	defer done()
+
 	var minIndex uint64
 
 	for {
