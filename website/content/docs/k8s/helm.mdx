@@ -63,9 +63,8 @@ Use these links to navigate to a particular top-level stanza.
 
   - `peering` ((#v-global-peering)) - [Experimental] Configures the Cluster Peering feature. Requires Consul v1.13+ and Consul-K8s v0.45+.
 
-    - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart will enable Cluster Peering for the cluster. This will enable peering controllers and
-      allow use of the PeeringAcceptor and PeeringDialer CRDs to establish peerings for service mesh.
-      @type boolean
+    - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart enables Cluster Peering for the cluster. This option enables peering controllers and
+      allows use of the PeeringAcceptor and PeeringDialer CRDs for establishing service mesh peerings.
 
   - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
     It additionally indicates that you are running Consul Enterprise v1.11+ with a valid Consul Enterprise
