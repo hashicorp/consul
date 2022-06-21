@@ -668,7 +668,7 @@
       },
       {
         "title": "Compatibility Matrix",
-        "path": "k8s/installation/compatibility"
+        "path": "k8s/compatibility"
       },
       {
         "title": "Helm Chart Configuration",
