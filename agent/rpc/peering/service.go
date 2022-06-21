@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -140,6 +141,7 @@ type Store interface {
 
 // Apply provides a write-only interface for persisting Peering data.
 type Apply interface {
+	CheckPeeringUUID(id string) (bool, error)
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
@@ -189,8 +191,16 @@ func (s *Service) GenerateToken(
 		return nil, err
 	}
 
+	canRetry := true
+RETRY_ONCE:
+	id, err := s.getExistingOrCreateNewPeerID(req.PeerName, req.Partition)
+	if err != nil {
+		return nil, err
+	}
+
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
+			ID:   id,
 			Name: req.PeerName,
 			// TODO(peering): Normalize from ACL token once this endpoint is guarded by ACLs.
 			Partition: req.PartitionOrDefault(),
@@ -198,6 +208,15 @@ func (s *Service) GenerateToken(
 		},
 	}
 	if err := s.Backend.Apply().PeeringWrite(&writeReq); err != nil {
+		// There's a possible race where two servers call Generate Token at the
+		// same time with the same peer name for the first time. They both
+		// generate an ID and try to insert and only one wins. This detects the
+		// collision and forces the loser to discard its generated ID and use
+		// the one from the other server.
+		if canRetry && strings.Contains(err.Error(), "A peering already exists with the name") {
+			canRetry = false
+			goto RETRY_ONCE
+		}
 		return nil, fmt.Errorf("failed to write peering: %w", err)
 	}
 
@@ -270,6 +289,11 @@ func (s *Service) Establish(
 		serverAddrs[i] = addr
 	}
 
+	id, err := s.getExistingOrCreateNewPeerID(req.PeerName, req.Partition)
+	if err != nil {
+		return nil, err
+	}
+
 	// as soon as a peering is written with a list of ServerAddresses that is
 	// non-empty, the leader routine will see the peering and attempt to
 	// establish a connection with the remote peer.
@@ -278,6 +302,7 @@ func (s *Service) Establish(
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
+			ID:                  id,
 			Name:                req.PeerName,
 			PeerCAPems:          tok.CA,
 			PeerServerAddresses: serverAddrs,
@@ -368,6 +393,16 @@ func (s *Service) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteR
 	defer metrics.MeasureSince([]string{"peering", "write"}, time.Now())
 	// TODO(peering): ACL check request token
 
+	if req.Peering == nil {
+		return nil, fmt.Errorf("missing required peering body")
+	}
+
+	id, err := s.getExistingOrCreateNewPeerID(req.Peering.Name, req.Peering.Partition)
+	if err != nil {
+		return nil, err
+	}
+	req.Peering.ID = id
+
 	// TODO(peering): handle blocking queries
 	err = s.Backend.Apply().PeeringWrite(req)
 	if err != nil {
@@ -418,6 +453,7 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
+			ID:        existing.ID,
 			Name:      req.Name,
 			Partition: req.Partition,
 			DeletedAt: structs.TimeToProto(time.Now().UTC()),
@@ -835,6 +871,26 @@ func getTrustDomain(store Store, logger hclog.Logger) (string, error) {
 		return "", grpcstatus.Error(codes.FailedPrecondition, "Connect CA is not yet initialized")
 	}
 	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
+}
+
+func (s *Service) getExistingOrCreateNewPeerID(peerName, partition string) (string, error) {
+	q := state.Query{
+		Value:          strings.ToLower(peerName),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(partition),
+	}
+	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return "", err
+	}
+	if peering != nil {
+		return peering.ID, nil
+	}
+
+	id, err := lib.GenerateUUID(s.Backend.Apply().CheckPeeringUUID)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 func (s *Service) StreamStatus(peer string) (resp StreamStatus, found bool) {

@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/prototest"
@@ -224,6 +225,7 @@ func TestPeeringService_Read(t *testing.T) {
 
 	// insert peering directly to state store
 	p := &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "foo",
 		State:               pbpeering.PeeringState_INITIAL,
 		PeerCAPems:          nil,
@@ -279,6 +281,7 @@ func TestPeeringService_Delete(t *testing.T) {
 	s := newTestServer(t, nil)
 
 	p := &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "foo",
 		State:               pbpeering.PeeringState_INITIAL,
 		PeerCAPems:          nil,
@@ -316,6 +319,7 @@ func TestPeeringService_List(t *testing.T) {
 	// Note that the state store holds reference to the underlying
 	// variables; do not modify them after writing.
 	foo := &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "foo",
 		State:               pbpeering.PeeringState_INITIAL,
 		PeerCAPems:          nil,
@@ -324,6 +328,7 @@ func TestPeeringService_List(t *testing.T) {
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
 	bar := &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "bar",
 		State:               pbpeering.PeeringState_ACTIVE,
 		PeerCAPems:          nil,
@@ -405,6 +410,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 
 	lastIdx++
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "foo",
 		State:               pbpeering.PeeringState_INITIAL,
 		PeerServerName:      "test",
@@ -413,6 +419,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 
 	lastIdx++
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  testUUID(t),
 		Name:                "bar",
 		State:               pbpeering.PeeringState_INITIAL,
 		PeerServerName:      "test-bar",
@@ -513,6 +520,7 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 	)
 
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(0, &pbpeering.Peering{
+		ID:   testUUID(t),
 		Name: "my-peer",
 	}))
 
@@ -998,7 +1006,9 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 }
 
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
+	t.Helper()
 	err := store.PeeringWrite(index, &pbpeering.Peering{
+		ID:   testUUID(t),
 		Name: name,
 	})
 	require.NoError(t, err)
@@ -1008,4 +1018,10 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	require.NotNil(t, p)
 
 	return p.ID
+}
+
+func testUUID(t *testing.T) string {
+	v, err := lib.GenerateUUID(nil)
+	require.NoError(t, err)
+	return v
 }
