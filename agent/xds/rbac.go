@@ -21,9 +21,10 @@ import (
 func makeRBACNetworkFilter(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
-	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
+	trustDomain string,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
 ) (*envoy_listener_v3.Filter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, false, peerTrustBundles)
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, trustDomain, false, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +39,10 @@ func makeRBACNetworkFilter(
 func makeRBACHTTPFilter(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
-	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
+	trustDomain string,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
 ) (*envoy_http_v3.HttpFilter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, true, peerTrustBundles)
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, trustDomain, true, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +55,7 @@ func makeRBACHTTPFilter(
 
 func intentionListToIntermediateRBACForm(
 	intentions structs.Intentions,
+	trustDomain string,
 	isHTTP bool,
 	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
 ) []*rbacIntention {
@@ -72,7 +75,7 @@ func intentionListToIntermediateRBACForm(
 			continue
 		}
 
-		rixn := intentionToIntermediateRBACForm(ixn, isHTTP, trustBundle)
+		rixn := intentionToIntermediateRBACForm(ixn, trustDomain, isHTTP, trustBundle)
 		rbacIxns = append(rbacIxns, rixn)
 	}
 	return rbacIxns
@@ -210,11 +213,12 @@ func removePermissionPrecedence(perms []*rbacPermission, intentionDefaultAction 
 	return out
 }
 
-func intentionToIntermediateRBACForm(ixn *structs.Intention, isHTTP bool, bundle *pbpeering.PeeringTrustBundle) *rbacIntention {
+func intentionToIntermediateRBACForm(ixn *structs.Intention, trustDomain string, isHTTP bool, bundle *pbpeering.PeeringTrustBundle) *rbacIntention {
 	rixn := &rbacIntention{
 		Source: rbacService{
 			ServiceName: ixn.SourceServiceName(),
 			Peer:        ixn.SourcePeer,
+			TrustDomain: trustDomain,
 		},
 		Precedence: ixn.Precedence,
 	}
@@ -426,25 +430,21 @@ func simplifyNotSourceSlice(notSources []rbacService) []rbacService {
 func makeRBACRules(
 	intentions structs.Intentions,
 	intentionDefaultAllow bool,
+	trustDomain string,
 	isHTTP bool,
-	peerTrustBundles map[string]*pbpeering.PeeringTrustBundle,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
 ) (*envoy_rbac_v3.RBAC, error) {
-	// Note that we DON'T explicitly validate the trust-domain matches ours.
-	//
-	// For now we don't validate the trust domain of the _destination_ at all.
-	// The RBAC policies below ignore the trust domain and it's implicit that
-	// the request is for the correct cluster. We might want to reconsider this
-	// later but plumbing in additional machinery to check the clusterID here
-	// is not really necessary for now unless the Envoys are badly configured.
-	// Our threat model _requires_ correctly configured and well behaved
-	// proxies given that they have ACLs to fetch certs and so can do whatever
-	// they want including not authorizing traffic at all or routing it do a
-	// different service than they auth'd against.
-
 	// TODO(banks,rb): Implement revocation list checking?
 
+	// TODO(peering): mkeeler asked that these maps come from proxycfg instead of
+	// being constructed in xds to save memory allocation and gc pressure. Low priority.
+	trustBundlesByPeer := make(map[string]*pbpeering.PeeringTrustBundle, len(peerTrustBundles))
+	for _, ptb := range peerTrustBundles {
+		trustBundlesByPeer[ptb.PeerName] = ptb
+	}
+
 	// First build up just the basic principal matches.
-	rbacIxns := intentionListToIntermediateRBACForm(intentions, isHTTP, peerTrustBundles)
+	rbacIxns := intentionListToIntermediateRBACForm(intentions, trustDomain, isHTTP, trustBundlesByPeer)
 
 	// Normalize: if we are in default-deny then all intentions must be allows and vice versa
 	intentionDefaultAction := intentionActionFromBool(intentionDefaultAllow)
@@ -641,7 +641,7 @@ const anyPath = `[^/]+`
 
 func makeSpiffePattern(src rbacService) string {
 	var (
-		host = anyPath // TODO(peering): We match trust domain on any value but should be defaulting to the local trust domain
+		host = src.TrustDomain
 		ap   = src.PartitionOrDefault()
 		ns   = src.NamespaceOrDefault()
 		svc  = src.Name
