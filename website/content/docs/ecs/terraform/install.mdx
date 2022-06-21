@@ -162,6 +162,7 @@ module "my_mesh_gateway" {
   ecs_cluster_arn           = "<ECS cluster ARN>"
   subnets                   = ["<subnet ID>"]
   retry_join                = ["<address of the Consul server>"]
+  tls                       = true
   consul_server_ca_cert_arn = "<Secrets Manager secret ARN>"
   gossip_key_secret_arn     = "<Secrets Manager secret ARN>"
 }
@@ -180,6 +181,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `ecs_cluster_arn` | string | Specifies the ARN of the ECS cluster where the mesh gateway task should be launched. |
 | `subnets` | list of strings | Specifies the subnet IDs where the task will be launched. |
 | `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. The arguments specify locations of the Consul servers in the local datacenter that Consul client agents can connect to. |
+| `tls` | boolean | Set to `true` to enable TLS. |
 | `consul_server_ca_cert_arn` | string   | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate |
 | `gossip_key_secret_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul's gossip encryption key. |
 
@@ -215,7 +217,7 @@ The following examples illustrate how to configure the `gateway-task` for differ
 
 Mesh gateways need to be reachable over the WAN to route traffic between datacenters. Configure the following options in the `gateway-task` to enable ingress through the mesh gateway.
 
-| Option | Type | Description |
+| Input variable | Type | Description |
 | ---    | ---  | ---         |
 | `lb_enabled` | Boolean | Set to `true` to automatically deploy and configure a network load balancer for ingress to the mesh gateway. |
 | `lb_vpc_id` | string | Specifies the VPC to launch the load balancer in. |
@@ -421,15 +423,15 @@ module "web" {
 ## Configure the bind address
 
 To ensure that your application only receives traffic through the service mesh,
-you must change the address that your application is listening on to only the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`.
+you must change the address that your application listens on to the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`. 
 Binding to the loopback address allows the sidecar proxy running in the same task to only make requests within the service mesh.
 
-If your application is listening on all interfaces, e.g., `0.0.0.0`, then other
+If your application is listening on all interfaces, such as `0.0.0.0`, then other
 applications can call it directly, bypassing its sidecar proxy.
 
 Changing the listening address is specific to the language and framework you're
-using in your application. Regardless of which language/framework you're using,
-it is a good practice to make the address configurable via environment variable.
+using in your application. Regardless of which language or framework you're using,
+it is a good practice to use the environment variable to configure the address.
 
 The following examples demonstrate how to bind the loopback address in golang and Django (Python):
 
