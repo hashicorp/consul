@@ -619,6 +619,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
 			},
 		},
+		{
+			name:   "transparent-proxy-destination",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]

@@ -271,62 +271,73 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		if !ok {
 			continue
 		}
-		sni := connect.ServiceSNI(
-			uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-		// Prefixed with passthrough to distinguish from non-passthrough clusters for the same upstream.
-		name := "passthrough~" + sni
-
-		c := envoy_cluster_v3.Cluster{
-			Name: name,
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_STATIC,
-			},
-			LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
-
-			ConnectTimeout: durationpb.New(5 * time.Second),
+		gateways, ok := cfgSnap.ConnectProxy.DestinationGateways[uid]
+		if !ok {
+			continue
 		}
-		endpoints := []*envoy_endpoint_v3.LbEndpoint{
-			// TODO(egress-gtwy): use terminating gateway IPs
-			//makeEndpoint(opts.addressEndpoint.Address, opts.addressEndpoint.Port),
-		}
+		for _, gateway := range gateways {
+			key := structs.ServiceGatewayVirtualIPTag(structs.NewServiceName(entry.GetName(), entry.GetEnterpriseMeta()))
+			GatewayVip, ok := gateway.TaggedAddresses[key]
+			if !ok {
+				continue
+			}
+			sni := connect.ServiceSNI(
+				uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-		c.LoadAssignment = &envoy_endpoint_v3.ClusterLoadAssignment{
-			ClusterName: c.Name,
-			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
-				{
-					LbEndpoints: endpoints,
+			// Prefixed with destination to distinguish from non-passthrough clusters for the same upstream.
+			name := "destination~" + sni
+
+			c := envoy_cluster_v3.Cluster{
+				Name: name,
+				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+					Type: envoy_cluster_v3.Cluster_STATIC,
 				},
-			},
-		}
+				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 
-		spiffeID := connect.SpiffeIDService{
-			Host:       cfgSnap.Roots.TrustDomain,
-			Partition:  uid.PartitionOrDefault(),
-			Namespace:  uid.NamespaceOrDefault(),
-			Datacenter: cfgSnap.Datacenter,
-			Service:    uid.Name,
-		}
+				ConnectTimeout: durationpb.New(5 * time.Second),
+			}
+			endpoints := []*envoy_endpoint_v3.LbEndpoint{
+				makeEndpoint(GatewayVip, gateway.ServicePort),
+			}
 
-		commonTLSContext := makeCommonTLSContext(
-			cfgSnap.Leaf(),
-			cfgSnap.RootPEMs(),
-			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
-		)
-		err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
-		if err != nil {
-			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+			c.LoadAssignment = &envoy_endpoint_v3.ClusterLoadAssignment{
+				ClusterName: c.Name,
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+					{
+						LbEndpoints: endpoints,
+					},
+				},
+			}
+
+			spiffeID := connect.SpiffeIDService{
+				Host:       cfgSnap.Roots.TrustDomain,
+				Partition:  uid.PartitionOrDefault(),
+				Namespace:  uid.NamespaceOrDefault(),
+				Datacenter: cfgSnap.Datacenter,
+				Service:    uid.Name,
+			}
+
+			commonTLSContext := makeCommonTLSContext(
+				cfgSnap.Leaf(),
+				cfgSnap.RootPEMs(),
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+			)
+			err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
+			if err != nil {
+				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+			}
+			tlsContext := envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: commonTLSContext,
+				Sni:              sni,
+			}
+			transportSocket, err := makeUpstreamTLSTransportSocket(&tlsContext)
+			if err != nil {
+				return nil, err
+			}
+			c.TransportSocket = transportSocket
+			clusters = append(clusters, &c)
 		}
-		tlsContext := envoy_tls_v3.UpstreamTlsContext{
-			CommonTlsContext: commonTLSContext,
-			Sni:              sni,
-		}
-		transportSocket, err := makeUpstreamTLSTransportSocket(&tlsContext)
-		if err != nil {
-			return nil, err
-		}
-		c.TransportSocket = transportSocket
-		clusters = append(clusters, &c)
 	}
 
 	return clusters, nil

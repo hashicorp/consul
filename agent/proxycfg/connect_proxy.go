@@ -461,7 +461,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				Datacenter:     s.source.Datacenter,
 				QueryOptions:   structs.QueryOptions{Token: s.token},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-			}, DestinationConfigEntryID+":"+NewUpstreamIDFromServiceName(svc).String(), s.ch)
+			}, DestinationConfigEntryID+NewUpstreamIDFromServiceName(svc).String(), s.ch)
 			if err != nil {
 				cancel()
 				return err
@@ -471,7 +471,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				Datacenter:     s.source.Datacenter,
 				QueryOptions:   structs.QueryOptions{Token: s.token},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
-			}, DestinationGatewayID+":"+NewUpstreamIDFromServiceName(svc).String(), s.ch)
+			}, DestinationGatewayID+NewUpstreamIDFromServiceName(svc).String(), s.ch)
 			if err != nil {
 				cancel()
 				return err
@@ -503,7 +503,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID+":")
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID)
 		uid := UpstreamIDFromString(pq)
 		snap.ConnectProxy.DestinationsUpstream[uid] = resp.Entry
 	case strings.HasPrefix(u.CorrelationID, DestinationGatewayID):
@@ -512,7 +512,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID+":")
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationGatewayID)
 		uid := UpstreamIDFromString(pq)
 		snap.ConnectProxy.DestinationGateways[uid] = resp.ServiceNodes
 

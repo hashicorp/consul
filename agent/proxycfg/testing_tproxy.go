@@ -529,11 +529,11 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 	var (
 		google    = structs.NewServiceName("google", nil)
 		googleUID = NewUpstreamIDFromServiceName(google)
-		googleCE  = structs.ServiceConfigEntry{Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443}}
+		googleCE  = structs.ServiceConfigEntry{Name: "google", Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443}}
 
 		kafka    = structs.NewServiceName("kafka", nil)
 		kafkaUID = NewUpstreamIDFromServiceName(kafka)
-		kafkaCE  = structs.ServiceConfigEntry{Destination: &structs.DestinationConfig{Address: "192.168.2.1", Port: 9093}}
+		kafkaCE  = structs.ServiceConfigEntry{Name: "kafka", Destination: &structs.DestinationConfig{Address: "192.168.2.1", Port: 9093}}
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -568,6 +568,22 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 			CorrelationID: DestinationConfigEntryID + kafkaUID.String(),
 			Result: &structs.ConfigEntryResponse{
 				Entry: &kafkaCE,
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayID + googleUID.String(),
+			Result: &structs.IndexedServiceNodes{
+				ServiceNodes: []*structs.ServiceNode{
+					{Node: "node1", ServiceName: "tgtw1", TaggedAddresses: map[string]string{structs.ServiceGatewayVirtualIPTag(google): "172.168.0.1", structs.ServiceGatewayVirtualIPTag(kafka): "172.168.0.2"}, ServicePort: 7777},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayID + kafkaUID.String(),
+			Result: &structs.IndexedServiceNodes{
+				ServiceNodes: []*structs.ServiceNode{
+					{Node: "node1", ServiceName: "tgtw1", TaggedAddresses: map[string]string{structs.ServiceGatewayVirtualIPTag(google): "172.168.0.1", structs.ServiceGatewayVirtualIPTag(kafka): "172.168.0.2"}, ServicePort: 7777},
+				},
 			},
 		},
 	})
