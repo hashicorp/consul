@@ -1177,6 +1177,16 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/k8s/installation/compatibility',
+    destination: '/docs/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/compatibility',
+    permanent: true,
+  },
+  {
     source: '/docs/platform/k8s/tls-on-existing-cluster',
     destination: '/docs/k8s/operations/tls-on-existing-cluster',
     permanent: true,
