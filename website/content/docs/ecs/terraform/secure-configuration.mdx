@@ -48,7 +48,7 @@ Use the [`acl-controller` terraform module](https://registry.terraform.io/module
 
 ```hcl
 module "acl_controller" {
-  source                            = "hashicorp/consul/aws-ecs//modules/acl-controller"
+  source                            = "hashicorp/consul/aws//modules/acl-controller"
   consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
   consul_server_http_addr           = "https://consul-server.example.com:8501"
   consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
@@ -89,7 +89,7 @@ should be the same as the `name_prefix` you provide to the ACL controller module
 
 ```hcl
 module "my_task" {
-  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  source = "hashicorp/consul/aws//modules/mesh-task"
   family = "my_task"
 
   ...
