@@ -246,8 +246,8 @@ spec:
 
 For a listener's `certificateRef` to reference a secret in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
 
-The following example creates a `Gateway` named `example-gateway` in namespace `gateway-namespace`. This `Gateway` has a `certificateRef` in namespace `secret-namespace`.
-The reference is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `secret-namespace`, allows `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
+The following example creates a `Gateway` named `example-gateway` in `gateway-namespace`. This `Gateway` has a `certificateRef` in `secret-namespace`.
+The reference is allowed because `reference-policy` in `secret-namespace` lets `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
 
 <CodeBlockConfig filename="gateway_with_referencepolicy.yaml">
 
