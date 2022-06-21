@@ -516,10 +516,6 @@
                 "path": "k8s/installation/vault/connect-ca"
               }
             ]
-          },
-          {
-            "title": "Compatibility Matrix",
-            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -636,6 +632,11 @@
             "href": "/docs/troubleshoot/faq#consul-on-kubernetes"
           }
         ]
+      },
+
+      {
+        "title": "Compatibility Matrix",
+        "path": "k8s/compatibility"
       },
       {
         "title": "Helm Chart Configuration",
