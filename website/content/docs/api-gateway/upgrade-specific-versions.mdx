@@ -12,7 +12,7 @@ This topic describes how to upgrade Consul API Gateway.
 
 ## v0.3.0
 
-Consul API Gateway v0.3.0 introduces a breaking change for people upgrading from lower versions. Gateways with a `secret` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `Secrets` in the secret's namespace.
+Consul API Gateway v0.3.0 introduces a breaking change for people upgrading from lower versions. Gateways with `listner` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
 
 ### Requirements
 
@@ -41,7 +41,7 @@ Ensure that the following requirements are met prior to upgrading:
   "hashicorp/consul-api-gateway:0.2.1"
   ```
 
-1. Retrieve all gateways that have a secret in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
+1. Retrieve all gateways that have a `certificateRef` in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
 
   ```shell-session
   $ kubectl get Gateway --output json --all-namespaces
@@ -51,61 +51,39 @@ Ensure that the following requirements are met prior to upgrading:
     If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
 
   ```yaml
-    apiVersion: v1
-    items:
-    - apiVersion: gateway.networking.k8s.io/v1alpha2
-      kind: HTTPRoute
-      metadata:
-        name: example-http-route,
-        namespace: example-namespace,
-        ...
-      spec:
-        parentRefs:
-        - group: gateway.networking.k8s.io
-          kind: Gateway
-          name: gateway
-          namespace: gw-ns
-        rules:
-        - backendRefs:
-          - group: ""
-            kind: Service
-            name: web-backend
-            namespace: gateway-namespace
-            ...
-          ...
-    - apiVersion: gateway.networking.k8s.io/v1alpha2
-      kind: TCPRoute
-      metadata:
-        name: example-tcp-route,
-        namespace: a-different-namespace,
-        ...
-      spec:
-        parentRefs:
-        - group: gateway.networking.k8s.io
-          kind: Gateway
-          name: gateway
-          namespace: gateway-namespace
-        rules:
-        - backendRefs:
-          - group: ""
-            kind: Service
-            name: web-backend
-            namespace: gateway-namespace
-            ...
-      ...
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: Gateway
+  metadata:
+    name: example-gateway
+    namespace: gateway-namespace
+  spec:
+    gatewayClassName: "consul-api-gateway"
+    listeners:
+      - name: https
+        port: 443
+        protocol: HTTPS
+        allowedRoutes:
+          namespaces:
+            from: All
+        tls:
+          certificateRefs:
+            - group: ""
+              kind: Secret
+              name: example-certificate
+              namespace: certificate-namespace
   ```
 
-1. Inspect the `secret` entries for each of the routes.
+1. Inspect the `certificateRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `secret` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `secret`. Otherwise, note the `namespace` field values for `secret` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace secret-to-gateway pair to prevent the route from breaking (see [step 5](#create-secret-reference-policy)).
+  If a `namespace` field is not defined in the `certificateRef` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRef`. Otherwise, note the `namespace` field values for `certificateRef` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRef-to-gateway pair to prevent the route from breaking (see [step 5](#create-secret-reference-policy)).
 
   After completing this step, you will have a list of all secrets similar to the following:
 
   <CodeBlockConfig hideClipboard>
 
   ```yaml hideClipboard
-    example-secret:
-      - namespace: secret-namespace
+    example-certificate:
+      - namespace: certificate-namespace
         parentNamespace: gateway-namespace
 
   ```
@@ -133,8 +111,8 @@ Ensure that the following requirements are met prior to upgrading:
     "crossNamespaceSecrets": {
       "group": "",
       "kind": "Secret",
-      "name": "secret-name",
-      "namespace": "secret-namespace"
+      "name": "cexample-certificate",
+      "namespace": "certificate-namespace"
     }
   }
   ```
@@ -145,13 +123,13 @@ Ensure that the following requirements are met prior to upgrading:
 <a name="create-secret-reference-policy"/>
 
 1. Using the list of secrets you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow each gateway cross namespace secret access.
-  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `Secret`.
+  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `certificateRef`.
 
   Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
   TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
   --->
-  The following example `ReferencePolicy` enables `example-gateway` in `gateway-namespace` to utilize secrets in the `secret-namespace` namespace:
+  The following example `ReferencePolicy` enables `example-gateway` in `gateway-namespace` to utilize `certificateRefs` in the `certificate-namespace` namespace:
 
   <CodeBlockConfig filename="referencepolicy.yaml">
 
@@ -160,7 +138,7 @@ Ensure that the following requirements are met prior to upgrading:
   kind: ReferencePolicy
   metadata:
     name: reference-policy
-    namespace: secret-namespace
+    namespace: certificate-namespace
   spec:
     from:
       - group: gateway.networking.k8s.io
@@ -173,7 +151,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
 1. Issue the following command to apply it to your cluster:
 
@@ -181,8 +159,9 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl apply --filename referencepolicy.yaml
   ```
 
-  Repeat this step as needed until each of your cross-namespace secrets have a corresponding `ReferencePolicy`.
+  Repeat this step as needed until each of your cross-namespace `certificateRefs` have a corresponding `ReferencePolicy`.
 
+  Proceed with the [standard-upgrade](#standard-upgrade).
 
 ## v0.2.0
 
@@ -389,6 +368,9 @@ Ensure that the following requirements are met prior to upgrading:
   ```
 
   Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
+
+  Proceed with the [standard-upgrade](#standard-upgrade).
+
 
 ## Standard Upgrade
 
