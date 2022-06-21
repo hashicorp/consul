@@ -35,7 +35,7 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
   ```
 
-  You should receive the following response:
+  You should receive a response similar to the following:
 
   ```log
   "hashicorp/consul-api-gateway:0.2.1"
