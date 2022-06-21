@@ -27,8 +27,11 @@ To create and use cluster peering connections with Kubernetes, you need at least
 
 To establish cluster peering through Kubernetes, deploy clusters with the following Helm values.
 
+<CodeTabs heading="values.yaml">
+<CodeBlockConfig lineNumbers>
 ```yaml
 global:
+  image: "hashicorp/consul:1.13.0-alpha2"
   peering:
     enabled: true
 connectInject:
@@ -36,13 +39,19 @@ connectInject:
 meshGateway:
   enabled: true
   replicas: 1
-```
+  </CodeBlockConfig>
+  </CodeTabs>
+  
+Install Consul on Kubernetes using the values file `values.yaml` using the Helm CLI. 
 
+```shell-session 
+$ export HELM_RELEASE_NAME=peer1
+$ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.45.0" --values server.yaml
 ## Create a peering connection
 
 To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster.
 
-1. In “cluster-01,” create the `PeeringAcceptor` custom resource.
+1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
 
     <CodeBlockConfig filename="acceptor.yml">
 
