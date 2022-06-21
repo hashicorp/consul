@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
@@ -1030,6 +1031,10 @@ type testApplier struct {
 	store *state.Store
 }
 
+func (a *testApplier) CheckPeeringUUID(id string) (bool, error) {
+	panic("not implemented")
+}
+
 func (a *testApplier) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	panic("not implemented")
 }
@@ -1216,6 +1221,7 @@ func writeEstablishedPeering(t *testing.T, store *state.Store, idx uint64, peerN
 	require.NoError(t, err)
 
 	peering := pbpeering.Peering{
+		ID:     testUUID(t),
 		Name:   peerName,
 		PeerID: remotePeerID,
 	}
@@ -2169,5 +2175,10 @@ func requireEqualInstances(t *testing.T, expect, got structs.CheckServiceNodes) 
 			require.Equal(t, expect[i].Checks[j].PartitionOrDefault(), got[i].Checks[j].PartitionOrDefault(), "partition mismatch")
 		}
 	}
+}
 
+func testUUID(t *testing.T) string {
+	v, err := lib.GenerateUUID(nil)
+	require.NoError(t, err)
+	return v
 }

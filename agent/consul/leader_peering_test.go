@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -62,6 +62,10 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	_, found := s1.peeringService.StreamStatus(token.PeerID)
 	require.False(t, found)
 
+	var (
+		s2PeerID = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+	)
+
 	// Bring up s2 and store s1's token so that it attempts to dial.
 	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s2.dc2"
@@ -73,6 +77,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	// Simulate a peering initiation event by writing a peering with data from a peering token.
 	// Eventually the leader in dc2 should dial and connect to the leader in dc1.
 	p := &pbpeering.Peering{
+		ID:                  s2PeerID,
 		Name:                "my-peer-s1",
 		PeerID:              token.PeerID,
 		PeerCAPems:          token.CA,
@@ -92,6 +97,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 
 	// Delete the peering to trigger the termination sequence.
 	deleted := &pbpeering.Peering{
+		ID:        s2PeerID,
 		Name:      "my-peer-s1",
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}
@@ -151,6 +157,11 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	var token structs.PeeringToken
 	require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
+	var (
+		s1PeerID = token.PeerID
+		s2PeerID = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+	)
+
 	// Bring up s2 and store s1's token so that it attempts to dial.
 	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "s2.dc2"
@@ -162,6 +173,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	// Simulate a peering initiation event by writing a peering with data from a peering token.
 	// Eventually the leader in dc2 should dial and connect to the leader in dc1.
 	p := &pbpeering.Peering{
+		ID:                  s2PeerID,
 		Name:                "my-peer-s1",
 		PeerID:              token.PeerID,
 		PeerCAPems:          token.CA,
@@ -181,6 +193,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 
 	// Delete the peering from the server peer to trigger the termination sequence.
 	deleted := &pbpeering.Peering{
+		ID:        s1PeerID,
 		Name:      "my-peer-s2",
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}
@@ -216,6 +229,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	var (
+		peerID      = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
 		peerName    = "my-peer-s2"
 		defaultMeta = acl.DefaultEnterpriseMeta()
 		lastIdx     = uint64(0)
@@ -224,6 +238,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 	// Simulate a peering initiation event by writing a peering to the state store.
 	lastIdx++
 	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:   peerID,
 		Name: peerName,
 	}))
 
@@ -233,6 +248,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 	// Mark the peering for deletion to trigger the termination sequence.
 	lastIdx++
 	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:        peerID,
 		Name:      peerName,
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}))
