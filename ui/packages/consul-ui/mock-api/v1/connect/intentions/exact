@@ -7,7 +7,6 @@ ${range(1).map(item => {
 
     const sourcePeerString = `"SourcePeer": "${source[0].split(':')[1]}",`
     const sourcePartitionString = `"SourcePartition": "${source[0]}",`
-    console.log(source)
 return `
   {
     "ID": "${legacy ? ID : ''}"
@@ -17,8 +16,7 @@ ${ http.method !== "PUT" ? `
     "DestinationName": "${destination[2]}",
     "SourceNS": "${source[1]}",
     "DestinationNS": "${destination[1]}",
-    ${sourceIsPeered ? sourcePeerString : ''}
-    ${sourceIsPeered ? '' : sourcePartitionString }
+    ${sourceIsPeered ? sourcePeerString : sourcePartitionString}
     "DestinationPartition": "${destination[0]}",
     "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
 ${legacy ? `
