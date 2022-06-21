@@ -1,3 +1,14 @@
+## 1.13.0-alpha2 (June 21, 2022)
+
+IMPROVEMENTS:
+
+* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13450](https://github.com/hashicorp/consul/issues/13450)]
+* connect: Update Envoy support matrix to latest patch releases (1.22.2, 1.21.3, 1.20.4, 1.19.5) [[GH-13431](https://github.com/hashicorp/consul/issues/13431)]
+
+BUG FIXES:
+
+* ui: Fix incorrect text on certain page empty states [[GH-13409](https://github.com/hashicorp/consul/issues/13409)]
+
 ## 1.13.0-alpha1 (June 15, 2022)
 
 BREAKING CHANGES:
