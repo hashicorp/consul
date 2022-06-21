@@ -42,7 +42,7 @@ func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedServiceNodes
-	if err := g.RPC.RPC("Catalog.ServiceGateways", reqReal, &reply); err != nil {
+	if err := g.RPC.RPC("Internal.ServiceGateways", reqReal, &reply); err != nil {
 		return result, err
 	}
 
