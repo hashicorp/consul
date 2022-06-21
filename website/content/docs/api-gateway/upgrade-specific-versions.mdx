@@ -117,7 +117,7 @@ Ensure that the following requirements are met prior to upgrading:
 1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `Gateways` and filter for secrets that require a `ReferencePolicy`.
 
   ```shell-session
-  $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
+  $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] | select(has("tls")) | .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
   ```
 
 
