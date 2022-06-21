@@ -47,7 +47,7 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl get Gateway --output json --all-namespaces
   ```
 
-    If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
+  If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -84,8 +84,8 @@ Ensure that the following requirements are met prior to upgrading:
     example-certificate:
       - namespace: certificate-namespace
         parentNamespace: gateway-namespace
-
   ```
+
   </CodeBlockConfig>
 
   Proceed with the [standard-upgrade](#standard-upgrade) if your list is empty.
@@ -182,7 +182,6 @@ Ensure that the following requirements are met prior to upgrading:
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
 ### Procedure
-
 
 1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
 
