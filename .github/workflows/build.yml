@@ -249,12 +249,12 @@ jobs:
         with:
           platforms: all
 
-      // Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
-      // This naming convention will be used ONLY for per-commit dev images
+      # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
+      # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-        version="${{ env.version }}"
-        echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          version="${{ env.version }}"
+          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
 
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
