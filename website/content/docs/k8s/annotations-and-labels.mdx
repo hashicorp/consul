@@ -89,14 +89,14 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
         If the namespace is not specified, the annotation will default to the namespace of the source service.
         If you are not using Consul Enterprise 1.7+, Consul will interpret the value placed in the namespace position as part of the service name.
 
-        - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
-          partition. You must specify the namespace when specifying a partition. Place the partition name after the namespace. If you specify the name of the datacenter (optional), it must be the local datacenter. Communicating across partitions using this method is only supported within a
-          datacenter. For cross partition communication across datacenters, see [cluster
-          peering](/docs/connect/cluster-peering/k8s).
-          ```yaml
-          annotations:
-            "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
-          ```
+      - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
+        partition. You must specify the namespace when specifying a partition. Place the partition name after the namespace. If you specify the name of the datacenter (optional), it must be the local datacenter. Communicating across partitions using this method is only supported within a
+        datacenter. For cross partition communication across datacenters, see [cluster
+        peering](/docs/connect/cluster-peering/k8s).
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
+        ```
     - [Prepared queries](/docs/connect/proxies#dynamic-upstreams-require-native-integration): Prepend the annotation
       with `prepared_query` and place the name of the query at the beginning of the string.
       ```yaml
