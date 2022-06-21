@@ -74,7 +74,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `certificateRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `certificateRef` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRef`. Otherwise, note the `namespace` field values for `certificateRef` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRef-to-gateway pair to prevent the route from breaking (see [step 5](#create-secret-reference-policy)).
+  If a `namespace` field is not defined in the `certificateRef` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRef`. Otherwise, note the `namespace` field values for `certificateRef` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRef-to-gateway pair. (see [step 5](#create-secret-reference-policy)).
 
   After completing this step, you will have a list of all secrets similar to the following:
 
