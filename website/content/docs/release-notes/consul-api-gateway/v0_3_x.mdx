@@ -21,7 +21,7 @@ description: >-
   gateway. Administrators can also set, in the `gatewayClassConfig`, the
   minimum, maximum and default number of gateway instances. These are applied
   per `gateway` to all `gateways` in that `gatewayClass`. The minimum and
-  maximum settings will override settings configured on any given `gateway`. 
+  maximum settings will override settings configured on any given `gateway`.
 
   Note: There is a hard limit of eight (8) instances per `gateway` and it can
   not be overridden. This hard limit will probably be increased in the future.
@@ -29,7 +29,7 @@ description: >-
 - **Cross Namespace Reference Policies for Certificates:**
   Reference policies is a security feature introduced in the 0.2 release. In
   this release, Reference Policies are now required for TLS certificates when a
-  `listener` has a `certificateRef` that is in a different `namespace`.  
+  `listener` has a `certificateRef` that is in a different `namespace`.
 
 
 ## Supported Software
@@ -44,7 +44,7 @@ description: >-
 
 ## Kubernetes Gateway API Specification
 
-Supported version of the Gateway API spec: `v1alpha2`(v0.4.1)
+Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: `v1alpha2`(v0.4.1)
 
 ## Upgrading
 
