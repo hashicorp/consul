@@ -10,13 +10,21 @@
     background: #f2fbf6;
     color: #00781e;
   }
-  &.initial {
+  &.pending {
     background: #f9f2ff;
     color: #911ced;
+  }
+  &.establishing {
+    background: #f2f8ff;
+    color: #1060ff;
   }
   &.failing {
     background: #fff5f5;
     color: #c00005;
+  }
+  &.deleting {
+    background: #fffdf6;
+    color: #725a01;
   }
   &.terminated {
     background: #f1f2f3;
