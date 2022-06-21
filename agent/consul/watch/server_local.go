@@ -127,6 +127,11 @@ func ServerLocalBlockingQuery[ResultType any, StoreType StateStore](
 		state := getStore()
 
 		ws := memdb.NewWatchSet()
+
+		// Adding the AbandonCh to the WatchSet allows us to detect when
+		// a snapshot restore happens that would otherwise not modify anything
+		// within the individual state store. If we didn't do this then we
+		// could end up blocking indefinitely.
 		ws.Add(state.AbandonCh())
 
 		index, result, err := query(ws, state)
@@ -179,7 +184,10 @@ func ServerLocalBlockingQuery[ResultType any, StoreType StateStore](
 			return index, result, nil
 		}
 
-		// block until something changes
+		// Block until something changes. Because we have added the state
+		// stores AbandonCh to this watch set, a snapshot restore will
+		// cause things to unblock in addition to changes to the actual
+		// queried data.
 		if err := ws.WatchCtx(ctx); err != nil {
 			// exit if the context was cancelled
 			return index, result, nil
