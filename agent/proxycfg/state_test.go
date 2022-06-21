@@ -2457,11 +2457,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// DestinationConfigEntryID updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						DestinationConfigEntryID + ":" + dbUID.String(): genVerifyConfigEntryWatch(structs.ServiceDefaults, db.Name, "dc1"),
+						DestinationConfigEntryID + dbUID.String(): genVerifyConfigEntryWatch(structs.ServiceDefaults, db.Name, "dc1"),
 					},
 					events: []UpdateEvent{
 						{
-							CorrelationID: DestinationConfigEntryID + ":" + dbUID.String(),
+							CorrelationID: DestinationConfigEntryID + dbUID.String(),
 							Result: &structs.ConfigEntryResponse{
 								Entry: &structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}},
 							},
