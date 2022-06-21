@@ -8,7 +8,7 @@ export default class PeersController extends Controller {
   @tracked filter = '';
 
   get peers() {
-    return this.model;
+    return this.model.peers;
   }
 
   get filteredPeers() {

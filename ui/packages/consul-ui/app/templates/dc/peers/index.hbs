@@ -1,4 +1,8 @@
 <Route @name={{route}} as |route|>
+  <Watcher @watch={{this.model.loadPeers}} as |w|>
+    {{did-insert w.fns.start}}
+    {{will-destroy w.fns.stop}}
+  </Watcher>
   <AppView>
     <BlockSlot @name="header">
       <h1>
