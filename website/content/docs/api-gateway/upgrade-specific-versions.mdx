@@ -12,7 +12,7 @@ This topic describes how to upgrade Consul API Gateway.
 
 ## v0.3.0
 
-Consul API Gateway v0.3.0 introduces a breaking change for people upgrading from lower versions. Gateways with `listner` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
+Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listner` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
 
 ### Requirements
 
@@ -166,7 +166,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 ## v0.2.0
 
-Consul API Gateway v0.2.0 introduces a breaking change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
+Consul API Gateway v0.2.0 introduces a change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
 
 ### Requirements
 
@@ -253,7 +253,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `backendRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-policy)).
+  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair (see [step 5](#create-reference-policy)).
 
   After completing this step, you will have a list of all routes similar to the following:
 
@@ -331,7 +331,7 @@ Ensure that the following requirements are met prior to upgrading:
 <a name="create-reference-policy"/>
 
 1. Using the list of routes you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic for each route service pair.
-  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
+  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
 
   Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
