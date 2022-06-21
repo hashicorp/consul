@@ -1,0 +1,59 @@
+---
+layout: docs
+page_title: 0.3.x
+description: >-
+  Consul API Gateway release notes for version 0.3.x
+---
+
+# Consul API Gateway 0.3.0
+
+## Release Highlights
+
+- **Improved High Availability and Scalability via Multiple Instances per Gateway:**
+  This release introduces support for deploying multiple instances of a logical
+  gateway (i.e. a K8s `gateway` config object). You can use a external load
+  balancing service to distribute incoming traffic across the instances of a
+  gateway. This provides higher availability of gateway services and also allows
+  a single logical gateway to handle a volume of network traffic that is much
+  greater than what a single instance of a gateway can.
+
+  Administrators can set the number of instances independently for each logical
+  gateway. Administrators can also set, in the `gatewayClassConfig`, the
+  minimum, maximum and default number of gateway instances. These are applied
+  per `gateway` to all `gateways` in that `gatewayClass`. The minimum and
+  maximum settings will override settings configured on any given `gateway`. 
+
+  Note: There is a hard limit of eight (8) instances per `gateway` and it can
+  not be overridden. This hard limit will probably be increased in the future.
+
+- **Cross Namespace Reference Policies for Certificates:**
+  Reference policies is a security feature introduced in the 0.2 release. In
+  this release, Reference Policies are now required for TLS certificates when a
+  `listener` has a `certificateRef` that is in a different `namespace`.  
+
+
+## Supported Software
+
+- Consul 1.11.2+
+- HashiCorp Consul Helm chart 0.45.0+
+- Kubernetes 1.21+
+  - Kubernetes 1.24 is not supported at this time.
+- Kubectl 1.21+
+- Envoy proxy support is determined by the Consul version deployed. Refer to
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+
+## Kubernetes Gateway API Specification
+
+Supported version of the Gateway API spec: `v1alpha2`(v0.4.1)
+
+## Upgrading
+
+For detailed information on upgrading, please refer to the [upgrade details page](/docs/api-gateway/upgrade-specific-versions)
+
+## Change logs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [0.3.0](https://github.com/hashicorp/consul-api-gateway/releases/tag/v0.3.0)
