@@ -72,41 +72,32 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
   - There are a few formats this annotation can take:
 
       - Unlabeled:
-        The unlabeled annotation format supports specifying service name, Consul Enterprise Namespaces and Partitions,
-        and datacenter. To use [cluster peering](/docs/connect/cluster-peering/k8s) with upstreams, use the labeled format below.
-        - Service Name
-          To specify the upstream service, you can provide the name of the service, and optionally, it's datacenter.
+         Use the unlabeled annotation format to specify a service name, Consul Enterprise namespaces and partitions,
+        and datacenters. To use [cluster peering](/docs/connect/cluster-peering/k8s) with upstreams, use the following labeled format.
+        - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You can also append the datacenter where the service is deployed (optional). 
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
           ```
 
-        - Consul Enterprise Namespace
-          When using Consul Enterprise Namespaces [1.7+], your upstream services may be running in different namespaces.
-          The upstream namespace can be specified after the service name as `[service-name].[namespace]`. See [Consul
-          Enterprise Namespaces](#consul-enterprise-namespaces) below for more details on configuring the injector.
+        - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in different a namespace. Place the upstream namespace after the service name. Refer to  [Consul Enterprise Namespaces](#consul-enterprise-namespaces) for additional details about configuring the injector.
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace]:[port]:[optional datacenter]"
           ```
-          -> **NOTE:** If the namespace is not specified it will default to the namespace
-          of the source service.
+          If the namespace is not specified, the annotation will default to the namespace of the source service. 
 
-          ~> **WARNING:** Setting a namespace when not using Consul Enterprise or using a version < 1.7
-          is not supported. It will be treated as part of the service name.
+         If you are not using Consul Enterprise 1.7+, Consul will interpret the value placed in the namespace position as part of the service name.
 
-        - Consul Enterprise Admin Partition
-          When using Consul Enterprise Admin Partitions [1.11+], your upstream services may be running in a different
-          partition. You must specify the namespace when specifying a partition, and the datacenter must be your local
-          datacenter if specified. Communicating across partitions using this method is only supported within a
+        - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
+          partition. You must specify the namespace when specifying a partition. Place the partition name after the namespace. If you specify the name of the datacenter (optional), it must be the local datacenter. Communicating across partitions using this method is only supported within a
           datacenter. For cross partition communication across datacenters, see [cluster
           peering](/docs/connect/cluster-peering/k8s).
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
           ```
-      - [Prepared Query](/docs/connect/proxies#dynamic-upstreams-require-native-integration):
-        Prepared query upstreams can use the format below.
+      - [Prepared queries](/docs/connect/proxies#dynamic-upstreams-require-native-integration): Prepend the annotation with `prepared_query` and place the name of the query at the beginning of the string. 
         ```yaml
         annotations:
           'consul.hashicorp.com/connect-service-upstreams': 'prepared_query:[query name]:[port]'
@@ -114,15 +105,13 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
 
       - Labeled (requires consul-k8s v0.45.0+):
         The labeled format is required when using the cluster peering feature and specifying an upstream in another
-        peer. It also supports specifying Consul Enterprise Namespace, Partition, or Datacenter. Only one of peer,
-        datacenter, or partition can be specified.
-        - Service Name
-          To specify the upstream service, you can provide the name of the service, followed by `.svc`.
+        peer. You can specify a Consul Enterprise namespace, partition, or datacenter. The format supports only one peer, datacenter, or partition.
+        - Service name: Place the service name at the beginning of the annotation followed by `.svc` to specify the upstream service.
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc:[port]"
           ```
-        - Peer or Datacenter
+        - Peer or datacenter: Place the peer or datacenter after `svc.` followed by either `peer` or `dc` and the port number.
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-peer].peer:[port]"
@@ -131,14 +120,13 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-dc].dc:[port]"
           ```
-        - Consul Enterprise
-          You can specify a Consul Enterprise Namespace
+        - Namespace (required Consul Enterprise): Place the namespace after `svc.` followed by `ns` and the port number.
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns:[port]"
           ```
-          When specifying a peer, datacenter or Consul Enterprise Admin Partition when namespaces are enabled, you must
-          provide the namespace and one of (peer, datacenter, partition).
+          When specifying a peer, datacenter, or admin partition when namespaces are enabled, you must
+          provide the namespace and a peer, datacenter, or partition.
           ```yaml
           annotations:
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-peer].peer:[port]"
@@ -152,9 +140,7 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
             "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-dc].dc:[port]"
           ```
 
-      - Multiple Upstreams
-
-        If you would like to specify multiple services or upstreams, delimit them with commas. They can be of any of the Unlabeled, Labeled, or Prepared Query formats above when using the supported versions for the formats.
+      - Multiple upstreams: Delimit multiple services or upstreams with commas. You can specify any of the unlabeled, labeled, or prepared query formats when using the supported versions for the formats.
 
         ```yaml
         annotations:
