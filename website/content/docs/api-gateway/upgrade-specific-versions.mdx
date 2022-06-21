@@ -47,7 +47,6 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl get Gateway --output json --all-namespaces
   ```
 
-
     If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
 
   ```yaml
@@ -90,14 +89,16 @@ Ensure that the following requirements are met prior to upgrading:
   </CodeBlockConfig>
 
   Proceed with the [standard-upgrade](#standard-upgrade) if your list is empty.
-<a name="jq-command-secrets"/>
+
+  <a name="jq-command-secrets"/>
 
 1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `Gateways` and filter for secrets that require a `ReferencePolicy`.
 
   ```shell-session
-  $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] | select(has("tls")) | .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
-  ```
 
+  $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] | select(has("tls")) | .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
+
+  ```
 
   The output will resemble the following response if gateways that require a new `ReferencePolicy` are returned:
 
