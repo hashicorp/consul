@@ -11,7 +11,7 @@ project "consul" {
     repository = "consul"
     release_branches = [
       "main",
-      "release/1.11.x"
+      "release/1.11.x",
       "dev-tags-1.11.x"
     ]
   }
