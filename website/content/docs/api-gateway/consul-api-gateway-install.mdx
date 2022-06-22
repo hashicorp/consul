@@ -15,7 +15,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 ## Installation
 
--> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
+-> **Version reference convention:** Replace `VERSION` in command and configuration examples with the Consul API Gateway version you are installing, such as `0.3.0`. In some instances, `VERSION` is prepended with a lowercase _v_. This indicates that you must include the `v` as is part of the version, for example `v0.3.0`.
 
 1. Issue the following command to install the CRDs:
 
@@ -44,7 +44,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
    ```shell-session
-   $ helm install consul hashicorp/consul --version 0.43.0 --values values.yaml --create-namespace --namespace consul
+   $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
    ```
 
 ## Usage
@@ -168,9 +168,12 @@ The following table describes the allowed parameters for the `spec` array:
 | `consul.ports.http`               | Specifies the port for Consul's HTTP server.                                                                                                                                                                                                                                                                                                                                        | Integer | `8500`                                           |
 | `consul.scheme`                   | Specifies the scheme to use for connecting to Consul. The supported values are `"http"` and `"https"`.                                                                                                                                                                                                                                                                              | String  | `"http"`                                         |
 | `copyAnnotations.service`         | List of annotations to copy to the gateway service.                                                                                                                                                                                                                                                                                                                                 | Array   | `["external-dns.alpha.kubernetes.io/hostname"]`  |
-| `image.consulAPIGateway`          | The image to use for consul-api-gateway. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).                                                                                                                                                                                                                                                                                                                                           | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
-| `image.envoy`                     | Specifies the container image to use for Envoy. View available image tags on [DockerHub](https://hub.docker.com/r/envoyproxy/envoy/tags).                                                                                                                                                                                                                                                                                                                                    | String  | `"envoyproxy/envoy:RELEASE_VERSION"`                |
-| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `error`, `warning`, `info`, `debug`, `trace`.                                                                                                                                                                                                                                          | String  | `"info"`                                         |
+| `deployment.defaultInstances`     | Specifies the number of instances to deploy by default for each gateway.                                                                                                                                                                                                                                                                                                            | Integer  | 1                                               |
+| `deployment.maxInstances`         | Specifies the maximum allowed number of instances per gateway.                                                                                                                                                                                                                                                                                                                      | Integer  | 8                                               |
+| `deployment.minInstances`         | Specifies the minimum allowed number of instances per gateway.                                                                                                                                                                                                                                                                                                                      | Integer  | 1                                               |
+| `image.consulAPIGateway`          | The image to use for consul-api-gateway. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).                                                                                                                                                                                                                                      | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
+| `image.envoy`                     | Specifies the container image to use for Envoy. View available image tags on [DockerHub](https://hub.docker.com/r/envoyproxy/envoy/tags).                                                                                                                                                                                                                                           | String  | `"envoyproxy/envoy:RELEASE_VERSION"`             |
+| `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `error`, `warning`, `info`, `debug`, `trace`.                                                                                                                                                                                                                                                   | String  | `"info"`                                         |
 | `nodeSelector`                    | Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information. | Object  | N/A                                              |
 | `serviceType`                     | Specifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`.                                                                                                                                                                                                                                              | String  | N/A                                              |
 | `useHostPorts`                    | If set to `true`, then the Envoy container ports are mapped to host ports.                                                                                                                                                                                                                                                                                                          | Boolean | `false`                                          |
@@ -241,7 +244,56 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for details about configuring gateways:
+If you configure a listener's `certificateRefs` to reference a secret in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) in the same namespace as the secret. The `ReferencePolicy` grants the listener the permission to read the secret.
+
+The following example creates a `Gateway` named `example-gateway` in `gateway-namespace`. This `Gateway` has a `certificateRef` in `secret-namespace`.
+The listener can use the certificate because `reference-policy` in `secret-namespace` is configured to allow `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
+
+<CodeBlockConfig filename="gateway_with_referencepolicy.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: gateway-namespace
+  annotations:
+    'external-dns.alpha.kubernetes.io/hostname': DNS_HOSTNAME
+spec:
+  gatewayClassName: test-gateway-class
+  listeners:
+    - protocol: HTTPS
+      hostname: DNS_HOSTNAME
+      port: 443
+      name: https
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        certificateRefs:
+          - name: gateway-production-certificate
+            namespace: secret-namespace
+---
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: ReferencePolicy
+metadata:
+  name: reference-policy
+  namespace: secret-namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: gateway-namespace
+  to:
+    - group: ""
+      kind: Secret
+      name: gateway-production-certificate
+```
+
+</CodeBlockConfig>
+
+Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for further details about configuring gateways.
 
 #### Listeners
 
@@ -262,6 +314,25 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 | `tls.options.tls_cipher_suites` | Specifies the list of TLS cipher suites to support when negotiating connections using TLS 1.2 or earlier. <br/>If unspecified, a [more secure set of cipher suites](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go#L3-L10) than Envoy's current [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites) will be used. <br/>The full list of supported cipher suites can seen in [`internal/common/tls.go`](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go) and is dependent on underlying support in Envoy. | String  | See description |
 
 Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener) for details about configuring listeners.
+
+#### Scaling
+
+You can scale a logical gateway object to multiple instances with the [`kubectl scale`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment) command. The object scales according to the bounds set in `GatewayClassConfig`.
+
+```shell-session
+$ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   1/1     1            1
+```
+```shell-session
+$ kubectl scale deployment/example-gateway --replicas=3
+deployment.apps/example-gateway scaled
+```
+```shell-session
+$ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   3/3     3            3
+```
 
 ### Route
 

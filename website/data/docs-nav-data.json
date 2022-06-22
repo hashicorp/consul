@@ -1253,12 +1253,16 @@
         "title": "Consul API Gateway",
         "routes": [
           {
-            "title": "v0.1.x",
-            "path": "release-notes/consul-api-gateway/v0_1_x"
+            "title": "v0.3.x",
+            "path": "release-notes/consul-api-gateway/v0_3_x"
           },
           {
             "title": "v0.2.x",
             "path": "release-notes/consul-api-gateway/v0_2_x"
+          },
+          {
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
           }
         ]
       },
