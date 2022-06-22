@@ -243,7 +243,7 @@ module "my_mesh_gateway" {
 Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) for ingress to a mesh gateway, you must use an AWS [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) or a [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html).
 
 
-#### ACLs
+##### ACLs
 
 Configure the following options in the `gateway-task` when ACLs are enabled.
 
@@ -267,7 +267,7 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-#### WAN federation
+##### WAN federation
 
 Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
@@ -419,22 +419,26 @@ applications can call it directly, bypassing its sidecar proxy.
 
 Changing the listening address is specific to the language and framework you're
 using in your application. Regardless of which language or framework you're using,
-it is a good practice to use an environment variable to configure the address.
+binding the loopback address to a dynamic value, such as an environment variable, is a best practice:
 
-The following examples demonstrate how to bind the loopback address in golang and Django (Python):
+```bash
+export BIND_ADDRESS="127.0.0.1:8080"
+```
+
+The following examples demonstrate how to bind the loopback address to an environment variable in golang and Django (Python):
 
 <CodeTabs>
 
 ```go
 s := &http.Server{
-	Addr:           "127.0.0.1:8080",
+	Addr: os.Getenv("BIND_ADDRESS"),
   ...
 }
 log.Fatal(s.ListenAndServe())
 ```
 
 ```bash
-python manage.py runserver "127.0.0.1:8080"
+python manage.py runserver "$BIND_ADDRESS"
 ```
 
 </CodeTabs>
