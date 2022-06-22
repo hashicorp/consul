@@ -7,41 +7,38 @@ description: >-
 
 # Secure Configuration
 
-For a production-ready installation of Consul on ECS, you will need to make sure that the cluster is secured.
-A secure Consul cluster should include the following:
-
-1. [TLS Encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
-1. [Gossip Encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
-1. [Access Control (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
-
--> **NOTE:** In this topic, we assume that you have already configured your Consul server with the security-related features.
+This topic describes how to enable Consul security features for your production workloads. 
 
 ## Prerequisites
 
-* You should already have followed the [installation instructions](/docs/ecs/manual/install) to understand how to define
-the necessary components of the task definition for Consul on ECS.
-* You should be familiar with [specifying sensitive data](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) on ECS.
-* You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following [Learn Guides](https://learn.hashicorp.com/collections/consul/security) for an introduction and the [ACL system](/docs/security/acl) documentation for more information.
+The following features must be configured for your Consul server cluster:
+
+- [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
+- [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
+- [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
+
+You should already have followed the [manual installation instructions](/docs/ecs/manual/install) to define the necessary components of the task definition for Consul on ECS.
+
+You should be familiar with [specifying sensitive data](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) on ECS.
+
+You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [ACL system documentation](/docs/security/acl) and  [Day 1: Security tutorials](https://learn.hashicorp.com/collections/consul/security) for an introduction and additional information.
 
 ## ACL Tokens
+
+Tokens are artifacts within the ACL system that authenticate users, services, and Consul agents. Tokens are linked to policies that specify the resources the token bearer has access to when making requests in the network. 
 
 You must create two types of ACL tokens for Consul on ECS:
 
 * **Client tokens:** used by the `consul-client` containers to join the Consul cluster
 * **Service tokens:** used by sidecar containers for service registration and health syncing
 
-The following sections describe the ACL polices which must be associated with these token types.
+This section describes how to manually create ACL tokens. Alternatively, you can install the ACL controller to ease the burden of creating tokens. The ACL controller can automatically create ACL tokens for Consul on ECS. For additional details, refer to [ACL Controller](/docs/manual/acl-controller).
 
--> **NOTE:** This section describes how operators would create ACL tokens by hand. To ease operator
-burden, the ACL Controller can automatically create ACL tokens for Consul on ECS. Refer to the
-[ACL Controller](/docs/manual/acl-controller) page for installation details.
+### Define policies
 
-### Create Consul client token
+Configure the following ACL policy for the Consul client token:
 
-You must create a token for the Consul client. This is a shared token used by the `consul-client`
-containers to join the Consul cluster.
-
-The following is the ACL policy needed for the Consul client token:
+<CodeBlockConfig filename="client-token-policy.hcl">
 
 ```hcl
 node_prefix "" {
@@ -52,22 +49,49 @@ service_prefix "" {
 }
 ```
 
-This policy allows `node:write` for any node name, which is necessary because the Consul node
-names on ECS are not known until runtime.
+</CodeBlockConfig>
+
+The policy allows `node:write` for any node name, which is necessary because the Consul node names on ECS are not known until runtime.
+
+You can add the policy in Consul using the [`consul acl policy create`](/commands/acl/policy/create) command or the [`[PUT] /v1/acl/policy`](/api-docs/acl/policies#create-a-policy) API endpoint.
+
+If you intend to create a gateway for connecting multiple Consul datacenters, you will need to configure a mesh gateway policy. If namespaces are enabled, the mesh gateway must run in the default namespace. 
+
+<CodeBlockConfig filename="mesh-gateway-policy.hcl">
+
+```hcl
+namespace "default" {    ## If namespaces enabled
+    service "<service name>" {
+       policy = "write"
+    }
+}
+namespace_prefix "" {    ## If namespaces enabled
+    service_prefix "" {
+       policy = "read"
+    }
+    node_prefix "" {
+       policy = "read"
+    }
+}
+agent_prefix "" {
+   policy = "read"
+}
+```
+
+</CodeBlockConfig>
 
 ### Create service tokens
 
-Service tokens should be associated with a [service identity](/docs/security/acl#service-identities).
-The service identity includes `service:write` permissions for the service and sidecar proxy.
+Create the Consul client token and the service tokens after adding the necessary policies. Service tokens should be associated with a service identity. The service identity includes `service:write` permissions for the service and sidecar proxy.
 
+You can create tokens using the [`consul acl token create`](/commands/acl/token/create) command or the [`[PUT] /v1/acl/token`](/api-docs/acl/tokens#create-a-token) API endpoint.
 The following example shows how to use the Consul CLI to create a service token for a service named `example-client-app`:
 
-```shell
-consul acl token create -service-identity=example-client-app ...
+```shell-session
+$ consul acl token create -service-identity=example-client-app ...
 ```
+You need to create one service token for each registered Consul service in ECS. When you add new services to the service mesh, you must create new tokens for each service.
 
--> **NOTE**: You will need to create one service token for each registered Consul service in ECS,
-including when new services are added to the service mesh.
 
 ## Secret storage
 
