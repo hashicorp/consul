@@ -57,7 +57,7 @@ In the peer parameter, specify a name for the first cluster. The `PeeringToken` 
 
 When you connect server agents through cluster peering, they will peer their default partitions. To establish peering connections for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
 
-## Connect service endpoints
+## Export service endpoints
 
 After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
