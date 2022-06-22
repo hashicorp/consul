@@ -142,7 +142,7 @@
         "path": "connect"
       },
       {
-        "title": "How Connect Works",
+        "title": "How Service Mesh Works",
         "path": "connect/connect-internals"
       },
       {
@@ -500,20 +500,57 @@
                 "path": "k8s/installation/vault"
               },
               {
-                "title": "Gossip Encryption Key",
-                "path": "k8s/installation/vault/gossip"
+                "title": "Systems Integration",
+                "path": "k8s/installation/vault/systems-integration"
               },
               {
-                "title": "Enterprise License",
-                "path": "k8s/installation/vault/enterprise-license"
+                "title": "Data Integration",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "k8s/installation/vault/data-integration"
+                  },
+                  {
+                    "title": "Bootstrap Token",
+                    "path": "k8s/installation/vault/data-integration/bootstrap-token"
+                  },
+                  {
+                    "title": "Enterprise License",
+                    "path": "k8s/installation/vault/data-integration/enterprise-license"
+                  },
+                  {
+                    "title": "Gossip Encryption Key",
+                    "path": "k8s/installation/vault/data-integration/gossip"
+                  },
+                  {
+                    "title": "Partition Token",
+                    "path": "k8s/installation/vault/data-integration/partition-token"
+                  },
+                  {
+                    "title": "Replication Token",
+                    "path": "k8s/installation/vault/data-integration/replication-token"
+                  },
+                  {
+                    "title": "Server TLS",
+                    "path": "k8s/installation/vault/data-integration/server-tls"
+                  },
+                  {
+                    "title": "Service Mesh Certificates",
+                    "path": "k8s/installation/vault/data-integration/connect-ca"
+                  },
+                  {
+                    "title": "Snapshot Agent Config",
+                    "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  },
+                  {
+                    "title": "Webhook Certificates",
+                    "path": "k8s/installation/vault/data-integration/webhook-certs"
+                  }
+                ]
               },
               {
-                "title": "Server TLS",
-                "path": "k8s/installation/vault/server-tls"
-              },
-              {
-                "title": "Service Mesh Certificates",
-                "path": "k8s/installation/vault/connect-ca"
+                "title": "WAN Federation",
+                "path": "k8s/installation/vault/wan-federation"
               }
             ]
           }
@@ -633,7 +670,6 @@
           }
         ]
       },
-
       {
         "title": "Compatibility Matrix",
         "path": "k8s/compatibility"
@@ -712,6 +748,23 @@
     ]
   },
   {
+    "title": "AWS Lambda <sup>BETA</sup>",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "lambda"
+      },
+      {
+        "title": "Register Lambda Functions",
+        "path": "lambda/registration"
+      },
+      {
+        "title": "Invoke Lambda Functions",
+        "path": "lambda/invocation"
+      }
+    ]
+  },
+  {
     "title": "Network Infrastructure Automation",
     "routes": [
       {
@@ -757,6 +810,10 @@
           {
             "title": "Tasks",
             "path": "nia/api/tasks"
+          },
+          {
+            "title": "Health",
+            "path": "nia/api/health"
           }
         ]
       },
@@ -770,6 +827,10 @@
           {
             "title": "task",
             "path": "nia/cli/task"
+          },
+          {
+            "title": "start",
+            "path": "nia/cli/start"
           }
         ]
       },
@@ -792,7 +853,6 @@
             "title": "Overview",
             "path": "nia/enterprise"
           },
-
           {
             "title": "License",
             "path": "nia/enterprise/license"
@@ -852,7 +912,20 @@
       },
       {
         "title": "Configuration",
-        "path": "agent/options"
+        "routes": [
+          {
+            "title": "General",
+            "path": "agent/config"
+          },
+          {
+            "title": "CLI Reference",
+            "path": "agent/config/cli-flags"
+          },
+          {
+            "title": "Configuration Reference",
+            "path": "agent/config/config-files"
+          }
+        ]
       },
       {
         "title": "Configuration Entries",
@@ -933,6 +1006,10 @@
               {
                 "title": "OIDC",
                 "path": "security/acl/auth-methods/oidc"
+              },
+              {
+                "title": "AWS IAM",
+                "path": "security/acl/auth-methods/aws-iam"
               }
             ]
           }
@@ -1176,12 +1253,16 @@
         "title": "Consul API Gateway",
         "routes": [
           {
-            "title": "v0.1.x",
-            "path": "release-notes/consul-api-gateway/v0_1_x"
+            "title": "v0.3.x",
+            "path": "release-notes/consul-api-gateway/v0_3_x"
           },
           {
             "title": "v0.2.x",
             "path": "release-notes/consul-api-gateway/v0_2_x"
+          },
+          {
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
           }
         ]
       },
@@ -1205,6 +1286,10 @@
       {
         "title": "Consul Terraform Sync",
         "routes": [
+          {
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
+          },
           {
             "title": "v0.5.x",
             "path": "release-notes/consul-terraform-sync/v0_5_x"
