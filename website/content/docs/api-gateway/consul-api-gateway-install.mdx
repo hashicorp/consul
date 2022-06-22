@@ -168,6 +168,9 @@ The following table describes the allowed parameters for the `spec` array:
 | `consul.ports.http`               | Specifies the port for Consul's HTTP server.                                                                                                                                                                                                                                                                                                                                        | Integer | `8500`                                           |
 | `consul.scheme`                   | Specifies the scheme to use for connecting to Consul. The supported values are `"http"` and `"https"`.                                                                                                                                                                                                                                                                              | String  | `"http"`                                         |
 | `copyAnnotations.service`         | List of annotations to copy to the gateway service.                                                                                                                                                                                                                                                                                                                                 | Array   | `["external-dns.alpha.kubernetes.io/hostname"]`  |
+| `deployment.defaultInstances` | Specifies the number of instances to deploy by default for each gateway.                                                                                                                                                                                                                                                                                                                           | Integer  | 1                                              |
+| `deployment.maxInstances` | Specifies the maximum allowed number of instances per gateway.                                                                                                                                                                                                                                                                                                                           | Integer  | 8                                              |
+| `deployment.minInstances` | Specifies the minimum allowed number of instances per gateway.                                                                                                                                                                                                                                                                                                                           | Integer  | 1                                              |
 | `image.consulAPIGateway`          | The image to use for consul-api-gateway. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).                                                                                                                                                                                                                                                                                                                                           | String  | `"hashicorp/consul-api-gateway:RELEASE_VERSION"` |
 | `image.envoy`                     | Specifies the container image to use for Envoy. View available image tags on [DockerHub](https://hub.docker.com/r/envoyproxy/envoy/tags).                                                                                                                                                                                                                                                                                                                                    | String  | `"envoyproxy/envoy:RELEASE_VERSION"`                |
 | `logLevel`                        | Specifies the error reporting level for logs. You can specify the following values: `error`, `warning`, `info`, `debug`, `trace`.                                                                                                                                                                                                                                          | String  | `"info"`                                         |
@@ -262,6 +265,25 @@ Add the `listener` object to the `gateway` configuration and specify the followi
 | `tls.options.tls_cipher_suites` | Specifies the list of TLS cipher suites to support when negotiating connections using TLS 1.2 or earlier. <br/>If unspecified, a [more secure set of cipher suites](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go#L3-L10) than Envoy's current [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites) will be used. <br/>The full list of supported cipher suites can seen in [`internal/common/tls.go`](https://github.com/hashicorp/consul-api-gateway/blob/main/internal/common/tls.go) and is dependent on underlying support in Envoy. | String  | See description |
 
 Refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Listener) for details about configuring listeners.
+
+#### Scaling
+
+You can scale a logical gateway object to multiple instances with the [`kubectl scale`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment) command. The object scales according to the bounds set in GatewayClassConfig.
+
+```
+$ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   1/1     1            1
+```
+```
+$ kubectl scale deployment/example-gateway --replicas=3
+deployment.apps/example-gateway scaled
+```
+```
+$ kubectl get deployment --selector api-gateway.consul.hashicorp.com/name=example-gateway
+NAME              READY   UP-TO-DATE   AVAILABLE
+example-gateway   3/3     3            3
+```
 
 ### Route
 
