@@ -9,11 +9,166 @@ description: >-
 
 This topic describes how to upgrade Consul API Gateway.
 
-## Breaking Changes
 
-Consul API Gateway v0.2.0 introduces a breaking change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
+## Upgrade to v0.3.0 from v0.2.0 or lower
 
-## Requirements
+Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listeners` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
+
+### Requirements
+
+Ensure that the following requirements are met prior to upgrading:
+
+- Consul API Gateway should be running version v0.2.1 or lower.
+- You should have the ability to run `kubectl` CLI commands.
+- `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
+- You should have the following permission rights on your Kubernetes cluster:
+  - `Gateway.read`
+  - `ReferencePolicy.create`
+- (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease gateway retrieval during the upgrade process.
+
+### Procedure
+
+
+1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
+
+  ```shell-session
+  $ kubectl get deployment --namespace consul consul-api-gateway-controller --output=jsonpath= "{@.spec.template.spec.containers[?(@.name=='api-gateway-controller')].image}"
+  ```
+
+  You should receive a response similar to the following:
+
+  ```log
+  "hashicorp/consul-api-gateway:0.2.1"
+  ```
+
+1. Retrieve all gateways that have a `certificateRefs` in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
+
+  ```shell-session
+  $ kubectl get Gateway --output json --all-namespaces
+  ```
+
+  If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: Gateway
+  metadata:
+    name: example-gateway
+    namespace: gateway-namespace
+  spec:
+    gatewayClassName: "consul-api-gateway"
+    listeners:
+      - name: https
+        port: 443
+        protocol: HTTPS
+        allowedRoutes:
+          namespaces:
+            from: All
+        tls:
+          certificateRefs:
+            - group: ""
+              kind: Secret
+              name: example-certificate
+              namespace: certificate-namespace
+  ```
+
+1. Inspect the `certificateRefs` entries for each of the routes.
+
+  If a `namespace` field is not defined in the `certificateRefs` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRefs`. Otherwise, note the `namespace` field values for `certificateRefs` configurations with a `namespace` field that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRefs-to-gateway pair. (see [step 5](#create-secret-reference-policy)).
+
+  After completing this step, you will have a list of all secrets similar to the following:
+
+  <CodeBlockConfig hideClipboard>
+
+  ```yaml hideClipboard
+    example-certificate:
+      - namespace: certificate-namespace
+        parentNamespace: gateway-namespace
+  ```
+
+  </CodeBlockConfig>
+
+  Proceed with the [standard-upgrade](#standard-upgrade) if your list is empty.
+
+  <a name="jq-command-secrets"/>
+
+1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `Gateways` and filter for secrets that require a `ReferencePolicy`.
+
+  ```shell-session
+
+  $ kubectl get Gateway -o json -A | jq -r '.items[] | {gateway_name: .metadata.name, gateway_namespace: .metadata.namespace, kind: .kind, crossNamespaceSecrets: ( .metadata.namespace as $parentnamespace | .spec.listeners[] | select(has("tls")) | .tls.certificateRefs[] | select(.namespace != null and .namespace != $parentnamespace )  )} '
+
+  ```
+
+  The output will resemble the following response if gateways that require a new `ReferencePolicy` are returned:
+
+  <CodeBlockConfig hideClipboard>
+
+  ```log hideClipboard
+  {
+    "gateway_name": "example-gateway",
+    "gateway_namespace": "gateway-namespace",
+    "kind": "Gateway",
+    "crossNamespaceSecrets": {
+      "group": "",
+      "kind": "Secret",
+      "name": "cexample-certificate",
+      "namespace": "certificate-namespace"
+    }
+  }
+  ```
+
+  </CodeBlockConfig>
+
+  If your output is empty, proceed with the [standard-upgrade](#standard-upgrade).
+<a name="create-secret-reference-policy"/>
+
+1. Using the list of secrets you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow each gateway cross namespace secret access.
+  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `certificateRefs`.
+
+  Skip to the next step if you've already created a `ReferencePolicy`.
+  <!---
+  TODO: add link to our docs on Cross Namespace Reference Policies, once we have written then, and tell the user to see them for more details on how to create these policies.
+  --->
+  The following example `ReferencePolicy` enables `example-gateway` in `gateway-namespace` to utilize `certificateRefs` in the `certificate-namespace` namespace:
+
+  <CodeBlockConfig filename="referencepolicy.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferencePolicy
+  metadata:
+    name: reference-policy
+    namespace: certificate-namespace
+  spec:
+    from:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        namespace: gateway-namespace
+    to:
+      - group: ""
+        kind: Secret
+  ```
+
+  </CodeBlockConfig>
+
+1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+
+1. Issue the following command to apply it to your cluster:
+
+  ```shell-session
+  $ kubectl apply --filename referencepolicy.yaml
+  ```
+
+  Repeat this step as needed until each of your cross-namespace `certificateRefs` have a corresponding `ReferencePolicy`.
+
+  Proceed with the [standard-upgrade](#standard-upgrade).
+
+## Upgrade to v0.2.0
+
+Consul API Gateway v0.2.0 introduces a change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
+
+### Requirements
 
 Ensure that the following requirements are met prior to upgrading:
 
@@ -26,9 +181,7 @@ Ensure that the following requirements are met prior to upgrading:
   - `ReferencePolicy.create`
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
-## Procedure
-
--> **NOTE** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
+### Procedure
 
 1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
 
@@ -99,7 +252,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `backendRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair to prevent the route from breaking (see [step 5](#create-reference-policy)).
+  If a `namespace` field is not defined in the `backendRef` or if the namespace matches the namespace of the route, then no additional action is required for the `backendRef`. Otherwise, note the `group`, `kind`, `name`, and `namespace` field values for `backendRef` configurations that have a `namespace` defined that do not match the namespace of the parent route. You must also note the `kind` and `namespace` of the parent route. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace route-to-service pair (see [step 5](#create-reference-policy)).
 
   After completing this step, you will have a list of all routes similar to the following:
 
@@ -127,7 +280,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-  Skip to [step 8](#step-8) if your list is empty.
+  Proceed with [standard-upgrade](#standard-upgrade) if your list is empty.
 <a name="jq-command"/>
 
 1. If you have installed [`jq`](https://stedolan.github.io/jq/), issue the following command to get all `HTTPRoutes` and `TCPRoutes` and filter for routes that require a `ReferencePolicy`.
@@ -173,11 +326,11 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-  If your output is empty, skip to [step 8](#step-8).
+  If your output is empty, proceed with the [standard-upgrade](#standard-upgrade).
 <a name="create-reference-policy"/>
 
 1. Using the list of routes you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow cross namespace traffic for each route service pair.
-  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair to prevent the route from breaking. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
+  The `ReferencePolicy` explicitly allows each cross-namespace route to service pair. The `ReferencePolicy` must be created in the same `namespace` as the backend `Service`.
 
   Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
@@ -215,7 +368,27 @@ Ensure that the following requirements are met prior to upgrading:
   ```
 
   Repeat this step as needed until each of your cross-namespace routes have a corresponding `ReferencePolicy`.
-<a name="step-8"/>
+
+  Proceed with the [standard-upgrade](#standard-upgrade).
+
+
+## Standard Upgrade
+
+~> **Note:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.2.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.2.0`
+
+### Requirements
+
+Ensure that the following requirements are met prior to upgrading:
+
+- You should have the ability to run `kubectl` CLI commands.
+- `kubectl` should be configured to point to the cluster containing the installation you are upgrading.
+
+
+### Procedure
+
+This is the upgrade path to use when there are no version specific steps to take.
+
+<a name="standard-upgrade"/>
 
 1. Issue the following command to install the new version of CRDs into your cluster:
 
@@ -239,7 +412,7 @@ Ensure that the following requirements are met prior to upgrading:
 1. Issue the following command to upgrade your Consul installation:
 
   ```shell-session
-  $ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> hashicorp/consul <DEPLOYMENT_NAME>
+  $ helm upgrade --values values.yaml --namespace consul --version <NEW_VERSION> <DEPLOYMENT_NAME> hashicorp/consul
   ```
 
   Note that the upgrade will cause the Consul API Gateway controller shut down and restart with the new version.
@@ -261,6 +434,6 @@ Ensure that the following requirements are met prior to upgrading:
   $ kubectl create --filename <path_to_route_config.yaml>
   ```
 
-## Post-Upgrade Configuration Changes
+### Post-Upgrade Configuration Changes
 
 No additional configuration changes are required for this upgrade.
