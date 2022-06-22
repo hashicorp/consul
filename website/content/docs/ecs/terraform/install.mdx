@@ -189,19 +189,7 @@ Refer to the [gateway task configuration examples](#gateway-task-configuration-e
 
 #### ECS service
 
-The ECS service is created as part of the `gateway-task` module configuration. The service can run one or more instances of the gateway.
-
-The following table describes the inputs for configuring the ECS service in your Terraform configuration file. All inputs are required. Refer to the [gateway task configuration examples](#gateway-task-configuration-examples) for a fully-configured task definition.
-
-| Input variable | Type | Description |
-| ---            | ---  | ---         |
-| `ecs_cluster_arn` | string | Specifies the ECS cluster where tasks should be launched. |
-| `launch_type` | string | Specifies the ECS service launch type. Can be either `fargate` or `ec2`. |
-| `desired_count` | integer | Specifies the number instances for the service to create. Defaults to `0`. |
-| `subnets` | string | Specifies the subnet IDs where the tasks launch. |
-| `security_group_ids` | string | Specifies the security group IDs to assign to the task ENI. |
-| `assign_public_ip` | Boolean | Set to `true` to create a task accessible at a public IP address. Default is `false`. <br/>If set to `true` and `wan_address` is not configured, the WAN address will be set to the public IP of the task. |
-| `load_balancer_target_group_arn` | string | Specifies the ARN of an existing load balancer target group. The load balancer target group allows ingress to the gateway task. <br/>No additional load balancer configuration is necessary. Only NLBs and ALBs are supported. The container name and port are set automatically based on other fields. |
+The ECS service is automatically created by the `gateway-task` module. The service can run one or more instances of the gateway.
 
 #### Mesh init
 
