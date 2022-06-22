@@ -20,3 +20,19 @@ Feature: dc / services / list
 
     Then I see 3 service models
 
+
+  Scenario: Listing peered service
+    Given 1 datacenter model with the value "dc-1"
+    And 1 service models from yaml
+      ---
+        - Name: Service-0
+          Kind: ~
+          PeerName: billing-app
+      ---
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+
+    Then I see 1 service model with the peer "billing-app"
