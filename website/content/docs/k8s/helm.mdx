@@ -860,7 +860,7 @@ Use these links to navigate to a particular top-level stanza.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
-### externalServers ((#h-externalServers))
+### externalServers ((#h-externalservers))
 
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
@@ -1301,7 +1301,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets https://www.consul.io/docs/agent/options#ui_config_dashboard_url_templates_service.
 
-### syncCatalog ((#h-syncCatalog))
+### syncCatalog ((#h-synccatalog))
 
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
@@ -1477,7 +1477,7 @@ Use these links to navigate to a particular top-level stanza.
       anotherLabelKey: another-label-value
     ```
 
-### connectInject ((#h-connectInject))
+### connectInject ((#h-connectinject))
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
@@ -1773,7 +1773,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the ACL token.
 
-### meshGateway ((#h-meshGateway))
+### meshGateway ((#h-meshgateway))
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
@@ -1922,7 +1922,7 @@ Use these links to navigate to a particular top-level stanza.
       'annotation-key': annotation-value
     ```
 
-### ingressGateways ((#h-ingressGateways))
+### ingressGateways ((#h-ingressgateways))
 
 - `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all
   ingress gateways are defined in `ingressGateways.defaults`. Any of
@@ -2038,7 +2038,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
-### terminatingGateways ((#h-terminatingGateways))
+### terminatingGateways ((#h-terminatinggateways))
 
 - `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all
   terminating gateways are defined in `terminatingGateways.defaults`. Any of
@@ -2140,7 +2140,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
 
-### apiGateway ((#h-apiGateway))
+### apiGateway ((#h-apigateway))
 
 - `apiGateway` ((#v-apigateway)) - Configuration settings for the Consul API Gateway integration
 
@@ -2239,7 +2239,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `initCopyConsulContainer` ((#v-apigateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
-### webhookCertManager ((#h-webhookCertManager))
+### webhookCertManager ((#h-webhookcertmanager))
 
 - `webhookCertManager` ((#v-webhookcertmanager)) - Configuration settings for the webhook-cert-manager
   `webhook-cert-manager` ensures that cert bundles are up to date for the mutating webhook.
