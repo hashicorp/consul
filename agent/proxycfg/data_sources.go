@@ -47,7 +47,7 @@ type DataSources struct {
 	// notification channel.
 	GatewayServices GatewayServices
 
-	// GatewayServices provides updates about a gateway's upstream services on a
+	// ServiceGateways provides updates about a gateway's upstream services on a
 	// notification channel.
 	ServiceGateways ServiceGateways
 

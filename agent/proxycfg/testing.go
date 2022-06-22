@@ -743,6 +743,7 @@ func testConfigSnapshotFixture(
 			Datacenters:                     &noopDataSource[*structs.DatacentersRequest]{},
 			FederationStateListMeshGateways: &noopDataSource[*structs.DCSpecificRequest]{},
 			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			ServiceGateways:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
 			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
 			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
 			Intentions:                      &noopDataSource[*structs.IntentionQueryRequest]{},
@@ -971,6 +972,7 @@ type TestDataSources struct {
 	FederationStateListMeshGateways *TestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes]
 	Datacenters                     *TestDataSource[*structs.DatacentersRequest, *[]string]
 	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
+	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
 	Intentions                      *TestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches]
@@ -995,6 +997,7 @@ func (t *TestDataSources) ToDataSources() DataSources {
 		ConfigEntryList:               t.ConfigEntryList,
 		Datacenters:                   t.Datacenters,
 		GatewayServices:               t.GatewayServices,
+		ServiceGateways:               t.ServiceGateways,
 		Health:                        t.Health,
 		HTTPChecks:                    t.HTTPChecks,
 		Intentions:                    t.Intentions,
