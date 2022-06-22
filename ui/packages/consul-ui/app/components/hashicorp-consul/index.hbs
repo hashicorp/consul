@@ -146,12 +146,14 @@
           @partition={{@partition}}
           @nspace={{@nspace}}
         />
-        <li role="separator">
-          Organization
-        </li>
-        <li data-test-main-nav-peers class={{if (is-href 'dc.peers' @dc.Name) 'is-active' }}>
-          <a href={{href-to 'dc.peers' @dc.Name params=(hash peer=undefined)}}>Peers</a>
-        </li>
+        {{#if (feature-flag "peering")}}
+          <li role="separator">
+            Organization
+          </li>
+          <li data-test-main-nav-peers class={{if (is-href 'dc.peers' @dc.Name) 'is-active' }}>
+            <a href={{href-to 'dc.peers' @dc.Name params=(hash peer=undefined)}}>Peers</a>
+          </li>
+      {{/if}}
     </ul>
   </:main-nav>
 
