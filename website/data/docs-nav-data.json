@@ -322,6 +322,23 @@
         ]
       },
       {
+        "title": "Cluster Peering",
+        "routes": [
+          {
+            "title": "What is Cluster Peering",
+            "path": "connect/cluster-peering"
+          },
+          {
+            "title": "Create and Manage Peering Connections",
+            "path": "connect/cluster-peering/create-manage-peering"
+          },
+          {
+            "title": "Cluster Peering on Kubernetes",
+            "path": "connect/cluster-peering/k8s"
+          }
+        ]
+      },
+      {
         "title": "Nomad",
         "path": "connect/nomad"
       },

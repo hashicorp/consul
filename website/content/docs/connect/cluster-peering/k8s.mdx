@@ -1,0 +1,215 @@
+---
+layout: docs
+page_title: Cluster Peering on Kubernetes
+description: >-
+  This page describes how to create peering connections, deploy services, export cluster services, and end peering connections for Consul cluster peering using Kubernetes (K8s).
+---
+
+# Cluster Peering on Kubernetes
+
+~> **Cluster peering is currently in technical preview:** Functionality associated
+with cluster peering is subject to change. You should never use the technical
+preview release in secure environments or production scenarios. Features in
+technical preview may have performance issues, scaling issues, and limited support.
+
+To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions for each side of the peering.
+
+The following Custom Resource Definitions (CRDs) are used to create and manage a peering connection:
+
+- `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
+- `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
+
+## Prerequisites
+
+To create and use cluster peering connections with Kubernetes, you need at least two Kubernetes clusters running in a flat network with Consul on Kubernetes v.0.45 or later.
+
+### Helm chart configuration
+
+To establish cluster peering through Kubernetes, deploy clusters with the following Helm values.
+
+```yaml
+global:
+  peering:
+    enabled: true
+connectInject:
+  enabled: true
+meshGateway:
+  enabled: true
+  replicas: 1
+```
+
+## Create a peering connection
+
+To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster.
+
+1. In “cluster-01,” create the `PeeringAcceptor` custom resource.
+
+    <CodeBlockConfig filename="acceptor.yml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringAcceptor
+    metadata:
+      name: cluster-02 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the `PeeringAcceptor` resource to the first cluster.
+
+    ```shell-session
+    $ kubectl apply --filename acceptor.yml
+    ````
+
+1. Save your peering token so that you can export it to the other cluster.
+
+    ```shell-session
+    $ kubectl get secret peering-token --output yaml > peering-token.yml
+    ```
+
+1. Apply the peering token to the second cluster.
+
+    ```shell-session
+    $ kubectl apply --filename peering-token.yml
+    ```
+
+1. In “cluster-02,” create the `PeeringDialer` custom resource.
+
+    <CodeBlockConfig filename="dialer.yml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringDialer
+    metadata:
+      name: cluster-01 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the `PeeringDialer` resource to the second cluster.
+
+    ```shell-session
+    $ kubectl apply --filename dialer.yml
+    ```
+
+## Deploy and export cluster services
+
+1. For the service in “cluster-02” that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods. This service is referred to as "backend-service" in the following steps.
+
+    <CodeBlockConfig filename="backend-service.yml">
+
+    ```yaml
+    ##…
+    annotations:
+      "consul.hashicorp.com/connect-inject": "true"
+      "consul.hashicorp.com/transparent-proxy": "false"
+    ##…
+    ```
+
+    </CodeBlockConfig>
+
+1. In “cluster-02,” create an `ExportedServices` custom resource.
+
+    <CodeBlockConfig filename="exportedsvc.yml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ExportedServices
+    metadata:
+      name: default ## The name of the partition containing the service
+    spec:
+      services:
+        name: backend-service ## The name of the service you want to export
+        consumers:
+          peerName: cluster-01 ## The name of the peer that receives the service
+    ```
+
+    </CodeBlockConfig>
+
+1. Create service intentions for the second cluster.
+
+    <CodeBlockConfig filename="intention.yml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ServiceIntentions
+    metadata:
+      name: backend-deny
+    spec:
+      destination:
+        name: backend-service
+      sources:
+       - name: "*"
+         action: deny
+       - name: frontend-service
+         action: allow
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the service file, the `ExportedServices` resource, and the intentions to the second cluster.
+
+    ```shell-session
+    $ kubectl apply --filename backend-service.yml --filename exportedsvc.yml --filename intention.yml
+    ```
+
+1. To confirm that you peered your clusters, in “cluster-01,” query the `/health` HTTP endpoint.
+
+    ```shell-session
+    $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+    ```
+
+1. For the services in “cluster-01” that you want to access the “backend-service,” add the following annotations to the service file.
+
+    <CodeBlockConfig filename="frontend-service.yml">
+
+    ```yaml
+    ##…
+    annotations:
+      "consul.hashicorp.com/connect-inject": "true"
+      "consul.hashicorp.com/transparent-proxy": "false"
+      "consul.hashicorp.com/connect-service-upstreams": "backend-service.svc.cluster-02.peer:1234"
+    ##…
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the service file to the first cluster.
+
+    ```shell-session
+    $ kubectl apply --filename frontend-service.yml
+    ```
+
+1. Run the following command and check the output to confirm that you peered your clusters successfully.
+
+    ```shell-session
+    $ curl localhost:1234
+    {
+        “name”: “backend-service”,
+        ##…
+        “body”: “Response from backend”,
+        “code”: 200
+    }
+    ```
+
+## End a peering connection
+
+To end a peering connection, delete both the `PeeringAcceptor` and `PeeringDialer` resources.
+
+To confirm that you deleted your peering connection, in “cluster-01,” query the `/health` HTTP endpoint. The peered services should no longer appear.
+
+```shell-session
+$ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+```
