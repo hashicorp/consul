@@ -21,6 +21,8 @@
         <BlockSlot @name="details">
           <div class="peers__list__peer-detail">
             <Peerings::Badge @peering={{item}} />
+            <div>{{item.ImportedServiceCount}} imported services</div>
+            <div>{{item.ExportedServiceCount}} exported services</div>
           </div>
         </BlockSlot>
       </ListCollection>
