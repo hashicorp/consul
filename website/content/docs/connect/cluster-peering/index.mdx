@@ -1,0 +1,50 @@
+---
+layout: docs
+page_title: What is Cluster Peering?
+description: >-
+    This page details the cluster peering process for connecting Consul clusters across datacenters, including differences between cluster peering and the similar concept of WAN federation.
+---
+
+# What is Cluster Peering?
+
+~> **Cluster peering is currently in technical preview**: Functionality associated with cluster peering is subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may have performance issues, scaling issues, and limited support.
+
+You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can to communicate.
+
+## Overview
+
+Cluster peering allows Consul clusters in different datacenters to communicate with each other. The cluster peering process consists of the following steps:
+1. Create a peering token to share with other clusters
+1. Establish a connection between clusters
+1. Make services available to other clusters
+
+For detailed instructions on setting up cluster peering with the Consul CLI, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
+
+### Differences between WAN federation and cluster peering
+
+WAN federation and cluster peering are different ways to connect clusters. The most important distinction is that WAN federation assumes clusters are owned by the same operators, so it maintains and replicates global states such as ACLs and configuration entries. As a result, WAN federation requires a _primary datacenter_ to serve as an authority for replicated data.
+
+Regardless of whether you connect your clusters through WAN federation or cluster peering, human and machine users can use either method to discover services in other clusters or dial them through the service mesh.
+
+|                                                  | WAN Federation | Cluster Peering |
+| :----------------------------------------------- | :------------: | :-------------: |
+| Connects clusters across datacenters             |    &#9989;     |    &#9989;      |
+| Shares support queries and service endpoints     |    &#9989;     |    &#9989;      |
+| Connects clusters owned by different operators   |    &#10060;    |    &#9989;      |
+| Functions without declaring primary datacenter |    &#10060;    |    &#9989;      |
+| Shares key/value stores                          |    &#9989;     |    &#10060;     |
+| Uses gossip protocol                             |    &#9989;     |    &#10060;     |
+
+## Technical preview constraints
+Not all features and functionality are available in the technical preview release. In particular, consider the following technical constraints:
+
+- Consul ACLs must be disabled or the ACL `default_policy` must be set to `allow`.
+- Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available. 
+- Services exported to peered clusters must not be configured as HTTP.
+- Support for dynamic routing such as splits, custom routes, or redirects is not available.
+- The `consul intention CLI` command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
+- [L7 permissions](/docs/connect/l7-traffic) are not supported.
+- Configuring service failover across peers is not supported.
+- Accessing key/value stores across peers is not supported.
+- Consul datacenters that are already federated stay federated.
+- Non-enterprise Consul instances cannot sync services with namespaces outside of the `default` namespace.

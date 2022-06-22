@@ -18,9 +18,9 @@ description: >-
   was reachable, it didn’t allow users to set the more granular restrictions or
   permissions that they may expect.
 
-    This version of API Gateway implements Cross Namespace Reference Policies
-    and requires them when routes are in a different namespace than the services
-    (as specified by the `backendRef`) they are routing traffic to.
+  This version of API Gateway implements Cross Namespace Reference Policies
+  and requires them when routes are in a different namespace than the services
+  (as specified by the `backendRefs`) they are routing traffic to.
 
 ## Supported Software
 
@@ -33,7 +33,7 @@ description: >-
 
 ## Kubernetes Gateway API Specification
 
-Supported version of the Gateway API spec: `v1alpha2`(v0.4.1)
+Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: `v1alpha2`(v0.4.1)
 
 ## Upgrading
 
