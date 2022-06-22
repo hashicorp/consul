@@ -7,32 +7,32 @@
   gap: 4px;
 
   &.active {
-    background: #f2fbf6;
-    color: #00781e;
+    background: rgb(var(--tone-green-050));
+    color: rgb(var(--tone-green-600));
   }
   &.pending {
-    background: #f9f2ff;
-    color: #911ced;
+    background: rgb(var(--tone-strawberry-050));
+    color: rgb(var(--tone-strawberry-500));
   }
   &.establishing {
-    background: #f2f8ff;
-    color: #1060ff;
+    background: rgb(var(--tone-blue-050));
+    color: rgb(var(--tone-blue-500));
   }
   &.failing {
-    background: #fff5f5;
-    color: #c00005;
+    background: rgb(var(--tone-red-050));
+    color: rgb(var(--tone-red-500));
   }
   &.deleting {
-    background: #fffdf6;
-    color: #725a01;
+    background: rgb(var(--tone-yellow-050));
+    color: rgb(var(--tone-yellow-800));
   }
   &.terminated {
-    background: #f1f2f3;
-    color: #3b3d45;
+    background: rgb(var(--tone-gray-150));
+    color: rgb(var(--tone-gray-800));
   }
   &.undefined {
-    background: #f1f2f3;
-    color: #3b3d45;
+    background: rgb(var(--tone-gray-150));
+    color: rgb(var(--tone-gray-800));
   }
 
   .peerings-badge__text {
