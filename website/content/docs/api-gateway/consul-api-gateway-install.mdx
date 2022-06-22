@@ -15,7 +15,7 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 ## Installation
 
--> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.3.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.3.0`
+-> **Version reference convention:** Replace `VERSION` in command and configuration examples with the Consul API Gateway version you are installing, such as `0.3.0`. In some instances, `VERSION` is prepended with a lowercase _v_. This indicates that you must include the `v` as is part of the version, for example `v0.3.0`.
 
 1. Issue the following command to install the CRDs:
 
@@ -247,7 +247,7 @@ spec:
 For a listener's `certificateRef` to reference a secret in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
 
 The following example creates a `Gateway` named `example-gateway` in `gateway-namespace`. This `Gateway` has a `certificateRef` in `secret-namespace`.
-The reference is allowed because `reference-policy` in `secret-namespace` lets `Gateways` in `gateway-namespace` reference `Secrets` in `secret-namespace`.
+The listener can use the certificate because `reference-policy` in `secret-namespace` is configured to allow `Gateways` in `gateway-namespace` to reference `Secrets` in `secret-namespace`.
 
 <CodeBlockConfig filename="gateway_with_referencepolicy.yaml">
 
