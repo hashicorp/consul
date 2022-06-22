@@ -10,7 +10,7 @@ description: >-
 This topic describes how to upgrade Consul API Gateway.
 
 
-## v0.3.0
+## Upgrade to v0.3.0 from v0.2.0 or lower
 
 Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listeners` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
 
