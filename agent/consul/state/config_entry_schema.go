@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
@@ -27,7 +26,7 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[any, structs.ConfigEntry, any]{
 					readIndex:   indexFromConfigEntryKindName,
 					writeIndex:  indexFromConfigEntry,
 					prefixIndex: indexFromConfigEntryKindName,
@@ -55,12 +54,7 @@ func configTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
+func indexFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetName() == "" || c.GetKind() == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -73,12 +67,7 @@ func indexFromConfigEntry(raw interface{}) ([]byte, error) {
 
 // indexKindFromConfigEntry indexes kinds without a namespace for any config
 // entries that span all namespaces.
-func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
+func indexKindFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetKind() == "" {
 		return nil, errMissingValueForIndex
 	}

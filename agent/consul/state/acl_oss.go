@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -209,18 +209,13 @@ func (s *Store) ACLAuthMethodUpsertValidateEnterprise(method *structs.ACLAuthMet
 	return nil
 }
 
-func indexAuthMethodFromACLToken(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-
-	if p.AuthMethod == "" {
+func indexAuthMethodFromACLToken(t *structs.ACLToken) ([]byte, error) {
+	if t.AuthMethod == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(p.AuthMethod))
+	b.String(strings.ToLower(t.AuthMethod))
 
 	return b.Bytes(), nil
 }

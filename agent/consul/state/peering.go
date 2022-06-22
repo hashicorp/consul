@@ -27,16 +27,16 @@ func peeringTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromUUIDString),
-					writeIndex: writeIndex(indexIDFromPeering),
+				Indexer: indexerSingle[string, *pbpeering.Peering]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexIDFromPeering,
 				},
 			},
 			indexName: {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *pbpeering.Peering, any]{
 					readIndex:   indexPeeringFromQuery,
 					writeIndex:  indexFromPeering,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -46,7 +46,7 @@ func peeringTableSchema() *memdb.TableSchema {
 				Name:         indexDeleted,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[BoolQuery, *pbpeering.Peering]{
 					readIndex:  indexDeletedFromBoolQuery,
 					writeIndex: indexDeletedFromPeering,
 				},
@@ -63,7 +63,7 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *pbpeering.PeeringTrustBundle, any]{
 					readIndex:   indexPeeringFromQuery, // same as peering table since we'll use the query.Value
 					writeIndex:  indexFromPeeringTrustBundle,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -73,12 +73,7 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexIDFromPeering(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*pbpeering.Peering)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for pbpeering.Peering index", raw)
-	}
-
+func indexIDFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	if p.ID == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -92,12 +87,7 @@ func indexIDFromPeering(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexDeletedFromPeering(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*pbpeering.Peering)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for *pbpeering.Peering index", raw)
-	}
-
+func indexDeletedFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	var b indexBuilder
 	b.Bool(!p.IsActive())
 	return b.Bytes(), nil

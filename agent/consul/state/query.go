@@ -60,12 +60,7 @@ func (q MultiQuery) PartitionOrDefault() string {
 
 // indexFromQuery builds an index key where Query.Value is lowercase, and is
 // a required value.
-func indexFromQuery(arg interface{}) ([]byte, error) {
-	q, ok := arg.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
-
+func indexFromQuery(q Query) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(q.Value))
 	return b.Bytes(), nil
@@ -164,12 +159,8 @@ func (q KeyValueQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
 }
 
-func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
+func indexFromKeyValueQuery(q KeyValueQuery) ([]byte, error) {
 	// NOTE: this is case-sensitive!
-	q, ok := arg.(KeyValueQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
 
 	var b indexBuilder
 	b.String(q.Key)
