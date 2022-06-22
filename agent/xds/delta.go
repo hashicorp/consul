@@ -201,6 +201,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 
 		case cfgSnap = <-stateCh:
+			cfgSnap.Logger = generator.Logger.Named("Snap")
+
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)

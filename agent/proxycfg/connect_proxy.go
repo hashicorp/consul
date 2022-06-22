@@ -466,7 +466,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				cancel()
 				return err
 			}
-			err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
+			err = s.dataSources.ServiceGateways.Notify(ctx, &structs.ServiceSpecificRequest{
 				ServiceName:    svc.Name,
 				Datacenter:     s.source.Datacenter,
 				QueryOptions:   structs.QueryOptions{Token: s.token},

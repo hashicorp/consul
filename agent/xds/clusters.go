@@ -271,17 +271,16 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 		if !ok {
 			continue
 		}
-
 		gateways, ok := cfgSnap.ConnectProxy.DestinationGateways[uid]
 		if !ok {
 			continue
 		}
 		for _, gateway := range gateways {
-			key := structs.ServiceGatewayVirtualIPTag(structs.NewServiceName(entry.GetName(), entry.GetEnterpriseMeta()))
-			GatewayVip, ok := gateway.TaggedAddresses[key]
+			GatewayVip, ok := gateway.TaggedAddresses[structs.TaggedAddressLAN]
 			if !ok {
-				continue
+				GatewayVip = gateway.Address
 			}
+
 			sni := connect.ServiceSNI(
 				uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
@@ -293,7 +292,6 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 					Type: envoy_cluster_v3.Cluster_STATIC,
 				},
-				LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 
 				ConnectTimeout: durationpb.New(5 * time.Second),
 			}

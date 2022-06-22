@@ -1664,6 +1664,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		return nil, err
 	}
 	return &envoy_listener_v3.FilterChain{
+		Name: opts.filterName,
 		Filters: []*envoy_listener_v3.Filter{
 			filter,
 		},

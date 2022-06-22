@@ -2900,6 +2900,7 @@ func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMe
 			EnterpriseMeta: gs.Gateway.EnterpriseMeta,
 		}
 		iterService, err := tx.Get(tableServices, indexService, q)
+
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 		}
@@ -2909,7 +2910,8 @@ func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMe
 		}
 
 	}
-
+	//TODO(egress-gtwy): peering?
+	results, err = parseServiceNodes(tx, ws, results, entMeta, "")
 	if err != nil {
 		return 0, nil, err
 	}

@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"sort"
 	"strings"
 
@@ -583,6 +584,7 @@ type ConfigSnapshot struct {
 
 	// ingress-gateway specific
 	IngressGateway configSnapshotIngressGateway
+	Logger         hclog.Logger
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
