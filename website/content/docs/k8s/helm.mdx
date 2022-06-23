@@ -19,26 +19,26 @@ with Consul.
 
 Use these links to navigate to a particular top-level stanza.
 
-- [`global`](#global)
-- [`server`](#server)
-- [`externalServers`](#externalservers)
-- [`client`](#client)
-- [`dns`](#dns)
-- [`ui`](#ui)
-- [`syncCatalog`](#synccatalog)
-- [`connectInject`](#connectinject)
-- [`controller`](#controller)
-- [`meshGateway`](#meshgateway)
-- [`ingressGateways`](#ingressgateways)
-- [`terminatingGateways`](#terminatinggateways)
-- [`apiGateway`](#apigateway)
-- [`webhookCertManager`](#webhookcertmanager)
-- [`prometheus`](#prometheus)
-- [`tests`](#tests)
+- [`global`](#h-global)
+- [`server`](#h-server)
+- [`externalServers`](#h-externalservers)
+- [`client`](#h-client)
+- [`dns`](#h-dns)
+- [`ui`](#h-ui)
+- [`syncCatalog`](#h-synccatalog)
+- [`connectInject`](#h-connectinject)
+- [`controller`](#h-controller)
+- [`meshGateway`](#h-meshgateway)
+- [`ingressGateways`](#h-ingressgateways)
+- [`terminatingGateways`](#h-terminatinggateways)
+- [`apiGateway`](#h-apigateway)
+- [`webhookCertManager`](#h-webhookcertmanager)
+- [`prometheus`](#h-prometheus)
+- [`tests`](#h-tests)
 
 ## All Values
 
-### global
+### global ((#h-global))
 
 - `global` ((#v-global)) - Holds values that affect multiple components of the chart.
 
@@ -62,7 +62,6 @@ Use these links to navigate to a particular top-level stanza.
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `peering` ((#v-global-peering)) - [Experimental] Configures the Cluster Peering feature. Requires Consul v1.13+ and Consul-K8s v0.45+.
-
     - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart enables Cluster Peering for the cluster. This option enables peering controllers and
       allows use of the PeeringAcceptor and PeeringDialer CRDs for establishing service mesh peerings.
 
@@ -549,7 +548,7 @@ Use these links to navigate to a particular top-level stanza.
   - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
     the API before cancelling the request.
 
-### server
+### server ((#h-server))
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
   be disabled if you plan on connecting to a Consul cluster external to
@@ -859,7 +858,7 @@ Use these links to navigate to a particular top-level stanza.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
-### externalServers
+### externalServers ((#h-externalservers))
 
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
@@ -902,7 +901,7 @@ Use these links to navigate to a particular top-level stanza.
       -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
 
-### client
+### client ((#h-client))
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -1167,7 +1166,7 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-### dns
+### dns ((#h-dns))
 
 - `dns` ((#v-dns)) - Configuration for DNS configuration within the Kubernetes cluster.
   This creates a service that routes to all agents (client or server)
@@ -1198,7 +1197,7 @@ Use these links to navigate to a particular top-level stanza.
     This should be a multi-line string mapping directly to a Kubernetes
     ServiceSpec object.
 
-### ui
+### ui ((#h-ui))
 
 - `ui` ((#v-ui)) - Values that configure the Consul UI.
 
@@ -1300,7 +1299,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets https://www.consul.io/docs/agent/options#ui_config_dashboard_url_templates_service.
 
-### syncCatalog
+### syncCatalog ((#h-synccatalog))
 
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
@@ -1476,7 +1475,7 @@ Use these links to navigate to a particular top-level stanza.
       anotherLabelKey: another-label-value
     ```
 
-### connectInject
+### connectInject ((#h-connectinject))
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
@@ -1719,7 +1718,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container.
 
-### controller
+### controller ((#h-controller))
 
 - `controller` ((#v-controller)) - Controller handles config entry custom resources.
   Requires consul >= 1.8.4.
@@ -1772,7 +1771,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the ACL token.
 
-### meshGateway
+### meshGateway ((#h-meshgateway))
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
@@ -1921,7 +1920,7 @@ Use these links to navigate to a particular top-level stanza.
       'annotation-key': annotation-value
     ```
 
-### ingressGateways
+### ingressGateways ((#h-ingressgateways))
 
 - `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all
   ingress gateways are defined in `ingressGateways.defaults`. Any of
@@ -2037,7 +2036,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
-### terminatingGateways
+### terminatingGateways ((#h-terminatinggateways))
 
 - `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all
   terminating gateways are defined in `terminatingGateways.defaults`. Any of
@@ -2139,7 +2138,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
 
-### apiGateway
+### apiGateway ((#h-apigateway))
 
 - `apiGateway` ((#v-apigateway)) - Configuration settings for the Consul API Gateway integration
 
@@ -2238,7 +2237,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `initCopyConsulContainer` ((#v-apigateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
-### webhookCertManager
+### webhookCertManager ((#h-webhookcertmanager))
 
 - `webhookCertManager` ((#v-webhookcertmanager)) - Configuration settings for the webhook-cert-manager
   `webhook-cert-manager` ensures that cert bundles are up to date for the mutating webhook.
@@ -2247,14 +2246,14 @@ Use these links to navigate to a particular top-level stanza.
     This should be a multi-line string matching the Toleration array
     in a PodSpec.
 
-### prometheus
+### prometheus ((#h-prometheus))
 
 - `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
 
   - `enabled` ((#v-prometheus-enabled)) (`boolean: false`) - When true, the Helm chart will install a demo Prometheus server instance
     alongside Consul.
 
-### tests
+### tests ((#h-tests))
 
 - `tests` ((#v-tests)) - Control whether a test Pod manifest is generated when running helm template.
   When using helm install, the test Pod is not submitted to the cluster so this
