@@ -114,3 +114,16 @@ func indexDeletedFromBoolQuery(q BoolQuery) ([]byte, error) {
 	b.Bool(q.Value)
 	return b.Bytes(), nil
 }
+
+type enterpriseIndexable interface {
+	partitionIndexable
+	namespaceIndexable
+}
+
+type partitionIndexable interface {
+	PartitionOrDefault() string
+}
+
+type namespaceIndexable interface {
+	NamespaceOrDefault() string
+}

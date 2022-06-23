@@ -195,8 +195,14 @@ func indexFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 }
 
 type nodeIdentifier interface {
+	partitionIndexable
+	peerIndexable
+
 	NodeIdentity() structs.Identity
 }
+
+var _ nodeIdentifier = (*structs.HealthCheck)(nil)
+var _ nodeIdentifier = (*structs.ServiceNode)(nil)
 
 func indexFromNodeIdentity(n nodeIdentifier) ([]byte, error) {
 	id := n.NodeIdentity()
@@ -253,21 +259,16 @@ func indexKindFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 }
 
 // indexWithPeerName adds peer name to the index.
-func indexWithPeerName[T any](
+func indexWithPeerName[T peerIndexable](
 	fn func(T) ([]byte, error),
 ) func(T) ([]byte, error) {
-	return func(raw T) ([]byte, error) {
-		pi, ok := any(raw).(peerIndexable)
-		if !ok {
-			return nil, fmt.Errorf("wrapped generic type must be peerIndexable: %T", raw)
-		}
-
-		v, err := fn(raw)
+	return func(e T) ([]byte, error) {
+		v, err := fn(e)
 		if err != nil {
 			return nil, err
 		}
 
-		peername := pi.PeerOrEmpty()
+		peername := e.PeerOrEmpty()
 		if peername == "" {
 			peername = structs.LocalPeerKeyword
 		}
@@ -702,7 +703,7 @@ func kindServiceNameTableSchema() *memdb.TableSchema {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle[any, any]{
+				Indexer: indexerSingle[enterpriseIndexable, enterpriseIndexable]{
 					readIndex:  indexFromKindServiceNameKindOnly,
 					writeIndex: indexFromKindServiceNameKindOnly,
 				},
@@ -730,7 +731,7 @@ func (q KindServiceNameQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
 }
 
-func indexFromKindServiceNameKindOnly(raw interface{}) ([]byte, error) {
+func indexFromKindServiceNameKindOnly(raw enterpriseIndexable) ([]byte, error) {
 	switch x := raw.(type) {
 	case *KindServiceName:
 		var b indexBuilder
