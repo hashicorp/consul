@@ -2685,7 +2685,7 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 	}
 
-	// Register terminating-gateway config entry, linking it to db, api, and redis (dne)
+	// Register terminating-gateway config entry, linking it to db and redis (dne)
 	{
 		args := &structs.TerminatingGatewayConfigEntry{
 			Name: "terminating-gateway",
@@ -2943,7 +2943,7 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 		Service: "google",
 	}
 
-	// Register gateway and two service instances that will be associated with it
+	// Register service-default with conflicting destination address
 	{
 		arg := structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
