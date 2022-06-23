@@ -7,11 +7,11 @@ description: >-
 
 # Secure Configuration
 
-This topic describes how to enable Consul security features for your production workloads. 
+This topic describes how to enable Consul security features for your production workloads.
 
 ## Overview
 
-To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Automatic ACL Token Provisioning](/docs/ecs/architecture#automatic-acl-token-provisioning) to learn more about the ACL controller. 
+To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Architecture](/docs/ecs/architecture#acl-controller) to learn more about the ACL controller.
 
 The controller cannot provision tokens for itself, so you must create the token for the ACL controller. The following steps describe the overall process of enabling security features for your production workloads:
 
@@ -24,16 +24,36 @@ The controller cannot provision tokens for itself, so you must create the token 
 
 ## Prerequisites
 
-Implement the following security features for your Consul server clusters before applying them to your workloads: 
+Implement the following security features for your Consul server clusters before applying them to your workloads:
 
 1. [TLS encryption](/docs/security/encryption#rpc-encryption-with-tls) for RPC communication between Consul clients and servers.
 1. [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
 1. [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
+## Auth Method
+
+Consul on ECS uses the [AWS IAM Auth Method](/docs/ecs/architecture#aws-iam-auth-method) to enable
+tasks to automatically obtain Consul ACL tokens during startup.
+
+With the Terraform modules for Consul on ECS, the auth method is supported by default when ACLs are
+enabled. The ACL controller sets up the auth method on the Consul servers. The `mesh-task` module
+configures the ECS task definition to be compatible with the auth method.
+
+A unique task IAM role is required for each ECS task family. Task IAM roles must not be shared by
+different task families. This is because the task family represents only one Consul service and the
+task IAM role must encode the Consul service name.
+
+By default, the `mesh-task` module will create and configure the task IAM role for you.
+
+-> **NOTE**: When passing an existing IAM role to the `mesh-task` module using the `task_role` input
+variable, you must configure the IAM role as described in [ECS Task Role
+Configuration](/docs/ecs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
+the AWS IAM auth method.
+
 ## ACL controller
 
-1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/docs/security/acl/policies) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/tokens) for instructions.
+1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/docs/security/acl/acl-policies) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/acl-tokens) for instructions.
 1. Create a Secrets Manager secret containing the ACL controller's token and a Secrets Manager secret containing the Consul CA cert.
 
   ```hcl
@@ -58,27 +78,45 @@ Implement the following security features for your Consul server clusters before
 
 1. Use the [`acl-controller` terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller?tab=inputs) to deploy the controller. You must provide the ARN's for the token and CA cert in the `consul_bootstrap_token_secret_arn` and `consul_server_ca_cert_arn` fields, respectively.
 
-  ```hcl
-  module "acl_controller" {
-    source                            = "hashicorp/consul/aws-ecs//modules/acl-controller"
-    consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
-    consul_server_http_addr           = "https://consul-server.example.com:8501"
-    consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
-    ecs_cluster_arn                   = "arn:aws:ecs:my-region:111111111111:cluster/consul-ecs"
-    region                            = "my-region"
-    subnets                           = ["subnet-abcdef123456789"]
-    name_prefix                       = "consul-ecs"
-  }
-  ```
+    ```hcl
+    module "acl_controller" {
+      source                            = "hashicorp/consul/aws-ecs//modules/acl-controller"
+      version                           = "<version>"
 
-The `name_prefix` parameter is used to prefix any secrets that the ACL controller will
-update in AWS Secrets Manager. The `name_prefix` parameter value must be unique for each ECS cluster where you deploy this controller.
+      consul_bootstrap_token_secret_arn = aws_secretsmanager_secret.bootstrap_token.arn
+      consul_server_http_addr           = "https://consul-server.example.com:8501"
+      consul_server_ca_cert_arn         = aws_secretsmanager_secret.ca_cert.arn
+      ecs_cluster_arn                   = "arn:aws:ecs:us-east-1:111111111111:cluster/consul-ecs"
+      region                            = "us-east-1"
+      subnets                           = ["subnet-abcdef123456789"]
+      name_prefix                       = "consul-ecs"
+    }
+    ```
+
+The following table describes the required input variables for the `acl-controller` module.
+
+| Input Variable                      | Type     | Description                                                                                                                                                                                                                                |
+| ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `source`                            | string   | The location of the `acl-controller` module source.                                                                                                                                                                                        |
+| `version`                           | string   | The version of the `acl-controller` module.                                                                                                                                                                                                |
+| `consul_bootstrap_token_secret_arn` | string   | The Secrets Manager secret containing an ACL token for the ACL controller. The ACL token must have `acl:write` and `operator:write` permissions.                                                                                           |
+| `consul_server_http_addr`           | string   | The HTTP(S) address of the Consul servers.                                                                                                                                                                                                 |
+| `consul_server_ca_cert_arn`         | string   | (Optional) The Secrets Manager secret containing the CA cert for HTTPS communication with Consul servers. Required if the server's certificate is self-signed or signed by an internal CA. This is not required for Consul servers in HCP. |
+| `ecs_cluster_arn`                   | string   | The ECS cluster where the ACL controller will be deployed.                                                                                                                                                                                 |
+| `region`                            | string   | The AWS region where the AWS resources will be created.                                                                                                                                                                                    |
+| `subnets`                           | list     | The AWS VPC subnet ids where the ACL controller will be deployed.                                                                                                                                                                          |
+| `name_prefix`                       | string   | AWS resources created by the `acl-controller` module will include this prefix in the resource name.                                                                                                                                        |
+
+<EnterpriseAlert>
+If you are using Consul Enterprise, see <a href="/docs/ecs/enterprise#admin-partitions-and-namespaces">Admin Partitions and Namespaces</a> for
+additional configuration required to support Consul Enterprise on ECS.
+</EnterpriseAlert>
 
 ## Deploy your services
 
 Follow the instructions described in [Create a task definition](/docs/ecs/terraform/install#create-the-task-definition) to create the basic configuration for the task module. Add the following additional configurations to make the configuration production-ready.
 
-### Create an AWS Secrets Manager secret 
+### Create an AWS Secrets Manager secret
 
 The secret stores the gossip encryption key that the Consul clients use.
 
@@ -103,20 +141,31 @@ should be the same as the `name_prefix` you provide to the ACL controller module
 
 ```hcl
 module "my_task" {
-  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
-  family = "my_task"
+  source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  version = "<version>"
 
   ...
 
-  tls                            = true
-  consul_server_ca_cert_arn      = aws_secretsmanager_secret.ca_cert.arn
-  gossip_key_secret_arn          = aws_secretsmanager_secret.gossip_key.arn
+  tls                       = true
+  consul_server_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
+  gossip_key_secret_arn     = aws_secretsmanager_secret.gossip_key.arn
 
-  acls                           = true
-  consul_client_token_secret_arn = module.acl_controller.client_token_secret_arn
-  acl_secret_name_prefix         = "consul-ecs"
+  acls                      = true
+  consul_http_addr          = "https://consul-server.example.com:8501"
+  consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
 }
 ```
+
+The following table explains the `mesh-task` input variables relevant to a secure configuration:
+
+| Input Variable              | Type     | Description                                                                                                                                                                                                                                |
+| -----------------------     | -------- | -------------------------------------------------------------------------------------------------------------------                                                                                                                        |
+| `tls`                       | boolean  | If true, TLS is enabled for RPC communication with the Consul servers.                                                                                                                                                                     |
+| `consul_server_ca_cert_arn` | string   | The Secrets Manager secret containing the CA certificate for RPC communication with the Consul servers when TLS is enabled.                                                                                                                |
+| `gossip_key_secret_arn`     | string   | The Secrets Manager secret containing Consul's gossip encryption key.                                                                                                                                                                      |
+| `acls`                      | boolean  | If true, ACLs are enabled.                                                                                                                                                                                                                 |
+| `consul_http_addr`          | string   | The Consul server address. Required when `acls = true` in order to log in to Consul's AWS IAM auth method to obtain ACL tokens.                                                                                                            |
+| `consul_https_ca_cert_arn`  | string   | (optional) The Secrets Manager secret containing the CA cert for HTTPS communication with Consul servers. Required if the server's certificate is self-signed or signed by an internal CA. This is not required for Consul servers in HCP. |
 
 Complete the following steps described in the Installation with Terraform chapter to deploy and connect your services:
 

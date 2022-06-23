@@ -26,11 +26,10 @@ module "my_task" {
 
 ## Licensing
 
-~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/production-installation#deploy-acl-controller).
+~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
 
 Consul Enterprise [requires a license](/docs/enterprise/license/overview). If running
-Consul on ECS with [ACLs enabled](/docs/ecs/production-installation#deploy-acl-controller), the license
-will be automatically pulled down from Consul servers.
+Consul on ECS with ACLs enabled, the license will be automatically pulled down from Consul servers.
 
 Currently there is no capability for specifying the license when ACLs are disabled so if you wish to
 run Consul Enterprise clients then you must enable ACLs.
@@ -66,10 +65,11 @@ Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) and
 - ACLs must be enabled.
 - ACL controller must run in the ECS cluster.
 - `mesh-task` must use a Consul Enterprise client image.
-- `gateway-task` must use a Consul Enterprise client image. 
+- `gateway-task` must use a Consul Enterprise client image.
 
-The ACL controller automatically manages ACL policies and token provisioning for clients and services on the service mesh.
-It also creates admin partitions and namespaces if they do not already exist.
+The ACL controller manages configuration of the AWS IAM auth method on the Consul servers. It
+ensures unused tokens created by tasks are cleaned up. It also creates admin partitions and
+namespaces if they do not already exist.
 
 -> **NOTE:** The ACL controller does not delete admin partitions or namespaces once they are created.
 

@@ -7,7 +7,7 @@ description: >-
 
 # Installation with Terraform
 
-This topic describes how to use HashiCorp’s Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual-installation) page to install Consul on ECS without Terraform.
+This topic describes how to use HashiCorp’s Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
 
 This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete and runnable examples.
 
@@ -28,15 +28,15 @@ If you want to operate Consul in production environments, follow the instruction
 
 * You should have some familiarity with using Terraform. Refer to the [Terraform documentation](https://www.terraform.io/docs) to learn about infrastructure as code and how to get started with Terraform.
 * You should also be familiar with AWS ECS before following these instructions. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
-* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation for instructions. 
+* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation for instructions.
 
 ## Create the task definition
 
-To run an application in ECS with Consul service mesh, you must create an ECS task definition. The task definition includes your application containers and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container. 
+To run an application in ECS with Consul service mesh, you must create an ECS task definition. The task definition includes your application containers and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container.
 
-Create a Terraform configuration file and include the `mesh-task` module. The module automatically adds the necessary sidecar containers. 
+Create a Terraform configuration file and include the `mesh-task` module. The module automatically adds the necessary sidecar containers.
 
-If you intend to peer the service mesh to multiple Consul datacenters or partitions, you can also include the `gateway-task` module. The module enables connectivity between datacenters across service meshes. 
+If you intend to peer the service mesh to multiple Consul datacenters or partitions, you can also include the `gateway-task` module. The module enables connectivity between datacenters across service meshes.
 
 ### Configure the mesh task module
 
@@ -88,7 +88,7 @@ The following fields are required. Refer to the [module reference documentation]
 | `container_definitions` | list     | This is the list of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) for the task definition. This is where you include your application containers. |
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
-| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                 |
+| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/options#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
 ### Configure an ECS service for the mesh task module
 
 [ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
@@ -126,7 +126,7 @@ The example shows a partially configured ECS service to highlight significant fi
 | `propagate_tags`  | string  | This option must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
 
 After including the ECS service in your Terraform configuration, run `terraform apply`
-from your project directory to create the ECS service resource. The ECS service 
+from your project directory to create the ECS service resource. The ECS service
 then starts your application in a task. The task automatically registers itself
 into the Consul service catalog during startup.
 
@@ -411,7 +411,7 @@ module "web" {
 ## Configure the bind address
 
 To ensure that your application only receives traffic through the service mesh,
-you must change the address that your application listens on to the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`. 
+you must change the address that your application listens on to the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`.
 Binding to the loopback address allows the sidecar proxy running in the same task to only make requests within the service mesh.
 
 If your application is listening on all interfaces, such as `0.0.0.0`, then other
