@@ -21,14 +21,17 @@ The following Custom Resource Definitions (CRDs) are used to create and manage a
 
 ## Prerequisites
 
-To create and use cluster peering connections with Kubernetes, you need at least two Kubernetes clusters running in a flat network with Consul on Kubernetes v.0.45 or later.
+You must implement the following requirements to create and use cluster peering connections with Kubernetes: 
+- Consul 1.13 Alpha 2 or later
+- At least two Kubernetes clusters 
+- The Kubernetes clusters must be running in a flat network 
+- The network must be running on Consul on Kubernetes v.0.45 or later 
 
 ### Helm chart configuration
 
 To establish cluster peering through Kubernetes, deploy clusters with the following Helm values.
 
-<CodeTabs heading="values.yaml">
-<CodeBlockConfig lineNumbers>
+<CodeBlockConfig filename="values.yaml">
 
 ```yaml
 global:
@@ -43,7 +46,6 @@ meshGateway:
 ```
 
 </CodeBlockConfig>
-</CodeTabs>
   
 Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI. 
 
