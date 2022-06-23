@@ -37,6 +37,8 @@ type ServiceSummary struct {
 	transparentProxySet bool
 	ConnectNative       bool
 
+	PeerName string `json:",omitempty"`
+
 	acl.EnterpriseMeta
 }
 
@@ -117,7 +119,22 @@ RPC:
 	if out.Dump == nil {
 		out.Dump = make(structs.NodeDump, 0)
 	}
-	return out.Dump, nil
+
+	// Use empty list instead of nil
+	for _, info := range out.ImportedDump {
+		if info.Services == nil {
+			info.Services = make([]*structs.NodeService, 0)
+		}
+		if info.Checks == nil {
+			info.Checks = make([]*structs.HealthCheck, 0)
+		}
+	}
+
+	if out.ImportedDump == nil {
+		out.ImportedDump = make(structs.NodeDump, 0)
+	}
+
+	return append(out.Dump, out.ImportedDump...), nil
 }
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
@@ -137,6 +154,10 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
+	}
+
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
 	}
 
 	// Make the RPC request
@@ -224,7 +245,8 @@ RPC:
 		numLinkedServices[gs.Gateway] += 1
 	}
 
-	summaries, hasProxy := summarizeServices(out.Nodes.ToServiceDump(), nil, "")
+	//call a second time with out.ImmportedNodes
+	summaries, hasProxy := summarizeServices(append(out.Nodes, out.ImportedNodes...).ToServiceDump(), nil, "")
 	sorted := prepSummaryOutput(summaries, false)
 
 	// Ensure at least a zero length slice
@@ -395,7 +417,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		hasProxy = make(map[structs.ServiceName]bool)
 	)
 
-	getService := func(service structs.ServiceName) *ServiceSummary {
+	getService := func(service structs.ServiceName, peerName string) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
 			serv = &ServiceSummary{
@@ -404,6 +426,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 				// the other code will increment this unconditionally so we
 				// shouldn't initialize it to 1
 				InstanceCount: 0,
+				PeerName:      peerName,
 			}
 			summary[service] = serv
 		}
@@ -413,7 +436,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 	for _, csn := range dump {
 		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
-			sum := getService(gwsvc.Service)
+			sum := getService(gwsvc.Service, "")
 			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
 		}
 
@@ -422,7 +445,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 			continue
 		}
 		sn := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
-		sum := getService(sn)
+		sum := getService(sn, csn.Service.PeerName)
 
 		svc := csn.Service
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
@@ -434,7 +457,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
 			hasProxy[sn] = true
 
-			destination := getService(sn)
+			destination := getService(sn, "")
 			for _, check := range csn.Checks {
 				cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
 				uid := structs.UniqueID(csn.Node.Node, cid.String())

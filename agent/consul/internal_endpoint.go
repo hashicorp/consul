@@ -43,7 +43,14 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 				return err
 			}
 
-			reply.Index, reply.Dump = index, dump
+			// old UIs may not handle .Dump so we added all peered nodes in .ImportedDump
+			if args.PeerName != "" {
+				reply.ImportedDump = dump
+			} else {
+				reply.Dump = dump
+			}
+
+			reply.Index = index
 			return m.srv.filterACL(args.Token, reply)
 		})
 }
@@ -69,17 +76,66 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, args.PeerName)
-			if err != nil {
-				return err
+			peerings := make([]string, 0)
+			peerings = append(peerings, "") // this represents a local fetch
+
+			// if a PeerName is passed, then it's we only get the NodeDump for that peer
+			// otherwise, we get all the local nodes and all the nodes for every peering
+			if args.PeerName != "" {
+				peerings = append(peerings, args.PeerName)
+			} else {
+				// get a list of all peerings
+				_, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+				if err != nil {
+					m.logger.Error("could not list peers for node dump", err)
+				} else {
+					for _, lp := range listedPeerings {
+						peerings = append(peerings, lp.Name)
+					}
+				}
 			}
-			reply.Index, reply.Dump = index, dump
+
+			// maxIndex will be set to the highest index of the NodeDump below
+			var maxIndex uint64
+			for _, p := range peerings {
+				if p != "" {
+					index, importedDump, err := state.NodeDump(ws, &args.EnterpriseMeta, p)
+					if err != nil {
+						return err
+					}
+					reply.ImportedDump = append(reply.ImportedDump, importedDump...)
+
+					if index > maxIndex {
+						maxIndex = index
+					}
+				} else {
+					index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, "")
+					if err != nil {
+						return err
+					}
+
+					// TODO(peering): we should not ever be here twice but maybe it would be important
+					// to log if we are as that could be a programming error
+					reply.Dump = dump
+
+					if index > maxIndex {
+						maxIndex = index
+					}
+				}
+			}
+			reply.Index = maxIndex
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return err
 			}
 			reply.Dump = raw.(structs.NodeDump)
+
+			importedRaw, err := filter.Execute(reply.ImportedDump)
+			if err != nil {
+				return err
+			}
+			reply.ImportedDump = importedRaw.(structs.NodeDump)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
@@ -112,11 +168,53 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			// Get, store, and filter nodes
-			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, args.PeerName)
-			if err != nil {
-				return err
+
+			peerings := make([]string, 0)
+			peerings = append(peerings, "") // this represents a local fetch
+
+			// if a PeerName is passed, then it's we only get the NodeDump for that peer
+			// otherwise, we get all the local nodes and all the nodes for every peering
+			if args.PeerName != "" {
+				peerings = append(peerings, args.PeerName)
+			} else {
+				// get a list of all peerings
+				_, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+				if err != nil {
+					m.logger.Error("could not list peers for service dump", err)
+				} else {
+					for _, lp := range listedPeerings {
+						peerings = append(peerings, lp.Name)
+					}
+				}
 			}
-			reply.Nodes = nodes
+			var maxIdx uint64
+			for _, p := range peerings {
+				var outterIdx uint64
+				if p != "" {
+					innerIdx, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p)
+					if err != nil {
+						return err
+					}
+
+					reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+					outterIdx = innerIdx
+				} else {
+					innerIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, "")
+					if err != nil {
+						return err
+					}
+
+					// TODO(peering): we should not ever be here twice but maybe it would be important
+					// to log if we are as that could be a programming error
+					reply.Nodes = nodes
+					outterIdx = innerIdx
+				}
+
+				if outterIdx > maxIdx {
+					maxIdx = outterIdx
+				}
+				reply.Index = maxIdx
+			}
 
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
@@ -135,6 +233,12 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				return err
 			}
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			importedRaw, err := filter.Execute(reply.ImportedNodes)
+			if err != nil {
+				return err
+			}
+			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include

@@ -289,9 +289,13 @@ func validateRegisterRequestPeerNamesTxn(_ ReadTxn, args *structs.RegisterReques
 	}
 
 	{
+		// todo alex -- is this correct?
 		// TODO(peering): validate the node's peering exists (skip check on restore)
-		peerName := args.PeerName
-		peerNames[peerName] = struct{}{}
+		if len(peerNames) == 0 {
+			peerName := args.PeerName
+			peerNames[peerName] = struct{}{}
+		}
+
 	}
 
 	if len(peerNames) > 1 {
