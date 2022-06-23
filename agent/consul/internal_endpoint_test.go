@@ -2959,7 +2959,7 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 		require.True(t, configOutput)
 	}
 
-	// Register terminating-gateway config entry, linking it to db, api, and redis (dne)
+	// Register terminating-gateway config entry, linking it to google.com
 	{
 		arg := structs.RegisterRequest{
 			Datacenter: "dc1",
