@@ -25,7 +25,7 @@ Configure a task definition that creates the containers:
 - An Envoy sidecar-proxy container
 - A Consul client container
 - A `consul-ecs-mesh-init` container for service mesh setup
-* (Optional) A `consul-ecs-health-sync` container to sync ECS health checks into Consul
+- (Optional) A `consul-ecs-health-sync` container to sync ECS health checks into Consul
 
 ## Top-level fields
 
@@ -42,10 +42,10 @@ during task startup.
   "networkMode": "awsvpc",
   "volumes": [
     {
-      "name": "consul_data",
+      "name": "consul_data"
     },
     {
-      "name": "consul_binary",
+      "name": "consul_binary"
     }
   ],
   "containerDefinitions": [...]
@@ -551,6 +551,6 @@ and `consul-ecs-mesh-init` containers.
 
 # Next Steps
 
-* Create the task definition using the [AWS Console](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html) or the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html), or another method of your choice.
+* Create the task definition using the [AWS Console](https://docs.aws.amazon.com/AmazonECS/latest/userguide/create-task-definition-classic.html) or the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html), or another method of your choice.
 * Create an [ECS Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) to start tasks using the task definition.
 * Follow the [Secure Configuration](/docs/ecs/manual/secure-configuration) to get production-ready.
