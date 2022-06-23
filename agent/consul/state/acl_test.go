@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	pbacl "github.com/hashicorp/consul/proto/pbacl"
+	"github.com/hashicorp/consul/proto/pbacl"
 )
 
 const (
@@ -3702,18 +3702,18 @@ func TestTokenPoliciesIndex(t *testing.T) {
 		Name:         "global",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer: indexerSingle{
-			readIndex:  readIndex(indexFromTimeQuery),
-			writeIndex: writeIndex(indexExpiresGlobalFromACLToken),
+		Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
+			readIndex:  indexFromTimeQuery,
+			writeIndex: indexExpiresGlobalFromACLToken,
 		},
 	}
 	localIndex := &memdb.IndexSchema{
 		Name:         "local",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer: indexerSingle{
-			readIndex:  readIndex(indexFromTimeQuery),
-			writeIndex: writeIndex(indexExpiresLocalFromACLToken),
+		Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
+			readIndex:  indexFromTimeQuery,
+			writeIndex: indexExpiresLocalFromACLToken,
 		},
 	}
 	schema := &memdb.DBSchema{

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
@@ -27,7 +26,7 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[any, structs.ConfigEntry, any]{
 					readIndex:   indexFromConfigEntryKindName,
 					writeIndex:  indexFromConfigEntry,
 					prefixIndex: indexFromConfigEntryKindName,
@@ -55,12 +54,30 @@ func configTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
+// configEntryIndexable is required because while structs.ConfigEntry
+// has a GetEnterpriseMeta method, it does not directly expose the
+// required NamespaceOrDefault and PartitionOrDefault methods of
+// enterpriseIndexable.
+//
+// Config entries that embed *acl.EnterpriseMeta will automatically
+// implement this interface.
+type configEntryIndexable interface {
+	structs.ConfigEntry
+	enterpriseIndexable
+}
 
+var _ configEntryIndexable = (*structs.ExportedServicesConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.IngressGatewayConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.MeshConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ProxyConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ServiceConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ServiceIntentionsConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ServiceResolverConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ServiceRouterConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.ServiceSplitterConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.TerminatingGatewayConfigEntry)(nil)
+
+func indexFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetName() == "" || c.GetKind() == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -73,12 +90,7 @@ func indexFromConfigEntry(raw interface{}) ([]byte, error) {
 
 // indexKindFromConfigEntry indexes kinds without a namespace for any config
 // entries that span all namespaces.
-func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
+func indexKindFromConfigEntry(c configEntryIndexable) ([]byte, error) {
 	if c.GetKind() == "" {
 		return nil, errMissingValueForIndex
 	}
