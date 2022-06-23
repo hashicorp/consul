@@ -574,7 +574,7 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 			CorrelationID: DestinationGatewayID + googleUID.String(),
 			Result: &structs.IndexedServiceNodes{
 				ServiceNodes: []*structs.ServiceNode{
-					{Node: "node1", ServiceName: "tgtw1", ServiceTaggedAddresses: map[string]structs.ServiceAddress{structs.TaggedAddressLANIPv4: {Address: "172.168.0.1", Port: 8443}}},
+					{Node: "node1", ServiceName: "tgtw1", ServiceKind: structs.ServiceKindTerminatingGateway, ServiceTaggedAddresses: map[string]structs.ServiceAddress{structs.TaggedAddressLANIPv4: {Address: "172.168.0.1", Port: 8443}}},
 				},
 			},
 		},
@@ -582,7 +582,7 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 			CorrelationID: DestinationGatewayID + kafkaUID.String(),
 			Result: &structs.IndexedServiceNodes{
 				ServiceNodes: []*structs.ServiceNode{
-					{Node: "node1", ServiceName: "tgtw1", ServiceTaggedAddresses: map[string]structs.ServiceAddress{structs.TaggedAddressLANIPv4: {Address: "172.168.0.1", Port: 8443}}},
+					{Node: "node1", ServiceName: "tgtw1", ServiceKind: structs.ServiceKindTerminatingGateway, ServiceTaggedAddresses: map[string]structs.ServiceAddress{structs.TaggedAddressLANIPv4: {Address: "172.168.0.1", Port: 8443}}},
 				},
 			},
 		},
