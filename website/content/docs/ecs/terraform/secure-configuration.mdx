@@ -11,7 +11,7 @@ This topic describes how to enable Consul security features for your production 
 
 ## Overview
 
-To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Automatic ACL Token Provisioning](/docs/ecs/architecture#automatic-acl-token-provisioning) to learn more about the ACL controller.
+To enable security in your production workloads, you must deploy the [ACL controller](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/acl-controller), which provisions tokens for other service mesh tasks. Refer to [Architecture](/docs/ecs/architecture#acl-controller) to learn more about the ACL controller.
 
 The controller cannot provision tokens for itself, so you must create the token for the ACL controller. The following steps describe the overall process of enabling security features for your production workloads:
 
@@ -30,13 +30,10 @@ Implement the following security features for your Consul server clusters before
 1. [Gossip encryption](/docs/security/encryption#gossip-encryption) for encrypting gossip traffic.
 1. [Access control lists (ACLs)](/docs/security/acl) for authentication and authorization for Consul clients and services on the mesh.
 
-
 ## Auth Method
 
-Consul on ECS uses the [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam) to enable
-tasks to automatically obtain Consul ACL tokens during startup. Refer to the
-[Architecture](/docs/ecs/architecture#aws-iam-auth-method) page for an overview of the auth method
-with Consul on ECS.
+Consul on ECS uses the [AWS IAM Auth Method](/docs/ecs/architecture#aws-iam-auth-method) to enable
+tasks to automatically obtain Consul ACL tokens during startup.
 
 With the Terraform modules for Consul on ECS, the auth method is supported by default when ACLs are
 enabled. The ACL controller sets up the auth method on the Consul servers. The `mesh-task` module
@@ -50,13 +47,13 @@ By default, the `mesh-task` module will create and configure the task IAM role f
 
 -> **NOTE**: When passing an existing IAM role to the `mesh-task` module using the `task_role` input
 variable, you must configure the IAM role as described in [ECS Task Role
-Configuration](/docs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
+Configuration](/docs/ecs/manual/secure-configuration#ecs-task-role-configuration) to be compatible with
 the AWS IAM auth method.
 
 ## ACL controller
 
-1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/docs/security/acl/policies) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/tokens) for instructions.
+1. Create a policy that grants `acl:write` and `operator:write` access for the controller. Refer to the [ACL policies documentation](/docs/security/acl/acl-policies) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/docs/security/acl/acl-tokens) for instructions.
 1. Create a Secrets Manager secret containing the ACL controller's token and a Secrets Manager secret containing the Consul CA cert.
 
   ```hcl

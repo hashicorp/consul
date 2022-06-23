@@ -118,7 +118,7 @@ The service identity includes `service:write` permissions for the service and si
 
 ## AWS IAM Auth Method
 
-Consul's [AWS IAM Auth Method](/security/acl/auth-methods/aws-iam) is used by ECS tasks to
+Consul's [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam) is used by ECS tasks to
 automatically obtain Consul ACL tokens. When a service mesh task on ECS starts up, it runs two
 `consul login` commands to obtain a client token and a service token via the auth method. When the
 task stops, it attempts two `consul logout` commands in order to destroy these tokens.
