@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -872,9 +872,10 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
-	}
-	if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
-		return fmt.Errorf("failed to persist service name: %v", err)
+		// Only upsert KindServiceName if service is local
+		if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
+			return fmt.Errorf("failed to persist service name: %v", err)
+		}
 	}
 
 	// Update upstream/downstream mappings if it's a connect service
@@ -896,7 +897,8 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			}
 
 			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
-			vip, err := assignServiceVirtualIP(tx, sn)
+			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
+			vip, err := assignServiceVirtualIP(tx, psn)
 			if err != nil {
 				return fmt.Errorf("failed updating virtual IP: %s", err)
 			}
@@ -976,9 +978,8 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 // assignServiceVirtualIP assigns a virtual IP to the target service and updates
 // the global virtual IP counter if necessary.
-func assignServiceVirtualIP(tx WriteTxn, sn structs.ServiceName) (string, error) {
-	// TODO(peering): support VIPs
-	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+func assignServiceVirtualIP(tx WriteTxn, psn structs.PeeredServiceName) (string, error) {
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -1049,7 +1050,7 @@ func assignServiceVirtualIP(tx WriteTxn, sn structs.ServiceName) (string, error)
 	}
 
 	assignedVIP := ServiceVirtualIP{
-		Service: sn,
+		Service: psn,
 		IP:      newEntry.IP,
 	}
 	if err := tx.Insert(tableServiceVirtualIPs, assignedVIP); err != nil {
@@ -1877,10 +1878,6 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return nil
 	}
 
-	// TODO: accept a non-pointer value for EnterpriseMeta
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
 	nsq := NodeServiceQuery{
@@ -1965,7 +1962,8 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 					return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 				}
 			}
-			if err := freeServiceVirtualIP(tx, svc.ServiceName, nil, entMeta); err != nil {
+			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
+			if err := freeServiceVirtualIP(tx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
 			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -1981,7 +1979,11 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 // freeServiceVirtualIP is used to free a virtual IP for a service after the last instance
 // is removed.
-func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.ServiceName, entMeta *acl.EnterpriseMeta) error {
+func freeServiceVirtualIP(
+	tx WriteTxn,
+	psn structs.PeeredServiceName,
+	excludeGateway *structs.ServiceName,
+) error {
 	supported, err := virtualIPsSupported(tx, nil)
 	if err != nil {
 		return err
@@ -1991,15 +1993,14 @@ func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.Servi
 	}
 
 	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
-	sn := structs.NewServiceName(svc, entMeta)
 	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
 	if err != nil {
 		return err
 	}
 	if termGatewaySupported {
-		svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
+		svcGateways, err := tx.Get(tableGatewayServices, indexService, psn.ServiceName)
 		if err != nil {
-			return fmt.Errorf("failed gateway lookup for %q: %s", sn.Name, err)
+			return fmt.Errorf("failed gateway lookup for %q: %s", psn.ServiceName.Name, err)
 		}
 
 		for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
@@ -2012,7 +2013,7 @@ func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.Servi
 		}
 	}
 
-	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -2879,11 +2880,11 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
-func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
+func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	vip, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -3336,7 +3337,9 @@ func getTermGatewayVirtualIPs(tx WriteTxn, services []structs.LinkedService, ent
 	addrs := make(map[string]structs.ServiceAddress, len(services))
 	for _, s := range services {
 		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
-		vip, err := assignServiceVirtualIP(tx, sn)
+		// Terminating Gateways cannot route to services in peered clusters
+		psn := structs.PeeredServiceName{ServiceName: sn, Peer: structs.DefaultPeerKeyword}
+		vip, err := assignServiceVirtualIP(tx, psn)
 		if err != nil {
 			return nil, err
 		}
@@ -3413,7 +3416,8 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 			return err
 		}
 		if len(nodes) == 0 {
-			if err := freeServiceVirtualIP(tx, sn.Name, &gatewayName, &sn.EnterpriseMeta); err != nil {
+			psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: sn}
+			if err := freeServiceVirtualIP(tx, psn, &gatewayName); err != nil {
 				return err
 			}
 		}

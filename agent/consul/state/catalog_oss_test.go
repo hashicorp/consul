@@ -669,8 +669,19 @@ func testIndexerTableServices() map[string]indexerTestCase {
 
 func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
 	obj := ServiceVirtualIP{
-		Service: structs.ServiceName{
-			Name: "foo",
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.ServiceName{
+				Name: "foo",
+			},
+		},
+		IP: net.ParseIP("127.0.0.1"),
+	}
+	peeredObj := ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.ServiceName{
+				Name: "foo",
+			},
+			Peer: "Billing",
 		},
 		IP: net.ParseIP("127.0.0.1"),
 	}
@@ -678,14 +689,33 @@ func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
-				source: structs.ServiceName{
-					Name: "foo",
+				source: structs.PeeredServiceName{
+					ServiceName: structs.ServiceName{
+						Name: "foo",
+					},
 				},
-				expected: []byte("foo\x00"),
+				expected: []byte("internal\x00foo\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("foo\x00"),
+				expected: []byte("internal\x00foo\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					read: indexValue{
+						source: structs.PeeredServiceName{
+							ServiceName: structs.ServiceName{
+								Name: "foo",
+							},
+							Peer: "Billing",
+						},
+						expected: []byte("billing\x00foo\x00"),
+					},
+					write: indexValue{
+						source:   peeredObj,
+						expected: []byte("billing\x00foo\x00"),
+					},
+				},
 			},
 		},
 	}

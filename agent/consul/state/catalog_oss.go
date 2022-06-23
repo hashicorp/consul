@@ -299,3 +299,15 @@ func updateKindServiceNamesIndex(tx WriteTxn, idx uint64, kind structs.ServiceKi
 	}
 	return nil
 }
+
+func indexFromPeeredServiceName(psn structs.PeeredServiceName) ([]byte, error) {
+	peer := structs.LocalPeerKeyword
+	if psn.Peer != "" {
+		peer = psn.Peer
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(peer))
+	b.String(strings.ToLower(psn.ServiceName.Name))
+	return b.Bytes(), nil
+}
