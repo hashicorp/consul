@@ -2911,8 +2911,11 @@ func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, entMeta *acl.
 		}
 
 	}
-	//TODO(egress-gtwy): peering?
-	results, err = parseServiceNodes(tx, ws, results, entMeta, peerName)
+	meta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	if entMeta != nil {
+		meta = entMeta
+	}
+	results, err = parseServiceNodes(tx, ws, results, meta, peerName)
 	if err != nil {
 		return 0, nil, err
 	}
