@@ -26,7 +26,7 @@ module.exports = function(environment, $ = process.env) {
     historySupportMiddleware: true,
 
     torii: {
-      disableRedirectInitializer: false
+      disableRedirectInitializer: false,
     },
 
     EmberENV: {
@@ -110,6 +110,10 @@ module.exports = function(environment, $ = process.env) {
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
+        features: {
+          peering: true,
+        },
+
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
@@ -134,14 +138,17 @@ module.exports = function(environment, $ = process.env) {
     case environment === 'development':
       ENV = Object.assign({}, ENV, {
         torii: {
-          disableRedirectInitializer: true
+          disableRedirectInitializer: true,
+        },
+        features: {
+          peering: true,
         },
       });
       break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
         torii: {
-          disableRedirectInitializer: true
+          disableRedirectInitializer: true,
         },
         // On staging sites everything defaults to being turned on by
         // different staging sites can be built with certain features disabled

@@ -555,7 +555,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	)
 
 	run := func(t *testing.T, peerName string) {
-		verifyNode := func(t *testing.T, s *Store, nodeLookup string) {
+		verifyNode := func(t *testing.T, s *Store, nodeLookup string, expectIdx uint64) {
 			idx, out, err := s.GetNode(nodeLookup, nil, peerName)
 			require.NoError(t, err)
 			byID := false
@@ -566,7 +566,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			}
 
 			require.NotNil(t, out)
-			require.Equal(t, uint64(1), idx)
+			require.Equal(t, expectIdx, idx)
 
 			require.Equal(t, "1.2.3.4", out.Address)
 			if byID {
@@ -661,8 +661,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Retrieve the node and verify its contents.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 1)
+			verifyNode(t, s, nodeName, 1)
 		})
 
 		// Add in a service definition.
@@ -686,8 +686,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the service got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 		})
@@ -726,8 +726,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the check got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 			verifyCheck(t, s)
@@ -776,8 +776,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the additional check got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 			verifyChecks(t, s)
@@ -976,7 +976,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.2",
 	}
 	if err := s.EnsureNode(10, in2Modify); err != nil {
-		t.Fatalf("Renaming node2 into node1 should fail")
+		t.Fatalf("Renaming node2 into node1 should not fail: " + err.Error())
 	}
 
 	// Retrieve the node again
@@ -1550,20 +1550,16 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{tableNodes, tableServices, tableChecks} {
-		if idx := s.maxIndex(tbl); idx != 3 {
-			t.Fatalf("bad index: %d (%s)", idx, tbl)
-		}
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(3), catalogServicesMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(3), catalogNodesMaxIndex(tx, nil, ""))
 
 	// Deleting a nonexistent node should be idempotent and not return
 	// an error
 	if err := s.DeleteNode(4, "node1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableNodes); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogNodesMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_Node_Snapshot(t *testing.T) {
@@ -1690,7 +1686,8 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 30 {
+	// expect node1's max idx
+	if idx != 20 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1713,9 +1710,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 30 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(30), catalogServicesMaxIndex(s.db.ReadTxn(), nil, ""))
 
 	// Update a service registration.
 	ns1.Address = "1.1.1.2"
@@ -1744,9 +1739,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 40 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(40), catalogServicesMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_EnsureService_connectProxy(t *testing.T) {
@@ -2571,21 +2564,15 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if idx := s.maxIndex(tableChecks); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(4), catalogChecksMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
 
 	// Deleting a nonexistent service should be idempotent and not return an
 	// error, nor fire a watch.
 	if err := s.DeleteService(5, "node1", "service1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableServices); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -2906,9 +2893,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	testCheckOutput(t, 5, 5, "bbbmodified")
 
 	// Index tables were updated
-	if idx := s.maxIndex(tableChecks); idx != 5 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(5), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
@@ -3387,9 +3372,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if idx, check, err := s.NodeCheck("node1", "check1", nil, ""); idx != 3 || err != nil || check != nil {
 		t.Fatalf("Node check should have been deleted idx=%d, node=%v, err=%s", idx, check, err)
 	}
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index for checks: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -3407,18 +3390,14 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 
 	// Deleting a nonexistent check should be idempotent and not return an
 	// error.
 	if err := s.DeleteCheck(4, "node1", "check1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}

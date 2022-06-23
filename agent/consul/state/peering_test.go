@@ -1,13 +1,10 @@
 package state
 
 import (
-	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -15,6 +12,12 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+)
+
+const (
+	testFooPeerID = "9e650110-ac74-4c5a-a6a8-9348b2bed4e9"
+	testBarPeerID = "5ebcff30-5509-4858-8142-a8e580f1863f"
+	testBazPeerID = "432feb2f-5476-4ae2-b33c-e43640ca0e86"
 )
 
 func insertTestPeerings(t *testing.T, s *Store) {
@@ -26,7 +29,7 @@ func insertTestPeerings(t *testing.T, s *Store) {
 	err := tx.Insert(tablePeering, &pbpeering.Peering{
 		Name:        "foo",
 		Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-		ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+		ID:          testFooPeerID,
 		State:       pbpeering.PeeringState_INITIAL,
 		CreateIndex: 1,
 		ModifyIndex: 1,
@@ -36,7 +39,7 @@ func insertTestPeerings(t *testing.T, s *Store) {
 	err = tx.Insert(tablePeering, &pbpeering.Peering{
 		Name:        "bar",
 		Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-		ID:          "5ebcff30-5509-4858-8142-a8e580f1863f",
+		ID:          testBarPeerID,
 		State:       pbpeering.PeeringState_FAILING,
 		CreateIndex: 2,
 		ModifyIndex: 2,
@@ -97,16 +100,16 @@ func TestStateStore_PeeringReadByID(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		_, peering, err := s.PeeringReadByID(nil, tc.id)
 		require.NoError(t, err)
-		require.Equal(t, tc.expect, peering)
+		prototest.AssertDeepEqual(t, tc.expect, peering)
 	}
 	tcs := []testcase{
 		{
 			name: "get foo",
-			id:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			id:   testFooPeerID,
 			expect: &pbpeering.Peering{
 				Name:        "foo",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-				ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+				ID:          testFooPeerID,
 				State:       pbpeering.PeeringState_INITIAL,
 				CreateIndex: 1,
 				ModifyIndex: 1,
@@ -114,11 +117,11 @@ func TestStateStore_PeeringReadByID(t *testing.T) {
 		},
 		{
 			name: "get bar",
-			id:   "5ebcff30-5509-4858-8142-a8e580f1863f",
+			id:   testBarPeerID,
 			expect: &pbpeering.Peering{
 				Name:        "bar",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-				ID:          "5ebcff30-5509-4858-8142-a8e580f1863f",
+				ID:          testBarPeerID,
 				State:       pbpeering.PeeringState_FAILING,
 				CreateIndex: 2,
 				ModifyIndex: 2,
@@ -149,7 +152,7 @@ func TestStateStore_PeeringRead(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		_, peering, err := s.PeeringRead(nil, tc.query)
 		require.NoError(t, err)
-		require.Equal(t, tc.expect, peering)
+		prototest.AssertDeepEqual(t, tc.expect, peering)
 	}
 	tcs := []testcase{
 		{
@@ -160,7 +163,7 @@ func TestStateStore_PeeringRead(t *testing.T) {
 			expect: &pbpeering.Peering{
 				Name:        "foo",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-				ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+				ID:          testFooPeerID,
 				State:       pbpeering.PeeringState_INITIAL,
 				CreateIndex: 1,
 				ModifyIndex: 1,
@@ -189,6 +192,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 
 	// set up initial write
 	err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:   testFooPeerID,
 		Name: "foo",
 	})
 	require.NoError(t, err)
@@ -210,6 +214,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 
 		lastIdx++
 		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:   testBarPeerID,
 			Name: "bar",
 		})
 		require.NoError(t, err)
@@ -229,6 +234,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 		// unrelated write shouldn't fire watch
 		lastIdx++
 		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:   testBarPeerID,
 			Name: "bar",
 		})
 		require.NoError(t, err)
@@ -237,6 +243,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 		// foo write should fire watch
 		lastIdx++
 		err = s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:        testFooPeerID,
 			Name:      "foo",
 			DeletedAt: structs.TimeToProto(time.Now()),
 		})
@@ -261,6 +268,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 		// mark for deletion before actually deleting
 		lastIdx++
 		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:        testBarPeerID,
 			Name:      "bar",
 			DeletedAt: structs.TimeToProto(time.Now()),
 		})
@@ -293,7 +301,7 @@ func TestStore_PeeringList(t *testing.T) {
 		{
 			Name:        "foo",
 			Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-			ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			ID:          testFooPeerID,
 			State:       pbpeering.PeeringState_INITIAL,
 			CreateIndex: 1,
 			ModifyIndex: 1,
@@ -301,7 +309,7 @@ func TestStore_PeeringList(t *testing.T) {
 		{
 			Name:        "bar",
 			Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-			ID:          "5ebcff30-5509-4858-8142-a8e580f1863f",
+			ID:          testBarPeerID,
 			State:       pbpeering.PeeringState_FAILING,
 			CreateIndex: 2,
 			ModifyIndex: 2,
@@ -336,6 +344,7 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 		lastIdx++
 		// insert a peering
 		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:        testFooPeerID,
 			Name:      "foo",
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 		})
@@ -357,6 +366,7 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 		// update peering
 		lastIdx++
 		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:        testFooPeerID,
 			Name:      "foo",
 			DeletedAt: structs.TimeToProto(time.Now()),
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
@@ -422,6 +432,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		{
 			name: "create baz",
 			input: &pbpeering.Peering{
+				ID:        testBazPeerID,
 				Name:      "baz",
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
@@ -429,6 +440,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		{
 			name: "update baz",
 			input: &pbpeering.Peering{
+				ID:        testBazPeerID,
 				Name:      "baz",
 				State:     pbpeering.PeeringState_FAILING,
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
@@ -437,6 +449,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		{
 			name: "mark baz for deletion",
 			input: &pbpeering.Peering{
+				ID:        testBazPeerID,
 				Name:      "baz",
 				State:     pbpeering.PeeringState_TERMINATED,
 				DeletedAt: structs.TimeToProto(time.Now()),
@@ -446,6 +459,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		{
 			name: "cannot update peering marked for deletion",
 			input: &pbpeering.Peering{
+				ID:   testBazPeerID,
 				Name: "baz",
 				// Attempt to add metadata
 				Meta: map[string]string{
@@ -458,6 +472,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		{
 			name: "cannot create peering marked for deletion",
 			input: &pbpeering.Peering{
+				ID:        testFooPeerID,
 				Name:      "foo",
 				DeletedAt: structs.TimeToProto(time.Now()),
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
@@ -472,54 +487,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 	}
 }
 
-func TestStore_PeeringWrite_GenerateUUID(t *testing.T) {
-	rand.Seed(1)
-
-	s := NewStateStore(nil)
-
-	entMeta := structs.NodeEnterpriseMetaInDefaultPartition()
-	partition := entMeta.PartitionOrDefault()
-
-	for i := 1; i < 11; i++ {
-		require.NoError(t, s.PeeringWrite(uint64(i), &pbpeering.Peering{
-			Name:      fmt.Sprintf("peering-%d", i),
-			Partition: partition,
-		}))
-	}
-
-	idx, peerings, err := s.PeeringList(nil, *entMeta)
-	require.NoError(t, err)
-	require.Equal(t, uint64(10), idx)
-	require.Len(t, peerings, 10)
-
-	// Ensure that all assigned UUIDs are unique.
-	uniq := make(map[string]struct{})
-	for _, p := range peerings {
-		uniq[p.ID] = struct{}{}
-	}
-	require.Len(t, uniq, 10)
-
-	// Ensure that the ID of an existing peering cannot be overwritten.
-	updated := &pbpeering.Peering{
-		Name:      peerings[0].Name,
-		Partition: peerings[0].Partition,
-	}
-
-	// Attempt to overwrite ID.
-	updated.ID, err = uuid.GenerateUUID()
-	require.NoError(t, err)
-	require.NoError(t, s.PeeringWrite(11, updated))
-
-	q := Query{
-		Value:          updated.Name,
-		EnterpriseMeta: *entMeta,
-	}
-	idx, got, err := s.PeeringRead(nil, q)
-	require.NoError(t, err)
-	require.Equal(t, uint64(11), idx)
-	require.Equal(t, peerings[0].ID, got.ID)
-}
-
 func TestStore_PeeringDelete(t *testing.T) {
 	s := NewStateStore(nil)
 	insertTestPeerings(t, s)
@@ -532,6 +499,7 @@ func TestStore_PeeringDelete(t *testing.T) {
 
 	testutil.RunStep(t, "can delete after marking for deletion", func(t *testing.T) {
 		require.NoError(t, s.PeeringWrite(11, &pbpeering.Peering{
+			ID:        testFooPeerID,
 			Name:      "foo",
 			DeletedAt: structs.TimeToProto(time.Now()),
 		}))
@@ -550,7 +518,7 @@ func TestStore_PeeringTerminateByID(t *testing.T) {
 	insertTestPeerings(t, s)
 
 	// id corresponding to default/foo
-	id := "9e650110-ac74-4c5a-a6a8-9348b2bed4e9"
+	const id = testFooPeerID
 
 	require.NoError(t, s.PeeringTerminateByID(10, id))
 
@@ -607,7 +575,7 @@ func TestStateStore_PeeringTrustBundleRead(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		_, ptb, err := s.PeeringTrustBundleRead(nil, tc.query)
 		require.NoError(t, err)
-		require.Equal(t, tc.expect, ptb)
+		prototest.AssertDeepEqual(t, tc.expect, ptb)
 	}
 
 	entMeta := structs.NodeEnterpriseMetaInDefaultPartition()
@@ -708,6 +676,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 
 	lastIdx++
 	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:   testUUID(),
 		Name: "my-peering",
 	}))
 
@@ -1000,6 +969,9 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 		var lastIdx uint64
 		// Create peerings
 		for _, tp := range tc.peerings {
+			if tp.peering.ID == "" {
+				tp.peering.ID = testUUID()
+			}
 			lastIdx++
 			require.NoError(t, s.PeeringWrite(lastIdx, tp.peering))
 
@@ -1009,6 +981,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				lastIdx++
 
 				copied := pbpeering.Peering{
+					ID:        tp.peering.ID,
 					Name:      tp.peering.Name,
 					DeletedAt: structs.TimeToProto(time.Now()),
 				}
@@ -1247,6 +1220,11 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 	var lastIdx uint64
 	ws := memdb.NewWatchSet()
 
+	var (
+		peerID1 = testUUID()
+		peerID2 = testUUID()
+	)
+
 	testutil.RunStep(t, "no results on initial setup", func(t *testing.T) {
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
 		require.NoError(t, err)
@@ -1279,6 +1257,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 	testutil.RunStep(t, "creating peering does not yield trust bundles", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:   peerID1,
 			Name: "peer1",
 		}))
 
@@ -1377,6 +1356,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 	testutil.RunStep(t, "bundles for other peers are ignored", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:   peerID2,
 			Name: "peer2",
 		}))
 
@@ -1431,6 +1411,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 	testutil.RunStep(t, "deleting the peering excludes its trust bundle", func(t *testing.T) {
 		lastIdx++
 		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
+			ID:        peerID1,
 			Name:      "peer1",
 			DeletedAt: structs.TimeToProto(time.Now()),
 		}))
@@ -1470,7 +1451,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 		err := tx.Insert(tablePeering, &pbpeering.Peering{
 			Name:        "foo",
 			Partition:   acl.DefaultPartitionName,
-			ID:          "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			ID:          testFooPeerID,
 			DeletedAt:   structs.TimeToProto(time.Now()),
 			CreateIndex: 1,
 			ModifyIndex: 1,
@@ -1480,7 +1461,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 		err = tx.Insert(tablePeering, &pbpeering.Peering{
 			Name:        "bar",
 			Partition:   acl.DefaultPartitionName,
-			ID:          "5ebcff30-5509-4858-8142-a8e580f1863f",
+			ID:          testBarPeerID,
 			CreateIndex: 2,
 			ModifyIndex: 2,
 		})
@@ -1489,7 +1470,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 		err = tx.Insert(tablePeering, &pbpeering.Peering{
 			Name:        "baz",
 			Partition:   acl.DefaultPartitionName,
-			ID:          "432feb2f-5476-4ae2-b33c-e43640ca0e86",
+			ID:          testBazPeerID,
 			DeletedAt:   structs.TimeToProto(time.Now()),
 			CreateIndex: 3,
 			ModifyIndex: 3,

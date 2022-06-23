@@ -17,9 +17,15 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// indexServiceExtinction keeps track of the last raft index when the last instance
-// of any service was unregistered. This is used by blocking queries on missing services.
-const indexServiceExtinction = "service_last_extinction"
+const (
+	// indexServiceExtinction keeps track of the last raft index when the last instance
+	// of any service was unregistered. This is used by blocking queries on missing services.
+	indexServiceExtinction = "service_last_extinction"
+
+	// indexNodeExtinction keeps track of the last raft index when the last instance
+	// of any node was unregistered. This is used by blocking queries on missing nodes.
+	indexNodeExtinction = "node_last_extinction"
+)
 
 const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
@@ -414,8 +420,8 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 				// We are actually renaming a node, remove its reference first
 				err := s.deleteNodeTxn(tx, idx, n.Node, n.GetEnterpriseMeta(), n.PeerName)
 				if err != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s",
-						node.ID, node.Address, n.Node, node.Node)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s: %w",
+						node.ID, node.Address, n.Node, node.Node, err)
 				}
 			}
 		} else {
@@ -762,6 +768,15 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string, entMeta 
 	node := nodeRaw.(*structs.Node)
 	if err := catalogUpdateNodesIndexes(tx, idx, entMeta, node.PeerName); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Clean up node entry from index table
+	if err := tx.Delete(tableIndex, &IndexEntry{Key: nodeIndexName(nodeName, entMeta, node.PeerName)}); err != nil {
+		return fmt.Errorf("failed deleting nodeIndex %q: %w", nodeIndexName(nodeName, entMeta, node.PeerName), err)
+	}
+
+	if err := catalogUpdateNodeExtinctionIndex(tx, idx, entMeta, node.PeerName); err != nil {
+		return err
 	}
 
 	if peerName == "" {
@@ -1683,9 +1698,6 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
-	// Get the table index.
-	idx := catalogMaxIndex(tx, entMeta, peerName, false)
-
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{
 		Value:          nodeNameOrID,
@@ -1712,16 +1724,16 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		})
 		if err != nil {
 			ws.Add(watchCh)
-			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup
-			// failing once a logger has been introduced to the catalog.
-			return true, 0, nil, nil, nil
+			idx := catalogNodeLastExtinctionIndex(tx, entMeta, peerName)
+			return true, idx, nil, nil, nil
 		}
 
 		n = iter.Next()
 		if n == nil {
 			// No nodes matched, even with the Node ID: add a watch on the node name.
 			ws.Add(watchCh)
-			return true, 0, nil, nil, nil
+			idx := catalogNodeLastExtinctionIndex(tx, entMeta, peerName)
+			return true, idx, nil, nil, nil
 		}
 
 		idWatchCh := iter.WatchCh()
@@ -1744,6 +1756,9 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		return true, 0, nil, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
 	ws.Add(services.WatchCh())
+
+	// Get the table index.
+	idx := catalogNodeMaxIndex(tx, nodeName, entMeta, peerName)
 
 	return false, idx, node, services, nil
 }
@@ -1902,10 +1917,17 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 	svc := service.(*structs.ServiceNode)
 	if err := catalogUpdateServicesIndexes(tx, idx, entMeta, svc.PeerName); err != nil {
-		return err
+		return fmt.Errorf("failed updating services indexes: %w", err)
 	}
 	if err := catalogUpdateServiceKindIndexes(tx, idx, svc.ServiceKind, &svc.EnterpriseMeta, svc.PeerName); err != nil {
-		return err
+		return fmt.Errorf("failed updating service-kind indexes: %w", err)
+	}
+	// Update the node indexes as the service information is included in node catalog queries.
+	if err := catalogUpdateNodesIndexes(tx, idx, entMeta, peerName); err != nil {
+		return fmt.Errorf("failed updating nodes indexes: %w", err)
+	}
+	if err := catalogUpdateNodeIndexes(tx, idx, nodeName, entMeta, peerName); err != nil {
+		return fmt.Errorf("failed updating node indexes: %w", err)
 	}
 
 	name := svc.CompoundServiceName()
@@ -1930,7 +1952,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta, svc.PeerName)
 			if err == nil && serviceIndex != nil {
 				// we found service.<serviceName> index, garbage collect it
-				if errW := tx.Delete(tableIndex, serviceIndex); errW != nil {
+				if err := tx.Delete(tableIndex, serviceIndex); err != nil {
 					return fmt.Errorf("[FAILED] deleting serviceIndex %s: %s", svc.ServiceName, err)
 				}
 			}

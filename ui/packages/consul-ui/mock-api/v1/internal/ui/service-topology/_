@@ -64,8 +64,10 @@ ${
     ${
       upstreams.map((item, i) => {
         const hasPerms = fake.random.boolean();
+        const isPeered = fake.random.boolean();
         // if hasPerms is true allowed is always false as some restrictions apply
         const allowed = hasPerms ? false : fake.random.boolean();
+        const peerString = isPeered ? `"PeerName": "${fake.random.word()}",` : '';
         return `
     {
 ${(Math.random(1) > 0.3) ? `
@@ -79,6 +81,7 @@ ${(Math.random(1) > 0.3) ? `
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "Source": "${fake.helpers.randomize(['routing-config', 'proxy-registration', 'default-allow', 'wildcard-intention'])}",
+      ${peerString}
       "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},

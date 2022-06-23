@@ -1,6 +1,19 @@
 import Adapter from './application';
+import { inject as service } from '@ember/service';
 
 export default class ServiceAdapter extends Adapter {
+  @service features;
+
+  get peeringQuery() {
+    const query = {};
+
+    if (this.features.isEnabled('peering')) {
+      query['with-peers'] = true;
+    }
+
+    return query;
+  }
+
   requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
     if (typeof gateway !== 'undefined') {
       return request`
@@ -23,6 +36,7 @@ export default class ServiceAdapter extends Adapter {
           ns,
           partition,
           index,
+          ...this.peeringQuery,
         }}
     `;
     }

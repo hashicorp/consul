@@ -17,5 +17,5 @@ Feature: dc / services / show-with-slashes: Show Service that has slashes in its
     Then the url should be /dc1/services
     Then I see 1 service model
     And I click service on the services
-    Then the url should be /dc1/services/hashicorp%2Fservice%2Fservice-0/topology
+    Then the url should be /:billing/dc1/services/hashicorp%2Fservice%2Fservice-0/topology
 

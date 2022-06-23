@@ -99,6 +99,9 @@ export default class TopologyMetrics extends Component {
 
   get upstreams() {
     const upstreams = get(this.args.topology, 'Upstreams') || [];
+    upstreams.forEach(u => {
+      u.PeerOrDatacenter = u.PeerName || u.Datacenter;
+    });
     const items = [...upstreams];
     const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
     const wildcardIntention = get(this.args.topology, 'wildcardIntention');
@@ -108,18 +111,21 @@ export default class TopologyMetrics extends Component {
       items.push({
         Name: 'Upstreams unknown.',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     } else if (defaultACLPolicy === 'allow' || wildcardIntention) {
       items.push({
         Name: '* (All Services)',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     } else if (upstreams.length === 0) {
       items.push({
         Name: 'No upstreams.',
         Datacenter: '',
+        PeerOrDatacenter: '',
         Namespace: '',
       });
     }

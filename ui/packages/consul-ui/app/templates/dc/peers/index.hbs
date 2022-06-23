@@ -1,0 +1,61 @@
+<Route @name={{route}} as |route|>
+  <Watcher @watch={{this.model.loadPeers}} as |w|>
+    {{did-insert w.fns.start}}
+    {{will-destroy w.fns.stop}}
+  </Watcher>
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title="Peers" />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+      <Peerings::Search @search={{this.filter}} @onSearch={{this.handleSearchChanged}} />
+    </BlockSlot>
+    <BlockSlot @name="content">
+      {{#if this.filteredPeers.length}}
+      <ListCollection @items={{this.filteredPeers}} as |item index|>
+        <BlockSlot @name="header">
+          <p>{{item.Name}}</p>
+        </BlockSlot>
+        <BlockSlot @name="details">
+          <div class="peers__list__peer-detail">
+            <Peerings::Badge @peering={{item}} />
+            <Peerings::ServiceCount @peering={{item}} @kind="imported"/>
+            <Peerings::ServiceCount @peering={{item}} @kind="exported"/>
+          </div>
+        </BlockSlot>
+      </ListCollection>
+      {{else}}
+      {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
+      <EmptyState @login={{route.model.app.login.open}}>
+        <BlockSlot @name="header">
+          <h2>Welcome to Peers</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>
+            Peering allows an admin partition in one datacenter to communicate with a partition in a different
+            datacenter. There don't seem to be any peers for this admin partition, or you may not have
+            <code>peering:read</code> permissions to
+            access this view.
+          </p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+            {{!-- what's the docs for peering?--}}
+            <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
+              Documentation on Peers
+            </a>
+          </li>
+          <li class="learn-link">
+            <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
+              Take the tutorial
+            </a>
+          </li>
+        </BlockSlot>
+      </EmptyState>
+      {{/if}}
+    </BlockSlot>
+
+  </AppView>
+</Route>
