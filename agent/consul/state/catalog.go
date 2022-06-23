@@ -2898,6 +2898,7 @@ func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, entMeta *acl.
 		q := Query{
 			Value:          gs.Gateway.Name,
 			EnterpriseMeta: gs.Gateway.EnterpriseMeta,
+			PeerName:       peerName,
 		}
 		iterService, err := tx.Get(tableServices, indexService, q)
 
