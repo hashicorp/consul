@@ -276,16 +276,18 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 			continue
 		}
 		for _, gateway := range gateways {
+
+			// Only  terminating gateways are supported for destinations
+			if gateway.ServiceKind != structs.ServiceKindTerminatingGateway {
+				continue
+			}
 			gatewayAddress, ok := gateway.ServiceTaggedAddresses[structs.TaggedAddressLANIPv4]
 			if !ok {
 				continue
 			}
-
 			sni := connect.ServiceSNI(
 				uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-
-			// Prefixed with destination to distinguish from non-passthrough clusters for the same upstream.
-			name := "destination~" + sni
+			name := clusterNameForDestination(cfgSnap, uid)
 
 			c := envoy_cluster_v3.Cluster{
 				Name: name,
@@ -339,6 +341,15 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 	}
 
 	return clusters, nil
+}
+
+func clusterNameForDestination(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
+	sni := connect.ServiceSNI(
+		uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+	// Prefixed with destination to distinguish from non-passthrough clusters for the same upstream.
+	name := "destination~" + sni
+	return name
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
