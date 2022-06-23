@@ -31,20 +31,20 @@ You must implement the following requirements to create and use cluster peering 
 
 To establish cluster peering through Kubernetes, deploy clusters with the following Helm values.
 
-<CodeBlockConfig filename="values.yaml">
-  
-```yaml
-global:
-  peering:
+  <CodeBlockConfig filename="values.yaml">
+
+  ```yaml
+  global:
+    peering:
+      enabled: true
+  connectInject:
     enabled: true
-connectInject:
-  enabled: true
-meshGateway:
-  enabled: true
-  replicas: 1
-```
-  
-</CodeBlockConfig>
+  meshGateway:
+    enabled: true
+    replicas: 1
+  ```
+
+  </CodeBlockConfig>
 
 Install Consul on Kubernetes on each Kubernetes cluster by applying `values.yaml` using the Helm CLI.
 
