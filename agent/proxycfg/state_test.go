@@ -2484,7 +2484,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "should still be valid")
 						require.Len(t, snap.ConnectProxy.DestinationsUpstream, 1)
 						require.Len(t, snap.ConnectProxy.DestinationGateways, 1)
-						for k, _ := range snap.ConnectProxy.DestinationsUpstream {
+						for k := range snap.ConnectProxy.DestinationsUpstream {
 							_, ok := snap.ConnectProxy.DestinationGateways[k]
 							require.True(t, ok)
 						}
