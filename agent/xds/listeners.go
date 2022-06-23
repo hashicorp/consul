@@ -97,6 +97,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		outboundListener = makePortListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
+
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			// The original_dst filter is a listener filter that recovers the original destination
 			// address before the iptables redirection. This filter is needed for transparent
@@ -225,7 +226,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 	}
-
+	hasDestination := false
 	for uid, configEntry := range cfgSnap.ConnectProxy.DestinationsUpstream {
 		destination, ok := configEntry.(*structs.ServiceConfigEntry)
 		if !ok {
@@ -251,6 +252,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort(destination.Destination.Address, destination.Destination.Port)
 		outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+
+		hasDestination = len(filterChain.FilterChainMatch.ServerNames) != 0 || hasDestination
+	}
+	if hasDestination {
+		tlsInspector, err := makeTLSInspectorListenerFilter()
+		if err != nil {
+			return nil, err
+		}
+		outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, tlsInspector)
 	}
 	// Looping over explicit upstreams is only needed for cross-peer because
 	// they do not have discovery chains.
