@@ -20,14 +20,14 @@ Feature: page-navigation
     Then the url should be [URL]
     Then a GET request was made to "[Endpoint]"
   Where:
-    -------------------------------------------------------------------------------------
-    | Link       | URL               | Endpoint                                         |
-    | nodes      | /dc1/nodes       | /v1/internal/ui/nodes?dc=dc1&ns=@namespace      |
+    ---------------------------------------------------------------------------------------------------
+    | Link       | URL               | Endpoint                                                       |
+    | nodes      | /dc1/nodes       | /v1/internal/ui/nodes?dc=dc1&with-peers=true&ns=@namespace      |
   # FIXME
-    # | kvs        | /dc1/kv          | /v1/kv/?keys&dc=dc1&separator=%2F&ns=@namespace |
-    | tokens       | /dc1/acls/tokens | /v1/acl/tokens?dc=dc1&ns=@namespace             |
-    # | settings   | /settings         | /v1/catalog/datacenters                         |
-    -------------------------------------------------------------------------------------
+    # | kvs        | /dc1/kv          | /v1/kv/?keys&dc=dc1&separator=%2F&ns=@namespace               |
+    | tokens       | /dc1/acls/tokens | /v1/acl/tokens?dc=dc1&ns=@namespace                           |
+    # | settings   | /settings         | /v1/catalog/datacenters                                      |
+    ---------------------------------------------------------------------------------------------------
   # FIXME
   @ignore
   Scenario: Clicking a [Item] in the [Model] listing and back again

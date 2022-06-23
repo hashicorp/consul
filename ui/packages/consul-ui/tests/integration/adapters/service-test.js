@@ -16,7 +16,7 @@ module('Integration | Adapter | service', function(hooks) {
       const request = client.requestParams.bind(client);
       const expected = `GET /v1/internal/ui/services?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
-      }`;
+      }&with-peers=true`;
       let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
