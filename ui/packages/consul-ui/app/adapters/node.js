@@ -41,16 +41,23 @@ export default class NodeAdapter extends Adapter {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
+    let options = {
+      ns,
+      partition,
+      index,
+    };
+
+    if (peer) {
+      options = {
+        ...options,
+        peer,
+      };
+    }
     return request`
       GET /v1/internal/ui/node/${id}?${{ dc }}
       X-Request-ID: ${uri}
 
-      ${{
-        ns,
-        peer,
-        partition,
-        index,
-      }}
+      ${options}
     `;
   }
 
