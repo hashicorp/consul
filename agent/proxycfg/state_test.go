@@ -125,6 +125,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		Datacenters:                     typedWatchRecorder[*structs.DatacentersRequest]{wr},
 		FederationStateListMeshGateways: typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 		GatewayServices:                 typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
+		ServiceGateways:                 typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		Health:                          typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		HTTPChecks:                      typedWatchRecorder[*cachetype.ServiceHTTPChecksRequest]{wr},
 		Intentions:                      typedWatchRecorder[*structs.IntentionQueryRequest]{wr},

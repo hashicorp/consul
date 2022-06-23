@@ -2742,6 +2742,8 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 			ServiceMeta:    map[string]string{},
 			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			RaftIndex:      structs.RaftIndex{},
+			Address:        "127.0.0.1",
+			Datacenter:     "dc1",
 		},
 	}
 	assert.Equal(t, expect, serviceNodes)
@@ -3025,6 +3027,8 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 			ServicePort:    443,
 			ServiceTags:    []string{},
 			ServiceMeta:    map[string]string{},
+			Address:        "127.0.0.1",
+			Datacenter:     "dc1",
 			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			RaftIndex:      structs.RaftIndex{},
 		},
