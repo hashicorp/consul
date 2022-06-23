@@ -2880,8 +2880,8 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
-// ServicesGatewayServices is used to query all services associated with a gateway
-func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMeta *acl.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
+// ServiceGateways is used to query all gateways associated with a service
+func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {
 	var results structs.ServiceNodes
 
 	tx := s.db.Txn(false)
@@ -2911,7 +2911,7 @@ func (s *Store) ServicesGatewayServices(ws memdb.WatchSet, service string, entMe
 
 	}
 	//TODO(egress-gtwy): peering?
-	results, err = parseServiceNodes(tx, ws, results, entMeta, "")
+	results, err = parseServiceNodes(tx, ws, results, entMeta, peerName)
 	if err != nil {
 		return 0, nil, err
 	}
