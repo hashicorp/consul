@@ -21,12 +21,8 @@
         <BlockSlot @name="details">
           <div class="peers__list__peer-detail">
             <Peerings::Badge @peering={{item}} />
-            <div {{tooltip (t "routes.dc.peers.index.detail.imported.tooltip" name=item.Name)}}>
-              {{t "routes.dc.peers.index.detail.imported.count" count=item.ImportedServiceCount}}
-            </div>
-            <div {{tooltip (t "routes.dc.peers.index.detail.exported.tooltip" name=item.Name)}}>
-              {{t "routes.dc.peers.index.detail.exported.count" count=item.ExportedServiceCount}}
-            </div>
+            <Peerings::ServiceCount @peering={{item}} @kind="imported"/>
+            <Peerings::ServiceCount @peering={{item}} @kind="exported"/>
           </div>
         </BlockSlot>
       </ListCollection>
