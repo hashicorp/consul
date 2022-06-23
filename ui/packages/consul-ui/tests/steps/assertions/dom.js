@@ -68,6 +68,13 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
         assert.strictEqual(actual, expected, `Expected settings to be ${expected} was ${actual}`);
       });
     })
+    .then('the url should match $url', function(url) {
+      const currentUrl = currentURL() || '';
+
+      const matches = !!currentUrl.match(url);
+
+      assert.ok(matches, `Expected currentURL to match the provided regex: ${url}`);
+    })
     .then('the url should be $url', function(url) {
       // TODO: nice! $url should be wrapped in ""
       if (url === "''") {
