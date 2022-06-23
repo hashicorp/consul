@@ -276,9 +276,9 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 			continue
 		}
 		for _, gateway := range gateways {
-			GatewayVip, ok := gateway.TaggedAddresses[structs.TaggedAddressLAN]
+			gatewayAddress, ok := gateway.ServiceTaggedAddresses[structs.TaggedAddressLANIPv4]
 			if !ok {
-				GatewayVip = gateway.Address
+				continue
 			}
 
 			sni := connect.ServiceSNI(
@@ -296,7 +296,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 				ConnectTimeout: durationpb.New(5 * time.Second),
 			}
 			endpoints := []*envoy_endpoint_v3.LbEndpoint{
-				makeEndpoint(GatewayVip, gateway.ServicePort),
+				makeEndpoint(gatewayAddress.Address, gatewayAddress.Port),
 			}
 
 			c.LoadAssignment = &envoy_endpoint_v3.ClusterLoadAssignment{
