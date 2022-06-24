@@ -930,21 +930,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  trigger-oss-merge:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress curl jq
-      - run:
-          name: trigger oss merge
-          command: |
-            curl -s -X POST \
-                    --header "Circle-Token: ${CIRCLECI_API_TOKEN}" \
-                    --header "Content-Type: application/json" \
-                    -d '{"build_parameters": {"CIRCLE_JOB": "oss-merge"}}' \
-                    "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
-      - run: *notify-slack-failure
-
   # Run load tests against a commit
   load-test:
     docker:
@@ -1180,16 +1165,6 @@ workflows:
           requires:
             - ember-build-ent
       - noop
-  workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - trigger-oss-merge:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
 
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
