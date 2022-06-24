@@ -40,7 +40,7 @@ Not all features and functionality are available in the technical preview releas
 
 - Consul ACLs must be disabled or the ACL `default_policy` must be set to `allow`.
 - Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available. 
-- Services exported to peered clusters must not be configured as HTTP.
+- Services exported to peered clusters must be configured to use the TCP protcol (not HTTP, HTTP 2 and gRPC).
 - Support for dynamic routing such as splits, custom routes, or redirects is not available.
 - The `consul intention CLI` command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
 - [L7 permissions](/docs/connect/l7-traffic) are not supported.
