@@ -112,11 +112,8 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -246,6 +243,21 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		},
 		{
 			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"replica"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		},
+		{
+			Datacenter: "dc1",
 			Node:       "foo-peer",
 			Address:    "127.0.0.3",
 			PeerName:   "peer1",
@@ -256,6 +268,12 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
 		require.NoError(t, err)
 	}
+
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
+		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+		Name: "peer1",
+	})
+	require.NoError(t, err)
 
 	t.Run("filter on the local node", func(t *testing.T) {
 		var out2 structs.IndexedNodeDump
@@ -280,6 +298,28 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
 		require.Len(t, out3.Dump, 0)
 		require.Len(t, out3.ImportedDump, 0)
+	})
+
+	t.Run("filter look for peer nodes (non local nodes)", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			QueryOptions: structs.QueryOptions{Filter: "PeerName != \"\""},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 1)
+	})
+
+	t.Run("filter look for a specific peer", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			QueryOptions: structs.QueryOptions{Filter: "PeerName == peer1"},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 1)
 	})
 }
 
@@ -1777,15 +1817,7 @@ func addPeerService(t *testing.T, codec rpc.ClientCodec) {
 			Node:       "foo",
 			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
 			Address:    "127.0.0.2",
-			TaggedAddresses: map[string]string{
-				"lan": "127.0.0.2",
-				"wan": "198.18.0.2",
-			},
-			NodeMeta: map[string]string{
-				"env": "production",
-				"os":  "linux",
-			},
-			PeerName: "peer1",
+			PeerName:   "peer1",
 			Service: &structs.NodeService{
 				Kind:     structs.ServiceKindTypical,
 				ID:       "serviceID",

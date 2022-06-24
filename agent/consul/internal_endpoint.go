@@ -113,13 +113,13 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local node dump: %w", err)
 			}
 			reply.Dump = raw.(structs.NodeDump)
 
 			importedRaw, err := filter.Execute(reply.ImportedDump)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter peer node dump: %w", err)
 			}
 			reply.ImportedDump = importedRaw.(structs.NodeDump)
 
@@ -175,7 +175,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			// get a list of all peerings
 			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
 			if err != nil {
-				m.logger.Error("could not list peers for service dump", err)
+				return fmt.Errorf("could not list peers for service dump %w", err)
 			}
 
 			if index > maxIndex {
@@ -208,13 +208,13 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local service dump: %w", err)
 			}
 			reply.Nodes = raw.(structs.CheckServiceNodes)
 
 			importedRaw, err := filter.Execute(reply.ImportedNodes)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter peer service dump: %w", err)
 			}
 			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 

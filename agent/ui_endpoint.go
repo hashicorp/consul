@@ -130,10 +130,6 @@ RPC:
 		}
 	}
 
-	if out.ImportedDump == nil {
-		out.ImportedDump = make(structs.NodeDump, 0)
-	}
-
 	return append(out.Dump, out.ImportedDump...), nil
 }
 
@@ -438,11 +434,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 	for _, csn := range dump {
 		var peerName string
 		// all entities will have the same peer name so it is safe to use the node's peer name
-		if csn.Node != nil {
-			peerName = csn.Node.PeerName
-		} else {
-			peerName = structs.DefaultPeerKeyword
-		}
+		peerName = csn.Node.PeerName
 
 		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService

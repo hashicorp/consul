@@ -137,6 +137,8 @@ func TestUINodes(t *testing.T) {
 	// Should be 3 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
 	require.Len(t, nodes, 3)
+
+	// check local nodes, services and checks
 	require.Equal(t, a.Config.NodeName, nodes[0].Node)
 	require.NotNil(t, nodes[0].Services)
 	require.Len(t, nodes[0].Services, 1)
