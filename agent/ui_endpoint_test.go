@@ -136,25 +136,25 @@ func TestUINodes(t *testing.T) {
 
 	// Should be 3 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
-	require.Equal(t, 3, len(nodes))
+	require.Len(t, nodes, 3)
 	require.Equal(t, a.Config.NodeName, nodes[0].Node)
 	require.NotNil(t, nodes[0].Services)
-	require.Equal(t, 1, len(nodes[0].Services))
+	require.Len(t, nodes[0].Services, 1)
 	require.NotNil(t, nodes[0].Checks)
-	require.Equal(t, 1, len(nodes[0].Checks))
+	require.Len(t, nodes[0].Checks, 1)
 	require.Equal(t, "test", nodes[1].Node)
 	require.NotNil(t, nodes[1].Services)
-	require.Equal(t, 0, len(nodes[1].Services))
+	require.Len(t, nodes[1].Services, 0)
 	require.NotNil(t, nodes[1].Checks)
-	require.Equal(t, 0, len(nodes[1].Checks))
+	require.Len(t, nodes[1].Checks, 0)
 
 	// peered node
 	require.Equal(t, "foo-peer", nodes[2].Node)
 	require.Equal(t, "peer1", nodes[2].PeerName)
 	require.NotNil(t, nodes[2].Services)
-	require.Equal(t, 0, len(nodes[2].Services))
+	require.Len(t, nodes[2].Services, 0)
 	require.NotNil(t, nodes[1].Checks)
-	require.Equal(t, 0, len(nodes[2].Checks))
+	require.Len(t, nodes[2].Services, 0)
 }
 
 func TestUINodes_Filter(t *testing.T) {

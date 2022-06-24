@@ -77,9 +77,9 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			// this maxIndex will be the max of the NodeDump calls and the PeeringList call
 			var maxIndex uint64
 			// Get data for local nodes
-			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, "")
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get a node dump for local nodes: %w", err)
 			}
 
 			if index > maxIndex {
@@ -101,7 +101,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			for _, p := range listedPeerings {
 				index, importedDump, err := state.NodeDump(ws, &args.EnterpriseMeta, p.Name)
 				if err != nil {
-					return err
+					return fmt.Errorf("could not get a node dump for peer's %q nodes: %w", p.Name, err)
 				}
 				reply.ImportedDump = append(reply.ImportedDump, importedDump...)
 
@@ -162,9 +162,9 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			var maxIndex uint64
 
 			// get a local dump for services
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, "")
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get a service dump for local nodes: %w", err)
 			}
 
 			if index > maxIndex {
@@ -185,7 +185,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			for _, p := range listedPeerings {
 				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
 				if err != nil {
-					return err
+					return fmt.Errorf("could not get a service dump for peer's %q nodes: %w", p.Name, err)
 				}
 
 				if index > maxIndex {

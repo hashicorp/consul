@@ -99,7 +99,6 @@ func TestInternal_NodeInfo(t *testing.T) {
 		}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out))
 
-		// here we use ImportedNodes as well
 		nodes := out.Dump
 		require.Equal(t, 1, len(nodes))
 		require.Equal(t, "foo", nodes[0].Node)
@@ -165,7 +164,6 @@ func TestInternal_NodeDump(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// need to create a peering
 	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
 		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
 		Name: "peer1",
@@ -214,20 +212,9 @@ func TestInternal_NodeDump(t *testing.T) {
 		t.Fatalf("missing foo or bar")
 	}
 
-	require.Equal(t, 1, len(out2.ImportedDump))
+	require.Len(t, out2.ImportedDump, 1)
 	require.Equal(t, "peer1", out2.ImportedDump[0].PeerName)
 	require.Equal(t, "foo-peer", out2.ImportedDump[0].Node)
-
-	// test filter on nodes
-	var out3 structs.IndexedNodeDump
-	req2 := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "friend in PeerName"},
-	}
-
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
-	require.Equal(t, 0, len(out3.Dump))
-	require.Equal(t, 0, len(out3.ImportedDump))
 }
 
 func TestInternal_NodeDump_Filter(t *testing.T) {
@@ -236,60 +223,64 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	arg := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"primary"},
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
 		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
-		},
-	}
-	var out struct{}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
-
-	arg = structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.2",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"replica"},
-		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthWarning,
-			ServiceID: "db",
+		{
+			Datacenter: "dc1",
+			Node:       "foo-peer",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
 		},
 	}
 
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
-
-	var out2 structs.IndexedNodeDump
-	req := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
+	for _, reg := range args {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err)
 	}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
-	nodes := out2.Dump
-	require.Len(t, nodes, 1)
-	require.Equal(t, "foo", nodes[0].Node)
+	t.Run("filter on the local node", func(t *testing.T) {
+		var out2 structs.IndexedNodeDump
+		req := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
+
+		nodes := out2.Dump
+		require.Len(t, nodes, 1)
+		require.Equal(t, "foo", nodes[0].Node)
+	})
+
+	t.Run("filter on imported dump", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "friend in PeerName"},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 0)
+	})
 }
 
 func TestInternal_KeyringOperation(t *testing.T) {
