@@ -84,7 +84,7 @@ is not provided when `consul_partitions_enabled = true`, will default to the `de
 
 ```hcl
 module "acl_controller" {
-  source = "hashicorp/consul/aws-ecs//modules/acl-controller"
+  source = "hashicorp/consul/aws//modules/acl-controller"
 
   ...
 
@@ -109,7 +109,7 @@ The following example demonstrates how to create a `mesh-task` assigned to the a
 
 ```hcl
 module "my_task" {
-  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  source = "hashicorp/consul/aws//modules/mesh-task"
   family = "my_task"
 
   ...
