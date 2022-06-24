@@ -273,6 +273,126 @@ const (
 	  }
 	]
   }`
+	expectedPromListenerWithBackendAndTLS = `{
+	"name": "envoy_prometheus_metrics_listener",
+	"address": {
+	  "socket_address": {
+		"address": "0.0.0.0",
+		"port_value": 9000
+	  }
+	},
+	"filter_chains": [
+	  {
+		"filters": [
+		  {
+			"name": "envoy.filters.network.http_connection_manager",
+			"typedConfig": {
+			  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+			  "stat_prefix": "envoy_prometheus_metrics",
+			  "codec_type": "HTTP1",
+			  "route_config": {
+				"name": "self_admin_route",
+				"virtual_hosts": [
+				  {
+					"name": "self_admin",
+					"domains": [
+					  "*"
+					],
+					"routes": [
+					  {
+						"match": {
+						  "path": "/metrics"
+						},
+						"route": {
+						  "cluster": "prometheus_backend",
+						  "prefix_rewrite": "/stats/prometheus"
+						}
+					  },
+					  {
+						"match": {
+						  "prefix": "/"
+						},
+						"direct_response": {
+						  "status": 404
+						}
+					  }
+					]
+				  }
+				]
+			},
+			"http_filters": [
+				{
+					"name": "envoy.filters.http.router",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+					}
+				}
+			  ]
+			}
+		  }
+		],
+		"transportSocket": {
+		  "name": "tls",
+		  "typedConfig": {
+			"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+			"commonTlsContext": {
+			  "tlsCertificateSdsSecretConfigs": [
+				{
+				  "name": "prometheus_cert"
+				}
+			  ],
+			  "validationContextSdsSecretConfig": {
+				"trustedCa": {
+				  "name": "prometheus_validation_context"
+				}
+			  }
+			}
+		  }
+		}
+	  }
+	]
+  }`
+
+	expectedPromSecretsWithBackendAndTLS = `{
+		"name": "prometheus_cert",
+		"tlsCertificate": {
+			"certificateChain": {
+				"filename": "test-cert-file"
+			},
+			"privateKey": {
+				"filename": "test-key-file"
+			}
+		}	
+	},
+	{
+		"name": "prometheus_validation_context",
+		"validationContext": {
+			"trustedCa": {
+				"filename": "test-ca-file"
+			}
+		}
+	}`
+
+	expectedPromSecretsWithBackendAndTLSCAPath = `{
+		"name": "prometheus_cert",
+		"tlsCertificate": {
+			"certificateChain": {
+				"filename": "test-cert-file"
+			},
+			"privateKey": {
+				"filename": "test-key-file"
+			}
+		}	
+	},
+	{
+		"name": "prometheus_validation_context",
+		"validationContext": {
+			"watchedDirectory": {
+				"path": "test-ca-directory"
+			}
+		}
+	}`
+
 	expectedStatsListener = `{
   "name": "envoy_metrics_listener",
   "address": {
@@ -757,6 +877,68 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsConfigJSON:       defaultStatsConfigJSON,
 				PrometheusBackendPort: "20100",
 				PrometheusScrapePath:  "/metrics",
+			},
+			wantErr: false,
+		},
+		{
+			name: "prometheus-bind-addr-with-backend-and-tls",
+			input: BootstrapConfig{
+				PrometheusBindAddr: "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
+				PrometheusCAFile:      "test-ca-file",
+				PrometheusCertFile:    "test-cert-file",
+				PrometheusKeyFile:     "test-key-file",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should use the "prometheus_backend" cluster instead, which
+				// uses the PrometheusBackendPort rather than Envoy admin port
+				StaticClustersJSON:    expectedPrometheusBackendCluster,
+				StaticListenersJSON:   expectedPromListenerWithBackendAndTLS,
+				StaticSecretsJSON:     expectedPromSecretsWithBackendAndTLS,
+				StatsConfigJSON:       defaultStatsConfigJSON,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
+				PrometheusCAFile:      "test-ca-file",
+				PrometheusCertFile:    "test-cert-file",
+				PrometheusKeyFile:     "test-key-file",
+			},
+			wantErr: false,
+		},
+		{
+			name: "prometheus-bind-addr-with-backend-and-tls-ca-path",
+			input: BootstrapConfig{
+				PrometheusBindAddr: "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
+				PrometheusCAPath:      "test-ca-directory",
+				PrometheusCertFile:    "test-cert-file",
+				PrometheusKeyFile:     "test-key-file",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should use the "prometheus_backend" cluster instead, which
+				// uses the PrometheusBackendPort rather than Envoy admin port
+				StaticClustersJSON:    expectedPrometheusBackendCluster,
+				StaticListenersJSON:   expectedPromListenerWithBackendAndTLS,
+				StaticSecretsJSON:     expectedPromSecretsWithBackendAndTLSCAPath,
+				StatsConfigJSON:       defaultStatsConfigJSON,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/metrics",
+				PrometheusCAPath:      "test-ca-directory",
+				PrometheusCertFile:    "test-cert-file",
+				PrometheusKeyFile:     "test-key-file",
 			},
 			wantErr: false,
 		},
