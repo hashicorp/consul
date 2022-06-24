@@ -7,6 +7,7 @@ require (
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/go-uuid v1.0.2
+	github.com/hashicorp/hcl v1.0.0
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.13.0
 )

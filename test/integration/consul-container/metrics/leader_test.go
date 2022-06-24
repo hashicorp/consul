@@ -23,7 +23,7 @@ func TestLeadershipMetrics(t *testing.T) {
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					server=true
 					telemetry {
 						statsite_address = "127.0.0.1:2180"
@@ -37,7 +37,7 @@ func TestLeadershipMetrics(t *testing.T) {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
