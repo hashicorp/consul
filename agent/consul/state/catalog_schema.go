@@ -605,7 +605,7 @@ func (q NodeCheckQuery) PartitionOrDefault() string {
 // ServiceVirtualIP is used to store a virtual IP associated with a service.
 // It is also used to store assigned virtual IPs when a snapshot is created.
 type ServiceVirtualIP struct {
-	Service structs.ServiceName
+	Service structs.PeeredServiceName
 	IP      net.IP
 }
 
@@ -631,12 +631,20 @@ func serviceVirtualIPTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &ServiceNameIndex{
-					Field: "Service",
+				Indexer: indexerSingle[structs.PeeredServiceName, ServiceVirtualIP]{
+					readIndex:  indexFromPeeredServiceName,
+					writeIndex: indexFromServiceVirtualIP,
 				},
 			},
 		},
 	}
+}
+
+func indexFromServiceVirtualIP(vip ServiceVirtualIP) ([]byte, error) {
+	if vip.Service.ServiceName.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+	return indexFromPeeredServiceName(vip.Service)
 }
 
 func freeVirtualIPTableSchema() *memdb.TableSchema {

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -1799,7 +1799,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(10, "node1", ns1))
 
 	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	vip, err := s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1830,7 +1830,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(11, "node1", ns2))
 
 	// Make sure the virtual IP has been incremented for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1846,7 +1846,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 
 	// Delete the first service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "foo", entMeta, ""))
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "connect-proxy"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "connect-proxy"}})
 	require.NoError(t, err)
 	assert.Equal(t, "", vip)
 
@@ -1867,7 +1867,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(13, "node1", ns3))
 
 	// Make sure the virtual IP is unchanged for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1895,7 +1895,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(14, "node1", ns4))
 
 	// Make sure the virtual IP has allocated from the previously freed service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "web"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "web"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1905,6 +1905,41 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
 	assert.Equal(t, vip, taggedAddress.Address)
 	assert.Equal(t, ns4.Port, taggedAddress.Port)
+
+	// Register a node1 in another peer (technically this node would be imported
+	// and stored through the peering stream handlers).
+	testRegisterNodeOpts(t, s, 15, "node1", func(node *structs.Node) error {
+		node.PeerName = "billing"
+		return nil
+	})
+	// Register an identical service but imported from a peer
+	ns5 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "4.4.4.4",
+		Port:    4444,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "web"},
+		EnterpriseMeta: *entMeta,
+		PeerName:       "billing",
+	}
+	require.NoError(t, s.EnsureService(15, "node1", ns5))
+
+	// Make sure the virtual IP is different from the identically named local service.
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{Peer: "billing", ServiceName: structs.ServiceName{Name: "web"}})
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.3", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil, "billing")
+	require.NoError(t, err)
+	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns5.Port, taggedAddress.Port)
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
@@ -1931,7 +1966,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(10, "node1", ns1))
 
 	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	vip, err := s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1961,7 +1996,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(11, "node1", ns2))
 
 	// Make sure the virtual IP has been incremented for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1976,7 +2011,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 
 	// Delete the last  service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "redis", entMeta, ""))
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "", vip)
 
@@ -1996,7 +2031,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	}
 	require.NoError(t, s.EnsureService(13, "node1", ns3))
 
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "backend"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "backend"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -2026,7 +2061,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(14, "node1", ns4))
 
 	// Make sure the virtual IP has been incremented for the frontend service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "frontend"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "frontend"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.3", vip)
 
