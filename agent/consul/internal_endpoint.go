@@ -101,7 +101,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			for _, p := range listedPeerings {
 				index, importedDump, err := state.NodeDump(ws, &args.EnterpriseMeta, p.Name)
 				if err != nil {
-					return fmt.Errorf("could not get a node dump for peer's %q nodes: %w", p.Name, err)
+					return fmt.Errorf("could not get a node dump for peer %q: %w", p.Name, err)
 				}
 				reply.ImportedDump = append(reply.ImportedDump, importedDump...)
 
@@ -185,7 +185,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			for _, p := range listedPeerings {
 				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
 				if err != nil {
-					return fmt.Errorf("could not get a service dump for peer's %q nodes: %w", p.Name, err)
+					return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
 				}
 
 				if index > maxIndex {
