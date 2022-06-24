@@ -219,6 +219,17 @@ func TestInternal_NodeDump(t *testing.T) {
 	require.Equal(t, 1, len(out2.ImportedDump))
 	require.Equal(t, "peer1", out2.ImportedDump[0].PeerName)
 	require.Equal(t, "foo-peer", out2.ImportedDump[0].Node)
+
+	// test filter on nodes
+	var out3 structs.IndexedNodeDump
+	req2 := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Filter: "friend in PeerName"},
+	}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+	require.Equal(t, 0, len(out3.Dump))
+	require.Equal(t, 0, len(out3.ImportedDump))
 }
 
 func TestInternal_NodeDump_Filter(t *testing.T) {
@@ -1758,12 +1769,21 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 		require.Len(t, nodes.ImportedNodes, 1)
 	})
 
+	t.Run("peerings w filter", func(t *testing.T) {
+		nodes := doRequest(t, "Node.PeerName == foo")
+		require.Len(t, nodes.Nodes, 0)
+		require.Len(t, nodes.ImportedNodes, 0)
+
+		nodes2 := doRequest(t, "Node.PeerName == peer1")
+		require.Len(t, nodes2.Nodes, 0)
+		require.Len(t, nodes2.ImportedNodes, 1)
+	})
 }
 
 func addPeerService(t *testing.T, codec rpc.ClientCodec) {
 	// prep the cluster with some data we can use in our filters
 	registrations := map[string]*structs.RegisterRequest{
-		"Node foo": {
+		"Peer node foo with peer service": {
 			Datacenter: "dc1",
 			Node:       "foo",
 			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
@@ -1777,11 +1797,6 @@ func addPeerService(t *testing.T, codec rpc.ClientCodec) {
 				"os":  "linux",
 			},
 			PeerName: "peer1",
-		},
-		"peered service": {
-			Datacenter:     "dc1",
-			Node:           "foo",
-			SkipNodeUpdate: true,
 			Service: &structs.NodeService{
 				Kind:     structs.ServiceKindTypical,
 				ID:       "serviceID",
