@@ -99,13 +99,11 @@ func TestInternal_NodeInfo(t *testing.T) {
 		}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out))
 
+		// here we use ImportedNodes as well
 		nodes := out.Dump
-		require.Equal(t, 0, len(nodes))
-
-		importedNodes := out.ImportedDump
-		require.Equal(t, 1, len(importedNodes))
-		require.Equal(t, "foo", importedNodes[0].Node)
-		require.Equal(t, "peer1", importedNodes[0].PeerName)
+		require.Equal(t, 1, len(nodes))
+		require.Equal(t, "foo", nodes[0].Node)
+		require.Equal(t, "peer1", nodes[0].PeerName)
 	})
 }
 
