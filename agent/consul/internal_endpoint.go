@@ -69,17 +69,59 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, args.PeerName)
-			if err != nil {
-				return err
+			// we don't support calling this endpoint for a specific peer
+			if args.PeerName != "" {
+				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
 			}
-			reply.Index, reply.Dump = index, dump
+
+			// this maxIndex will be the max of the NodeDump calls and the PeeringList call
+			var maxIndex uint64
+			// Get data for local nodes
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
+			if err != nil {
+				return fmt.Errorf("could not get a node dump for local nodes: %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+			reply.Dump = dump
+
+			// get a list of all peerings
+			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("could not list peers for node dump %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+
+			// get node dumps for all peerings
+			for _, p := range listedPeerings {
+				index, importedDump, err := state.NodeDump(ws, &args.EnterpriseMeta, p.Name)
+				if err != nil {
+					return fmt.Errorf("could not get a node dump for peer %q: %w", p.Name, err)
+				}
+				reply.ImportedDump = append(reply.ImportedDump, importedDump...)
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+			}
+			reply.Index = maxIndex
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local node dump: %w", err)
 			}
 			reply.Dump = raw.(structs.NodeDump)
+
+			importedRaw, err := filter.Execute(reply.ImportedDump)
+			if err != nil {
+				return fmt.Errorf("could not filter peer node dump: %w", err)
+			}
+			reply.ImportedDump = importedRaw.(structs.NodeDump)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
@@ -111,12 +153,46 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			// Get, store, and filter nodes
-			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, args.PeerName)
+			// we don't support calling this endpoint for a specific peer
+			if args.PeerName != "" {
+				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
+			}
+
+			// this maxIndex will be the max of the ServiceDump calls and the PeeringList call
+			var maxIndex uint64
+
+			// get a local dump for services
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get a service dump for local nodes: %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
 			}
 			reply.Nodes = nodes
+
+			// get a list of all peerings
+			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("could not list peers for service dump %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+
+			for _, p := range listedPeerings {
+				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
+				if err != nil {
+					return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+				}
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+				reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+			}
 
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
@@ -125,16 +201,22 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Gateways = gatewayServices
 
-			if idx > maxIdx {
-				maxIdx = idx
+			if idx > maxIndex {
+				maxIndex = idx
 			}
-			reply.Index = maxIdx
+			reply.Index = maxIndex
 
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local service dump: %w", err)
 			}
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			importedRaw, err := filter.Execute(reply.ImportedNodes)
+			if err != nil {
+				return fmt.Errorf("could not filter peer service dump: %w", err)
+			}
+			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
