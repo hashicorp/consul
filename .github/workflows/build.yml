@@ -339,7 +339,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["i386", "amd64", "arm", "arm64"]
+        arch: ["i386", "amd64", "armhf", "arm64"]
       # fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
@@ -376,7 +376,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["i386", "x86_64", "arm", "aarch64"]
+        arch: ["i386", "x86_64", "armv7hl", "aarch64"]
       # fail-fast: true
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
