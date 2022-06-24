@@ -359,7 +359,7 @@ func TestUIServices(t *testing.T) {
 				Tags:    []string{},
 			},
 		},
-		// register peer node foo
+		// register peer node foo with peer service
 		{
 			Datacenter: "dc1",
 			Node:       "foo",
@@ -374,12 +374,6 @@ func TestUIServices(t *testing.T) {
 				"os":  "linux",
 			},
 			PeerName: "peer1",
-		},
-		// register peer service
-		{
-			Datacenter:     "dc1",
-			Node:           "foo",
-			SkipNodeUpdate: true,
 			Service: &structs.NodeService{
 				Kind:     structs.ServiceKindTypical,
 				ID:       "serviceID",

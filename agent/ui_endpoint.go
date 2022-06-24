@@ -237,15 +237,16 @@ RPC:
 
 	// Store the names of the gateways associated with each service
 	var (
-		serviceGateways   = make(map[structs.ServiceName][]structs.ServiceName)
-		numLinkedServices = make(map[structs.ServiceName]int)
+		serviceGateways   = make(map[structs.PeeredServiceName][]structs.PeeredServiceName)
+		numLinkedServices = make(map[structs.PeeredServiceName]int)
 	)
 	for _, gs := range out.Gateways {
-		serviceGateways[gs.Service] = append(serviceGateways[gs.Service], gs.Gateway)
-		numLinkedServices[gs.Gateway] += 1
+		psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: gs.Service}
+		gpsn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: gs.Gateway}
+		serviceGateways[psn] = append(serviceGateways[psn], gpsn)
+		numLinkedServices[gpsn] += 1
 	}
 
-	//call a second time with out.ImmportedNodes
 	summaries, hasProxy := summarizeServices(append(out.Nodes, out.ImportedNodes...).ToServiceDump(), nil, "")
 	sorted := prepSummaryOutput(summaries, false)
 
@@ -255,17 +256,18 @@ RPC:
 		sum := ServiceListingSummary{ServiceSummary: *svc}
 
 		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
-		if hasProxy[sn] {
+		psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
+		if hasProxy[psn] {
 			sum.ConnectedWithProxy = true
 		}
 
 		// Verify that at least one of the gateways linked by config entry has an instance registered in the catalog
-		for _, gw := range serviceGateways[sn] {
+		for _, gw := range serviceGateways[psn] {
 			if s := summaries[gw]; s != nil && sum.InstanceCount > 0 {
 				sum.ConnectedWithGateway = true
 			}
 		}
-		sum.GatewayConfig.AssociatedServiceCount = numLinkedServices[sn]
+		sum.GatewayConfig.AssociatedServiceCount = numLinkedServices[psn]
 
 		result = append(result, &sum)
 	}
@@ -411,32 +413,42 @@ RPC:
 	return topo, nil
 }
 
-func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.ServiceName]*ServiceSummary, map[structs.ServiceName]bool) {
+func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.PeeredServiceName]*ServiceSummary, map[structs.PeeredServiceName]bool) {
 	var (
-		summary  = make(map[structs.ServiceName]*ServiceSummary)
-		hasProxy = make(map[structs.ServiceName]bool)
+		summary  = make(map[structs.PeeredServiceName]*ServiceSummary)
+		hasProxy = make(map[structs.PeeredServiceName]bool)
 	)
 
-	getService := func(service structs.ServiceName, peerName string) *ServiceSummary {
-		serv, ok := summary[service]
+	getService := func(psn structs.PeeredServiceName) *ServiceSummary {
+		serv, ok := summary[psn]
 		if !ok {
 			serv = &ServiceSummary{
-				Name:           service.Name,
-				EnterpriseMeta: service.EnterpriseMeta,
+				Name:           psn.ServiceName.Name,
+				EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
 				// the other code will increment this unconditionally so we
 				// shouldn't initialize it to 1
 				InstanceCount: 0,
-				PeerName:      peerName,
+				PeerName:      psn.Peer,
 			}
-			summary[service] = serv
+			summary[psn] = serv
 		}
 		return serv
 	}
 
 	for _, csn := range dump {
+		var peerName string
+		// all entities will have the same peer name so it is safe to use the node's peer name
+		if csn.Node != nil {
+			peerName = csn.Node.PeerName
+		} else {
+			peerName = structs.DefaultPeerKeyword
+		}
+
 		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
-			sum := getService(gwsvc.Service, "")
+
+			psn := structs.PeeredServiceName{Peer: peerName, ServiceName: gwsvc.Service}
+			sum := getService(psn)
 			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
 		}
 
@@ -444,8 +456,10 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		if csn.Service == nil {
 			continue
 		}
+
 		sn := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
-		sum := getService(sn, csn.Service.PeerName)
+		psn := structs.PeeredServiceName{Peer: peerName, ServiceName: sn}
+		sum := getService(psn)
 
 		svc := csn.Service
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
@@ -455,9 +469,10 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		sum.ConnectNative = svc.Connect.Native
 		if svc.Kind == structs.ServiceKindConnectProxy {
 			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
-			hasProxy[sn] = true
+			psn := structs.PeeredServiceName{Peer: peerName, ServiceName: sn}
+			hasProxy[psn] = true
 
-			destination := getService(sn, "")
+			destination := getService(psn)
 			for _, check := range csn.Checks {
 				cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
 				uid := structs.UniqueID(csn.Node.Node, cid.String())
@@ -519,7 +534,7 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 	return summary, hasProxy
 }
 
-func prepSummaryOutput(summaries map[structs.ServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
+func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
 	var resp []*ServiceSummary
 	// Ensure at least a zero length slice
 	resp = make([]*ServiceSummary, 0)
