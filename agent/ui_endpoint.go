@@ -434,7 +434,12 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 	for _, csn := range dump {
 		var peerName string
 		// all entities will have the same peer name so it is safe to use the node's peer name
-		peerName = csn.Node.PeerName
+		if csn.Node == nil {
+			// this can happen for gateway dumps that call this summarize func
+			peerName = structs.DefaultPeerKeyword
+		} else {
+			peerName = csn.Node.PeerName
+		}
 
 		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
