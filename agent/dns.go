@@ -676,6 +676,31 @@ func (e ecsNotGlobalError) Unwrap() error {
 	return e.error
 }
 
+type queryLocality struct {
+	// datacenter is the datacenter parsed from a label that has an explicit datacenter part.
+	// Example query: <service>.virtual.<namespace>.ns.<partition>.ap.<datacenter>.dc.consul
+	datacenter string
+
+	// peerOrDatacenter is parsed from DNS queries where the datacenter and peer name are specified in the same query part.
+	// Example query: <service>.virtual.<peerOrDatacenter>.consul
+	peerOrDatacenter string
+
+	acl.EnterpriseMeta
+}
+
+func (l queryLocality) effectiveDatacenter(defaultDC string) string {
+	// Prefer the value parsed from a query with explicit parts: <namespace>.ns.<partition>.ap.<datacenter>.dc
+	if l.datacenter != "" {
+		return l.datacenter
+	}
+	// Fall back to the ambiguously parsed DC or Peer.
+	if l.peerOrDatacenter != "" {
+		return l.peerOrDatacenter
+	}
+	// If all are empty, use a default value.
+	return defaultDC
+}
+
 // dispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
 func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
@@ -737,7 +762,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			Connect:           false,
 			Ingress:           false,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    *locality.EnterpriseMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
@@ -785,7 +810,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			Connect:           true,
 			Ingress:           false,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    *locality.EnterpriseMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// name.connect.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
@@ -806,7 +831,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			// within a DC, therefore their uniqueness is not guaranteed globally.
 			PeerName:       locality.peerOrDatacenter,
 			ServiceName:    queryParts[len(queryParts)-1],
-			EnterpriseMeta: *locality.EnterpriseMeta,
+			EnterpriseMeta: locality.EnterpriseMeta,
 			QueryOptions: structs.QueryOptions{
 				Token: d.agent.tokens.UserToken(),
 			},
@@ -845,7 +870,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			Connect:           false,
 			Ingress:           true,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    *locality.EnterpriseMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// name.ingress.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
@@ -873,7 +898,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
 			Node:              node,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    *locality.EnterpriseMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 
 		return d.nodeLookup(cfg, lookup, req, resp)
