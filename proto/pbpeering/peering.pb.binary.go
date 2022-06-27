@@ -228,22 +228,22 @@ func (msg *GenerateTokenResponse) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InitiateRequest) MarshalBinary() ([]byte, error) {
+func (msg *EstablishRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InitiateRequest) UnmarshalBinary(b []byte) error {
+func (msg *EstablishRequest) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InitiateResponse) MarshalBinary() ([]byte, error) {
+func (msg *EstablishResponse) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InitiateResponse) UnmarshalBinary(b []byte) error {
+func (msg *EstablishResponse) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

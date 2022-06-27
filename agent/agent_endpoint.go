@@ -91,6 +91,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Revision          string
 		Server            bool
 		Version           string
+		BuildDate         string
 	}{
 		Datacenter:        s.agent.config.Datacenter,
 		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
@@ -100,8 +101,10 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
 		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
-		Version: s.agent.config.VersionWithMetadata(),
+		Version:   s.agent.config.VersionWithMetadata(),
+		BuildDate: s.agent.config.BuildDate.Format(time.RFC3339),
 	}
+
 	return Self{
 		Config:      config,
 		DebugConfig: s.agent.config.Sanitized(),
@@ -1523,6 +1526,8 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
+
+	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
 	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID

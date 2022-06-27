@@ -96,6 +96,22 @@ proxy configuration needed.
   be scrapable at `0.0.0.0:20200/scrape-metrics`.
 	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
 
+- `-prometheus-ca-file` - Path to a CA file for Envoy to use when serving TLS on
+  the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-ca-path` - Path to a directory of CA certificates for Envoy to use when
+  serving the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-cert-file` - Path to a certificate file for Envoy to use when serving
+  TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-key-file` - Path to a private key file for Envoy to use when serving
+  TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
   documentation](https://www.envoyproxy.io/docs) for more details. The command

@@ -14,7 +14,7 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "bar.default.default.peer1.external.11111111-2222-3333-4444-555555555555.consul"
+              "bar.default.default.peer-a.external.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
@@ -31,7 +31,7 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "foo.default.default.peer1.external.11111111-2222-3333-4444-555555555555.consul"
+              "foo.default.default.peer-a.external.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
@@ -48,7 +48,7 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "gir.default.default.peer2.external.11111111-2222-3333-4444-555555555555.consul"
+              "gir.default.default.peer-b.external.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [

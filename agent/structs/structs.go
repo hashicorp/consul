@@ -776,9 +776,15 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter         string
-	Node               string
-	PeerName           string
+	Datacenter string
+	Node       string
+	PeerName   string
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -801,6 +807,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Node,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -2232,8 +2239,9 @@ type IndexedCheckServiceNodes struct {
 }
 
 type IndexedNodesWithGateways struct {
-	Nodes    CheckServiceNodes
-	Gateways GatewayServices
+	ImportedNodes CheckServiceNodes
+	Nodes         CheckServiceNodes
+	Gateways      GatewayServices
 	QueryMeta
 }
 
@@ -2243,7 +2251,8 @@ type DatacenterIndexedCheckServiceNodes struct {
 }
 
 type IndexedNodeDump struct {
-	Dump NodeDump
+	ImportedDump NodeDump
+	Dump         NodeDump
 	QueryMeta
 }
 

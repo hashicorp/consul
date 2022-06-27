@@ -17,6 +17,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -263,7 +264,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		return err
 	}
 
-	var authz ACLResolveResult
+	var authz resolver.Result
 
 	if args.TokenIDType == structs.ACLTokenAccessor {
 		var err error

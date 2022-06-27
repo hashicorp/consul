@@ -1,0 +1,4 @@
+```release-note:feature
+agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
+to report this. Agent also reports build date in log on startup.
+```

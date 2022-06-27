@@ -2,7 +2,7 @@ import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { fragment } from 'ember-data-model-fragments/attributes';
-import { nullValue } from 'consul-ui/decorators/replace';
+import replace, { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
@@ -36,6 +36,7 @@ export default class Service extends Model {
   @attr('string') Namespace;
   @attr('string') Partition;
   @attr('string') Kind;
+  @replace('', undefined) @attr('string') PeerName;
   @attr('number') ChecksPassing;
   @attr('number') ChecksCritical;
   @attr('number') ChecksWarning;

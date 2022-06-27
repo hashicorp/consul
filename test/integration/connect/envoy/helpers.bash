@@ -950,8 +950,8 @@ function assert_expected_fortio_host_header {
 
 function create_peering {
   local GENERATE_PEER=$1
-  local INITIATE_PEER=$2
-  run curl -sL -XPOST "http://consul-${GENERATE_PEER}:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${INITIATE_PEER}\" }"
+  local ESTABLISH_PEER=$2
+  run curl -sL -XPOST "http://consul-${GENERATE_PEER}:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 
@@ -959,7 +959,7 @@ function create_peering {
   token="$(echo "$output" | jq -r .PeeringToken)"
   [ -n "$token" ]
 
-  run curl -sLv -XPOST "http://consul-${INITIATE_PEER}:8500/v1/peering/initiate" -d"{ \"PeerName\" : \"${INITIATE_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 }

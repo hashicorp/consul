@@ -52,6 +52,10 @@ type cmd struct {
 	envoyVersion          string
 	prometheusBackendPort string
 	prometheusScrapePath  string
+	prometheusCAFile      string
+	prometheusCAPath      string
+	prometheusCertFile    string
+	prometheusKeyFile     string
 
 	// mesh gateway registration information
 	register           bool
@@ -172,6 +176,19 @@ func (c *cmd) init() {
 			"For example, if envoy_prometheus_bind_addr is 0.0.0.0:20200, and this flag is "+
 			"set to /scrape-metrics, prometheus metrics would be scrapeable at "+
 			"0.0.0.0:20200/scrape-metrics. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+
+	c.flags.StringVar(&c.prometheusCAFile, "prometheus-ca-file", "",
+		"Path to a CA file for Envoy to use when serving TLS on the Prometheus metrics endpoint. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+	c.flags.StringVar(&c.prometheusCAPath, "prometheus-ca-path", "",
+		"Path to a directory of CA certificates for Envoy to use when serving the Prometheus metrics endpoint. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+	c.flags.StringVar(&c.prometheusCertFile, "prometheus-cert-file", "",
+		"Path to a certificate file for Envoy to use when serving TLS on the Prometheus metrics endpoint. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+	c.flags.StringVar(&c.prometheusKeyFile, "prometheus-key-file", "",
+		"Path to a private key file for Envoy to use when serving TLS on the Prometheus metrics endpoint. "+
 			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
 
 	c.http = &flags.HTTPFlags{}
@@ -304,6 +321,15 @@ func (c *cmd) run(args []string) int {
 		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
 			"required")
 		return 1
+	}
+
+	// If any of CA/Cert/Key are specified, make sure they are all present.
+	if c.prometheusKeyFile != "" || c.prometheusCertFile != "" || (c.prometheusCAFile != "" || c.prometheusCAPath != "") {
+		if c.prometheusKeyFile == "" || c.prometheusCertFile == "" || (c.prometheusCAFile == "" && c.prometheusCAPath == "") {
+			c.UI.Error("Must provide a CA (-prometheus-ca-file or -prometheus-ca-path) as well as " +
+				"-prometheus-cert-file and -prometheus-key-file to enable TLS for prometheus metrics")
+			return 1
+		}
 	}
 
 	if c.register {
@@ -505,6 +531,10 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Datacenter:            httpCfg.Datacenter,
 		PrometheusBackendPort: c.prometheusBackendPort,
 		PrometheusScrapePath:  c.prometheusScrapePath,
+		PrometheusCAFile:      c.prometheusCAFile,
+		PrometheusCAPath:      c.prometheusCAPath,
+		PrometheusCertFile:    c.prometheusCertFile,
+		PrometheusKeyFile:     c.prometheusKeyFile,
 	}, nil
 }
 
@@ -531,13 +561,18 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svc.Datacenter
 	} else {
 		filter := fmt.Sprintf("ID == %q", c.proxyID)
-		svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{Filter: filter})
+		svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName,
+			&api.QueryOptions{Filter: filter, MergeCentralConfig: true})
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch proxy config from catalog for node %q: %w", c.nodeName, err)
 		}
-		if len(svcList.Services) != 1 {
-			return nil, fmt.Errorf("expected to find only one proxy service with ID: %q", c.proxyID)
+		if len(svcList.Services) == 0 {
+			return nil, fmt.Errorf("Proxy service with ID %q not found", c.proxyID)
 		}
+		if len(svcList.Services) > 1 {
+			return nil, fmt.Errorf("Expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+		}
+
 		svcProxyConfig = svcList.Services[0].Proxy
 		serviceName = svcList.Services[0].Service
 		ns = svcList.Services[0].Namespace

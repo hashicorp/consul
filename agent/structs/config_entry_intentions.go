@@ -573,7 +573,7 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		return fmt.Errorf("At least one source is required")
 	}
 
-	seenSources := make(map[ServiceName]struct{})
+	seenSources := make(map[PeeredServiceName]struct{})
 	for i, src := range e.Sources {
 		if src.Name == "" {
 			return fmt.Errorf("Sources[%d].Name is required", i)
@@ -761,11 +761,15 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			}
 		}
 
-		serviceName := src.SourceServiceName()
-		if _, exists := seenSources[serviceName]; exists {
-			return fmt.Errorf("Sources[%d] defines %q more than once", i, serviceName.String())
+		psn := PeeredServiceName{Peer: src.Peer, ServiceName: src.SourceServiceName()}
+		if _, exists := seenSources[psn]; exists {
+			if psn.Peer != "" {
+				return fmt.Errorf("Sources[%d] defines peer(%q) %q more than once", i, psn.Peer, psn.ServiceName.String())
+			} else {
+				return fmt.Errorf("Sources[%d] defines %q more than once", i, psn.ServiceName.String())
+			}
 		}
-		seenSources[serviceName] = struct{}{}
+		seenSources[psn] = struct{}{}
 	}
 
 	return nil

@@ -46,6 +46,7 @@ consul:
   failuretolerance: Fault tolerance
   readreplica: Read replica
   redundancyzone: Redundancy zone
+  peername: Peer
 search:
   search: Search
   searchproperty: Search Across

@@ -1048,12 +1048,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   The following sub-keys are available:
 
-  - `enabled` ((#connect_enabled)) Controls whether Connect features are
+  - `enabled` ((#connect_enabled)) (Defaults to `false`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
-    in order for Connect to function properly. Defaults to false.
+    in order for Connect to function properly.
 
-  - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) Controls whether cross-datacenter federation traffic between servers is funneled
-    through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
+  - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
+    through mesh gateways. This was added in Consul 1.8.0.
+
+  - `enable_serverless_plugin` ((#connect_enable_serverless_plugin)) (Defaults to `false`) Determines whether the serverless plugin
+    is enabled. The serverless plugin supports [AWS
+    Lambda](https://aws.amazon.com/lambda/). For additional information on invoking Lambda functions
+    from mesh services, refer to the [Lambda documentation](/docs/lambda).
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
     use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.

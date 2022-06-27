@@ -1,0 +1,65 @@
+[
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
+    "Name": "web",
+    "State": "ACTIVE",
+    "ImportedServiceCount": 10,
+    "ExportedServiceCount": 3,
+    "CreateIndex": 18,
+    "ModifyIndex": 18
+  },
+  {
+    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca687",
+    "Name": "billing",
+    "State": "PENDING",
+    "ImportedServiceCount": 5,
+    "ExportedServiceCount": 2,
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
+    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca688",
+    "Name": "peer-1",
+    "State": "ESTABLISHING",
+    "ImportedServiceCount": 2,
+    "ExportedServiceCount": 4,
+    "CreateIndex": 16,
+    "ModifyIndex": 16
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b95",
+    "Name": "db",
+    "State": "FAILING",
+    "ImportedServiceCount": 4,
+    "ExportedServiceCount": 3,
+    "CreateIndex": 19,
+    "ModifyIndex": 19
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b98",
+    "Name": "legacy deleted",
+    "State": "DELETING",
+    "ImportedServiceCount": 2,
+    "ExportedServiceCount": 4,
+    "CreateIndex": 20,
+    "ModifyIndex": 20
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b96",
+    "Name": "legacy",
+    "State": "TERMINATED",
+    "ImportedServiceCount": 0,
+    "ExportedServiceCount": 0,
+    "CreateIndex": 20,
+    "ModifyIndex": 20
+  },
+  {
+    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b97",
+    "Name": "legacy undefined",
+    "ImportedServiceCount": 0,
+    "ExportedServiceCount": 0,
+    "State": "UNDEFINED",
+    "CreateIndex": 20,
+    "ModifyIndex": 20
+  }
+]

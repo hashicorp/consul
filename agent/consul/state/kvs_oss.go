@@ -13,11 +13,11 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func kvsIndexer() indexerSingleWithPrefix {
-	return indexerSingleWithPrefix{
-		readIndex:   readIndex(indexFromIDValue),
-		writeIndex:  writeIndex(indexFromIDValue),
-		prefixIndex: prefixIndex(prefixIndexForIDValue),
+func kvsIndexer() indexerSingleWithPrefix[singleValueID, singleValueID, any] {
+	return indexerSingleWithPrefix[singleValueID, singleValueID, any]{
+		readIndex:   indexFromIDValue,
+		writeIndex:  indexFromIDValue,
+		prefixIndex: prefixIndexForIDValue,
 	}
 }
 

@@ -103,6 +103,39 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 	}
 }
 
+// TestCertsForMeshGateway generates a CA and Leaf suitable for returning as
+// mock CA root/leaf cache requests in a mesh-gateway for peering.
+func TestCertsForMeshGateway(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
+	t.Helper()
+
+	ca := connect.TestCA(t, nil)
+	roots := &structs.IndexedCARoots{
+		ActiveRootID: ca.ID,
+		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
+		Roots:        []*structs.CARoot{ca},
+	}
+	return roots, TestMeshGatewayLeafForCA(t, ca)
+}
+
+// TestMeshGatewayLeafForCA generates new mesh-gateway Leaf suitable for returning as mock CA
+// leaf cache response, signed by an existing CA.
+func TestMeshGatewayLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
+	leafPEM, pkPEM := connect.TestMeshGatewayLeaf(t, "default", ca)
+
+	leafCert, err := connect.ParseCert(leafPEM)
+	require.NoError(t, err)
+
+	return &structs.IssuedCert{
+		SerialNumber:  connect.EncodeSerialNumber(leafCert.SerialNumber),
+		CertPEM:       leafPEM,
+		PrivateKeyPEM: pkPEM,
+		Kind:          structs.ServiceKindMeshGateway,
+		KindURI:       leafCert.URIs[0].String(),
+		ValidAfter:    leafCert.NotBefore,
+		ValidBefore:   leafCert.NotAfter,
+	}
+}
+
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
 func TestIntentions() *structs.IndexedIntentionMatches {

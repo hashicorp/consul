@@ -63,6 +63,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	snap.TerminatingGateway.ServiceResolversSet = make(map[structs.ServiceName]bool)
 	snap.TerminatingGateway.ServiceGroups = make(map[structs.ServiceName]structs.CheckServiceNodes)
 	snap.TerminatingGateway.GatewayServices = make(map[structs.ServiceName]structs.GatewayService)
+	snap.TerminatingGateway.DestinationServices = make(map[structs.ServiceName]structs.GatewayService)
 	snap.TerminatingGateway.HostnameServices = make(map[structs.ServiceName]structs.CheckServiceNodes)
 	return snap, nil
 }
@@ -111,10 +112,15 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			svcMap[svc.Service] = struct{}{}
 
 			// Store the gateway <-> service mapping for TLS origination
-			snap.TerminatingGateway.GatewayServices[svc.Service] = *svc
+			if svc.ServiceKind == structs.GatewayServiceKindDestination {
+				snap.TerminatingGateway.DestinationServices[svc.Service] = *svc
+			} else {
+				snap.TerminatingGateway.GatewayServices[svc.Service] = *svc
+			}
 
 			// Watch the health endpoint to discover endpoints for the service
-			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
+			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+
 				ctx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
@@ -213,7 +219,8 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 
 			// Watch service resolvers for the service
 			// These are used to create clusters and endpoints for the service subsets
-			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok {
+			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+
 				ctx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 					Datacenter:     s.source.Datacenter,
@@ -239,6 +246,13 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		for sn := range snap.TerminatingGateway.GatewayServices {
 			if _, ok := svcMap[sn]; !ok {
 				delete(snap.TerminatingGateway.GatewayServices, sn)
+			}
+		}
+
+		// Delete endpoint service mapping for services that were not in the update
+		for sn := range snap.TerminatingGateway.DestinationServices {
+			if _, ok := svcMap[sn]; !ok {
+				delete(snap.TerminatingGateway.DestinationServices, sn)
 			}
 		}
 

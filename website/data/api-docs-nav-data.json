@@ -90,6 +90,10 @@
     "path": "catalog"
   },
   {
+    "title": "Cluster Peering",
+    "path": "peering"
+  },
+  {
     "title": "Config",
     "path": "config"
   },

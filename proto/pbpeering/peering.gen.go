@@ -4,6 +4,36 @@ package pbpeering
 
 import "github.com/hashicorp/consul/api"
 
+func EstablishRequestToAPI(s *EstablishRequest, t *api.PeeringEstablishRequest) {
+	if s == nil {
+		return
+	}
+	t.PeerName = s.PeerName
+	t.PeeringToken = s.PeeringToken
+	t.Datacenter = s.Datacenter
+	t.Token = s.Token
+	t.Meta = s.Meta
+}
+func EstablishRequestFromAPI(t *api.PeeringEstablishRequest, s *EstablishRequest) {
+	if s == nil {
+		return
+	}
+	s.PeerName = t.PeerName
+	s.PeeringToken = t.PeeringToken
+	s.Datacenter = t.Datacenter
+	s.Token = t.Token
+	s.Meta = t.Meta
+}
+func EstablishResponseToAPI(s *EstablishResponse, t *api.PeeringEstablishResponse) {
+	if s == nil {
+		return
+	}
+}
+func EstablishResponseFromAPI(t *api.PeeringEstablishResponse, s *EstablishResponse) {
+	if s == nil {
+		return
+	}
+}
 func GenerateTokenRequestToAPI(s *GenerateTokenRequest, t *api.PeeringGenerateTokenRequest) {
 	if s == nil {
 		return
@@ -36,36 +66,6 @@ func GenerateTokenResponseFromAPI(t *api.PeeringGenerateTokenResponse, s *Genera
 	}
 	s.PeeringToken = t.PeeringToken
 }
-func InitiateRequestToAPI(s *InitiateRequest, t *api.PeeringInitiateRequest) {
-	if s == nil {
-		return
-	}
-	t.PeerName = s.PeerName
-	t.PeeringToken = s.PeeringToken
-	t.Datacenter = s.Datacenter
-	t.Token = s.Token
-	t.Meta = s.Meta
-}
-func InitiateRequestFromAPI(t *api.PeeringInitiateRequest, s *InitiateRequest) {
-	if s == nil {
-		return
-	}
-	s.PeerName = t.PeerName
-	s.PeeringToken = t.PeeringToken
-	s.Datacenter = t.Datacenter
-	s.Token = t.Token
-	s.Meta = t.Meta
-}
-func InitiateResponseToAPI(s *InitiateResponse, t *api.PeeringInitiateResponse) {
-	if s == nil {
-		return
-	}
-}
-func InitiateResponseFromAPI(t *api.PeeringInitiateResponse, s *InitiateResponse) {
-	if s == nil {
-		return
-	}
-}
 func PeeringToAPI(s *Peering, t *api.Peering) {
 	if s == nil {
 		return
@@ -73,6 +73,7 @@ func PeeringToAPI(s *Peering, t *api.Peering) {
 	t.ID = s.ID
 	t.Name = s.Name
 	t.Partition = s.Partition
+	t.DeletedAt = TimePtrFromProto(s.DeletedAt)
 	t.Meta = s.Meta
 	t.State = PeeringStateToAPI(s.State)
 	t.PeerID = s.PeerID
@@ -89,6 +90,7 @@ func PeeringFromAPI(t *api.Peering, s *Peering) {
 	s.ID = t.ID
 	s.Name = t.Name
 	s.Partition = t.Partition
+	s.DeletedAt = TimePtrToProto(t.DeletedAt)
 	s.Meta = t.Meta
 	s.State = PeeringStateFromAPI(t.State)
 	s.PeerID = t.PeerID

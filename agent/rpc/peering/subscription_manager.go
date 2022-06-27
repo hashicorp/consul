@@ -78,7 +78,7 @@ func (m *subscriptionManager) subscribe(ctx context.Context, peerID, peerName, p
 	if m.config.ConnectEnabled {
 		go m.notifyMeshGatewaysForPartition(ctx, state, state.partition)
 		// If connect is enabled, watch for updates to CA roots.
-		go m.notifyRootCAUpdates(ctx, state.updateCh)
+		go m.notifyRootCAUpdatesForPartition(ctx, state.updateCh, state.partition)
 	}
 
 	// This goroutine is the only one allowed to manipulate protected
@@ -291,14 +291,18 @@ func filterConnectReferences(orig *pbservice.IndexedCheckServiceNodes) {
 	orig.Nodes = newNodes
 }
 
-func (m *subscriptionManager) notifyRootCAUpdates(ctx context.Context, updateCh chan<- cache.UpdateEvent) {
+func (m *subscriptionManager) notifyRootCAUpdatesForPartition(
+	ctx context.Context,
+	updateCh chan<- cache.UpdateEvent,
+	partition string,
+) {
 	var idx uint64
 	// TODO(peering): retry logic; fail past a threshold
 	for {
 		var err error
 		// Typically, this function will block inside `m.subscribeCARoots` and only return on error.
 		// Errors are logged and the watch is retried.
-		idx, err = m.subscribeCARoots(ctx, idx, updateCh)
+		idx, err = m.subscribeCARoots(ctx, idx, updateCh, partition)
 		if errors.Is(err, stream.ErrSubForceClosed) {
 			m.logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt resume")
 		} else if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
@@ -317,7 +321,12 @@ func (m *subscriptionManager) notifyRootCAUpdates(ctx context.Context, updateCh 
 
 // subscribeCARoots subscribes to state.EventTopicCARoots for changes to CA roots.
 // Upon receiving an event it will send the payload in updateCh.
-func (m *subscriptionManager) subscribeCARoots(ctx context.Context, idx uint64, updateCh chan<- cache.UpdateEvent) (uint64, error) {
+func (m *subscriptionManager) subscribeCARoots(
+	ctx context.Context,
+	idx uint64,
+	updateCh chan<- cache.UpdateEvent,
+	partition string,
+) (uint64, error) {
 	// following code adapted from connectca/watch_roots.go
 	sub, err := m.backend.Subscribe(&stream.SubscribeRequest{
 		Topic:   state.EventTopicCARoots,
@@ -382,8 +391,10 @@ func (m *subscriptionManager) subscribeCARoots(ctx context.Context, idx uint64, 
 		updateCh <- cache.UpdateEvent{
 			CorrelationID: subCARoot,
 			Result: &pbpeering.PeeringTrustBundle{
-				TrustDomain: m.trustDomain,
-				RootPEMs:    rootPems,
+				TrustDomain:       m.trustDomain,
+				RootPEMs:          rootPems,
+				ExportedPartition: partition,
+				// TODO(peering): revisit decision not to validate datacenter in RBAC
 			},
 		}
 	}

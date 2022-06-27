@@ -10,7 +10,7 @@ var (
 	// compiler.
 	GitCommit string
 
-	// The main version number that is being run at the moment.
+	// The next version number that will be released. This will be updated after every release.
 	//
 	// Version must conform to the format expected by github.com/hashicorp/go-version
 	// for tests to work.
@@ -23,6 +23,10 @@ var (
 	// then it means that it is a final release. Otherwise, this is a pre-release
 	// such as "dev" (in development), "beta", "rc1", etc.
 	VersionPrerelease = "dev"
+
+	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
+	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
+	BuildDate string = "1970-01-01T00:00:01Z"
 )
 
 // GetHumanVersion composes the parts of the version in a way that's suitable

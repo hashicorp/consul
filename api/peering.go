@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // PeeringState enumerates all the states a peering can be in
@@ -36,6 +37,8 @@ type Peering struct {
 	Name string
 	// Partition is the local partition connecting to the peer.
 	Partition string `json:",omitempty"`
+	// DeletedAt is the time when the Peering was marked for deletion
+	DeletedAt *time.Time `json:",omitempty" alias:"deleted_at"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 	// State is one of the valid PeeringState values to represent the status of
@@ -77,7 +80,7 @@ type PeeringGenerateTokenResponse struct {
 	PeeringToken string
 }
 
-type PeeringInitiateRequest struct {
+type PeeringEstablishRequest struct {
 	// Name of the remote peer.
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
@@ -88,7 +91,7 @@ type PeeringInitiateRequest struct {
 	Meta map[string]string `json:",omitempty"`
 }
 
-type PeeringInitiateResponse struct {
+type PeeringEstablishResponse struct {
 }
 
 type PeeringListRequest struct {
@@ -192,8 +195,8 @@ func (p *Peerings) GenerateToken(ctx context.Context, g PeeringGenerateTokenRequ
 }
 
 // TODO(peering): verify this is the ultimate signature we want
-func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *WriteOptions) (*PeeringInitiateResponse, *WriteMeta, error) {
-	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/initiate"))
+func (p *Peerings) Establish(ctx context.Context, i PeeringEstablishRequest, wq *WriteOptions) (*PeeringEstablishResponse, *WriteMeta, error) {
+	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/establish"))
 	req.setWriteOptions(wq)
 	req.ctx = ctx
 	req.obj = i
@@ -209,7 +212,7 @@ func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *W
 
 	wm := &WriteMeta{RequestTime: rtt}
 
-	var out PeeringInitiateResponse
+	var out PeeringEstablishResponse
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

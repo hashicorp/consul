@@ -62,6 +62,7 @@ type RuntimeConfig struct {
 	Version                    string
 	VersionPrerelease          string
 	VersionMetadata            string
+	BuildDate                  time.Time
 
 	// consul config
 	ConsulCoordinateUpdateMaxBatches int
@@ -1700,6 +1701,10 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 		x := v.Interface().(time.Duration)
 		return reflect.ValueOf(x.String())
 
+	case isTime(typ):
+		x := v.Interface().(time.Time)
+		return reflect.ValueOf(x.String())
+
 	case isString(typ):
 		if strings.HasPrefix(name, "RetryJoinLAN[") || strings.HasPrefix(name, "RetryJoinWAN[") {
 			x := v.Interface().(string)
@@ -1771,6 +1776,7 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 }
 
 func isDuration(t reflect.Type) bool { return t == reflect.TypeOf(time.Second) }
+func isTime(t reflect.Type) bool     { return t == reflect.TypeOf(time.Time{}) }
 func isMap(t reflect.Type) bool      { return t.Kind() == reflect.Map }
 func isNetAddr(t reflect.Type) bool  { return t.Implements(reflect.TypeOf((*net.Addr)(nil)).Elem()) }
 func isPtr(t reflect.Type) bool      { return t.Kind() == reflect.Ptr }

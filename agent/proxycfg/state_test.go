@@ -228,6 +228,16 @@ func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 	}
 }
 
+func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*pbpeering.TrustBundleListByServiceRequest)
+		require.True(t, ok)
+		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Kind)
+		require.True(t, acl.EqualPartitions(partition, reqReal.Partition), "%q != %q", partition, reqReal.Partition)
+		require.Empty(t, reqReal.ServiceName)
+	}
+}
+
 func genVerifyResolverWatch(expectedService, expectedDatacenter, expectedKind string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
@@ -730,6 +740,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -743,6 +755,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							CorrelationID: exportedServiceListWatchID,
 							Result: &structs.IndexedExportedServiceList{
 								Services: nil,
+							},
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
 							},
 						},
 					},
@@ -798,6 +820,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						serviceListWatchID:         genVerifyDCSpecificWatch("dc1"),
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					events: []UpdateEvent{
 						rootWatchEvent(),
@@ -814,7 +838,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 									{Name: "web"},
 								},
 							},
-							Err: nil,
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result: &pbpeering.TrustBundleListByServiceResponse{
+								Bundles: nil,
+							},
 						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
@@ -2539,15 +2572,15 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 0, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 0, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
-						require.Len(t, snap.ConnectProxy.PeerTrustBundles, 0, "%+v", snap.ConnectProxy.PeerTrustBundles)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
+						require.Len(t, snap.ConnectProxy.UpstreamPeerTrustBundles, 0, "%+v", snap.ConnectProxy.UpstreamPeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.PeerUpstreamEndpoints, 0, "%+v", snap.ConnectProxy.PeerUpstreamEndpoints)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
-						require.Len(t, snap.ConnectProxy.PeeringTrustBundles, 0, "%+v", snap.ConnectProxy.PeeringTrustBundles)
-						require.False(t, snap.ConnectProxy.PeeringTrustBundlesSet)
+						require.Len(t, snap.ConnectProxy.InboundPeerTrustBundles, 0, "%+v", snap.ConnectProxy.InboundPeerTrustBundles)
+						require.False(t, snap.ConnectProxy.InboundPeerTrustBundlesSet)
 					},
 				},
 				{
@@ -2622,7 +2655,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
-						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles, snap.ConnectProxy.PeeringTrustBundles)
+						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles, snap.ConnectProxy.InboundPeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.DiscoveryChain, 1, "%+v", snap.ConnectProxy.DiscoveryChain)
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1, "%+v", snap.ConnectProxy.WatchedUpstreams)
@@ -2630,8 +2663,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 1, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-						require.Contains(t, snap.ConnectProxy.WatchedPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
-						require.Equal(t, peerTrustBundles.Bundles[0], snap.ConnectProxy.PeerTrustBundles["peer-a"], "%+v", snap.ConnectProxy.WatchedPeerTrustBundles)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
+						require.Equal(t, peerTrustBundles.Bundles[0], snap.ConnectProxy.UpstreamPeerTrustBundles["peer-a"], "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
 
 						require.Len(t, snap.ConnectProxy.PeerUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.PeerUpstreamEndpoints)
 						require.NotNil(t, snap.ConnectProxy.PeerUpstreamEndpoints[extApiUID])

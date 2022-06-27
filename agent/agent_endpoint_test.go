@@ -28,6 +28,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -1645,8 +1646,8 @@ type fakeResolveTokenDelegate struct {
 	authorizer acl.Authorizer
 }
 
-func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
-	return consul.ACLResolveResult{Authorizer: f.authorizer}, nil
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (resolver.Result, error) {
+	return resolver.Result{Authorizer: f.authorizer}, nil
 }
 
 func TestAgent_Reload(t *testing.T) {

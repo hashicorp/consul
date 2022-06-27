@@ -22,8 +22,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
-	snap.ConnectProxy.WatchedPeerTrustBundles = make(map[string]context.CancelFunc)
-	snap.ConnectProxy.PeerTrustBundles = make(map[string]*pbpeering.PeeringTrustBundle)
+	snap.ConnectProxy.WatchedUpstreamPeerTrustBundles = make(map[string]context.CancelFunc)
+	snap.ConnectProxy.UpstreamPeerTrustBundles = make(map[string]*pbpeering.PeeringTrustBundle)
 	snap.ConnectProxy.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
@@ -32,6 +32,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 	snap.ConnectProxy.PeerUpstreamEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
+	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 
 	// Watch for root changes
 	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -211,7 +212,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				}
 
 				// Check whether a watch for this peer exists to avoid duplicates.
-				if _, ok := snap.ConnectProxy.WatchedPeerTrustBundles[uid.Peer]; !ok {
+				if _, ok := snap.ConnectProxy.WatchedUpstreamPeerTrustBundles[uid.Peer]; !ok {
 					peerCtx, cancel := context.WithCancel(ctx)
 					if err := s.dataSources.TrustBundle.Notify(peerCtx, &pbpeering.TrustBundleReadRequest{
 						Name:      uid.Peer,
@@ -221,7 +222,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 						return snap, fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)
 					}
 
-					snap.ConnectProxy.WatchedPeerTrustBundles[uid.Peer] = cancel
+					snap.ConnectProxy.WatchedUpstreamPeerTrustBundles[uid.Peer] = cancel
 				}
 				continue
 			}
@@ -269,7 +270,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 		peer := strings.TrimPrefix(u.CorrelationID, peerTrustBundleIDPrefix)
 		if resp.Bundle != nil {
-			snap.ConnectProxy.PeerTrustBundles[peer] = resp.Bundle
+			snap.ConnectProxy.UpstreamPeerTrustBundles[peer] = resp.Bundle
 		}
 
 	case u.CorrelationID == peeringTrustBundlesWatchID:
@@ -278,9 +279,9 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		if len(resp.Bundles) > 0 {
-			snap.ConnectProxy.PeeringTrustBundles = resp.Bundles
+			snap.ConnectProxy.InboundPeerTrustBundles = resp.Bundles
 		}
-		snap.ConnectProxy.PeeringTrustBundlesSet = true
+		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
 		resp, ok := u.Result.(*structs.IndexedIntentionMatches)

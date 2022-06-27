@@ -143,13 +143,19 @@ type peeringApply struct {
 	srv *Server
 }
 
-func (a *peeringApply) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
-	_, err := a.srv.raftApplyProtobuf(structs.PeeringWriteType, req)
-	return err
+func (a *peeringApply) CheckPeeringUUID(id string) (bool, error) {
+	state := a.srv.fsm.State()
+	if _, existing, err := state.PeeringReadByID(nil, id); err != nil {
+		return false, err
+	} else if existing != nil {
+		return false, nil
+	}
+
+	return true, nil
 }
 
-func (a *peeringApply) PeeringDelete(req *pbpeering.PeeringDeleteRequest) error {
-	_, err := a.srv.raftApplyProtobuf(structs.PeeringDeleteType, req)
+func (a *peeringApply) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
+	_, err := a.srv.raftApplyProtobuf(structs.PeeringWriteType, req)
 	return err
 }
 
@@ -166,6 +172,11 @@ func (a *peeringApply) PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundle
 
 func (a *peeringApply) CatalogRegister(req *structs.RegisterRequest) error {
 	_, err := a.srv.leaderRaftApply("Catalog.Register", structs.RegisterRequestType, req)
+	return err
+}
+
+func (a *peeringApply) CatalogDeregister(req *structs.DeregisterRequest) error {
+	_, err := a.srv.leaderRaftApply("Catalog.Deregister", structs.DeregisterRequestType, req)
 	return err
 }
 
