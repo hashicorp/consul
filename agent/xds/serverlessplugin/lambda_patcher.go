@@ -23,7 +23,7 @@ const (
 	lambdaPrefix                string = "serverless.consul.hashicorp.com/v1alpha1"
 	lambdaEnabledTag            string = lambdaPrefix + "/lambda/enabled"
 	lambdaArnTag                string = lambdaPrefix + "/lambda/arn"
-	lambdaPayloadPassthroughTag string = lambdaPrefix + "/lambda/payload-passhthrough"
+	lambdaPayloadPassthroughTag string = lambdaPrefix + "/lambda/payload-passthrough"
 	lambdaRegionTag             string = lambdaPrefix + "/lambda/region"
 	lambdaInvocationMode        string = lambdaPrefix + "/lambda/invocation-mode"
 )
