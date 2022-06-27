@@ -218,6 +218,18 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
 - `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
 - `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
+- `consul.hashicorp.com/prometheus-ca-file` - Local filesystem path to a CA file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+- `consul.hashicorp.com/prometheus-ca-path` - Local filesystem path to a directory of CA certificates
+  for Envoy to use when serving TLS on the Prometheus metrics endpoint. Only applicable when
+  `envoy_prometheus_bind_addr` is set in proxy config.
+- `consul.hashicorp.com/prometheus-cert-file` - Local filesystem path to a certificate file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+- `consul.hashicorp.com/prometheus-key-file` - Local filesystem path to a private key file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
 - `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
 - `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
 - `consul.hashicorp.com/connect-inject-mount-volume` - Comma separated list of container names to mount the connect-inject volume into. The volume will be mounted at `/consul/connect-inject`. The connect-inject volume contains Consul internals data needed by the other sidecar containers, for example the `consul` binary, and the Pod's Consul ACL token. This data can be valuable for advanced use-cases, such as making requests to the Consul API from within application containers.
