@@ -23,7 +23,7 @@ load helpers
 }
 
 @test "gateway-alpha should be up and listening" {
-  retry_long nc -z consul-alpha:4432
+  retry_long nc -z consul-alpha-client:4432
 }
 
 @test "s2 proxies should be healthy" {

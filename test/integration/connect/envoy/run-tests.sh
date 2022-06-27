@@ -9,6 +9,8 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
+XDS_TARGET=${XDS_TARGET:-server}
+
 # ENVOY_VERSION to run each test against
 ENVOY_VERSION=${ENVOY_VERSION:-"1.22.2"}
 export ENVOY_VERSION
@@ -53,7 +55,7 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${CLUSTER}
-  mkdir -p workdir/${CLUSTER}/{consul,register,envoy,bats,statsd,data}
+  mkdir -p workdir/${CLUSTER}/{consul,consul-server,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
   cp consul-base-cfg/*.hcl workdir/${CLUSTER}/consul/
@@ -75,6 +77,13 @@ function init_workdir {
 
   # move all of the registration files OUT of the consul config dir now
   find workdir/${CLUSTER}/consul -type f -name 'service_*.hcl' -exec mv -f {} workdir/${CLUSTER}/register \;
+
+  # move the server.hcl out of the consul dir so that it doesn't get picked up
+  # by the client agent (if we're running with XDS_TARGET=client).
+  if test -f "workdir/${CLUSTER}/consul/server.hcl"
+  then
+    mv workdir/${CLUSTER}/consul/server.hcl workdir/${CLUSTER}/consul-server/server.hcl
+  fi
 
   # copy the ca-certs for SDS so we can verify the right ones are served
   mkdir -p workdir/test-sds-server/certs
@@ -115,9 +124,6 @@ function docker_kill_rm {
 function start_consul {
   local DC=${1:-primary}
 
-  # Start consul now as setup script needs it up
-  docker_kill_rm consul-${DC}
-
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
@@ -151,20 +157,91 @@ function start_consul {
     license=$(cat $CONSUL_LICENSE_PATH)
   fi
 
-  # Run consul and expose some ports to the host to make debugging locally a
-  # bit easier.
+  # We currently run these integration tests in two modes: one in which Envoy's
+  # xDS sessions are served directly by a Consul server, and another in which it
+  # goes through a client agent.
   #
-  docker run -d --name envoy_consul-${DC}_1 \
-    --net=envoy-tests \
-    $WORKDIR_SNIPPET \
-    --hostname "consul-${DC}" \
-    --network-alias "consul-${DC}" \
-    -e "CONSUL_LICENSE=$license" \
-    ${ports[@]} \
-    consul-dev \
-    agent -dev -datacenter "${DC}" \
-    -config-dir "/workdir/${DC}/consul" \
-    -client "0.0.0.0" >/dev/null
+  # This is nessasary because servers and clients source configuration data in
+  # different ways (client agents use an RPC-backed cache and servers use their
+  # own local data) and we want to catch regressions in both.
+  #
+  # In the future we should also expand these tests to register services to the
+  # catalog directly (agentless) rather than relying on the server also being
+  # an agent.
+  #
+  # When XDS_TARGET=client we'll start a Consul server with its gRPC port
+  # disabled, and a client agent with its gRPC port enabled.
+  #
+  # When XDS_TARGET=server (or anything else) we'll run a single Consul server
+  # with its gRPC port enabled.
+  #
+  # In either case, the hostname `consul-${DC}-server` should be used as a
+  # server address (e.g. for WAN joining) and `consul-${DC}-client` should be
+  # used as a client address (e.g. for interacting with the HTTP API).
+  #
+  # Both hostnames work in both modes because we set network aliases on the
+  # containers such that both hostnames will resolve to the same container when
+  # XDS_TARGET=server.
+  #
+  # We also join containers to the network `container:consul-${DC}_1` in many
+  # places (see: network_snippet) so that we can curl localhost etc. In both
+  # modes, you can assume that this name refers to the client's container.
+  #
+  # Any .hcl files in the case/cluster directory will be given to both clients
+  # and servers (via the -config-dir flag) *except for* server.hcl which will
+  # only be applied to the server (and service registrations which will be made
+  # against the client).
+  if [[ "$XDS_TARGET" == "client" ]]
+  then
+    docker_kill_rm consul-${DC}-server
+    docker_kill_rm consul-${DC}
+
+    docker run -d --name envoy_consul-${DC}-server_1 \
+      --net=envoy-tests \
+      $WORKDIR_SNIPPET \
+      --hostname "consul-${DC}-server" \
+      --network-alias "consul-${DC}-server" \
+      -e "CONSUL_LICENSE=$license" \
+      consul-dev \
+      agent -dev -datacenter "${DC}" \
+      -config-dir "/workdir/${DC}/consul" \
+      -config-dir "/workdir/${DC}/consul-server" \
+      -grpc-port -1 \
+      -client "0.0.0.0" \
+      -bind "0.0.0.0" >/dev/null
+
+    docker run -d --name envoy_consul-${DC}_1 \
+      --net=envoy-tests \
+      $WORKDIR_SNIPPET \
+      --hostname "consul-${DC}-client" \
+      --network-alias "consul-${DC}-client" \
+      -e "CONSUL_LICENSE=$license" \
+      ${ports[@]} \
+      consul-dev \
+      agent -datacenter "${DC}" \
+      -config-dir "/workdir/${DC}/consul" \
+      -data-dir "/tmp/consul" \
+      -client "0.0.0.0" \
+      -grpc-port 8502 \
+      -datacenter "${DC}" \
+      -retry-join "consul-${DC}-server" >/dev/null
+  else
+    docker_kill_rm consul-${DC}
+
+    docker run -d --name envoy_consul-${DC}_1 \
+      --net=envoy-tests \
+      $WORKDIR_SNIPPET \
+      --hostname "consul-${DC}" \
+      --network-alias "consul-${DC}-client" \
+      --network-alias "consul-${DC}-server" \
+      -e "CONSUL_LICENSE=$license" \
+      ${ports[@]} \
+      consul-dev \
+      agent -dev -datacenter "${DC}" \
+      -config-dir "/workdir/${DC}/consul" \
+      -config-dir "/workdir/${DC}/consul-server" \
+      -client "0.0.0.0" >/dev/null
+  fi
 }
 
 function start_partitioned_client {
@@ -190,12 +267,12 @@ function start_partitioned_client {
   docker run -d --name envoy_consul-${PARTITION}_1 \
     --net=envoy-tests \
     $WORKDIR_SNIPPET \
-    --hostname "consul-${PARTITION}" \
-    --network-alias "consul-${PARTITION}" \
+    --hostname "consul-${PARTITION}-client" \
+    --network-alias "consul-${PARTITION}-client" \
     -e "CONSUL_LICENSE=$license" \
     consul-dev agent \
     -datacenter "primary" \
-    -retry-join "consul-primary" \
+    -retry-join "consul-primary-server" \
     -grpc-port 8502 \
     -data-dir "/tmp/consul" \
     -config-dir "/workdir/${PARTITION}/consul" \
@@ -268,18 +345,35 @@ function capture_logs {
 
   echo "Capturing Logs"
   mkdir -p "$LOG_DIR"
+
   services="$REQUIRED_SERVICES consul-primary"
+  if [[ "$XDS_TARGET" == "client" ]]
+  then
+    services="$services consul-primary-server"
+  fi
+
   if is_set $REQUIRE_SECONDARY
   then
     services="$services consul-secondary"
+
+    if [[ "$XDS_TARGET" == "client" ]]
+    then
+      services="$services consul-secondary-server"
+    fi
   fi
+
   if is_set $REQUIRE_PARTITIONS
   then
     services="$services consul-ap1"
   fi
   if is_set $REQUIRE_PEERS
   then
-      services="$services consul-alpha"
+    services="$services consul-alpha"
+
+    if [[ "$XDS_TARGET" == "client" ]]
+    then
+      services="$services consul-alpha-server"
+    fi
   fi
 
   if [ -f "${CASE_DIR}/capture.sh" ]
@@ -300,7 +394,7 @@ function stop_services {
   # Teardown
   docker_kill_rm $REQUIRED_SERVICES
 
-  docker_kill_rm consul-primary consul-secondary consul-ap1 consul-alpha
+  docker_kill_rm consul-primary consul-primary-server consul-secondary consul-secondary-server consul-ap1 consul-alpha consul-alpha-server
 }
 
 function init_vars {
@@ -467,7 +561,7 @@ function suite_teardown {
     docker_kill_rm $(grep "^function run_container_" $self_name | \
         sed 's/^function run_container_\(.*\) {/\1/g')
 
-    docker_kill_rm consul-primary consul-secondary consul-ap1 consul-alpha
+    docker_kill_rm consul-primary consul-primary-server consul-secondary consul-secondary-server consul-ap1 consul-alpha consul-alpha-server
 
     if docker network inspect envoy-tests &>/dev/null ; then
         echo -n "Deleting network 'envoy-tests'..."
@@ -771,4 +865,3 @@ case "${1-}" in
   *)
     "$@" ;;
 esac
-
