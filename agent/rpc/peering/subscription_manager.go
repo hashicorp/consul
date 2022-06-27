@@ -238,8 +238,8 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
-			for chainName, protocol := range state.connectServices {
-				m.emitEventForDiscoveryChain(ctx, state, pending, chainName, protocol)
+			for chainName, info := range state.connectServices {
+				m.emitEventForDiscoveryChain(ctx, state, pending, chainName, info)
 			}
 		}
 
@@ -456,17 +456,17 @@ func (m *subscriptionManager) syncDiscoveryChains(
 	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
-	chainsByName map[structs.ServiceName]string, // TODO(peering):rename variable
+	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
 ) {
 	// if it was newly added, then try to emit an UPDATE event
-	for chainName, protocol := range chainsByName {
-		if oldProtocol, ok := state.connectServices[chainName]; ok && protocol == oldProtocol {
+	for chainName, info := range chainsByName {
+		if oldInfo, ok := state.connectServices[chainName]; ok && info.Equal(oldInfo) {
 			continue
 		}
 
-		state.connectServices[chainName] = protocol
+		state.connectServices[chainName] = info
 
-		m.emitEventForDiscoveryChain(ctx, state, pending, chainName, protocol)
+		m.emitEventForDiscoveryChain(ctx, state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -498,7 +498,7 @@ func (m *subscriptionManager) emitEventForDiscoveryChain(
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
-	protocol string,
+	info structs.ExportedDiscoveryChainInfo,
 ) {
 	if _, ok := state.connectServices[chainName]; !ok {
 		return // not found
@@ -519,7 +519,7 @@ func (m *subscriptionManager) emitEventForDiscoveryChain(
 			m.config.Datacenter,
 			m.trustDomain,
 			chainName,
-			protocol,
+			info,
 			state.meshGateway,
 		),
 	)
@@ -532,7 +532,7 @@ func createDiscoChainHealth(
 	peerName string,
 	datacenter, trustDomain string,
 	sn structs.ServiceName,
-	protocol string,
+	info structs.ExportedDiscoveryChainInfo,
 	pb *pbservice.IndexedCheckServiceNodes,
 ) *pbservice.IndexedCheckServiceNodes {
 	fakeProxyName := sn.Name + syntheticProxyNameSuffix
@@ -546,6 +546,7 @@ func createDiscoChainHealth(
 			Datacenter: datacenter,
 			Service:    sn.Name,
 		}
+		mainSpiffeIDString := spiffeID.URI().String()
 
 		sni := connect.PeeredServiceSNI(
 			sn.Name,
@@ -559,9 +560,35 @@ func createDiscoChainHealth(
 		//
 		// TODO(peering): should this be replicated by service and not by instance?
 		peerMeta = &pbservice.PeeringServiceMeta{
-			SNI:      []string{sni},
-			SpiffeID: []string{spiffeID.URI().String()},
-			Protocol: protocol,
+			SNI: []string{sni},
+			SpiffeID: []string{
+				mainSpiffeIDString,
+			},
+			Protocol: info.Protocol,
+		}
+
+		if structs.IsProtocolHTTPLike(info.Protocol) {
+			gwSpiffeID := connect.SpiffeIDMeshGateway{
+				Host:       trustDomain,
+				Partition:  sn.PartitionOrDefault(),
+				Datacenter: datacenter,
+			}
+
+			peerMeta.SpiffeID = append(peerMeta.SpiffeID, gwSpiffeID.URI().String())
+		} else {
+			for _, target := range info.TCPTargets {
+				targetSpiffeID := connect.SpiffeIDService{
+					Host:       trustDomain,
+					Partition:  target.Partition,
+					Namespace:  target.Namespace,
+					Datacenter: target.Datacenter,
+					Service:    target.Service,
+				}
+				targetSpiffeIDString := targetSpiffeID.URI().String()
+				if targetSpiffeIDString != mainSpiffeIDString {
+					peerMeta.SpiffeID = append(peerMeta.SpiffeID, targetSpiffeIDString)
+				}
+			}
 		}
 	}
 

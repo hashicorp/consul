@@ -26,7 +26,7 @@ type subscriptionState struct {
 	exportList *structs.ExportedServiceList
 
 	watchedServices map[structs.ServiceName]context.CancelFunc
-	connectServices map[structs.ServiceName]string // value:protocol
+	connectServices map[structs.ServiceName]structs.ExportedDiscoveryChainInfo
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"
 	// not the "correlationID"
@@ -48,7 +48,7 @@ func newSubscriptionState(peerName, partition string) *subscriptionState {
 		peerName:        peerName,
 		partition:       partition,
 		watchedServices: make(map[structs.ServiceName]context.CancelFunc),
-		connectServices: make(map[structs.ServiceName]string),
+		connectServices: make(map[structs.ServiceName]structs.ExportedDiscoveryChainInfo),
 		eventVersions:   make(map[string]string),
 	}
 }
