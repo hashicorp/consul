@@ -84,7 +84,7 @@ func indexTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[string, *IndexEntry]{
 					readIndex:  indexFromString,
 					writeIndex: indexNameFromIndexEntry,
 				},
@@ -93,39 +93,37 @@ func indexTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexNameFromIndexEntry(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*IndexEntry)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for IndexEntry index", raw)
-	}
-
-	if p.Key == "" {
+func indexNameFromIndexEntry(e *IndexEntry) ([]byte, error) {
+	if e.Key == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(p.Key))
+	b.String(strings.ToLower(e.Key))
 	return b.Bytes(), nil
 }
 
-func indexFromString(raw interface{}) ([]byte, error) {
-	q, ok := raw.(string)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for string prefix query", raw)
-	}
-
+func indexFromString(s string) ([]byte, error) {
 	var b indexBuilder
-	b.String(strings.ToLower(q))
+	b.String(strings.ToLower(s))
 	return b.Bytes(), nil
 }
 
-func indexDeletedFromBoolQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(BoolQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
-	}
-
+func indexDeletedFromBoolQuery(q BoolQuery) ([]byte, error) {
 	var b indexBuilder
 	b.Bool(q.Value)
 	return b.Bytes(), nil
+}
+
+type enterpriseIndexable interface {
+	partitionIndexable
+	namespaceIndexable
+}
+
+type partitionIndexable interface {
+	PartitionOrDefault() string
+}
+
+type namespaceIndexable interface {
+	NamespaceOrDefault() string
 }

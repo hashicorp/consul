@@ -263,25 +263,25 @@ func (s *Store) Abandon() {
 }
 
 // maxIndex is a helper used to retrieve the highest known index
-// amongst a set of tables in the db.
-func (s *Store) maxIndex(tables ...string) uint64 {
+// amongst a set of index keys (e.g. table names) in the db.
+func (s *Store) maxIndex(keys ...string) uint64 {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return maxIndexTxn(tx, tables...)
+	return maxIndexTxn(tx, keys...)
 }
 
 // maxIndexTxn is a helper used to retrieve the highest known index
-// amongst a set of tables in the db.
-func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
-	return maxIndexWatchTxn(tx, nil, tables...)
+// amongst a set of index keys (e.g. table names) in the db.
+func maxIndexTxn(tx ReadTxn, keys ...string) uint64 {
+	return maxIndexWatchTxn(tx, nil, keys...)
 }
 
-func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, keys ...string) uint64 {
 	var lindex uint64
-	for _, table := range tables {
-		ch, ti, err := tx.FirstWatch(tableIndex, "id", table)
+	for _, key := range keys {
+		ch, ti, err := tx.FirstWatch(tableIndex, "id", key)
 		if err != nil {
-			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
+			panic(fmt.Sprintf("unknown index: %s err: %s", key, err))
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value

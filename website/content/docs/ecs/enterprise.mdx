@@ -7,31 +7,29 @@ description: >-
 
 # Consul Enterprise
 
-Consul on ECS supports running Consul Enterprise by specifying the Consul Enterprise
-Docker image in the Terraform module parameters.
+You can run Consul Enterprise on ECS by specifying the Consul Enterprise Docker image in the Terraform module parameters.
 
-## How To Use Consul Enterprise
+## Specify the Consul image
 
-When instantiating the [`mesh-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) module,
-set the parameter `consul_image` to a Consul Enterprise image, e.g. `hashicorp/consul-enterprise:1.10.0-ent`:
+When you set up an instance of the [`mesh-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) or [`gateway-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task) module,
+set the parameter `consul_image` to a Consul Enterprise image. The following example instructs the `mesh-task` module to import Consul Enterprise version 1.12.0:
 
 ```hcl
 module "my_task" {
   source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
   version = "<latest version>"
 
-  consul_image = "hashicorp/consul-enterprise:<version>-ent"
+  consul_image = "hashicorp/consul-enterprise:1.12.0-ent"
   ...
 }
 ```
 
 ## Licensing
 
-~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/production-installation#deploy-acl-controller).
+~> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
 
 Consul Enterprise [requires a license](/docs/enterprise/license/overview). If running
-Consul on ECS with [ACLs enabled](/docs/ecs/production-installation#deploy-acl-controller), the license
-will be automatically pulled down from Consul servers.
+Consul on ECS with ACLs enabled, the license will be automatically pulled down from Consul servers.
 
 Currently there is no capability for specifying the license when ACLs are disabled so if you wish to
 run Consul Enterprise clients then you must enable ACLs.
@@ -62,14 +60,16 @@ If client support is required for any of the features, then you must use a Consu
 
 ### Admin Partitions and Namespaces
 
-Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) and [namespaces](/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used.
-These features have the following requirements:
-* ACLs must be enabled.
-* ACL controller must run in the ECS cluster.
-* `mesh-tasks` must use a Consul Enterprise client image.
+Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) and [namespaces](/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used. These features have the following requirements:
 
-The ACL controller automatically manages ACL policies and token provisioning for clients and services on the service mesh.
-It also creates admin partitions and namespaces if they do not already exist.
+- ACLs must be enabled.
+- ACL controller must run in the ECS cluster.
+- `mesh-task` must use a Consul Enterprise client image.
+- `gateway-task` must use a Consul Enterprise client image.
+
+The ACL controller manages configuration of the AWS IAM auth method on the Consul servers. It
+ensures unused tokens created by tasks are cleaned up. It also creates admin partitions and
+namespaces if they do not already exist.
 
 -> **NOTE:** The ACL controller does not delete admin partitions or namespaces once they are created.
 
@@ -84,7 +84,7 @@ is not provided when `consul_partitions_enabled = true`, will default to the `de
 
 ```hcl
 module "acl_controller" {
-  source = "hashicorp/consul/aws-ecs//modules/acl-controller"
+  source = "hashicorp/consul/aws//modules/acl-controller"
 
   ...
 
@@ -109,7 +109,7 @@ The following example demonstrates how to create a `mesh-task` assigned to the a
 
 ```hcl
 module "my_task" {
-  source = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  source = "hashicorp/consul/aws//modules/mesh-task"
   family = "my_task"
 
   ...

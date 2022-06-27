@@ -17,7 +17,7 @@ This allows the user to configure natively configure Consul on select Kubernetes
 
 ## Annotations
 
-Resource annotations could be used on the Kubernetes pod to control connect-inject behavior.
+The following Kubernetes resource annotations could be used on a pod to control connect-inject behavior:
 
 - `consul.hashicorp.com/connect-inject` - If this is "true" then injection
   is enabled. If this is "false" then injection is explicitly disabled.
@@ -67,55 +67,91 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
 - `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
   services that this pod needs to connect to via Connect along with a static
   local port to listen for those connections. When transparent proxy is enabled,
-  this annotation is optional.
+  this annotation is optional. There are a few formats this annotation can take:
 
-  - Services
+    - Unlabeled:
+       Use the unlabeled annotation format to specify a service name, Consul Enterprise namespaces and partitions, and
+       datacenters. To use [cluster peering](/docs/connect/cluster-peering/k8s) with upstreams, use the following
+       labeled format.
+      - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You can
+      also append the datacenter where the service is deployed (optional).
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
+        ```
+      - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in different a namespace. Place
+      the upstream namespace after the service name. For additional details about configuring the injector, refer to 
+      [Consul Enterprise Namespaces](#consul-enterprise-namespaces) .
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace]:[port]:[optional datacenter]"
+        ```
+        If the namespace is not specified, the annotation defaults to the namespace of the source service.
+        If you are not using Consul Enterprise 1.7+, Consul interprets the value placed in the namespace position as part of the service name.
 
-    The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation.
+      - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
+        partition. You must specify the namespace when specifying a partition. Place the partition name after the namespace. If you specify the name of the datacenter (optional), it must be the local datacenter. Communicating across partitions using this method is only supported within a
+        datacenter. For cross partition communication across datacenters, refer to [cluster
+        peering](/docs/connect/cluster-peering/k8s).
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
+        ```
+    - [Prepared queries](/docs/connect/proxies#dynamic-upstreams-require-native-integration): Prepend the annotation
+      with `prepared_query` and place the name of the query at the beginning of the string.
+      ```yaml
+      annotations:
+        'consul.hashicorp.com/connect-service-upstreams': 'prepared_query:[query name]:[port]'
+      ```
 
-    ```yaml
-    annotations:
-      "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
-    ```
+    - Labeled (requires Consul for Kubernetes v0.45.0+):
+      The labeled format is required when using the cluster peering feature and specifying an upstream in another
+      peer. You can specify a Consul Enterprise namespace, partition, or datacenter. The format supports only one peer, datacenter, or partition.
+      - Service name: Place the service name at the beginning of the annotation followed by `.svc` to specify the upstream service.
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc:[port]"
+        ```
+      - Peer or datacenter: Place the peer or datacenter after `svc.` followed by either `peer` or `dc` and the port number.
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-peer].peer:[port]"
+        ```
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-dc].dc:[port]"
+        ```
+      - Namespace (required Consul Enterprise): Place the namespace after `svc.` followed by `ns` and the port number.
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns:[port]"
+        ```
+        When specifying a peer, datacenter, or admin partition when namespaces are enabled, you must
+        provide the namespace .
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-peer].peer:[port]"
+        ```
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-partition].ap:[port]"
+        ```
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns.[service-dc].dc:[port]"
+        ```
 
-  - Consul Enterprise Namespaces
+    - Multiple upstreams: Delimit multiple services or upstreams with commas. You can specify any of the unlabeled, labeled, or prepared query formats when using the supported versions for the formats.
 
-    If running Consul Enterprise 1.7+, your upstream services may be running in different
-    namespaces. The upstream namespace can be specified after the service name
-    as `[service-name].[namespace]`. See [Consul Enterprise Namespaces](#consul-enterprise-namespaces)
-    below for more details on configuring the injector.
+      ```yaml
+      annotations:
+        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
+      ```
 
-    ```yaml
-    annotations:
-      "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace]:[port]:[optional datacenter]"
-    ```
-
-    -> **NOTE:** If the namespace is not specified it will default to the namespace
-    of the source service.
-
-    ~> **WARNING:** Setting a namespace when not using Consul Enterprise or using a version < 1.7
-    is not supported. It will be treated as part of the service name.
-
-  - [Prepared Query](/docs/connect/proxies#dynamic-upstreams-require-native-integration)
-
-    ```yaml
-    annotations:
-      'consul.hashicorp.com/connect-service-upstreams': 'prepared_query:[query name]:[port]'
-    ```
-
-  - Multiple Upstreams
-
-    If you would like to specify multiple services or upstreams, delimit them with commas
-
-    ```yaml
-    annotations:
-      "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
-    ```
-
-    ```yaml
-    annotations:
-      "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
-    ```
+      ```yaml
+      annotations:
+        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port],[service-name].svc:[port]"
+      ```
 
 - `consul.hashicorp.com/envoy-extra-args` - A space-separated list of [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli)
   to be passed to the injected envoy binary.
@@ -182,6 +218,18 @@ Resource annotations could be used on the Kubernetes pod to control connect-inje
 - `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
 - `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
 - `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
+- `consul.hashicorp.com/prometheus-ca-file` - Local filesystem path to a CA file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+- `consul.hashicorp.com/prometheus-ca-path` - Local filesystem path to a directory of CA certificates
+  for Envoy to use when serving TLS on the Prometheus metrics endpoint. Only applicable when
+  `envoy_prometheus_bind_addr` is set in proxy config.
+- `consul.hashicorp.com/prometheus-cert-file` - Local filesystem path to a certificate file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+- `consul.hashicorp.com/prometheus-key-file` - Local filesystem path to a private key file for Envoy to use
+  when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
 - `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
 - `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
 - `consul.hashicorp.com/connect-inject-mount-volume` - Comma separated list of container names to mount the connect-inject volume into. The volume will be mounted at `/consul/connect-inject`. The connect-inject volume contains Consul internals data needed by the other sidecar containers, for example the `consul` binary, and the Pod's Consul ACL token. This data can be valuable for advanced use-cases, such as making requests to the Consul API from within application containers.

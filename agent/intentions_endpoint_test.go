@@ -349,6 +349,57 @@ func TestIntentionCheck(t *testing.T) {
 	})
 }
 
+func TestIntentionGetExact_PeerIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	testutil.RunStep(t, "create a peer intentions", func(t *testing.T) {
+		configEntryIntention := structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "bar",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "foo",
+					Peer:   "peer1",
+					Action: structs.IntentionActionAllow,
+				},
+			},
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/config", jsonReader(configEntryIntention))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+
+		obj, err := a.srv.ConfigApply(resp, req)
+		require.NoError(t, err)
+
+		applied, ok := obj.(bool)
+		require.True(t, ok)
+		require.True(t, applied)
+	})
+
+	t.Run("get peer intention", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=peer:peer1/foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.NoError(t, err)
+		require.NotNil(t, obj)
+
+		value, ok := obj.(*structs.Intention)
+		require.True(t, ok)
+		require.Equal(t, "peer1", value.SourcePeer)
+		require.Equal(t, "foo", value.SourceName)
+		require.Equal(t, "bar", value.DestinationName)
+	})
+}
 func TestIntentionGetExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -828,6 +879,8 @@ func TestParseIntentionStringComponent(t *testing.T) {
 	cases := []struct {
 		TestName     string
 		Input        string
+		AllowsPeers  bool
+		ExpectedPeer string
 		ExpectedAP   string
 		ExpectedNS   string
 		ExpectedName string
@@ -866,20 +919,47 @@ func TestParseIntentionStringComponent(t *testing.T) {
 			Input:    "uhoh/blah/foo/bar",
 			Err:      true,
 		},
+		{
+			TestName:     "peered without namespace",
+			Input:        "peer:peer1/service_name",
+			AllowsPeers:  true,
+			ExpectedPeer: "peer1",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "service_name",
+		},
+		{
+			TestName: "need to specify at least a service",
+			Input:    "peer:peer1",
+			Err:      true,
+		},
+		{
+			TestName:    "peered not allowed error",
+			Input:       "peer:peer1/service_name",
+			AllowsPeers: false,
+			Err:         true,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.TestName, func(t *testing.T) {
 			var entMeta acl.EnterpriseMeta
-			ap, ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
+			parsed, err := parseIntentionStringComponent(tc.Input, &entMeta, tc.AllowsPeers)
 			if tc.Err {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 
-				assert.Equal(t, tc.ExpectedAP, ap)
-				assert.Equal(t, tc.ExpectedNS, ns)
-				assert.Equal(t, tc.ExpectedName, name)
+				if tc.AllowsPeers {
+					assert.Equal(t, tc.ExpectedPeer, parsed.peer)
+					assert.Equal(t, "", parsed.ap)
+				} else {
+					assert.Equal(t, tc.ExpectedAP, parsed.ap)
+					assert.Equal(t, "", parsed.peer)
+				}
+
+				assert.Equal(t, tc.ExpectedNS, parsed.ns)
+				assert.Equal(t, tc.ExpectedName, parsed.name)
 			}
 		})
 	}

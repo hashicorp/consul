@@ -143,6 +143,17 @@ type peeringApply struct {
 	srv *Server
 }
 
+func (a *peeringApply) CheckPeeringUUID(id string) (bool, error) {
+	state := a.srv.fsm.State()
+	if _, existing, err := state.PeeringReadByID(nil, id); err != nil {
+		return false, err
+	} else if existing != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (a *peeringApply) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	_, err := a.srv.raftApplyProtobuf(structs.PeeringWriteType, req)
 	return err

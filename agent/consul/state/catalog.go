@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -17,9 +17,15 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// indexServiceExtinction keeps track of the last raft index when the last instance
-// of any service was unregistered. This is used by blocking queries on missing services.
-const indexServiceExtinction = "service_last_extinction"
+const (
+	// indexServiceExtinction keeps track of the last raft index when the last instance
+	// of any service was unregistered. This is used by blocking queries on missing services.
+	indexServiceExtinction = "service_last_extinction"
+
+	// indexNodeExtinction keeps track of the last raft index when the last instance
+	// of any node was unregistered. This is used by blocking queries on missing nodes.
+	indexNodeExtinction = "node_last_extinction"
+)
 
 const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
@@ -414,8 +420,8 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 				// We are actually renaming a node, remove its reference first
 				err := s.deleteNodeTxn(tx, idx, n.Node, n.GetEnterpriseMeta(), n.PeerName)
 				if err != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s",
-						node.ID, node.Address, n.Node, node.Node)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s: %w",
+						node.ID, node.Address, n.Node, node.Node, err)
 				}
 			}
 		} else {
@@ -764,6 +770,15 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string, entMeta 
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
+	// Clean up node entry from index table
+	if err := tx.Delete(tableIndex, &IndexEntry{Key: nodeIndexName(nodeName, entMeta, node.PeerName)}); err != nil {
+		return fmt.Errorf("failed deleting nodeIndex %q: %w", nodeIndexName(nodeName, entMeta, node.PeerName), err)
+	}
+
+	if err := catalogUpdateNodeExtinctionIndex(tx, idx, entMeta, node.PeerName); err != nil {
+		return err
+	}
+
 	if peerName == "" {
 		// Invalidate any sessions for this node.
 		toDelete, err := allNodeSessionsTxn(tx, nodeName, entMeta.PartitionOrDefault())
@@ -857,9 +872,10 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 		}
-	}
-	if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
-		return fmt.Errorf("failed to persist service name: %v", err)
+		// Only upsert KindServiceName if service is local
+		if err := upsertKindServiceName(tx, idx, svc.Kind, svc.CompoundServiceName()); err != nil {
+			return fmt.Errorf("failed to persist service name: %v", err)
+		}
 	}
 
 	// Update upstream/downstream mappings if it's a connect service
@@ -881,7 +897,8 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			}
 
 			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
-			vip, err := assignServiceVirtualIP(tx, sn)
+			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
+			vip, err := assignServiceVirtualIP(tx, psn)
 			if err != nil {
 				return fmt.Errorf("failed updating virtual IP: %s", err)
 			}
@@ -961,9 +978,8 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 // assignServiceVirtualIP assigns a virtual IP to the target service and updates
 // the global virtual IP counter if necessary.
-func assignServiceVirtualIP(tx WriteTxn, sn structs.ServiceName) (string, error) {
-	// TODO(peering): support VIPs
-	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+func assignServiceVirtualIP(tx WriteTxn, psn structs.PeeredServiceName) (string, error) {
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -1034,7 +1050,7 @@ func assignServiceVirtualIP(tx WriteTxn, sn structs.ServiceName) (string, error)
 	}
 
 	assignedVIP := ServiceVirtualIP{
-		Service: sn,
+		Service: psn,
 		IP:      newEntry.IP,
 	}
 	if err := tx.Insert(tableServiceVirtualIPs, assignedVIP); err != nil {
@@ -1683,9 +1699,6 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
-	// Get the table index.
-	idx := catalogMaxIndex(tx, entMeta, peerName, false)
-
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{
 		Value:          nodeNameOrID,
@@ -1712,16 +1725,16 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		})
 		if err != nil {
 			ws.Add(watchCh)
-			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup
-			// failing once a logger has been introduced to the catalog.
-			return true, 0, nil, nil, nil
+			idx := catalogNodeLastExtinctionIndex(tx, entMeta, peerName)
+			return true, idx, nil, nil, nil
 		}
 
 		n = iter.Next()
 		if n == nil {
 			// No nodes matched, even with the Node ID: add a watch on the node name.
 			ws.Add(watchCh)
-			return true, 0, nil, nil, nil
+			idx := catalogNodeLastExtinctionIndex(tx, entMeta, peerName)
+			return true, idx, nil, nil, nil
 		}
 
 		idWatchCh := iter.WatchCh()
@@ -1744,6 +1757,9 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *ac
 		return true, 0, nil, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
 	ws.Add(services.WatchCh())
+
+	// Get the table index.
+	idx := catalogNodeMaxIndex(tx, nodeName, entMeta, peerName)
 
 	return false, idx, node, services, nil
 }
@@ -1862,10 +1878,6 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return nil
 	}
 
-	// TODO: accept a non-pointer value for EnterpriseMeta
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
 	nsq := NodeServiceQuery{
@@ -1902,10 +1914,17 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 	svc := service.(*structs.ServiceNode)
 	if err := catalogUpdateServicesIndexes(tx, idx, entMeta, svc.PeerName); err != nil {
-		return err
+		return fmt.Errorf("failed updating services indexes: %w", err)
 	}
 	if err := catalogUpdateServiceKindIndexes(tx, idx, svc.ServiceKind, &svc.EnterpriseMeta, svc.PeerName); err != nil {
-		return err
+		return fmt.Errorf("failed updating service-kind indexes: %w", err)
+	}
+	// Update the node indexes as the service information is included in node catalog queries.
+	if err := catalogUpdateNodesIndexes(tx, idx, entMeta, peerName); err != nil {
+		return fmt.Errorf("failed updating nodes indexes: %w", err)
+	}
+	if err := catalogUpdateNodeIndexes(tx, idx, nodeName, entMeta, peerName); err != nil {
+		return fmt.Errorf("failed updating node indexes: %w", err)
 	}
 
 	name := svc.CompoundServiceName()
@@ -1930,7 +1949,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta, svc.PeerName)
 			if err == nil && serviceIndex != nil {
 				// we found service.<serviceName> index, garbage collect it
-				if errW := tx.Delete(tableIndex, serviceIndex); errW != nil {
+				if err := tx.Delete(tableIndex, serviceIndex); err != nil {
 					return fmt.Errorf("[FAILED] deleting serviceIndex %s: %s", svc.ServiceName, err)
 				}
 			}
@@ -1943,7 +1962,8 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 					return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 				}
 			}
-			if err := freeServiceVirtualIP(tx, svc.ServiceName, nil, entMeta); err != nil {
+			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
+			if err := freeServiceVirtualIP(tx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
 			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -1959,7 +1979,11 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 // freeServiceVirtualIP is used to free a virtual IP for a service after the last instance
 // is removed.
-func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.ServiceName, entMeta *acl.EnterpriseMeta) error {
+func freeServiceVirtualIP(
+	tx WriteTxn,
+	psn structs.PeeredServiceName,
+	excludeGateway *structs.ServiceName,
+) error {
 	supported, err := virtualIPsSupported(tx, nil)
 	if err != nil {
 		return err
@@ -1969,15 +1993,14 @@ func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.Servi
 	}
 
 	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
-	sn := structs.NewServiceName(svc, entMeta)
 	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
 	if err != nil {
 		return err
 	}
 	if termGatewaySupported {
-		svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
+		svcGateways, err := tx.Get(tableGatewayServices, indexService, psn.ServiceName)
 		if err != nil {
-			return fmt.Errorf("failed gateway lookup for %q: %s", sn.Name, err)
+			return fmt.Errorf("failed gateway lookup for %q: %s", psn.ServiceName.Name, err)
 		}
 
 		for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
@@ -1990,7 +2013,7 @@ func freeServiceVirtualIP(tx WriteTxn, svc string, excludeGateway *structs.Servi
 		}
 	}
 
-	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -2857,11 +2880,11 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
-func (s *Store) VirtualIPForService(sn structs.ServiceName) (string, error) {
+func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	vip, err := tx.First(tableServiceVirtualIPs, indexID, sn)
+	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
 	}
@@ -3314,7 +3337,9 @@ func getTermGatewayVirtualIPs(tx WriteTxn, services []structs.LinkedService, ent
 	addrs := make(map[string]structs.ServiceAddress, len(services))
 	for _, s := range services {
 		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
-		vip, err := assignServiceVirtualIP(tx, sn)
+		// Terminating Gateways cannot route to services in peered clusters
+		psn := structs.PeeredServiceName{ServiceName: sn, Peer: structs.DefaultPeerKeyword}
+		vip, err := assignServiceVirtualIP(tx, psn)
 		if err != nil {
 			return nil, err
 		}
@@ -3391,7 +3416,8 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 			return err
 		}
 		if len(nodes) == 0 {
-			if err := freeServiceVirtualIP(tx, sn.Name, &gatewayName, &sn.EnterpriseMeta); err != nil {
+			psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: sn}
+			if err := freeServiceVirtualIP(tx, psn, &gatewayName); err != nil {
 				return err
 			}
 		}

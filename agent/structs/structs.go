@@ -2239,8 +2239,9 @@ type IndexedCheckServiceNodes struct {
 }
 
 type IndexedNodesWithGateways struct {
-	Nodes    CheckServiceNodes
-	Gateways GatewayServices
+	ImportedNodes CheckServiceNodes
+	Nodes         CheckServiceNodes
+	Gateways      GatewayServices
 	QueryMeta
 }
 
@@ -2250,7 +2251,8 @@ type DatacenterIndexedCheckServiceNodes struct {
 }
 
 type IndexedNodeDump struct {
-	Dump NodeDump
+	ImportedDump NodeDump
+	Dump         NodeDump
 	QueryMeta
 }
 

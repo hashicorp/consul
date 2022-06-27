@@ -44,13 +44,13 @@ type ConfigSnapshotUpstreams struct {
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
+	// WatchedUpstreamPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
 	// watches for peer trust bundles any time the list of upstream peers changes.
-	WatchedPeerTrustBundles map[string]context.CancelFunc
+	WatchedUpstreamPeerTrustBundles map[string]context.CancelFunc
 
-	// PeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// UpstreamPeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
 	// It is used to store trust bundles for upstream TLS transport sockets.
-	PeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
+	UpstreamPeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -128,8 +128,8 @@ func gatewayKeyFromString(s string) GatewayKey {
 type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
-	PeeringTrustBundlesSet bool
-	PeeringTrustBundles    []*pbpeering.PeeringTrustBundle
+	InboundPeerTrustBundlesSet bool
+	InboundPeerTrustBundles    []*pbpeering.PeeringTrustBundle
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
@@ -152,8 +152,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
-		len(c.WatchedPeerTrustBundles) == 0 &&
-		len(c.PeerTrustBundles) == 0 &&
+		len(c.WatchedUpstreamPeerTrustBundles) == 0 &&
+		len(c.UpstreamPeerTrustBundles) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
@@ -161,7 +161,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
-		!c.PeeringTrustBundlesSet &&
+		!c.InboundPeerTrustBundlesSet &&
 		!c.MeshConfigSet &&
 		len(c.PeerUpstreamEndpoints) == 0 &&
 		len(c.PeerUpstreamEndpointsUseHostnames) == 0
@@ -637,7 +637,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.ConnectProxy.WatchedUpstreams = nil
 		snap.ConnectProxy.WatchedGateways = nil
 		snap.ConnectProxy.WatchedDiscoveryChains = nil
-		snap.ConnectProxy.WatchedPeerTrustBundles = nil
+		snap.ConnectProxy.WatchedUpstreamPeerTrustBundles = nil
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = nil
 		snap.TerminatingGateway.WatchedIntentions = nil
@@ -652,7 +652,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.IngressGateway.WatchedUpstreams = nil
 		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
-		snap.IngressGateway.WatchedPeerTrustBundles = nil
+		snap.IngressGateway.WatchedUpstreamPeerTrustBundles = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
@@ -676,7 +676,7 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 func (s *ConfigSnapshot) PeeringTrustBundles() []*pbpeering.PeeringTrustBundle {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.ConnectProxy.PeeringTrustBundles
+		return s.ConnectProxy.InboundPeerTrustBundles
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.PeeringTrustBundles
 	default:
@@ -755,7 +755,7 @@ func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
 			continue
 		}
 
-		if _, ok := u.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+		if _, ok := u.UpstreamPeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
 			// The trust bundle for this upstream is not available yet, skip for now.
 			continue
 		}

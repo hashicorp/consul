@@ -10,7 +10,7 @@ var (
 	// compiler.
 	GitCommit string
 
-	// The main version number that is being run at the moment.
+	// The next version number that will be released. This will be updated after every release.
 	//
 	// Version must conform to the format expected by github.com/hashicorp/go-version
 	// for tests to work.

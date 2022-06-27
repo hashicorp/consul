@@ -465,9 +465,9 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 		cluster := s.makeDynamicForwardProxyCluster(cfgSnap, opts)
 
 		// TODO (dans): might be relevant later for TLS addons like CA validation
-		//if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
+		// if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
 		//	return nil, err
-		//}
+		// }
 		clusters = append(clusters, cluster)
 	}
 	return clusters, nil
@@ -695,7 +695,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	rootPEMs := cfgSnap.RootPEMs()
 	if uid.Peer != "" {
-		rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -999,7 +999,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 		rootPEMs := cfgSnap.RootPEMs()
 		if uid.Peer != "" {
-			rootPEMs = cfgSnap.ConnectProxy.PeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+			rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
 		}
 		commonTLSContext := makeCommonTLSContext(
 			cfgSnap.Leaf(),

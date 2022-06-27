@@ -1,12 +1,12 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -27,16 +27,16 @@ func peeringTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromUUIDString),
-					writeIndex: writeIndex(indexIDFromPeering),
+				Indexer: indexerSingle[string, *pbpeering.Peering]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexIDFromPeering,
 				},
 			},
 			indexName: {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *pbpeering.Peering, any]{
 					readIndex:   indexPeeringFromQuery,
 					writeIndex:  indexFromPeering,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -46,7 +46,7 @@ func peeringTableSchema() *memdb.TableSchema {
 				Name:         indexDeleted,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[BoolQuery, *pbpeering.Peering]{
 					readIndex:  indexDeletedFromBoolQuery,
 					writeIndex: indexDeletedFromPeering,
 				},
@@ -63,7 +63,7 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[Query, *pbpeering.PeeringTrustBundle, any]{
 					readIndex:   indexPeeringFromQuery, // same as peering table since we'll use the query.Value
 					writeIndex:  indexFromPeeringTrustBundle,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -73,12 +73,7 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 	}
 }
 
-func indexIDFromPeering(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*pbpeering.Peering)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for pbpeering.Peering index", raw)
-	}
-
+func indexIDFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	if p.ID == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -92,12 +87,7 @@ func indexIDFromPeering(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexDeletedFromPeering(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*pbpeering.Peering)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for *pbpeering.Peering index", raw)
-	}
-
+func indexDeletedFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	var b indexBuilder
 	b.Bool(!p.IsActive())
 	return b.Bytes(), nil
@@ -191,50 +181,47 @@ func (s *Store) peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.Enterp
 	return idx, result, nil
 }
 
-func generatePeeringUUID(tx ReadTxn) (string, error) {
-	for {
-		uuid, err := uuid.GenerateUUID()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate UUID: %w", err)
-		}
-		existing, err := peeringReadByIDTxn(tx, nil, uuid)
-		if err != nil {
-			return "", fmt.Errorf("failed to read peering: %w", err)
-		}
-		if existing == nil {
-			return uuid, nil
-		}
-	}
-}
-
 func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	q := Query{
-		Value:          p.Name,
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(p.Partition),
+	// Check that the ID and Name are set.
+	if p.ID == "" {
+		return errors.New("Missing Peering ID")
 	}
-	existingRaw, err := tx.First(tablePeering, indexName, q)
-	if err != nil {
-		return fmt.Errorf("failed peering lookup: %w", err)
+	if p.Name == "" {
+		return errors.New("Missing Peering Name")
 	}
 
-	existing, ok := existingRaw.(*pbpeering.Peering)
-	if existingRaw != nil && !ok {
-		return fmt.Errorf("invalid type %T", existingRaw)
+	// ensure the name is unique (cannot conflict with another peering with a different ID)
+	_, existing, err := peeringReadTxn(tx, nil, Query{
+		Value:          p.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(p.Partition),
+	})
+	if err != nil {
+		return err
 	}
 
 	if existing != nil {
+		if p.ID != existing.ID {
+			return fmt.Errorf("A peering already exists with the name %q and a different ID %q", p.Name, existing.ID)
+		}
 		// Prevent modifications to Peering marked for deletion
 		if !existing.IsActive() {
 			return fmt.Errorf("cannot write to peering that is marked for deletion")
 		}
 
 		p.CreateIndex = existing.CreateIndex
-		p.ID = existing.ID
-
+		p.ModifyIndex = idx
 	} else {
+		idMatch, err := peeringReadByIDTxn(tx, nil, p.ID)
+		if err != nil {
+			return err
+		}
+		if idMatch != nil {
+			return fmt.Errorf("A peering already exists with the ID %q and a different name %q", p.Name, existing.ID)
+		}
+
 		if !p.IsActive() {
 			return fmt.Errorf("cannot create a new peering marked for deletion")
 		}
@@ -242,13 +229,8 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 		// TODO(peering): consider keeping PeeringState enum elsewhere?
 		p.State = pbpeering.PeeringState_INITIAL
 		p.CreateIndex = idx
-
-		p.ID, err = generatePeeringUUID(tx)
-		if err != nil {
-			return fmt.Errorf("failed to generate peering id: %w", err)
-		}
+		p.ModifyIndex = idx
 	}
-	p.ModifyIndex = idx
 
 	if err := tx.Insert(tablePeering, p); err != nil {
 		return fmt.Errorf("failed inserting peering: %w", err)

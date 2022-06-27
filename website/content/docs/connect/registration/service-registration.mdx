@@ -35,13 +35,13 @@ port = <port where services can discover and connect to proxied services>
     "destination_service_name": "<name of the service that the proxy represents>",
     "<additional proxy parameters>" : "<additional parameter values>"
   },
-  "port": <port where services can discover and connect to proxied services> 
+  "port": <port where services can discover and connect to proxied services>
 }
 ```
 
 </CodeTabs>
 
-The following table describes the parameters that must be added to the service definition to declare the service as a proxy. 
+The following table describes the parameters that must be added to the service definition to declare the service as a proxy.
 
 | Parameter | Description | Required | Default |
 | ---       | ---         | ---      | ---     |
@@ -82,8 +82,8 @@ proxy = {
 
 ### Sidecar Proxy Configuration
 
-Many service mesh proxies are deployed as sidecars. 
-Sidecar proxies are co-located with the single service instance they represent and proxy all inbound traffic to. 
+Many service mesh proxies are deployed as sidecars.
+Sidecar proxies are co-located with the single service instance they represent and proxy all inbound traffic to.
 
 Specify the following parameters in the `proxy` code block to configure a sidecar proxy in its own service registration:
 
@@ -99,7 +99,7 @@ The following example includes values for all available options when registering
 
 <CodeTabs heading="Example that includes all configuration options when registering a proxy instance">
 
-```hcl 
+```hcl
 kind = "connect-proxy"
 name = "redis-proxy"
 port = 8181
@@ -166,6 +166,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | ---       | ---         | ---      | ---     |
 |`destination_name` | String value that specifies the name of the service or prepared query to route the service mesh to. The prepared query should be the name or the ID of the prepared query. | Required | None |
 | `destination_namespace` | String value that specifies the namespace containing the upstream service. <EnterpriseAlert inline /> | Optional | `default` |
+| `destination_peer` | String value that specifies the name of the peer cluster containing the upstream service. | Optional | None |
 | `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. | Optional | `default` |
 | `local_bind_port` | Integer value that specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port. | Required | None |
 | `local_bind_address` | String value that specifies the address to bind a local listener to. The application will make outbound connections to the upstream service from the local bind address. | Optional | `127.0.0.1` |
@@ -265,7 +266,7 @@ You can configure which mode a proxy operates in by specifying `"direct"` or `"t
 * `transparent`: In this mode, inbound and outbound application traffic is captured and redirected through the proxy. This mode does not enable the traffic redirection. It directs Consul to configure Envoy as if traffic is already being redirected.
 * `direct`: In this mode, the proxy's listeners must be dialed directly by the local application and other proxies.
 
-You can also specify an empty string (`""`), which configures the proxy to operate in the default mode. The default mode is inherited from parent parameters in the following order of precedence: 
+You can also specify an empty string (`""`), which configures the proxy to operate in the default mode. The default mode is inherited from parent parameters in the following order of precedence:
 
 1. Proxy service's `Proxy` configuration
 1. The `service-defaults` configuration for the service.
@@ -294,12 +295,12 @@ registrations](/docs/discovery/services#service-definition-parameter-case).
 - `outbound_listener_port` `(int: 15001)` - The port the proxy should listen on for outbound traffic.
    This must be the port where outbound application traffic is captured and redirected to.
 - `dialed_directly` `(bool: false)` - Determines whether this proxy instance's IP address can be dialed
-   directly by transparent proxies. Typically transparent proxies dial upstreams using the "virtual" 
-   tagged address, which load balances across instances. Dialing individual instances can be helpful 
-   in cases like stateful services such as a database cluster with a leader. 
+   directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual"
+   tagged address, which load balances across instances. A database cluster with a leader is an example
+   where dialing individual instances can be helpful.
 
   ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
-     Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds. 
+     Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
 
 ### Mesh Gateway Configuration Reference
 

@@ -12,7 +12,7 @@ export default class NodeService extends RepositoryService {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:partition/:ns/:dc/node/:id')
+  @dataSource('/:partition/:ns/:dc/node/:id/:peer')
   async findBySlug() {
     return super.findBySlug(...arguments);
   }
