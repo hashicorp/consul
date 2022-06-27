@@ -45,7 +45,7 @@
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
                       "arn": "lambda-arn",
-                      "payloadPassthrough": true
+                      "invocationMode": "ASYNCHRONOUS"
                     }
                   },
                   {
