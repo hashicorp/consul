@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/prototest"
@@ -674,6 +675,13 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 
 	var lastIdx uint64
 
+	ca := &structs.CAConfiguration{
+		Provider:  "consul",
+		ClusterID: connect.TestClusterID,
+	}
+	lastIdx++
+	require.NoError(t, s.CASetConfig(lastIdx, ca))
+
 	lastIdx++
 	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
 		ID:   testUUID(),
@@ -705,10 +713,18 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(lastIdx, entry))
 	}
 
+	newTarget := func(service, serviceSubset, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, "default", "default", datacenter)
+		t.SNI = connect.TargetSNI(t, connect.TestTrustDomain)
+		t.Name = t.SNI
+		t.ConnectTimeout = 5 * time.Second // default
+		return t
+	}
+
 	testutil.RunStep(t, "no exported services", func(t *testing.T) {
 		expect := &structs.ExportedServiceList{}
 
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -754,13 +770,23 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 			},
-			ConnectProtocol: map[structs.ServiceName]string{
-				newSN("mysql"): "tcp",
-				newSN("redis"): "tcp",
+			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("mysql"): {
+					Protocol: "tcp",
+					TCPTargets: []*structs.DiscoveryTarget{
+						newTarget("mysql", "", "dc1"),
+					},
+				},
+				newSN("redis"): {
+					Protocol: "tcp",
+					TCPTargets: []*structs.DiscoveryTarget{
+						newTarget("redis", "", "dc1"),
+					},
+				},
 			},
 		}
 
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -800,11 +826,16 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 					EnterpriseMeta: *defaultEntMeta,
 				},
 			},
-			ConnectProtocol: map[structs.ServiceName]string{
-				newSN("billing"): "tcp",
+			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("billing"): {
+					Protocol: "tcp",
+					TCPTargets: []*structs.DiscoveryTarget{
+						newTarget("billing", "", "dc1"),
+					},
+				},
 			},
 		}
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -869,29 +900,25 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				},
 				// NOTE: no payments-proxy here
 			},
-			DiscoChains: []structs.ServiceName{
-				{
-					Name:           "resolver",
-					EnterpriseMeta: *defaultEntMeta,
+			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("billing"): {
+					Protocol: "http",
 				},
-				{
-					Name:           "router",
-					EnterpriseMeta: *defaultEntMeta,
+				newSN("payments"): {
+					Protocol: "http",
 				},
-				{
-					Name:           "splitter",
-					EnterpriseMeta: *defaultEntMeta,
+				newSN("resolver"): {
+					Protocol: "http",
 				},
-			},
-			ConnectProtocol: map[structs.ServiceName]string{
-				newSN("billing"):  "http",
-				newSN("payments"): "http",
-				newSN("resolver"): "http",
-				newSN("router"):   "http",
-				newSN("splitter"): "http",
+				newSN("router"): {
+					Protocol: "http",
+				},
+				newSN("splitter"): {
+					Protocol: "http",
+				},
 			},
 		}
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -915,23 +942,19 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 				},
 				// NOTE: no payments-proxy here
 			},
-			DiscoChains: []structs.ServiceName{
-				{
-					Name:           "resolver",
-					EnterpriseMeta: *defaultEntMeta,
+			DiscoChains: map[structs.ServiceName]structs.ExportedDiscoveryChainInfo{
+				newSN("payments"): {
+					Protocol: "http",
 				},
-				{
-					Name:           "router",
-					EnterpriseMeta: *defaultEntMeta,
+				newSN("resolver"): {
+					Protocol: "http",
 				},
-			},
-			ConnectProtocol: map[structs.ServiceName]string{
-				newSN("payments"): "http",
-				newSN("resolver"): "http",
-				newSN("router"):   "http",
+				newSN("router"): {
+					Protocol: "http",
+				},
 			},
 		}
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -941,7 +964,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		expect := &structs.ExportedServiceList{}
 
 		require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ExportedServices, "default", defaultEntMeta))
-		idx, got, err := s.ExportedServicesForPeer(ws, id)
+		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -1218,15 +1241,22 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 	entMeta := *acl.DefaultEnterpriseMeta()
 
 	var lastIdx uint64
-	ws := memdb.NewWatchSet()
+
+	ca := &structs.CAConfiguration{
+		Provider:  "consul",
+		ClusterID: connect.TestClusterID,
+	}
+	lastIdx++
+	require.NoError(t, store.CASetConfig(lastIdx, ca))
 
 	var (
 		peerID1 = testUUID()
 		peerID2 = testUUID()
 	)
 
+	ws := memdb.NewWatchSet()
 	testutil.RunStep(t, "no results on initial setup", func(t *testing.T) {
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 0)
@@ -1248,7 +1278,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 		require.False(t, watchFired(ws))
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Len(t, resp, 0)
 		require.Equal(t, lastIdx-2, idx)
@@ -1264,10 +1294,10 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		// The peering is only watched after the service is exported via config entry.
 		require.False(t, watchFired(ws))
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
-		require.Equal(t, uint64(0), idx)
 		require.Len(t, resp, 0)
+		require.Equal(t, lastIdx-3, idx)
 	})
 
 	testutil.RunStep(t, "exporting the service does not yield trust bundles", func(t *testing.T) {
@@ -1290,7 +1320,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 0)
@@ -1307,7 +1337,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 1)
@@ -1321,7 +1351,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 0)
@@ -1346,7 +1376,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 1)
@@ -1371,7 +1401,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.False(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx-2, idx)
 		require.Len(t, resp, 1)
@@ -1400,7 +1430,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 2)
@@ -1419,7 +1449,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		ws = memdb.NewWatchSet()
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Len(t, resp, 1)
@@ -1432,7 +1462,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 		require.False(t, watchFired(ws))
 
-		idx, resp, err := store.TrustBundleListByService(ws, "foo", entMeta)
+		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx-1, idx)
 		require.Len(t, resp, 1)
