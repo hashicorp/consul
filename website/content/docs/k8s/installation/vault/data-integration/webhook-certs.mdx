@@ -33,41 +33,43 @@ Complete the following prerequisites prior to implementing the integration descr
 1. You should be familiar with the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/server-tls) 
 1. Configure [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/connect-ca)
-1. Issue the following commands to enable and configure the PKI Secrets Engine to serve TLS certificates for the controller and connect inject webhooks:
 
-    * Mount the PKI Secrets Engine for each:
+## Bootstrapping the PKI Engines
+Issue the following commands to enable and configure the PKI Secrets Engine to serve TLS certificates for the controller and connect inject webhooks:
 
-      ```shell-session
-      $ vault secrets enable -path=controller pki
-      ```
+* Mount the PKI Secrets Engine for each:
 
-      ```shell-session
-      $ vault secrets enable -path=connect-inject pki
-      ```
+  ```shell-session
+  $ vault secrets enable -path=controller pki
+  ```
 
-    * Tune the engine mounts to enable longer TTL:
+  ```shell-session
+  $ vault secrets enable -path=connect-inject pki
+  ```
 
-      ```shell-session
-      $ vault secrets tune -max-lease-ttl=87600h controller
-      ```
+* Tune the engine mounts to enable longer TTL:
 
-      ```shell-session
-      $ vault secrets tune -max-lease-ttl=87600h connect-inject
-      ```
+  ```shell-session
+  $ vault secrets tune -max-lease-ttl=87600h controller
+  ```
 
-    * Generate the root CA for each:
+  ```shell-session
+  $ vault secrets tune -max-lease-ttl=87600h connect-inject
+  ```
 
-      ```shell-session
-      $ vault write -field=certificate controller/root/generate/internal \
-              common_name="<helm release name>-controller-webhook" \
-              ttl=87600h
-      ```
+* Generate the root CA for each:
 
-      ```shell-session
-      $ vault write -field=certificate connect-inject/root/generate/internal \
-              common_name="<helm release name>-connect-injector" \
-              ttl=87600h
-      ```
+  ```shell-session
+  $ vault write -field=certificate controller/root/generate/internal \
+          common_name="<helm release name>-controller-webhook" \
+          ttl=87600h
+  ```
+
+  ```shell-session
+  $ vault write -field=certificate connect-inject/root/generate/internal \
+          common_name="<helm release name>-connect-injector" \
+          ttl=87600h
+  ```
 ## Create Vault Policies
 1. Create a policy that allows `["create", "update"]` access to the
 [certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`.
