@@ -14,7 +14,7 @@ Complete the following steps once:
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
   - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
   
-These steps will be repeated for each datacenter:
+Repeat the following steps for each datacenter in the cluster:
   - Installing the Vault Injector within the Consul datacenter installation
   - Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul datacenter
   - Enable Vault as the Secrets Backend in the Consul datacenter

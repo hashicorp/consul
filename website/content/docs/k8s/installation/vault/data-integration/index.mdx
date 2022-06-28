@@ -19,7 +19,7 @@ Complete the following steps once:
   1. Store the secret in Vault.
   1. Create a Vault policy that authorizes the desired level of access to the secret.
   
-These steps will be repeated for each datacenter:
+Repeat the following steps for each datacenter in the cluster:
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
   1. Update the Consul on Kubernetes helm chart.
 
@@ -37,7 +37,7 @@ Complete the following steps once:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
       - Create a Vault policy that you name `gossip-policy` which allows `read` access to the path `secret/consul/gossip`.
 
-These steps will be repeated for each datacenter:
+Repeat the following steps for each datacenter in the cluster:
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
       - Both Consul servers and Consul clients need access to the gossip encryption key, so you create two Vault Kubernetes:
         - A role called `consul-server` that maps the Kubernetes namespace and service account name for your consul servers to the `gossip-policy` created in [step 2](#one-time-setup-in-vault) of One time setup in Vault.
