@@ -522,8 +522,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 			snap.MeshGateway.DiscoveryChain[svc] = resp.Chain
 
-			// TODO(peering): we need to do this if we are going to setup a cross-partition or cross-datacenter target
-
 		default:
 			if err := s.handleEntUpdate(meshLogger, ctx, u, snap); err != nil {
 				return err

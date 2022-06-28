@@ -23,7 +23,7 @@
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "mesh_gateway_local_peered.bar.default.default.dc1",
-                "cluster": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -40,7 +40,7 @@
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "mesh_gateway_local_peered.foo.default.default.dc1",
-                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "exported~foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -57,58 +57,7 @@
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "mesh_gateway_local_peered.gir.default.default.dc1",
-                "cluster": "gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        },
-        {
-          "filterChainMatch": {
-            "serverNames": [
-              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
-            ]
-          },
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_remote.default.dc2",
-                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        },
-        {
-          "filterChainMatch": {
-            "serverNames": [
-              "*.dc4.internal.11111111-2222-3333-4444-555555555555.consul"
-            ]
-          },
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_remote.default.dc4",
-                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
-            }
-          ]
-        },
-        {
-          "filterChainMatch": {
-            "serverNames": [
-              "*.dc6.internal.11111111-2222-3333-4444-555555555555.consul"
-            ]
-          },
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_remote.default.dc6",
-                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "exported~gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

@@ -46,8 +46,8 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.default.alpha-to-primary.external HEALTHY 1
 }
 
-@test "s1 upstream should be able to connect to s2" {
-  run retry_default curl -s -f -d hello localhost:5000
+@test "s1 upstream should be able to connect to s2 with http/1.1" {
+  run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }

@@ -18,8 +18,8 @@ load helpers
   assert_proxy_presents_cert_uri localhost:21000 s1
 }
 
-@test "s2 proxies should be healthy in alpha" {
-  assert_service_has_healthy_instances s2 1 alpha
+@test "s3 proxies should be healthy in alpha" {
+  assert_service_has_healthy_instances s3 1 alpha
 }
 
 @test "gateway-primary should be up and listening" {
@@ -38,8 +38,8 @@ load helpers
   assert_service_has_healthy_instances s2 1 primary "" "" primary-to-alpha
 }
 
-@test "gateway-alpha should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status consul-alpha-client:19003 exported~s2.default.alpha HEALTHY 1
+@test "gateway-alpha should have healthy endpoints for s3" {
+  assert_upstream_has_endpoints_in_status consul-alpha-client:19003 exported~s3.default.alpha HEALTHY 1
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
@@ -52,6 +52,11 @@ load helpers
   [ "$output" = "hello" ]
 }
 
+@test "s1 upstream should be able to connect to s3 via s2 due to redirect" {
+  assert_expected_fortio_name s3-alpha
+}
+
 @test "s1 upstream made 1 connection to s2" {
+  # note this is what the IMPORTING side thinks it is talking to
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.default.alpha-to-primary.external.*cx_total" 1
 }
