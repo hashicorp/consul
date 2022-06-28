@@ -912,7 +912,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	testrpc.WaitForLeader(t, server.RPC, conf.Datacenter)
 
 	backend := consul.NewPeeringBackend(server, deps.GRPCConnPool)
-	handler := &peering.Service{Backend: backend}
+	handler := peering.NewService(deps.Logger, peering.Config{Datacenter: conf.Datacenter, ConnectEnabled: conf.ConnectEnabled}, backend)
 
 	grpcServer := gogrpc.NewServer()
 	pbpeering.RegisterPeeringServiceServer(grpcServer, handler)
