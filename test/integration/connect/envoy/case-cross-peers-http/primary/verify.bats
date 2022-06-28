@@ -23,11 +23,11 @@ load helpers
 }
 
 @test "gateway-primary should be up and listening" {
-  retry_long nc -z consul-primary:4431
+  retry_long nc -z consul-primary-client:4431
 }
 
 @test "gateway-alpha should be up and listening" {
-  retry_long nc -z consul-alpha:4432
+  retry_long nc -z consul-alpha-client:4432
 }
 
 @test "peer the two clusters together" {
@@ -39,7 +39,7 @@ load helpers
 }
 
 @test "gateway-alpha should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status consul-alpha:19003 exported~s2.default.alpha HEALTHY 1
+  assert_upstream_has_endpoints_in_status consul-alpha-client:19003 exported~s2.default.alpha HEALTHY 1
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
@@ -51,19 +51,6 @@ load helpers
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }
-
-# @test "s1 proxy should have been configured with http connection managers" {
-#   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
-#   PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
-#   UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
-
-#   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
-#   echo "PUB = $PUB"
-#   echo "UPS = $UPS"
-
-#   [ "$PUB" = "envoy.filters.network.http_connection_manager" ]
-#   [ "$UPS" = "envoy.filters.network.http_connection_manager" ]
-# }
 
 @test "s1 upstream made 1 connection to s2" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.default.alpha-to-primary.external.*cx_total" 1
