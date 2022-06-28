@@ -33,10 +33,10 @@ export default class ServiceAdapter extends Adapter {
         X-Request-ID: ${uri}
 
         ${{
+          ...this.peeringQuery,
           ns,
           partition,
           index,
-          ...this.peeringQuery,
         }}
     `;
     }
