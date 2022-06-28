@@ -115,13 +115,13 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
 ## Systems Integration
 ### Overview
-To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must complete following systems integration actions:
+To use Vault as the service mesh certificate provider in Kubernetes, you must complete following systems integration actions:
 
 Complete the following steps once:
   1. Enabling Vault KV Secrets Engine - Version 2.
   1. Enabling Vault PKI Engine.
 
-These steps will be repeated for each datacenter:
+Repeat the following steps for each datacenter in the cluster:
   1. Installing the Vault Injector within the Consul datacenter installation
   1. Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul datacenter
   1. Enable Vault as the Secrets Backend in the Consul datacenter
@@ -302,7 +302,7 @@ These steps will be repeated for each datacenter:
 
 ## Data Integration
 ### Overview
-To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must complete following data integration actions:
+To use Vault as the service mesh certificate provider in Kubernetes, you must complete following data integration actions:
 
 Complete the following steps once:
   1. Store the secrets in Vault.
