@@ -1419,75 +1419,15 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
-	// Add in TCP filter chains for plain peered passthrough.
-	//
-	// TODO(peering): make this work for L7 as well
-	// TODO(peering): make failover work
-	for _, svc := range cfgSnap.MeshGateway.ExportedServicesSlice {
-		peerNames, ok := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
-		if !ok {
-			continue // not possible
-		}
-		chain, ok := cfgSnap.MeshGateway.DiscoveryChain[svc]
-		if !ok {
-			continue // ignore; not ready
-		}
+	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
+		peerNames := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
+		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
-		useHTTPFilter := structs.IsProtocolHTTPLike(chain.Protocol)
-		if useHTTPFilter {
-			if cfgSnap.MeshGateway.Leaf == nil {
-				continue // ignore not ready
-			}
-			continue // temporary skip
-		}
-
-		target, err := simpleChainTarget(chain)
+		filterChain, err := s.makeMeshGatewayPeerFilterChain(cfgSnap, svc, peerNames, chain)
 		if err != nil {
 			return nil, err
-		}
-		clusterName := CustomizeClusterName(target.Name, chain)
-
-		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
-
-		tcpProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
-		if err != nil {
-			return nil, err
-		}
-
-		var peeredServerNames []string
-		for _, peerName := range peerNames {
-			peeredSNI := connect.PeeredServiceSNI(
-				svc.Name,
-				svc.NamespaceOrDefault(),
-				svc.PartitionOrDefault(),
-				peerName,
-				cfgSnap.Roots.TrustDomain,
-			)
-			peeredServerNames = append(peeredServerNames, peeredSNI)
-		}
-
-		filterChain := &envoy_listener_v3.FilterChain{
-			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-				ServerNames: peeredServerNames,
-			},
-			Filters: []*envoy_listener_v3.Filter{
-				tcpProxy,
-			},
-		}
-
-		if useHTTPFilter {
-			var peerBundles []*pbpeering.PeeringTrustBundle
-			for _, bundle := range cfgSnap.MeshGateway.PeeringTrustBundles {
-				if stringslice.Contains(peerNames, bundle.PeerName) {
-					peerBundles = append(peerBundles, bundle)
-				}
-			}
-
-			peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, peerBundles)
-			if err != nil {
-				return nil, err
-			}
-			filterChain.TransportSocket = peeredTransportSocket
+		} else if filterChain == nil {
+			continue
 		}
 
 		l.FilterChains = append(l.FilterChains, filterChain)
@@ -1570,6 +1510,79 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	return l, nil
 }
 
+func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	peerNames []string,
+	chain *structs.CompiledDiscoveryChain,
+) (*envoy_listener_v3.FilterChain, error) {
+	var (
+		useHTTPFilter = structs.IsProtocolHTTPLike(chain.Protocol)
+		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
+		useRDS = useHTTPFilter
+	)
+
+	var clusterName string
+	if !useRDS {
+		// When not using RDS we must generate a cluster name to attach to the filter chain.
+		// With RDS, cluster names get attached to the dynamic routes instead.
+		target, err := simpleChainTarget(chain)
+		if err != nil {
+			return nil, err
+		}
+		clusterName = meshGatewayExportedClusterNamePrefix + CustomizeClusterName(target.Name, chain)
+	}
+
+	uid := proxycfg.NewUpstreamIDFromServiceName(svc)
+
+	filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+	filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+		routeName:   uid.EnvoyID(),
+		clusterName: clusterName,
+		filterName:  filterName,
+		protocol:    chain.Protocol,
+		useRDS:      useRDS,
+		statPrefix:  "mesh_gateway_local_peered.",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var peeredServerNames []string
+	for _, peerName := range peerNames {
+		peeredSNI := connect.PeeredServiceSNI(
+			svc.Name,
+			svc.NamespaceOrDefault(),
+			svc.PartitionOrDefault(),
+			peerName,
+			cfgSnap.Roots.TrustDomain,
+		)
+		peeredServerNames = append(peeredServerNames, peeredSNI)
+	}
+	filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+		ServerNames: peeredServerNames,
+	}
+
+	if useHTTPFilter {
+		// We only terminate TLS if we're doing an L7 proxy.
+		var peerBundles []*pbpeering.PeeringTrustBundle
+		for _, bundle := range cfgSnap.MeshGateway.PeeringTrustBundles {
+			if stringslice.Contains(peerNames, bundle.PeerName) {
+				peerBundles = append(peerBundles, bundle)
+			}
+		}
+
+		peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, peerBundles)
+		if err != nil {
+			return nil, err
+		}
+		filterChain.TransportSocket = peeredTransportSocket
+	}
+
+	return filterChain, nil
+}
+
 type filterChainOpts struct {
 	routeName   string
 	clusterName string
@@ -1577,16 +1590,20 @@ type filterChainOpts struct {
 	protocol    string
 	useRDS      bool
 	tlsContext  *envoy_tls_v3.DownstreamTlsContext
+	statPrefix  string
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
+	if opts.statPrefix == "" {
+		opts.statPrefix = "upstream."
+	}
 	filter, err := makeListenerFilter(listenerFilterOpts{
 		useRDS:     opts.useRDS,
 		protocol:   opts.protocol,
 		filterName: opts.filterName,
 		routeName:  opts.routeName,
 		cluster:    opts.clusterName,
-		statPrefix: "upstream.",
+		statPrefix: opts.statPrefix,
 	})
 	if err != nil {
 		return nil, err

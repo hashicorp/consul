@@ -658,6 +658,10 @@ function run_container_s2-alpha {
   common_run_container_service s2-alpha alpha 8181 8179
 }
 
+function run_container_s3-alpha {
+  common_run_container_service s3-alpha alpha 8282 8279
+}
+
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
@@ -739,6 +743,9 @@ function run_container_s1-sidecar-proxy-alpha {
 }
 function run_container_s2-sidecar-proxy-alpha {
   common_run_container_sidecar_proxy s2 alpha
+}
+function run_container_s3-sidecar-proxy-alpha {
+  common_run_container_sidecar_proxy s3 alpha
 }
 
 function common_run_container_gateway {
