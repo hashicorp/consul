@@ -33,9 +33,9 @@ $ vault kv put secret/consul/gossip key="$(consul keygen)"
 ```
 ## Create Vault policy
 
--> **Note:** The secret path referenced by the Vault Policy below will be your `global.gossipEncryption.secretName` Helm value.
+Next, we will need to create a policy that allows read access to this secret.
 
-Next, we will need to create a policy that allows read access to this secret:
+The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.gossipEncryption.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
 <CodeBlockConfig filename="gossip-policy.hcl">
 

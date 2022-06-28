@@ -34,9 +34,9 @@ $ vault kv put secret/consul/snapshot-agent-config key="<snapshot agent JSON con
 
 ## Create Vault policy
 
--> **Note:** The secret path referenced by the Vault Policy below will be your `client.snapshotAgent.configSecret.secretName` Helm value.
+Next, you will need to create a policy that allows read access to this secret.
 
-Next, you will need to create a policy that allows read access to this secret:
+The path to the secret referenced in the `path` resource is the same values that you will configure in the  `client.snapshotAgent.configSecret.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
 <CodeBlockConfig filename="snapshot-agent-config-policy.hcl">
 

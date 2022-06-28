@@ -72,7 +72,7 @@ Complete the following prerequisites prior to implementing the integration descr
 1. Create a policy that allows `["create", "update"]` access to the
 [certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`. Issue the following commands to create the policy:
 
-    -> **Note:** The PKI secret paths referenced by the Vault Policies below will be your `global.secretsBackend.vault.controller.tlsCert.secretName` and `global.secretsBackend.vault.connectInject.tlsCert.secretName` Helm values respectively.
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.secretsBackend.vault.controller.tlsCert.secretName` and `global.secretsBackend.vault.connectInject.tlsCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
     ```shell-session
     $ vault policy write controller-tls-policy - <<EOF
@@ -92,7 +92,7 @@ Complete the following prerequisites prior to implementing the integration descr
 
 1. Next, create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate). The policy is required so that Consul components can communicate with the Consul servers in order to fetch their auto-encryption certificates. Issue the following commands to create the policy:
 
-    -> **Note:** The PKI secret paths referenced by the Vault Policies below will be your `global.secretsBackend.vault.controller.caCert.secretName` and `global.secretsBackend.vault.connectInject.caCert.secretName` Helm values respectively.
+    The path to the secret referenced in the `path` resource is the same values that you will configure in the  `global.secretsBackend.vault.controller.caCert.secretName` and `global.secretsBackend.vault.connectInject.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
     ```shell-session
     $ vault policy write controller-ca-policy - <<EOF
@@ -152,7 +152,7 @@ Complete the following prerequisites prior to implementing the integration descr
 
 1. Finally, Kubernetes auth roles need to be created for controller and connect inject webhooks.
 
-    -> **Note:** The Vault auth roles below will be your `global.secretsBackend.vault.controllerRole` and `global.secretsBackend.vault.connectInjectRole` Helm values respectively.
+    The path to the secret referenced in the `path` resource is the same values that you will configure in the  `global.secretsBackend.vault.controllerRole` and `global.secretsBackend.vault.connectInjectRole` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
     Role for Consul controller webhooks:
     ```shell-session
