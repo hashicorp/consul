@@ -62,7 +62,7 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
     [certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so the Consul servers can
     fetch a new certificate/key pair.
 
-    -> **Note:** The PKI secret path referenced by the Vault Policy below will be your `server.serverCert.secretName` Helm value.
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `server.serverCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
     <CodeBlockConfig filename="consul-server-policy.hcl">
 
@@ -82,6 +82,8 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
 
 1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate),
 this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
+    
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.tls.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
     <CodeBlockConfig filename="ca-policy.hcl">
 
@@ -96,8 +98,6 @@ this is required for the Consul components to communicate with the Consul server
     ```shell-session
     $ vault policy write ca-policy ca-policy.hcl
     ```
-
-    -> **Note:** The PKI secret path referenced by the above Policy will be your `global.tls.caCert.secretName` Helm value.
 
 1. Configure allowed domains for PKI certificates
 
