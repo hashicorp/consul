@@ -425,8 +425,16 @@ func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceNam
 		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok {
 			continue // not possible
 		}
-		if _, ok := c.MeshGateway.DiscoveryChain[svc]; !ok {
+
+		chain, ok := c.MeshGateway.DiscoveryChain[svc]
+		if !ok {
 			continue // ignore; not ready
+		}
+
+		if structs.IsProtocolHTTPLike(chain.Protocol) {
+			if c.MeshGateway.Leaf == nil {
+				continue // ignore; not ready
+			}
 		}
 		out = append(out, svc)
 	}

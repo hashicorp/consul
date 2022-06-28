@@ -440,11 +440,16 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		},
 	}
 
+	testLocalInfo := rbacLocalInfo{
+		trustDomain: testTrustDomain,
+		datacenter:  "dc1",
+	}
+
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, testTrustDomain, tt.http, testPeerTrustBundle)
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, testLocalInfo, tt.http, testPeerTrustBundle)
 			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
-			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
+			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction, testLocalInfo)
 
 			require.Equal(t, tt.expect, rbacIxns)
 		})
@@ -797,11 +802,16 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 	}
 
+	testLocalInfo := rbacLocalInfo{
+		trustDomain: testTrustDomain,
+		datacenter:  "dc1",
+	}
+
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Run("network filter", func(t *testing.T) {
-				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, testTrustDomain, testPeerTrustBundle)
+				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
@@ -811,7 +821,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 			})
 			t.Run("http filter", func(t *testing.T) {
-				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testTrustDomain, testPeerTrustBundle)
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle)
 				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {

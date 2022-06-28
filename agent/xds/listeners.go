@@ -697,7 +697,11 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 	authzFilter, err := makeRBACNetworkFilter(
 		cfgSnap.ConnectProxy.Intentions,
 		cfgSnap.IntentionDefaultAllow,
-		cfgSnap.Roots.TrustDomain,
+		rbacLocalInfo{
+			trustDomain: cfgSnap.Roots.TrustDomain,
+			datacenter:  cfgSnap.Datacenter,
+			partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+		},
 		cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 	)
 	if err != nil {
@@ -953,7 +957,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			httpAuthzFilter, err := makeRBACHTTPFilter(
 				cfgSnap.ConnectProxy.Intentions,
 				cfgSnap.IntentionDefaultAllow,
-				cfgSnap.Roots.TrustDomain,
+				rbacLocalInfo{
+					trustDomain: cfgSnap.Roots.TrustDomain,
+					datacenter:  cfgSnap.Datacenter,
+					partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+				},
 				cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 			)
 			if err != nil {
@@ -1011,7 +1019,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
-			cfgSnap.Roots.TrustDomain,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
 			cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 		)
 		if err != nil {
@@ -1310,7 +1322,11 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		authFilter, err := makeRBACNetworkFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
-			cfgSnap.Roots.TrustDomain,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
 			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
@@ -1348,7 +1364,11 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
-			cfgSnap.Roots.TrustDomain,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
 			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
@@ -1521,6 +1541,10 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
 		useRDS = useHTTPFilter
 	)
+
+	if useHTTPFilter && cfgSnap.MeshGateway.Leaf == nil {
+		return nil, nil // ignore; not ready
+	}
 
 	var clusterName string
 	if !useRDS {
