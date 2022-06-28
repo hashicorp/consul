@@ -23,6 +23,10 @@ references:
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
+  envoy-versions: &supported_envoy_versions
+    - &default_envoy_version "1.19.5"
+    - "1.20.4"
+    - "1.21.3"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -852,13 +856,23 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_5: &ENVOY_TESTS
+  envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
+    parameters:
+      envoy-version:
+        type: enum
+        enum: *supported_envoy_versions
+        default: *default_envoy_version
+      xds-target:
+        type: enum
+        enum: ["server", "client"]
+        default: "server"
     environment:
-      ENVOY_VERSION: "1.19.5"
+      ENVOY_VERSION: << parameters.envoy-version >>
+      XDS_TARGET: << parameters.xds-target >>
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -890,21 +904,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  envoy-integration-test-1_20_4:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.20.4"
-
-  envoy-integration-test-1_21_3:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.21.3"
-
-  envoy-integration-test-1_22_2:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.22.2"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1116,18 +1115,13 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_5:
+      - envoy-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_4:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_21_3:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_22_2:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              envoy-version: *supported_envoy_versions
+              xds-target: ["server", "client"]
       - compatibility-integration-test:
           requires:
             - dev-build

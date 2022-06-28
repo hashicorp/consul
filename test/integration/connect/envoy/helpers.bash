@@ -479,28 +479,31 @@ function get_healthy_service_count {
   local AP=$4
   local PEER_NAME=$5
 
-  run curl -s -f ${HEADERS} "consul-${DC}:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
+  run curl -s -f ${HEADERS} "consul-${DC}-client:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
 
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
 
 function assert_alive_wan_member_count {
-  local EXPECT_COUNT=$1
-  run retry_long assert_alive_wan_member_count_once $EXPECT_COUNT
+  local DC=$1
+  local EXPECT_COUNT=$2
+  run retry_long assert_alive_wan_member_count_once $DC $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
 function assert_alive_wan_member_count_once {
-  local EXPECT_COUNT=$1
+  local DC=$1
+  local EXPECT_COUNT=$2
 
-  GOT_COUNT=$(get_alive_wan_member_count)
+  GOT_COUNT=$(get_alive_wan_member_count $DC)
 
   [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
 }
 
 function get_alive_wan_member_count {
-  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  local DC=$1
+  run retry_default curl -sL -f "consul-${DC}-server:8500/v1/agent/members?wan=1"
   [ "$status" -eq 0 ]
   # echo "$output" >&3
   echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
@@ -951,7 +954,7 @@ function assert_expected_fortio_host_header {
 function create_peering {
   local GENERATE_PEER=$1
   local ESTABLISH_PEER=$2
-  run curl -sL -XPOST "http://consul-${GENERATE_PEER}:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
+  run curl -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 
@@ -959,8 +962,7 @@ function create_peering {
   token="$(echo "$output" | jq -r .PeeringToken)"
   [ -n "$token" ]
 
-  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 }
-

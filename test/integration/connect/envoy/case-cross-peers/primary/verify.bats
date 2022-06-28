@@ -23,11 +23,11 @@ load helpers
 }
 
 @test "gateway-primary should be up and listening" {
-  retry_long nc -z consul-primary:4431
+  retry_long nc -z consul-primary-client:4431
 }
 
 @test "gateway-alpha should be up and listening" {
-  retry_long nc -z consul-alpha:4432
+  retry_long nc -z consul-alpha-client:4432
 }
 
 @test "peer the two clusters together" {
@@ -39,7 +39,7 @@ load helpers
 }
 
 @test "gateway-alpha should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status consul-alpha:19003 s2.default.alpha HEALTHY 1
+  assert_upstream_has_endpoints_in_status consul-alpha-client:19003 s2.default.alpha HEALTHY 1
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
