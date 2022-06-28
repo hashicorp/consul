@@ -27,7 +27,7 @@ Prior to setting up the data integration between Vault and Consul on Kubernetes,
 
 ## Store the Secret in Vault
 
-First, generate and store the ACL partition token in Vault:
+First, generate and store the ACL partition token in Vault. You will only need to perform this action once:
 
 ```shell-session
 $ vault kv put secret/consul/partition-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
