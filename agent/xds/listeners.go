@@ -1538,12 +1538,14 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 	filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
 	filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-		routeName:   uid.EnvoyID(),
-		clusterName: clusterName,
-		filterName:  filterName,
-		protocol:    chain.Protocol,
-		useRDS:      useRDS,
-		statPrefix:  "mesh_gateway_local_peered.",
+		routeName:            uid.EnvoyID(),
+		clusterName:          clusterName,
+		filterName:           filterName,
+		protocol:             chain.Protocol,
+		useRDS:               useRDS,
+		statPrefix:           "mesh_gateway_local_peered.",
+		forwardClientDetails: true,
+		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
 	})
 	if err != nil {
 		return nil, err
@@ -1584,13 +1586,15 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 }
 
 type filterChainOpts struct {
-	routeName   string
-	clusterName string
-	filterName  string
-	protocol    string
-	useRDS      bool
-	tlsContext  *envoy_tls_v3.DownstreamTlsContext
-	statPrefix  string
+	routeName            string
+	clusterName          string
+	filterName           string
+	protocol             string
+	useRDS               bool
+	tlsContext           *envoy_tls_v3.DownstreamTlsContext
+	statPrefix           string
+	forwardClientDetails bool
+	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -1598,12 +1602,14 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		opts.statPrefix = "upstream."
 	}
 	filter, err := makeListenerFilter(listenerFilterOpts{
-		useRDS:     opts.useRDS,
-		protocol:   opts.protocol,
-		filterName: opts.filterName,
-		routeName:  opts.routeName,
-		cluster:    opts.clusterName,
-		statPrefix: opts.statPrefix,
+		useRDS:               opts.useRDS,
+		protocol:             opts.protocol,
+		filterName:           opts.filterName,
+		routeName:            opts.routeName,
+		cluster:              opts.clusterName,
+		statPrefix:           opts.statPrefix,
+		forwardClientDetails: opts.forwardClientDetails,
+		forwardClientPolicy:  opts.forwardClientPolicy,
 	})
 	if err != nil {
 		return nil, err

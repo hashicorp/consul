@@ -44,6 +44,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "SANITIZE_SET",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }
@@ -126,6 +134,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "SANITIZE_SET",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }
@@ -208,6 +224,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "SANITIZE_SET",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }
