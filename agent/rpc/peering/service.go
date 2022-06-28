@@ -370,7 +370,25 @@ func (s *Service) PeeringList(ctx context.Context, req *pbpeering.PeeringListReq
 	if err != nil {
 		return nil, err
 	}
+
+	for _, p := range peerings {
+		p.State = s.reconciledStreamStateHint(p.ID, p.State)
+	}
 	return &pbpeering.PeeringListResponse{Peerings: peerings}, nil
+}
+
+// TODO(peering): Maybe get rid of this when actually monitoring the stream health
+// reconciledStreamStateHint peaks into the streamTracker and determines whether a peering should be marked
+// as PeeringState.Active or not
+func (s *Service) reconciledStreamStateHint(pID string, pState pbpeering.PeeringState) pbpeering.PeeringState {
+	streamState, found := s.streams.streamStatus(pID)
+
+	if found && streamState.Connected {
+		return pbpeering.PeeringState_ACTIVE
+	}
+
+	// default, no reconciliation
+	return pState
 }
 
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
