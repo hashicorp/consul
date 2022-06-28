@@ -74,7 +74,7 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
 
     </CodeBlockConfig>
 
-    Apply the Vault policy by issuing the `vault policy write` CLI command:
+1. Apply the Vault policy by issuing the `vault policy write` CLI command:
 
     ```shell-session
     $ vault policy write consul-server consul-server-policy.hcl
@@ -99,7 +99,7 @@ this is required for the Consul components to communicate with the Consul server
     $ vault policy write ca-policy ca-policy.hcl
     ```
 
-1. Configure allowed domains for PKI certificates
+1. Configure allowed domains for PKI certificates.
 
     Next, a Vault role for the PKI engine will set the default certificate issuance parameters:
 
@@ -128,7 +128,7 @@ this is required for the Consul components to communicate with the Consul server
     echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE, $NAME-server.$NAMESPACE.svc\"
     ```
 
-1. Link the Vault policies to Consul workloads.  Create three Vault auth roles, one for the Consul servers, one for the Consul clients, and one for Consul components, that link the policy to each Consul workload on Kubernetes service account that requires access.
+1. Finally, Kubernetes auth roles need to be created for servers, clients, and components.
 
     Role for Consul servers:
     ```shell-session
