@@ -344,7 +344,11 @@ func (s *Service) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadReq
 	if err != nil {
 		return nil, err
 	}
-	return &pbpeering.PeeringReadResponse{Peering: peering}, nil
+	if peering == nil {
+		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
+	}
+	cp := copyPeeringWithNewState(peering, s.reconciledStreamStateHint(peering.ID, peering.State))
+	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
 }
 
 func (s *Service) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
@@ -371,10 +375,13 @@ func (s *Service) PeeringList(ctx context.Context, req *pbpeering.PeeringListReq
 		return nil, err
 	}
 
+	// reconcile the actual peering state; need to copy over the ds for peering
+	var cPeerings []*pbpeering.Peering
 	for _, p := range peerings {
-		p.State = s.reconciledStreamStateHint(p.ID, p.State)
+		cp := copyPeeringWithNewState(p, s.reconciledStreamStateHint(p.ID, p.State))
+		cPeerings = append(cPeerings, cp)
 	}
-	return &pbpeering.PeeringListResponse{Peerings: peerings}, nil
+	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
 }
 
 // TODO(peering): Maybe get rid of this when actually monitoring the stream health
@@ -947,4 +954,22 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 	}
 
 	logger.Trace("replication message", "direction", dir, "protobuf", out)
+}
+
+func copyPeeringWithNewState(p *pbpeering.Peering, state pbpeering.PeeringState) *pbpeering.Peering {
+	return &pbpeering.Peering{
+		ID:                  p.ID,
+		Name:                p.Name,
+		Partition:           p.Partition,
+		DeletedAt:           p.DeletedAt,
+		Meta:                p.Meta,
+		PeerID:              p.PeerID,
+		PeerCAPems:          p.PeerCAPems,
+		PeerServerAddresses: p.PeerServerAddresses,
+		PeerServerName:      p.PeerServerName,
+		CreateIndex:         p.CreateIndex,
+		ModifyIndex:         p.ModifyIndex,
+
+		State: state,
+	}
 }
