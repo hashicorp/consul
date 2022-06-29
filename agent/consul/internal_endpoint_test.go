@@ -2787,15 +2787,13 @@ func TestInternal_PeeredUpstreams(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	state := s1.fsm.State()
-
 	// Services
 	//   api        local
 	//   web        peer: peer-a
 	//   web-proxy  peer: peer-a
 	//   web        peer: peer-b
 	//   web-proxy  peer: peer-b
-	registerLocalAndRemoteServicesVIPEnabled(t, state)
+	registerLocalAndRemoteServicesVIPEnabled(t, s1.fsm.State())
 
 	codec := rpcClient(t, s1)
 

@@ -1256,7 +1256,6 @@ func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) 
 			Proxy: structs.ConnectProxyConfig{
 				DestinationServiceName: "web",
 			},
-			LocallyRegisteredAsSidecar: true,
 		},
 		PeerName: "peer-a",
 	}))
@@ -1292,7 +1291,6 @@ func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) 
 			Proxy: structs.ConnectProxyConfig{
 				DestinationServiceName: "web",
 			},
-			LocallyRegisteredAsSidecar: true,
 		},
 		PeerName: "peer-b",
 	}))
