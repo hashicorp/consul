@@ -2776,3 +2776,40 @@ func TestInternal_CatalogOverview_ACLDeny(t *testing.T) {
 	arg.Token = opReadToken.SecretID
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.CatalogOverview", &arg, &out))
 }
+
+func TestInternal_PeeredUpstreams(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+
+	// Services
+	//   api        local
+	//   web        peer: peer-a
+	//   web-proxy  peer: peer-a
+	//   web        peer: peer-b
+	//   web-proxy  peer: peer-b
+	registerLocalAndRemoteServicesVIPEnabled(t, state)
+
+	codec := rpcClient(t, s1)
+
+	args := structs.PartitionSpecificRequest{
+		Datacenter:     "dc1",
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}
+	var out structs.IndexedPeeredServiceList
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.PeeredUpstreams", &args, &out))
+
+	require.Len(t, out.Services, 2)
+	expect := []structs.PeeredServiceName{
+		{Peer: "peer-a", ServiceName: structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())},
+		{Peer: "peer-b", ServiceName: structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())},
+	}
+	require.Equal(t, expect, out.Services)
+}

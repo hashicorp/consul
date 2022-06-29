@@ -682,6 +682,30 @@ func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
 }
 
+// PartitionSpecificRequest is used to query about a specific partition.
+type PartitionSpecificRequest struct {
+	Datacenter string
+
+	acl.EnterpriseMeta
+	QueryOptions
+}
+
+func (r *PartitionSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+	}
+}
+
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter string
@@ -2208,6 +2232,11 @@ func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList
+	QueryMeta
+}
+
+type IndexedPeeredServiceList struct {
+	Services []PeeredServiceName
 	QueryMeta
 }
 

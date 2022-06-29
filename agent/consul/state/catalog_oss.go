@@ -303,7 +303,12 @@ func updateKindServiceNamesIndex(tx WriteTxn, idx uint64, kind structs.ServiceKi
 func indexFromPeeredServiceName(psn structs.PeeredServiceName) ([]byte, error) {
 	peer := structs.LocalPeerKeyword
 	if psn.Peer != "" {
-		peer = psn.Peer
+		// This prefix is unusual but necessary for reads which want
+		// to isolate peered resources.
+		// This allows you to prefix query for "peer:":
+		//   internal/name
+		//   peer:peername/name
+		peer = "peer:" + psn.Peer
 	}
 
 	var b indexBuilder

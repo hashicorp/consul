@@ -8,19 +8,18 @@ import (
 )
 
 // Recommended name for registration.
-const IntentionUpstreamsName = "intention-upstreams"
+const PeeredUpstreamsName = "peered-upstreams"
 
-// IntentionUpstreams supports fetching upstreams for a given service name.
-type IntentionUpstreams struct {
+// PeeredUpstreams supports fetching imported upstream candidates of a given partition.
+type PeeredUpstreams struct {
 	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
-func (i *IntentionUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (i *PeeredUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
-	// The request should be a ServiceSpecificRequest.
-	reqReal, ok := req.(*structs.ServiceSpecificRequest)
+	reqReal, ok := req.(*structs.PartitionSpecificRequest)
 	if !ok {
 		return result, fmt.Errorf(
 			"Internal cache failure: request wrong type: %T", req)
@@ -41,8 +40,8 @@ func (i *IntentionUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (
 	reqReal.AllowStale = true
 
 	// Fetch
-	var reply structs.IndexedServiceList
-	if err := i.RPC.RPC("Internal.IntentionUpstreams", reqReal, &reply); err != nil {
+	var reply structs.IndexedPeeredServiceList
+	if err := i.RPC.RPC("Internal.PeeredUpstreams", reqReal, &reply); err != nil {
 		return result, err
 	}
 

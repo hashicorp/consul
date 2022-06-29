@@ -69,6 +69,8 @@ type DataSources struct {
 	// notification channel.
 	LeafCertificate LeafCertificate
 
+	PeeredUpstreams PeeredUpstreams
+
 	// PreparedQuery provides updates about the results of a prepared query.
 	PreparedQuery PreparedQuery
 
@@ -168,6 +170,12 @@ type InternalServiceDump interface {
 // leaf certificate.
 type LeafCertificate interface {
 	Notify(ctx context.Context, req *cachetype.ConnectCALeafRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// PeeredUpstreams is the interface used to consume updates about upstreams
+// for all peered targets in a given partition.
+type PeeredUpstreams interface {
+	Notify(ctx context.Context, req *structs.PartitionSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // PreparedQuery is the interface used to consume updates about the results of
