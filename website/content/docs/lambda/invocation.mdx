@@ -19,23 +19,47 @@ You can invoke Lambda functions from the Consul service mesh through terminating
 We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
 proxies, intentions, and all other Consul service mesh features.
 
-The terminating gateway must:
-* Have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) to invoke the Lambda function.
-* Have the Lambda function's Consul service linked to it. This is done by:
-  1. Ensuring the Lambda service is linked to the terminating gateway's configuration:
-      <CodeBlockConfig filename="terminating-gateway.hcl">
+The terminating gateway must have the following configurations:
+* [The appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) to invoke the Lambda function.
+* The Lambda function's Consul service linked to the terminating gateway. To link the Lambda service to the terminating gateway's configuration, use the following configuration file entry:
+    <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
-      ```hcl
-      Kind = "terminating-gateway"
-      Name = "terminating-gateway"
-      Services = [
+    ```hcl
+    Kind = "terminating-gateway"
+    Name = "terminating-gateway"
+
+    Services = [
+      {
+        Name = "<LAMBDA_SERVICE_NAME>"
+      }
+    ]
+    ```
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: TerminatingGateway
+    metadata:
+      name: terminating-gateway
+    spec:
+      services:
+        - name: <LAMBDA_SERVICE_NAME>
+    ```
+
+    ```json
+    {
+      "Kind": "terminating-gateway",
+      "Name": "terminating-gateway",
+      "Services": [
         {
-          Name = "<LAMBDA_SERVICE_NAME>"
+          "Name": "<LAMBDA_SERVICE_NAME>"
         }
       ]
-      ```
-      </CodeBlockConfig>
-  1. Issuing `consul config write terminating-gateway.hcl` to update the terminating gateway's configuration.
+    }
+    ```
+
+    </CodeTabs>
+
+  Issue `consul config write terminating-gateway.hcl` to update the terminating gateway's configuration.
 
 The following diagram shows the invocation procedure:
 
@@ -57,7 +81,7 @@ This method has the following limitations:
 - Transparent proxies are unsupported. This is because Lambda services are not
   registered to a proxy.
 
-This method is secure because [AWS IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) is required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources.
+This method is secure because [AWS IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy) are required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources.
 
 The Envoy sidecar proxy must have the correct AWS IAM credentials to invoke the function. You can define the credentials in environment variables, EC2 metadata, or ECS task metadata.
 
