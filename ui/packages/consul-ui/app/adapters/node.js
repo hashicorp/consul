@@ -29,10 +29,10 @@ export default class NodeAdapter extends Adapter {
       X-Request-ID: ${uri}
 
       ${{
+        ...this.peeringQuery,
         ns,
         partition,
         index,
-        ...this.peeringQuery,
       }}
     `;
   }
