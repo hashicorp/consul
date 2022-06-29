@@ -1,0 +1,58 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "db",
+      "virtualHosts": [
+        {
+          "name": "db",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/split"
+              },
+              "route": {
+                "weightedClusters": {
+                  "clusters": [
+                    {
+                      "name": "exported~alt.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 6000
+                    },
+                    {
+                      "name": "exported~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 4000
+                    }
+                  ],
+                  "totalWeight": 10000
+                }
+              }
+            },
+            {
+              "match": {
+                "prefix": "/api"
+              },
+              "route": {
+                "cluster": "exported~api.default.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "exported~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce": "00000001"
+}

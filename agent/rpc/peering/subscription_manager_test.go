@@ -281,6 +281,156 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		)
 	})
 
+	testutil.RunStep(t, "peer meta changes when L4 disco chain changes", func(t *testing.T) {
+		backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "mysql",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {
+					Service:     "failover",
+					Datacenters: []string{"dc2", "dc3"},
+				},
+			},
+		})
+
+		// ensure we get updated peer meta
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node: pbNode("mgw", "10.1.1.1", partition),
+					Service: &pbservice.NodeService{
+						Kind:    "connect-proxy",
+						ID:      "mysql-sidecar-proxy-instance-0",
+						Service: "mysql-sidecar-proxy",
+						Port:    8443,
+						Weights: &pbservice.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+						EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+						Proxy: &pbservice.ConnectProxyConfig{
+							DestinationServiceID:   "mysql-instance-0",
+							DestinationServiceName: "mysql",
+						},
+						Connect: &pbservice.ServiceConnect{
+							PeerMeta: &pbservice.PeeringServiceMeta{
+								SNI: []string{
+									"mysql.default.default.my-peering.external.11111111-2222-3333-4444-555555555555.consul",
+								},
+								SpiffeID: []string{
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/failover",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc3/svc/failover",
+								},
+								Protocol: "tcp",
+							},
+						},
+					},
+				}, res.Nodes[0])
+			},
+		)
+
+		// reset so the next subtest is valid
+		backend.deleteConfigEntry(t, structs.ServiceResolver, "mysql")
+
+		// ensure we get peer meta is restored
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node: pbNode("mgw", "10.1.1.1", partition),
+					Service: &pbservice.NodeService{
+						Kind:    "connect-proxy",
+						ID:      "mysql-sidecar-proxy-instance-0",
+						Service: "mysql-sidecar-proxy",
+						Port:    8443,
+						Weights: &pbservice.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+						EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+						Proxy: &pbservice.ConnectProxyConfig{
+							DestinationServiceID:   "mysql-instance-0",
+							DestinationServiceName: "mysql",
+						},
+						Connect: &pbservice.ServiceConnect{
+							PeerMeta: &pbservice.PeeringServiceMeta{
+								SNI: []string{
+									"mysql.default.default.my-peering.external.11111111-2222-3333-4444-555555555555.consul",
+								},
+								SpiffeID: []string{
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+								},
+								Protocol: "tcp",
+							},
+						},
+					},
+				}, res.Nodes[0])
+			},
+		)
+	})
+
+	testutil.RunStep(t, "peer meta changes when protocol switches from L4 to L7", func(t *testing.T) {
+		// NOTE: for this test we'll just live in a fantasy realm where we assume
+		// that mysql understands gRPC
+		backend.ensureConfigEntry(t, &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "mysql",
+			Protocol: "grpc",
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
+				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
+				require.Equal(t, uint64(0), res.Index)
+
+				require.Len(t, res.Nodes, 1)
+				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
+					Node: pbNode("mgw", "10.1.1.1", partition),
+					Service: &pbservice.NodeService{
+						Kind:    "connect-proxy",
+						ID:      "mysql-sidecar-proxy-instance-0",
+						Service: "mysql-sidecar-proxy",
+						Port:    8443,
+						Weights: &pbservice.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+						EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
+						Proxy: &pbservice.ConnectProxyConfig{
+							DestinationServiceID:   "mysql-instance-0",
+							DestinationServiceName: "mysql",
+						},
+						Connect: &pbservice.ServiceConnect{
+							PeerMeta: &pbservice.PeeringServiceMeta{
+								SNI: []string{
+									"mysql.default.default.my-peering.external.11111111-2222-3333-4444-555555555555.consul",
+								},
+								SpiffeID: []string{
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
+								},
+								Protocol: "grpc",
+							},
+						},
+					},
+				}, res.Nodes[0])
+			},
+		)
+	})
+
 	testutil.RunStep(t, "deregister the last instance and the output is empty", func(t *testing.T) {
 		backend.deleteService(t, "bar", mysql2.Service.ID)
 
@@ -514,6 +664,11 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 		store:          store,
 	}
 
+	backend.ensureCAConfig(t, &structs.CAConfiguration{
+		Provider:  "consul",
+		ClusterID: connect.TestClusterID,
+	})
+
 	// Create some placeholder data to ensure raft index > 0
 	//
 	// TODO(peering): is there some extremely subtle max-index table reading bug in play?
@@ -542,6 +697,12 @@ func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.
 
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureConfigEntry(b.lastIdx, entry))
+	return b.lastIdx
+}
+
+func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name string) uint64 {
+	b.lastIdx++
+	require.NoError(t, b.store.DeleteConfigEntry(b.lastIdx, kind, name, nil))
 	return b.lastIdx
 }
 

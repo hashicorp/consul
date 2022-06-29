@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -29,56 +31,79 @@ func TestInternal_NodeInfo(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	arg := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"primary"},
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
 		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
 		},
-	}
-	var out struct{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
 	}
 
-	var out2 structs.IndexedNodeDump
-	req := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-	}
-	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out2); err != nil {
-		t.Fatalf("err: %v", err)
+	for _, reg := range args {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err)
 	}
 
-	nodes := out2.Dump
-	if len(nodes) != 1 {
-		t.Fatalf("Bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if nodes[0].Checks[0].Status != api.HealthPassing {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
+	t.Run("get local node", func(t *testing.T) {
+		var out structs.IndexedNodeDump
+		req := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		nodes := out.Dump
+		if len(nodes) != 1 {
+			t.Fatalf("Bad: %v", nodes)
+		}
+		if nodes[0].Node != "foo" {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+		if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+		if nodes[0].Checks[0].Status != api.HealthPassing {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+	})
+
+	t.Run("get peered node", func(t *testing.T) {
+		var out structs.IndexedNodeDump
+		req := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			PeerName:   "peer1",
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out))
+
+		nodes := out.Dump
+		require.Equal(t, 1, len(nodes))
+		require.Equal(t, "foo", nodes[0].Node)
+		require.Equal(t, "peer1", nodes[0].PeerName)
+	})
 }
 
 func TestInternal_NodeDump(t *testing.T) {
@@ -87,52 +112,60 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	arg := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"primary"},
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
 		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
+		{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"replica"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
 		},
-	}
-	var out struct{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
+		{
+			Datacenter: "dc1",
+			Node:       "foo-peer",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
+		},
 	}
 
-	arg = structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.2",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"replica"},
-		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthWarning,
-			ServiceID: "db",
-		},
+	for _, reg := range args {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err)
 	}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
+		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+		Name: "peer1",
+	})
+	require.NoError(t, err)
 
 	var out2 structs.IndexedNodeDump
 	req := structs.DCSpecificRequest{
@@ -175,6 +208,10 @@ func TestInternal_NodeDump(t *testing.T) {
 	if !foundFoo || !foundBar {
 		t.Fatalf("missing foo or bar")
 	}
+
+	require.Len(t, out2.ImportedDump, 1)
+	require.Equal(t, "peer1", out2.ImportedDump[0].PeerName)
+	require.Equal(t, "foo-peer", out2.ImportedDump[0].Node)
 }
 
 func TestInternal_NodeDump_Filter(t *testing.T) {
@@ -183,60 +220,107 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	_, s1 := testServer(t)
 	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	arg := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"primary"},
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"primary"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
 		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
+		{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"replica"},
+			},
+			Check: &structs.HealthCheck{
+				Name:      "db connect",
+				Status:    api.HealthWarning,
+				ServiceID: "db",
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Node:       "foo-peer",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
 		},
 	}
-	var out struct{}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
-	arg = structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.2",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"replica"},
-		},
-		Check: &structs.HealthCheck{
-			Name:      "db connect",
-			Status:    api.HealthWarning,
-			ServiceID: "db",
-		},
+	for _, reg := range args {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err)
 	}
 
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
+		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+		Name: "peer1",
+	})
+	require.NoError(t, err)
 
-	var out2 structs.IndexedNodeDump
-	req := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
-	}
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
+	t.Run("filter on the local node", func(t *testing.T) {
+		var out2 structs.IndexedNodeDump
+		req := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
-	nodes := out2.Dump
-	require.Len(t, nodes, 1)
-	require.Equal(t, "foo", nodes[0].Node)
+		nodes := out2.Dump
+		require.Len(t, nodes, 1)
+		require.Equal(t, "foo", nodes[0].Node)
+	})
+
+	t.Run("filter on imported dump", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "friend in PeerName"},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 0)
+	})
+
+	t.Run("filter look for peer nodes (non local nodes)", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			QueryOptions: structs.QueryOptions{Filter: "PeerName != \"\""},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 1)
+	})
+
+	t.Run("filter look for a specific peer", func(t *testing.T) {
+		var out3 structs.IndexedNodeDump
+		req2 := structs.DCSpecificRequest{
+			QueryOptions: structs.QueryOptions{Filter: "PeerName == peer1"},
+		}
+
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
+		require.Len(t, out3.Dump, 0)
+		require.Len(t, out3.ImportedDump, 1)
+	})
 }
 
 func TestInternal_KeyringOperation(t *testing.T) {
@@ -1663,6 +1747,89 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Node.Node, "bar")
 	require.Equal(t, nodes[0].Service.Service, "db")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+}
+
+func TestInternal_ServiceDump_Peering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServer(t)
+	codec := rpcClient(t, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	doRequest := func(t *testing.T, filter string) structs.IndexedNodesWithGateways {
+		t.Helper()
+		args := structs.DCSpecificRequest{
+			QueryOptions: structs.QueryOptions{Filter: filter},
+		}
+
+		var out structs.IndexedNodesWithGateways
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
+
+		return out
+	}
+
+	t.Run("No peerings", func(t *testing.T) {
+		nodes := doRequest(t, "")
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes.Nodes, 9)
+		require.Len(t, nodes.ImportedNodes, 0)
+	})
+
+	addPeerService(t, codec)
+
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
+		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+		Name: "peer1",
+	})
+	require.NoError(t, err)
+
+	t.Run("peerings", func(t *testing.T) {
+		nodes := doRequest(t, "")
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes.Nodes, 9)
+		// service (1)
+		require.Len(t, nodes.ImportedNodes, 1)
+	})
+
+	t.Run("peerings w filter", func(t *testing.T) {
+		nodes := doRequest(t, "Node.PeerName == foo")
+		require.Len(t, nodes.Nodes, 0)
+		require.Len(t, nodes.ImportedNodes, 0)
+
+		nodes2 := doRequest(t, "Node.PeerName == peer1")
+		require.Len(t, nodes2.Nodes, 0)
+		require.Len(t, nodes2.ImportedNodes, 1)
+	})
+}
+
+func addPeerService(t *testing.T, codec rpc.ClientCodec) {
+	// prep the cluster with some data we can use in our filters
+	registrations := map[string]*structs.RegisterRequest{
+		"Peer node foo with peer service": {
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			PeerName:   "peer1",
+			Service: &structs.NodeService{
+				Kind:     structs.ServiceKindTypical,
+				ID:       "serviceID",
+				Service:  "service",
+				Port:     1235,
+				Address:  "198.18.1.2",
+				PeerName: "peer1",
+			},
+		},
+	}
+
+	registerTestCatalogEntriesMap(t, codec, registrations)
 }
 
 func TestInternal_GatewayIntentions(t *testing.T) {

@@ -7,34 +7,42 @@ description: >-
 
 # Installation with Terraform
 
-This topic describes how to use the [`mesh-task`](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) Terraform module to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, see the [Manual Installation](/docs/ecs/manual-installation) page to install Consul on ECS without Terraform.
+This topic describes how to use HashiCorp’s Terraform modules to launch your application in AWS ECS as part of Consul service mesh. If you do not use Terraform, refer to the [Manual Installation](/docs/ecs/manual/install) page to install Consul on ECS without Terraform.
 
-This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the linked guides in the [Getting Started](/docs/ecs#getting-started) section for complete, runnable examples.
+This topic does not include instructions for creating all AWS resources necessary to install Consul, such as a VPC or the ECS cluster. Refer to the guides in the [Getting Started](/docs/ecs#getting-started) section for complete and runnable examples.
 
 ## Overview
 
-This topic describes the following procedure:
+The following procedure describes the general workflow:
 
 1. Create Terraform configuration files for the necessary components:
 
-    * [ECS task definition](#using-the-mesh-task-module): Use the `mesh-task` module to create an ECS task definition for Consul on ECS
-    * [ECS service](#ecs-service): Use the `aws_ecs_service` resource to create an ECS service that schedules service mesh tasks to run on ECS
+    - [ECS task definition](#create-the-task-definition): Use the HashiCorp Terraform modules to create the ECS task definition.
+    - [ECS service](#ecs-service): Use the `aws_ecs_service` resource to create an ECS service that schedules service mesh tasks to run on ECS.
 
 2. [Run Terraform](#running-terraform) to deploy the resources in AWS
 
-## Prerequisites
+If you want to operate Consul in production environments, follow the instructions in the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation. The instructions describe how to enable ACLs and TLS and gossip encyption, which provide network security for production-grade deployments.
+
+## Requirements
 
 * You should have some familiarity with using Terraform. Refer to the [Terraform documentation](https://www.terraform.io/docs) to learn about infrastructure as code and how to get started with Terraform.
 * You should also be familiar with AWS ECS before following these instructions. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for details.
+* If you intend to [use the `gateway-task` module to deploy mesh gateways](#configure-the-gateway-task-module), all Consul server and client agents in all datacenters must have TLS and gossip encryption enabled. Refer to the [Secure Configuration](/docs/ecs/terraform/secure-configuration) documentation for instructions.
 
-## Using the Mesh Task Module
+## Create the task definition
 
-To run an application in ECS with Consul service mesh, you must create an ECS task definition, which includes your application container(s)
-and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container.
+To run an application in ECS with Consul service mesh, you must create an ECS task definition. The task definition includes your application containers and additional sidecar containers, such as the Consul agent container and the Envoy sidecar proxy container.
 
-The [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) will automatically include the necessary sidecar containers.
+Create a Terraform configuration file and include the `mesh-task` module. The module automatically adds the necessary sidecar containers.
 
-The following example shows a Terraform configuration file that creates a task definition with an application container called `example-client-app` in a file called `mesh-task.tf`:
+If you intend to peer the service mesh to multiple Consul datacenters or partitions, you can also include the `gateway-task` module. The module enables connectivity between datacenters across service meshes.
+
+### Configure the mesh task module
+
+Create a Terraform configuration file and specify the `mesh-task` module in the `source` field. The [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task) automatically includes the necessary sidecar containers.
+
+In the following example, the Terraform configuration file called `mesh-task.tf` creates a task definition with an application container called `example-client-app`:
 
 <CodeBlockConfig filename="mesh-task.tf">
 
@@ -80,10 +88,216 @@ The following fields are required. Refer to the [module reference documentation]
 | `container_definitions` | list     | This is the list of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) for the task definition. This is where you include your application containers. |
 | `essential`             | boolean  | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                                       |
 | `port`                  | integer  | The port that your application listens on, if any. If your application does not listen on a port, set `outbound_only = true`.                                                                                                                  |
-| `retry_join`            | list     | The is the [`retry_join`](/docs/agent/options#_retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
-| `consul_datacenter`            | string     | The name of your Consul datacenter.                                                                                                  |
+| `retry_join`            | list     | This is the [`retry_join`](/docs/agent/options#retry_join) option for the Consul agent, which specifies the locations of your Consul servers.                                                                                                  |
+### Configure an ECS service for the mesh task module
 
-### Running Terraform
+[ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
+ways to start tasks using a task definition.
+
+To define an ECS service, reference the `mesh-task` module's `task_definition_arn` output value
+in your `aws_ecs_service` resource. The following example shows how to include the service in the `mesh-task.tf` file.
+
+<CodeBlockConfig filename="mesh-task.tf" highlight="6-12">
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  ...
+}
+
+resource "aws_ecs_service" "my_task" {
+  name            = "my_task_service"
+  task_definition = module.my_task.task_definition_arn
+  launch_type     = "FARGATE"
+  propagate_tags  = "TASK_DEFINITION"
+  ...
+}
+```
+
+</CodeBlockConfig>
+
+The example shows a partially configured ECS service to highlight significant fields. Refer to  [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) for a complete configuration reference.
+
+| Input Variable    | Type    | Description                                                                                                         |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `name`            | string  | The name of the ECS service. This name is required by AWS but is not used by Consul service mesh.                        |
+| `task_definition` | string  | The task definition used to start tasks. Set this option to the task definition ARN returned by the `mesh-task` module.    |
+| `launch_type`     | string  | The launch type. Consul on ECS supports the `FARGATE` and `EC2` launch types.                                       |
+| `propagate_tags`  | string  | This option must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
+
+After including the ECS service in your Terraform configuration, run `terraform apply`
+from your project directory to create the ECS service resource. The ECS service
+then starts your application in a task. The task automatically registers itself
+into the Consul service catalog during startup.
+
+-> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
+in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
+
+### Configure the gateway task module
+
+Add the `gateway-task` to your Terraform configuration if you want to deploy a mesh gateway. Mesh gateways enable service to service communication across the WAN, as well as federate service mesh traffic across Consul admin partitions and Consul datacenters over the WAN. Refer to the following documentation to learn more about mesh gateways:
+
+* [WAN Federation via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+* [Service-to-service Traffic Across Datacenters](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters).
+
+You must add and configure a `gateway-task` for each Consul datacenter in your network. You must also enable TLS and gossip encryption on all server and client agents in all data centers per the [Requirements](#requirements). Mesh gateways operate by sniffing and extracting the server name indication (SNI) header from the service mesh session and routing the connection to the appropriate destination based on the server name requested.
+
+The module creates an ECS service and a task definition that includes the following containers:
+
+- Consul client
+- Envoy gateway proxy
+- Mesh init
+
+You will need to provide inputs for the artifacts created by the `gateway-task` module. The following example defines a mesh gateway task called `my-gateway` in a file called `mesh-gateway.tf`:
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  version = "<latest version>"
+  kind    = "mesh-gateway"
+
+  family                    = "my-gateway"
+  ecs_cluster_arn           = "<ECS cluster ARN>"
+  subnets                   = ["<subnet ID>"]
+  retry_join                = ["<address of the Consul server>"]
+  tls                       = true
+  consul_server_ca_cert_arn = "<Secrets Manager secret ARN>"
+  gossip_key_secret_arn     = "<Secrets Manager secret ARN>"
+}
+```
+
+</CodeBlockConfig>
+
+The following fields are required. Refer to the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/gateway-task?tab=inputs) for a complete reference.
+
+| Input variable | Type | Description |
+| --- | --- | --- |
+| `source` | string | Specifies the source location of the `gateway-task` module. Must be set to `hashicorp/consul-ecs/aws//modules/gateway-task`. |
+| `version` | string | Specifies the version of the `gateway-task` module. |
+| `kind` | string | Declares the kind of gateway to create. Must be set to `mesh-gateway` to create a mesh-gateway. |
+| `family` | string   | Specifies the [ECS task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family). The family is also used as the Consul service name by default. |
+| `ecs_cluster_arn` | string | Specifies the ARN of the ECS cluster where the mesh gateway task should be launched. |
+| `subnets` | list of strings | Specifies the subnet IDs where the task will be launched. |
+| `retry_join` | list of strings | Defines a set of arguments to pass to the Consul agent [`-retry-join`](/docs/agent/config/cli-flags#_retry_join) flag. The arguments specify locations of the Consul servers in the local datacenter that Consul client agents can connect to. |
+| `tls` | boolean | Set to `true` to enable TLS. |
+| `consul_server_ca_cert_arn` | string   | Specifies the ARN of the Secrets Manager containing the Consul server CA certificate |
+| `gossip_key_secret_arn` | string | Specifies the ARN of the Secrets Manager containing the Consul's gossip encryption key. |
+
+Refer to the [gateway task configuration examples](#gateway-task-configuration-examples) for additional example configurations.
+
+#### ECS service
+
+The ECS service is automatically created by the `gateway-task` module. The service can run one or more instances of the gateway.
+
+#### Mesh init
+
+The `mesh-init` container is a short-lived container that sets up the initial configurations for Consul and Envoy. The `gateway-task` module automatically configures the `mesh-init` container based on the inputs specified in the [task definition](#task-definition) and [ECS service](#ecs-service) configuration.
+
+For additional information, refer to [Task Startup](/docs/ecs/architecture#task-startup) for additional information.
+
+#### Gateway task configuration examples
+
+The following examples illustrate how to configure the `gateway-task` for different use cases.
+
+##### Ingress
+
+Mesh gateways need to be reachable over the WAN to route traffic between datacenters. Configure the following options in the `gateway-task` to enable ingress through the mesh gateway.
+
+| Input variable | Type | Description |
+| ---    | ---  | ---         |
+| `lb_enabled` | Boolean | Set to `true` to automatically deploy and configure a network load balancer for ingress to the mesh gateway. |
+| `lb_vpc_id` | string | Specifies the VPC to launch the load balancer in. |
+| `lb_subnets` | list of strings | Specifies one or more public subnets to associate with the load balancer. |
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  lb_enabled = true
+  lb_vpc_id  = "<VPC ID>"
+  lb_subnets = ["<public subnet IDs>"]
+}
+```
+
+</CodeBlockConfig>
+
+Alternatively, you can manually configure ingress to the mesh gateway and provide the `wan_address` and `wan_port` inputs to the `gateway-task` module. The `wan_port` field is optional. Port `8443` is used by default.
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  wan_address = "<public WAN address>"
+  wan_port    = <public WAN port>
+}
+```
+
+</CodeBlockConfig>
+
+Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) for ingress to a mesh gateway, you must use an AWS [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) or a [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html).
+
+
+##### ACLs
+
+Configure the following options in the `gateway-task` when ACLs are enabled.
+
+| Option | Type | Description |
+| ---    | ---  | ---         |
+| `acl` | Boolean | Set to `true` if ACLs are enabled. |
+| `consul_http_addr` | string |  Specifies the HTTP `address:port` of the Consul server. Required for the mesh gateway task to log into Consul via the IAM Auth Method to obtain its client and service tokens. |
+| `consul_https_ca_cert_arn` | string |  Specifies ARN of the Secrets Manager secret that contains the certificate for the Consul HTTPS API. |
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  acls                         = true
+  consul_http_addr          = "<HTTP address of the Consul server>"
+  consul_https_ca_cert_arn  = "<Secrets Manager secret ARN>"
+}
+```
+
+</CodeBlockConfig>
+
+##### WAN federation
+
+Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+
+| Option | Type | Description |
+| ---    | ---  | ---         |
+| `consul_datacenter` | string | Specifies the name of the local Consul datacenter. |
+| `consul_primary_datacenter` | string | Specifies the name of the primary Consul datacenter. |
+| `enable_mesh_gateway_wan_federation` | Boolean | Set to `true` to enable WAN federation. |
+| `enable_acl_token_replication` | Boolean | Set to `true` to enable ACL token replication and allow the creation of local tokens secondary datacenters. |
+
+The following example shows how to configure the `gateway-task` module.
+
+<CodeBlockConfig filename="mesh-gateway.tf">
+
+```hcl
+module "my_mesh_gateway" {
+  ...
+
+  consul_datacenter                  = "<name of the local Consul datacenter>"
+  consul_primary_datacenter          = "<name of the primary Consul datacenter>"
+  enable_mesh_gateway_wan_federation = true
+  enable_acl_token_replication       = true
+}
+```
+
+</CodeBlockConfig>
+
+When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
+
+## Run Terraform
 
 You will need to run Terraform to create the task definition.
 
@@ -132,52 +346,7 @@ Terraform should be run in your project directory as follows.
 Terraform automatically reads all files in the current directory that have a `.tf` file extension.
 Refer to the [Terraform documentation](https://www.terraform.io/docs) for more information and Terraform best practices.
 
-## ECS Service
-
-[ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) are one of the most common
-ways to start tasks using a task definition.
-
-To define an ECS service, reference the `mesh-task` module's `task_definition_arn` output value
-in your `aws_ecs_service` resource. The following example shows how to include the service in the `mesh-task.tf` file.
-
-<CodeBlockConfig filename="mesh-task.tf" highlight="6-12">
-
-```hcl
-module "my_task" {
-  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
-  ...
-}
-
-resource "aws_ecs_service" "my_task" {
-  name            = "my_task_service"
-  task_definition = module.my_task.task_definition_arn
-  launch_type     = "FARGATE"
-  propagate_tags  = "TASK_DEFINITION"
-  ...
-}
-```
-
-</CodeBlockConfig>
-
-This is a partial configuration to highlight some important fields.
-See the [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) documentation for a complete reference.
-
-| Input Variable    | Type    | Description                                                                                                         |
-| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `name`            | string  | The name of the ECS service. This is required by AWS but is not used by Consul service mesh.                        |
-| `task_definition` | string  | The task definition used to start tasks. Set this to the task definition ARN returned by the `mesh-task` module.    |
-| `launch_type`     | string  | The launch type. Consul on ECS supports the `FARGATE` and `EC2` launch types.                                       |
-| `propagate_tags`  | string  | This must be set to `TASK_DEFINITION` so that tags added by `mesh-task` to the task definition are copied to tasks. |
-
-After including the ECS service in your Terraform configuration, run `terraform apply`
-from your project directory to create the ECS service resource. The ECS service will
-soon start your application in a task. The task will automatically register itself
-into the Consul service catalog during startup.
-
--> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
-in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
-
-## Routing
+## Configure routes
 
 Now that your tasks are registered in the mesh, you're able to use the service
 mesh to route between them.
@@ -239,37 +408,42 @@ module "web" {
 }
 ```
 
-## Bind Address
+## Configure the bind address
 
 To ensure that your application only receives traffic through the service mesh,
-you must change the address that your application is listening on to only the loopback address
-(also known as `localhost`, `lo`, and `127.0.0.1`)
-so that only the sidecar proxy running in the same task can make requests to it.
+you must change the address that your application listens on to the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`.
+Binding to the loopback address allows the sidecar proxy running in the same task to only make requests within the service mesh.
 
-If your application is listening on all interfaces, e.g. `0.0.0.0`, then other
+If your application is listening on all interfaces, such as `0.0.0.0`, then other
 applications can call it directly, bypassing its sidecar proxy.
 
 Changing the listening address is specific to the language and framework you're
-using in your application. Regardless of which language/framework you're using,
-it's a good practice to make the address configurable via environment variable.
+using in your application. Regardless of which language or framework you're using,
+binding the loopback address to a dynamic value, such as an environment variable, is a best practice:
 
-For example in Go, you would use:
+```bash
+export BIND_ADDRESS="127.0.0.1:8080"
+```
+
+The following examples demonstrate how to bind the loopback address to an environment variable in golang and Django (Python):
+
+<CodeTabs>
 
 ```go
 s := &http.Server{
-	Addr:           "127.0.0.1:8080",
+	Addr: os.Getenv("BIND_ADDRESS"),
   ...
 }
 log.Fatal(s.ListenAndServe())
 ```
 
-In Django you'd use:
-
 ```bash
-python manage.py runserver "127.0.0.1:8080"
+python manage.py runserver "$BIND_ADDRESS"
 ```
 
-## Next Steps
+</CodeTabs>
+
+## Next steps
 
 - Follow the [Secure Configuration](/docs/ecs/terraform/secure-configuration) to get production-ready.
 - Now that your applications are running in the service mesh, read about

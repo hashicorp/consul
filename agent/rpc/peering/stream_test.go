@@ -655,6 +655,18 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
+	mongoSvcDefaults := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "mongo",
+		Protocol: "grpc",
+	}
+	require.NoError(t, mongoSvcDefaults.Normalize())
+	require.NoError(t, mongoSvcDefaults.Validate())
+	lastIdx++
+	require.NoError(t, store.EnsureConfigEntry(lastIdx, mongoSvcDefaults))
+
+	// NOTE: for this test we'll just live in a fantasy realm where we assume
+	// that mongo understands gRPC
 	var (
 		mongoSN      = structs.NewServiceName("mongo", nil).String()
 		mongoProxySN = structs.NewServiceName("mongo-sidecar-proxy", nil).String()
@@ -681,6 +693,8 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				},
 			},
 		}
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
 		lastIdx++
 		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
 
@@ -744,8 +758,13 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
 				require.Len(t, nodes.Nodes, 1)
 
-				svid := "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo"
-				require.Equal(t, []string{svid}, nodes.Nodes[0].Service.Connect.PeerMeta.SpiffeID)
+				pm := nodes.Nodes[0].Service.Connect.PeerMeta
+				require.Equal(t, "grpc", pm.Protocol)
+				spiffeIDs := []string{
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo",
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
+				}
+				require.Equal(t, spiffeIDs, pm.SpiffeID)
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
@@ -756,8 +775,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
 				require.Len(t, nodes.Nodes, 1)
 
-				svid := "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql"
-				require.Equal(t, []string{svid}, nodes.Nodes[0].Service.Connect.PeerMeta.SpiffeID)
+				pm := nodes.Nodes[0].Service.Connect.PeerMeta
+				require.Equal(t, "tcp", pm.Protocol)
+				spiffeIDs := []string{
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+				}
+				require.Equal(t, spiffeIDs, pm.SpiffeID)
 			},
 		)
 	})
@@ -800,6 +823,8 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				},
 			},
 		}
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
 		lastIdx++
 		err := store.EnsureConfigEntry(lastIdx, entry)
 		require.NoError(t, err)

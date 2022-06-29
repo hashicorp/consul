@@ -23,7 +23,7 @@ func (m *subscriptionManager) notifyExportedServicesForPeerID(ctx context.Contex
 	// match the list of services exported to the peer.
 	m.syncViaBlockingQuery(ctx, "exported-services", func(ctx context.Context, store Store, ws memdb.WatchSet) (interface{}, error) {
 		// Get exported services for peer id
-		_, list, err := store.ExportedServicesForPeer(ws, peerID)
+		_, list, err := store.ExportedServicesForPeer(ws, peerID, m.config.Datacenter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to watch exported services for peer %q: %w", peerID, err)
 		}

@@ -35,6 +35,10 @@ const (
 	dynamicForwardProxyClusterDNSCacheName = "dynamic_forward_proxy_cache_config"
 )
 
+const (
+	meshGatewayExportedClusterNamePrefix = "exported~"
+)
+
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
 func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
@@ -91,9 +95,9 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in endpoints.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
-		explicit := upstreamCfg.HasLocalPortOrSocket()
+		explicit := upstream.HasLocalPortOrSocket()
 		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -105,7 +109,14 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 			return nil, fmt.Errorf("no endpoint map for upstream %q", uid)
 		}
 
-		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, upstreamCfg, chain, chainEndpoints, cfgSnap)
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+			uid,
+			upstream,
+			chain,
+			chainEndpoints,
+			cfgSnap,
+			false,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -332,6 +343,13 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 	}
 	clusters = append(clusters, c...)
 
+	// Generate per-target clusters for all exported discovery chains.
+	c, err = s.makeExportedUpstreamClustersForMeshGateway(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	clusters = append(clusters, c...)
+
 	return clusters, nil
 }
 
@@ -535,7 +553,14 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 				return nil, fmt.Errorf("no endpoint map for upstream %q", uid)
 			}
 
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &u, chain, chainEndpoints, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+				uid,
+				&u,
+				chain,
+				chainEndpoints,
+				cfgSnap,
+				false,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -831,16 +856,22 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	chainEndpoints map[string]structs.CheckServiceNodes,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	forMeshGateway bool,
 ) ([]*envoy_cluster_v3.Cluster, error) {
 	if chain == nil {
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", uid)
 	}
 
-	configMap := make(map[string]interface{})
-	if upstream != nil {
-		configMap = upstream.Config
+	if uid.Peer != "" && forMeshGateway {
+		return nil, fmt.Errorf("impossible to get a peer discovery chain in a mesh gateway")
 	}
-	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
+
+	upstreamConfigMap := make(map[string]interface{})
+	if upstream != nil {
+		upstreamConfigMap = upstream.Config
+	}
+
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -849,18 +880,20 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	}
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
-	if cfg.EnvoyClusterJSON != "" {
-		if chain.Default {
-			// If you haven't done anything to setup the discovery chain, then
-			// you can use the envoy_cluster_json escape hatch.
-			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
-			if err != nil {
-				return nil, err
+	if !forMeshGateway {
+		if cfg.EnvoyClusterJSON != "" {
+			if chain.Default {
+				// If you haven't done anything to setup the discovery chain, then
+				// you can use the envoy_cluster_json escape hatch.
+				escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configured for",
+					"discovery chain", chain.ServiceName, "upstream", uid,
+					"envoy_cluster_json", chain.ServiceName)
 			}
-		} else {
-			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configured for",
-				"discovery chain", chain.ServiceName, "upstream", uid,
-				"envoy_cluster_json", chain.ServiceName)
 		}
 	}
 
@@ -875,21 +908,26 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		target := chain.Targets[targetID]
 
 		// Determine if we have to generate the entire cluster differently.
-		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
+		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node) && !forMeshGateway
 
 		sni := target.SNI
 		clusterName := CustomizeClusterName(target.Name, chain)
+		if forMeshGateway {
+			clusterName = meshGatewayExportedClusterNamePrefix + clusterName
+		}
 
 		// Get the SpiffeID for upstream SAN validation.
 		//
 		// For imported services the SpiffeID is embedded in the proxy instances.
 		// Whereas for local services we can construct the SpiffeID from the chain target.
 		var targetSpiffeID string
+		var additionalSpiffeIDs []string
 		if uid.Peer != "" {
 			for _, e := range chainEndpoints[targetID] {
 				targetSpiffeID = e.Service.Connect.PeerMeta.SpiffeID[0]
+				additionalSpiffeIDs = e.Service.Connect.PeerMeta.SpiffeID[1:]
 
-				// Only grab the first because it is the same for all instances.
+				// Only grab the first instance because it is the same for all instances.
 				break
 			}
 		} else {
@@ -916,7 +954,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		spiffeIDs := []string{targetSpiffeID}
+		spiffeIDs := append([]string{targetSpiffeID}, additionalSpiffeIDs...)
 		seenIDs := map[string]struct{}{
 			targetSpiffeID: {},
 		}
@@ -968,6 +1006,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					},
 				},
 			},
+			// TODO(peering): make circuit breakers or outlier detection work?
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
@@ -982,7 +1021,10 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", clusterName, err)
 		}
 
-		proto := cfg.Protocol
+		var proto string
+		if !forMeshGateway {
+			proto = cfg.Protocol
+		}
 		if proto == "" {
 			proto = chain.Protocol
 		}
@@ -997,30 +1039,38 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		rootPEMs := cfgSnap.RootPEMs()
-		if uid.Peer != "" {
-			rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
-		}
-		commonTLSContext := makeCommonTLSContext(
-			cfgSnap.Leaf(),
-			rootPEMs,
-			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
-		)
-
-		err = injectSANMatcher(commonTLSContext, spiffeIDs...)
-		if err != nil {
-			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+		configureTLS := true
+		if forMeshGateway {
+			// We only initiate TLS if we're doing an L7 proxy.
+			configureTLS = structs.IsProtocolHTTPLike(proto)
 		}
 
-		tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-			CommonTlsContext: commonTLSContext,
-			Sni:              sni,
+		if configureTLS {
+			rootPEMs := cfgSnap.RootPEMs()
+			if uid.Peer != "" {
+				rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+			}
+			commonTLSContext := makeCommonTLSContext(
+				cfgSnap.Leaf(),
+				rootPEMs,
+				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
+			)
+
+			err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+			if err != nil {
+				return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+			}
+
+			tlsContext := &envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: commonTLSContext,
+				Sni:              sni,
+			}
+			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+			if err != nil {
+				return nil, err
+			}
+			c.TransportSocket = transportSocket
 		}
-		transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
-		if err != nil {
-			return nil, err
-		}
-		c.TransportSocket = transportSocket
 
 		out = append(out, c)
 	}
@@ -1038,6 +1088,52 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	}
 
 	return out, nil
+}
+
+func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	// NOTE: Despite the mesh gateway already having one cluster per service
+	// (and subset) in the local datacenter we cannot reliably use those to
+	// send inbound peered traffic targeting a discovery chain.
+	//
+	// For starters, none of those add TLS so they'd be unusable for http-like
+	// L7 protocols.
+	//
+	// Additionally, those other clusters are all thin wrappers around simple
+	// catalog resolutions and are largely not impacted by various
+	// customizations related to a service-resolver, such as configuring the
+	// failover section.
+	//
+	// Instead we create brand new clusters solely to accept incoming peered
+	// traffic and give them a unique cluster prefix name to avoid collisions
+	// to keep the two use cases separate.
+	var clusters []proto.Message
+
+	createdExportedClusters := make(map[string]struct{}) // key=clusterName
+	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
+		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
+
+		exportClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+			proxycfg.NewUpstreamIDFromServiceName(svc),
+			nil,
+			chain,
+			nil,
+			cfgSnap,
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cluster := range exportClusters {
+			if _, ok := createdExportedClusters[cluster.Name]; ok {
+				continue
+			}
+			createdExportedClusters[cluster.Name] = struct{}{}
+			clusters = append(clusters, cluster)
+		}
+	}
+
+	return clusters, nil
 }
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.

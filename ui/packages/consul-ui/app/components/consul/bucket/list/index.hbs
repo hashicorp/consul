@@ -1,60 +1,12 @@
-{{#if (and @partition (can 'use partitions'))}}
-  {{#if (not-eq @item.Partition @partition)}}
-    <dl class="consul-bucket-list">
-      <dt
-        class="partition"
-        {{tooltip}}
-      >
-        Admin Partition
+{{#if this.itemsToDisplay.length}}
+  <dl class="consul-bucket-list">
+    {{#each this.itemsToDisplay as |item|}}
+      <dt class={{item.type}} {{tooltip}}>
+        {{item.label}}
       </dt>
-      <dd>
-        {{@item.Partition}}
+      <dd data-test-bucket-item={{item.type}}>
+        {{item.item}}
       </dd>
-      <dt
-        class="nspace"
-        {{tooltip}}
-      >
-        Namespace
-      </dt>
-      <dd>
-        {{@item.Namespace}}
-      </dd>
-
-{{#if (and @service @item.Service)}}
-      <dt
-        class="service"
-      >
-        Service
-      </dt>
-      <dd>
-        {{@item.Service}}
-      </dd>
-{{/if}}
-
-    </dl>
-  {{/if}}
-{{else if (and @nspace (can 'use nspace'))}}
-  {{#if (not-eq @item.Namespace @nspace)}}
-    <dl class="consul-bucket-list">
-      <dt
-        class="nspace"
-        {{tooltip}}
-      >
-        Namespace
-      </dt>
-      <dd>
-        {{@item.Namespace}}
-      </dd>
-{{#if (and @service @item.Service)}}
-      <dt
-        class="service"
-      >
-        Service
-      </dt>
-      <dd>
-        {{@item.Service}}
-      </dd>
-{{/if}}
-    </dl>
-  {{/if}}
+    {{/each}}
+  </dl>
 {{/if}}

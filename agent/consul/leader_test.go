@@ -2258,7 +2258,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	vip, err := state.VirtualIPForService(structs.NewServiceName("api", nil))
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("api", nil)}
+	vip, err := state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "", vip)
 
@@ -2287,7 +2288,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 
 	// Make sure the service referenced in the terminating gateway config doesn't have
 	// a virtual IP yet.
-	vip, err = state.VirtualIPForService(structs.NewServiceName("bar", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("bar", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "", vip)
 
@@ -2316,8 +2318,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-
-	vip, err = state.VirtualIPForService(structs.NewServiceName("api", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("api", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.1", vip)
 
@@ -2345,7 +2347,8 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 
 	// Make sure the baz service (only referenced in the config entry so far)
 	// has a virtual IP.
-	vip, err = state.VirtualIPForService(structs.NewServiceName("baz", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("baz", nil)}
+	vip, err = state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, "240.0.0.2", vip)
 }

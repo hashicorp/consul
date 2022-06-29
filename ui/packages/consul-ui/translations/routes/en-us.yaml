@@ -105,6 +105,17 @@ dc:
             <p>
               This node has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
             </p>
+  peers:
+    index:
+      detail:
+        imported:
+          count: |
+           {count} imported services
+          tooltip: The number of services imported from {name}
+        exported:
+          count: |
+           {count} exported services
+          tooltip: The number of services exported from {name}
   services:
     index:
       empty:

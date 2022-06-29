@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -289,4 +288,8 @@ func (t *DiscoveryTarget) String() string {
 
 func (t *DiscoveryTarget) ServiceID() ServiceID {
 	return NewServiceID(t.Service, t.GetEnterpriseMetadata())
+}
+
+func (t *DiscoveryTarget) ServiceName() ServiceName {
+	return NewServiceName(t.Service, t.GetEnterpriseMetadata())
 }

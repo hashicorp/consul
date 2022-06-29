@@ -333,12 +333,12 @@ ifeq ("$(GOTAGS)","")
 	@docker tag consul-dev:latest consul:local
 	@docker run --rm -t consul:local consul version
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./upgrade --target-version local --latest-version latest
+		go test -v -timeout=30m ./... --target-version local --latest-version latest
 else
 	@docker tag consul-dev:latest hashicorp/consul-enterprise:local
 	@docker run --rm -t hashicorp/consul-enterprise:local consul version
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./upgrade --tags $(GOTAGS) --target-version local --latest-version latest
+		go test -v -timeout=30m ./... --tags $(GOTAGS) --target-version local --latest-version latest
 endif
 
 .PHONY: test-metrics-integ

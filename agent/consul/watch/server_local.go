@@ -135,6 +135,16 @@ func ServerLocalBlockingQuery[ResultType any, StoreType StateStore](
 		ws.Add(state.AbandonCh())
 
 		index, result, err := query(ws, state)
+		// Always set a non-zero index. Generally we expect the index
+		// to be set to Raft index which can never be 0. If the query
+		// returned no results we expect it to be set to the max index of the table,
+		// however we can't guarantee this always happens.
+		// To prevent a client from accidentally performing many non-blocking queries
+		// (which causes lots of unnecessary load), we always set a default value of 1.
+		// This is sufficient to prevent the unnecessary load in most cases.
+		if index < 1 {
+			index = 1
+		}
 
 		switch {
 		case errors.Is(err, ErrorNotFound):

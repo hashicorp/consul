@@ -3,7 +3,7 @@
 as |route|>
 
   <DataLoader @src={{
-      uri '/${partition}/${nspace}/${dc}/services'
+    uri '/${partition}/${nspace}/${dc}/services'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace

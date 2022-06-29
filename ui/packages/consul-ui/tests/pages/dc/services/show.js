@@ -19,6 +19,7 @@ export default function(
     metricsAnchor: {
       href: attribute('href', '[data-test-metrics-anchor]'),
     },
+    peer: text('[data-test-service-peer-info] [data-test-peer-name]'),
     tabs: tabs('tab', [
       'topology',
       'instances',

@@ -490,8 +490,8 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	resp, err := client.TrustBundleListByService(context.Background(), &req)
 	require.NoError(t, err)
 	require.Len(t, resp.Bundles, 2)
-	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[0].RootPEMs)
-	require.Equal(t, []string{"bar-root-1"}, resp.Bundles[1].RootPEMs)
+	require.Equal(t, []string{"bar-root-1"}, resp.Bundles[0].RootPEMs)
+	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
 }
 
 func Test_StreamHandler_UpsertServices(t *testing.T) {
@@ -932,7 +932,11 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	testrpc.WaitForLeader(t, server.RPC, conf.Datacenter)
 
 	backend := consul.NewPeeringBackend(server, deps.GRPCConnPool)
-	handler := peering.NewService(deps.Logger, peering.Config{Datacenter: conf.Datacenter, ConnectEnabled: conf.ConnectEnabled}, backend)
+	handler := peering.NewService(testutil.Logger(t), peering.Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, backend)
+
 
 	grpcServer := gogrpc.NewServer()
 	pbpeering.RegisterPeeringServiceServer(grpcServer, handler)

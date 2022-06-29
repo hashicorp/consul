@@ -8,7 +8,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -1036,6 +1036,7 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	}
 
 	state := c.srv.fsm.State()
-	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
+	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+	*reply, err = state.VirtualIPForService(psn)
 	return err
 }
