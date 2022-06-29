@@ -8,6 +8,16 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *LogoutResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *LogoutResponse) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *LoginRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

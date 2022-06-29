@@ -74,15 +74,15 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 func convertToResponseServiceKind(serviceKind structs.ServiceKind) (respKind pbdataplane.ServiceKind) {
 	switch serviceKind {
 	case structs.ServiceKindConnectProxy:
-		respKind = pbdataplane.ServiceKind_CONNECT_PROXY
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_CONNECT_PROXY
 	case structs.ServiceKindMeshGateway:
-		respKind = pbdataplane.ServiceKind_MESH_GATEWAY
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_MESH_GATEWAY
 	case structs.ServiceKindTerminatingGateway:
-		respKind = pbdataplane.ServiceKind_TERMINATING_GATEWAY
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TERMINATING_GATEWAY
 	case structs.ServiceKindIngressGateway:
-		respKind = pbdataplane.ServiceKind_INGRESS_GATEWAY
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_INGRESS_GATEWAY
 	case structs.ServiceKindTypical:
-		respKind = pbdataplane.ServiceKind_TYPICAL
+		respKind = pbdataplane.ServiceKind_SERVICE_KIND_TYPICAL
 	}
 	return
 }

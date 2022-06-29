@@ -173,10 +173,10 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	cancel() // Shutdown
 
 	err = consumeSub(context.Background(), sub1)
-	require.Equal(t, err, ErrSubForceClosed)
+	require.Equal(t, err, ErrShuttingDown)
 
 	_, err = sub2.Next(context.Background())
-	require.Equal(t, err, ErrSubForceClosed)
+	require.Equal(t, err, ErrShuttingDown)
 }
 
 func consumeSub(ctx context.Context, sub *Subscription) error {

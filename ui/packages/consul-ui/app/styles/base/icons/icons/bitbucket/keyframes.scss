@@ -1,15 +1,9 @@
 @keyframes icon-bitbucket {
-  50% {
-
-    background-color: var(--icon-color, var(--color-bitbucket-500, currentColor));
-    -webkit-mask-image: var(--icon-bitbucket-color-24);
-    mask-image: var(--icon-bitbucket-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-bitbucket-500, currentColor));
     -webkit-mask-image: var(--icon-bitbucket-color-16);
     mask-image: var(--icon-bitbucket-color-16);
+    background-color: var(--icon-color, var(--color-bitbucket-500, currentColor));
+
   }
 }

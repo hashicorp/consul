@@ -1,15 +1,9 @@
 @keyframes icon-discussion-circle {
-  50% {
-
-    background-color: var(--icon-color, var(--color-discussion-circle-500, currentColor));
-    -webkit-mask-image: var(--icon-discussion-circle-24);
-    mask-image: var(--icon-discussion-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-discussion-circle-500, currentColor));
     -webkit-mask-image: var(--icon-discussion-circle-16);
     mask-image: var(--icon-discussion-circle-16);
+    background-color: var(--icon-color, var(--color-discussion-circle-500, currentColor));
+
   }
 }

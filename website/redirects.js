@@ -77,6 +77,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/api-docs/acl/acl',
+    destination: '/api-docs/acl',
+    permanent: true,
+  },
+  {
     source: '/api-docs/acl-legacy',
     destination: '/api-docs/acl/legacy',
     permanent: true,
@@ -1104,7 +1109,12 @@ module.exports = [
   },
   {
     source: '/docs/k8s/upgrade/compatibility',
-    destination: '/docs/k8s/installation/compatibility',
+    destination: '/docs/k8s/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/compatibility',
+    destination: '/docs/k8s/compatibility',
     permanent: true,
   },
   {

@@ -27,12 +27,19 @@ import (
 )
 
 func New(ui cli.Ui) *cmd {
+	buildDate, err := time.Parse(time.RFC3339, consulversion.BuildDate)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Fatal error with internal time set; check makefile for build date %v %v \n", buildDate, err))
+		return nil
+	}
+
 	c := &cmd{
 		ui:                ui,
 		revision:          consulversion.GitCommit,
 		version:           consulversion.Version,
 		versionPrerelease: consulversion.VersionPrerelease,
 		versionHuman:      consulversion.GetHumanVersion(),
+		buildDate:         buildDate,
 		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
 	config.AddFlags(c.flags, &c.configLoadOpts)
@@ -53,6 +60,7 @@ type cmd struct {
 	version           string
 	versionPrerelease string
 	versionHuman      string
+	buildDate         time.Time
 	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
 }
@@ -194,6 +202,10 @@ func (c *cmd) run(args []string) int {
 		segment = "<all>"
 	}
 	ui.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	if strings.Contains(c.versionHuman, "dev") {
+		ui.Info(fmt.Sprintf("      Revision: '%s'", c.revision))
+	}
+	ui.Info(fmt.Sprintf("    Build Date: '%s'", c.buildDate))
 	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
 	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {

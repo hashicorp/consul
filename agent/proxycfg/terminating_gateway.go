@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -18,7 +17,7 @@ type handlerTerminatingGateway struct {
 func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -29,7 +28,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	}
 
 	// Get information about the entire service mesh.
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.MeshConfig,
 		Name:           structs.MeshConfigMesh,
 		Datacenter:     s.source.Datacenter,
@@ -41,7 +40,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	}
 
 	// Watch for the terminating-gateway's linked services
-	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
+	err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
@@ -64,11 +63,12 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	snap.TerminatingGateway.ServiceResolversSet = make(map[structs.ServiceName]bool)
 	snap.TerminatingGateway.ServiceGroups = make(map[structs.ServiceName]structs.CheckServiceNodes)
 	snap.TerminatingGateway.GatewayServices = make(map[structs.ServiceName]structs.GatewayService)
+	snap.TerminatingGateway.DestinationServices = make(map[structs.ServiceName]structs.GatewayService)
 	snap.TerminatingGateway.HostnameServices = make(map[structs.ServiceName]structs.CheckServiceNodes)
 	return snap, nil
 }
 
-func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -112,12 +112,17 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			svcMap[svc.Service] = struct{}{}
 
 			// Store the gateway <-> service mapping for TLS origination
-			snap.TerminatingGateway.GatewayServices[svc.Service] = *svc
+			if svc.ServiceKind == structs.GatewayServiceKindDestination {
+				snap.TerminatingGateway.DestinationServices[svc.Service] = *svc
+			} else {
+				snap.TerminatingGateway.GatewayServices[svc.Service] = *svc
+			}
 
 			// Watch the health endpoint to discover endpoints for the service
-			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
+			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Service.Name,
@@ -142,7 +147,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			// The gateway will enforce intentions for connections to the service
 			if _, ok := snap.TerminatingGateway.WatchedIntentions[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.IntentionMatchName, &structs.IntentionQueryRequest{
+				err := s.dataSources.Intentions.Notify(ctx, &structs.IntentionQueryRequest{
 					Datacenter:   s.source.Datacenter,
 					QueryOptions: structs.QueryOptions{Token: s.token},
 					Match: &structs.IntentionQueryMatch{
@@ -172,7 +177,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			// This cert is used to terminate mTLS connections on the service's behalf
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        svc.Service.Name,
@@ -194,7 +199,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			// These are used to determine the protocol for the target service.
 			if _, ok := snap.TerminatingGateway.WatchedConfigs[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, &structs.ServiceConfigRequest{
+				err := s.dataSources.ResolvedServiceConfig.Notify(ctx, &structs.ServiceConfigRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					Name:           svc.Service.Name,
@@ -214,9 +219,10 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 
 			// Watch service resolvers for the service
 			// These are used to create clusters and endpoints for the service subsets
-			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok {
+			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.cache.Notify(ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
+				err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					Kind:           structs.ServiceResolver,
@@ -240,6 +246,13 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 		for sn := range snap.TerminatingGateway.GatewayServices {
 			if _, ok := svcMap[sn]; !ok {
 				delete(snap.TerminatingGateway.GatewayServices, sn)
+			}
+		}
+
+		// Delete endpoint service mapping for services that were not in the update
+		for sn := range snap.TerminatingGateway.DestinationServices {
+			if _, ok := svcMap[sn]; !ok {
+				delete(snap.TerminatingGateway.DestinationServices, sn)
 			}
 		}
 
@@ -340,16 +353,15 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 		snap.TerminatingGateway.ServiceConfigs[sn] = serviceConfig
 
 	case strings.HasPrefix(u.CorrelationID, serviceResolverIDPrefix):
-		configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
+
 		sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, serviceResolverIDPrefix))
 		// There should only ever be one entry for a service resolver within a namespace
-		if len(configEntries.Entries) == 1 {
-			if resolver, ok := configEntries.Entries[0].(*structs.ServiceResolverConfigEntry); ok {
-				snap.TerminatingGateway.ServiceResolvers[sn] = resolver
-			}
+		if resolver, ok := resp.Entry.(*structs.ServiceResolverConfigEntry); ok {
+			snap.TerminatingGateway.ServiceResolvers[sn] = resolver
 		}
 		snap.TerminatingGateway.ServiceResolversSet[sn] = true
 

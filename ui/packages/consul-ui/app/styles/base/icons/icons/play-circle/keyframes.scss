@@ -1,15 +1,9 @@
 @keyframes icon-play-circle {
-  50% {
-
-    background-color: var(--icon-color, var(--color-play-circle-500, currentColor));
-    -webkit-mask-image: var(--icon-play-circle-24);
-    mask-image: var(--icon-play-circle-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-play-circle-500, currentColor));
     -webkit-mask-image: var(--icon-play-circle-16);
     mask-image: var(--icon-play-circle-16);
+    background-color: var(--icon-color, var(--color-play-circle-500, currentColor));
+
   }
 }

@@ -2,6 +2,7 @@
    "Version": "1.99.3",
    "Revision": "5e5dbedd47a5f875b60e241c5555a9caab595246",
    "Prerelease": "beta1",
+   "BuildDate": "2022-06-01T13:18:45Z",
    "RPC": {
       "Default": 2,
       "Min": 1,

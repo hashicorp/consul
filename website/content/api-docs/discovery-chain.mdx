@@ -26,10 +26,10 @@ Management](/docs/connect/l7-traffic).
 If overrides are needed they are passed as the JSON-encoded request body and
 the `POST` method must be used, otherwise `GET` is sufficient.
 
-| Method             | Path                        | Produces           |
-| ------------------ | --------------------------- | ------------------ |
-| `GET`              | `/discovery-chain/:service` | `application/json` |
-| `POST`<sup>1</sup> | `/discovery-chain/:service` | `application/json` |
+| Method             | Path                             | Produces           |
+| ------------------ | -------------------------------- | ------------------ |
+| `GET`              | `/discovery-chain/:service_name` | `application/json` |
+| `POST`<sup>1</sup> | `/discovery-chain/:service_name` | `application/json` |
 
 <p>
   <sup>1</sup> Both GET and POST are for <strong>read</strong> operations. GET
@@ -47,27 +47,25 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | -------------------- | -------------- |
 | `YES`            | `all`             | `background refresh` | `service:read` |
 
-### URL Parameters
+### Path Parameters
 
-- `service` `(string: <required>)` - Specifies the service to query when
-  compiling the discovery chain. This is provided as part of the URL.
+- `service_name` `(string: <required>)` - Specifies the service to query when
+  compiling the discovery chain.
+
+### Query Parameters
 
 - `compile-dc` `(string: "")` - Specifies the datacenter to use as the basis of
   compilation. This will default to the datacenter of the agent being queried.
-  This is specified as part of the URL as a query parameter.
 
   This value comes from an [upstream
   configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
   [`datacenter`](/docs/connect/registration/service-registration#datacenter)
   parameter.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace
-  to use as the basis of compilation. This value can be specified as the `ns`
-  URL query parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace you use as the basis of compilation.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-### POST Body Parameters
+### JSON Request Body Schema
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
   timeout](/docs/connect/config-entries/service-resolver#connecttimeout) for
@@ -568,3 +566,13 @@ Response:
   }
 }
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+The discovery chain endpoint
+supports several methods for specifying the namespace to use as the basis of discovery chain compilation
+with the following order of precedence:
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

@@ -79,8 +79,6 @@ Service identities are used during the authorization process to automatically ge
 
 Use the following syntax to define a service identity:
 
-<CodeTabs>
-
 ```json
 {
   "ServiceIdentities": [
@@ -91,16 +89,6 @@ Use the following syntax to define a service identity:
   ]
 }
 ```
-
-
-```hcl
-"ServiceIdentities" = {
-  "ServiceName" = "<service name>"
-  "Datacenters" = ["<datacenter name>"]
-}
-```
-
-</CodeTabs>
 
 - `ServiceIdentities`: Declares a service identity block.
 - `ServiceIdentities.ServiceName`: String value that specifies the name of the service you want to associate with the policy.
@@ -136,28 +124,6 @@ Refer to the [rules reference](/docs/security/acl/acl-rules) for information abo
 
 The following role configuration contains service identities for the `web` and `db` services. Note that the `db` service is also scoped to the `dc1` datacenter so that the policy will only be applied to instances of `db` in `dc1`.
 
-<CodeTabs>
-<CodeBlockConfig filename="example-role.hcl">
-
-```hcl
-Description = "Showcases all input parameters"
-Name = "example-role"
-Policies = {
-  ID = "783beef3-783f-f41f-7422-7087dc272765"
-}
-Policies = {
-  Name = "node-read"
-}
-ServiceIdentities = {
-  ServiceName = "web"
-}
-ServiceIdentities = {
-  Datacenters = ["dc1"]
-  ServiceName = "db"
-}
-```
-
-</CodeBlockConfig>
 <CodeBlockConfig filename="example-role.json">
 
 ```json
@@ -191,7 +157,6 @@ ServiceIdentities = {
 ```
 
 </CodeBlockConfig>
-</CodeTabs>
 
 During the authorization process, the following policies for the `web` and `db` services will be generated and linked to the token:
 
@@ -243,17 +208,13 @@ node_prefix "" {
 
 ## Node Identities
 
-<!-- -> Added in Consul 1.8.1 -- remove and lean on doc version? -->
-
-You can specify a node identity when configuring roles or linking tokens to policies. _Node_ commonly refers to a Consul agent, but a node can also be a physical server, cloud instance, virtual machine, or container. 
+You can specify a node identity when configuring roles or linking tokens to policies. _Node_ commonly refers to a Consul agent, but a node can also be a physical server, cloud instance, virtual machine, or container.
 
 Node identities enable you to quickly construct policies for nodes, rather than manually creating identical polices for each node. They are used during the authorization process to automatically generate a policy for the node(s) specified. You can specify the token linked to the policy in the [`acl_tokens_agent`](/docs/agent/options#acl_tokens_agent) field when configuring the agent.
 
 ### Node Identity Specification
 
 Use the following syntax to define a node identity:
-
-<CodeTabs>
 
 ```json
 {
@@ -265,16 +226,6 @@ Use the following syntax to define a node identity:
   ]
 }
 ```
-
-
-```hcl
-NodeIdentities = {
-  NodeName = "<node name>"
-  Datacenter = "<datacenter name>"
-}
-```
-
-</CodeTabs>
 
 - `NodeIdentities`: Declares a node identity block.
 - `NodeIdentities.NodeName`: String value that specifies the name of the node you want to associate with the policy.
@@ -306,25 +257,6 @@ Refer to the [rules reference](/docs/security/acl/acl-rules) for information abo
 
 The following role configuration contains a node identity for `node-1`. Note that the node identity is also scoped to the `dc2` datacenter. As a result, the policy will only be applied to nodes named `node-1` in `dc2`.
 
-<CodeTabs>
-<CodeBlockConfig filename="example-role.hcl">
-
-```hcl
-Description = "Showcases all input parameters"
-Name = "example-role"
-NodeIdentities = {
-  Datacenter = "dc2"
-  NodeName = "node-1",
-}
-Policies = {
-  ID = "783beef3-783f-f41f-7422-7087dc272765"
-}
-Policies = {
-  Name = "node-read"
-}
-```
-
-</CodeBlockConfig>
 <CodeBlockConfig filename="example-role.json">
 
 ```json
@@ -349,7 +281,6 @@ Policies = {
 ```
 
 </CodeBlockConfig>
-</CodeTabs>
 
 During the authorization process, the following policy will be generated and linked to the token:
 

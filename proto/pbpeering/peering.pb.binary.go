@@ -108,6 +108,46 @@ func (msg *PeeringDeleteResponse) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *TrustBundleListByServiceRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *TrustBundleListByServiceRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *TrustBundleListByServiceResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *TrustBundleListByServiceResponse) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *TrustBundleReadRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *TrustBundleReadRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *TrustBundleReadResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *TrustBundleReadResponse) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *PeeringTerminateByIDRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -188,22 +228,22 @@ func (msg *GenerateTokenResponse) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InitiateRequest) MarshalBinary() ([]byte, error) {
+func (msg *EstablishRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InitiateRequest) UnmarshalBinary(b []byte) error {
+func (msg *EstablishRequest) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *InitiateResponse) MarshalBinary() ([]byte, error) {
+func (msg *EstablishResponse) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *InitiateResponse) UnmarshalBinary(b []byte) error {
+func (msg *EstablishResponse) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
@@ -244,5 +284,15 @@ func (msg *ReplicationMessage_Terminated) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *ReplicationMessage_Terminated) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *LeaderAddress) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *LeaderAddress) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

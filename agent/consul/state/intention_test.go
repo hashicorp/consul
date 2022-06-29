@@ -1199,6 +1199,197 @@ func TestStore_IntentionsList(t *testing.T) {
 	})
 }
 
+// TestStore_IntentionExact_ConfigEntries test that we can get a local config entry intention
+// and a peered config entry intention with an IntentionGetExact call
+func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
+	s := testConfigStateStore(t)
+	inputs := []*structs.ServiceIntentionsConfigEntry{
+		{
+			Kind: structs.ServiceIntentions,
+			Name: "foo",
+			Sources: []*structs.SourceIntention{
+				{
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Peer:        "peer1",
+					Description: "peered service intention",
+				},
+				{
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Description: "local service intention",
+				},
+			},
+		},
+	}
+	idx := uint64(0)
+
+	for _, input := range inputs {
+		require.NoError(t, input.Normalize())
+		require.NoError(t, input.Validate())
+		idx++
+		require.NoError(t, s.EnsureConfigEntry(idx, input))
+	}
+
+	t.Run("assert that we can get the peered intention", func(t *testing.T) {
+		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
+			SourceNS:        "default",
+			SourceName:      "bar",
+			SourcePeer:      "peer1",
+			DestinationNS:   "default",
+			DestinationName: "foo",
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+		require.NotNil(t, ixn)
+		require.Equal(t, "peer1", ixn.SourcePeer)
+		require.Equal(t, "peered service intention", ixn.Description)
+		require.Equal(t, uint64(1), idx)
+	})
+
+	t.Run("assert that we can get the local intention", func(t *testing.T) {
+		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
+			SourceNS:        "default",
+			SourceName:      "bar",
+			DestinationNS:   "default",
+			DestinationName: "foo",
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+		require.NotNil(t, ixn)
+		require.Empty(t, ixn.SourcePeer)
+		require.Equal(t, "local service intention", ixn.Description)
+		require.Equal(t, uint64(1), idx)
+	})
+}
+
+func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
+	type testcase struct {
+		name   string
+		input  []*structs.ServiceIntentionsConfigEntry
+		query  structs.IntentionQueryMatch
+		expect []structs.Intentions
+	}
+	run := func(t *testing.T, tc testcase) {
+		s := testConfigStateStore(t)
+		idx := uint64(0)
+		for _, conf := range tc.input {
+			require.NoError(t, conf.Normalize())
+			require.NoError(t, conf.Validate())
+			idx++
+			require.NoError(t, s.EnsureConfigEntry(idx, conf))
+		}
+
+		_, matches, err := s.IntentionMatch(nil, &tc.query)
+		require.NoError(t, err)
+
+		// clear raft indexes for easier comparison
+		for _, match := range matches {
+			for _, ixn := range match {
+				ixn.CreateIndex = 0
+				ixn.ModifyIndex = 0
+			}
+		}
+		require.Equal(t, tc.expect, matches)
+	}
+	tcs := []testcase{
+		{
+			name: "peered intention matched with destination query",
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "foo",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "example",
+							Peer:   "bar",
+						},
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "*",
+							Peer:   "baz",
+						},
+					},
+				},
+			},
+			query: structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchDestination,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						Namespace: "default",
+						Name:      "foo",
+					},
+				},
+			},
+			expect: []structs.Intentions{
+				{
+					{
+						Action:               structs.IntentionActionAllow,
+						SourceType:           structs.IntentionSourceConsul,
+						DestinationPartition: acl.DefaultPartitionName,
+						DestinationNS:        "default",
+						DestinationName:      "foo",
+						SourcePeer:           "bar",
+						SourceNS:             "default",
+						SourceName:           "example",
+						SourcePartition:      "", // note that SourcePartition does not get normalized
+						Precedence:           9,
+					},
+					{
+						Action:               structs.IntentionActionAllow,
+						SourceType:           structs.IntentionSourceConsul,
+						DestinationPartition: acl.DefaultPartitionName,
+						DestinationNS:        "default",
+						DestinationName:      "foo",
+						SourcePeer:           "baz",
+						SourceNS:             "default",
+						SourceName:           "*",
+						SourcePartition:      "", // note that SourcePartition does not get normalized
+						Precedence:           8,
+					},
+				},
+			},
+		},
+		{
+			// This behavior may change in the future but this test is in place
+			// to ensure peered intentions cannot accidentally be queried by source
+			name: "peered intention cannot be queried by source",
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "foo",
+					Sources: []*structs.SourceIntention{
+						{
+							Action: structs.IntentionActionAllow,
+							Name:   "example",
+							Peer:   "bar",
+						},
+					},
+				},
+			},
+			query: structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchSource,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						// We don't expose a Peer field
+						Namespace: "default",
+						Name:      "example",
+					},
+				},
+			},
+			expect: []structs.Intentions{nil},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 // Test the matrix of match logic.
 //
 // Note that this doesn't need to test the intention sort logic exhaustively
@@ -1533,7 +1724,7 @@ func TestStore_IntentionMatchOne_table(t *testing.T) {
 					Namespace: "default",
 					Name:      query,
 				}
-				_, matches, err := s.IntentionMatchOne(nil, entry, typ)
+				_, matches, err := s.IntentionMatchOne(nil, entry, typ, structs.IntentionTargetService)
 				require.NoError(t, err)
 
 				// Verify matches
@@ -1873,7 +2064,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 				Partition: acl.DefaultPartitionName,
 				Name:      tc.src,
 			}
-			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource, structs.IntentionTargetService)
 			if err != nil {
 				require.NoError(t, err)
 			}
@@ -2185,7 +2376,197 @@ func TestStore_IntentionTopology(t *testing.T) {
 				idx++
 			}
 
-			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision)
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetService)
+			require.NoError(t, err)
+			require.Equal(t, tt.expect.idx, idx)
+
+			// ServiceList is from a map, so it is not deterministically sorted
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].String() < got[j].String()
+			})
+			require.Equal(t, tt.expect.services, got)
+		})
+	}
+}
+
+func TestStore_IntentionTopology_Destination(t *testing.T) {
+	node := structs.Node{
+		Node:    "foo",
+		Address: "127.0.0.1",
+	}
+
+	services := []structs.NodeService{
+		{
+			ID:             structs.ConsulServiceID,
+			Service:        structs.ConsulServiceName,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			ID:             "web-1",
+			Service:        "web",
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			ID:             "mysql-1",
+			Service:        "mysql",
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+	}
+	destinations := []structs.ServiceConfigEntry{
+		{
+			Name:           "api.test.com",
+			Destination:    &structs.DestinationConfig{},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+		{
+			Name:           "kafka.store.org",
+			Destination:    &structs.DestinationConfig{},
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		},
+	}
+
+	type expect struct {
+		idx      uint64
+		services structs.ServiceList
+	}
+	tests := []struct {
+		name            string
+		defaultDecision acl.EnforcementDecision
+		intentions      []structs.ServiceIntentionsConfigEntry
+		target          structs.ServiceName
+		downstreams     bool
+		expect          expect
+	}{
+		{
+			name:            "(upstream) acl allow all but intentions deny one, destination target",
+			defaultDecision: acl.Allow,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api.test.com",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionDeny,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "kafka.store.org",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(upstream) acl deny all intentions allow one, destination target",
+			defaultDecision: acl.Deny,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "kafka.store.org",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "kafka.store.org",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(upstream) acl deny all check only destinations show, service target",
+			defaultDecision: acl.Deny,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx:      7,
+				services: structs.ServiceList{},
+			},
+		},
+		{
+			name:            "(upstream) acl allow all check only destinations show, service target",
+			defaultDecision: acl.Allow,
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 7,
+				services: structs.ServiceList{
+					{
+						Name:           "api.test.com",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+					{
+						Name:           "kafka.store.org",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testConfigStateStore(t)
+
+			var idx uint64 = 1
+			require.NoError(t, s.EnsureNode(idx, &node))
+			idx++
+
+			for _, svc := range services {
+				require.NoError(t, s.EnsureService(idx, "foo", &svc))
+				idx++
+			}
+			for _, d := range destinations {
+				require.NoError(t, s.EnsureConfigEntry(idx, &d))
+				idx++
+			}
+			for _, ixn := range tt.intentions {
+				require.NoError(t, s.EnsureConfigEntry(idx, &ixn))
+				idx++
+			}
+
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetDestination)
 			require.NoError(t, err)
 			require.Equal(t, tt.expect.idx, idx)
 
@@ -2211,7 +2592,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	target := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	ws := memdb.NewWatchSet()
-	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), index)
 	require.Empty(t, got)
@@ -2233,7 +2614,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 
 	// Reset the WatchSet
 	ws = memdb.NewWatchSet()
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), index)
 	require.Empty(t, got)
@@ -2255,7 +2636,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	// require.False(t, watchFired(ws))
 
 	// Result should not have changed
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), index)
 	require.Empty(t, got)
@@ -2270,7 +2651,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	require.True(t, watchFired(ws))
 
 	// Reset the WatchSet
-	index, got, err = s.IntentionTopology(nil, target, false, acl.Deny)
+	index, got, err = s.IntentionTopology(nil, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), index)
 

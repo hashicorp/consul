@@ -6,9 +6,22 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 )
 
-func TestAuthorizerServiceWriteAny(t *testing.T) acl.Authorizer {
+func TestAuthorizerAllowAll(t *testing.T) resolver.Result {
+	t.Helper()
+
+	return resolver.Result{Authorizer: acl.AllowAll()}
+}
+
+func TestAuthorizerDenyAll(t *testing.T) resolver.Result {
+	t.Helper()
+
+	return resolver.Result{Authorizer: acl.DenyAll()}
+}
+
+func TestAuthorizerServiceWriteAny(t *testing.T) resolver.Result {
 	t.Helper()
 
 	policy, err := acl.NewPolicyFromSource(`
@@ -21,10 +34,10 @@ func TestAuthorizerServiceWriteAny(t *testing.T) acl.Authorizer {
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	require.NoError(t, err)
 
-	return authz
+	return resolver.Result{Authorizer: authz}
 }
 
-func TestAuthorizerServiceRead(t *testing.T, serviceName string) acl.Authorizer {
+func TestAuthorizerServiceRead(t *testing.T, serviceName string) resolver.Result {
 	t.Helper()
 
 	aclRule := &acl.Policy{
@@ -40,5 +53,5 @@ func TestAuthorizerServiceRead(t *testing.T, serviceName string) acl.Authorizer 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
 	require.NoError(t, err)
 
-	return authz
+	return resolver.Result{Authorizer: authz}
 }

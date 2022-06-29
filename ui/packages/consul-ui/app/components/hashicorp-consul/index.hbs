@@ -81,7 +81,7 @@
 
   <:home-nav>
     <a
-      href={{href-to 'index'}}
+      href={{href-to 'index' params=(hash peer=undefined)}}
     ><Consul::Logo /></a>
   </:home-nav>
 
@@ -115,7 +115,7 @@
           }}
         >
           <Action
-            @href={{href-to 'dc.show' @dc.Name}}
+            @href={{href-to 'dc.show' @dc.Name params=(hash peer=undefined)}}
           >
             Overview
           </Action>
@@ -123,22 +123,22 @@
 {{/if}}
 {{#if (can "read services")}}
         <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
-            <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
+            <a href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}>Services</a>
         </li>
 {{/if}}
 {{#if (can "read nodes")}}
         <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
-            <a href={{href-to 'dc.nodes' @dc.Name}}>Nodes</a>
+            <a href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}>Nodes</a>
         </li>
 {{/if}}
 {{#if (can "read kv")}}
         <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
-            <a href={{href-to 'dc.kv' @dc.Name}}>Key/Value</a>
+            <a href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}>Key/Value</a>
         </li>
 {{/if}}
 {{#if (can "read intentions")}}
         <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
-            <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
+            <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
         </li>
 {{/if}}
         <Consul::Acl::Selector
@@ -146,6 +146,14 @@
           @partition={{@partition}}
           @nspace={{@nspace}}
         />
+        {{#if (feature-flag "peering")}}
+          <li role="separator">
+            Organization
+          </li>
+          <li data-test-main-nav-peers class={{if (is-href 'dc.peers' @dc.Name) 'is-active' }}>
+            <a href={{href-to 'dc.peers' @dc.Name params=(hash peer=undefined)}}>Peers</a>
+          </li>
+      {{/if}}
     </ul>
   </:main-nav>
 

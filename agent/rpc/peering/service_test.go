@@ -16,22 +16,27 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
-
-	grpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/resolver"
-	"github.com/hashicorp/consul/proto/prototest"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/state"
+	grpc "github.com/hashicorp/consul/agent/grpc/private"
+	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -108,7 +113,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	require.Equal(t, expect, peers[0])
 }
 
-func TestPeeringService_Initiate(t *testing.T) {
+func TestPeeringService_Establish(t *testing.T) {
 	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
 	validTokenJSON, _ := json.Marshal(&validToken)
 	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
@@ -119,8 +124,8 @@ func TestPeeringService_Initiate(t *testing.T) {
 
 	type testcase struct {
 		name          string
-		req           *pbpeering.InitiateRequest
-		expectResp    *pbpeering.InitiateResponse
+		req           *pbpeering.EstablishRequest
+		expectResp    *pbpeering.EstablishResponse
 		expectPeering *pbpeering.Peering
 		expectErr     string
 	}
@@ -128,7 +133,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
-		resp, err := client.Initiate(ctx, tc.req)
+		resp, err := client.Establish(ctx, tc.req)
 		if tc.expectErr != "" {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
@@ -156,12 +161,12 @@ func TestPeeringService_Initiate(t *testing.T) {
 	tcs := []testcase{
 		{
 			name:      "invalid peer name",
-			req:       &pbpeering.InitiateRequest{PeerName: "--AA--"},
+			req:       &pbpeering.EstablishRequest{PeerName: "--AA--"},
 			expectErr: "--AA-- is not a valid peer name",
 		},
 		{
 			name: "invalid token (base64)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "+++/+++",
 			},
@@ -169,7 +174,7 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "invalid token (JSON)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "Cg==", // base64 of "-"
 			},
@@ -177,15 +182,15 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "invalid token (empty)",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: "e30K", // base64 of "{}"
 			},
-			expectErr: "peering token CA value is empty",
+			expectErr: "peering token server addresses value is empty",
 		},
 		{
 			name: "too many meta tags",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
 				Meta:         generateTooManyMetaKeys(),
@@ -194,12 +199,12 @@ func TestPeeringService_Initiate(t *testing.T) {
 		},
 		{
 			name: "success",
-			req: &pbpeering.InitiateRequest{
+			req: &pbpeering.EstablishRequest{
 				PeerName:     "peer1-usw1",
 				PeeringToken: validTokenB64,
 				Meta:         map[string]string{"foo": "bar"},
 			},
-			expectResp: &pbpeering.InitiateResponse{},
+			expectResp: &pbpeering.EstablishResponse{},
 			expectPeering: peering.TestPeering(
 				"peer1-usw1",
 				pbpeering.PeeringState_INITIAL,
@@ -213,17 +218,21 @@ func TestPeeringService_Initiate(t *testing.T) {
 		})
 	}
 }
+
 func TestPeeringService_Read(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
 
 	// insert peering directly to state store
 	p := &pbpeering.Peering{
-		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
-		PeerCAPems:          nil,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_INITIAL,
+		PeerCAPems:           nil,
+		PeerServerName:       "test",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	err := s.Server.FSM().State().PeeringWrite(10, p)
 	require.NoError(t, err)
@@ -269,6 +278,41 @@ func TestPeeringService_Read(t *testing.T) {
 	}
 }
 
+func TestPeeringService_Delete(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+
+	p := &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}
+	err := s.Server.FSM().State().PeeringWrite(10, p)
+	require.NoError(t, err)
+	require.Nil(t, p.DeletedAt)
+	require.True(t, p.IsActive())
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	_, err = client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{Name: "foo"})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		_, resp, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "foo"})
+		require.NoError(r, err)
+
+		// Initially the peering will be marked for deletion but eventually the leader
+		// routine will clean it up.
+		require.Nil(r, resp)
+	})
+}
+
 func TestPeeringService_List(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
@@ -277,19 +321,25 @@ func TestPeeringService_List(t *testing.T) {
 	// Note that the state store holds reference to the underlying
 	// variables; do not modify them after writing.
 	foo := &pbpeering.Peering{
-		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
-		PeerCAPems:          nil,
-		PeerServerName:      "fooservername",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_INITIAL,
+		PeerCAPems:           nil,
+		PeerServerName:       "fooservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
 	bar := &pbpeering.Peering{
-		Name:                "bar",
-		State:               pbpeering.PeeringState_ACTIVE,
-		PeerCAPems:          nil,
-		PeerServerName:      "barservername",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "bar",
+		State:                pbpeering.PeeringState_ACTIVE,
+		PeerCAPems:           nil,
+		PeerServerName:       "barservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, bar))
 
@@ -305,6 +355,530 @@ func TestPeeringService_List(t *testing.T) {
 		Peerings: []*pbpeering.Peering{bar, foo},
 	}
 	prototest.AssertDeepEqual(t, expect, resp)
+}
+
+func TestPeeringService_TrustBundleRead(t *testing.T) {
+	srv := newTestServer(t, nil)
+	store := srv.Server.FSM().State()
+	client := pbpeering.NewPeeringServiceClient(srv.ClientConn(t))
+
+	var lastIdx uint64 = 1
+	_ = setupTestPeering(t, store, "my-peering", lastIdx)
+
+	mysql := &structs.CheckServiceNode{
+		Node: &structs.Node{
+			Node:     "node1",
+			Address:  "10.0.0.1",
+			PeerName: "my-peering",
+		},
+		Service: &structs.NodeService{
+			ID:       "mysql-1",
+			Service:  "mysql",
+			Port:     5000,
+			PeerName: "my-peering",
+		},
+	}
+
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, mysql.Node))
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, mysql.Node.Node, mysql.Service))
+
+	bundle := &pbpeering.PeeringTrustBundle{
+		TrustDomain: "peer1.com",
+		PeerName:    "my-peering",
+		RootPEMs:    []string{"peer1-root-1"},
+	}
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, bundle))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resp, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{
+		Name: "my-peering",
+	})
+	require.NoError(t, err)
+	require.Equal(t, lastIdx, resp.Index)
+	require.NotNil(t, resp.Bundle)
+	prototest.AssertDeepEqual(t, bundle, resp.Bundle)
+}
+
+// Setup:
+// - Peerings "foo" and "bar" with trust bundles saved
+// - "api" service exported to both "foo" and "bar"
+// - "web" service exported to "baz"
+func TestPeeringService_TrustBundleListByService(t *testing.T) {
+	s := newTestServer(t, nil)
+	store := s.Server.FSM().State()
+
+	var lastIdx uint64 = 10
+
+	lastIdx++
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}))
+
+	lastIdx++
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "bar",
+		State:               pbpeering.PeeringState_INITIAL,
+		PeerServerName:      "test-bar",
+		PeerServerAddresses: []string{"addr2"},
+	}))
+
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "foo.com",
+		PeerName:    "foo",
+		RootPEMs:    []string{"foo-root-1"},
+	}))
+
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "bar.com",
+		PeerName:    "bar",
+		RootPEMs:    []string{"bar-root-1"},
+	}))
+
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, &structs.Node{
+		Node: "my-node", Address: "127.0.0.1",
+	}))
+
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "my-node", &structs.NodeService{
+		ID:      "api",
+		Service: "api",
+		Port:    8000,
+	}))
+
+	entry := structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{
+						PeerName: "foo",
+					},
+					{
+						PeerName: "bar",
+					},
+				},
+			},
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{
+						PeerName: "baz",
+					},
+				},
+			},
+		},
+	}
+	require.NoError(t, entry.Normalize())
+	require.NoError(t, entry.Validate())
+
+	lastIdx++
+	require.NoError(t, store.EnsureConfigEntry(lastIdx, &entry))
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	req := pbpeering.TrustBundleListByServiceRequest{
+		ServiceName: "api",
+	}
+	resp, err := client.TrustBundleListByService(context.Background(), &req)
+	require.NoError(t, err)
+	require.Len(t, resp.Bundles, 2)
+	require.Equal(t, []string{"bar-root-1"}, resp.Bundles[0].RootPEMs)
+	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
+}
+
+func Test_StreamHandler_UpsertServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	type testCase struct {
+		name   string
+		msg    *pbpeering.ReplicationMessage_Response
+		input  structs.CheckServiceNodes
+		expect structs.CheckServiceNodes
+	}
+
+	s := newTestServer(t, nil)
+	testrpc.WaitForLeader(t, s.Server.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, s.Server.RPC, "dc1", nil)
+
+	srv := peering.NewService(
+		testutil.Logger(t),
+		peering.Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		consul.NewPeeringBackend(s.Server, nil),
+	)
+
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(0, &pbpeering.Peering{
+		ID:   testUUID(t),
+		Name: "my-peer",
+	}))
+
+	_, p, err := s.Server.FSM().State().PeeringRead(nil, state.Query{Value: "my-peer"})
+	require.NoError(t, err)
+
+	client := peering.NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	sub := &pbpeering.ReplicationMessage{
+		Payload: &pbpeering.ReplicationMessage_Request_{
+			Request: &pbpeering.ReplicationMessage_Request{
+				PeerID:      p.ID,
+				ResourceURL: pbpeering.TypeURLService,
+			},
+		},
+	}
+	require.NoError(t, client.Send(sub))
+
+	// Receive subscription request from peer for our services
+	_, err = client.Recv()
+	require.NoError(t, err)
+
+	// Receive first roots replication message
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeering.TypeURLRoots, receiveRoots.GetResponse().ResourceURL)
+
+	remoteEntMeta := structs.DefaultEnterpriseMetaInPartition("remote-partition")
+	localEntMeta := acl.DefaultEnterpriseMeta()
+	localPeerName := "my-peer"
+
+	// Scrub data we don't need for the assertions below.
+	scrubCheckServiceNodes := func(instances structs.CheckServiceNodes) {
+		for _, csn := range instances {
+			csn.Node.RaftIndex = structs.RaftIndex{}
+
+			csn.Service.TaggedAddresses = nil
+			csn.Service.Weights = nil
+			csn.Service.RaftIndex = structs.RaftIndex{}
+			csn.Service.Proxy = structs.ConnectProxyConfig{}
+
+			for _, c := range csn.Checks {
+				c.RaftIndex = structs.RaftIndex{}
+				c.Definition = structs.HealthCheckDefinition{}
+			}
+		}
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		pbCSN := &pbservice.IndexedCheckServiceNodes{}
+		for _, csn := range tc.input {
+			pbCSN.Nodes = append(pbCSN.Nodes, pbservice.NewCheckServiceNodeFromStructs(&csn))
+		}
+
+		any, err := anypb.New(pbCSN)
+		require.NoError(t, err)
+		tc.msg.Resource = any
+
+		resp := &pbpeering.ReplicationMessage{
+			Payload: &pbpeering.ReplicationMessage_Response_{
+				Response: tc.msg,
+			},
+		}
+		require.NoError(t, client.Send(resp))
+
+		msg, err := client.RecvWithTimeout(1 * time.Second)
+		require.NoError(t, err)
+
+		req := msg.GetRequest()
+		require.NotNil(t, req)
+		require.Equal(t, tc.msg.Nonce, req.Nonce)
+		require.Nil(t, req.Error)
+
+		_, got, err := s.Server.FSM().State().CombinedCheckServiceNodes(nil, structs.NewServiceName("api", nil), localPeerName)
+		require.NoError(t, err)
+
+		scrubCheckServiceNodes(got)
+		require.Equal(t, tc.expect, got)
+	}
+
+	// NOTE: These test cases do not run against independent state stores, they show sequential updates for a given service.
+	//       Every new upsert must replace the data from the previous case.
+	tt := []testCase{
+		{
+			name: "upsert an instance on a node",
+			msg: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLService,
+				ResourceID:  "api",
+				Nonce:       "1",
+				Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+			},
+			input: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+			},
+			expect: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upsert two instances on the same node",
+			msg: &pbpeering.ReplicationMessage_Response{
+				ResourceURL: pbpeering.TypeURLService,
+				ResourceID:  "api",
+				Nonce:       "2",
+				Operation:   pbpeering.ReplicationMessage_Response_UPSERT,
+			},
+			input: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  remoteEntMeta.PartitionOrEmpty(),
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-2",
+						Service:        "api",
+						Port:           9090,
+						EnterpriseMeta: *remoteEntMeta,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+						{
+							CheckID:        "api-2-check",
+							ServiceID:      "api-2",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthWarning,
+							EnterpriseMeta: *remoteEntMeta,
+						},
+					},
+				},
+			},
+			expect: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-1",
+						Service:        "api",
+						Port:           8080,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-1-check",
+							ServiceID:      "api-1",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthCritical,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+				{
+					Node: &structs.Node{
+						ID:         "112e2243-ab62-4e8a-9317-63306972183c",
+						Node:       "node-1",
+						Address:    "10.0.0.1",
+						Datacenter: "dc1",
+						Partition:  localEntMeta.PartitionOrEmpty(),
+						PeerName:   localPeerName,
+					},
+					Service: &structs.NodeService{
+						Kind:           "",
+						ID:             "api-2",
+						Service:        "api",
+						Port:           9090,
+						EnterpriseMeta: *localEntMeta,
+						PeerName:       localPeerName,
+					},
+					Checks: []*structs.HealthCheck{
+						{
+							CheckID:        "node-1-check",
+							Node:           "node-1",
+							Status:         api.HealthPassing,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+						{
+							CheckID:        "api-2-check",
+							ServiceID:      "api-2",
+							ServiceName:    "api",
+							Node:           "node-1",
+							Status:         api.HealthWarning,
+							EnterpriseMeta: *localEntMeta,
+							PeerName:       localPeerName,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tt {
+		testutil.RunStep(t, tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
+	// call PeeringRead and look at the peering state; the peering state must be active
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := srv.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: localPeerName})
+		require.NoError(t, err)
+		require.Equal(t, pbpeering.PeeringState_ACTIVE, resp.Peering.State)
+	}
+
+	// call PeeringList and look at the peering state; the peering state must be active
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := srv.PeeringList(ctx, &pbpeering.PeeringListRequest{})
+		require.NoError(t, err)
+		require.Equal(t, pbpeering.PeeringState_ACTIVE, resp.Peerings[0].State)
+	}
 }
 
 // newTestServer is copied from partition/service_test.go, with the addition of certs/cas.
@@ -334,6 +908,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
 	conf.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
 
+	conf.PrimaryDatacenter = "dc1"
+	conf.ConnectEnabled = true
+
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		t.Fatal(err)
@@ -361,7 +938,10 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	testrpc.WaitForLeader(t, server.RPC, conf.Datacenter)
 
 	backend := consul.NewPeeringBackend(server, deps.GRPCConnPool)
-	handler := &peering.Service{Backend: backend}
+	handler := peering.NewService(testutil.Logger(t), peering.Config{
+		Datacenter:     "dc1",
+		ConnectEnabled: true,
+	}, backend)
 
 	grpcServer := gogrpc.NewServer()
 	pbpeering.RegisterPeeringServiceServer(grpcServer, handler)
@@ -452,4 +1032,25 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 	}
+}
+
+func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
+	t.Helper()
+	err := store.PeeringWrite(index, &pbpeering.Peering{
+		ID:   testUUID(t),
+		Name: name,
+	})
+	require.NoError(t, err)
+
+	_, p, err := store.PeeringRead(nil, state.Query{Value: name})
+	require.NoError(t, err)
+	require.NotNil(t, p)
+
+	return p.ID
+}
+
+func testUUID(t *testing.T) string {
+	v, err := lib.GenerateUUID(nil)
+	require.NoError(t, err)
+	return v
 }

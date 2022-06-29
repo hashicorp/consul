@@ -55,7 +55,7 @@ as |key value|}}
           <BlockSlot @name="options">
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
                 {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
@@ -78,7 +78,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
       {{#each (array "registered" "not-registered") as |item|}}
-            <Option @value={{item}} @selected={{contains item @filter.instance.value}}>
+            <Option @value={{item}} @selected={{includes item @filter.instance.value}}>
               {{t (concat "common.consul." item)}}
             </Option>
       {{/each}}

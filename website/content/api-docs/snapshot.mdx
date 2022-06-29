@@ -41,11 +41,10 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul snapshot save`](/commands/snapshot/save).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default
-  to the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  to the datacenter of the agent being queried.
 
 - `stale` `(bool: false)` - Specifies that any follower may reply. By default
   requests are forwarded to the leader. Followers may be faster to respond, but
@@ -62,10 +61,10 @@ The corresponding CLI command is [`consul snapshot save`](/commands/snapshot/sav
 With a custom datacenter:
 
 ```shell-session
-$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter --output snapshot.tgz
+$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter --output snapshot.snap
 ```
 
-The above example results in a tarball named `snapshot.tgz` in the current working directory.
+The above example results in a tarball named `snapshot.snap` in the current working directory.
 
 In addition to the Consul standard stale-related headers, the `X-Consul-Index`
 header will contain the index at which the snapshot took place.
@@ -79,9 +78,6 @@ designed to handle server failures during a restore. This operation is primarily
 intended to be used when recovering from a disaster, restoring into a fresh
 cluster of Consul servers running the same version as the cluster from where the
 snapshot was taken.
-
-The body of the request should be a snapshot archive returned from a previous
-call to the `GET` method.
 
 | Method | Path        | Produces                      |
 | :----- | :---------- | ----------------------------- |
@@ -99,18 +95,22 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul snapshot restore`](/commands/snapshot/restore).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default
-  to the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  to the datacenter of the agent being queried.
+
+### Request Body
+
+The body of the request should be a snapshot archive returned by a previous
+call to [generate snapshot](#generate-snapshot).
 
 ### Sample Request
 
 ```shell-session
 $ curl \
     --request PUT \
-    --data-binary @snapshot.tgz \
+    --data-binary @snapshot.snap \
     http://127.0.0.1:8500/v1/snapshot
 ```
 

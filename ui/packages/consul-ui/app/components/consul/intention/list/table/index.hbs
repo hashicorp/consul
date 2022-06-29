@@ -26,10 +26,37 @@ as |item index|>
             {{/if}}
             {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em>
+            <em class="consul-intention-list-table__meta-info">
+              {{#if item.SourcePeer}}
+                <span class="consul-intention-list-table__meta-info__peer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {{tooltip "Peer" }} class="-mr-1">
+                      <path
+                        d="M16 8C16 7.80109 15.921 7.61032 15.7803 7.46967L12.2803 3.96967C11.9874 3.67678 11.5126 3.67678 11.2197 3.96967C10.9268 4.26256 10.9268 4.73744 11.2197 5.03033L14.1893 8L11.2197 10.9697C10.9268 11.2626 10.9268 11.7374 11.2197 12.0303C11.5126 12.3232 11.9874 12.3232 12.2803 12.0303L15.7803 8.53033C15.921 8.38968 16 8.19891 16 8Z"
+                        fill="#77838A" />
+                      <path
+                        d="M0.21967 8.53033C-0.0732233 8.23744 -0.0732233 7.76256 0.21967 7.46967L3.71967 3.96967C4.01256 3.67678 4.48744 3.67678 4.78033 3.96967C5.07322 4.26256 5.07322 4.73744 4.78033 5.03033L1.81066 8L4.78033 10.9697C5.07322 11.2626 5.07322 11.7374 4.78033 12.0303C4.48744 12.3232 4.01256 12.3232 3.71967 12.0303L0.21967 8.53033Z"
+                        fill="#77838A" />
+                      <path
+                        d="M5 7C4.44772 7 4 7.44772 4 8C4 8.55229 4.44772 9 5 9H5.01C5.56228 9 6.01 8.55229 6.01 8C6.01 7.44772 5.56228 7 5.01 7H5Z"
+                        fill="#77838A" />
+                      <path
+                        d="M7 8C7 7.44772 7.44772 7 8 7H8.01C8.56228 7 9.01 7.44772 9.01 8C9.01 8.55229 8.56228 9 8.01 9H8C7.44772 9 7 8.55229 7 8Z"
+                        fill="#77838A" />
+                      <path
+                        d="M11 7C10.4477 7 10 7.44772 10 8C10 8.55229 10.4477 9 11 9H11.01C11.5623 9 12.01 8.55229 12.01 8C12.01 7.44772 11.5623 7 11.01 7H11Z"
+                        fill="#77838A" />
+                    </svg>
+                    <span>{{item.SourcePeer}}</span>
+                </span>
+              {{else}}
+                <span
+                  class={{concat 'partition-' (or item.SourcePartition 'default')}}
+                >
+                  {{or item.SourcePartition 'default'}}
+                </span>
+              {{/if}}
+              /
               <span
-                class={{concat 'partition-' (or item.SourcePartition 'default')}}
-              >{{or item.SourcePartition 'default'}}</span> / <span
                 class={{concat 'nspace-' (or item.SourceNS 'default')}}
               >{{or item.SourceNS 'default'}}</span>
             </em>

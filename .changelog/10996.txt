@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities
+```

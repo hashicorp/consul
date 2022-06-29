@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -16,7 +15,7 @@ type handlerIngressGateway struct {
 func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(s.serviceInstance, s.stateConfig)
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -26,7 +25,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	}
 
 	// Get information about the entire service mesh.
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.MeshConfig,
 		Name:           structs.MeshConfigMesh,
 		Datacenter:     s.source.Datacenter,
@@ -38,7 +37,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	}
 
 	// Watch this ingress gateway's config entry
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.IngressGateway,
 		Name:           s.service,
 		Datacenter:     s.source.Datacenter,
@@ -50,7 +49,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	}
 
 	// Watch the ingress-gateway's list of upstreams
-	err = s.cache.Notify(ctx, cachetype.GatewayServicesName, &structs.ServiceSpecificRequest{
+	err = s.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		ServiceName:    s.service,
@@ -70,7 +69,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	return snap, nil
 }
 
-func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -196,7 +195,7 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 		snap.IngressGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+	err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.service,

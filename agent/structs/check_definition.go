@@ -33,6 +33,7 @@ type CheckDefinition struct {
 	Body                           string
 	DisableRedirects               bool
 	TCP                            string
+	UDP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
 	Shell                          string
@@ -215,6 +216,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		DisableRedirects:               c.DisableRedirects,
 		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
+		UDP:                            c.UDP,
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,
 		Shell:                          c.Shell,

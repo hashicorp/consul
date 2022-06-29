@@ -18,16 +18,16 @@ This endpoint currently returns the overall status information for all tasks.
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 Currently no request parameters are offered for the overall status API.
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason           |
 | ------ | ---------------- |
 | 200    | Successfully retrieved the status |
 
-#### Response Fields
+### Response Fields
 
 | Name	| Type	 | Description        |
 | ----- | ------ | ------------------ |
@@ -40,7 +40,7 @@ Currently no request parameters are offered for the overall status API.
 |`enabled.true` | integer | The number of tasks that are enabled.
 |`enabled.false` | integer | The number of tasks that are disabled.
 
-#### Example
+### Example
 
 Request:
 ```shell-session
@@ -79,7 +79,7 @@ Task health status value is determined by the success or failure of all stored [
 | ------ | ------------------- | ------------------ |
 | `GET`  | `/status/tasks/:task_name` | `application/json` |
 
-#### Request Parameters
+### Request Parameters
 
 | Name	   | Required | Type	 | Description        | Default |
 | -------- | -------- | ------ | ------------------ | ------- |
@@ -87,14 +87,14 @@ Task health status value is determined by the success or failure of all stored [
 |`include` | Optional | string | Only accepts the value `"events"`. Use to include stored event information in response. | none
 |`status`  | Optional | string | Only accepts health status values `"successful"`, `"errored"`, `"critical"`, or `"unknown"`. Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set. | none
 
-#### Response Statuses
+### Response Statuses
 
 | Status | Reason           |
 | ------ | ---------------- |
 | 200  | Successfully retrieved the task status |
 | 404  | Task with the given name not found |
 
-#### Response Fields
+### Response Fields
 
 The response is a JSON map of task name to a status information structure with the following fields.
 
@@ -108,7 +108,7 @@ The response is a JSON map of task name to a status information structure with t
 |`events_url` | string | Relative URL to retrieve the event data stored for the task.
 |`events`     | list[[Event](/docs/nia/api/status#event)] | List of stored events that inform the task's status. See [section below](/docs/nia/api/status#event) for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
 
-##### Event
+#### Event
 
 Event represents the process of updating network infrastructure of a task. The data is captured in a JSON structure. For more details on the scope of an event, see [Event](/docs/nia/tasks#event).
 
@@ -126,7 +126,7 @@ Event represents the process of updating network infrastructure of a task. The d
 |`config.source`    | string | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** Module configured for the task.
 |`config.providers` | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 
-#### Example: All Task Statuses
+### Example: All Task Statuses
 
 Request:
 ```shell-session
@@ -163,7 +163,7 @@ Response:
 }
 ```
 
-#### Example: Individual Task Status with Events
+### Example: Individual Task Status with Events
 
 Request:
 ```shell-session

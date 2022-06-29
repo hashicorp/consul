@@ -57,6 +57,10 @@ func NodeEnterpriseMetaInDefaultPartition() *acl.EnterpriseMeta {
 // FillAuthzContext stub
 func (_ *Node) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
+func (n *Node) OverridePartition(_ string) {
+	n.Partition = ""
+}
+
 func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}

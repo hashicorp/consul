@@ -106,10 +106,16 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			},
 		}
 
+		dest := &DestinationConfig{
+			Address: "my.example.com",
+			Port:    80,
+		}
+
 		service2 := &ServiceConfigEntry{
-			Kind:     ServiceDefaults,
-			Name:     "bar",
-			Protocol: "tcp",
+			Kind:        ServiceDefaults,
+			Name:        "bar",
+			Protocol:    "tcp",
+			Destination: dest,
 		}
 
 		// set it
@@ -185,6 +191,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Kind, readService.Kind)
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
+				require.Equal(t, dest, readService.Destination)
 			}
 		}
 
@@ -206,8 +213,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: defaultPartition,
-			Namespace: defaultNamespace,
+			Partition: splitDefaultPartition,
+			Namespace: splitDefaultNamespace,
 		}
 		ce := c.ConfigEntries()
 
@@ -513,6 +520,29 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Interval:    4 * time.Second,
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults-endpoint",
+			body: `
+			{
+				"Kind": "service-defaults",
+				"Name": "external",
+				"Protocol": "http",
+				"Destination": {
+					"Address": "1.2.3.4/24",
+					"Port": 443
+				}
+			}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4/24",
+					Port:    443,
 				},
 			},
 		},

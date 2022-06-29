@@ -1,15 +1,9 @@
 @keyframes icon-award {
-  50% {
-
-    background-color: var(--icon-color, var(--color-award-500, currentColor));
-    -webkit-mask-image: var(--icon-award-24);
-    mask-image: var(--icon-award-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-award-500, currentColor));
     -webkit-mask-image: var(--icon-award-16);
     mask-image: var(--icon-award-16);
+    background-color: var(--icon-color, var(--color-award-500, currentColor));
+
   }
 }

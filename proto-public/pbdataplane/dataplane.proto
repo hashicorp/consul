@@ -6,15 +6,13 @@ package dataplane;
 
 import "google/protobuf/struct.proto";
 
-option go_package = "github.com/hashicorp/consul/proto-public/pbdataplane";
-
 message GetSupportedDataplaneFeaturesRequest {}
 
 enum DataplaneFeatures {
-  UNKNOWN = 0;
-  WATCH_SERVERS = 1;
-  EDGE_CERTIFICATE_MANAGEMENT = 2;
-  ENVOY_BOOTSTRAP_CONFIGURATION = 3;
+  DATAPLANE_FEATURES_UNSPECIFIED = 0;
+  DATAPLANE_FEATURES_WATCH_SERVERS = 1;
+  DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT = 2;
+  DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION = 3;
 }
 
 message DataplaneFeatureSupport {
@@ -38,29 +36,34 @@ message GetEnvoyBootstrapParamsRequest {
 }
 
 enum ServiceKind {
+  // ServiceKind UNSPECIFIED is a sentinel value for when a request
+  // did not specify a service kind. This will be treated the same
+  // as if TYPICAL was explicitly used.
+  SERVICE_KIND_UNSPECIFIED = 0;
+
   // ServiceKind Typical is a typical, classic Consul service. This is
   // represented by the absence of a value. This was chosen for ease of
   // backwards compatibility: existing services in the catalog would
   // default to the typical service.
-  TYPICAL = 0;
+  SERVICE_KIND_TYPICAL = 1;
 
   // ServiceKind Connect Proxy is a proxy for the Connect feature. This
   // service proxies another service within Consul and speaks the connect
   // protocol.
-  CONNECT_PROXY = 1;
+  SERVICE_KIND_CONNECT_PROXY = 2;
 
   // ServiceKind Mesh Gateway is a Mesh Gateway for the Connect feature. This
   // service will proxy connections based off the SNI header set by other
   // connect proxies.
-  MESH_GATEWAY = 2;
+  SERVICE_KIND_MESH_GATEWAY = 3;
 
   // ServiceKind Terminating Gateway is a Terminating Gateway for the Connect
   // feature. This service will proxy connections to services outside the mesh.
-  TERMINATING_GATEWAY = 3;
+  SERVICE_KIND_TERMINATING_GATEWAY = 4;
 
   // ServiceKind Ingress Gateway is an Ingress Gateway for the Connect feature.
   // This service will ingress connections into the service mesh.
-  INGRESS_GATEWAY = 4;
+  SERVICE_KIND_INGRESS_GATEWAY = 5;
 }
 
 message GetEnvoyBootstrapParamsResponse {
@@ -77,5 +80,4 @@ service DataplaneService {
   rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
 
   rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {}
-
 }

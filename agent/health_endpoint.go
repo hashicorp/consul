@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -28,11 +29,7 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	var err error
-	args.State, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/state/")
-	if err != nil {
-		return nil, err
-	}
+	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
 	if args.State == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing check state"}
 	}
@@ -76,11 +73,7 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Pull out the service name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/node/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
@@ -126,11 +119,7 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/health/checks/")
-	if err != nil {
-		return nil, err
-	}
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
@@ -203,6 +192,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		args.TagFilter = true
 	}
 
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
+	}
+
 	// Determine the prefix
 	var prefix string
 	switch healthType {
@@ -218,11 +211,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Pull out the service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, prefix)
-	if err != nil {
-		return nil, err
-	}
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}

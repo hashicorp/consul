@@ -10,12 +10,13 @@ as |route|>
     )
   }} as |tomography|>
   <DataLoader
-    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}/${peer}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.name
+        peer=route.params.peer
       )
     }}
   as |loader|>
@@ -94,7 +95,7 @@ as |item tomography|}}
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
               <ol>
-                  <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
+                  <li><a data-test-back href={{href-to 'dc.nodes' params=(hash peer=undefined)}}>All Nodes</a></li>
               </ol>
           </BlockSlot>
           <BlockSlot @name="header">

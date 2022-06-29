@@ -15,7 +15,7 @@ The following table provides an overview of the resources you can use to create 
 
 | Resource                           | Description                                                                                                                                                                                                                                                                                                                                          | Labels |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `acl`                              | Controls access to ACL operations in the [ACL API](/api-docs/acl/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                                                                                                                                                                                                                    | No     |
+| `acl`                              | Controls access to ACL operations in the [ACL API](/api-docs/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                                                                                                                                                                                                                   | No     |
 | `partition`<br/>`partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>See [Admin Partition Rules](#admin-partition-rules) for details.                                                                                                                                                                                                    | Yes    |
 | `agent`<br/>`agent_prefix`         | Controls access to the utility operations in the [Agent API](/api-docs/agent), such as `join` and `leave`. <br/>See [Agent Rules](#agent-rules) for details.                                                                                                                                                                                              | Yes    |
 | `event`<br/>`event_prefix`         | Controls access to event operations in the [Event API](/api-docs/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details.                                                                                                                                                                                             | Yes    |
@@ -47,7 +47,8 @@ The `acl = "write"` rule is also required to create snapshots. This is because a
 
 Rules for ACL resources do not use labels.
 
-In the following example, `write` access to the ACL API. The rule enables the operator to read or write ACLs, as well as discover the secret ID of any token.
+In the following example, the `acl` rule is configured with `write` access to the ACL API.
+The rule enables the operator to read or write ACLs, as well as discover the secret ID of any token.
 
 <CodeTabs heading="Example acl rule">
 
@@ -56,7 +57,9 @@ acl = "write"
 ```
 
 ```json
-"acl" : "write"
+{
+  "acl": "write"
+}
 ```
 
 </CodeTabs>
@@ -66,8 +69,15 @@ acl = "write"
 The `partition` and `partition_prefix` resource controls access to one or more admin partitions.
 You can include any number of namespace rules inside the admin partition.
 
-In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `ex-` in the `example` partition.
-The `mesh` resource is also scoped to the admin partition rule, which grants `write` access to mesh-level resources in the partition:
+In the following example, the policy grants `write` access to the `ex-namespace`
+namespace, as well as namespaces prefixed with `exns-` in the `example` partition.
+The `mesh` resource is also scoped to the admin partition rule, which grants
+`write` access to mesh-level resources in the `example` partition.
+
+In addition, the policy grants `read` access to the `ex-namespace` namespace, as
+well as namespaces prefixed with `exns-` in all partitions containing the
+`example-` prefix. Read access is granted for `mesh` resource scoped within the
+associated partition.
 
 <CodeTabs heading="Example admin partition rules">
 
@@ -77,91 +87,64 @@ partition "example" {
   node "my-node" {
     policy = "write"
   }
-    ...
   namespace "ex-namespace" {
-    ...
+    policy = "write"
   }
   namespace_prefix "exns-" {
-    ...
+    policy = "write"
   }
 }
-partition_prefix "ex-" {
-  ... (Same as above)
+
+partition_prefix "example-" {
+  mesh = "read"
+
+  node "my-node" {
+    policy = "read"
+  }
+
+  namespace "ex-namespace" {
+    policy = "read"
+  }
 }
 ```
 
 ```json
 {
-  "partition": [
-    {
-      "example": [
-        {
-          "mesh": "write",
-          "node": [
-            {
-              "my-node": [
-                {
-                  "policy": "write"
-                }
-              ],
-              "namespace": [
-                {
-                  "ex-namespace": [
-                    {
-                      "policy": "read"
-                    }
-                  ]
-                }
-              ],
-              "namespace_prefix": [
-                {
-                  "exns-": [
-                    {
-                      "policy": "read"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+  "partition": {
+    "example": {
+      "mesh": "write",
+      "node": {
+        "my-node": {
+          "policy": "write"
         }
-      ]
+      },
+      "namespace": {
+        "ex-namespace": {
+          "policy": "write"
+        }
+      },
+      "namespace_prefix": {
+        "exns-": {
+          "policy": "write"
+        }
+      }
     }
-  ]
-},
-{
-  "partition_prefix": [
-    {
-      "": [
-        {
+  },
+  "partition_prefix": {
+    "example-": {
+      "mesh": "read",
+      "node": {
+        "my-node": {
           "policy": "read"
         }
-      ],
-      "example": [
-        {
-          "mesh": "read",
-          "node": [
-            {
-              "my-node": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "namespace": [
-            {
-              "ex-namespace": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ]
+      },
+      "namespace": {
+        "ex-namespace": {
+          "policy": "read"
         }
-      ]
+      }
     }
-  ]
+  }
 }
 ```
 
@@ -176,11 +159,11 @@ and [`service` or `service_prefix`](#service-rules) policies instead.
 <CodeTabs heading="Example agent rules">
 
 ```hcl
-agent_prefix "" {
-  policy = "read"
-}
 agent "foo" {
   policy = "write"
+}
+agent_prefix "" {
+  policy = "read"
 }
 agent_prefix "bar" {
   policy = "deny"
@@ -188,27 +171,29 @@ agent_prefix "bar" {
 ```
 
 ```json
-"agent_prefix" : [{
-  "" : [{
-    "policy" : "read"
-    }],
-  "bar" : [{
-    "policy" : "deny"
-    }]
-  }],
-"agent" : [{
-  "foo" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "agent": {
+    "foo": {
+      "policy": "write"
+    }
+  },
+  "agent_prefix": {
+    "": {
+      "policy": "read"
+    },
+    "bar": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
 
 Agent rules are keyed by the node name they apply to. In the example above the rules
-allow read-only access to any node name by using the empty prefix, read-write access to
-the node with the _exact_ name `foo`, and denies all access to any node name that starts
-with `bar`.
+allow read-write access to the node with the _exact_ name `foo`, read-only access
+to any node name by using the empty prefix, and denies all access to any node
+name that starts with `bar`.
 
 Since [Agent API](/api-docs/agent) utility operations may be required before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
@@ -232,16 +217,18 @@ event "deploy" {
 ```
 
 ```json
-"event_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"event" : [{
-  "deploy" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "event_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "event": {
+    "deploy": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -273,19 +260,21 @@ key "bar" {
 ```
 
 ```json
-"key_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"key" : [{
-  "foo" : [{
-    "policy" : "write"
-  }],
-  "bar" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "key_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "key": {
+    "foo": {
+      "policy": "write"
+    },
+    "bar": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -295,7 +284,12 @@ to any key name with the empty prefix rule, allow read-write access to the "foo"
 
 ### List Policy for Keys
 
-Enable the `list` policy disposition (Consul 1.0+) by setting the `acl.enable_key_list_policy` parameter to `true`. The disposition provides recursive access to `key` entries. Refer to the [KV API](/api-docs/kv#recurse) documentation for additional information. In the following example, `key` resources that start with `bar` are listed.
+Enable the `list` policy disposition (Consul 1.0+) by setting the
+`acl.enable_key_list_policy` parameter to `true`. The disposition provides
+recursive access to `key` entries. Refer to the [KV API](/api-docs/kv#recurse)
+documentation for additional information.
+
+In the following example, `key` resources that start with `bar` may be listed.
 
 <CodeTabs heading="Example 'key' rules">
 
@@ -314,17 +308,19 @@ key_prefix "baz" {
 ```
 
 ```json
-"key_prefix" : [{
-  "" : [{
-    "policy" : "deny"
-  }],
-  "bar" : [{
-    "policy" : "list"
-  }],
-  "baz" : [{
-    "policy" : "read"
-  }]
-}]
+{
+  "key_prefix": {
+    "": {
+      "policy": "deny"
+    },
+    "bar": {
+      "policy": "list"
+    },
+    "baz": {
+      "policy": "read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -364,7 +360,9 @@ keyring = "write"
 ```
 
 ```json
-"keyring" : "write"
+{
+  "keyring": "write"
+}
 ```
 
 </CodeTabs>
@@ -380,7 +378,9 @@ mesh = "write"
 ```
 
 ```json
-"mesh" : "write"
+{
+  "mesh": "write"
+}
 ```
 
 </CodeTabs>
@@ -399,6 +399,8 @@ The following examples describe how namespace rules can be defined in a policy:
 
 ```hcl
 namespace_prefix "" {
+  # grants permission to create and edit all namespaces
+  policy = "write"
 
   # grant service:read for all services in all namespaces
   service_prefix "" {
@@ -409,8 +411,6 @@ namespace_prefix "" {
   node_prefix "" {
     policy = "read"
   }
-  # grants permission to create and edit all namespace
-   policy = "write"
 }
 
 namespace "foo" {
@@ -444,79 +444,47 @@ namespace "foo" {
 
 ```json
 {
-  "namespace": [
-    {
-      "foo": [
-        {
-          "acl": "write",
-          "key_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ],
-          "node_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "policy": "write",
-          "service_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ],
-          "session_prefix": [
-            {
-              "": [
-                {
-                  "policy": "write"
-                }
-              ]
-            }
-          ]
+  "namespace_prefix": {
+    "": {
+      "policy": "write",
+      "service_prefix": {
+        "": {
+          "policy": "read"
         }
-      ]
-    }
-  ],
-  "namespace_prefix": [
-    {
-      "": [
-        {
-          "node_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ],
-          "policy": "write",
-          "service_prefix": [
-            {
-              "": [
-                {
-                  "policy": "read"
-                }
-              ]
-            }
-          ]
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
         }
-      ]
+      }
     }
-  ]
+  },
+  "namespace": {
+    "foo": {
+      "acl": "write",
+      "policy": "write",
+      "key_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "session_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "service_prefix": {
+        "": {
+          "policy": "write"
+        }
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -571,17 +539,21 @@ node "admin" {
 ```
 
 ```json
-"node_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }],
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    },
+  },
+  "node": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -604,7 +576,7 @@ These actions may required an ACL token to complete. Use the following methods t
 * Provide an ACL token with `service` and `check` definitions at registration time.
   This allows for greater flexibility and enables the use of multiple tokens on the same agent.
   Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
-  Tokens may also be passed to the [HTTP API](/api) for operations that require them.
+  Tokens may also be passed to the [HTTP API](/api-docs) for operations that require them.
 
 ## Operator Rules
 
@@ -621,7 +593,9 @@ operator = "read"
 ```
 
 ```json
-"operator" : "read"
+{
+  "operator": "read"
+}
 ```
 
 </CodeTabs>
@@ -645,16 +619,18 @@ query "foo" {
 ```
 
 ```json
-"query_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"query" : [{
-  "foo" : [{
-    "policy" : "write"
-  }]
-}]
+{
+  "query_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "query": {
+    "foo": {
+      "policy": "write"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -752,19 +728,21 @@ service "admin" {
 ```
 
 ```json
-"service_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"service" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "service": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -790,10 +768,10 @@ to use for registration events:
    tokens on the same agent. Examples of what this looks like are available for
    both [services](/docs/discovery/services) and
    [checks](/docs/discovery/checks). Tokens may also be passed to the [HTTP
-   API](/api) for operations that require them. **Note:** all tokens
+   API](/api-docs) for operations that require them. **Note:** all tokens
    passed to an agent are persisted on local disk to allow recovery from
    restarts. See [`-data-dir` flag
-   documentation](/docs/agent/config/config-files#acl_token) for notes on securing
+   documentation](/docs/agent/config/cli-flags#_data_dir) for notes on securing
    access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
@@ -815,12 +793,14 @@ service "app" {
 ```
 
 ```json
-"service" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "intentions" : "read"
-}]
+{
+  "service": {
+    "app": {
+      "policy": "write",
+      "intentions": "read"
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -851,19 +831,21 @@ session "admin" {
 ```
 
 ```json
-"session_prefix" : [{
-  "" : [{
-    "policy" : "read"
-  }]
-}],
-"session" : [{
-  "app" : [{
-    "policy" : "write"
-  }],
-  "admin" : [{
-    "policy" : "deny"
-  }]
-}]
+{
+  "session_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "session": {
+    "app": {
+      "policy": "write"
+    },
+    "admin": {
+      "policy": "deny"
+    }
+  }
+}
 ```
 
 </CodeTabs>

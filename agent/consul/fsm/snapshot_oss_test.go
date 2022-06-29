@@ -451,7 +451,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Port:    8000,
 		Connect: connectConf,
 	})
-	vip, err := fsm.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
+	vip, err := fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.1")
 
@@ -462,7 +463,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Port:    9000,
 		Connect: connectConf,
 	})
-	vip, err = fsm.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
+	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.2")
 
@@ -476,6 +478,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// Peerings
 	require.NoError(t, fsm.state.PeeringWrite(31, &pbpeering.Peering{
+		ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
 		Name: "baz",
 	}))
 
@@ -591,10 +594,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(25), checks[0].ModifyIndex)
 
 	// Verify virtual IPs are consistent.
-	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("frontend", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
+	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.1")
-	vip, err = fsm2.state.VirtualIPForService(structs.NewServiceName("backend", nil))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
+	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.2")
 

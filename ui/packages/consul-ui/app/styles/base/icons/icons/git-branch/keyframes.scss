@@ -1,15 +1,9 @@
 @keyframes icon-git-branch {
-  50% {
-
-    background-color: var(--icon-color, var(--color-git-branch-500, currentColor));
-    -webkit-mask-image: var(--icon-git-branch-24);
-    mask-image: var(--icon-git-branch-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-git-branch-500, currentColor));
     -webkit-mask-image: var(--icon-git-branch-16);
     mask-image: var(--icon-git-branch-16);
+    background-color: var(--icon-color, var(--color-git-branch-500, currentColor));
+
   }
 }

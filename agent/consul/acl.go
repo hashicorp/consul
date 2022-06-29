@@ -13,6 +13,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/logging"
@@ -662,26 +663,6 @@ func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*stru
 	return syntheticPolicies
 }
 
-// plainACLResolver wraps ACLResolver so that it can be used in other packages
-// that cannot import agent/consul wholesale (e.g. because of import cycles).
-//
-// TODO(agentless): this pattern was copied from subscribeBackend for expediency
-// but we should really refactor ACLResolver so it can be passed as a dependency
-// to other packages.
-type plainACLResolver struct {
-	resolver *ACLResolver
-}
-
-func (r plainACLResolver) ResolveTokenAndDefaultMeta(
-	token string,
-	entMeta *acl.EnterpriseMeta,
-	authzContext *acl.AuthorizerContext,
-) (acl.Authorizer, error) {
-	// ACLResolver.ResolveTokenAndDefaultMeta returns a ACLResolveResult which
-	// can't be used in other packages, but it embeds acl.Authorizer which can.
-	return r.resolver.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
-}
-
 func mergeStringSlice(a, b []string) []string {
 	out := make([]string, 0, len(a)+len(b))
 	out = append(out, a...)
@@ -1008,13 +989,13 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 // ResolveToken to an acl.Authorizer and structs.ACLIdentity. The acl.Authorizer
 // can be used to check permissions granted to the token, and the ACLIdentity
 // describes the token and any defaults applied to it.
-func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
+func (r *ACLResolver) ResolveToken(token string) (resolver.Result, error) {
 	if !r.ACLsEnabled() {
-		return ACLResolveResult{Authorizer: acl.ManageAll()}, nil
+		return resolver.Result{Authorizer: acl.ManageAll()}, nil
 	}
 
 	if acl.RootAuthorizer(token) != nil {
-		return ACLResolveResult{}, acl.ErrRootDenied
+		return resolver.Result{}, acl.ErrRootDenied
 	}
 
 	// handle the anonymous token
@@ -1023,7 +1004,7 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 	}
 
 	if ident, authz, ok := r.resolveLocallyManagedToken(token); ok {
-		return ACLResolveResult{Authorizer: authz, ACLIdentity: ident}, nil
+		return resolver.Result{Authorizer: authz, ACLIdentity: ident}, nil
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
@@ -1034,10 +1015,10 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 		if IsACLRemoteError(err) {
 			r.logger.Error("Error resolving token", "error", err)
 			ident := &missingIdentity{reason: "primary-dc-down", token: token}
-			return ACLResolveResult{Authorizer: r.down, ACLIdentity: ident}, nil
+			return resolver.Result{Authorizer: r.down, ACLIdentity: ident}, nil
 		}
 
-		return ACLResolveResult{}, err
+		return resolver.Result{}, err
 	}
 
 	// Build the Authorizer
@@ -1050,7 +1031,7 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 
 	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
-		return ACLResolveResult{}, err
+		return resolver.Result{}, err
 	}
 	chain = append(chain, authz)
 
@@ -1058,36 +1039,15 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 	if err != nil {
 		if IsACLRemoteError(err) {
 			r.logger.Error("Error resolving identity defaults", "error", err)
-			return ACLResolveResult{Authorizer: r.down, ACLIdentity: identity}, nil
+			return resolver.Result{Authorizer: r.down, ACLIdentity: identity}, nil
 		}
-		return ACLResolveResult{}, err
+		return resolver.Result{}, err
 	} else if authz != nil {
 		chain = append(chain, authz)
 	}
 
 	chain = append(chain, acl.RootAuthorizer(r.config.ACLDefaultPolicy))
-	return ACLResolveResult{Authorizer: acl.NewChainedAuthorizer(chain), ACLIdentity: identity}, nil
-}
-
-type ACLResolveResult struct {
-	acl.Authorizer
-	// TODO: likely we can reduce this interface
-	ACLIdentity structs.ACLIdentity
-}
-
-func (a ACLResolveResult) AccessorID() string {
-	if a.ACLIdentity == nil {
-		return ""
-	}
-	return a.ACLIdentity.ID()
-}
-
-func (a ACLResolveResult) Identity() structs.ACLIdentity {
-	return a.ACLIdentity
-}
-
-func (a ACLResolveResult) ToAllowAuthorizer() acl.AllowAuthorizer {
-	return acl.AllowAuthorizer{Authorizer: a, AccessorID: a.AccessorID()}
+	return resolver.Result{Authorizer: acl.NewChainedAuthorizer(chain), ACLIdentity: identity}, nil
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {
@@ -1111,7 +1071,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	token string,
 	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
-) (ACLResolveResult, error) {
+) (resolver.Result, error) {
 	return r.ResolveTokenAndDefaultMetaWithPeerName(token, entMeta, structs.DefaultPeerKeyword, authzContext)
 }
 
@@ -1120,10 +1080,10 @@ func (r *ACLResolver) ResolveTokenAndDefaultMetaWithPeerName(
 	entMeta *acl.EnterpriseMeta,
 	peerName string,
 	authzContext *acl.AuthorizerContext,
-) (ACLResolveResult, error) {
+) (resolver.Result, error) {
 	result, err := r.ResolveToken(token)
 	if err != nil {
-		return ACLResolveResult{}, err
+		return resolver.Result{}, err
 	}
 
 	if entMeta == nil {
@@ -1939,6 +1899,16 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 
 	case *structs.IndexedServiceList:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&v.Services)
+
+	case *structs.IndexedExportedServiceList:
+		for peer, peerServices := range v.Services {
+			v.QueryMeta.ResultsFilteredByACLs = filt.filterServiceList(&peerServices)
+			if len(peerServices) == 0 {
+				delete(v.Services, peer)
+			} else {
+				v.Services[peer] = peerServices
+			}
+		}
 
 	case *structs.IndexedGatewayServices:
 		v.QueryMeta.ResultsFilteredByACLs = filt.filterGatewayServices(&v.Services)

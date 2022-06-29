@@ -96,11 +96,11 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul rtt`](/commands/rtt).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
+
 - `segment` `(string: "")` <EnterpriseAlert inline /> - Specifies the segment to list members for.
   If left blank, this will query for the default segment when connecting to a server and
   the agent's own segment when connecting to a client (clients can only be part of one
@@ -139,9 +139,9 @@ segment.
 
 This endpoint returns the LAN network coordinates for the given node.
 
-| Method | Path                     | Produces           |
-| ------ | ------------------------ | ------------------ |
-| `GET`  | `/coordinate/node/:node` | `application/json` |
+| Method | Path                          | Produces           |
+| ------ | ----------------------------- | ------------------ |
+| `GET`  | `/coordinate/node/:node_name` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api-docs/features/blocking),
@@ -153,11 +153,15 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `node:read`  |
 
-### Parameters
+### Path Parameters
+
+- `node_name` `(string: <required>)` - Specifies the name of the node to return LAN network coordinates for.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
+
 - `segment` `(string: "")` <EnterpriseAlert inline /> - Specifies the segment to list members for.
   If left blank, this will query for the default segment when connecting to a server and
   the agent's own segment when connecting to a client (clients can only be part of one
@@ -211,11 +215,10 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `node:write` |
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 ### Sample Payload
 

@@ -1,15 +1,9 @@
 @keyframes icon-mail {
-  50% {
-
-    background-color: var(--icon-color, var(--color-mail-500, currentColor));
-    -webkit-mask-image: var(--icon-mail-24);
-    mask-image: var(--icon-mail-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-mail-500, currentColor));
     -webkit-mask-image: var(--icon-mail-16);
     mask-image: var(--icon-mail-16);
+    background-color: var(--icon-color, var(--color-mail-500, currentColor));
+
   }
 }

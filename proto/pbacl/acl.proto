@@ -2,10 +2,8 @@ syntax = "proto3";
 
 package acl;
 
-option go_package = "github.com/hashicorp/consul/proto/pbacl";
-
 message ACLLink {
-   string ID = 1;
-	// @gotags: hash:ignore-"
-   string Name = 2;
+  string ID = 1;
+  // @gotags: hash:ignore-"
+  string Name = 2;
 }

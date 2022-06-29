@@ -126,6 +126,7 @@ const (
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
+	peeringDeletionRoutineName            = "peering deferred deletion"
 )
 
 var (
@@ -696,7 +697,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		Publisher:   s.publisher,
 		GetStore:    func() connectca.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		CAManager:   s.caManager,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
@@ -708,13 +709,13 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
 	}).Register(s.publicGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 
@@ -760,6 +761,10 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	p := peering.NewService(
 		deps.Logger.Named("grpc-api.peering"),
+		peering.Config{
+			Datacenter:     config.Datacenter,
+			ConnectEnabled: config.ConnectEnabled,
+		},
 		NewPeeringBackend(s, deps.GRPCConnPool),
 	)
 	s.peeringService = p
@@ -1655,6 +1660,7 @@ func (s *Server) trackLeaderChanges() {
 			}
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
+			s.peeringService.Backend.LeaderAddress().Set(string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
@@ -28,7 +29,7 @@ type StateStore interface {
 
 //go:generate mockery --name ACLResolver --inpackage
 type ACLResolver interface {
-	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error)
 }
 
 func NewServer(cfg Config) *Server {

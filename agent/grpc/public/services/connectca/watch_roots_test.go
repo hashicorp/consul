@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/grpc/public/testutils"
@@ -31,7 +31,7 @@ func TestWatchRoots_ConnectDisabled(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(context.Background(), &emptypb.Empty{})
+	stream, err := client.WatchRoots(context.Background(), &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -68,7 +68,7 @@ func TestWatchRoots_Success(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -102,7 +102,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, acl.ErrNotFound)
+		Return(resolver.Result{}, acl.ErrNotFound)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -116,7 +116,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 
 	// Start the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -154,7 +154,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Start the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 
@@ -180,7 +180,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Simulate removing the `service:write` permission.
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(acl.DenyAll(), nil)
+		Return(testutils.TestAuthorizerDenyAll(t), nil)
 
 	// Update the ACL token to cause the subscription to be force-closed.
 	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{
@@ -222,7 +222,7 @@ func TestWatchRoots_StateStoreAbandoned(t *testing.T) {
 
 	// Begin the stream.
 	client := testClient(t, server)
-	stream, err := client.WatchRoots(ctx, &emptypb.Empty{})
+	stream, err := client.WatchRoots(ctx, &pbconnectca.WatchRootsRequest{})
 	require.NoError(t, err)
 	rspCh := handleRootsStream(t, stream)
 

@@ -27,6 +27,20 @@ At the time of writing, this is not currently used across the entire UI
         Namespace="different-nspace"
         Partition="different-partition"
         Service="service-name"
+        PeerName="billing-app"
+      }}
+      @nspace={{'nspace'}}
+      @partition={{'partition'}}
+      @service={{true}}
+    />
+  </figure>
+  <figure>
+    <figcaption>Show everything without peer</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="different-nspace"
+        Partition="different-partition"
+        Service="service-name"
       }}
       @nspace={{'nspace'}}
       @partition={{'partition'}}
@@ -43,6 +57,29 @@ At the time of writing, this is not currently used across the entire UI
       }}
       @nspace={{'nspace'}}
       @partition={{'partition'}}
+    />
+  </figure>
+
+  <figure>
+    <figcaption>Show only peer-info</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="default"
+        PeerName="billing-app"
+      }}
+      @nspace={{'nspace'}}
+    />
+  </figure>
+
+  <figure>
+    <figcaption>Don't surface anything - no relevant info to show</figcaption>
+    <Consul::Bucket::List
+      @item={{hash
+        Namespace="default"
+        Partition="default"
+      }}
+      @nspace={{'default'}}
+      @partition={{'default'}}
     />
   </figure>
 

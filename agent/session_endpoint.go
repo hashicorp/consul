@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -69,11 +70,7 @@ func (s *HTTPHandlers) SessionDestroy(resp http.ResponseWriter, req *http.Reques
 	}
 
 	// Pull out the session id
-	var err error
-	args.Session.ID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/destroy/")
-	if err != nil {
-		return nil, err
-	}
+	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
 	if args.Session.ID == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
 	}
@@ -96,11 +93,7 @@ func (s *HTTPHandlers) SessionRenew(resp http.ResponseWriter, req *http.Request)
 	}
 
 	// Pull out the session id
-	var err error
-	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/renew/")
-	if err != nil {
-		return nil, err
-	}
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
 	args.Session = args.SessionID
 	if args.SessionID == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
@@ -127,11 +120,7 @@ func (s *HTTPHandlers) SessionGet(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// Pull out the session id
-	var err error
-	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/info/")
-	if err != nil {
-		return nil, err
-	}
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
 	args.Session = args.SessionID
 	if args.SessionID == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
@@ -184,11 +173,7 @@ func (s *HTTPHandlers) SessionsForNode(resp http.ResponseWriter, req *http.Reque
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/node/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")
 	if args.Node == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}

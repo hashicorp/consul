@@ -1,15 +1,9 @@
 @keyframes icon-thumbs-down {
-  50% {
-
-    background-color: var(--icon-color, var(--color-thumbs-down-500, currentColor));
-    -webkit-mask-image: var(--icon-thumbs-down-24);
-    mask-image: var(--icon-thumbs-down-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-thumbs-down-500, currentColor));
     -webkit-mask-image: var(--icon-thumbs-down-16);
     mask-image: var(--icon-thumbs-down-16);
+    background-color: var(--icon-color, var(--color-thumbs-down-500, currentColor));
+
   }
 }

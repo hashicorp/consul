@@ -11,6 +11,7 @@ const (
 	internal        = "internal"
 	version         = "v1"
 	internalVersion = internal + "-" + version
+	external        = "external"
 )
 
 func UpstreamSNI(u *structs.Upstream, subset string, dc string, trustDomain string) string {
@@ -62,6 +63,21 @@ func ServiceSNI(service string, subset string, namespace string, partition strin
 			return dotJoin(subset, service, namespace, partition, datacenter, internalVersion, trustDomain)
 		}
 	}
+}
+
+func PeeredServiceSNI(service, namespace, partition, peerName, trustDomain string) string {
+	if peerName == "" {
+		panic("peer name is a requirement for this function and does not make sense without it")
+	}
+	if namespace == "" {
+		namespace = structs.IntentionDefaultNamespace
+	}
+	if partition == "" {
+		// TODO(partitions) Make default available in OSS as a constant for uses like this one
+		partition = "default"
+	}
+
+	return dotJoin(service, namespace, partition, peerName, external, trustDomain)
 }
 
 func dotJoin(parts ...string) string {

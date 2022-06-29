@@ -55,7 +55,7 @@ as |key value|}}
           <BlockSlot @name="options">
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
-              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
                 {{t (concat "common.consul." (lowercase prop))}}
               </Option>
             {{/each}}
@@ -79,7 +79,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "passing" "warning" "critical" "empty") as |state|}}
-          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.status.value}}>
+          <Option class="value-{{state}}" @value={{state}} @selected={{includes state @filter.status.value}}>
             {{t (concat "common.consul." state)
                 default=(array
                   (concat "common.search." state)
@@ -102,14 +102,14 @@ as |key value|}}
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="service" @selected={{contains 'service' @filter.kind.value}}>
+          <Option @value="service" @selected={{includes 'service' @filter.kind.value}}>
             {{t "common.consul.service"}}
           </Option>
           <Optgroup
             @label={{t "common.consul.gateway"}}
           >
       {{#each (array "ingress-gateway" "terminating-gateway" "mesh-gateway") as |kind|}}
-            <Option @value={{kind}} @selected={{contains kind @filter.kind.value}}>
+            <Option @value={{kind}} @selected={{includes kind @filter.kind.value}}>
               {{t (concat "common.consul." kind)}}
             </Option>
       {{/each}}
@@ -118,7 +118,7 @@ as |key value|}}
             @label={{t "common.consul.mesh"}}
           >
     {{#each (array "in-mesh" "not-in-mesh") as |state|}}
-            <Option @value={{state}} @selected={{contains state @filter.kind.value}}>
+            <Option @value={{state}} @selected={{includes state @filter.kind.value}}>
               {{t (concat "common.search." state)}}
             </Option>
     {{/each}}
@@ -148,7 +148,7 @@ as |nonDefaultPartitions|}}
       @label={{t 'common.brand.consul'}}
     >
     {{#each @partitions as |partition|}}
-      <Option class="partition" @value={{partition}} @selected={{contains partition @filter.source.value}}>
+      <Option class="partition" @value={{partition}} @selected={{includes partition @filter.source.value}}>
         {{partition}}
       </Option>
     {{/each}}
@@ -161,7 +161,7 @@ as |nonDefaultPartitions|}}
       @label={{t 'common.search.integrations'}}
     >
     {{#each @sources as |source|}}
-          <Option class={{source}} @value={{source}} @selected={{contains source @filter.source.value}}>
+          <Option class={{source}} @value={{source}} @selected={{includes source @filter.source.value}}>
             {{t (concat "common.brand." source)}}
           </Option>
     {{/each}}
