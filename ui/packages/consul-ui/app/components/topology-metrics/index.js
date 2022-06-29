@@ -88,7 +88,7 @@ export default class TopologyMetrics extends Component {
       });
     } else if (downstreams.length === 0) {
       items.push({
-        Name: 'No downstreams.',
+        Name: 'No downstreams, or the downstreams are imported services.',
         Datacenter: '',
         Namespace: '',
       });
