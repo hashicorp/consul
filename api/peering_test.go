@@ -24,7 +24,9 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(reflect.DeepEqual(peer.PeerServerAddresses, aPeer.PeerServerAddresses)) &&
 			(peer.State == aPeer.State) &&
 			(peer.CreateIndex == aPeer.CreateIndex) &&
-			(peer.ModifyIndex) == aPeer.ModifyIndex
+			(peer.ModifyIndex == aPeer.ModifyIndex) &&
+			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
+			(peer.ExportedServiceCount == aPeer.ExportedServiceCount)
 
 		if isEqual {
 			return true
@@ -73,7 +75,7 @@ func TestAPI_Peering_List(t *testing.T) {
 	peerings := c.Peerings()
 
 	testutil.RunStep(t, "list with no peers", func(t *testing.T) {
-		// "call List when no peers should exist"
+		// call List when no peers should exist
 		resp, qm, err := peerings.List(ctx, nil)
 		require.NoError(t, err)
 		require.NotNil(t, qm)
@@ -81,7 +83,7 @@ func TestAPI_Peering_List(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "list with some peers", func(t *testing.T) {
-		// "call List when peers are present"
+		// call List when peers are present
 		resp1, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer1"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)

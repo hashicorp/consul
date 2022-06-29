@@ -99,6 +99,12 @@ message Peering {
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
   repeated string PeerServerAddresses = 10;
 
+  // ImportedServiceCount is the count of how many services are imported from this peering.
+  uint64 ImportedServiceCount = 13;
+
+  // ExportedServiceCount is the count of how many services are exported to this peering.
+  uint64 ExportedServiceCount = 14;
+
   // CreateIndex is the Raft index at which the Peering was created.
   uint64 CreateIndex = 11;
 
