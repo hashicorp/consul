@@ -225,12 +225,14 @@ func TestPeeringService_Read(t *testing.T) {
 
 	// insert peering directly to state store
 	p := &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
-		PeerCAPems:          nil,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_INITIAL,
+		PeerCAPems:           nil,
+		PeerServerName:       "test",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	err := s.Server.FSM().State().PeeringWrite(10, p)
 	require.NoError(t, err)
@@ -319,21 +321,25 @@ func TestPeeringService_List(t *testing.T) {
 	// Note that the state store holds reference to the underlying
 	// variables; do not modify them after writing.
 	foo := &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
-		PeerCAPems:          nil,
-		PeerServerName:      "fooservername",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_INITIAL,
+		PeerCAPems:           nil,
+		PeerServerName:       "fooservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
 	bar := &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "bar",
-		State:               pbpeering.PeeringState_ACTIVE,
-		PeerCAPems:          nil,
-		PeerServerName:      "barservername",
-		PeerServerAddresses: []string{"addr1"},
+		ID:                   testUUID(t),
+		Name:                 "bar",
+		State:                pbpeering.PeeringState_ACTIVE,
+		PeerCAPems:           nil,
+		PeerServerName:       "barservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
 	}
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, bar))
 
