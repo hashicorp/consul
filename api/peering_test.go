@@ -209,7 +209,14 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "look for active state of peering in dc2", func(t *testing.T) {
+		// read and list the peer to make sure the status transitions to active
 		retry.Run(t, func(r *retry.R) {
+			peering, qm, err := c2.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peering)
+			require.Equal(r, PeeringStateActive, peering.State)
+
 			peerings, qm, err := c2.Peerings().List(ctx, nil)
 
 			require.NoError(r, err)
@@ -220,7 +227,14 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "look for active state of peering in dc1", func(t *testing.T) {
+		// read and list the peer to make sure the status transitions to active
 		retry.Run(t, func(r *retry.R) {
+			peering, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peering)
+			require.Equal(r, PeeringStateActive, peering.State)
+
 			peerings, qm, err := c.Peerings().List(ctx, nil)
 
 			require.NoError(r, err)

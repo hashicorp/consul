@@ -853,6 +853,26 @@ func Test_StreamHandler_UpsertServices(t *testing.T) {
 			run(t, tc)
 		})
 	}
+
+	// call PeeringRead and look at the peering state; the peering state must be active
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := srv.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: localPeerName})
+		require.NoError(t, err)
+		require.Equal(t, pbpeering.PeeringState_ACTIVE, resp.Peering.State)
+	}
+
+	// call PeeringList and look at the peering state; the peering state must be active
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := srv.PeeringList(ctx, &pbpeering.PeeringListRequest{})
+		require.NoError(t, err)
+		require.Equal(t, pbpeering.PeeringState_ACTIVE, resp.Peerings[0].State)
+	}
 }
 
 // newTestServer is copied from partition/service_test.go, with the addition of certs/cas.
