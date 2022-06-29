@@ -463,6 +463,34 @@ func TestACL_Enforce(t *testing.T) {
 			err:      "Invalid access level",
 		},
 		{
+			// TODO (peering) Update to use PeeringRead
+			method:   "OperatorRead",
+			resource: ResourcePeering,
+			access:   "read",
+			ret:      Allow,
+		},
+		{
+			// TODO (peering) Update to use PeeringRead
+			method:   "OperatorRead",
+			resource: ResourcePeering,
+			access:   "read",
+			ret:      Deny,
+		},
+		{
+			// TODO (peering) Update to use PeeringWrite
+			method:   "OperatorWrite",
+			resource: ResourcePeering,
+			access:   "write",
+			ret:      Allow,
+		},
+		{
+			// TODO (peering) Update to use PeeringWrite
+			method:   "OperatorWrite",
+			resource: ResourcePeering,
+			access:   "write",
+			ret:      Deny,
+		},
+		{
 			method:   "PreparedQueryRead",
 			resource: ResourceQuery,
 			segment:  "foo",
