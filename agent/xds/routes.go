@@ -139,7 +139,11 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
 		if !structs.IsProtocolHTTPLike(chain.Protocol) {
-			continue
+			continue // ignore; not relevant
+		}
+
+		if cfgSnap.MeshGateway.Leaf == nil {
+			continue // ignore; not ready
 		}
 
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)

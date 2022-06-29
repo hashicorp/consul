@@ -33,23 +33,43 @@
                           "googleRe2": {
 
                           },
-                          "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+$"
+                          "regex": "^spiffe://test.consul/gateway/mesh/dc/[^/]+$"
                         }
                       }
                     }
                   },
                   {
-                    "notId": {
-                      "authenticated": {
-                        "principalName": {
-                          "safeRegex": {
-                            "googleRe2": {
+                    "andIds": {
+                      "ids": [
+                        {
+                          "header": {
+                            "name": "x-forwarded-client-cert",
+                            "stringMatch": {
+                              "safeRegex": {
+                                "googleRe2": {
 
-                            },
-                            "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/web$"
+                                },
+                                "regex": "^[^,]+;URI=spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+(?:,.*)?$"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "notId": {
+                            "header": {
+                              "name": "x-forwarded-client-cert",
+                              "stringMatch": {
+                                "safeRegex": {
+                                  "googleRe2": {
+
+                                  },
+                                  "regex": "^[^,]+;URI=spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/web(?:,.*)?$"
+                                }
+                              }
+                            }
                           }
                         }
-                      }
+                      ]
                     }
                   }
                 ]
