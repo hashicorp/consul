@@ -180,9 +180,9 @@ type Peering struct {
 	PeerServerName string `protobuf:"bytes,9,opt,name=PeerServerName,proto3" json:"PeerServerName,omitempty"`
 	// PeerServerAddresses contains all the the connection addresses for the remote peer.
 	PeerServerAddresses []string `protobuf:"bytes,10,rep,name=PeerServerAddresses,proto3" json:"PeerServerAddresses,omitempty"`
-	// ImportedServiceCount is the count of how many services are imported for this peering.
+	// ImportedServiceCount is the count of how many services are imported from this peering.
 	ImportedServiceCount uint64 `protobuf:"varint,13,opt,name=ImportedServiceCount,proto3" json:"ImportedServiceCount,omitempty"`
-	// ExportedServiceCount is the count of how many services are exported for this peering.
+	// ExportedServiceCount is the count of how many services are exported to this peering.
 	ExportedServiceCount uint64 `protobuf:"varint,14,opt,name=ExportedServiceCount,proto3" json:"ExportedServiceCount,omitempty"`
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64 `protobuf:"varint,11,opt,name=CreateIndex,proto3" json:"CreateIndex,omitempty"`
