@@ -151,9 +151,9 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
       name: default ## The name of the partition containing the service
     spec:
       services:
-        name: backend-service ## The name of the service you want to export
-        consumers:
-          peerName: cluster-01 ## The name of the peer that receives the service
+        - name: backend-service ## The name of the service you want to export
+        - consumers:
+          - peer: cluster-01 ## The name of the peer that receives the service
     ```
 
     </CodeBlockConfig>
