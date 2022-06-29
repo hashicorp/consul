@@ -937,7 +937,6 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 		ConnectEnabled: true,
 	}, backend)
 
-
 	grpcServer := gogrpc.NewServer()
 	pbpeering.RegisterPeeringServiceServer(grpcServer, handler)
 
