@@ -83,6 +83,12 @@ func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
 	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
 }
 
+// CachePeeredUpstreams satisfies the proxycfg.PeeredUpstreams interface
+// by sourcing data from the agent cache.
+func CachePeeredUpstreams(c *cache.Cache) proxycfg.PeeredUpstreams {
+	return &cacheProxyDataSource[*structs.PartitionSpecificRequest]{c, cachetype.PeeredUpstreamsName}
+}
+
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by
 // sourcing data from the agent cache.
 func CachePrepraredQuery(c *cache.Cache) proxycfg.PreparedQuery {

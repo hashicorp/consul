@@ -700,6 +700,21 @@ func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
 				source:   obj,
 				expected: []byte("internal\x00foo\x00"),
 			},
+			prefix: []indexValue{
+				{
+					source: Query{
+						Value: "foo",
+					},
+					expected: []byte("internal\x00foo\x00"),
+				},
+				{
+					source: Query{
+						Value:    "foo",
+						PeerName: "*", // test wildcard PeerName
+					},
+					expected: []byte("peer:"),
+				},
+			},
 			extra: []indexerTestCase{
 				{
 					read: indexValue{
@@ -709,11 +724,11 @@ func testIndexerTableServiceVirtualIPs() map[string]indexerTestCase {
 							},
 							Peer: "Billing",
 						},
-						expected: []byte("billing\x00foo\x00"),
+						expected: []byte("peer:billing\x00foo\x00"),
 					},
 					write: indexValue{
 						source:   peeredObj,
-						expected: []byte("billing\x00foo\x00"),
+						expected: []byte("peer:billing\x00foo\x00"),
 					},
 				},
 			},

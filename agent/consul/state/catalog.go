@@ -117,7 +117,13 @@ func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
 }
 
 func (s *Restore) ServiceVirtualIP(req ServiceVirtualIP) error {
-	return s.tx.Insert(tableServiceVirtualIPs, req)
+	if err := s.tx.Insert(tableServiceVirtualIPs, req); err != nil {
+		return err
+	}
+	if err := updateVirtualIPMaxIndexes(s.tx, req.ModifyIndex, req.Service.ServiceName.PartitionOrDefault(), req.Service.Peer); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Restore) FreeVirtualIP(req FreeVirtualIP) error {
@@ -898,7 +904,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
-			vip, err := assignServiceVirtualIP(tx, psn)
+			vip, err := assignServiceVirtualIP(tx, idx, psn)
 			if err != nil {
 				return fmt.Errorf("failed updating virtual IP: %s", err)
 			}
@@ -923,7 +929,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			}
 			if conf != nil {
 				termGatewayConf := conf.(*structs.TerminatingGatewayConfigEntry)
-				addrs, err := getTermGatewayVirtualIPs(tx, termGatewayConf.Services, &svc.EnterpriseMeta)
+				addrs, err := getTermGatewayVirtualIPs(tx, idx, termGatewayConf.Services, &svc.EnterpriseMeta)
 				if err != nil {
 					return err
 				}
@@ -978,7 +984,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 // assignServiceVirtualIP assigns a virtual IP to the target service and updates
 // the global virtual IP counter if necessary.
-func assignServiceVirtualIP(tx WriteTxn, psn structs.PeeredServiceName) (string, error) {
+func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceName) (string, error) {
 	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return "", fmt.Errorf("failed service virtual IP lookup: %s", err)
@@ -1052,9 +1058,16 @@ func assignServiceVirtualIP(tx WriteTxn, psn structs.PeeredServiceName) (string,
 	assignedVIP := ServiceVirtualIP{
 		Service: psn,
 		IP:      newEntry.IP,
+		RaftIndex: structs.RaftIndex{
+			ModifyIndex: idx,
+			CreateIndex: idx,
+		},
 	}
 	if err := tx.Insert(tableServiceVirtualIPs, assignedVIP); err != nil {
 		return "", fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+	}
+	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
+		return "", err
 	}
 
 	result, err := addIPOffset(startingVirtualIP, assignedVIP.IP)
@@ -1062,6 +1075,20 @@ func assignServiceVirtualIP(tx WriteTxn, psn structs.PeeredServiceName) (string,
 		return "", err
 	}
 	return result.String(), nil
+}
+
+func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
+	// update per-partition max index
+	if err := indexUpdateMaxTxn(txn, idx, partitionedIndexEntryName(tableServiceVirtualIPs, partition)); err != nil {
+		return fmt.Errorf("failed while updating partitioned index: %w", err)
+	}
+	if peerName != "" {
+		// track a separate max index for imported services
+		if err := indexUpdateMaxTxn(txn, idx, partitionedIndexEntryName(tableServiceVirtualIPs+".imported", partition)); err != nil {
+			return fmt.Errorf("failed while updating partitioned index for imported services: %w", err)
+		}
+	}
+	return nil
 }
 
 func addIPOffset(a, b net.IP) (net.IP, error) {
@@ -2899,6 +2926,35 @@ func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, erro
 	return result.String(), nil
 }
 
+// VirtualIPsForAllImportedServices returns a slice of ServiceVirtualIP for all
+// VirtualIP-assignable services that have been imported by the partition represented in entMeta.
+// Namespace is ignored.
+func (s *Store) VirtualIPsForAllImportedServices(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []ServiceVirtualIP, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	q := Query{
+		EnterpriseMeta: entMeta,
+		// Wildcard peername is used by prefix index to fetch all remote peers for a partition.
+		PeerName: "*",
+	}
+	iter, err := tx.Get(tableServiceVirtualIPs, indexID+"_prefix", q)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	idx := maxIndexTxn(tx, partitionedIndexEntryName(tableServiceVirtualIPs+".imported", entMeta.PartitionOrDefault()))
+
+	var vips []ServiceVirtualIP
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		vip := raw.(ServiceVirtualIP)
+		vips = append(vips, vip)
+	}
+
+	return idx, vips, nil
+}
+
 func (s *Store) ServiceNamesOfKind(ws memdb.WatchSet, kind structs.ServiceKind) (uint64, []*KindServiceName, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -3333,13 +3389,18 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	return nil
 }
 
-func getTermGatewayVirtualIPs(tx WriteTxn, services []structs.LinkedService, entMeta *acl.EnterpriseMeta) (map[string]structs.ServiceAddress, error) {
+func getTermGatewayVirtualIPs(
+	tx WriteTxn,
+	idx uint64,
+	services []structs.LinkedService,
+	entMeta *acl.EnterpriseMeta,
+) (map[string]structs.ServiceAddress, error) {
 	addrs := make(map[string]structs.ServiceAddress, len(services))
 	for _, s := range services {
 		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
 		// Terminating Gateways cannot route to services in peered clusters
 		psn := structs.PeeredServiceName{ServiceName: sn, Peer: structs.DefaultPeerKeyword}
-		vip, err := assignServiceVirtualIP(tx, psn)
+		vip, err := assignServiceVirtualIP(tx, idx, psn)
 		if err != nil {
 			return nil, err
 		}
@@ -3353,7 +3414,7 @@ func getTermGatewayVirtualIPs(tx WriteTxn, services []structs.LinkedService, ent
 func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.TerminatingGatewayConfigEntry, entMeta *acl.EnterpriseMeta) error {
 	// Build the current map of services with virtual IPs for this gateway
 	services := conf.Services
-	addrs, err := getTermGatewayVirtualIPs(tx, services, entMeta)
+	addrs, err := getTermGatewayVirtualIPs(tx, idx, services, entMeta)
 	if err != nil {
 		return err
 	}

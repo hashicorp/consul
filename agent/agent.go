@@ -647,6 +647,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
 		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
 		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
 		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
 		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
