@@ -673,7 +673,6 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags"`
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url"`
-	DisableCompatOneNine               *bool    `mapstructure:"disable_compat_1.9"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`

@@ -740,12 +740,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
-	// future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
-	}
-
 	if a.tlsConfigurator.Cert() != nil {
 		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
@@ -3889,12 +3883,6 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			// reset not reloadable fields
 			newCfg.StaticRuntimeConfig = a.config.StaticRuntimeConfig
 		}
-	}
-
-	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
-	// metrics in a future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	return a.reloadConfigInternal(newCfg)
