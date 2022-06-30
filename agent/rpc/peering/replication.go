@@ -129,6 +129,7 @@ func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
 }
 
 func (s *Service) processResponse(
+	peerLocalID string,
 	peerName string,
 	partition string,
 	resp *pbpeering.ReplicationMessage_Response,
@@ -155,7 +156,7 @@ func (s *Service) processResponse(
 			), err
 		}
 
-		if err := s.handleUpsert(peerName, partition, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
+		if err := s.handleUpsert(peerLocalID, peerName, partition, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
 			return makeReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -167,7 +168,7 @@ func (s *Service) processResponse(
 		return makeReply(resp.ResourceURL, resp.Nonce, code.Code_OK, ""), nil
 
 	case pbpeering.ReplicationMessage_Response_DELETE:
-		if err := s.handleDelete(peerName, partition, resp.ResourceURL, resp.ResourceID); err != nil {
+		if err := s.handleDelete(peerLocalID, peerName, partition, resp.ResourceURL, resp.ResourceID); err != nil {
 			return makeReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -194,6 +195,7 @@ func (s *Service) processResponse(
 }
 
 func (s *Service) handleUpsert(
+	peerLocalID string,
 	peerName string,
 	partition string,
 	resourceURL string,
@@ -210,7 +212,7 @@ func (s *Service) handleUpsert(
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		return s.handleUpdateService(peerName, partition, sn, csn)
+		return s.handleUpdateService(peerLocalID, peerName, partition, sn, csn)
 
 	case pbpeering.TypeURLRoots:
 		roots := &pbpeering.PeeringTrustBundle{}
@@ -234,11 +236,13 @@ func (s *Service) handleUpsert(
 //		- A reconciliation against nil or empty input pbNodes leads to deleting all stored catalog resources
 //		  associated with the service name.
 func (s *Service) handleUpdateService(
+	peerLocalID string,
 	peerName string,
 	partition string,
 	sn structs.ServiceName,
 	pbNodes *pbservice.IndexedCheckServiceNodes,
 ) error {
+	logger := s.logger.With("peerName", peerName, "peerID", peerLocalID)
 	// Capture instances in the state store for reconciliation later.
 	_, storedInstances, err := s.Backend.Store().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
 	if err != nil {
@@ -265,6 +269,16 @@ func (s *Service) handleUpdateService(
 			req.Service = svcSnap.Service
 			if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
 				return fmt.Errorf("failed to register service: %w", err)
+			} else {
+				if !servicePresentInStored(req.Service, storedInstances) {
+					logger.Trace("incrementing imported services count", "serviceName", req.Service.CompoundServiceName(), "node", req.Node)
+					st, err := s.streams.getLockableStatus(peerLocalID)
+					if err != nil {
+						logger.Warn("failed to increment imported services count", "error", err)
+					} else {
+						st.incrementImportedServicesCount()
+					}
+				}
 			}
 		}
 		req.Service = nil
@@ -323,6 +337,14 @@ func (s *Service) handleUpdateService(
 			})
 			if err != nil {
 				return fmt.Errorf("failed to deregister service %q: %w", csn.Service.CompoundServiceID(), err)
+			} else {
+				logger.Trace("decrementing imported services count", "serviceName", csn.Service.CompoundServiceName(), "node", csn.Node.Node)
+				st, err := s.streams.getLockableStatus(peerLocalID)
+				if err != nil {
+					logger.Warn("failed to decrement imported services count", "error", err)
+				} else {
+					st.decrementImportedServicesCount()
+				}
 			}
 
 			// We can't know if a node check was deleted from the exporting cluster
@@ -441,6 +463,7 @@ func (s *Service) handleUpsertRoots(
 }
 
 func (s *Service) handleDelete(
+	peerLocalID string,
 	peerName string,
 	partition string,
 	resourceURL string,
@@ -450,11 +473,20 @@ func (s *Service) handleDelete(
 	case pbpeering.TypeURLService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
-		return s.handleUpdateService(peerName, partition, sn, nil)
+		return s.handleUpdateService(peerLocalID, peerName, partition, sn, nil)
 
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
 	}
+}
+
+func servicePresentInStored(svc *structs.NodeService, stored structs.CheckServiceNodes) bool {
+	for _, csn := range stored {
+		if svc.CompoundServiceName() == csn.Service.CompoundServiceName() {
+			return true
+		}
+	}
+	return false
 }
 
 func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbpeering.ReplicationMessage {

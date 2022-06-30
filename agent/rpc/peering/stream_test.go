@@ -1121,7 +1121,7 @@ func Test_processResponse_Validation(t *testing.T) {
 		})
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse("", "", tc.in)
+		reply, err := srv.processResponse("", "", "", tc.in)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1353,30 +1353,15 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 }
 
 func TestHandleUpdateService(t *testing.T) {
-	publisher := stream.NewEventPublisher(10 * time.Second)
-	store := newStateStore(t, publisher)
-
-	srv := NewService(
-		testutil.Logger(t),
-		Config{
-			Datacenter:     "dc1",
-			ConnectEnabled: true,
-		},
-		&testStreamBackend{
-			store:   store,
-			applier: &testApplier{store: store},
-			pub:     publisher,
-			leader: func() bool {
-				return false
-			},
-		},
-	)
 
 	type testCase struct {
-		name   string
-		seed   []*structs.RegisterRequest
-		input  *pbservice.IndexedCheckServiceNodes
-		expect map[string]structs.CheckServiceNodes
+		name                          string
+		streamID                      string
+		seed                          []*structs.RegisterRequest
+		seedImportedServicesCount     int
+		input                         *pbservice.IndexedCheckServiceNodes
+		expect                        map[string]structs.CheckServiceNodes
+		expectedImportedServicesCount uint64
 	}
 
 	peerName := "billing"
@@ -1388,13 +1373,45 @@ func TestHandleUpdateService(t *testing.T) {
 	apiSN := structs.NewServiceName("api", &defaultMeta)
 
 	run := func(t *testing.T, tc testCase) {
+		publisher := stream.NewEventPublisher(10 * time.Second)
+		store := newStateStore(t, publisher)
+
+		srv := NewService(
+			testutil.Logger(t),
+			Config{
+				Datacenter:     "dc1",
+				ConnectEnabled: true,
+			},
+			&testStreamBackend{
+				store:   store,
+				applier: &testApplier{store: store},
+				pub:     publisher,
+				leader: func() bool {
+					return false
+				},
+			},
+		)
+
+		// connect the stream
+		s, err := srv.streams.connected(tc.streamID)
+		require.NoError(t, err)
+		require.NotNil(t, s)
+
 		// Seed the local catalog with some data to reconcile against.
 		for _, reg := range tc.seed {
 			require.NoError(t, srv.Backend.Apply().CatalogRegister(reg))
 		}
 
+		// count the seeded services
+		st, err := srv.streams.getLockableStatus(tc.streamID)
+		require.NoError(t, err)
+		require.True(t, st.Connected)
+		for i := 0; i < tc.seedImportedServicesCount; i++ {
+			st.incrementImportedServicesCount()
+		}
+
 		// Simulate an update arriving for billing/api.
-		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, tc.input))
+		require.NoError(t, srv.handleUpdateService(tc.streamID, peerName, acl.DefaultPartitionName, apiSN, tc.input))
 
 		for svc, expect := range tc.expect {
 			t.Run(svc, func(t *testing.T) {
@@ -1403,11 +1420,20 @@ func TestHandleUpdateService(t *testing.T) {
 				requireEqualInstances(t, expect, got)
 			})
 		}
+
+		require.Equal(t, tc.expectedImportedServicesCount, st.importedServicesCount())
+
+		// delete the stream
+		srv.streams.deleteStatus(tc.streamID)
+		_, found := srv.streams.streamStatus(tc.streamID)
+		require.False(t, found)
+
 	}
 
 	tt := []testCase{
 		{
-			name: "upsert two service instances to the same node",
+			name:     "upsert two service instances to the same node",
+			streamID: "1",
 			input: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
@@ -1536,9 +1562,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
-			name: "upsert two service instances to different nodes",
+			name:     "upsert two service instances to different nodes",
+			streamID: "2",
 			input: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
@@ -1667,9 +1695,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
-			name: "receiving a nil input leads to deleting data in the catalog",
+			name:     "receiving a nil input leads to deleting data in the catalog",
+			streamID: "3",
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("c0f97de9-4e1b-4e80-a1c6-cd8725835ab2"),
@@ -1720,13 +1750,16 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
-			input: nil,
+			seedImportedServicesCount: 2,
+			input:                     nil,
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 			},
+			expectedImportedServicesCount: 0,
 		},
 		{
-			name: "deleting one service name from a node does not delete other service names",
+			name:     "deleting one service name from a node does not delete other service names",
+			streamID: "4",
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -1777,6 +1810,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			seedImportedServicesCount: 2,
 			// Nil input is for the "api" service.
 			input: nil,
 			expect: map[string]structs.CheckServiceNodes{
@@ -1814,9 +1848,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
-			name: "service checks are cleaned up when not present in a response",
+			name:     "service checks are cleaned up when not present in a response",
+			streamID: "5",
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -1843,6 +1879,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			seedImportedServicesCount: 2,
 			input: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
@@ -1884,9 +1921,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
-			name: "node checks are cleaned up when not present in a response",
+			name:     "node checks are cleaned up when not present in a response",
+			streamID: "6",
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -1937,6 +1976,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			seedImportedServicesCount: 2,
 			input: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
@@ -2018,9 +2058,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
-			name: "replacing a service instance on a node cleans up the old instance",
+			name:     "replacing a service instance on a node cleans up the old instance",
+			streamID: "7",
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2071,6 +2113,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			seedImportedServicesCount: 2,
 			input: &pbservice.IndexedCheckServiceNodes{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
@@ -2165,6 +2208,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 	}
 

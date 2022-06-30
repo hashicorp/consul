@@ -3,6 +3,7 @@ package peering
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -85,6 +86,17 @@ func (t *streamTracker) deleteStatus(id string) {
 	delete(t.streams, id)
 }
 
+func (t *streamTracker) getLockableStatus(id string) (*lockableStreamStatus, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	s, ok := t.streams[id]
+	if !ok {
+		return nil, fmt.Errorf("did not find a stream for id: %q", id)
+	}
+	return s, nil
+}
+
 type lockableStreamStatus struct {
 	mu sync.RWMutex
 
@@ -134,6 +146,9 @@ type StreamStatus struct {
 	// - The error message when we failed to store a resource replicated FROM the peer.
 	// - The last error message when receiving from the stream.
 	LastReceiveErrorMessage string
+
+	// ImportedServicesCount tracks the count of imported services for this peer
+	ImportedServicesCount uint64
 }
 
 func newLockableStreamStatus(now func() time.Time) *lockableStreamStatus {
@@ -209,4 +224,16 @@ func (s *lockableStreamStatus) status() StreamStatus {
 	s.mu.RUnlock()
 
 	return copy
+}
+
+func (s *lockableStreamStatus) importedServicesCount() uint64 {
+	return atomic.LoadUint64(&s.ImportedServicesCount)
+}
+
+func (s *lockableStreamStatus) incrementImportedServicesCount() {
+	atomic.AddUint64(&s.ImportedServicesCount, 1)
+}
+
+func (s *lockableStreamStatus) decrementImportedServicesCount() {
+	atomic.AddUint64(&s.ImportedServicesCount, ^uint64(0))
 }
