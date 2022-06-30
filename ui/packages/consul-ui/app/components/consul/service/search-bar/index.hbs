@@ -165,6 +165,9 @@ as |nonDefaultPartitions|}}
             {{t (concat "common.brand." source)}}
           </Option>
     {{/each}}
+    <Option class="consul" @value='consul' @selected={{includes 'consul' @filter.source.value}}>
+      {{t 'common.brand.consul'}}
+    </Option>
     </Optgroup>
 {{/if}}
   {{/let}}

@@ -20,9 +20,20 @@ export default {
     'not-registered': (item, value) => item.InstanceCount === 0,
   },
   source: (item, values) => {
+    let includeBecauseNoExternalSourcesOrPeered = false;
+
+    if (values.includes('consul')) {
+      includeBecauseNoExternalSourcesOrPeered =
+        !item.ExternalSources ||
+        item.ExternalSources.length === 0 ||
+        (item.ExternalSources.length === 1 && item.ExternalSources[0] === '') ||
+        item.PeerName;
+    }
+
     return (
       setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0 ||
-      values.includes(item.Partition)
+      values.includes(item.Partition) ||
+      includeBecauseNoExternalSourcesOrPeered
     );
   },
 };
