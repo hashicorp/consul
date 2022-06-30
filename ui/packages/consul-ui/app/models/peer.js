@@ -2,6 +2,7 @@ import Model, { attr } from '@ember-data/model';
 
 export default class Peer extends Model {
   @attr('string') uri;
+  @attr() meta;
 
   @attr('string') Datacenter;
   @attr('string') Partition;

@@ -38,7 +38,7 @@ export default class PeerService extends RepositoryService {
   }
 
   @dataSource('/:partition/:ns/:dc/peer/:name')
-  async fetchOne({partition, ns, dc, name}, configuration = {}, request) {
+  async fetchOne({partition, ns, dc, name}, { uri }, request) {
     if (name === '') {
       return this.create({
         Datacenter: dc,
@@ -53,15 +53,21 @@ export default class PeerService extends RepositoryService {
         partition,
       }}
     `)((headers, body, cache) => {
-      return cache(
-        {
-          ...body,
-          Datacenter: dc,
-          Partition: partition,
-        },
-        uri => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
-      );
-
+        return {
+          meta: {
+            version: 2,
+            interval: 10000,
+            uri: uri,
+          },
+          body: cache(
+            {
+              ...body,
+              Datacenter: dc,
+              Partition: partition,
+            },
+            uri => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
+          )
+        };
     });
   }
 }
