@@ -16,8 +16,8 @@
       'TERMINATED',
       'UNDEFINED'
     ])}",
-    "ImportedServiceCount": ${fake.random.number({min: 1, max: 4000})},
-    "ExportedServiceCount": ${fake.random.number({min: 1, max: 4000})},
+    "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
     "CreateIndex": 16,
     "ModifyIndex": 16
   }

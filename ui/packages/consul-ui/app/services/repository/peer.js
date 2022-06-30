@@ -8,16 +8,20 @@ export default class PeerService extends RepositoryService {
   }
 
   @dataSource('/:partition/:ns/:dc/peers')
-  async fetchAll({dc, ns, partition}, configuration, request) {
+  async fetchAll({ dc, ns, partition }, { uri }, request) {
     return (await request`
-      GET /v1/peerings?${{partition}}
+      GET /v1/peerings
+
+      ${{
+        partition,
+      }}
     `)(
       (headers, body, cache) => {
         return {
           meta: {
             version: 2,
             interval: 10000,
-            // uri: uri,
+            uri: uri,
           },
           body: body.map(item => {
             return cache(
@@ -26,10 +30,38 @@ export default class PeerService extends RepositoryService {
                 Datacenter: dc,
                 Partition: partition,
               },
-              uri => `peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+              uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
             );
           })
         };
       });
+  }
+
+  @dataSource('/:partition/:ns/:dc/peer/:name')
+  async fetchOne({partition, ns, dc, name}, configuration = {}, request) {
+    if (name === '') {
+      return this.create({
+        Datacenter: dc,
+        Namespace: '',
+        Partition: partition,
+      });
+    }
+    return (await request`
+      GET /v1/peering/${name}
+
+      ${{
+        partition,
+      }}
+    `)((headers, body, cache) => {
+      return cache(
+        {
+          ...body,
+          Datacenter: dc,
+          Partition: partition,
+        },
+        uri => uri`peer:///${partition}/${ns}/${dc}/peer/${body.Name}`
+      );
+
+    });
   }
 }

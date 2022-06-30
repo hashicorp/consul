@@ -10,4 +10,5 @@ export default class Peer extends Model {
   @attr('string') State;
   @attr('number') ImportedServiceCount;
   @attr('number') ExportedServiceCount;
+  @attr() PeerServerAddresses;
 }
