@@ -16,7 +16,7 @@ export default class PeerService extends RepositoryService {
         return {
           meta: {
             version: 2,
-            interval: 1000,
+            interval: 10000,
             // uri: uri,
           },
           body: body.map(item => {
