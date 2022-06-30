@@ -23,8 +23,8 @@ export default class PeerService extends RepositoryService {
             return cache(
               {
                 ...item,
-                Datacenter: '',
-                Partition: '',
+                Datacenter: dc,
+                Partition: partition,
               },
               uri => `peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
             );
