@@ -47,6 +47,7 @@ consul:
   readreplica: Read replica
   redundancyzone: Redundancy zone
   peername: Peer
+  partition: Admin Partitions
 search:
   search: Search
   searchproperty: Search Across
