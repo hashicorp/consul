@@ -31,3 +31,18 @@ If everything works properly you should get the following output:
 20XX-XX-XXTXX:XX:XX.XXX-XXX [INFO]  Loaded cert from file: name=www.example.com
 20XX-XX-XXTXX:XX:XX.XXX-XXX [INFO]  ==> SDS listening: addr=0.0.0.0:1234
 ```
+
+## Dockerfile-fortio-windows
+
+This file sole purpose is to build the custom Fortio image for Windows OS. To do this, the official [windows/nanoserver image](https://hub.docker.com/_/microsoft-windows-nanoserver) is used as base image.
+To build this image you need to run the following command on your terminal:
+
+`docker build -t fortio . -f Dockerfile-fortio-windows`
+
+This is the same command used in run-tests.sh
+
+You can test the built file by running the following command:
+
+`docker run --rm -p 8080:8080 --name fortio fortio`
+
+If everything works properly you should openning the browser and check that the Fortio server running on: `http://localhost:8080/fortio`

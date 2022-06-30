@@ -1,0 +1,12 @@
+FROM mcr.microsoft.com/windows/nanoserver:1809
+
+RUN mkdir fortio
+
+ENV FORTIO_URL=https://github.com/fortio/fortio/releases/download/v1.33.0/fortio_win_1.33.0.zip
+RUN curl %FORTIO_URL% -L -o fortio.zip
+
+RUN tar -xf fortio.zip -C fortio
+
+ENV PATH C:\\fortio;%PATH%
+
+CMD [ "fortio.exe", "server" ]
