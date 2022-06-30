@@ -1,8 +1,22 @@
 <Route @name={{route}} as |route|>
-  <Watcher @watch={{this.model.loadPeers}} as |w|>
-    {{did-insert w.fns.start}}
-    {{will-destroy w.fns.stop}}
-  </Watcher>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/peers'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
 {{#let
 
   (hash
@@ -21,7 +35,7 @@
     )
   )
 
-  @model.peers
+  loader.data
 
 as |sort filters items|}}
   <AppView>
@@ -110,4 +124,6 @@ as |sort filters items|}}
 
   </AppView>
 {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>
