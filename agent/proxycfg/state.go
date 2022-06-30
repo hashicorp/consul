@@ -1821,6 +1821,10 @@ func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, opts discoveryChainWat
 		return nil
 	}
 
+	if _, ok := snap.IngressGateway.WatchedDiscoveryChains[opts.id]; ok {
+		return nil
+	}
+
 	ctx, cancel := context.WithCancel(s.ctx)
 	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 		Datacenter:             s.source.Datacenter,
