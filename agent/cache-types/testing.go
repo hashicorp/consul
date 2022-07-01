@@ -2,14 +2,15 @@ package cachetype
 
 import (
 	"reflect"
-	"testing"
 	"time"
+
+	testinf "github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/cache"
 )
 
 // TestRPC returns a mock implementation of the RPC interface.
-func TestRPC(t *testing.T) *MockRPC {
+func TestRPC(t testinf.T) *MockRPC {
 	// This function is relatively useless but this allows us to perhaps
 	// perform some initialization later.
 	return &MockRPC{}
@@ -20,7 +21,7 @@ func TestRPC(t *testing.T) *MockRPC {
 // Errors will show up as an error type on the resulting channel so a
 // type switch should be used.
 func TestFetchCh(
-	t *testing.T,
+	t testinf.T,
 	typ cache.Type,
 	opts cache.FetchOptions,
 	req cache.Request,
@@ -42,7 +43,7 @@ func TestFetchCh(
 // TestFetchChResult tests that the result from TestFetchCh matches
 // within a reasonable period of time (it expects it to be "immediate" but
 // waits some milliseconds).
-func TestFetchChResult(t *testing.T, ch <-chan interface{}, expected interface{}) {
+func TestFetchChResult(t testinf.T, ch <-chan interface{}, expected interface{}) {
 	t.Helper()
 
 	select {
