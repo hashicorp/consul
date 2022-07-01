@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -16,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/mitchellh/cli"
 )
@@ -123,7 +121,7 @@ func (c *cmd) Run(args []string) int {
 		readFile = f
 
 		// Assume the meta is colocated and error if not.
-		metaRaw, err := ioutil.ReadFile(path.Join(path.Dir(file), "meta.json"))
+		metaRaw, err := os.ReadFile(path.Join(path.Dir(file), "meta.json"))
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading meta.json from internal snapshot dir: %s", err))
 			return 1
@@ -162,7 +160,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error outputting enhanced snapshot data: %s", err))
 		return 1
 	}
-	//Generate structs for the formatter with information we read in
+	// Generate structs for the formatter with information we read in
 	metaformat := &MetadataInfo{
 		ID:      meta.ID,
 		Size:    meta.Size,
@@ -171,7 +169,7 @@ func (c *cmd) Run(args []string) int {
 		Version: meta.Version,
 	}
 
-	//Restructures stats given above to be human readable
+	// Restructures stats given above to be human readable
 	formattedStats := generateStats(info)
 	formattedStatsKV := generateKVStats(info)
 

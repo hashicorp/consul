@@ -5,13 +5,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -89,7 +87,7 @@ func devTLSConfigFromFiles(caFile, certFile,
 
 	roots := x509.NewCertPool()
 
-	bs, err := ioutil.ReadFile(caFile)
+	bs, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}

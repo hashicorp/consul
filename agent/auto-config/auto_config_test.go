@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -309,7 +308,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 	}
 	data, err := pbMarshaler.MarshalToString(response)
 	require.NoError(t, err)
-	require.NoError(t, ioutil.WriteFile(persistedFile, []byte(data), 0600))
+	require.NoError(t, os.WriteFile(persistedFile, []byte(data), 0600))
 
 	// recording the initial configuration even when restoring is going to update
 	// the agent token in the token store
@@ -1139,7 +1138,7 @@ func TestIntroToken(t *testing.T) {
 
 	tokenFromFile := "8ae34d3a-8adf-446a-b236-69874597cb5b"
 	tokenFromConfig := "3ad9b572-ea42-4e47-9cd0-53a398a98abf"
-	require.NoError(t, ioutil.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
+	require.NoError(t, os.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
 
 	type testCase struct {
 		config *config.RuntimeConfig

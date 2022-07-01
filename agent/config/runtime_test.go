@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -4509,7 +4508,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Defaults sanity checks
 
 	run(t, testCase{
@@ -4532,7 +4531,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 
-	///////////////////////////////////
+	// /////////////////////////////////
 	// Auto Config related tests
 	run(t, testCase{
 		desc: "auto config and auto encrypt error",
@@ -6987,7 +6986,7 @@ func writeFile(path string, data []byte) {
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		panic(err)
 	}
-	if err := ioutil.WriteFile(path, data, 0640); err != nil {
+	if err := os.WriteFile(path, data, 0640); err != nil {
 		panic(err)
 	}
 }

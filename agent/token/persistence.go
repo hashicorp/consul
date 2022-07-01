@@ -3,7 +3,6 @@ package token
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -142,7 +141,7 @@ func readPersistedFromFile(filename string) (persistedTokens, error) {
 		LegacyAgentMaster string `json:"agent_master"`
 	}
 
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	switch {
 	case os.IsNotExist(err):
 		// non-existence is not an error we care about

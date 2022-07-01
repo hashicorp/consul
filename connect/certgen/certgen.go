@@ -31,13 +31,11 @@ package main // import "github.com/hashicorp/consul/connect/certgen"
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/go-testing-interface"
 )
 
 func main() {
@@ -85,7 +83,7 @@ func main() {
 
 func writeFile(name, content string) {
 	fmt.Println("Writing ", name)
-	err := ioutil.WriteFile(name, []byte(content), 0600)
+	err := os.WriteFile(name, []byte(content), 0600)
 	if err != nil {
 		log.Fatalf("failed writing file: %s", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +43,7 @@ type TestAPIServer struct {
 func StartTestAPIServer(t testing.T) *TestAPIServer {
 	s := &TestAPIServer{}
 	s.srv = httptest.NewUnstartedServer(s)
-	s.srv.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+	s.srv.Config.ErrorLog = log.New(io.Discard, "", 0)
 	s.srv.StartTLS()
 
 	bs := s.srv.TLS.Certificates[0].Certificate[0]
@@ -163,7 +162,7 @@ func (s *TestAPIServer) handleTokenReview(w http.ResponseWriter, req *http.Reque
 	}
 	defer req.Body.Close()
 
-	b, err := ioutil.ReadAll(req.Body)
+	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"os"
@@ -19,8 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1386,13 +1383,13 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	require.NoError(t, err)
 
 	dir := testutil.TempDir(t, "certs")
-	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	intermediatePEM, intermediatePK, err := tlsutil.GenerateCert(tlsutil.CertOpts{IsCA: true, CA: caPEM, Signer: caSigner, Days: 5})
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
 	require.NoError(t, err)
 
 	newCert := func(t *testing.T, caPEM, pk, node, name string) {
@@ -1411,9 +1408,9 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
 		require.NoError(t, err)
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
 		require.NoError(t, err)
 	}
 

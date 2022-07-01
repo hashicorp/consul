@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -234,7 +233,7 @@ func TestHelperProcess(t *testing.T) {
 			os.Exit(1)
 		}
 
-		d, err := ioutil.ReadFile(data.ConfigPath)
+		d, err := os.ReadFile(data.ConfigPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "could not read provided --config-path file %q: %v\n", data.ConfigPath, err)
 			os.Exit(1)

@@ -3,7 +3,7 @@ package save
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -136,7 +136,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		require.NoError(t, err)
 		defer rc.Close()
 
-		inputData, err = ioutil.ReadAll(rc)
+		inputData, err = io.ReadAll(rc)
 		require.NoError(t, err)
 	}
 

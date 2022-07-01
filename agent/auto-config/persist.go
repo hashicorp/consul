@@ -2,7 +2,6 @@ package autoconf
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,7 +38,7 @@ func (ac *AutoConfig) readPersistedAutoConfig() (*pbautoconf.AutoConfigResponse,
 	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
 	ac.logger.Debug("attempting to restore any persisted configuration", "path", path)
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err == nil {
 		rdr := strings.NewReader(string(content))
 
@@ -75,7 +74,7 @@ func (ac *AutoConfig) persistAutoConfig(resp *pbautoconf.AutoConfigResponse) err
 
 	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
 
-	err = ioutil.WriteFile(path, []byte(serialized), 0660)
+	err = os.WriteFile(path, []byte(serialized), 0660)
 	if err != nil {
 		return fmt.Errorf("failed to write auto-config configurations: %w", err)
 	}

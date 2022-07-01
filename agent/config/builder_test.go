@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -104,7 +103,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.
 // TODO: this would be much nicer with gotest.tools/fs
 func setupConfigFiles(t *testing.T) []string {
 	t.Helper()
-	path, err := ioutil.TempDir("", t.Name())
+	path, err := os.MkdirTemp("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
@@ -113,13 +112,13 @@ func setupConfigFiles(t *testing.T) []string {
 	require.NoError(t, err)
 
 	for _, dir := range []string{path, subpath} {
-		err = ioutil.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
 	return []string{

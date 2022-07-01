@@ -3,7 +3,6 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -802,7 +801,7 @@ func expectJSONFile(t *testing.T, file string, expect interface{}, fixupContentB
 	expected, err := json.Marshal(expect)
 	require.NoError(t, err)
 
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	require.NoError(t, err)
 
 	if fixupContentBeforeCompareFn != nil {

@@ -4,17 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -125,7 +121,7 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	path := filepath.Join(a.srv.config.DataDir, aclBootstrapReset)
 
 	// Read the file
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			a.logger.Error("bootstrap: failed to read path",

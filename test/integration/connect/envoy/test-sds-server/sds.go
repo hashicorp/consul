@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -17,7 +16,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
@@ -100,12 +98,12 @@ func loadCertsFromPath(cache *cache.LinearCache, log hclog.Logger, dir string) e
 		}
 
 		certName := strings.TrimSuffix(entry.Name(), ".crt")
-		cert, err := ioutil.ReadFile(filepath.Join(dir, entry.Name()))
+		cert, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return err
 		}
 		keyFile := certName + ".key"
-		key, err := ioutil.ReadFile(filepath.Join(dir, keyFile))
+		key, err := os.ReadFile(filepath.Join(dir, keyFile))
 		if err != nil {
 			return err
 		}

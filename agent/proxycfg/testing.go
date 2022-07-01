@@ -3,7 +3,6 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -11,8 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -923,7 +920,7 @@ func golden(t testing.T, name string) string {
 	t.Helper()
 
 	golden := filepath.Join(projectRoot(), "../", "/xds/testdata", name+".golden")
-	expected, err := ioutil.ReadFile(golden)
+	expected, err := os.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)

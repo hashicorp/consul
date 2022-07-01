@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -13,9 +13,6 @@ import (
 	"github.com/hashicorp/consul/internal/iamauth/responses"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-retryablehttp"
 )
 
 const (
@@ -205,7 +202,7 @@ func (a *Authenticator) submitRequest(ctx context.Context, req *http.Request) (s
 	}
 
 	// we check for status code afterwards to also print out response body
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}

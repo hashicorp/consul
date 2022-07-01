@@ -3,19 +3,16 @@ package ca
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/mitchellh/go-testing-interface"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test
@@ -77,7 +74,7 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
@@ -155,8 +152,8 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 	}
 
 	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}

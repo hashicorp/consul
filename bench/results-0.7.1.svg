@@ -1245,7 +1245,7 @@
 <text text-anchor="" x="665.18" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>io/ioutil.(*nopCloser).Close (1 samples, 0.04%)</title><rect x="455.7" y="529" width="0.5" height="15.0" fill="rgb(216,32,41)" rx="2" ry="2" />
+<title>io.(*nopCloser).Close (1 samples, 0.04%)</title><rect x="455.7" y="529" width="0.5" height="15.0" fill="rgb(216,32,41)" rx="2" ry="2" />
 <text text-anchor="" x="458.73" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">

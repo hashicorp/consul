@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -16,16 +15,13 @@ import (
 	"syscall"
 	"time"
 
-	http2 "golang.org/x/net/http2"
-
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
+	"golang.org/x/net/http2"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (
@@ -859,7 +855,7 @@ func (c *CheckDocker) Start() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+		c.Logger = hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 	}
 
 	if c.Shell == "" {

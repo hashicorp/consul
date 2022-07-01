@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -267,7 +267,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -281,7 +281,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 	}
 
 	// Content should still be the same
-	content, err = ioutil.ReadFile(file)
+	content, err = os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

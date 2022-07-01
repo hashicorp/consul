@@ -3,11 +3,9 @@ package autoconf
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
@@ -208,7 +206,7 @@ func (ac *AutoConfig) introToken() (string, error) {
 	token := conf.IntroToken
 	if token == "" {
 		// load the intro token from the file
-		content, err := ioutil.ReadFile(conf.IntroTokenFile)
+		content, err := os.ReadFile(conf.IntroTokenFile)
 		if err != nil {
 			return "", fmt.Errorf("Failed to read intro token from file: %w", err)
 		}

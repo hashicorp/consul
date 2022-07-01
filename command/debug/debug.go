@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -334,7 +333,7 @@ func writeJSONFile(filename string, content interface{}) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, marshaled, 0644)
+	return os.WriteFile(filename, marshaled, 0644)
 }
 
 // captureInterval blocks for the duration of the command
@@ -436,7 +435,7 @@ func (c *cmd) captureGoRoutines(outputDir string) error {
 		return fmt.Errorf("failed to collect goroutine profile: %w", err)
 	}
 
-	return ioutil.WriteFile(filepath.Join(outputDir, "goroutine.prof"), gr, 0644)
+	return os.WriteFile(filepath.Join(outputDir, "goroutine.prof"), gr, 0644)
 }
 
 func (c *cmd) captureTrace(ctx context.Context, duration int) error {
@@ -479,7 +478,7 @@ func (c *cmd) captureHeap(outputDir string) error {
 		return fmt.Errorf("failed to collect heap profile: %w", err)
 	}
 
-	return ioutil.WriteFile(filepath.Join(outputDir, "heap.prof"), heap, 0644)
+	return os.WriteFile(filepath.Join(outputDir, "heap.prof"), heap, 0644)
 }
 
 func (c *cmd) captureLogs(ctx context.Context) error {
@@ -600,7 +599,7 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)
 
-	f, err := ioutil.TempFile(dir, name+".tmp")
+	f, err := os.CreateTemp(dir, name+".tmp")
 	if err != nil {
 		return "", fmt.Errorf("failed to create compressed temp archive: %s", err)
 	}

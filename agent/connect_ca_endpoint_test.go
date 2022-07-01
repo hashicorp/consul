@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -287,7 +287,7 @@ func TestConnectCARoots_PEMEncoding(t *testing.T) {
 	resp := recorder.Result()
 	require.Equal(t, resp.Header.Get("Content-Type"), "application/pem-certificate-chain")
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	// expecting the root cert from dc1 and an intermediate in dc2

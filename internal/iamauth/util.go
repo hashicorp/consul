@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/hashicorp/consul/internal/iamauth/responses"
-	"github.com/hashicorp/go-hclog"
 )
 
 type LoginInput struct {
@@ -64,7 +63,7 @@ func GenerateLoginData(in *LoginInput) (map[string]interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		requestBody, err := ioutil.ReadAll(entityRequest.HTTPRequest.Body)
+		requestBody, err := io.ReadAll(entityRequest.HTTPRequest.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +86,7 @@ func GenerateLoginData(in *LoginInput) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	requestBody, err := ioutil.ReadAll(stsRequest.HTTPRequest.Body)
+	requestBody, err := io.ReadAll(stsRequest.HTTPRequest.Body)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +58,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 	t.Run("invalid NodeID in file", func(t *testing.T) {
 		cfg.NodeID = ""
 		filename := filepath.Join(cfg.DataDir, "node-id")
-		err := ioutil.WriteFile(filename, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600)
+		err := os.WriteFile(filename, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600)
 		require.NoError(t, err)
 
 		_, err = newNodeIDFromConfig(cfg, logger)
@@ -70,7 +69,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 	t.Run("valid NodeID in file", func(t *testing.T) {
 		cfg.NodeID = ""
 		filename := filepath.Join(cfg.DataDir, "node-id")
-		err := ioutil.WriteFile(filename, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600)
+		err := os.WriteFile(filename, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600)
 		require.NoError(t, err)
 
 		nodeID, err := newNodeIDFromConfig(cfg, logger)

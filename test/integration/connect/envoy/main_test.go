@@ -4,7 +4,6 @@
 package envoy
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"sort"
@@ -57,7 +56,7 @@ func discoverCases() ([]string, error) {
 		return nil, err
 	}
 
-	dirs, err := ioutil.ReadDir(cwd)
+	dirs, err := os.ReadDir(cwd)
 	if err != nil {
 		return nil, err
 	}

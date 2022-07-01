@@ -5,14 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )
@@ -186,7 +184,7 @@ func loadKeyringFile(c *serf.Config) error {
 		return err
 	}
 
-	keyringData, err := ioutil.ReadFile(c.KeyringFile)
+	keyringData, err := os.ReadFile(c.KeyringFile)
 	if err != nil {
 		return err
 	}
