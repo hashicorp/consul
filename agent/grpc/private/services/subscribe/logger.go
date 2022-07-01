@@ -38,15 +38,33 @@ func (s *streamID) String() string {
 }
 
 func newLoggerForRequest(l Logger, req *pbsubscribe.SubscribeRequest) Logger {
-	return l.With(
+	l = l.With(
 		"topic", req.Topic.String(),
 		"dc", req.Datacenter,
-		"peer", req.PeerName,
-		"key", req.Key,
-		"namespace", req.Namespace,
-		"partition", req.Partition,
 		"request_index", req.Index,
-		"stream_id", &streamID{})
+		"stream_id", &streamID{},
+	)
+
+	if req.GetWildcardSubject() {
+		return l.With("wildcard_subject", true)
+	}
+
+	named := req.GetNamedSubject()
+	if named == nil {
+		named = &pbsubscribe.NamedSubject{
+			Key:       req.Key,       // nolint:staticcheck // SA1019 intentional use of deprecated field
+			Partition: req.Partition, // nolint:staticcheck // SA1019 intentional use of deprecated field
+			Namespace: req.Namespace, // nolint:staticcheck // SA1019 intentional use of deprecated field
+			PeerName:  req.PeerName,  // nolint:staticcheck // SA1019 intentional use of deprecated field
+		}
+	}
+
+	return l.With(
+		"peer", named.PeerName,
+		"key", named.Key,
+		"namespace", named.Namespace,
+		"partition", named.Partition,
+	)
 }
 
 type eventLogger struct {

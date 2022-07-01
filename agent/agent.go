@@ -633,31 +633,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
-	proxyDataSources := proxycfg.DataSources{
-		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
-		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
-		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
-		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
-		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
-		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
-		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
-		Health:                          proxycfgglue.Health(a.rpcClientHealth),
-		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
-		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
-		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
-		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
-		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
-		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
-		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
-		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
-		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
-		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
-		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
-		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
-	}
-	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		DataSources: proxyDataSources,
+		DataSources: a.proxyDataSources(),
 		Logger:      a.logger.Named(logging.ProxyConfig),
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
@@ -4228,6 +4205,46 @@ func (a *Agent) listenerPortLocked(svcID structs.ServiceID, checkID structs.Chec
 	}
 
 	return port, nil
+}
+
+func (a *Agent) proxyDataSources() proxycfg.DataSources {
+	sources := proxycfg.DataSources{
+		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
+		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
+		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
+		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
+		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
+		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
+		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		Health:                          proxycfgglue.Health(a.rpcClientHealth),
+		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
+		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
+		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
+		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
+		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
+		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
+		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
+		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
+		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
+		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
+	}
+
+	if a.config.ServerMode {
+		deps := proxycfgglue.ServerDataSourceDeps{
+			EventPublisher: a.baseDeps.EventPublisher,
+			ViewStore:      a.baseDeps.ViewStore,
+			Logger:         a.logger.Named("proxycfg.server-data-sources"),
+			ACLResolver:    a.delegate,
+		}
+		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
+		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+	}
+
+	a.fillEnterpriseProxyDataSources(&sources)
+	return sources
+
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {

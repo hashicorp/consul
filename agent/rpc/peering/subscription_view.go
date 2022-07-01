@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -58,21 +60,37 @@ func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, err
 	// }
 	reqFn := func(index uint64) *pbsubscribe.SubscribeRequest {
 		return &pbsubscribe.SubscribeRequest{
-			Topic:      e.getTopic(),
-			Key:        e.req.ServiceName,
+			Topic: e.getTopic(),
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       e.req.ServiceName,
+					Namespace: e.req.EnterpriseMeta.NamespaceOrEmpty(),
+					Partition: e.req.EnterpriseMeta.PartitionOrEmpty(),
+				},
+			},
 			Token:      e.req.Token,
 			Datacenter: e.req.Datacenter,
 			Index:      index,
-			Namespace:  e.req.EnterpriseMeta.NamespaceOrEmpty(),
-			Partition:  e.req.EnterpriseMeta.PartitionOrEmpty(),
 		}
 	}
-	deps := submatview.Deps{
-		View:    newExportedServicesView(),
-		Logger:  e.logger,
-		Request: reqFn,
+	deps := submatview.LocalMaterializerDeps{
+		Backend:     e.sub,
+		ACLResolver: DANGER_NO_AUTH{},
+		Deps: submatview.Deps{
+			View:    newExportedServicesView(),
+			Logger:  e.logger,
+			Request: reqFn,
+		},
 	}
-	return submatview.NewLocalMaterializer(e.sub, deps), nil
+	return submatview.NewLocalMaterializer(deps), nil
+}
+
+// DANGER_NO_AUTH implements submatview.ACLResolver to short-circuit authorization
+// in cases where it is handled somewhere else (e.g. in an RPC handler).
+type DANGER_NO_AUTH struct{}
+
+func (DANGER_NO_AUTH) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error) {
+	return resolver.Result{Authorizer: acl.ManageAll()}, nil
 }
 
 // Type implements submatview.Request

@@ -727,8 +727,8 @@ func getNamespace(ns string) string {
 
 func validateNamespace(ns string) func(request *pbsubscribe.SubscribeRequest) error {
 	return func(request *pbsubscribe.SubscribeRequest) error {
-		if request.Namespace != ns {
-			return fmt.Errorf("expected request.Namespace %v, got %v", ns, request.Namespace)
+		if got := request.GetNamedSubject().GetNamespace(); got != ns {
+			return fmt.Errorf("expected request.NamedSubject.Namespace %v, got %v", ns, got)
 		}
 		return nil
 	}

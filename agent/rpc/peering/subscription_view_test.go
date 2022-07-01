@@ -22,6 +22,12 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
+// testInitialIndex is the first index that will be used in simulated updates.
+//
+// This is set to something arbitrarily high so that we can ignore the initial
+// snapshot which may or may not be empty depending on timing.
+const testInitialIndex uint64 = 9000
+
 // TestExportedServiceSubscription tests the exported services view and the backing submatview.LocalMaterializer.
 func TestExportedServiceSubscription(t *testing.T) {
 	s := &stateMap{
@@ -30,7 +36,7 @@ func TestExportedServiceSubscription(t *testing.T) {
 
 	sh := snapshotHandler{stateMap: s}
 	pub := stream.NewEventPublisher(10 * time.Millisecond)
-	pub.RegisterHandler(pbsubscribe.Topic_ServiceHealth, sh.Snapshot)
+	pub.RegisterHandler(pbsubscribe.Topic_ServiceHealth, sh.Snapshot, false)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -45,6 +51,7 @@ func TestExportedServiceSubscription(t *testing.T) {
 			Payload: state.EventPayloadCheckServiceNode{
 				Op: pbsubscribe.CatalogOp_Register,
 				Value: &structs.CheckServiceNode{
+					Node: &structs.Node{},
 					Service: &structs.NodeService{
 						ID:      id,
 						Service: service,
@@ -143,7 +150,7 @@ type store struct {
 
 // simulateUpdates will publish events and also store the state at each index for later assertions.
 func (s *store) simulateUpdates(ctx context.Context, events []map[string]stream.Event) {
-	idx := uint64(0)
+	idx := testInitialIndex
 
 	for _, m := range events {
 		if ctx.Err() != nil {
@@ -271,8 +278,16 @@ func (c *consumer) consume(ctx context.Context, service string, countExpected in
 			}
 			select {
 			case u := <-updateCh:
+				idx := u.Meta.Index
+
+				// This is the initial/empty state. Skip over it and wait for the first
+				// real event.
+				if idx < testInitialIndex {
+					continue
+				}
+
 				// Each update contains the current snapshot of registered services.
-				c.seenByIndex[u.Meta.Index] = serviceIDsFromUpdates(u)
+				c.seenByIndex[idx] = serviceIDsFromUpdates(u)
 				n++
 
 			case <-gctx.Done():
