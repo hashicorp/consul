@@ -39,7 +39,7 @@ func TestServerIntentions(t *testing.T) {
 	go publisher.Run(ctx)
 
 	intentions := ServerIntentions(ServerDataSourceDeps{
-		ACLResolver:    manageAllResolver{},
+		ACLResolver:    staticResolver{acl.ManageAll()},
 		ViewStore:      store,
 		EventPublisher: publisher,
 		Logger:         logger,
@@ -146,8 +146,10 @@ func TestServerIntentions(t *testing.T) {
 	}
 }
 
-type manageAllResolver struct{}
+type staticResolver struct {
+	authorizer acl.Authorizer
+}
 
-func (manageAllResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
-	return resolver.Result{Authorizer: acl.ManageAll()}, nil
+func (r staticResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
+	return resolver.Result{Authorizer: r.authorizer}, nil
 }

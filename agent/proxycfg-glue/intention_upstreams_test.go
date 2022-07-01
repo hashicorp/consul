@@ -1,0 +1,114 @@
+package proxycfgglue
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
+)
+
+func TestServerIntentionUpstreams(t *testing.T) {
+	const serviceName = "web"
+
+	var index uint64
+	getIndex := func() uint64 {
+		index++
+		return index
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	store := state.NewStateStore(nil)
+	disableLegacyIntentions(t, store)
+
+	// Register api and db services.
+	for _, service := range []string{"api", "db"} {
+		err := store.EnsureRegistration(getIndex(), &structs.RegisterRequest{
+			Node: "node-1",
+			Service: &structs.NodeService{
+				Service: service,
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	createIntention := func(destination string) {
+		t.Helper()
+
+		err := store.EnsureConfigEntry(getIndex(), &structs.ServiceIntentionsConfigEntry{
+			Name: destination,
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   serviceName,
+					Action: structs.IntentionActionAllow,
+					Type:   structs.IntentionSourceConsul,
+				},
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	// Create an allow intention for the api service. This should be filtered out
+	// because the ACL token doesn't have read access on it.
+	createIntention("api")
+
+	authz := policyAuthorizer(t, `service "db" { policy = "read" }`)
+
+	dataSource := ServerIntentionUpstreams(ServerDataSourceDeps{
+		ACLResolver: staticResolver{authz},
+		GetStore:    func() Store { return store },
+	})
+
+	ch := make(chan proxycfg.UpdateEvent)
+	err := dataSource.Notify(ctx, &structs.ServiceSpecificRequest{ServiceName: serviceName}, "", ch)
+	require.NoError(t, err)
+
+	select {
+	case event := <-ch:
+		result, ok := event.Result.(*structs.IndexedServiceList)
+		require.Truef(t, ok, "expected IndexedServiceList, got: %T", event.Result)
+		require.Len(t, result.Services, 0)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timeout waiting for event")
+	}
+
+	// Create an allow intention for the db service. This should *not* be filtered
+	// out because the ACL token *does* have read access on it.
+	createIntention("db")
+
+	select {
+	case event := <-ch:
+		result, ok := event.Result.(*structs.IndexedServiceList)
+		require.Truef(t, ok, "expected IndexedServiceList, got: %T", event.Result)
+		require.Len(t, result.Services, 1)
+		require.Equal(t, "db", result.Services[0].Name)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timeout waiting for event")
+	}
+}
+
+func disableLegacyIntentions(t *testing.T, store *state.Store) {
+	t.Helper()
+
+	require.NoError(t, store.SystemMetadataSet(0, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+	}))
+}
+
+func policyAuthorizer(t *testing.T, policyHCL string) acl.Authorizer {
+	policy, err := acl.NewPolicyFromSource(policyHCL, acl.SyntaxCurrent, nil, nil)
+	require.NoError(t, err)
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	return authz
+}

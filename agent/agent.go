@@ -4231,16 +4231,18 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
 	}
 
-	if a.config.ServerMode {
+	if server, ok := a.delegate.(*consul.Server); ok {
 		deps := proxycfgglue.ServerDataSourceDeps{
 			EventPublisher: a.baseDeps.EventPublisher,
 			ViewStore:      a.baseDeps.ViewStore,
 			Logger:         a.logger.Named("proxycfg.server-data-sources"),
 			ACLResolver:    a.delegate,
+			GetStore:       func() proxycfgglue.Store { return server.FSM().State() },
 		}
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 	}
 
 	a.fillEnterpriseProxyDataSources(&sources)
