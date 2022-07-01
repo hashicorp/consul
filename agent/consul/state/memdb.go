@@ -183,6 +183,7 @@ var (
 	EventTopicMeshConfig           = pbsubscribe.Topic_MeshConfig
 	EventTopicServiceResolver      = pbsubscribe.Topic_ServiceResolver
 	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
+	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

@@ -127,7 +127,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		GatewayServices:                 typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		Health:                          typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		HTTPChecks:                      typedWatchRecorder[*cachetype.ServiceHTTPChecksRequest]{wr},
-		Intentions:                      typedWatchRecorder[*structs.IntentionQueryRequest]{wr},
+		Intentions:                      typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		IntentionUpstreams:              typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		InternalServiceDump:             typedWatchRecorder[*structs.ServiceDumpRequest]{wr},
 		LeafCertificate:                 typedWatchRecorder[*cachetype.ConnectCALeafRequest]{wr},
@@ -259,14 +259,10 @@ func genVerifyResolvedConfigWatch(expectedService string, expectedDatacenter str
 
 func genVerifyIntentionWatch(expectedService string, expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
-		reqReal, ok := request.(*structs.IntentionQueryRequest)
+		reqReal, ok := request.(*structs.ServiceSpecificRequest)
 		require.True(t, ok)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
-		require.NotNil(t, reqReal.Match)
-		require.Equal(t, structs.IntentionMatchDestination, reqReal.Match.Type)
-		require.Len(t, reqReal.Match.Entries, 1)
-		require.Equal(t, structs.IntentionDefaultNamespace, reqReal.Match.Entries[0].Namespace)
-		require.Equal(t, expectedService, reqReal.Match.Entries[0].Name)
+		require.Equal(t, expectedService, reqReal.ServiceName)
 	}
 }
 
@@ -646,7 +642,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
-				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
+				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 				require.True(t, snap.ConnectProxy.MeshConfigSet)
 			},
 		}
@@ -676,7 +672,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
-				require.Equal(t, ixnMatch.Matches[0], snap.ConnectProxy.Intentions)
+				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 			},
 		}
 
@@ -691,18 +687,14 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 	}
 
-	dbIxnMatch := &structs.IndexedIntentionMatches{
-		Matches: []structs.Intentions{
-			[]*structs.Intention{
-				{
-					ID:              "abc-123",
-					SourceNS:        "default",
-					SourceName:      "api",
-					DestinationNS:   "default",
-					DestinationName: "db",
-					Action:          structs.IntentionActionAllow,
-				},
-			},
+	dbIxnMatch := structs.Intentions{
+		{
+			ID:              "abc-123",
+			SourceNS:        "default",
+			SourceName:      "api",
+			DestinationNS:   "default",
+			DestinationName: "db",
+			Action:          structs.IntentionActionAllow,
 		},
 	}
 
@@ -1625,7 +1617,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.TerminatingGateway.Intentions, 1)
 						dbIxn, ok := snap.TerminatingGateway.Intentions[db]
 						require.True(t, ok)
-						require.Equal(t, dbIxnMatch.Matches[0], dbIxn)
+						require.Equal(t, dbIxnMatch, dbIxn)
 					},
 				},
 				{
@@ -1782,7 +1774,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
-						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
+						require.Equal(t, TestIntentions(), snap.ConnectProxy.Intentions)
 						require.True(t, snap.MeshGateway.isEmpty())
 						require.True(t, snap.IngressGateway.isEmpty())
 						require.True(t, snap.TerminatingGateway.isEmpty())
@@ -1867,7 +1859,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
-						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
+						require.Equal(t, TestIntentions(), snap.ConnectProxy.Intentions)
 						require.True(t, snap.MeshGateway.isEmpty())
 						require.True(t, snap.IngressGateway.isEmpty())
 						require.True(t, snap.TerminatingGateway.isEmpty())
@@ -2432,7 +2424,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Equal(t, issuedCert, snap.Leaf())
-						require.Equal(t, TestIntentions().Matches[0], snap.ConnectProxy.Intentions)
+						require.Equal(t, TestIntentions(), snap.ConnectProxy.Intentions)
 						require.True(t, snap.MeshGateway.isEmpty())
 						require.True(t, snap.IngressGateway.isEmpty())
 						require.True(t, snap.TerminatingGateway.isEmpty())

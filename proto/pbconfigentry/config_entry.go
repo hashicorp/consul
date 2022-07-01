@@ -2,6 +2,10 @@ package pbconfigentry
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -30,6 +34,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		IngressGatewayToStructs(s.GetIngressGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindServiceIntentions:
+		var target structs.ServiceIntentionsConfigEntry
+		target.Name = s.Name
+
+		ServiceIntentionsToStructs(s.GetServiceIntentions(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -73,6 +85,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Entry = &ConfigEntry_IngressGateway{
 			IngressGateway: &ingressGateway,
 		}
+	case *structs.ServiceIntentionsConfigEntry:
+		var serviceIntentions ServiceIntentions
+		ServiceIntentionsFromStructs(v, &serviceIntentions)
+
+		configEntry.Kind = Kind_KindServiceIntentions
+		configEntry.Entry = &ConfigEntry_ServiceIntentions{
+			ServiceIntentions: &serviceIntentions,
+		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
 	}
@@ -112,4 +132,41 @@ func enterpriseMetaToStructs(m *pbcommon.EnterpriseMeta) acl.EnterpriseMeta {
 
 func enterpriseMetaFromStructs(m acl.EnterpriseMeta) *pbcommon.EnterpriseMeta {
 	return pbcommon.NewEnterpriseMetaFromStructs(m)
+}
+
+func timeFromStructs(t *time.Time) *timestamp.Timestamp {
+	if t == nil {
+		return nil
+	}
+	return timestamppb.New(*t)
+}
+
+func timeToStructs(ts *timestamp.Timestamp) *time.Time {
+	if ts == nil {
+		return nil
+	}
+	t := ts.AsTime()
+	return &t
+}
+
+func intentionActionFromStructs(a structs.IntentionAction) IntentionAction {
+	if a == structs.IntentionActionAllow {
+		return IntentionAction_Allow
+	}
+	return IntentionAction_Deny
+}
+
+func intentionActionToStructs(a IntentionAction) structs.IntentionAction {
+	if a == IntentionAction_Allow {
+		return structs.IntentionActionAllow
+	}
+	return structs.IntentionActionDeny
+}
+
+func intentionSourceTypeFromStructs(structs.IntentionSourceType) IntentionSourceType {
+	return IntentionSourceType_Consul
+}
+
+func intentionSourceTypeToStructs(IntentionSourceType) structs.IntentionSourceType {
+	return structs.IntentionSourceConsul
 }
