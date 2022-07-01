@@ -1,0 +1,12 @@
+FROM mcr.microsoft.com/windows/servercore:1809
+
+RUN mkdir socat
+
+ENV SOCAT_URL=https://github.com/tech128/socat-1.7.3.0-windows/archive/refs/heads/master.zip
+RUN curl %SOCAT_URL% -L -o socat.zip
+
+RUN tar -xf socat.zip -C socat --strip-components=1
+
+ENV PATH C:\\socat;%PATH%
+
+ENTRYPOINT ["socat.exe"]
