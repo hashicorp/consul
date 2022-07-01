@@ -57,7 +57,7 @@ type changeTrackerDB struct {
 
 type EventPublisher interface {
 	Publish([]stream.Event)
-	RegisterHandler(stream.Topic, stream.SnapshotFunc) error
+	RegisterHandler(stream.Topic, stream.SnapshotFunc, bool) error
 	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
@@ -180,6 +180,9 @@ func (db *readDB) ReadTxn() AbortTxn {
 var (
 	EventTopicServiceHealth        = pbsubscribe.Topic_ServiceHealth
 	EventTopicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
+	EventTopicMeshConfig           = pbsubscribe.Topic_MeshConfig
+	EventTopicServiceResolver      = pbsubscribe.Topic_ServiceResolver
+	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
@@ -188,6 +191,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 		aclChangeUnsubscribeEvent,
 		caRootsChangeEvents,
 		ServiceHealthEventsFromChanges,
+		ConfigEntryEventsFromChanges,
 		// TODO: add other table handlers here.
 	}
 	for _, fn := range fns {

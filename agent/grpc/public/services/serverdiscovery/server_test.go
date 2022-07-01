@@ -64,7 +64,7 @@ func setupPublisher(t *testing.T) (*mockSnapshotHandler, state.EventPublisher) {
 	handler := newMockSnapshotHandler(t)
 
 	publisher := stream.NewEventPublisher(10 * time.Second)
-	publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, handler.handle)
+	publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, handler.handle, false)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)

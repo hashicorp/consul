@@ -8,6 +8,16 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *NamedSubject) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *NamedSubject) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *SubscribeRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -44,5 +54,15 @@ func (msg *ServiceHealthUpdate) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *ServiceHealthUpdate) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ConfigEntryUpdate) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ConfigEntryUpdate) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

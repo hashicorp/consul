@@ -403,14 +403,12 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	eventPublisher := stream.NewEventPublisher(10 * time.Second)
-
 	fsmDeps := fsm.Deps{
 		Logger: flat.Logger,
 		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, eventPublisher)
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
-		Publisher: eventPublisher,
+		Publisher: flat.EventPublisher,
 	}
 
 	// Create server.
@@ -436,7 +434,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     fsm.NewFromDeps(fsmDeps),
-		publisher:               eventPublisher,
+		publisher:               flat.EventPublisher,
 	}
 
 	var recorder *middleware.RequestRecorder

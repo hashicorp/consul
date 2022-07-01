@@ -26,7 +26,7 @@ func setupFSMAndPublisher(t *testing.T) (*testutils.FakeFSM, state.EventPublishe
 			// register handlers
 			publisher.RegisterHandler(state.EventTopicCARoots, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 				return fsm.GetStore().CARootsSnapshot(req, buf)
-			})
+			}, false)
 		},
 		Refresh: []stream.Topic{state.EventTopicCARoots},
 	}

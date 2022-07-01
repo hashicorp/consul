@@ -49,17 +49,18 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
+	entMeta := req.EnterpriseMeta()
 	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
-	if req.Key == "" {
-		return status.Error(codes.InvalidArgument, "Key is required")
+	subReq, err := state.PBToStreamSubscribeRequest(req, entMeta)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	sub, err := h.Backend.Subscribe(state.PBToStreamSubscribeRequest(req, entMeta))
+	sub, err := h.Backend.Subscribe(subReq)
 	if err != nil {
 		return err
 	}

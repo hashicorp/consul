@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1015,6 +1016,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 	}
 
 	return consul.Deps{
+		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
 		TLSConfigurator: tls,
 		Tokens:          new(token.Store),
