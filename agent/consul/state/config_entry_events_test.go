@@ -137,6 +137,47 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 				},
 			},
 		},
+		"upsert service intentions": {
+			mutate: func(tx *txn) error {
+				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+					Name: "web",
+				})
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceIntentions,
+					Index: changeIndex,
+					Payload: EventPayloadConfigEntry{
+						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: &structs.ServiceIntentionsConfigEntry{
+							Name: "web",
+						},
+					},
+				},
+			},
+		},
+		"delete service intentions": {
+			setup: func(tx *txn) error {
+				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+					Name: "web",
+				})
+			},
+			mutate: func(tx *txn) error {
+				return deleteConfigEntryTxn(tx, 0, structs.ServiceIntentions, "web", nil)
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceIntentions,
+					Index: changeIndex,
+					Payload: EventPayloadConfigEntry{
+						Op: pbsubscribe.ConfigEntryUpdate_Delete,
+						Value: &structs.ServiceIntentionsConfigEntry{
+							Name: "web",
+						},
+					},
+				},
+			},
+		},
 	}
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -322,6 +363,74 @@ func TestIngressGatewaySnapshot(t *testing.T) {
 			buf := &snapshotAppender{}
 
 			idx, err := store.IngressGatewaySnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
+			require.NoError(t, err)
+			require.Equal(t, index, idx)
+			require.Len(t, buf.events, 1)
+			require.ElementsMatch(t, tc.events, buf.events[0])
+		})
+	}
+}
+
+func TestServiceIntentionsSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	ixn1 := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "gw1",
+	}
+	ixn2 := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "gw2",
+	}
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureConfigEntry(index, ixn1))
+	require.NoError(t, store.EnsureConfigEntry(index, ixn2))
+
+	testCases := map[string]struct {
+		subject stream.Subject
+		events  []stream.Event
+	}{
+		"named entry": {
+			subject: EventSubjectConfigEntry{Name: ixn1.Name},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceIntentions,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+			},
+		},
+		"wildcard": {
+			subject: stream.SubjectWildcard,
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceIntentions,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn1,
+					},
+				},
+				{
+					Topic: EventTopicServiceIntentions,
+					Index: index,
+					Payload: EventPayloadConfigEntry{
+						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
+						Value: ixn2,
+					},
+				},
+			},
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			buf := &snapshotAppender{}
+
+			idx, err := store.ServiceIntentionsSnapshot(stream.SubscribeRequest{Subject: tc.subject}, buf)
 			require.NoError(t, err)
 			require.Equal(t, index, idx)
 			require.Len(t, buf.events, 1)

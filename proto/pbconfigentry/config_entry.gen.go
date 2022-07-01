@@ -254,6 +254,88 @@ func IngressServiceFromStructs(t *structs.IngressService, s *IngressService) {
 	s.Meta = t.Meta
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
+func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Present = s.Present
+	t.Exact = s.Exact
+	t.Prefix = s.Prefix
+	t.Suffix = s.Suffix
+	t.Regex = s.Regex
+	t.Invert = s.Invert
+}
+func IntentionHTTPHeaderPermissionFromStructs(t *structs.IntentionHTTPHeaderPermission, s *IntentionHTTPHeaderPermission) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Present = t.Present
+	s.Exact = t.Exact
+	s.Prefix = t.Prefix
+	s.Suffix = t.Suffix
+	s.Regex = t.Regex
+	s.Invert = t.Invert
+}
+func IntentionHTTPPermissionToStructs(s *IntentionHTTPPermission, t *structs.IntentionHTTPPermission) {
+	if s == nil {
+		return
+	}
+	t.PathExact = s.PathExact
+	t.PathPrefix = s.PathPrefix
+	t.PathRegex = s.PathRegex
+	{
+		t.Header = make([]structs.IntentionHTTPHeaderPermission, len(s.Header))
+		for i := range s.Header {
+			if s.Header[i] != nil {
+				IntentionHTTPHeaderPermissionToStructs(s.Header[i], &t.Header[i])
+			}
+		}
+	}
+	t.Methods = s.Methods
+}
+func IntentionHTTPPermissionFromStructs(t *structs.IntentionHTTPPermission, s *IntentionHTTPPermission) {
+	if s == nil {
+		return
+	}
+	s.PathExact = t.PathExact
+	s.PathPrefix = t.PathPrefix
+	s.PathRegex = t.PathRegex
+	{
+		s.Header = make([]*IntentionHTTPHeaderPermission, len(t.Header))
+		for i := range t.Header {
+			{
+				var x IntentionHTTPHeaderPermission
+				IntentionHTTPHeaderPermissionFromStructs(&t.Header[i], &x)
+				s.Header[i] = &x
+			}
+		}
+	}
+	s.Methods = t.Methods
+}
+func IntentionPermissionToStructs(s *IntentionPermission, t *structs.IntentionPermission) {
+	if s == nil {
+		return
+	}
+	t.Action = intentionActionToStructs(s.Action)
+	if s.HTTP != nil {
+		var x structs.IntentionHTTPPermission
+		IntentionHTTPPermissionToStructs(s.HTTP, &x)
+		t.HTTP = &x
+	}
+}
+func IntentionPermissionFromStructs(t *structs.IntentionPermission, s *IntentionPermission) {
+	if s == nil {
+		return
+	}
+	s.Action = intentionActionFromStructs(t.Action)
+	if t.HTTP != nil {
+		var x IntentionHTTPPermission
+		IntentionHTTPPermissionFromStructs(t.HTTP, &x)
+		s.HTTP = &x
+	}
+}
 func LeastRequestConfigToStructs(s *LeastRequestConfig, t *structs.LeastRequestConfig) {
 	if s == nil {
 		return
@@ -428,6 +510,38 @@ func RingHashConfigFromStructs(t *structs.RingHashConfig, s *RingHashConfig) {
 	s.MinimumRingSize = t.MinimumRingSize
 	s.MaximumRingSize = t.MaximumRingSize
 }
+func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {
+	if s == nil {
+		return
+	}
+	{
+		t.Sources = make([]*structs.SourceIntention, len(s.Sources))
+		for i := range s.Sources {
+			if s.Sources[i] != nil {
+				var x structs.SourceIntention
+				SourceIntentionToStructs(s.Sources[i], &x)
+				t.Sources[i] = &x
+			}
+		}
+	}
+	t.Meta = s.Meta
+}
+func ServiceIntentionsFromStructs(t *structs.ServiceIntentionsConfigEntry, s *ServiceIntentions) {
+	if s == nil {
+		return
+	}
+	{
+		s.Sources = make([]*SourceIntention, len(t.Sources))
+		for i := range t.Sources {
+			if t.Sources[i] != nil {
+				var x SourceIntention
+				SourceIntentionFromStructs(t.Sources[i], &x)
+				s.Sources[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+}
 func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConfigEntry) {
 	if s == nil {
 		return
@@ -559,6 +673,58 @@ func ServiceResolverSubsetFromStructs(t *structs.ServiceResolverSubset, s *Servi
 	}
 	s.Filter = t.Filter
 	s.OnlyPassing = t.OnlyPassing
+}
+func SourceIntentionToStructs(s *SourceIntention, t *structs.SourceIntention) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Action = intentionActionToStructs(s.Action)
+	{
+		t.Permissions = make([]*structs.IntentionPermission, len(s.Permissions))
+		for i := range s.Permissions {
+			if s.Permissions[i] != nil {
+				var x structs.IntentionPermission
+				IntentionPermissionToStructs(s.Permissions[i], &x)
+				t.Permissions[i] = &x
+			}
+		}
+	}
+	t.Precedence = int(s.Precedence)
+	t.LegacyID = s.LegacyID
+	t.Type = intentionSourceTypeToStructs(s.Type)
+	t.Description = s.Description
+	t.LegacyMeta = s.LegacyMeta
+	t.LegacyCreateTime = timeToStructs(s.LegacyCreateTime)
+	t.LegacyUpdateTime = timeToStructs(s.LegacyUpdateTime)
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+	t.Peer = s.Peer
+}
+func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Action = intentionActionFromStructs(t.Action)
+	{
+		s.Permissions = make([]*IntentionPermission, len(t.Permissions))
+		for i := range t.Permissions {
+			if t.Permissions[i] != nil {
+				var x IntentionPermission
+				IntentionPermissionFromStructs(t.Permissions[i], &x)
+				s.Permissions[i] = &x
+			}
+		}
+	}
+	s.Precedence = int32(t.Precedence)
+	s.LegacyID = t.LegacyID
+	s.Type = intentionSourceTypeFromStructs(t.Type)
+	s.Description = t.Description
+	s.LegacyMeta = t.LegacyMeta
+	s.LegacyCreateTime = timeFromStructs(t.LegacyCreateTime)
+	s.LegacyUpdateTime = timeFromStructs(t.LegacyUpdateTime)
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.Peer = t.Peer
 }
 func TransparentProxyMeshConfigToStructs(s *TransparentProxyMeshConfig, t *structs.TransparentProxyMeshConfig) {
 	if s == nil {

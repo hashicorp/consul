@@ -128,19 +128,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Service:    "web",
 	}
 
-	intentionReq := &structs.IntentionQueryRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "my-token"},
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: structs.IntentionDefaultNamespace,
-					Partition: structs.IntentionDefaultNamespace,
-					Name:      "web",
-				},
-			},
-		},
+	intentionReq := &structs.ServiceSpecificRequest{
+		Datacenter:     "dc1",
+		QueryOptions:   structs.QueryOptions{Token: "my-token"},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		ServiceName:    "web",
 	}
 
 	meshConfigReq := &structs.ConfigEntryQuery{
@@ -244,7 +236,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
-					Intentions:             TestIntentions().Matches[0],
+					Intentions:             TestIntentions(),
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
@@ -305,7 +297,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
-					Intentions:             TestIntentions().Matches[0],
+					Intentions:             TestIntentions(),
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
@@ -640,7 +632,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// update the intentions
 	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
-		Result:        &structs.IndexedIntentionMatches{},
+		Result:        structs.Intentions{},
 		Err:           nil,
 	}
 

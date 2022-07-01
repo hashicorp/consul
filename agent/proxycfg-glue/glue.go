@@ -59,12 +59,6 @@ func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
 	return &cacheProxyDataSource[*cachetype.ServiceHTTPChecksRequest]{c, cachetype.ServiceHTTPChecksName}
 }
 
-// CacheIntentions satisfies the proxycfg.Intentions interface by sourcing data
-// from the agent cache.
-func CacheIntentions(c *cache.Cache) proxycfg.Intentions {
-	return &cacheProxyDataSource[*structs.IntentionQueryRequest]{c, cachetype.IntentionMatchName}
-}
-
 // CacheIntentionUpstreams satisfies the proxycfg.IntentionUpstreams interface
 // by sourcing data from the agent cache.
 func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {

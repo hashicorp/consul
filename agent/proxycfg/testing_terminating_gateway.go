@@ -206,35 +206,19 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + web.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + api.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + db.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + cache.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			// ========
 			{
@@ -385,19 +369,11 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalIPTCP.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameTCP.String(),
-				Result: &structs.IndexedIntentionMatches{
-					Matches: []structs.Intentions{
-						nil,
-					},
-				},
+				Result:        structs.Intentions{},
 			},
 			// ========
 			{

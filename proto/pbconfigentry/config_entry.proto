@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "proto/pbcommon/common.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 package configentry;
 
@@ -10,6 +11,7 @@ enum Kind {
   KindMeshConfig = 1;
   KindServiceResolver = 2;
   KindIngressGateway = 3;
+  KindServiceIntentions = 4;
 }
 
 message ConfigEntry {
@@ -23,6 +25,7 @@ message ConfigEntry {
     MeshConfig MeshConfig = 5;
     ServiceResolver ServiceResolver = 6;
     IngressGateway IngressGateway = 7;
+    ServiceIntentions ServiceIntentions = 8;
   }
 }
 
@@ -274,4 +277,89 @@ message HTTPHeaderModifiers {
   map<string, string> Add = 1;
   map<string, string> Set = 2;
   repeated string Remove = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceIntentionsConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ServiceIntentions {
+  repeated SourceIntention Sources = 1;
+  map<string, string> Meta = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SourceIntention
+// output=config_entry.gen.go
+// name=Structs
+message SourceIntention {
+  string Name = 1;
+  // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
+  IntentionAction Action = 2;
+  repeated IntentionPermission Permissions = 3;
+  // mog: func-to=int func-from=int32
+  int32 Precedence = 4;
+  string LegacyID = 5;
+  // mog: func-to=intentionSourceTypeToStructs func-from=intentionSourceTypeFromStructs
+  IntentionSourceType Type = 6;
+  string Description = 7;
+  map<string, string> LegacyMeta = 8;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LegacyCreateTime = 9;
+  // mog: func-to=timeToStructs func-from=timeFromStructs
+  google.protobuf.Timestamp LegacyUpdateTime = 10;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 11;
+  string Peer = 12;
+}
+
+enum IntentionAction {
+  Deny = 0;
+  Allow = 1;
+}
+
+enum IntentionSourceType {
+  Consul = 0;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionPermission {
+  // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
+  IntentionAction Action = 1;
+  IntentionHTTPPermission HTTP = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionHTTPPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionHTTPPermission {
+  string PathExact = 1;
+  string PathPrefix = 2;
+  string PathRegex = 3;
+  repeated IntentionHTTPHeaderPermission Header = 4;
+  repeated string Methods = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionHTTPHeaderPermission
+// output=config_entry.gen.go
+// name=Structs
+message IntentionHTTPHeaderPermission {
+  string Name = 1;
+  bool Present = 2;
+  string Exact = 3;
+  string Prefix = 4;
+  string Suffix = 5;
+  string Regex = 6;
+  bool Invert = 7;
 }

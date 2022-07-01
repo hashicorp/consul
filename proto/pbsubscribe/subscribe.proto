@@ -54,6 +54,9 @@ enum Topic {
 
   // ServiceResolver topic contains events for changes to an ingress gateway.
   IngressGateway = 5;
+
+  // ServiceIntentions topic contains events for changes to service intentions.
+  ServiceIntentions = 6;
 }
 
 message NamedSubject {

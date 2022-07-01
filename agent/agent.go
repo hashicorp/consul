@@ -4240,6 +4240,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		}
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 	}
 
 	a.fillEnterpriseProxyDataSources(&sources)

@@ -12,9 +12,10 @@ import (
 
 // Adding events for a new config entry kind? Remember to update ConfigEntryFromStructs and ConfigEntryToStructs.
 var configEntryKindToTopic = map[string]stream.Topic{
-	structs.MeshConfig:      EventTopicMeshConfig,
-	structs.ServiceResolver: EventTopicServiceResolver,
-	structs.IngressGateway:  EventTopicIngressGateway,
+	structs.MeshConfig:        EventTopicMeshConfig,
+	structs.ServiceResolver:   EventTopicServiceResolver,
+	structs.IngressGateway:    EventTopicIngressGateway,
+	structs.ServiceIntentions: EventTopicServiceIntentions,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -101,6 +102,12 @@ func (s *Store) ServiceResolverSnapshot(req stream.SubscribeRequest, buf stream.
 // ingress-gateway config entries.
 func (s *Store) IngressGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.IngressGateway, req, buf)
+}
+
+// ServiceIntentionsSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// service-intentions config entries.
+func (s *Store) ServiceIntentionsSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.ServiceIntentions, req, buf)
 }
 
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {

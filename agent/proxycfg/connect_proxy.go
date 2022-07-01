@@ -66,19 +66,11 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch for intention updates
-	err = s.dataSources.Intentions.Notify(ctx, &structs.IntentionQueryRequest{
-		Datacenter:   s.source.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: s.token},
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: s.proxyID.NamespaceOrDefault(),
-					Partition: s.proxyID.PartitionOrDefault(),
-					Name:      s.proxyCfg.DestinationServiceName,
-				},
-			},
-		},
+	err = s.dataSources.Intentions.Notify(ctx, &structs.ServiceSpecificRequest{
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		ServiceName:    s.proxyCfg.DestinationServiceName,
 	}, intentionsWatchID, s.ch)
 	if err != nil {
 		return snap, err
@@ -284,16 +276,11 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
-		resp, ok := u.Result.(*structs.IndexedIntentionMatches)
+		resp, ok := u.Result.(structs.Intentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		if len(resp.Matches) > 0 {
-			// RPC supports matching multiple services at once but we only ever
-			// query with the one service we represent currently so just pick
-			// the one result set up.
-			snap.ConnectProxy.Intentions = resp.Matches[0]
-		}
+		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
 	case u.CorrelationID == intentionUpstreamsID:

@@ -151,7 +151,7 @@ type HTTPChecks interface {
 
 // Intentions is the interface used to consume intention updates.
 type Intentions interface {
-	Notify(ctx context.Context, req *structs.IntentionQueryRequest, correlationID string, ch chan<- UpdateEvent) error
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // IntentionUpstreams is the interface used to consume updates about upstreams
