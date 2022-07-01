@@ -23,6 +23,7 @@ type ServerDataSourceDeps struct {
 	EventPublisher *stream.EventPublisher
 	Logger         hclog.Logger
 	ACLResolver    submatview.ACLResolver
+	GetStore       func() Store
 }
 
 // ServerConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
@@ -46,7 +47,7 @@ func (e serverConfigEntry) Notify(ctx context.Context, req *structs.ConfigEntryQ
 	if err != nil {
 		return err
 	}
-	return e.deps.ViewStore.NotifyCallback(ctx, cfgReq, correlationID, dispatchCacheUpdate(ctx, ch))
+	return e.deps.ViewStore.NotifyCallback(ctx, cfgReq, correlationID, dispatchCacheUpdate(ch))
 }
 
 func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceDeps) (*configEntryRequest, error) {

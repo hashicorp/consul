@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -385,7 +386,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InPrimaryDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, aclfilter.RedactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},

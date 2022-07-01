@@ -39,7 +39,7 @@ func TestServerIntentions_Enterprise(t *testing.T) {
 	go publisher.Run(ctx)
 
 	intentions := ServerIntentions(ServerDataSourceDeps{
-		ACLResolver:    manageAllResolver{},
+		ACLResolver:    staticResolver{acl.ManageAll()},
 		ViewStore:      store,
 		EventPublisher: publisher,
 		Logger:         logger,

@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -291,7 +292,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 					a.srv.filterACLWithAuthorizer(authz, &token)
 
 					// token secret was redacted
-					if token.SecretID == redactedToken {
+					if token.SecretID == aclfilter.RedactedToken {
 						reply.Redacted = true
 					}
 				}
@@ -719,7 +720,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 				a.srv.filterACLWithAuthorizer(authz, &final)
 				if final != nil {
 					ret = append(ret, final)
-					if final.SecretID == redactedToken {
+					if final.SecretID == aclfilter.RedactedToken {
 						reply.Redacted = true
 					}
 				} else {
