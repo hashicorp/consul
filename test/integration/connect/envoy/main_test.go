@@ -4,6 +4,7 @@
 package envoy
 
 import (
+	"flag"
 	"os"
 	"os/exec"
 	"sort"
@@ -13,11 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	flagWin = flag.Bool("win", false, "Execute tests on windows")
+)
+
 func TestEnvoy(t *testing.T) {
+	flag.Parse()
+
 	testcases, err := discoverCases()
 	require.NoError(t, err)
 
 	runCmd(t, "suite_setup")
+
 	defer runCmd(t, "suite_teardown")
 
 	for _, tc := range testcases {
@@ -40,10 +48,32 @@ func TestEnvoy(t *testing.T) {
 func runCmd(t *testing.T, c string, env ...string) {
 	t.Helper()
 
-	cmd := exec.Command("./run-tests.sh", c)
+	param_1 := " "
+	param_2 := " "
+	param_3 := " "
+	param_4 := " "
+	param_5 := "false"
+
+	if *flagWin == true {
+		param_1 = "cmd"
+		param_2 = "/C"
+		param_3 = "bash run-tests.windows.sh"
+		param_4 = c
+		if env != nil {
+			param_5 = strings.Join(env, " ")
+		}
+
+	} else {
+		param_1 = "./run-tests.sh"
+		param_2 = c
+	}
+
+	cmd := exec.Command(param_1, param_2, param_3, param_4, param_5)
+
 	cmd.Env = append(os.Environ(), env...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("command failed: %v", err)
 	}
