@@ -1,0 +1,98 @@
+<SearchBar
+  class="consul-peer-search-bar"
+  ...attributes
+  @filter={{@filter}}
+>
+    <:status as |search|>
+
+{{#let
+
+  (t (concat "components.consul.peer.search-bar." search.status.key)
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
+      )
+  )
+
+  (t (concat "components.consul.peer.search-bar." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+        (concat "common.brand." search.status.value)
+      )
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
+{{/let}}
+
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
+      >
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
+                {{t (concat "common.consul." (lowercase prop))}}
+              </Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+      </search.Search>
+    </:search>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "Name:asc" (t "common.sort.alpha.asc"))
+                  (array "Name:desc" (t "common.sort.alpha.desc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Optgroup @label={{t "common.consul.name"}}>
+            <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+            <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+          </Optgroup>
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:sort>
+</SearchBar>

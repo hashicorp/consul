@@ -1,17 +1,15 @@
-import Route from '@ember/routing/route';
-import { action } from '@ember/object';
+import Route from 'consul-ui/routing/route';
 
 export default class PeersRoute extends Route {
-  model() {
-    return this.store.findAll('peer').then(peers => {
-      return {
-        peers,
-        loadPeers: this.loadPeers,
-      };
-    });
-  }
-
-  @action loadPeers() {
-    return this.store.findAll('peer');
-  }
+  queryParams = {
+    sortBy: 'sort',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name']],
+    },
+    search: {
+      as: 'filter',
+      replace: true,
+    },
+  };
 }
