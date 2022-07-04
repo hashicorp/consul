@@ -2,10 +2,12 @@
   ${
     range(
       env('CONSUL_PEER_COUNT', Math.floor((Math.random() * 10) + 1))
-    ).map(i => `
+    ).map(i => {
+    const id = `${fake.random.uuid()}-${i}`;
+    return `
 
   {
-    "ID": "${fake.random.uuid()}-${i}",
+    "ID": "${id}",
     "Name": "${fake.hacker.noun()}-peer-${i}",
     "State": "${fake.helpers.randomize([
       'ACTIVE',
@@ -18,9 +20,19 @@
     ])}",
     "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
     "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "PeerID": "${id}",
+    "PeerServerName": "${fake.internet.domainName()}",
+    "PeerServerAddresses": [
+${
+  range(
+    env('CONSUL_PEER_ADDRESS_COUNT', Math.floor((Math.random() * 10) + 1))
+  ).map(i => `
+      "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}"
+`)}
+    ],
     "CreateIndex": 16,
     "ModifyIndex": 16
   }
 
-`)}
+`})}
 ]

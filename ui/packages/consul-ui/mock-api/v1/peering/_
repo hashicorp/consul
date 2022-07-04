@@ -1,5 +1,7 @@
 {
   "ID": "${fake.random.uuid()}",
+  "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+  "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
   "Name": "${location.pathname.get(2)}",
   "State": "${fake.helpers.randomize([
     'ACTIVE',
