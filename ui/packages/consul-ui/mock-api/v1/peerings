@@ -8,7 +8,6 @@
     "ID": "${fake.random.uuid()}-${i}",
     "Name": "${fake.hacker.noun()}-peer-${i}",
     "State": "${fake.helpers.randomize([
-      'INITIAL',
       'ACTIVE',
       'PENDING',
       'ESTABLISHING',
