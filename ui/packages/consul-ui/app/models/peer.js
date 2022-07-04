@@ -1,10 +1,15 @@
 import Model, { attr } from '@ember-data/model';
 
 export default class Peer extends Model {
+  @attr('string') uri;
+  @attr() meta;
+
+  @attr('string') Datacenter;
+  @attr('string') Partition;
+
   @attr('string') Name;
   @attr('string') State;
-  @attr('string') CreateIndex;
-  @attr('string') ModifyIndex;
   @attr('number') ImportedServiceCount;
   @attr('number') ExportedServiceCount;
+  @attr() PeerServerAddresses;
 }

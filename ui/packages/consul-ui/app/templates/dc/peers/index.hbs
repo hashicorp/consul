@@ -1,8 +1,22 @@
-<Route @name={{route}} as |route|>
-  <Watcher @watch={{this.model.loadPeers}} as |w|>
-    {{did-insert w.fns.start}}
-    {{will-destroy w.fns.stop}}
-  </Watcher>
+<Route @name={{routeName}} as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/peers'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
 {{#let
 
   (hash
@@ -21,7 +35,7 @@
     )
   )
 
-  @model.peers
+  loader.data
 
 as |sort filters items|}}
   <AppView>
@@ -53,7 +67,10 @@ as |sort filters items|}}
       as |collection|>
         <collection.Collection>
 
-          <ListCollection @items={{collection.items}} as |item index|>
+          <ListCollection
+            @items={{collection.items}}
+            @linkable="linkable peer"
+          as |item index|>
             <BlockSlot @name="header">
               <p>{{item.Name}}</p>
             </BlockSlot>
@@ -64,7 +81,22 @@ as |sort filters items|}}
                 <Peerings::ServiceCount @peering={{item}} @kind="exported"/>
               </div>
             </BlockSlot>
+            <BlockSlot @name="actions" as |Actions|>
+        {{#if (can 'delete peer' item=item)}}
+
+              <Actions as |Action|>
+        {{#if true}}
+                <Action data-test-edit-action @href={{href-to 'dc.peers.edit' item.Name}}>
+                  <BlockSlot @name="label">
+                    View
+                  </BlockSlot>
+                </Action>
+        {{/if}}
+              </Actions>
+        {{/if}}
+            </BlockSlot>
           </ListCollection>
+
           </collection.Collection>
           <collection.Empty>
           {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
@@ -110,4 +142,6 @@ as |sort filters items|}}
 
   </AppView>
 {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>
