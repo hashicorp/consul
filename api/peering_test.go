@@ -183,7 +183,7 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 
 		// token specific assertions on the "server"
 		require.Equal(t, "peer1", resp.Name)
-		require.Equal(t, PeeringStateInitial, resp.State)
+		require.Equal(t, PeeringStatePending, resp.State)
 		require.Equal(t, map[string]string{"foo": "bar"}, resp.Meta)
 	})
 
@@ -205,7 +205,7 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 			require.NotNil(r, qm)
 
 			// require that the peering state is not undefined
-			require.Equal(r, PeeringStateInitial, resp.State)
+			require.Equal(r, PeeringStateEstablishing, resp.State)
 			require.Equal(r, map[string]string{"foo": "bar"}, resp.Meta)
 		})
 	})

@@ -39,19 +39,28 @@ enum PeeringState {
   // writes.
   UNDEFINED = 0;
 
-  // Initial means a Peering has been initialized and is awaiting
-  // acknowledgement from a remote peer.
-  INITIAL = 1;
+  // Pending means the peering was created by generating a peering token.
+  // Peerings stay in a pending state until the peer uses the token to dial
+  // the local cluster.
+  PENDING = 1;
+
+  // Establishing means the peering is being established from a peering token.
+  // This is the initial state for dialing peers.
+  ESTABLISHING = 2;
 
   // Active means that the peering connection is active and healthy.
-  ACTIVE = 2;
+  ACTIVE = 3;
 
   // Failing means the peering connection has been interrupted but has not yet
   // been terminated.
-  FAILING = 3;
+  FAILING = 4;
+
+  // Deleting means a peering was marked for deletion and is in the process
+  // of being deleted.
+  DELETING = 5;
 
   // Terminated means the peering relationship has been removed.
-  TERMINATED = 4;
+  TERMINATED = 6;
 }
 
 // Peering defines a peering relationship between two disparate Consul clusters

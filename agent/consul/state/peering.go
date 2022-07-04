@@ -226,9 +226,9 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 		if !p.IsActive() {
 			return fmt.Errorf("cannot create a new peering marked for deletion")
 		}
-
-		// TODO(peering): consider keeping PeeringState enum elsewhere?
-		p.State = pbpeering.PeeringState_INITIAL
+		if p.State == 0 {
+			p.State = pbpeering.PeeringState_PENDING
+		}
 		p.CreateIndex = idx
 		p.ModifyIndex = idx
 	}
