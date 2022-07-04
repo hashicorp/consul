@@ -77,8 +77,31 @@ as |sort filters items|}}
             <BlockSlot @name="details">
               <div class="peers__list__peer-detail">
                 <Peerings::Badge @peering={{item}} />
-                <Peerings::ServiceCount @peering={{item}} @kind="imported"/>
-                <Peerings::ServiceCount @peering={{item}} @kind="exported"/>
+
+                <div
+                  {{tooltip
+                    (t 'routes.dc.peers.index.detail.imported.tooltip'
+                      name=item.Name
+                    )
+                  }}
+                >
+                  {{t 'routes.dc.peers.index.detail.imported.count'
+                    count=(format-number item.ImportedServiceCount)
+                  }}
+                </div>
+
+                <div
+                  {{tooltip
+                    (t 'routes.dc.peers.index.detail.exported.tooltip'
+                      name=item.Name
+                    )
+                  }}
+                >
+                  {{t 'routes.dc.peers.index.detail.exported.count'
+                    count=(format-number item.ExportedServiceCount)
+                  }}
+                </div>
+
               </div>
             </BlockSlot>
             <BlockSlot @name="actions" as |Actions|>
