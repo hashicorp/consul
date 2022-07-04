@@ -108,7 +108,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		Name:      "peerB",
 		Partition: acl.DefaultPartitionName,
 		ID:        token.PeerID,
-		State:     pbpeering.PeeringState_INITIAL,
+		State:     pbpeering.PeeringState_PENDING,
 		Meta:      map[string]string{"foo": "bar"},
 	}
 	require.Equal(t, expect, peers[0])
@@ -208,7 +208,7 @@ func TestPeeringService_Establish(t *testing.T) {
 			expectResp: &pbpeering.EstablishResponse{},
 			expectPeering: peering.TestPeering(
 				"peer1-usw1",
-				pbpeering.PeeringState_INITIAL,
+				pbpeering.PeeringState_ESTABLISHING,
 				map[string]string{"foo": "bar"},
 			),
 		},
@@ -228,7 +228,7 @@ func TestPeeringService_Read(t *testing.T) {
 	p := &pbpeering.Peering{
 		ID:                   testUUID(t),
 		Name:                 "foo",
-		State:                pbpeering.PeeringState_INITIAL,
+		State:                pbpeering.PeeringState_ESTABLISHING,
 		PeerCAPems:           nil,
 		PeerServerName:       "test",
 		PeerServerAddresses:  []string{"addr1"},
@@ -286,7 +286,7 @@ func TestPeeringService_Delete(t *testing.T) {
 	p := &pbpeering.Peering{
 		ID:                  testUUID(t),
 		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
+		State:               pbpeering.PeeringState_ESTABLISHING,
 		PeerCAPems:          nil,
 		PeerServerName:      "test",
 		PeerServerAddresses: []string{"addr1"},
@@ -324,7 +324,7 @@ func TestPeeringService_List(t *testing.T) {
 	foo := &pbpeering.Peering{
 		ID:                   testUUID(t),
 		Name:                 "foo",
-		State:                pbpeering.PeeringState_INITIAL,
+		State:                pbpeering.PeeringState_ESTABLISHING,
 		PeerCAPems:           nil,
 		PeerServerName:       "fooservername",
 		PeerServerAddresses:  []string{"addr1"},
@@ -419,7 +419,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
 		ID:                  testUUID(t),
 		Name:                "foo",
-		State:               pbpeering.PeeringState_INITIAL,
+		State:               pbpeering.PeeringState_ESTABLISHING,
 		PeerServerName:      "test",
 		PeerServerAddresses: []string{"addr1"},
 	}))
@@ -428,7 +428,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
 		ID:                  testUUID(t),
 		Name:                "bar",
-		State:               pbpeering.PeeringState_INITIAL,
+		State:               pbpeering.PeeringState_ESTABLISHING,
 		PeerServerName:      "test-bar",
 		PeerServerAddresses: []string{"addr2"},
 	}))

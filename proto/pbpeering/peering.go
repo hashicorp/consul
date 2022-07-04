@@ -144,12 +144,16 @@ func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
 // enumcover:PeeringState
 func PeeringStateToAPI(s PeeringState) api.PeeringState {
 	switch s {
-	case PeeringState_INITIAL:
-		return api.PeeringStateInitial
+	case PeeringState_PENDING:
+		return api.PeeringStatePending
+	case PeeringState_ESTABLISHING:
+		return api.PeeringStateEstablishing
 	case PeeringState_ACTIVE:
 		return api.PeeringStateActive
 	case PeeringState_FAILING:
 		return api.PeeringStateFailing
+	case PeeringState_DELETING:
+		return api.PeeringStateDeleting
 	case PeeringState_TERMINATED:
 		return api.PeeringStateTerminated
 	case PeeringState_UNDEFINED:
@@ -162,12 +166,16 @@ func PeeringStateToAPI(s PeeringState) api.PeeringState {
 // enumcover:api.PeeringState
 func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	switch t {
-	case api.PeeringStateInitial:
-		return PeeringState_INITIAL
+	case api.PeeringStatePending:
+		return PeeringState_PENDING
+	case api.PeeringStateEstablishing:
+		return PeeringState_ESTABLISHING
 	case api.PeeringStateActive:
 		return PeeringState_ACTIVE
 	case api.PeeringStateFailing:
 		return PeeringState_FAILING
+	case api.PeeringStateDeleting:
+		return PeeringState_DELETING
 	case api.PeeringStateTerminated:
 		return PeeringState_TERMINATED
 	case api.PeeringStateUndefined:

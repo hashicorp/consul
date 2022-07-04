@@ -217,7 +217,7 @@ func TestHTTP_Peering_MethodNotAllowed(t *testing.T) {
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
-			State:               pbpeering.PeeringState_INITIAL,
+			State:               pbpeering.PeeringState_ESTABLISHING,
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},
@@ -252,7 +252,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
-			State:               pbpeering.PeeringState_INITIAL,
+			State:               pbpeering.PeeringState_ESTABLISHING,
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},
@@ -317,7 +317,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
-			State:               pbpeering.PeeringState_INITIAL,
+			State:               pbpeering.PeeringState_ESTABLISHING,
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},
@@ -387,7 +387,7 @@ func TestHTTP_Peering_List(t *testing.T) {
 	foo := &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			Name:                "foo",
-			State:               pbpeering.PeeringState_INITIAL,
+			State:               pbpeering.PeeringState_ESTABLISHING,
 			PeerCAPems:          nil,
 			PeerServerName:      "fooservername",
 			PeerServerAddresses: []string{"addr1"},

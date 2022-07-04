@@ -14,9 +14,14 @@ const (
 	// writes.
 	PeeringStateUndefined PeeringState = "UNDEFINED"
 
-	// PeeringStateInitial means a Peering has been initialized and is awaiting
-	// acknowledgement from a remote peer.
-	PeeringStateInitial PeeringState = "INITIAL"
+	// PeeringStatePending means the peering was created by generating a peering token.
+	// Peerings stay in a pending state until the peer uses the token to dial
+	// the local cluster.
+	PeeringStatePending PeeringState = "PENDING"
+
+	// PeeringStateEstablishing means the peering is being established from a peering token.
+	// This is the initial state for dialing peers.
+	PeeringStateEstablishing PeeringState = "ESTABLISHING"
 
 	// PeeringStateActive means that the peering connection is active and
 	// healthy.
@@ -25,6 +30,10 @@ const (
 	// PeeringStateFailing means the peering connection has been interrupted
 	// but has not yet been terminated.
 	PeeringStateFailing PeeringState = "FAILING"
+
+	// PeeringStateDeleting means a peering was marked for deletion and is in the process
+	// of being deleted.
+	PeeringStateDeleting PeeringState = "DELETING"
 
 	// PeeringStateTerminated means the peering relationship has been removed.
 	PeeringStateTerminated PeeringState = "TERMINATED"

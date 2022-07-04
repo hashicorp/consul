@@ -31,7 +31,7 @@ func insertTestPeerings(t *testing.T, s *Store) {
 		Name:        "foo",
 		Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 		ID:          testFooPeerID,
-		State:       pbpeering.PeeringState_INITIAL,
+		State:       pbpeering.PeeringState_PENDING,
 		CreateIndex: 1,
 		ModifyIndex: 1,
 	})
@@ -111,7 +111,7 @@ func TestStateStore_PeeringReadByID(t *testing.T) {
 				Name:        "foo",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				ID:          testFooPeerID,
-				State:       pbpeering.PeeringState_INITIAL,
+				State:       pbpeering.PeeringState_PENDING,
 				CreateIndex: 1,
 				ModifyIndex: 1,
 			},
@@ -165,7 +165,7 @@ func TestStateStore_PeeringRead(t *testing.T) {
 				Name:        "foo",
 				Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				ID:          testFooPeerID,
-				State:       pbpeering.PeeringState_INITIAL,
+				State:       pbpeering.PeeringState_PENDING,
 				CreateIndex: 1,
 				ModifyIndex: 1,
 			},
@@ -303,7 +303,7 @@ func TestStore_PeeringList(t *testing.T) {
 			Name:        "foo",
 			Partition:   structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			ID:          testFooPeerID,
-			State:       pbpeering.PeeringState_INITIAL,
+			State:       pbpeering.PeeringState_PENDING,
 			CreateIndex: 1,
 			ModifyIndex: 1,
 		},
@@ -423,10 +423,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 		_, p, err := s.PeeringRead(nil, q)
 		require.NoError(t, err)
 		require.NotNil(t, p)
-
-		if tc.input.State == 0 {
-			require.Equal(t, pbpeering.PeeringState_INITIAL, p.State)
-		}
+		require.Equal(t, tc.input.State, p.State)
 		require.Equal(t, tc.input.Name, p.Name)
 	}
 	tcs := []testcase{
@@ -1079,7 +1076,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer1",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 				{
@@ -1108,7 +1105,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			query: []string{"foo"},
 			expect: [][]*pbpeering.Peering{
 				{
-					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer1", State: pbpeering.PeeringState_PENDING},
 				},
 			},
 			expectIdx: uint64(6), // config	entries max index
@@ -1123,13 +1120,13 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer1",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer2",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 			},
@@ -1157,10 +1154,10 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			query: []string{"foo", "bar"},
 			expect: [][]*pbpeering.Peering{
 				{
-					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer1", State: pbpeering.PeeringState_PENDING},
 				},
 				{
-					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer2", State: pbpeering.PeeringState_PENDING},
 				},
 			},
 			expectIdx: uint64(6), // config	entries max index
@@ -1175,19 +1172,19 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer1",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer2",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 				{
 					peering: &pbpeering.Peering{
 						Name:  "peer3",
-						State: pbpeering.PeeringState_INITIAL,
+						State: pbpeering.PeeringState_PENDING,
 					},
 				},
 			},
@@ -1218,11 +1215,11 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			query: []string{"foo", "bar"},
 			expect: [][]*pbpeering.Peering{
 				{
-					{Name: "peer1", State: pbpeering.PeeringState_INITIAL},
-					{Name: "peer2", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer1", State: pbpeering.PeeringState_PENDING},
+					{Name: "peer2", State: pbpeering.PeeringState_PENDING},
 				},
 				{
-					{Name: "peer3", State: pbpeering.PeeringState_INITIAL},
+					{Name: "peer3", State: pbpeering.PeeringState_PENDING},
 				},
 			},
 			expectIdx: uint64(7),

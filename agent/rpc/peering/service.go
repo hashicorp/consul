@@ -309,6 +309,7 @@ func (s *Service) Establish(
 			PeerServerName:      tok.ServerName,
 			PeerID:              tok.PeerID,
 			Meta:                req.Meta,
+			State:               pbpeering.PeeringState_ESTABLISHING,
 		},
 	}
 	if err = s.Backend.Apply().PeeringWrite(writeReq); err != nil {
@@ -481,6 +482,7 @@ func (s *Service) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelet
 			ID:        existing.ID,
 			Name:      req.Name,
 			Partition: req.Partition,
+			State:     pbpeering.PeeringState_DELETING,
 			DeletedAt: structs.TimeToProto(time.Now().UTC()),
 		},
 	}
