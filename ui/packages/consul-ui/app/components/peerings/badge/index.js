@@ -1,6 +1,9 @@
 import Component from '@glimmer/component';
 
 const BADGE_LOOKUP = {
+  INITIAL: {
+    tooltip: 'This peering connection has not been established yet.',
+  },
   ACTIVE: {
     tooltip: 'This peer connection is currently active.',
   },
@@ -22,7 +25,7 @@ const BADGE_LOOKUP = {
   },
   UNDEFINED: {},
 };
-export default class PeeingsBadge extends Component {
+export default class PeeringsBadge extends Component {
   get styles() {
     const {
       peering: { State },

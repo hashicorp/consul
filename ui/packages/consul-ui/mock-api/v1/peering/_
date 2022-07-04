@@ -2,6 +2,7 @@
   "ID": "${fake.random.uuid()}",
   "Name": "${location.pathname.get(2)}",
   "State": "${fake.helpers.randomize([
+    'INITIAL',
     'ACTIVE',
     'PENDING',
     'ESTABLISHING',

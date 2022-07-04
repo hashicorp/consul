@@ -10,6 +10,7 @@
     background: rgb(var(--tone-green-050));
     color: rgb(var(--tone-green-600));
   }
+  &.initial,
   &.pending {
     background: rgb(var(--tone-strawberry-050));
     color: rgb(var(--tone-strawberry-500));
