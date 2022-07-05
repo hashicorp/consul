@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"google.golang.org/grpc"
 )
 
 // Recommended name for registration.
@@ -19,7 +20,7 @@ type TrustBundle struct {
 	Client TrustBundleReader
 }
 
-//go:generate mockery --name TrustBundleReader --inpackage --testonly
+//go:generate mockery --name TrustBundleReader --inpackage --filename mock_TrustBundleReader_test.go
 type TrustBundleReader interface {
 	TrustBundleRead(
 		ctx context.Context, in *pbpeering.TrustBundleReadRequest, opts ...grpc.CallOption,
