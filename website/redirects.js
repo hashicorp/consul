@@ -6,6 +6,11 @@
 
 module.exports = [
   {
+    source: '/home',
+    destination: '/',
+    permanent: true,
+  },
+  {
     source: '/trial',
     destination: 'https://www.hashicorp.com/products/consul/trial',
     permanent: true,
@@ -26,6 +31,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/use-cases/service-discovery-and-health-checking',
+    destination: '/',
+    permanent: true,
+  },
+  {
     source: '/docs/agent/acl-rules',
     destination: '/docs/security/acl/acl-rules',
     permanent: true,
@@ -37,12 +47,22 @@ module.exports = [
   },
   {
     source: '/docs/agent/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
     permanent: true,
   },
   {
     source: '/docs/acl/acl-system',
-    destination: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/acl/acl-system',
+    destination: '/docs/security/acl',
+    permanent: true,
+  },
+  {
+    source: '/docs/security/roles',
+    destination: '/docs/security/acl/acl-roles',
     permanent: true,
   },
   { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
@@ -54,6 +74,16 @@ module.exports = [
   {
     source: '/docs/acl/acl-legacy',
     destination: '/docs/security/acl/acl-legacy',
+    permanent: true,
+  },
+  {
+    source: '/api-docs/acl/acl',
+    destination: '/api-docs/acl',
+    permanent: true,
+  },
+  {
+    source: '/api-docs/acl-legacy',
+    destination: '/api-docs/acl/legacy',
     permanent: true,
   },
   {
@@ -82,6 +112,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/config-entries/partition-exports',
+    destination: '/docs/connect/config-entries/exported-services',
+    permanent: true,
+  },
+  {
     source: '/docs/enterprise/license',
     destination: '/docs/enterprise/license/overview',
     permanent: true,
@@ -94,7 +129,14 @@ module.exports = [
   { source: '/configuration', destination: '/', permanent: true },
   {
     source: '/docs/connect/mesh(_|-)gateway',
-    destination: '/docs/connect/gateways/mesh-gateway',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    permanent: true,
+  },
+  {
+    source: '/docs/connect/gateways/mesh-gateway(s?)',
+    destination:
+      '/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
     permanent: true,
   },
   {
@@ -180,7 +222,7 @@ module.exports = [
   },
   {
     source: '/docs/k8s/operations/uninstalling',
-    destination: '/docs/k8s/uninstall',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -236,11 +278,6 @@ module.exports = [
   {
     source: '/docs/glossary',
     destination: '/docs/install/glossary',
-    permanent: true,
-  },
-  {
-    source: '/docs/connect/gateways/mesh-gateways',
-    destination: '/docs/connect/gateways/mesh-gateway',
     permanent: true,
   },
   {
@@ -301,28 +338,15 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/download-tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/download_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/downloads_tools',
-    destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
     source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/connect/ambassador',
+    destination:
+      'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateway-ambassador',
     permanent: true,
   },
   {
@@ -348,10 +372,10 @@ module.exports = [
   },
   {
     source: '/docs/agent/http/:path*',
-    destination: '/api/:path*',
+    destination: '/api-docs/:path*',
     permanent: true,
   },
-  { source: '/docs/agent/http', destination: '/api', permanent: true },
+  { source: '/docs/agent/http', destination: '/api-docs', permanent: true },
   // CLI Redirects
   { source: '/docs/commands', destination: '/commands', permanent: true },
   {
@@ -1084,6 +1108,16 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/compatibility',
+    destination: '/docs/k8s/compatibility',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role',
     destination: '/commands/acl/role',
     permanent: true,
@@ -1164,7 +1198,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/upgrading',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/upgrade',
     permanent: true,
   },
   {
@@ -1174,7 +1208,7 @@ module.exports = [
   },
   {
     source: '/docs/platform/k8s/uninstalling',
-    destination: '/docs/k8s/operations/upgrading',
+    destination: '/docs/k8s/operations/uninstall',
     permanent: true,
   },
   {
@@ -1203,28 +1237,13 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/(/downloads?[-_]tools)',
+    source: '/download(s?[-_])tools',
     destination: '/docs/download-tools',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/ambassador',
-    destination: '/docs/k8s/connect/ambassador',
     permanent: true,
   },
   {
     source: '/docs/agent/config-entries/:path',
     destination: '/docs/connect/config-entries/:path*',
-    permanent: true,
-  },
-  {
-    source: '/docs/partnerships',
-    destination: '/docs/integrate/partnerships',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/installation/overview',
-    destination: '/docs/k8s/installation/install',
     permanent: true,
   },
   {
@@ -1243,6 +1262,61 @@ module.exports = [
   {
     source: '/docs/k8s/tls-on-existing-cluster',
     destination: '/docs/k8s/operations/tls-on-existing-cluster',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-11-0',
+    destination: '/docs/release-notes/consul/v1_11_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/release-notes/consul/v1_10_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/release-notes/consul/v1_9_x',
+    permanent: true,
+  },
+  {
+    source: '/api/:path*',
+    destination: '/api-docs/:path*',
+    permanent: true,
+  },
+  {
+    source: '/docs/agent/options',
+    destination: '/docs/agent/config/config-files',
+    permanent: true,
+  },
+  {
+    source: '/docs/releases/release-notes/v1_11_0',
+    destination: '/docs/release-notes/consul/v1_11_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-10-0',
+    destination: '/docs/release-notes/consul/v1_10_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/release-notes/1-9-0',
+    destination: '/docs/release-notes/consul/v1_9_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/release-notes/0-5-0',
+    destination: '/docs/release-notes/consul-terraform-sync/v0_5_x',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/api-gateway-usage',
+    destination: '/docs/api-gateway/consul-api-gateway-install',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/vault/connect-ca',
+    destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
     permanent: true,
   },
 ]

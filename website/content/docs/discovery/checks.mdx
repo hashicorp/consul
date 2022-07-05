@@ -145,6 +145,19 @@ There are several different kinds of checks:
 
 A script check:
 
+<CodeTabs heading="Script Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Memory utilization"
+  args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
 ```json
 {
   "check": {
@@ -156,6 +169,8 @@ A script check:
   }
 }
 ```
+
+</CodeTabs>
 
 A HTTP check:
 
@@ -196,7 +211,22 @@ check = {
 }
 ```
 
+</CodeTabs>
+
 A TCP check:
+
+<CodeTabs heading="TCP Check">
+
+```hcl
+check = {
+  id = "ssh"
+  name = "SSH TCP on port 22"
+  tcp = "localhost:22"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
 
 ```json
 {
@@ -210,7 +240,49 @@ A TCP check:
 }
 ```
 
+</CodeTabs>
+
+A UDP check:
+
+<CodeTabs heading="UDP Check">
+
+```hcl
+check = {
+  id = "dns"
+  name = "DNS UDP on port 53"
+  udp = "localhost:53"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
+```json
+{
+  "check": {
+    "id": "dns",
+    "name": "DNS UDP on port 53",
+    "udp": "localhost:53",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
+</CodeTabs>
+
 A TTL check:
+
+<CodeTabs heading="TTL Check">
+
+```hcl
+check = {
+  id = "web-app"
+  name = "Web App Status"
+  notes = "Web app does a curl internally every 10 seconds"
+  ttl = "30s"
+}
+```
 
 ```json
 {
@@ -223,7 +295,22 @@ A TTL check:
 }
 ```
 
+</CodeTabs>
+
 A Docker check:
+
+<CodeTabs heading="Docker Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Memory utilization"
+  docker_container_id = "f972c95ebf0e"
+  shell = "/bin/bash"
+  args = ["/usr/local/bin/check_mem.py"]
+  interval = "10s"
+}
+```
 
 ```json
 {
@@ -238,7 +325,21 @@ A Docker check:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the whole application:
+
+<CodeTabs heading="gRPC Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
 
 ```json
 {
@@ -252,7 +353,21 @@ A gRPC check for the whole application:
 }
 ```
 
+</CodeTabs>
+
 A gRPC check for the specific `my_service` service:
+
+<CodeTabs heading="gRPC Specific Service Check">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345/my_service"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
 
 ```json
 {
@@ -266,7 +381,21 @@ A gRPC check for the specific `my_service` service:
 }
 ```
 
+</CodeTabs>
+
 A h2ping check:
+
+<CodeTabs heading="H2ping Check">
+
+```hcl
+check = {
+  id = "h2ping-check"
+  name = "h2ping"
+  h2ping = "localhost:22222"
+  interval = "10s"
+  h2ping_use_tls = false
+}
+```
 
 ```json
 {
@@ -275,11 +404,23 @@ A h2ping check:
     "name": "h2ping",
     "h2ping": "localhost:22222",
     "interval": "10s",
+    "h2ping_use_tls": false
   }
 }
 ```
 
+</CodeTabs>
+
 An alias check for a local service:
+
+<CodeTabs heading="Alias Check">
+
+```hcl
+check = {
+  id = "web-alias"
+  alias_service = "web"
+}
+```
 
 ```json
 {
@@ -289,6 +430,8 @@ An alias check for a local service:
   }
 }
 ```
+
+</CodeTabs>
 
 ~> Configuration info: The alias check configuration expects the alias to be
 registered on the same agent as the one you are aliasing. If the service is
