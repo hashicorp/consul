@@ -1,0 +1,17 @@
+---
+layout: docs
+page_title: Consul API Gateway Configuration
+description:  >-
+Consul API Gateway Configuration
+---
+
+# Configuration
+
+This topic provides an overview of the configuration items that enable Consul API Gateway to facilitate ingress into your Consul service mesh.
+
+- [Gateway](/docs/api-gateway/configuration/gateway): Defines the main infrastructure resource that links API gateway components. It specifies the name of the `GatewayClass` and one or more listeners (see [Listeners](/docs/api-gateway/configuration/gateway#listeners)), which specify the logical endpoints bound to the gateway's addresses. Refer to Configuration > Gateway for details on configuration.
+- [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig): Describes additional Consul API Gateway-related configuration parameters for the GatewayClass resource.
+- [GatewayClass](/docs/api-gateway/configuration/gatewayclass): Defines a class of gateway resources that you can use as a template for creating gateways.
+- [Routes](/docs/api-gateway/configuration/routes): Specifies the path from the gateway to the backend service(s)client to the listener.
+
+<!--TODO add diagram -->
