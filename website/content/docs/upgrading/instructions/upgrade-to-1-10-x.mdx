@@ -1,22 +1,22 @@
 ---
 layout: docs
-page_title: Upgrading to 1.10.0
+page_title: Upgrading to Latest 1.10.x
 description: >-
   Specific versions of Consul may have additional information about the upgrade
   process beyond the standard flow.
 ---
 
-# Upgrading to 1.10.0
+# Upgrading to Latest 1.10.x
 
 <EnterpriseAlert />
 
 ## Introduction
 
-This guide explains how to best upgrade a single Consul Enterprise datacenter to v1.10.0
+This guide explains how to best upgrade a single Consul Enterprise datacenter to latest v1.10.x
 from a version of Consul that is forward compatible with v1.10. If you are on a major
-version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions/upgrade-to-1-8-x)
-or higher before continuing with this guide. If you are already on a major version of 1.8 or 1.9, then
-this guide will go over the procedures required for upgrading to v1.10. This process
+version of Consul prior to 1.8, you must first [upgrade to latest 1.8.x](/docs/upgrading/instructions/upgrade-to-1-8-x)
+before continuing with this guide. If you are already on a major version of 1.8 or 1.9, then
+this guide will go over the procedures required for upgrading to v1.10.x. This process
 will require intermediate version upgrades to a forward-compatible release of v1.8 or v1.9,
 as well as other licensing related configuration changes. If you have multiple Consul datacenters,
 upgrade them in the normal order and take the following instructions into account for each upgrade.
@@ -141,11 +141,11 @@ environment variable. See the [licensing documentation](/docs/enterprise/license
 for more information about how to configure the license.
 You can also refer to the [Apply Enterprise License](https://learn.hashicorp.com/tutorials/consul/deployment-guide#apply-enterprise-license) tutorial for additional information.
 
-**9.** Upgrade all server agents to v1.10.0.
+**9.** Upgrade all server agents to latest v1.10.x.
 
-**10.** Upgrade all client agents to v1.10.0.
+**10.** Upgrade all client agents to latest v1.10.x.
 
-**11.** Upgrade all [snapshot agents](/commands/snapshot/agent) to v1.10.0.
+**11.** Upgrade all [snapshot agents](/commands/snapshot/agent) to latest v1.10.x.
 
 </Tab>
 <Tab heading="ACLs Disabled">
@@ -194,11 +194,11 @@ the snapshot would make it possible to restore the previous state.
 **10.** Pre-configure the server agents with a license. This is the same process that
 was executed for the servers in step 5.
 
-**11.** Upgrade all server agents to v1.10.0.
+**11.** Upgrade all server agents to latest v1.10.x.
 
-**12.** Upgrade all client agents to v1.10.0.
+**12.** Upgrade all client agents to latest v1.10.x.
 
-**13.** Upgrade all [snapshot agents](/commands/snapshot/agent) to v1.10.0.
+**13.** Upgrade all [snapshot agents](/commands/snapshot/agent) to latest v1.10.x.
 
 </Tab>
 <Tab heading="Kubernetes">
