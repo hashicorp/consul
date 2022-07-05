@@ -499,6 +499,10 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
+	if _, ok := req.URL.Query()["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
+	}
+
 	// Make the RPC request
 	var out structs.IndexedNodeServiceList
 	defer setMeta(resp, &out.QueryMeta)

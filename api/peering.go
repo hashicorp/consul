@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // PeeringState enumerates all the states a peering can be in
@@ -13,9 +14,14 @@ const (
 	// writes.
 	PeeringStateUndefined PeeringState = "UNDEFINED"
 
-	// PeeringStateInitial means a Peering has been initialized and is awaiting
-	// acknowledgement from a remote peer.
-	PeeringStateInitial PeeringState = "INITIAL"
+	// PeeringStatePending means the peering was created by generating a peering token.
+	// Peerings stay in a pending state until the peer uses the token to dial
+	// the local cluster.
+	PeeringStatePending PeeringState = "PENDING"
+
+	// PeeringStateEstablishing means the peering is being established from a peering token.
+	// This is the initial state for dialing peers.
+	PeeringStateEstablishing PeeringState = "ESTABLISHING"
 
 	// PeeringStateActive means that the peering connection is active and
 	// healthy.
@@ -24,6 +30,10 @@ const (
 	// PeeringStateFailing means the peering connection has been interrupted
 	// but has not yet been terminated.
 	PeeringStateFailing PeeringState = "FAILING"
+
+	// PeeringStateDeleting means a peering was marked for deletion and is in the process
+	// of being deleted.
+	PeeringStateDeleting PeeringState = "DELETING"
 
 	// PeeringStateTerminated means the peering relationship has been removed.
 	PeeringStateTerminated PeeringState = "TERMINATED"
@@ -36,6 +46,8 @@ type Peering struct {
 	Name string
 	// Partition is the local partition connecting to the peer.
 	Partition string `json:",omitempty"`
+	// DeletedAt is the time when the Peering was marked for deletion
+	DeletedAt *time.Time `json:",omitempty" alias:"deleted_at"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 	// State is one of the valid PeeringState values to represent the status of
@@ -50,6 +62,10 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
+	// ImportedServiceCount is the count of how many services are imported from this peering.
+	ImportedServiceCount uint64
+	// ExportedServiceCount is the count of how many services are exported to this peering.
+	ExportedServiceCount uint64
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
 	// ModifyIndex is the latest Raft index at which the Peering. was modified.
@@ -77,7 +93,7 @@ type PeeringGenerateTokenResponse struct {
 	PeeringToken string
 }
 
-type PeeringInitiateRequest struct {
+type PeeringEstablishRequest struct {
 	// Name of the remote peer.
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
@@ -88,7 +104,7 @@ type PeeringInitiateRequest struct {
 	Meta map[string]string `json:",omitempty"`
 }
 
-type PeeringInitiateResponse struct {
+type PeeringEstablishResponse struct {
 }
 
 type PeeringListRequest struct {
@@ -192,8 +208,8 @@ func (p *Peerings) GenerateToken(ctx context.Context, g PeeringGenerateTokenRequ
 }
 
 // TODO(peering): verify this is the ultimate signature we want
-func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *WriteOptions) (*PeeringInitiateResponse, *WriteMeta, error) {
-	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/initiate"))
+func (p *Peerings) Establish(ctx context.Context, i PeeringEstablishRequest, wq *WriteOptions) (*PeeringEstablishResponse, *WriteMeta, error) {
+	req := p.c.newRequest("POST", fmt.Sprint("/v1/peering/establish"))
 	req.setWriteOptions(wq)
 	req.ctx = ctx
 	req.obj = i
@@ -209,7 +225,7 @@ func (p *Peerings) Initiate(ctx context.Context, i PeeringInitiateRequest, wq *W
 
 	wm := &WriteMeta{RequestTime: rtt}
 
-	var out PeeringInitiateResponse
+	var out PeeringEstablishResponse
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

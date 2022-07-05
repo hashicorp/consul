@@ -6,6 +6,7 @@ syntax = "proto3";
 package subscribe;
 
 import "proto/pbservice/node.proto";
+import "proto/pbconfigentry/config_entry.proto";
 
 // StateChangeSubscription service allows consumers to subscribe to topics of
 // state change events. Events are streamed as they happen.
@@ -37,11 +38,48 @@ service StateChangeSubscription {
 // Topic enumerates the supported event topics.
 enum Topic {
   Unknown = 0;
+
   // ServiceHealth topic contains events for any changes to service health.
   ServiceHealth = 1;
+
   // ServiceHealthConnect topic contains events for any changes to service
   // health for connect-enabled services.
   ServiceHealthConnect = 2;
+
+  // MeshConfig topic contains events for changes to the global mesh config.
+  MeshConfig = 3;
+
+  // ServiceResolver topic contains events for changes to a service resolver.
+  ServiceResolver = 4;
+
+  // ServiceResolver topic contains events for changes to an ingress gateway.
+  IngressGateway = 5;
+
+  // ServiceIntentions topic contains events for changes to service intentions.
+  ServiceIntentions = 6;
+}
+
+message NamedSubject {
+  // Key is a topic-specific identifier that restricts the scope of the
+  // subscription to only events pertaining to that identifier. For example,
+  // to receive events for a single service, the service's name is specified
+  // as the key.
+  string Key = 1;
+
+  // Namespace which contains the resources. If Namespace is not specified the
+  // default namespace will be used.
+  //
+  // Namespace is an enterprise-only feature.
+  string Namespace = 2;
+
+  // Partition which contains the resources. If Partition is not specified the
+  // default partition will be used.
+  //
+  // Partition is an enterprise-only feature.
+  string Partition = 3;
+
+  // PeerName is the name of the peer that the requested service was imported from.
+  string PeerName = 4;
 }
 
 // SubscribeRequest used to subscribe to a topic.
@@ -49,10 +87,7 @@ message SubscribeRequest {
   // Topic identifies the set of events the subscriber is interested in.
   Topic Topic = 1;
 
-  // Key is a topic-specific identifier that restricts the scope of the
-  // subscription to only events pertaining to that identifier. For example,
-  // to receive events for a single service, the service's name is specified
-  // as the key.
+  // Deprecated: use NamedSubject.Key instead.
   string Key = 2;
 
   // Token is the ACL token to authenticate the request. The token must have
@@ -73,20 +108,26 @@ message SubscribeRequest {
   // string defaults to the local datacenter.
   string Datacenter = 5;
 
-  // Namespace which contains the resources. If Namespace is not specified the
-  // default namespace will be used.
-  //
-  // Namespace is an enterprise-only feature.
+  // Deprecated: use NamedSubject.Namespace instead.
   string Namespace = 6;
 
-  // Partition which contains the resources. If Partition is not specified the
-  // default partition will be used.
-  //
-  // Partition is an enterprise-only feature.
+  // Deprecated: use NamedSubject.Partition instead.
   string Partition = 7;
 
-  // PeerName is the name of the peer that the requested service was imported from.
+  // Deprecated: use NamedSubject.PeerName instead.
   string PeerName = 8;
+
+  // Subject identifies a portion of a topic for which the subscriber wishes to
+  // receive events (e.g. health events for a particular service).
+  oneof Subject {
+    // WildcardSubject is used to subscribe to all events published on the topic
+    // if it is supported.
+    bool WildcardSubject = 9;
+
+    // NamedSubject is used to subscribe to events pertaining to a specific
+    // resource (e.g. a particular service or config entry).
+    NamedSubject NamedSubject = 10;
+  }
 }
 
 // Event describes a streaming update on a subscription. Events are used both to
@@ -122,6 +163,9 @@ message Event {
     // ServiceHealth is used for ServiceHealth and ServiceHealthConnect
     // topics.
     ServiceHealthUpdate ServiceHealth = 10;
+
+    // ConfigEntry is used for config entry topics (e.g. MeshConfig).
+    ConfigEntryUpdate ConfigEntry = 11;
   }
 }
 
@@ -137,4 +181,14 @@ enum CatalogOp {
 message ServiceHealthUpdate {
   CatalogOp Op = 1;
   service.CheckServiceNode CheckServiceNode = 2;
+}
+
+message ConfigEntryUpdate {
+  enum UpdateOp {
+    Upsert = 0;
+    Delete = 1;
+  }
+
+  UpdateOp Op = 1;
+  configentry.ConfigEntry ConfigEntry = 2;
 }

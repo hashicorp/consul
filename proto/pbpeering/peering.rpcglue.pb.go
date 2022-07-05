@@ -311,7 +311,7 @@ func (msg *PeeringTrustBundleDeleteRequest) RequestDatacenter() string {
 }
 
 // RequestDatacenter implements structs.RPCInfo
-func (msg *InitiateRequest) RequestDatacenter() string {
+func (msg *EstablishRequest) RequestDatacenter() string {
 	if msg == nil {
 		return ""
 	}

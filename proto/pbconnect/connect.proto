@@ -150,14 +150,20 @@ message IssuedCert {
   string PrivateKeyPEM = 3;
 
   // Service is the name of the service for which the cert was issued.
-  // ServiceURI is the cert URI value.
   string Service = 4;
+  // ServiceURI is the cert URI value.
   string ServiceURI = 5;
 
   // Agent is the name of the node for which the cert was issued.
-  // AgentURI is the cert URI value.
   string Agent = 6;
+  // AgentURI is the cert URI value.
   string AgentURI = 7;
+
+  // Kind is the kind of service for which the cert was issued.
+  // mog: func-to=structs.ServiceKind func-from=string
+  string Kind = 12;
+  // KindURI is the cert URI value.
+  string KindURI = 13;
 
   // ValidAfter and ValidBefore are the validity periods for the
   // certificate.

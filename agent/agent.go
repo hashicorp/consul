@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -177,7 +178,7 @@ type delegate interface {
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
 	// default partition and namespace from the token.
-	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -632,30 +633,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
-	proxyDataSources := proxycfg.DataSources{
-		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
-		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
-		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
-		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
-		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
-		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
-		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
-		Health:                          proxycfgglue.Health(a.rpcClientHealth),
-		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
-		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
-		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
-		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
-		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
-		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
-		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
-		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
-		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
-		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
-		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
-	}
-	a.fillEnterpriseProxyDataSources(&proxyDataSources)
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		DataSources: proxyDataSources,
+		DataSources: a.proxyDataSources(),
 		Logger:      a.logger.Named(logging.ProxyConfig),
 		Source: &structs.QuerySource{
 			Datacenter:    a.config.Datacenter,
@@ -737,12 +716,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.retryJoinLAN()
 	if a.config.ServerMode {
 		go a.retryJoinWAN()
-	}
-
-	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
-	// future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
@@ -3890,12 +3863,6 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 		}
 	}
 
-	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
-	// metrics in a future release of Consul.
-	if !a.config.Telemetry.DisableCompatOneNine {
-		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in Consul 1.13. Consider not using this flag and rework instrumentation for 1.10 style http metrics.")
-	}
-
 	return a.reloadConfigInternal(newCfg)
 }
 
@@ -4238,6 +4205,49 @@ func (a *Agent) listenerPortLocked(svcID structs.ServiceID, checkID structs.Chec
 	}
 
 	return port, nil
+}
+
+func (a *Agent) proxyDataSources() proxycfg.DataSources {
+	sources := proxycfg.DataSources{
+		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
+		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
+		ConfigEntry:                     proxycfgglue.CacheConfigEntry(a.cache),
+		ConfigEntryList:                 proxycfgglue.CacheConfigEntryList(a.cache),
+		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
+		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
+		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		Health:                          proxycfgglue.Health(a.rpcClientHealth),
+		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
+		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
+		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
+		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
+		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
+		ResolvedServiceConfig:           proxycfgglue.CacheResolvedServiceConfig(a.cache),
+		ServiceList:                     proxycfgglue.CacheServiceList(a.cache),
+		TrustBundle:                     proxycfgglue.CacheTrustBundle(a.cache),
+		TrustBundleList:                 proxycfgglue.CacheTrustBundleList(a.cache),
+		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
+	}
+
+	if server, ok := a.delegate.(*consul.Server); ok {
+		deps := proxycfgglue.ServerDataSourceDeps{
+			EventPublisher: a.baseDeps.EventPublisher,
+			ViewStore:      a.baseDeps.ViewStore,
+			Logger:         a.logger.Named("proxycfg.server-data-sources"),
+			ACLResolver:    a.delegate,
+			GetStore:       func() proxycfgglue.Store { return server.FSM().State() },
+		}
+		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
+		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+		sources.Intentions = proxycfgglue.ServerIntentions(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+	}
+
+	a.fillEnterpriseProxyDataSources(&sources)
+	return sources
+
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {

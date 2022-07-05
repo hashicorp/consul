@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerMeshGateway struct {
@@ -25,6 +27,17 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
 	}, rootsWatchID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
+	// Watch for all peer trust bundles we may need.
+	err = s.dataSources.TrustBundleList.Notify(ctx, &pbpeering.TrustBundleListByServiceRequest{
+		// TODO(peering): Pass ACL token
+		Kind:      string(structs.ServiceKindMeshGateway),
+		Namespace: s.proxyID.NamespaceOrDefault(),
+		Partition: s.proxyID.PartitionOrDefault(),
+	}, peeringTrustBundlesWatchID, s.ch)
 	if err != nil {
 		return snap, err
 	}
@@ -66,6 +79,18 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	if err := s.initializeEntWatches(ctx); err != nil {
+		return snap, err
+	}
+
+	// Get information about the entire service mesh.
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
+		Kind:           structs.MeshConfig,
+		Name:           structs.MeshConfigMesh,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, meshConfigEntryID, s.ch)
+	if err != nil {
 		return snap, err
 	}
 
@@ -332,8 +357,30 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 		snap.MeshGateway.ExportedServicesSlice = peeredServiceList
 		snap.MeshGateway.ExportedServicesWithPeers = seenServices
-		snap.MeshGateway.WatchedExportedServices = exportedServices.Services
-		snap.MeshGateway.WatchedExportedServicesSet = true
+		snap.MeshGateway.ExportedServicesSet = true
+
+		// Decide if we do or do not need our leaf.
+		hasExports := len(snap.MeshGateway.ExportedServicesSlice) > 0
+		if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
+			// no watch and we need one
+			ctx, cancel := context.WithCancel(ctx)
+			err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+				Datacenter:     s.source.Datacenter,
+				Token:          s.token,
+				Kind:           structs.ServiceKindMeshGateway,
+				EnterpriseMeta: s.proxyID.EnterpriseMeta,
+			}, leafWatchID, s.ch)
+			if err != nil {
+				cancel()
+				return err
+			}
+			snap.MeshGateway.LeafCertWatchCancel = cancel
+		} else if !hasExports && snap.MeshGateway.LeafCertWatchCancel != nil {
+			// has watch and shouldn't
+			snap.MeshGateway.LeafCertWatchCancel()
+			snap.MeshGateway.LeafCertWatchCancel = nil
+			snap.MeshGateway.Leaf = nil
+		}
 
 		// For each service that we should be exposing, also watch disco chains
 		// in the same manner as an ingress gateway would.
@@ -385,6 +432,45 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			}
 		}
 
+	case leafWatchID:
+		leaf, ok := u.Result.(*structs.IssuedCert)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if hasExports := len(snap.MeshGateway.ExportedServicesSlice) > 0; !hasExports {
+			return nil // ignore this update, it's stale
+		}
+
+		snap.MeshGateway.Leaf = leaf
+
+	case peeringTrustBundlesWatchID:
+		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		if len(resp.Bundles) > 0 {
+			snap.MeshGateway.PeeringTrustBundles = resp.Bundles
+		}
+		snap.MeshGateway.PeeringTrustBundlesSet = true
+
+	case meshConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			snap.MeshGateway.MeshConfig = meshConf
+		} else {
+			snap.MeshGateway.MeshConfig = nil
+		}
+		snap.MeshGateway.MeshConfigSet = true
+
 	default:
 		switch {
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):
@@ -435,8 +521,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			}
 
 			snap.MeshGateway.DiscoveryChain[svc] = resp.Chain
-
-			// TODO(peering): we need to do this if we are going to setup a cross-partition or cross-datacenter target
 
 		default:
 			if err := s.handleEntUpdate(meshLogger, ctx, u, snap); err != nil {

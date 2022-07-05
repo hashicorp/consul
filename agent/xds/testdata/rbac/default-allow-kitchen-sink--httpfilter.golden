@@ -19,7 +19,7 @@
                     "googleRe2": {
 
                     },
-                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
                   }
                 }
               }
@@ -31,7 +31,7 @@
                     "googleRe2": {
 
                     },
-                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
               }
@@ -46,7 +46,7 @@
                           "googleRe2": {
 
                           },
-                          "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
                         }
                       }
                     }
@@ -59,7 +59,7 @@
                             "googleRe2": {
 
                             },
-                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                           }
                         }
                       }
@@ -73,7 +73,7 @@
                             "googleRe2": {
 
                             },
-                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/unsafe$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/unsafe$"
                           }
                         }
                       }
@@ -87,7 +87,7 @@
                             "googleRe2": {
 
                             },
-                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
                           }
                         }
                       }

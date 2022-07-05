@@ -22,6 +22,7 @@ import (
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
+	envoy_sni_dynamic_forward_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_dynamic_forward_proxy/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -39,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
@@ -695,6 +697,12 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 	authzFilter, err := makeRBACNetworkFilter(
 		cfgSnap.ConnectProxy.Intentions,
 		cfgSnap.IntentionDefaultAllow,
+		rbacLocalInfo{
+			trustDomain: cfgSnap.Roots.TrustDomain,
+			datacenter:  cfgSnap.Datacenter,
+			partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+		},
+		cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 	)
 	if err != nil {
 		return err
@@ -819,37 +827,27 @@ func injectHTTPFilterOnFilterChains(
 	return nil
 }
 
-// Ensure every filter chain uses our TLS certs. We might allow users to work
-// around this later if there is a good use case but this is actually a feature
-// for now as it allows them to specify custom listener params in config but
-// still get our certs delivered dynamically and intentions enforced without
-// coming up with some complicated templating/merging solution.
-func (s *ResourceGenerator) injectConnectTLSOnFilterChains(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
+// NOTE: This method MUST only be used for connect proxy public listeners,
+// since TLS validation will be done against root certs for all peers
+// that might dial this proxy.
+func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
+	transportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, cfgSnap.PeeringTrustBundles())
+	if err != nil {
+		return err
+	}
+
 	for idx := range listener.FilterChains {
-		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContext(
-				cfgSnap.Leaf(),
-				cfgSnap.RootPEMs(),
-				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
-			),
-			RequireClientCertificate: &wrappers.BoolValue{Value: true},
-		}
-		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-		if err != nil {
-			return err
-		}
 		listener.FilterChains[idx].TransportSocket = transportSocket
 	}
 	return nil
 }
 
-//
-// NOTE: This method MUST only be used for connect proxy public listeners,
-// since TLS validation will be done against root certs for all peers
-// that might dial this proxy.
-func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
-	if cfgSnap.Kind != structs.ServiceKindConnectProxy {
-		return fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
+func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+	case structs.ServiceKindMeshGateway:
+	default:
+		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
 	// Create TLS validation context for mTLS with leaf certificate and root certs.
@@ -860,15 +858,19 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 	)
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
-	if len(cfgSnap.ConnectProxy.PeeringTrustBundles) > 0 {
-		spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), cfgSnap.ConnectProxy.PeeringTrustBundles)
+	if len(peerBundles) > 0 {
+		spiffeConfig, err := makeSpiffeValidatorConfig(
+			cfgSnap.Roots.TrustDomain,
+			cfgSnap.RootPEMs(),
+			peerBundles,
+		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 		if !ok {
-			return fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
+			return nil, fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
 		}
 
 		// makeCommonTLSFromLead injects the local trust domain's CA root certs as the TrustedCA.
@@ -881,18 +883,10 @@ func (s *ResourceGenerator) injectConnectTLSForPublicListener(cfgSnap *proxycfg.
 		}
 	}
 
-	transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
+	return makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext:         tlsContext,
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	})
-	if err != nil {
-		return err
-	}
-
-	for idx := range listener.FilterChains {
-		listener.FilterChains[idx].TransportSocket = transportSocket
-	}
-	return nil
 }
 
 // SPIFFECertValidatorConfig is used to validate certificates from trust domains other than our own.
@@ -963,6 +957,12 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			httpAuthzFilter, err := makeRBACHTTPFilter(
 				cfgSnap.ConnectProxy.Intentions,
 				cfgSnap.IntentionDefaultAllow,
+				rbacLocalInfo{
+					trustDomain: cfgSnap.Roots.TrustDomain,
+					datacenter:  cfgSnap.Datacenter,
+					partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+				},
+				cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 			)
 			if err != nil {
 				return nil, err
@@ -1019,6 +1019,12 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
+			cfgSnap.ConnectProxy.InboundPeerTrustBundles,
 		)
 		if err != nil {
 			return nil, err
@@ -1195,13 +1201,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		clusterChain, err := s.makeFilterChainTerminatingGateway(
-			cfgSnap,
-			clusterName,
-			svc,
-			intentions,
-			cfg.Protocol,
-		)
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -1213,19 +1213,43 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			for subsetName := range resolver.Subsets {
 				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
-					cfgSnap,
-					subsetClusterName,
-					svc,
-					intentions,
-					cfg.Protocol,
-				)
+				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, subsetClusterName, svc, intentions, cfg.Protocol, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", subsetClusterName, err)
 				}
 				l.FilterChains = append(l.FilterChains, subsetClusterChain)
 			}
 		}
+	}
+
+	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+
+		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn(
+				"failed to parse Connect.Proxy.Config for linked destination",
+				"destination", svc.String(),
+				"error", err,
+			)
+		}
+
+		var dest *structs.DestinationConfig
+		if cfgSnap.TerminatingGateway.DestinationServices[svc].ServiceKind == structs.GatewayServiceKindDestination {
+			dest = &svcConfig.Destination
+		} else {
+			return nil, fmt.Errorf("invalid gateway service for destination %s", svc.Name)
+		}
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, dest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+		}
+		l.FilterChains = append(l.FilterChains, clusterChain)
 	}
 
 	// Before we add the fallback, sort these chains by the matched name. All
@@ -1261,13 +1285,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	cluster string,
-	service structs.ServiceName,
-	intentions structs.Intentions,
-	protocol string,
-) (*envoy_listener_v3.FilterChain, error) {
+func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, dest *structs.DestinationConfig) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[service],
@@ -1281,10 +1299,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		return nil, err
 	}
 
-	filterChain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: makeSNIFilterChainMatch(cluster),
-		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
-		TransportSocket:  transportSocket,
+	var filterChain *envoy_listener_v3.FilterChain
+	if dest != nil {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeDestinationFilterChainMatch(cluster, dest),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
+	} else {
+		filterChain = &envoy_listener_v3.FilterChain{
+			FilterChainMatch: makeSNIFilterChainMatch(cluster),
+			Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
+			TransportSocket:  transportSocket,
+		}
 	}
 
 	// This controls if we do L4 or L7 intention checks.
@@ -1295,6 +1322,12 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		authFilter, err := makeRBACNetworkFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
+			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
 			return nil, err
@@ -1302,16 +1335,28 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		filterChain.Filters = append(filterChain.Filters, authFilter)
 	}
 
+	// For Destinations of Hostname types, we use the dynamic forward proxy filter since this could be
+	// a wildcard match. We also send to the dynamic forward cluster
+	if dest != nil && dest.HasHostname() {
+		dynamicFilter, err := makeSNIDynamicForwardProxyFilter(dest.Port)
+		if err != nil {
+			return nil, err
+		}
+		filterChain.Filters = append(filterChain.Filters, dynamicFilter)
+		cluster = dynamicForwardProxyClusterName
+	}
+
 	// Lastly we setup the actual proxying component. For L4 this is a straight
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
-		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
-		routeName:  cluster, // Set cluster name for route config since each will have its own
-		cluster:    cluster,
-		statPrefix: "upstream.",
-		routePath:  "",
+		protocol:               protocol,
+		filterName:             fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
+		routeName:              cluster, // Set cluster name for route config since each will have its own
+		cluster:                cluster,
+		statPrefix:             "upstream.",
+		routePath:              "",
+		useDynamicForwardProxy: dest != nil && dest.HasHostname(),
 	}
 
 	if useHTTPFilter {
@@ -1319,6 +1364,12 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			intentions,
 			cfgSnap.IntentionDefaultAllow,
+			rbacLocalInfo{
+				trustDomain: cfgSnap.Roots.TrustDomain,
+				datacenter:  cfgSnap.Datacenter,
+				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
+			},
+			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
 		)
 		if err != nil {
 			return nil, err
@@ -1341,6 +1392,23 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	filterChain.Filters = append(filterChain.Filters, filter)
 
 	return filterChain, nil
+}
+
+func makeDestinationFilterChainMatch(cluster string, dest *structs.DestinationConfig) *envoy_listener_v3.FilterChainMatch {
+	// For hostname and wildcard destinations, we match on the address.
+
+	// For IP Destinations, use the alias SNI name to match
+	ip := net.ParseIP(dest.Address)
+	if ip != nil {
+		return &envoy_listener_v3.FilterChainMatch{
+			ServerNames: []string{cluster},
+		}
+	}
+
+	// For hostname and wildcard destinations, we match on the address in the Destination
+	return &envoy_listener_v3.FilterChainMatch{
+		ServerNames: []string{dest.Address},
+	}
 }
 
 func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_listener_v3.Listener, error) {
@@ -1371,57 +1439,18 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
-	// Add in TCP filter chains for plain peered passthrough.
-	//
-	// TODO(peering): make this work for L7 as well
-	// TODO(peering): make failover work
-	for _, svc := range cfgSnap.MeshGateway.ExportedServicesSlice {
-		peerNames, ok := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
-		if !ok {
-			continue // not possible
-		}
-		chain, ok := cfgSnap.MeshGateway.DiscoveryChain[svc]
-		if !ok {
-			continue // ignore; not ready
-		}
+	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
+		peerNames := cfgSnap.MeshGateway.ExportedServicesWithPeers[svc]
+		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
 
-		if structs.IsProtocolHTTPLike(chain.Protocol) {
-			continue // temporary skip
-		}
-
-		target, err := simpleChainTarget(chain)
+		filterChain, err := s.makeMeshGatewayPeerFilterChain(cfgSnap, svc, peerNames, chain)
 		if err != nil {
 			return nil, err
-		}
-		clusterName := CustomizeClusterName(target.Name, chain)
-
-		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
-
-		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_peered.")
-		if err != nil {
-			return nil, err
+		} else if filterChain == nil {
+			continue
 		}
 
-		var peeredServerNames []string
-		for _, peerName := range peerNames {
-			peeredSNI := connect.PeeredServiceSNI(
-				svc.Name,
-				svc.NamespaceOrDefault(),
-				svc.PartitionOrDefault(),
-				peerName,
-				cfgSnap.Roots.TrustDomain,
-			)
-			peeredServerNames = append(peeredServerNames, peeredSNI)
-		}
-
-		l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
-			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-				ServerNames: peeredServerNames,
-			},
-			Filters: []*envoy_listener_v3.Filter{
-				dcTCPProxy,
-			},
-		})
+		l.FilterChains = append(l.FilterChains, filterChain)
 	}
 
 	// We need 1 Filter Chain per remote cluster
@@ -1501,23 +1530,110 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	return l, nil
 }
 
+func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	peerNames []string,
+	chain *structs.CompiledDiscoveryChain,
+) (*envoy_listener_v3.FilterChain, error) {
+	var (
+		useHTTPFilter = structs.IsProtocolHTTPLike(chain.Protocol)
+		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
+		useRDS = useHTTPFilter
+	)
+
+	if useHTTPFilter && cfgSnap.MeshGateway.Leaf == nil {
+		return nil, nil // ignore; not ready
+	}
+
+	var clusterName string
+	if !useRDS {
+		// When not using RDS we must generate a cluster name to attach to the filter chain.
+		// With RDS, cluster names get attached to the dynamic routes instead.
+		target, err := simpleChainTarget(chain)
+		if err != nil {
+			return nil, err
+		}
+		clusterName = meshGatewayExportedClusterNamePrefix + CustomizeClusterName(target.Name, chain)
+	}
+
+	uid := proxycfg.NewUpstreamIDFromServiceName(svc)
+
+	filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
+	filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+		routeName:            uid.EnvoyID(),
+		clusterName:          clusterName,
+		filterName:           filterName,
+		protocol:             chain.Protocol,
+		useRDS:               useRDS,
+		statPrefix:           "mesh_gateway_local_peered.",
+		forwardClientDetails: true,
+		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var peeredServerNames []string
+	for _, peerName := range peerNames {
+		peeredSNI := connect.PeeredServiceSNI(
+			svc.Name,
+			svc.NamespaceOrDefault(),
+			svc.PartitionOrDefault(),
+			peerName,
+			cfgSnap.Roots.TrustDomain,
+		)
+		peeredServerNames = append(peeredServerNames, peeredSNI)
+	}
+	filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+		ServerNames: peeredServerNames,
+	}
+
+	if useHTTPFilter {
+		// We only terminate TLS if we're doing an L7 proxy.
+		var peerBundles []*pbpeering.PeeringTrustBundle
+		for _, bundle := range cfgSnap.MeshGateway.PeeringTrustBundles {
+			if stringslice.Contains(peerNames, bundle.PeerName) {
+				peerBundles = append(peerBundles, bundle)
+			}
+		}
+
+		peeredTransportSocket, err := createDownstreamTransportSocketForConnectTLS(cfgSnap, peerBundles)
+		if err != nil {
+			return nil, err
+		}
+		filterChain.TransportSocket = peeredTransportSocket
+	}
+
+	return filterChain, nil
+}
+
 type filterChainOpts struct {
-	routeName   string
-	clusterName string
-	filterName  string
-	protocol    string
-	useRDS      bool
-	tlsContext  *envoy_tls_v3.DownstreamTlsContext
+	routeName            string
+	clusterName          string
+	filterName           string
+	protocol             string
+	useRDS               bool
+	tlsContext           *envoy_tls_v3.DownstreamTlsContext
+	statPrefix           string
+	forwardClientDetails bool
+	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
+	if opts.statPrefix == "" {
+		opts.statPrefix = "upstream."
+	}
 	filter, err := makeListenerFilter(listenerFilterOpts{
-		useRDS:     opts.useRDS,
-		protocol:   opts.protocol,
-		filterName: opts.filterName,
-		routeName:  opts.routeName,
-		cluster:    opts.clusterName,
-		statPrefix: "upstream.",
+		useRDS:               opts.useRDS,
+		protocol:             opts.protocol,
+		filterName:           opts.filterName,
+		routeName:            opts.routeName,
+		cluster:              opts.clusterName,
+		statPrefix:           opts.statPrefix,
+		forwardClientDetails: opts.forwardClientDetails,
+		forwardClientPolicy:  opts.forwardClientPolicy,
 	})
 	if err != nil {
 		return nil, err
@@ -1645,18 +1761,19 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 }
 
 type listenerFilterOpts struct {
-	useRDS               bool
-	protocol             string
-	filterName           string
-	routeName            string
-	cluster              string
-	statPrefix           string
-	routePath            string
-	requestTimeoutMs     *int
-	ingressGateway       bool
-	httpAuthzFilter      *envoy_http_v3.HttpFilter
-	forwardClientDetails bool
-	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	useRDS                 bool
+	protocol               string
+	filterName             string
+	routeName              string
+	cluster                string
+	statPrefix             string
+	routePath              string
+	requestTimeoutMs       *int
+	ingressGateway         bool
+	httpAuthzFilter        *envoy_http_v3.HttpFilter
+	forwardClientDetails   bool
+	forwardClientPolicy    envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	useDynamicForwardProxy bool
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -1687,6 +1804,13 @@ func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChai
 
 func makeSNIClusterFilter() (*envoy_listener_v3.Filter, error) {
 	return makeFilter("envoy.filters.network.sni_cluster", &envoy_sni_cluster_v3.SniCluster{})
+}
+
+func makeSNIDynamicForwardProxyFilter(upstreamPort int) (*envoy_listener_v3.Filter, error) {
+	return makeFilter("envoy.filters.network.sni_dynamic_forward_proxy", &envoy_sni_dynamic_forward_proxy_v3.FilterConfig{
+		DnsCacheConfig: getCommonDNSCacheConfiguration(),
+		PortSpecifier:  &envoy_sni_dynamic_forward_proxy_v3.FilterConfig_PortValue{PortValue: uint32(upstreamPort)},
+	})
 }
 
 func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener_v3.Filter, error) {

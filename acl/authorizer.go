@@ -49,6 +49,7 @@ const (
 	ResourceQuery     Resource = "query"
 	ResourceService   Resource = "service"
 	ResourceSession   Resource = "session"
+	ResourcePeering   Resource = "peering"
 )
 
 // Authorizer is the interface for policy enforcement.
@@ -539,6 +540,14 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.SessionRead(segment, ctx), nil
 		case "write":
 			return authz.SessionWrite(segment, ctx), nil
+		}
+	case ResourcePeering:
+		// TODO (peering) switch this over to using PeeringRead & PeeringWrite methods once implemented
+		switch lowerAccess {
+		case "read":
+			return authz.OperatorRead(ctx), nil
+		case "write":
+			return authz.OperatorWrite(ctx), nil
 		}
 	default:
 		if processed, decision, err := enforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {

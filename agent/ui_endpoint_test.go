@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -19,12 +21,14 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 )
 
-func TestUiIndex(t *testing.T) {
+func TestUIIndex(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -74,7 +78,7 @@ func TestUiIndex(t *testing.T) {
 	}
 }
 
-func TestUiNodes(t *testing.T) {
+func TestUINodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -84,15 +88,42 @@ func TestUiNodes(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "test",
-		Address:    "127.0.0.1",
+	args := []*structs.RegisterRequest{
+		{
+			Datacenter: "dc1",
+			Node:       "test",
+			Address:    "127.0.0.1",
+		},
+		{
+			Datacenter: "dc1",
+			Node:       "foo-peer",
+			Address:    "127.0.0.3",
+			PeerName:   "peer1",
+		},
 	}
 
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
+	for _, reg := range args {
+		var out struct{}
+		err := a.RPC("Catalog.Register", reg, &out)
+		require.NoError(t, err)
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		peerOne := &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				Name:                "peer1",
+				State:               pbpeering.PeeringState_ESTABLISHING,
+				PeerCAPems:          nil,
+				PeerServerName:      "fooservername",
+				PeerServerAddresses: []string{"addr1"},
+			},
+		}
+		_, err := a.rpcClientPeering.PeeringWrite(ctx, peerOne)
+		require.NoError(t, err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
@@ -103,20 +134,32 @@ func TestUiNodes(t *testing.T) {
 	}
 	assertIndex(t, resp)
 
-	// Should be 2 nodes, and all the empty lists should be non-nil
+	// Should be 3 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
-	if len(nodes) != 2 ||
-		nodes[0].Node != a.Config.NodeName ||
-		nodes[0].Services == nil || len(nodes[0].Services) != 1 ||
-		nodes[0].Checks == nil || len(nodes[0].Checks) != 1 ||
-		nodes[1].Node != "test" ||
-		nodes[1].Services == nil || len(nodes[1].Services) != 0 ||
-		nodes[1].Checks == nil || len(nodes[1].Checks) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
+	require.Len(t, nodes, 3)
+
+	// check local nodes, services and checks
+	require.Equal(t, a.Config.NodeName, nodes[0].Node)
+	require.NotNil(t, nodes[0].Services)
+	require.Len(t, nodes[0].Services, 1)
+	require.NotNil(t, nodes[0].Checks)
+	require.Len(t, nodes[0].Checks, 1)
+	require.Equal(t, "test", nodes[1].Node)
+	require.NotNil(t, nodes[1].Services)
+	require.Len(t, nodes[1].Services, 0)
+	require.NotNil(t, nodes[1].Checks)
+	require.Len(t, nodes[1].Checks, 0)
+
+	// peered node
+	require.Equal(t, "foo-peer", nodes[2].Node)
+	require.Equal(t, "peer1", nodes[2].PeerName)
+	require.NotNil(t, nodes[2].Services)
+	require.Len(t, nodes[2].Services, 0)
+	require.NotNil(t, nodes[1].Checks)
+	require.Len(t, nodes[2].Services, 0)
 }
 
-func TestUiNodes_Filter(t *testing.T) {
+func TestUINodes_Filter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -162,7 +205,7 @@ func TestUiNodes_Filter(t *testing.T) {
 	require.Empty(t, nodes[0].Checks)
 }
 
-func TestUiNodeInfo(t *testing.T) {
+func TestUINodeInfo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -214,7 +257,7 @@ func TestUiNodeInfo(t *testing.T) {
 	}
 }
 
-func TestUiServices(t *testing.T) {
+func TestUIServices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -238,7 +281,7 @@ func TestUiServices(t *testing.T) {
 				},
 			},
 		},
-		//register api service on node foo
+		// register api service on node foo
 		{
 			Datacenter:     "dc1",
 			Node:           "foo",
@@ -318,11 +361,53 @@ func TestUiServices(t *testing.T) {
 				Tags:    []string{},
 			},
 		},
+		// register peer node foo with peer service
+		{
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.2",
+				"wan": "198.18.0.2",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "linux",
+			},
+			PeerName: "peer1",
+			Service: &structs.NodeService{
+				Kind:     structs.ServiceKindTypical,
+				ID:       "serviceID",
+				Service:  "service",
+				Port:     1235,
+				Address:  "198.18.1.2",
+				PeerName: "peer1",
+			},
+		},
 	}
 
 	for _, args := range requests {
 		var out struct{}
 		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		peerOne := &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				Name:                "peer1",
+				State:               pbpeering.PeeringState_ESTABLISHING,
+				PeerCAPems:          nil,
+				PeerServerName:      "fooservername",
+				PeerServerAddresses: []string{"addr1"},
+			},
+		}
+		_, err := a.rpcClientPeering.PeeringWrite(ctx, peerOne)
+		require.NoError(t, err)
 	}
 
 	// Register a terminating gateway associated with api and cache
@@ -393,7 +478,7 @@ func TestUiServices(t *testing.T) {
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
 		summary := obj.([]*ServiceListingSummary)
-		require.Len(t, summary, 6)
+		require.Len(t, summary, 7)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
@@ -491,6 +576,21 @@ func TestUiServices(t *testing.T) {
 					ChecksCritical:  1,
 					ExternalSources: []string{"k8s"},
 					EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "service",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  0,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					PeerName:       "peer1",
 				},
 			},
 		}

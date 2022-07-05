@@ -10,6 +10,7 @@ import role from 'consul-ui/sort/comparators/role';
 import policy from 'consul-ui/sort/comparators/policy';
 import authMethod from 'consul-ui/sort/comparators/auth-method';
 import nspace from 'consul-ui/sort/comparators/nspace';
+import peer from 'consul-ui/sort/comparators/peer';
 import node from 'consul-ui/sort/comparators/node';
 
 // returns an array of Property:asc, Property:desc etc etc
@@ -39,6 +40,7 @@ const comparators = {
   role: role(options),
   policy: policy(options),
   nspace: nspace(options),
+  peer: peer(options),
   node: node(options),
 };
 export default class SortService extends Service {

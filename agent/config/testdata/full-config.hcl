@@ -654,7 +654,6 @@ telemetry {
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
 tls {
     defaults {

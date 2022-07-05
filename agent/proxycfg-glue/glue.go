@@ -3,13 +3,24 @@ package proxycfgglue
 import (
 	"context"
 
+	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
+
+// Store is the state store interface required for server-local data sources.
+type Store interface {
+	watch.StateStore
+
+	IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error)
+}
 
 // CacheCARoots satisfies the proxycfg.CARoots interface by sourcing data from
 // the agent cache.
@@ -59,12 +70,6 @@ func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
 	return &cacheProxyDataSource[*cachetype.ServiceHTTPChecksRequest]{c, cachetype.ServiceHTTPChecksName}
 }
 
-// CacheIntentions satisfies the proxycfg.Intentions interface by sourcing data
-// from the agent cache.
-func CacheIntentions(c *cache.Cache) proxycfg.Intentions {
-	return &cacheProxyDataSource[*structs.IntentionQueryRequest]{c, cachetype.IntentionMatchName}
-}
-
 // CacheIntentionUpstreams satisfies the proxycfg.IntentionUpstreams interface
 // by sourcing data from the agent cache.
 func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {
@@ -81,6 +86,12 @@ func CacheInternalServiceDump(c *cache.Cache) proxycfg.InternalServiceDump {
 // sourcing data from the agent cache.
 func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
 	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
+}
+
+// CachePeeredUpstreams satisfies the proxycfg.PeeredUpstreams interface
+// by sourcing data from the agent cache.
+func CachePeeredUpstreams(c *cache.Cache) proxycfg.PeeredUpstreams {
+	return &cacheProxyDataSource[*structs.PartitionSpecificRequest]{c, cachetype.PeeredUpstreamsName}
 }
 
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by
@@ -134,7 +145,7 @@ func (c *cacheProxyDataSource[ReqType]) Notify(
 	correlationID string,
 	ch chan<- proxycfg.UpdateEvent,
 ) error {
-	return c.c.NotifyCallback(ctx, c.t, req, correlationID, dispatchCacheUpdate(ctx, ch))
+	return c.c.NotifyCallback(ctx, c.t, req, correlationID, dispatchCacheUpdate(ch))
 }
 
 // Health wraps health.Client so that the proxycfg package doesn't need to
@@ -153,10 +164,10 @@ func (h *healthWrapper) Notify(
 	correlationID string,
 	ch chan<- proxycfg.UpdateEvent,
 ) error {
-	return h.client.Notify(ctx, *req, correlationID, dispatchCacheUpdate(ctx, ch))
+	return h.client.Notify(ctx, *req, correlationID, dispatchCacheUpdate(ch))
 }
 
-func dispatchCacheUpdate(ctx context.Context, ch chan<- proxycfg.UpdateEvent) cache.Callback {
+func dispatchCacheUpdate(ch chan<- proxycfg.UpdateEvent) cache.Callback {
 	return func(ctx context.Context, e cache.UpdateEvent) {
 		u := proxycfg.UpdateEvent{
 			CorrelationID: e.CorrelationID,

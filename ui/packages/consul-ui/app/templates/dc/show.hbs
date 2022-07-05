@@ -13,9 +13,9 @@ as |route|>
 
 {{#let
     (from-entries (array
-      (array 'serverstatus' true)
+      (array 'serverstatus' (compute (fn route.exists 'serverstatus')))
       (array 'cataloghealth' false)
-      (array 'license' (can 'read license'))
+      (array 'license' (compute (fn route.exists 'license')))
     ))
 as |tabs|}}
 

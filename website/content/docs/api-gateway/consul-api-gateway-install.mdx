@@ -72,7 +72,7 @@ The following resources are allocated for each component of the API Gateway.
 
 ## Installation
 
--> **NOTE:** When you see `VERSION` in examples of commands or configuration settings, replace `VERSION` with the version number of the release you are installing, like `0.3.0`. If there is a lower case "v" in front of `VERSION` the version number needs to follow the "v" as is `v0.3.0`
+-> **Version reference convention:** Replace `VERSION` in command and configuration examples with the Consul API Gateway version you are installing, such as `0.3.0`. In some instances, `VERSION` is prepended with a lowercase _v_. This indicates that you must include the `v` as is part of the version, for example `v0.3.0`.
 
 1. Issue the following command to install the CRDs:
 
@@ -103,7 +103,6 @@ The following resources are allocated for each component of the API Gateway.
    ```shell-session
    $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
    ```
-
 
 <!--
     ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******

@@ -1,0 +1,3 @@
+```release-note:bug
+deps: Update go-grpc/grpc, resolving connection memory leak
+```

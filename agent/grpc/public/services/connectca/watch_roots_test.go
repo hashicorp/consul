@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/grpc/public/testutils"
@@ -101,7 +102,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, acl.ErrNotFound)
+		Return(resolver.Result{}, acl.ErrNotFound)
 
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 
@@ -179,7 +180,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Simulate removing the `service:write` permission.
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(acl.DenyAll(), nil)
+		Return(testutils.TestAuthorizerDenyAll(t), nil)
 
 	// Update the ACL token to cause the subscription to be force-closed.
 	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{

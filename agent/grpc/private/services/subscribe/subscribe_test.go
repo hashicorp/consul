@@ -32,7 +32,7 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
+func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {
 	backend := newTestBackend(t)
 
 	addr := runTestServer(t, NewServer(backend, hclog.New(nil)))
@@ -48,14 +48,13 @@ func TestServer_Subscribe_KeyIsRequired(t *testing.T) {
 
 	stream, err := client.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 		Topic: pbsubscribe.Topic_ServiceHealth,
-		Key:   "",
 	})
 	require.NoError(t, err)
 
 	_, err = stream.Recv()
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "Key is required")
+	require.Contains(t, err.Error(), "either WildcardSubject or NamedSubject.Key is required")
 }
 
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
@@ -120,9 +119,13 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic:     pbsubscribe.Topic_ServiceHealth,
-			Key:       "redis",
-			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       "redis",
+					Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+				},
+			},
 		})
 		require.NoError(t, err)
 
@@ -348,9 +351,9 @@ func newTestBackend(t *testing.T) *testBackend {
 	// normally the handlers are registered on the FSM as state stores may come
 	// and go during snapshot restores. For the purposes of this test backend though we
 	// just register them directly to
-	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot))
-	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot))
-	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicCARoots, store.CARootsSnapshot, false))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot, false))
+	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealthConnect, store.ServiceHealthSnapshot, false))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go publisher.Run(ctx)
@@ -490,10 +493,14 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(connLocal)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       "redis",
+					Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+				},
+			},
 			Datacenter: "dc2",
-			Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 		go recvEvents(chEvents, streamHandle)
@@ -746,10 +753,14 @@ node "node1" {
 
 	testutil.RunStep(t, "setup a client, subscribe to a topic, and receive a snapshot", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic:     pbsubscribe.Topic_ServiceHealth,
-			Key:       "foo",
-			Token:     token,
-			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       "foo",
+					Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+				},
+			},
+			Token: token,
 		})
 		require.NoError(t, err)
 
@@ -816,7 +827,11 @@ node "node1" {
 	testutil.RunStep(t, "subscribe to a topic where events are not visible", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "bar",
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "bar",
+				},
+			},
 			Token: token,
 		})
 		require.NoError(t, err)
@@ -891,7 +906,11 @@ node "node1" {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "foo",
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "foo",
+				},
+			},
 			Token: token,
 		})
 		require.NoError(t, err)
@@ -1108,7 +1127,7 @@ func newEventFromSubscription(t *testing.T, index uint64) stream.Event {
 	}
 
 	ep := stream.NewEventPublisher(0)
-	ep.RegisterHandler(pbsubscribe.Topic_ServiceHealthConnect, serviceHealthConnectHandler)
+	ep.RegisterHandler(pbsubscribe.Topic_ServiceHealthConnect, serviceHealthConnectHandler, false)
 	req := &stream.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealthConnect, Subject: stream.SubjectNone, Index: index}
 
 	sub, err := ep.Subscribe(req)

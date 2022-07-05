@@ -11,6 +11,9 @@
   .service {
     @extend %visually-hidden;
   }
+  .peer::before {
+    @extend %with-network-alt-mask, %as-pseudo;
+  }
   .service + dd {
     font-weight: var(--typo-weight-semibold);
   }

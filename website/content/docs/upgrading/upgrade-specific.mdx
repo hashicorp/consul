@@ -14,6 +14,16 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.13.0
+
+### 1.9 Telemetry Compatibility
+
+#### Removing configuration options
+
+The [`disable_compat_19`](/docs/agent/options#telemetry-disable_compat_1.9) telemetry configuration option is now removed.
+In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. In 1.12.x it defaulted to `true`.
+If you were using this flag, you must remove it before upgrading.
+
 ## Consul 1.12.0
 
 ### 1.9 Telemetry Compatibility
@@ -28,7 +38,7 @@ style `consul.api.http...` metrics and removing the configuration flag from your
 
 ### Nomad Namespace Incompatibility
 
-Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0. 
+Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0.
 
 Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
 

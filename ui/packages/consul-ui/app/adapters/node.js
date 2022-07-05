@@ -1,4 +1,5 @@
 import Adapter from './application';
+import { inject as service } from '@ember/service';
 
 // TODO: Update to use this.formatDatacenter()
 
@@ -10,12 +11,25 @@ import Adapter from './application';
 // to the node.
 
 export default class NodeAdapter extends Adapter {
+  @service features;
+
+  get peeringQuery() {
+    const query = {};
+
+    if (this.features.isEnabled('peering')) {
+      query['with-peers'] = true;
+    }
+
+    return query;
+  }
+
   requestForQuery(request, { dc, ns, partition, index, id, uri }) {
     return request`
       GET /v1/internal/ui/nodes?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{
+        ...this.peeringQuery,
         ns,
         partition,
         index,
@@ -23,19 +37,27 @@ export default class NodeAdapter extends Adapter {
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri, peer }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
+    }
+    let options = {
+      ns,
+      partition,
+      index,
+    };
+
+    if (peer) {
+      options = {
+        ...options,
+        peer,
+      };
     }
     return request`
       GET /v1/internal/ui/node/${id}?${{ dc }}
       X-Request-ID: ${uri}
 
-      ${{
-        ns,
-        partition,
-        index,
-      }}
+      ${options}
     `;
   }
 

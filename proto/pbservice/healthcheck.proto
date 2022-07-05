@@ -127,7 +127,7 @@ message CheckType {
   bool GRPCUseTLS = 15;
   string TLSServerName = 27;
   bool TLSSkipVerify = 16;
-  
+
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration Timeout = 17;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto

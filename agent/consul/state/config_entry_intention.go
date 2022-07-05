@@ -101,8 +101,17 @@ func (s *ServiceIntentionSourceIndex) FromObject(obj interface{}) (bool, [][]byt
 
 	vals := make([][]byte, 0, len(ixnEntry.Sources))
 	for _, src := range ixnEntry.Sources {
-		sn := src.SourceServiceName()
-		vals = append(vals, []byte(sn.String()+"\x00"))
+		peer := src.Peer
+		if peer == "" {
+			peer = structs.LocalPeerKeyword
+		}
+		sn := src.SourceServiceName().String()
+
+		// add 2 for null separator after each string
+		buf := newIndexBuilder(len(peer) + len(sn) + 2)
+		buf.String(peer)
+		buf.String(sn)
+		vals = append(vals, buf.Bytes())
 	}
 
 	if len(vals) == 0 {
@@ -120,8 +129,15 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 	if !ok {
 		return nil, fmt.Errorf("argument must be a structs.ServiceID: %#v", args[0])
 	}
+	// Intention queries cannot use a peered service as a source
+	peer := structs.LocalPeerKeyword
+	sn := arg.String()
+	// add 2 for null separator after each string
+	buf := newIndexBuilder(len(peer) + len(sn) + 2)
+	buf.String(peer)
+	buf.String(sn)
 	// Add the null character as a terminator
-	return []byte(arg.String() + "\x00"), nil
+	return buf.Bytes(), nil
 }
 
 func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
@@ -186,10 +202,13 @@ func (s *Store) configIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *
 		return idx, nil, nil, nil
 	}
 
-	sn := structs.NewServiceName(args.SourceName, args.SourceEnterpriseMeta())
+	psn := structs.PeeredServiceName{
+		Peer:        args.SourcePeer,
+		ServiceName: structs.NewServiceName(args.SourceName, args.SourceEnterpriseMeta()),
+	}
 
 	for _, src := range entry.Sources {
-		if sn == src.SourceServiceName() {
+		if psn.Peer == src.Peer && psn.ServiceName == src.SourceServiceName() {
 			return idx, entry, entry.ToIntention(src), nil
 		}
 	}
@@ -286,20 +305,26 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(
 
 	for v := iter.Next(); v != nil; v = iter.Next() {
 		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		entMeta := entry.DestinationServiceName().EnterpriseMeta
+		// if we have a wildcard namespace or partition assume we are querying a service intention
+		// as destination intentions will never be queried as wildcard
+		kind := structs.GatewayServiceKindService
+		if entMeta.NamespaceOrDefault() != acl.WildcardName && entMeta.PartitionOrDefault() != acl.WildcardName {
+			kind, err = GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
+			if err != nil {
+				return nil, err
+			}
+		}
 		for _, src := range entry.Sources {
 			if src.SourceServiceName() == sn {
-				entMeta := entry.DestinationServiceName().EnterpriseMeta
-				kind, err := GatewayServiceKind(tx, entry.DestinationServiceName().Name, &entMeta)
-				if err != nil {
-					return nil, err
-				}
 				switch targetType {
 				case structs.IntentionTargetService:
 					if kind == structs.GatewayServiceKindService || kind == structs.GatewayServiceKindUnknown {
 						results = append(results, entry.ToIntention(src))
 					}
 				case structs.IntentionTargetDestination:
-					if kind == structs.GatewayServiceKindDestination {
+					// wildcard is needed here to be able to consider destinations in the wildcard intentions
+					if kind == structs.GatewayServiceKindDestination || entry.HasWildcardDestination() {
 						results = append(results, entry.ToIntention(src))
 					}
 				default:

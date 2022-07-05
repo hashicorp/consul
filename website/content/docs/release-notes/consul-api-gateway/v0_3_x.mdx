@@ -23,14 +23,13 @@ description: >-
   per `gateway` to all `gateways` in that `gatewayClass`. The minimum and
   maximum settings will override settings configured on any given `gateway`.
 
-    ~> **Note:** There is a hard limit of eight (8) instances per `gateway` and it can
+  ~> **Note:** There is a hard limit of eight (8) instances per `gateway` and it can
   not be overridden. This hard limit will probably be increased in the future.
 
 - **Cross Namespace Reference Policies for Certificates:**
   Reference policies is a security feature introduced in the 0.2 release. In
   this release, Reference Policies are now required for TLS certificates when a
   `listener` has a `certificateRef` that is in a different `namespace`.
-
 
 ## Supported Software
 

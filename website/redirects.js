@@ -1109,7 +1109,12 @@ module.exports = [
   },
   {
     source: '/docs/k8s/upgrade/compatibility',
-    destination: '/docs/k8s/installation/compatibility',
+    destination: '/docs/k8s/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/compatibility',
+    destination: '/docs/k8s/compatibility',
     permanent: true,
   },
   {

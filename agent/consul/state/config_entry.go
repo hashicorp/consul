@@ -506,6 +506,25 @@ var serviceGraphKinds = []string{
 
 // discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
 func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	idx, targets, err := s.discoveryChainOriginalTargetsTxn(tx, ws, dc, service, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var resp []structs.ServiceName
+	for _, t := range targets {
+		em := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
+		target := structs.NewServiceName(t.Service, &em)
+
+		// TODO (freddy): Allow upstream DC and encode in response
+		if t.Datacenter == dc {
+			resp = append(resp, target)
+		}
+	}
+	return idx, resp, nil
+}
+
+func (s *Store) discoveryChainOriginalTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *acl.EnterpriseMeta) (uint64, []*structs.DiscoveryTarget, error) {
 	source := structs.NewServiceName(service, entMeta)
 	req := discoverychain.CompileRequest{
 		ServiceName:          source.Name,
@@ -518,17 +537,7 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
 
-	var resp []structs.ServiceName
-	for _, t := range chain.Targets {
-		em := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
-		target := structs.NewServiceName(t.Service, &em)
-
-		// TODO (freddy): Allow upstream DC and encode in response
-		if t.Datacenter == dc {
-			resp = append(resp, target)
-		}
-	}
-	return idx, resp, nil
+	return idx, maps.SliceOfValues(chain.Targets), nil
 }
 
 // discoveryChainSourcesTxn will return a list of services whose discovery chains have the given service as a target

@@ -957,11 +957,12 @@ func (s *Store) IntentionTopology(
 	target structs.ServiceName,
 	downstreams bool,
 	defaultDecision acl.EnforcementDecision,
+	intentionTarget structs.IntentionTargetType,
 ) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision)
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision, intentionTarget)
 	if err != nil {
 		requested := "upstreams"
 		if downstreams {
@@ -982,6 +983,7 @@ func (s *Store) intentionTopologyTxn(
 	target structs.ServiceName,
 	downstreams bool,
 	defaultDecision acl.EnforcementDecision,
+	intentionTarget structs.IntentionTargetType,
 ) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
@@ -998,7 +1000,7 @@ func (s *Store) intentionTopologyTxn(
 		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, structs.IntentionTargetService)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType, intentionTarget)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}
@@ -1010,7 +1012,13 @@ func (s *Store) intentionTopologyTxn(
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
 	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	index, services, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	var services []*KindServiceName
+	if intentionTarget == structs.IntentionTargetService {
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
+	} else {
+		// destinations can only ever be upstream, since they are only allowed as intention destination.
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
+	}
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
 	}
@@ -1028,16 +1036,6 @@ func (s *Store) intentionTopologyTxn(
 			maxIdx = index
 		}
 		services = append(services, ingress...)
-	} else {
-		// destinations can only ever be upstream, since they are only allowed as intention destination.
-		index, destinations, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
-		if err != nil {
-			return index, nil, fmt.Errorf("failed to list destination names: %v", err)
-		}
-		if index > maxIdx {
-			maxIdx = index
-		}
-		services = append(services, destinations...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding

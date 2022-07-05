@@ -161,7 +161,7 @@ The following steps need only be performed once in any single datacenter if your
 
     1. `kubectl exec` into a Consul Agent pod (server or client) and add the new key to the Consul Keyring. This can be performed by running the following command:
         ```shell-session
-        kubectl exec -it consul-server-0 -- /bin/sh
+        $ kubectl exec -it consul-server-0 -- /bin/sh
         ```
     1. **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations.
 

@@ -17,6 +17,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc/private"
 	"github.com/hashicorp/consul/agent/grpc/private/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -510,7 +511,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   c.NodeName,
-		Level:  hclog.Trace,
+		Level:  testutil.TestLogLevel,
 		Output: testutil.NewLogBuffer(t),
 	})
 
@@ -535,6 +536,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	}
 
 	return Deps{
+		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
 		TLSConfigurator: tls,
 		Tokens:          new(token.Store),

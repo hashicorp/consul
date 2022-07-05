@@ -137,7 +137,7 @@ The configuration options are listed below.
   that authorized it.
 
 - `RootPKINamespace` / `root_pki_namespace` (`string: <optional>`) - The absolute namespace
-  that the `RootPKIPath` is in. Setting this overrides the `Namespace` option for the `RootPKIPath`. Introduced in 1.12.1
+  that the `RootPKIPath` is in. Setting this parameter overrides the `Namespace` option for the `RootPKIPath`. Introduced in 1.12.1.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
@@ -149,7 +149,7 @@ The configuration options are listed below.
   datacenter must specify a unique `intermediate_pki_path`.
 
 - `IntermediatePKINamespace` / `intermediate_pki_namespace` (`string: <optional>`) - The absolute namespace
-  that the `IntermediatePKIPath` is in. Setting this overrides the `Namespace` option for the `IntermediatePKIPath`. Introduced in 1.12.1
+  that the `IntermediatePKIPath` is in. Setting this parameter overrides the `Namespace` option for the `IntermediatePKIPath`. Introduced in 1.12.1.
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
   certificate used for Vault communication. If unspecified, this will fallback

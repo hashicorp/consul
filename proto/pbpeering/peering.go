@@ -4,9 +4,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
@@ -52,32 +54,32 @@ func (msg *GenerateTokenRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryT
 }
 
 // IsRead implements structs.RPCInfo
-func (req *InitiateRequest) IsRead() bool {
+func (req *EstablishRequest) IsRead() bool {
 	return false
 }
 
 // AllowStaleRead implements structs.RPCInfo
-func (req *InitiateRequest) AllowStaleRead() bool {
+func (req *EstablishRequest) AllowStaleRead() bool {
 	return false
 }
 
 // TokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) TokenSecret() string {
+func (req *EstablishRequest) TokenSecret() string {
 	return req.Token
 }
 
 // SetTokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) SetTokenSecret(token string) {
+func (req *EstablishRequest) SetTokenSecret(token string) {
 	req.Token = token
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (req *InitiateRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
+func (req *EstablishRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
 	return time.Since(start) > rpcHoldTimeout, nil
 }
 
 // Timeout implements structs.RPCInfo
-func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
+func (msg *EstablishRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
 	return rpcHoldTimeout
 }
 
@@ -86,10 +88,14 @@ func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime t
 // If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0 && p.State != PeeringState_TERMINATED
+	return len(p.PeerServerAddresses) > 0
 }
 
 func (x ReplicationMessage_Response_Operation) GoString() string {
+	return x.String()
+}
+
+func (x PeeringState) GoString() string {
 	return x.String()
 }
 
@@ -138,12 +144,16 @@ func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
 // enumcover:PeeringState
 func PeeringStateToAPI(s PeeringState) api.PeeringState {
 	switch s {
-	case PeeringState_INITIAL:
-		return api.PeeringStateInitial
+	case PeeringState_PENDING:
+		return api.PeeringStatePending
+	case PeeringState_ESTABLISHING:
+		return api.PeeringStateEstablishing
 	case PeeringState_ACTIVE:
 		return api.PeeringStateActive
 	case PeeringState_FAILING:
 		return api.PeeringStateFailing
+	case PeeringState_DELETING:
+		return api.PeeringStateDeleting
 	case PeeringState_TERMINATED:
 		return api.PeeringStateTerminated
 	case PeeringState_UNDEFINED:
@@ -156,12 +166,16 @@ func PeeringStateToAPI(s PeeringState) api.PeeringState {
 // enumcover:api.PeeringState
 func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	switch t {
-	case api.PeeringStateInitial:
-		return PeeringState_INITIAL
+	case api.PeeringStatePending:
+		return PeeringState_PENDING
+	case api.PeeringStateEstablishing:
+		return PeeringState_ESTABLISHING
 	case api.PeeringStateActive:
 		return PeeringState_ACTIVE
 	case api.PeeringStateFailing:
 		return PeeringState_FAILING
+	case api.PeeringStateDeleting:
+		return PeeringState_DELETING
 	case api.PeeringStateTerminated:
 		return PeeringState_TERMINATED
 	case api.PeeringStateUndefined:
@@ -169,6 +183,18 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	default:
 		return PeeringState_UNDEFINED
 	}
+}
+
+func (p *Peering) IsActive() bool {
+	if p != nil && p.State == PeeringState_TERMINATED {
+		return false
+	}
+	if p == nil || p.DeletedAt == nil {
+		return true
+	}
+
+	// The minimum protobuf timestamp is the Unix epoch rather than go's zero.
+	return structs.IsZeroProtoTime(p.DeletedAt)
 }
 
 func (p *Peering) ToAPI() *api.Peering {
@@ -194,9 +220,9 @@ func (resp *GenerateTokenResponse) ToAPI() *api.PeeringGenerateTokenResponse {
 }
 
 // TODO consider using mog for this
-func (resp *InitiateResponse) ToAPI() *api.PeeringInitiateResponse {
-	var t api.PeeringInitiateResponse
-	InitiateResponseToAPI(resp, &t)
+func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
+	var t api.PeeringEstablishResponse
+	EstablishResponseToAPI(resp, &t)
 	return &t
 }
 
@@ -211,12 +237,12 @@ func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *Gener
 }
 
 // convenience
-func NewInitiateRequestFromAPI(req *api.PeeringInitiateRequest) *InitiateRequest {
+func NewEstablishRequestFromAPI(req *api.PeeringEstablishRequest) *EstablishRequest {
 	if req == nil {
 		return nil
 	}
-	t := &InitiateRequest{}
-	InitiateRequestFromAPI(req, t)
+	t := &EstablishRequest{}
+	EstablishRequestFromAPI(req, t)
 	return t
 }
 
@@ -247,4 +273,19 @@ func (r *TrustBundleListByServiceRequest) CacheInfo() cache.RequestInfo {
 	}
 
 	return info
+}
+
+func TimePtrFromProto(s *timestamp.Timestamp) *time.Time {
+	if s == nil {
+		return nil
+	}
+	t := structs.TimeFromProto(s)
+	return &t
+}
+
+func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
+	if s == nil {
+		return nil
+	}
+	return structs.TimeToProto(*s)
 }

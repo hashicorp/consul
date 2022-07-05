@@ -22,6 +22,9 @@ import (
 )
 
 func TestClustersFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -31,16 +34,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 		create             func(t testinf.T) *proxycfg.ConfigSnapshot
 		overrideGoldenName string
 	}{
-		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
-		{
-			name:   "connect-proxy-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeering,
-		},
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -620,6 +613,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-dial-instances-directly",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
+		{
+			name: "transparent-proxy-terminating-gateway-destinations-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -725,6 +724,9 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 		case structs.ServiceKindIngressGateway:
 			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
 			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindMeshGateway:
+			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		}
 	}
 	if snap.Roots != nil {

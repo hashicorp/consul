@@ -10,7 +10,7 @@ description: >-
 This topic describes how to upgrade Consul API Gateway.
 
 
-## v0.3.0
+## Upgrade to v0.3.0 from v0.2.0 or lower
 
 Consul API Gateway v0.3.0 introduces a change for people upgrading from lower versions. Gateways with `listeners` with a `certificateRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows `Gateways` from the gateway's namesapce to use `certificateRef` in the `certificateRef`'s namespace.
 
@@ -41,13 +41,13 @@ Ensure that the following requirements are met prior to upgrading:
   "hashicorp/consul-api-gateway:0.2.1"
   ```
 
-1. Retrieve all gateways that have a `certificateRef` in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
+1. Retrieve all gateways that have a `certificateRefs` in a different namespace. If you have installed the [`jq`](https://stedolan.github.io/jq/) utility, you can skip to [step 4](#jq-command-secrets). Otherwise, issue the following command to get all `Gateways` across all namespaces:
 
   ```shell-session
   $ kubectl get Gateway --output json --all-namespaces
   ```
 
-    If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
+  If you have any active `Gateways`, you will receive output similar to the following response. The output has been truncated to show only relevant fields:
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -74,7 +74,7 @@ Ensure that the following requirements are met prior to upgrading:
 
 1. Inspect the `certificateRefs` entries for each of the routes.
 
-  If a `namespace` field is not defined in the `certificateRef` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRef`. Otherwise, note the `namespace` field values for `certificateRef` configurations that have a `namespace` defined that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRef-to-gateway pair. (see [step 5](#create-secret-reference-policy)).
+  If a `namespace` field is not defined in the `certificateRefs` or if the namespace matches the namespace of the parent `Gateway`, then no additional action is required for the `certificateRefs`. Otherwise, note the `namespace` field values for `certificateRefs` configurations with a `namespace` field that do not match the namespace of the parent `Gateway`. You must also note the `namespace` of the parent gateway. You will need these to create a `ReferencePolicy` that explicitly allows each cross-namespace certificateRefs-to-gateway pair. (see [step 5](#create-secret-reference-policy)).
 
   After completing this step, you will have a list of all secrets similar to the following:
 
@@ -84,8 +84,8 @@ Ensure that the following requirements are met prior to upgrading:
     example-certificate:
       - namespace: certificate-namespace
         parentNamespace: gateway-namespace
-
   ```
+
   </CodeBlockConfig>
 
   Proceed with the [standard-upgrade](#standard-upgrade) if your list is empty.
@@ -124,7 +124,7 @@ Ensure that the following requirements are met prior to upgrading:
 <a name="create-secret-reference-policy"/>
 
 1. Using the list of secrets you created earlier as a guide, create a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) to allow each gateway cross namespace secret access.
-  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `certificateRef`.
+  The `ReferencePolicy` explicitly allows each cross-namespace gateway to secret pair. The `ReferencePolicy` must be created in the same `namespace` as the `certificateRefs`.
 
   Skip to the next step if you've already created a `ReferencePolicy`.
   <!---
@@ -164,7 +164,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   Proceed with the [standard-upgrade](#standard-upgrade).
 
-## v0.2.0
+## Upgrade to v0.2.0
 
 Consul API Gateway v0.2.0 introduces a change for people upgrading from Consul API Gateway v0.1.0. Routes with a `backendRef` defined in a different namespace now require a [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy) that explicitly allows traffic from the route's namespace to the `backendRef`'s namespace.
 
@@ -182,7 +182,6 @@ Ensure that the following requirements are met prior to upgrading:
 - (Optional) The [jq](https://stedolan.github.io/jq/download/) command line processor for JSON can be installed, which will ease route retrieval during the upgrade process.
 
 ### Procedure
-
 
 1. Verify the current version of the `consul-api-gateway-controller` `Deployment`:
 

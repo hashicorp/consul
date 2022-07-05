@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -47,6 +48,9 @@ var LeaderSummaries = []prometheus.SummaryDefinition{
 const (
 	newLeaderEvent      = "consul:new-leader"
 	barrierWriteTimeout = 2 * time.Minute
+
+	defaultDeletionRoundBurst int        = 5  // number replication round bursts
+	defaultDeletionApplyRate  rate.Limit = 10 // raft applies per second
 )
 
 var (
@@ -313,6 +317,8 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startPeeringStreamSync(ctx)
 
+	s.startDeferredDeletion(ctx)
+
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
 	}
@@ -380,7 +386,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InPrimaryDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, aclfilter.RedactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -749,6 +755,16 @@ func (s *Server) stopACLReplication() {
 	s.leaderRoutineManager.Stop(aclPolicyReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclRoleReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
+}
+
+func (s *Server) startDeferredDeletion(ctx context.Context) {
+	s.startPeeringDeferredDeletion(ctx)
+	s.startTenancyDeferredDeletion(ctx)
+}
+
+func (s *Server) stopDeferredDeletion() {
+	s.leaderRoutineManager.Stop(peeringDeletionRoutineName)
+	s.stopTenancyDeferredDeletion()
 }
 
 func (s *Server) startConfigReplication(ctx context.Context) {

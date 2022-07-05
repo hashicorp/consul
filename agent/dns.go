@@ -107,6 +107,14 @@ type serviceLookup struct {
 	acl.EnterpriseMeta
 }
 
+type nodeLookup struct {
+	Datacenter        string
+	Node              string
+	Tag               string
+	MaxRecursionLevel int
+	acl.EnterpriseMeta
+}
+
 // DNSServer is used to wrap an Agent and expose various
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
@@ -846,13 +854,27 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenter(querySuffixes, &datacenter) {
+		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+			return invalid()
+		}
+
+		// Namespace should not be set for node queries
+		ns := entMeta.NamespaceOrEmpty()
+		if ns != "" && ns != acl.DefaultNamespaceName {
 			return invalid()
 		}
 
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(queryParts, ".")
-		return d.nodeLookup(cfg, datacenter, node, req, resp, maxRecursionLevel)
+
+		lookup := nodeLookup{
+			Datacenter:        datacenter,
+			Node:              node,
+			MaxRecursionLevel: maxRecursionLevel,
+			EnterpriseMeta:    entMeta,
+		}
+
+		return d.nodeLookup(cfg, lookup, req, resp)
 
 	case "query":
 		// ensure we have a query name
@@ -959,7 +981,7 @@ func rCodeFromError(err error) int {
 }
 
 // nodeLookup is used to handle a node query
-func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) error {
+func (d *DNSServer) nodeLookup(cfg *dnsConfig, lookup nodeLookup, req, resp *dns.Msg) error {
 	// Only handle ANY, A, AAAA, and TXT type requests
 	qType := req.Question[0].Qtype
 	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
@@ -968,12 +990,13 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
-		Datacenter: datacenter,
-		Node:       node,
+		Datacenter: lookup.Datacenter,
+		Node:       lookup.Node,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
 			AllowStale: cfg.AllowStale,
 		},
+		EnterpriseMeta: lookup.EnterpriseMeta,
 	}
 	out, err := d.lookupNode(cfg, args)
 	if err != nil {
@@ -996,7 +1019,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 	q := req.Question[0]
 	// Only compute A and CNAME record if query is not TXT type
 	if qType != dns.TypeTXT {
-		records := d.makeRecordFromNode(n, q.Qtype, q.Name, cfg.NodeTTL, maxRecursionLevel)
+		records := d.makeRecordFromNode(n, q.Qtype, q.Name, cfg.NodeTTL, lookup.MaxRecursionLevel)
 		resp.Answer = append(resp.Answer, records...)
 	}
 

@@ -20,6 +20,9 @@ import (
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -34,27 +37,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 		overrideGoldenName string
 		generatorSetup     func(*ResourceGenerator)
 	}{
-		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-exported-to-peers",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This test is only concerned about the SPIFFE cert validator config in the public listener
-					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
-					ns.Proxy.Upstreams = structs.Upstreams{}
-				}, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "peering-trust-bundles",
-						Result:        proxycfg.TestPeerTrustBundles(t),
-					},
-				})
-			},
-		},
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -477,12 +459,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "mesh-gateway-with-exported-peered-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "peered-services", nil, nil)
-			},
-		},
-		{
 			name: "mesh-gateway-tagged-addresses",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
@@ -800,6 +776,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 		},
+		{
+			name: "transparent-proxy-terminating-gateway-destinations-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
@@ -811,6 +793,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 				t.Run(tt.name, func(t *testing.T) {
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
+
+					// TODO: it would be nice to be able to ensure these snapshots are always valid before we use them in a test.
+					// require.True(t, snap.Valid())
 
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change

@@ -1,27 +1,11 @@
 import { helper } from '@ember/component/helper';
+import require from 'require';
 
 import { css } from '@lit/reactive-element';
-
 import resolve from 'consul-ui/utils/path/resolve';
 
 
-import panel from 'consul-ui/components/panel/index.css';
-import distributionMeter from 'consul-ui/components/distribution-meter/index.css';
-import distributionMeterMeter from 'consul-ui/components/distribution-meter/meter/index.css';
-import distributionMeterMeterElement from 'consul-ui/components/distribution-meter/meter/element';
-import visuallyHidden from 'consul-ui/styles/base/decoration/visually-hidden.css';
-import baseKeyframes from 'consul-ui/styles/base/icons/base-keyframes.css';
-import chevronDown from 'consul-ui/styles/base/icons/icons/chevron-down/index.css';
-
-const fs = {
-  ['/components/panel/index.css']: panel,
-  ['/components/distribution-meter/index.css']: distributionMeter,
-  ['/components/distribution-meter/meter/index.css']: distributionMeterMeter,
-  ['/components/distribution-meter/meter/element']: distributionMeterMeterElement,
-  ['/styles/base/decoration/visually-hidden.css']: visuallyHidden,
-  ['/styles/base/icons/base-keyframes.css']: baseKeyframes,
-  ['/styles/base/icons/icons/chevron-down/index.css']: chevronDown
-};
+const appName = 'consul-ui';
 
 const container = new Map();
 
@@ -29,17 +13,27 @@ const container = new Map();
 // we get the advantage of laziness here, i.e. we only call css as and when we
 // need to
 export default helper(([path = ''], { from }) => {
-  const fullPath = resolve(from, path);
+  const fullPath = resolve(`${appName}${from}`, path);
+
+  let module;
+  if(require.has(fullPath)) {
+    module = require(fullPath).default;
+  } else {
+    throw new Error(`Unable to resolve '${fullPath}' does the file exist?`)
+  }
+
   switch(true) {
     case fullPath.endsWith('.css'):
-      return fs[fullPath](css)
+      return module(css);
+    case fullPath.endsWith('.xstate'):
+      return module;
     default: {
       if(container.has(fullPath)) {
         return container.get(fullPath);
       }
-      const module = fs[fullPath](HTMLElement);
-      container.set(fullPath, module);
-      return module;
+      const component = module(HTMLElement);
+      container.set(fullPath, component);
+      return component;
     }
   }
 });

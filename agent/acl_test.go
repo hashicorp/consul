@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
@@ -94,15 +95,15 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	return authz, err
 }
 
-func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
 	authz, err := a.ResolveToken(secretID)
 	if err != nil {
-		return consul.ACLResolveResult{}, err
+		return resolver.Result{}, err
 	}
 
 	identity, err := a.resolveIdentFn(secretID)
 	if err != nil {
-		return consul.ACLResolveResult{}, err
+		return resolver.Result{}, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -116,7 +117,7 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return consul.ACLResolveResult{Authorizer: authz, ACLIdentity: identity}, err
+	return resolver.Result{Authorizer: authz, ACLIdentity: identity}, err
 }
 
 // All of these are stubs to satisfy the interface

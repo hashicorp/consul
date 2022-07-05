@@ -322,6 +322,23 @@
         ]
       },
       {
+        "title": "Cluster Peering",
+        "routes": [
+          {
+            "title": "What is Cluster Peering",
+            "path": "connect/cluster-peering"
+          },
+          {
+            "title": "Create and Manage Peering Connections",
+            "path": "connect/cluster-peering/create-manage-peering"
+          },
+          {
+            "title": "Cluster Peering on Kubernetes",
+            "path": "connect/cluster-peering/k8s"
+          }
+        ]
+      },
+      {
         "title": "Nomad",
         "path": "connect/nomad"
       },
@@ -567,6 +584,10 @@
                   {
                     "title": "Snapshot Agent Config",
                     "path": "k8s/installation/vault/data-integration/snapshot-agent-config"
+                  },
+                  {
+                    "title": "Webhook Certificates",
+                    "path": "k8s/installation/vault/data-integration/webhook-certs"
                   }
                 ]
               },
@@ -575,10 +596,6 @@
                 "path": "k8s/installation/vault/wan-federation"
               }
             ]
-          },
-          {
-            "title": "Compatibility Matrix",
-            "path": "k8s/installation/compatibility"
           }
         ]
       },
@@ -697,6 +714,10 @@
         ]
       },
       {
+        "title": "Compatibility Matrix",
+        "path": "k8s/compatibility"
+      },
+      {
         "title": "Helm Chart Configuration",
         "path": "k8s/helm"
       },
@@ -766,6 +787,23 @@
       {
         "title": "Configuration Reference",
         "path": "ecs/configuration-reference"
+      }
+    ]
+  },
+  {
+    "title": "AWS Lambda <sup>BETA</sup>",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "lambda"
+      },
+      {
+        "title": "Register Lambda Functions",
+        "path": "lambda/registration"
+      },
+      {
+        "title": "Invoke Lambda Functions",
+        "path": "lambda/invocation"
       }
     ]
   },
@@ -1198,19 +1236,19 @@
             "path": "upgrading/instructions/general-process"
           },
           {
-            "title": "Upgrading to 1.2.4",
+            "title": "Upgrading to Latest 1.2.x",
             "path": "upgrading/instructions/upgrade-to-1-2-x"
           },
           {
-            "title": "Upgrading to 1.6.9",
+            "title": "Upgrading to Latest 1.6.x",
             "path": "upgrading/instructions/upgrade-to-1-6-x"
           },
           {
-            "title": "Upgrading to 1.8.13",
+            "title": "Upgrading to Latest 1.8.x",
             "path": "upgrading/instructions/upgrade-to-1-8-x"
           },
           {
-            "title": "Upgrading to 1.10.0",
+            "title": "Upgrading to Latest 1.10.x",
             "path": "upgrading/instructions/upgrade-to-1-10-x"
           }
         ]

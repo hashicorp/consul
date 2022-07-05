@@ -36,6 +36,7 @@ export default class ServiceSerializer extends Serializer {
                 });
               }
             });
+
           return cb(headers, body);
         }),
       query

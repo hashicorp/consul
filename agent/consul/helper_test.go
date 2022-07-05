@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1209,6 +1210,102 @@ func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCode
 	}
 }
 
+func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) {
+	t.Helper()
+
+	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+	require.NoError(t, err)
+	require.NotNil(t, entry)
+	require.Equal(t, "true", entry.Value)
+
+	// Register a local connect-native service
+	require.NoError(t, state.EnsureRegistration(10, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	}))
+	// Should be assigned VIP
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("api", nil)}
+	vip, err := state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.1", vip)
+
+	// Register an imported service and its proxy
+	require.NoError(t, state.EnsureRegistration(11, &structs.RegisterRequest{
+		Node:           "bar",
+		SkipNodeUpdate: true,
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindTypical,
+			Service: "web",
+			ID:      "web-1",
+		},
+		PeerName: "peer-a",
+	}))
+	require.NoError(t, state.EnsureRegistration(12, &structs.RegisterRequest{
+		Node:    "bar",
+		Address: "127.0.0.2",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-proxy",
+			Service: "web-proxy",
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+			},
+		},
+		PeerName: "peer-a",
+	}))
+	// Should be assigned one VIP for the real service name
+	psn = structs.PeeredServiceName{Peer: "peer-a", ServiceName: structs.NewServiceName("web", nil)}
+	vip, err = state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.2", vip)
+	// web-proxy should not have a VIP
+	psn = structs.PeeredServiceName{Peer: "peer-a", ServiceName: structs.NewServiceName("web-proxy", nil)}
+	vip, err = state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Empty(t, vip)
+
+	// Register an imported service and its proxy from another peer
+	require.NoError(t, state.EnsureRegistration(11, &structs.RegisterRequest{
+		Node:           "gir",
+		SkipNodeUpdate: true,
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindTypical,
+			Service: "web",
+			ID:      "web-1",
+		},
+		PeerName: "peer-b",
+	}))
+	require.NoError(t, state.EnsureRegistration(12, &structs.RegisterRequest{
+		Node:    "gir",
+		Address: "127.0.0.3",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-proxy",
+			Service: "web-proxy",
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+			},
+		},
+		PeerName: "peer-b",
+	}))
+	// Should be assigned one VIP for the real service name
+	psn = structs.PeeredServiceName{Peer: "peer-b", ServiceName: structs.NewServiceName("web", nil)}
+	vip, err = state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, "240.0.0.3", vip)
+	// web-proxy should not have a VIP
+	psn = structs.PeeredServiceName{Peer: "peer-b", ServiceName: structs.NewServiceName("web-proxy", nil)}
+	vip, err = state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Empty(t, vip)
+}
+
 func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token string) {
 	t.Helper()
 
@@ -1307,13 +1404,27 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 	}
 	registerTestCatalogEntriesMap(t, codec, registrations)
 
-	// Add intentions: deny all and web -> api
+	// Add intentions: deny all and web -> api and web -> api.example.com
 	entries := []structs.ConfigEntryRequest{
 		{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceIntentionsConfigEntry{
 				Kind: structs.ServiceIntentions,
 				Name: "api",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "web",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "api.example.com",
 				Sources: []*structs.SourceIntention{
 					{
 						Name:   "web",
@@ -1339,6 +1450,38 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 		},
 	}
 	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+
+	// Add destinations
+	dests := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "api.example.com",
+				Destination: &structs.DestinationConfig{
+					Address: "api.example.com",
+					Port:    443,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "kafka.store.com",
+				Destination: &structs.DestinationConfig{
+					Address: "172.168.2.1",
+					Port:    9003,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range dests {
 		var out bool
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 	}
