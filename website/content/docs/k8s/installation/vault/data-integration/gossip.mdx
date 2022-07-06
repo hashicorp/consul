@@ -10,7 +10,7 @@ description: >-
 This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault in the Consul controller and connect inject webhooks.
 
 ## Overview
-To use a gossip encryption key stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+Complete the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section to use a gossip encryption key stored in Vault:
 
 Complete the following steps once:
   1. Store the secret in Vault.
@@ -33,7 +33,7 @@ $ vault kv put secret/consul/gossip key="$(consul keygen)"
 ```
 ## Create Vault policy
 
-Next, we will need to create a policy that allows read access to this secret.
+Next, create a policy that allows read access to this secret.
 
 The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.gossipEncryption.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
