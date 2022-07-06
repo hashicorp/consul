@@ -78,7 +78,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
     <Tabs>
       <Tab heading="EKS">
-      On EKS, you can get the IP address of the Vault server's load balancer with the following command:
+      On EKS, you can get the hostname of the Vault server's load balancer with the following command:
 
       ```shell-session
       $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
