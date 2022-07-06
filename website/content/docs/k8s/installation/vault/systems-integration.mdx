@@ -45,27 +45,27 @@ The Vault PKI Engine must be enabled in order to leverage Vault for issuing Cons
 $ vault secrets enable pki
 ```
 
-## Set Environment Variables to ensure integration consistency
+## Set Environment Variables 
 
 Before installing the Vault Injector and configuring the Vault Kubernetes Auth Method, some environment variables need to be set to better ensure consistent mapping between Vault and Consul on Kubernetes.
 
   - DATACENTER
     
-      **Recommended value:** value of `global.datacenter` in your Consul Helm values file.
+      We recommend using the value for `global.datacenter` in your Consul Helm values file for this variable.
       ```shell-session
       $ export DATACENTER=dc1
       ```
 
   - VAULT_AUTH_METHOD_NAME
     
-      **Recommended value:** a concatenation of a `kubernetes-` prefix (to denote the auth method type) with `DATACENTER` environment variable.
+      We recommend using a concatenation of a `kubernetes-` prefix (to denote the auth method type) with the `DATACENTER` environment variable for this variable.
       ```shell-session
       $ export VAULT_AUTH_METHOD_NAME=kubernetes-${DATACENTER}
       ```
 
   - VAULT_SERVER_HOST
     
-      **Recommended value:** find the external IP address of your Vault cluster. 
+      We recommend using the external IP address of your Vault cluster for this variable. 
       - If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
         - On GKE or AKS, it'll be an IP:
           ```shell-session
@@ -87,12 +87,12 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
       $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
       ```
 
-  :** If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
+  If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
 
   - VAULT_TOKEN
       
-      **Recommended value:** Your allocated Vault token.  If running Vault in dev mode, this can be set to to `root`.
+      We recommend using your allocated Vault token as the value for this variable. If running Vault in dev mode, this can be set to to `root`.
       ```shell-session
       $ export VAULT_TOKEN=<vault token>
       ```
