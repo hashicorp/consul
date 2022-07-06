@@ -1,8 +1,8 @@
 package helpers
 
 import (
+	"strings"
 	"testing"
-    "strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
