@@ -65,37 +65,61 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
 
   - VAULT_SERVER_HOST
     
-      We recommend using the external IP address of your Vault cluster for this variable. 
-      - If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer. 
-        - On GKE or AKS, it'll be an IP:
-          ```shell-session
-          $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          ```
-        - On EKS, it'll be a hostname:
-          ```shell-session
-          $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          ```
-      - If Vault is not running on Kubernetes, utilize the `api_addr` as defined in the Vault [High Availability Parameters](https://www.vaultproject.io/docs/configuration#high-availability-parameters) configuration:
-          ```shell-session
-          $ export VAULT_SERVER_HOST=<external IP for vault cluster>
-          ```
+    We recommend using the external IP address of your Vault cluster for this variable. 
+    
+    If Vault is installed in a Kubernetes cluster, get the external IP or DNS name of the Vault server load balancer.  
+      
+    <Tabs>
+      <Tab heading="EKS">
+      On EKS, you can get the hostname of the Vault server's load balancer with the following command:
+
+      ```shell-session
+      $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      ```
+
+      </Tab>
+
+      <Tab heading="GKE">
+
+      On GKE, you can get the IP address of the Vault server's load balancer with the following command:
+
+      ```shell-session
+      $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+
+      <Tab heading="AKS">
+
+      On AKS, you can get the IP address of the Vault server's load balancer with the following command:
+
+      ```shell-session
+      $ export VAULT_SERVER_HOST=$(kubectl get svc vault-dc1 --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      ```
+
+      </Tab>
+    </Tabs>
+
+    If Vault is not running on Kubernetes, utilize the `api_addr` as defined in the Vault [High Availability Parameters](https://www.vaultproject.io/docs/configuration#high-availability-parameters) configuration:
+    ```shell-session
+    $ export VAULT_SERVER_HOST=<external IP for vault cluster>
+    ```
 
   - VAULT_AUTH_METHOD_NAME
     
-      We recommend connecting to port 8200 of the Vault server.
-      ```shell-session
-      $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
-      ```
+    We recommend connecting to port 8200 of the Vault server.
+    ```shell-session
+    $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
+    ```
 
-      If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
-
+    If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
   - VAULT_TOKEN
       
-      We recommend using your allocated Vault token as the value for this variable. If running Vault in dev mode, this can be set to to `root`.
-      ```shell-session
-      $ export VAULT_TOKEN=<vault token>
-      ```
+    We recommend using your allocated Vault token as the value for this variable. If running Vault in dev mode, this can be set to to `root`.
+    ```shell-session
+    $ export VAULT_TOKEN=<vault token>
+    ```
 
 ## Install Vault Injector in Consul k8s cluster
 
