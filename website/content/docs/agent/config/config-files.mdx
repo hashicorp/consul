@@ -869,11 +869,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `master` ((#acl_tokens_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.initial_management`](#acl_tokens_initial_management).**
 
-    - `default` ((#acl_tokens_default)) - When provided, the agent will
-      use this token when making requests to the Consul servers. Clients can override
-      this token on a per-request basis by providing the "?token" query parameter.
-      When not provided, the empty token, which maps to the 'anonymous' ACL token,
-      is used.
+    - `default` ((#acl_tokens_default)) - When provided, this agent will
+      use this token by default when making requests to the Consul servers
+      instead of the [anonymous token](/docs/security/acl/acl-tokens#anonymous-token).
+      Consul HTTP API requests can provide an alternate token in their authorization header
+      to override the `default` or anonymous token on a per-request basis,
+      as described in [HTTP API Authentication](/api-docs#authentication).
 
     - `agent` ((#acl_tokens_agent)) - Used for clients and servers to perform
       internal operations. If this isn't specified, then the
@@ -993,11 +994,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
-  the [`acl.tokens.default`](#acl_tokens_default) field instead.** When provided,
-  the agent will use this token when making requests to the Consul servers. Clients
-  can override this token on a per-request basis by providing the "?token" query
-  parameter. When not provided, the empty token, which maps to the 'anonymous' ACL
-  policy, is used.
+  the [`acl.tokens.default`](#acl_tokens_default) field instead.**
 
 - `acl_ttl` ((#acl_ttl_legacy)) - **Deprecated in Consul 1.4.0. See the
   [`acl.token_ttl`](#acl_token_ttl) field instead.**Used to control Time-To-Live
