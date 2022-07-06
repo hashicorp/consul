@@ -431,11 +431,11 @@
             "path": "api-gateway/configuration/gatewayclass"
           },
           {
-            "title": "Gateway Class",
+            "title": "Gateway Class Config",
             "path": "api-gateway/configuration/gatewayclassconfig"
           },
           {
-            "title": "Gateway Class",
+            "title": "Routes",
             "path": "api-gateway/configuration/routes"
           }
         ]
