@@ -8,7 +8,7 @@ description: >-
 # Vault as the Secrets Backend - Systems Integration
 
 ## Overview
-At a high level, configuring a systems integration of Vault with Consul on Kubernetes consists of 1) a one time setup on Vault and 2) a setup of the secrets backend per Consul datacenter via Helm.  
+Integrating Vault with Consul on Kubernetes includes a one-time setup on Vault and setting up the secrets backend for each Consul datacenter via Helm.
 
 Complete the following steps once:
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
@@ -80,15 +80,14 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
           $ export VAULT_SERVER_HOST=<external IP for vault cluster>
           ```
 
-  - VAULT_ADDR
-  
+  - VAULT_AUTH_METHOD_NAME
+    
       We recommend connecting to port 8200 of the Vault server.
-      
       ```shell-session
       $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
       ```
 
-  If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
+      If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
 
   - VAULT_TOKEN
