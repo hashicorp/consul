@@ -252,9 +252,6 @@ html.with-route-announcer .route-title {
       figcaption code {
         @extend %inline-code;
       }
-      pre code {
-        @extend %block-code;
-      }
       figure > [type='text'] {
         border: 1px solid rgb(var(--tone-gray-999));
         width: 100%;

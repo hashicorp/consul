@@ -56,7 +56,10 @@ as |dc partition nspace item create|}}
             <dl>
               <dt>Role ID</dt>
               <dd>
-                <CopyButton @value={{item.ID}} @name="Role ID" @position="top-start" /> {{item.ID}}
+                <CopyableCode
+                  @value={{item.ID}}
+                  @name="Role ID"
+                />
               </dd>
             </dl>
         </div>
