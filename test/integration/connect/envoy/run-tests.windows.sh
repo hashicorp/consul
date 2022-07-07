@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #set -eEuo pipefail
-if [$2 != "false"]
+if [ $2 != "false" ]
 then
   export $2
 fi
@@ -23,7 +23,7 @@ if [ ! -z "$DEBUG" ] ; then
   set -x
 fi
 
-source helpers.bash
+source helpers.windows.bash
 
 function command_error {
   echo "ERR: command exited with status $1" 1>&2
@@ -37,7 +37,6 @@ function command_error {
 }
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
-
 readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
 
 function network_snippet {
@@ -68,7 +67,7 @@ function init_workdir {
   # Copy all the test files
   find ${CASE_DIR} -maxdepth 1 -name '*.bats' -type f -exec cp -f {} workdir/${CLUSTER}/bats \;
   # Copy CLUSTER specific bats
-  cp helpers.bash workdir/${CLUSTER}/bats
+  cp helpers.windows.bash workdir/${CLUSTER}/bats
 
   # Add any CLUSTER overrides
   if test -d "${CASE_DIR}/${CLUSTER}"
@@ -104,10 +103,10 @@ function docker_kill_rm {
   local todo=()
   for name in "$@"; do
     name="envoy_${name}_1"
-    if docker container inspect $name &>/dev/null; then
+    if docker.exe container inspect $name &>/dev/null; then
       if [[ "$name" == envoy_tcpdump-* ]]; then
         echo -n "Gracefully stopping $name..."
-        docker stop $name &> /dev/null
+        docker.exe stop $name &> /dev/null
         echo "done"
       fi
       todo+=($name)
@@ -119,7 +118,7 @@ function docker_kill_rm {
   fi
 
   echo -n "Killing and removing: ${todo[@]}..."
-  docker rm -v -f ${todo[@]} &> /dev/null
+  docker.exe rm -v -f ${todo[@]} &> /dev/null
   echo "done"
 }
 
@@ -198,7 +197,7 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
-    docker run -d --name envoy_consul-${DC}-server_1 \
+    docker.exe run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-server" \
@@ -212,7 +211,7 @@ function start_consul {
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
-    docker run -d --name envoy_consul-${DC}_1 \
+    docker.exe run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-client" \
@@ -230,7 +229,7 @@ function start_consul {
   else
     docker_kill_rm consul-${DC}
 
-    docker run -d --name envoy_consul-${DC}_1 \
+    docker.exe run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}" \
@@ -266,7 +265,7 @@ function start_partitioned_client {
   # Run consul and expose some ports to the host to make debugging locally a
   # bit easier.
   #
-  docker run -d --name envoy_consul-${PARTITION}_1 \
+  docker.exe run -d --name envoy_consul-${PARTITION}_1 \
     --net=envoy-tests \
     $WORKDIR_SNIPPET \
     --hostname "consul-${PARTITION}-client" \
@@ -296,7 +295,7 @@ function pre_service_setup {
 function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
-  docker cp workdir/. envoy_workdir_1:/workdir
+  docker.exe cp workdir/. envoy_workdir_1:/workdir
 
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
@@ -323,7 +322,7 @@ function verify {
 
   # need to tell the PID 1 inside of the container that it won't be actual PID
   # 1 because we're using --pid=host so we use TINI_SUBREAPER
-  if docker run --name envoy_verify-${CLUSTER}_1 -t \
+  if docker.exe run --name envoy_verify-${CLUSTER}_1 -t \
     -e TINI_SUBREAPER=1 \
     -e ENVOY_VERSION \
     $WORKDIR_SNIPPET \
@@ -386,7 +385,7 @@ function capture_logs {
 
   for cont in $services; do
     echo "Capturing log for $cont"
-    docker logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log" || {
+    docker.exe logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log" || {
         echo "EXIT CODE $?" > "${LOG_DIR}/${cont}.log"
     }
   done
@@ -413,11 +412,11 @@ function global_setup {
 }
 
 function wipe_volumes {
-  docker run --rm -i \
+  docker.exe run --rm -i \
     $WORKDIR_SNIPPET \
     --net=none \
-    "${HASHICORP_DOCKER_PROXY}/alpine" \
-    sh -c 'rm -rf /workdir/*'
+    "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
+    rd /s /q "C:\\workdir"
 }
 
 function run_tests {
@@ -457,7 +456,7 @@ function run_tests {
 
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
-  docker cp workdir/. envoy_workdir_1:/workdir
+ docker.exe cp workdir/. envoy_workdir_1:/workdir
 
   start_consul primary
 
@@ -513,7 +512,7 @@ function test_teardown {
 
 function workdir_cleanup {
   docker_kill_rm workdir
-  docker volume rm -f envoy_workdir &>/dev/null || true
+  docker.exe volume rm -f envoy_workdir &>/dev/null || true
 }
 
 
@@ -521,39 +520,42 @@ function suite_setup {
     # Cleanup from any previous unclean runs.
     suite_teardown
 
-    docker network create envoy-tests &>/dev/null
+    docker.exe network create envoy-tests &>/dev/null
 
     # Start the volume container
     #
     # This is a dummy container that we use to create volume and keep it
     # accessible while other containers are down.
-    docker volume create envoy_workdir &>/dev/null
-    docker run -d --name envoy_workdir_1 \
+    docker.exe volume create envoy_workdir &>/dev/null
+    docker.exe run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        k8s.gcr.io/pause &>/dev/null
+        mcr.microsoft.com/windows/nanoserver:1809 &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    docker build -t bats-verify -f Dockerfile-bats .
+    # TODO -Line below commented for testing
+    # docker build -t bats-verify -f Dockerfile-bats-windows .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
     # the machine image to the latest version using this listing:
     #
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
-    docker run --rm -t bats-verify -v
+    # TODO - Line below commented for testing
+    docker.exe run --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
-        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-        -f Dockerfile-consul-envoy .
+    # TODO - Line below commented for testing
+    # docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+    #     --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+    #     -f Dockerfile-consul-envoy .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    docker.exe build -t test-sds-server -f Dockerfile-test-sds-server-windows test-sds-server
 }
 
 function suite_teardown {
@@ -565,9 +567,9 @@ function suite_teardown {
 
     docker_kill_rm consul-primary consul-primary-server consul-secondary consul-secondary-server consul-ap1 consul-alpha consul-alpha-server
 
-    if docker network inspect envoy-tests &>/dev/null ; then
+    if docker.exe network inspect envoy-tests &>/dev/null ; then
         echo -n "Deleting network 'envoy-tests'..."
-        docker network rm envoy-tests
+        docker.exe network rm envoy-tests
         echo "done"
     fi
 
@@ -591,10 +593,10 @@ function common_run_container_service {
   local httpPort="$3"
   local grpcPort="$4"
 
-  docker run -d --name $(container_name_prev) \
+  docker.exe run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $CLUSTER) \
-    "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
+   "${HASHICORP_DOCKER_PROXY}/windows/fortio" \
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
@@ -668,10 +670,10 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name $(container_name_prev) \
+  docker.exe run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy-windows:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
     -l trace \
@@ -688,7 +690,7 @@ function run_container_s1-ap1-sidecar-proxy {
 }
 
 function run_container_s1-sidecar-proxy-consul-exec {
-  docker run -d --name $(container_name) \
+  docker.exe run -d --name $(container_name) \
     $(network_snippet primary) \
     consul-dev-envoy:${ENVOY_VERSION} \
     consul connect envoy -sidecar-for s1 \
@@ -751,10 +753,10 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name $(container_name_prev) \
+  docker.exe run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy-windows:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l trace \
@@ -784,24 +786,23 @@ function run_container_fake-statsd {
   # This magic SYSTEM incantation is needed since Envoy doesn't add newlines and so
   # we need each packet to be passed to echo to add a new line before
   # appending.
-  docker run -d --name $(container_name) \
+  docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.3.4-r1" \
+    "${HASHICORP_DOCKER_PROXY}/windows/socat" \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
 
 #https://hub.docker.com/r/openzipkin/zipkin-base
 function run_container_zipkin {
-  docker run -d --name $(container_name) \
+  docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
 }
-
 function run_container_jaeger {
-  docker run -d --name $(container_name) \
+  docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
@@ -809,7 +810,7 @@ function run_container_jaeger {
 }
 
 function run_container_test-sds-server {
-  docker run -d --name $(container_name) \
+  docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "test-sds-server"
@@ -824,12 +825,12 @@ function container_name_prev {
 
 # This is a debugging tool. Run via './run-tests.sh debug_dump_volumes'
 function debug_dump_volumes {
-  docker run --rm -it \
+  docker.exe run --rm -it \
     $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
-    "${HASHICORP_DOCKER_PROXY}/alpine" \
-    cp -r /workdir/. /cwd/workdir/
+    "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
+    xcopy "\workdir" "\cwd\workdir" /E /H /C /I
 }
 
 function run_container_tcpdump-primary {
@@ -849,10 +850,9 @@ function common_run_container_tcpdump {
     local DC="$1"
 
     # we cant run this in circle but its only here to temporarily enable.
+    docker.exe build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
-    docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
-
-    docker run -d --name $(container_name_prev) \
+    docker.exe run -d --name $(container_name_prev) \
         $(network_snippet $DC) \
         -v $(pwd)/workdir/${DC}/envoy/:/data \
         --privileged \
