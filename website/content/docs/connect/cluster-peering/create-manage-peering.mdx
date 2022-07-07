@@ -131,7 +131,7 @@ To confirm that you peered your clusters, you can [query the `/health/service` e
 
 ```shell-session
 $ curl \
-    "http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01"
+    "http://127.0.0.1:8500/v1/health/service/<service-name>?peer=cluster-01"
 ```
 
 A successful query will include service information in the output.
