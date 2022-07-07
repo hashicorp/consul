@@ -92,8 +92,8 @@ The `selector` configuration matches zero or more namespaces that determine whic
 * Required: Required when from is configured to selector.
 
 The selector configuration contains one of the following objects:
-* matchExpressions
-* matchLabels
+* `matchExpressions`
+* `matchLabels`
 
 ### listeners.allowedRoutes.namespaces.selector.matchExpressions
 Specifies an array of requirements for matching namespaces. If a match is found, then routes from the matching namespace(s) are allowed to attach to the `Gateway`. The following table describes members of the `matchExpressions` array:
