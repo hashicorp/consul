@@ -326,10 +326,10 @@ function snapshot_envoy_admin {
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
 
   mkdir -p "${OUTDIR}"
-  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
-  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
-  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
-  docker_wget "$DC" "http://${HOSTPORT}/stats/prometheus" -q -O - > "${OUTDIR}/stats_prometheus.txt"
+  docker_wget "$DC" -s "http://${HOSTPORT}/config_dump" > "${OUTDIR}/config_dump.json"
+  docker_wget "$DC" -s "http://${HOSTPORT}/clusters?format=json" > "${OUTDIR}/clusters.json"
+  docker_wget "$DC" -s "http://${HOSTPORT}/stats" > "${OUTDIR}/stats.txt"
+  docker_wget "$DC" -s "http://${HOSTPORT}/stats/prometheus"  > "${OUTDIR}/stats_prometheus.txt"
 }
 
 function reset_envoy_metrics {
@@ -562,30 +562,30 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker.exe run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
 
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker.exe run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
+  docker.exe run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/windows/nanoserver curl "$@"
 }
 
 function docker_curl {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker.exe run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
 }
 
 function docker_exec {
-  if ! docker exec -i "$@"
+  if ! docker.exe exec -i "$@"
   then
     echo "Failed to execute: docker exec -i $@" 1>&2
     return 1
