@@ -30,15 +30,15 @@ export default helper(([path = ''], options) => {
       return module(css);
     case fullPath.endsWith('.xstate'):
       return module;
-    case fullPath.endsWith('.element'):
+    case fullPath.endsWith('.element'): {
       if(container.has(fullPath)) {
         return container.get(fullPath);
       }
       const component = module(HTMLElement);
       container.set(fullPath, component);
       return component;
-    default: {
-      return module;
     }
+    default:
+      return module;
   }
 });
