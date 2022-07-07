@@ -13,23 +13,29 @@
       {{#if @item.Config.Host}}
       <dt>{{t 'models.auth-method.Config.Host'}}</dt>
       <dd>
-        <CopyButton @value={{@item.Config.Host}} @name={{t 'models.auth-method.Config.Host'}}/>
-        <span>{{@item.Config.Host}}</span>
+        <CopyableCode
+          @value={{@item.Config.Host}}
+          @name={{t 'models.auth-method.Config.Host'}}
+        />
       </dd>
       {{/if}}
       {{#if @item.Config.CACert}}
       <dt>{{t 'models.auth-method.Config.CACert'}}</dt>
       <dd>
-        <Certificate @item={{@item.Config.CACert}} @name={{t 'models.auth-method.Config.CACert'}} />
+        <CopyableCode
+          @obfuscated={{true}}
+          @value={{@item.Config.CACert}}
+          @name={{t 'models.auth-method.Config.CACert'}}
+        />
       </dd>
       {{/if}}
       {{#if @item.Config.ServiceAccountJWT}}
       <dt>{{t 'models.auth-method.Config.ServiceAccountJWT'}}</dt>
       <dd>
-        <CopyButton @value={{@item.Config.ServiceAccountJWT}} @name={{t 'models.auth-method.Config.ServiceAccountJWT'}} />
-        <span>
-          {{@item.Config.ServiceAccountJWT}}
-        </span>
+        <CopyableCode
+          @value={{@item.Config.ServiceAccountJWT}}
+          @name={{t 'models.auth-method.Config.ServiceAccountJWT'}}
+        />
       </dd>
       {{/if}}
     </dl>
@@ -96,25 +102,37 @@ as |item|}}
         {{#if @item.Config.JWKSURL}}
         <dt>{{t 'models.auth-method.Config.JWKSURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.JWKSURL}} @name={{t 'models.auth-method.Config.JWKSURL'}} />
-          <span>{{@item.Config.JWKSURL}}</span>
+          <CopyableCode
+            @value={{@item.Config.JWKSURL}}
+            @name={{t 'models.auth-method.Config.JWKSURL'}}
+          />
         </dd>
         <dt>{{t 'models.auth-method.Config.JWKSCACert'}}</dt>
         <dd>
-          <Certificate @item={{@item.Config.JWKSCACert}} @name={{t 'models.auth-method.Config.JWKSCACert'}} />
+          <CopyableCode
+            @obfuscated={{true}}
+            @value={{@item.Config.JWKSCACert}}
+            @name={{t 'models.auth-method.Config.JWKSCACert'}}
+          />
         </dd>
         {{/if}}
         {{#if @item.Config.JWTValidationPubKeys}}
         <dt>{{t 'models.auth-method.Config.JWTValidationPubKeys'}}</dt>
         <dd>
-          <Certificate @item={{@item.Config.JWTValidationPubKeys}} @name={{t 'models.auth-method.Config.JWTValidationPubKeys'}} />
+          <CopyableCode
+            @obfuscated={{true}}
+            @value={{@item.Config.JWTValidationPubKeys}}
+            @name={{t 'models.auth-method.Config.JWTValidationPubKeys'}}
+          />
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCDiscoveryURL}}
         <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
-          <span>{{@item.Config.OIDCDiscoveryURL}}</span>
+          <CopyableCode
+            @value={{@item.Config.OIDCDiscoveryURL}}
+            @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}}
+          />
         </dd>
         {{/if}}
         {{#if @item.Config.JWTSupportedAlgs}}
@@ -143,14 +161,20 @@ as |item|}}
         {{#if @item.Config.OIDCDiscoveryURL}}
         <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
-          <span>{{@item.Config.OIDCDiscoveryURL}}</span>
+          <CopyableCode
+            @value={{@item.Config.OIDCDiscoveryURL}}
+            @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}}
+          />
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCDiscoveryCACert}}
         <dt>{{t 'models.auth-method.Config.OIDCDiscoveryCACert'}}</dt>
         <dd>
-          <Certificate @item={{@item.Config.OIDCDiscoveryCACert}} @name={{t 'models.auth-method.Config.OIDCDiscoveryCACert'}} />
+          <CopyableCode
+            @obfuscated={{true}}
+            @value={{@item.Config.OIDCDiscoveryCACert}}
+            @name={{t 'models.auth-method.Config.OIDCDiscoveryCACert'}}
+          />
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCClientID}}
@@ -167,8 +191,10 @@ as |item|}}
             <ul>
               {{#each @item.Config.AllowedRedirectURIs as |uri|}}
               <li>
-                <CopyButton @value={{uri}} @name="Redirect URI" />
-                <span>{{uri}}</span>
+                <CopyableCode
+                  @value={{uri}}
+                  @name="Redirect URI"
+                />
               </li>
               {{/each}}
             </ul>
