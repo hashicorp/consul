@@ -62,7 +62,7 @@ as |item index|>
       </Action>
       <Action
         data-test-delete-action
-        @onclick={{action @ondelete item}}
+        @onclick={{fn @ondelete item}}
         class="dangerous"
       >
         <BlockSlot @name="label">
