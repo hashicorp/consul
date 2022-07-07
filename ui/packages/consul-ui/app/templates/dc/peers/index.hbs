@@ -20,11 +20,15 @@
 {{#let
 
   (hash
-    value=(or sortBy "Name:asc")
+    value=(or sortBy "State:asc")
     change=(action (mut sortBy) value="target.selected")
   )
 
   (hash
+    state=(hash
+      value=(if state (split state ',') undefined)
+      change=(action (mut state) value="target.selectedItems")
+    )
     searchproperty=(hash
       value=(if (not-eq searchproperty undefined)
         (split searchproperty ',')
