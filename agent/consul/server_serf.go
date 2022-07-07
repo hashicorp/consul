@@ -103,6 +103,9 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	conf.Tags["build"] = s.config.Build
 	addr := opts.Listener.Addr().(*net.TCPAddr)
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
+	if s.config.GRPCPort > 0 {
+		conf.Tags["grpc_port"] = fmt.Sprintf("%d", s.config.GRPCPort)
+	}
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}

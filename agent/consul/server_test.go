@@ -111,7 +111,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.GetN(t, 3)
+	ports := freeport.GetN(t, 4) // {server, serf_lan, serf_wan, grpc}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -166,6 +166,8 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// TODO (slackpad) - We should be able to run all tests w/o this, but it
 	// looks like several depend on it.
 	config.RPCHoldTimeout = 10 * time.Second
+
+	config.GRPCPort = ports[3]
 
 	config.ConnectEnabled = true
 	config.CAConfig = &structs.CAConfiguration{
@@ -239,6 +241,19 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
+	if srv.config.GRPCPort > 0 {
+		// Normally the gRPC server listener is created at the agent level and
+		// passed down into the Server creation.
+		publicGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+
+		ln, err := net.Listen("tcp", publicGRPCAddr)
+		require.NoError(t, err)
+		go func() {
+			_ = srv.publicGRPCServer.Serve(ln)
+		}()
+		t.Cleanup(srv.publicGRPCServer.Stop)
+	}
+
 	return dir, srv
 }
 
@@ -262,16 +277,8 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn, rpc.ClientCodec) {
 	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
-	// Normally the gRPC server listener is created at the agent level and passed down into
-	// the Server creation. For our tests, we need to ensure
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	go func() {
-		_ = srv.publicGRPCServer.Serve(ln)
-	}()
-	t.Cleanup(srv.publicGRPCServer.Stop)
-
-	conn, err := grpc.Dial(ln.Addr().String(), grpc.WithInsecure())
+	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	require.NoError(t, err)
 
 	t.Cleanup(func() { _ = conn.Close() })

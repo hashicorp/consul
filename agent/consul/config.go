@@ -130,6 +130,9 @@ type Config struct {
 	// RPCSrcAddr is the source address for outgoing RPC connections.
 	RPCSrcAddr *net.TCPAddr
 
+	// GRPCPort is the port the public gRPC server listens on.
+	GRPCPort int
+
 	// (Enterprise-only) The network segment this agent is part of.
 	Segment string
 

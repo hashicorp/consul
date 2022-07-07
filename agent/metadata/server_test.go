@@ -4,6 +4,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
@@ -53,173 +54,136 @@ func TestServer_Key_params(t *testing.T) {
 }
 
 func TestIsConsulServer(t *testing.T) {
-	m := serf.Member{
-		Name: "foo",
-		Addr: net.IP([]byte{127, 0, 0, 1}),
-		Tags: map[string]string{
-			"role":          "consul",
-			"id":            "asdf",
-			"dc":            "east-aws",
-			"port":          "10000",
-			"build":         "0.8.0",
-			"wan_join_port": "1234",
-			"vsn":           "1",
-			"expect":        "3",
-			"raft_vsn":      "3",
-			"use_tls":       "1",
-			"read_replica":  "1",
-		},
-		Status: serf.StatusLeft,
-	}
-	ok, parts := metadata.IsConsulServer(m)
-	if !ok || parts.Datacenter != "east-aws" || parts.Port != 10000 {
-		t.Fatalf("bad: %v %v", ok, parts)
-	}
-	if parts.Name != "foo" {
-		t.Fatalf("bad: %v", parts)
-	}
-	if parts.ID != "asdf" {
-		t.Fatalf("bad: %v", parts.ID)
-	}
-	if parts.Bootstrap {
-		t.Fatalf("unexpected bootstrap")
-	}
-	if parts.Expect != 3 {
-		t.Fatalf("bad: %v", parts.Expect)
-	}
-	if parts.Port != 10000 {
-		t.Fatalf("bad: %v", parts.Port)
-	}
-	if parts.WanJoinPort != 1234 {
-		t.Fatalf("bad: %v", parts.WanJoinPort)
-	}
-	if parts.RaftVersion != 3 {
-		t.Fatalf("bad: %v", parts.RaftVersion)
-	}
-	if parts.Status != serf.StatusLeft {
-		t.Fatalf("bad: %v", parts.Status)
-	}
-	if !parts.UseTLS {
-		t.Fatalf("bad: %v", parts.UseTLS)
-	}
-	if !parts.ReadReplica {
-		t.Fatalf("unexpected voter")
-	}
-	m.Tags["bootstrap"] = "1"
-	m.Tags["disabled"] = "1"
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok {
-		t.Fatalf("expected a valid consul server")
-	}
-	if !parts.Bootstrap {
-		t.Fatalf("expected bootstrap")
-	}
-	if parts.Addr.String() != "127.0.0.1:10000" {
-		t.Fatalf("bad addr: %v", parts.Addr)
-	}
-	if parts.Version != 1 {
-		t.Fatalf("bad: %v", parts)
-	}
-	m.Tags["expect"] = "3"
-	delete(m.Tags, "bootstrap")
-	delete(m.Tags, "disabled")
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok || parts.Expect != 3 {
-		t.Fatalf("bad: %v", parts.Expect)
-	}
-	if parts.Bootstrap {
-		t.Fatalf("unexpected bootstrap")
+	mustVersion := func(s string) *version.Version {
+		v, err := version.NewVersion(s)
+		require.NoError(t, err)
+		return v
 	}
 
-	delete(m.Tags, "read_replica")
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok || parts.ReadReplica {
-		t.Fatalf("unexpected read replica")
-	}
+	newCase := func(variant string) (in serf.Member, expect *metadata.Server) {
+		m := serf.Member{
+			Name: "foo",
+			Addr: net.IP([]byte{127, 0, 0, 1}),
+			Port: 5454,
+			Tags: map[string]string{
+				"role":          "consul",
+				"id":            "asdf",
+				"dc":            "east-aws",
+				"port":          "10000",
+				"build":         "0.8.0",
+				"wan_join_port": "1234",
+				"grpc_port":     "9876",
+				"vsn":           "1",
+				"expect":        "3",
+				"raft_vsn":      "3",
+				"use_tls":       "1",
+			},
+			Status: serf.StatusLeft,
+		}
 
-	m.Tags["nonvoter"] = "1"
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok || !parts.ReadReplica {
-		t.Fatalf("expected read replica")
-	}
+		expected := &metadata.Server{
+			Name:           "foo",
+			ShortName:      "foo",
+			ID:             "asdf",
+			Datacenter:     "east-aws",
+			Segment:        "",
+			Port:           10000,
+			SegmentAddrs:   map[string]string{},
+			SegmentPorts:   map[string]int{},
+			WanJoinPort:    1234,
+			LanJoinPort:    5454,
+			PublicGRPCPort: 9876,
+			Bootstrap:      false,
+			Expect:         3,
+			Addr: &net.TCPAddr{
+				IP:   net.IP([]byte{127, 0, 0, 1}),
+				Port: 10000,
+			},
+			Build:        *mustVersion("0.8.0"),
+			Version:      1,
+			RaftVersion:  3,
+			Status:       serf.StatusLeft,
+			UseTLS:       true,
+			ReadReplica:  false,
+			FeatureFlags: map[string]int{},
+		}
 
-	delete(m.Tags, "role")
-	ok, _ = metadata.IsConsulServer(m)
-	require.False(t, ok, "expected to not be a consul server")
-}
-
-func TestIsConsulServer_Optional(t *testing.T) {
-	m := serf.Member{
-		Name: "foo",
-		Addr: net.IP([]byte{127, 0, 0, 1}),
-		Tags: map[string]string{
-			"role":  "consul",
-			"id":    "asdf",
-			"dc":    "east-aws",
-			"port":  "10000",
-			"vsn":   "1",
-			"build": "0.8.0",
-			// wan_join_port, raft_vsn, and expect are optional and
+		switch variant {
+		case "normal":
+		case "read-replica":
+			m.Tags["read_replica"] = "1"
+			expected.ReadReplica = true
+		case "non-voter":
+			m.Tags["nonvoter"] = "1"
+			expected.ReadReplica = true
+		case "expect-3":
+			m.Tags["expect"] = "3"
+			expected.Expect = 3
+		case "bootstrapped":
+			m.Tags["bootstrap"] = "1"
+			m.Tags["disabled"] = "1"
+			expected.Bootstrap = true
+		case "optionals":
+			// grpc_port, wan_join_port, raft_vsn, and expect are optional and
 			// should default to zero.
-		},
-	}
-	ok, parts := metadata.IsConsulServer(m)
-	if !ok || parts.Datacenter != "east-aws" || parts.Port != 10000 {
-		t.Fatalf("bad: %v %v", ok, parts)
-	}
-	if parts.Name != "foo" {
-		t.Fatalf("bad: %v", parts)
-	}
-	if parts.ID != "asdf" {
-		t.Fatalf("bad: %v", parts.ID)
-	}
-	if parts.Bootstrap {
-		t.Fatalf("unexpected bootstrap")
-	}
-	if parts.Expect != 0 {
-		t.Fatalf("bad: %v", parts.Expect)
-	}
-	if parts.Port != 10000 {
-		t.Fatalf("bad: %v", parts.Port)
-	}
-	if parts.WanJoinPort != 0 {
-		t.Fatalf("bad: %v", parts.WanJoinPort)
-	}
-	if parts.RaftVersion != 0 {
-		t.Fatalf("bad: %v", parts.RaftVersion)
+			delete(m.Tags, "grpc_port")
+			delete(m.Tags, "wan_join_port")
+			delete(m.Tags, "raft_vsn")
+			delete(m.Tags, "expect")
+			expected.RaftVersion = 0
+			expected.Expect = 0
+			expected.WanJoinPort = 0
+			expected.PublicGRPCPort = 0
+		case "feature-namespaces":
+			m.Tags["ft_ns"] = "1"
+			expected.FeatureFlags = map[string]int{"ns": 1}
+			//
+		case "bad-grpc-port":
+			m.Tags["grpc_port"] = "three"
+		case "negative-grpc-port":
+			m.Tags["grpc_port"] = "-1"
+		case "zero-grpc-port":
+			m.Tags["grpc_port"] = "0"
+		case "no-role":
+			delete(m.Tags, "role")
+		default:
+			t.Fatalf("unhandled variant: %s", variant)
+		}
+
+		return m, expected
 	}
 
-	m.Tags["bootstrap"] = "1"
-	m.Tags["disabled"] = "1"
-	m.Tags["ft_ns"] = "1"
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok {
-		t.Fatalf("expected a valid consul server")
-	}
-	if !parts.Bootstrap {
-		t.Fatalf("expected bootstrap")
-	}
-	if parts.Addr.String() != "127.0.0.1:10000" {
-		t.Fatalf("bad addr: %v", parts.Addr)
-	}
-	if parts.Version != 1 {
-		t.Fatalf("bad: %v", parts)
-	}
-	expectedFlags := map[string]int{"ns": 1}
-	require.Equal(t, expectedFlags, parts.FeatureFlags)
+	run := func(t *testing.T, variant string, expectOK bool) {
+		m, expected := newCase(variant)
+		ok, parts := metadata.IsConsulServer(m)
 
-	m.Tags["expect"] = "3"
-	delete(m.Tags, "bootstrap")
-	delete(m.Tags, "disabled")
-	ok, parts = metadata.IsConsulServer(m)
-	if !ok || parts.Expect != 3 {
-		t.Fatalf("bad: %v", parts.Expect)
-	}
-	if parts.Bootstrap {
-		t.Fatalf("unexpected bootstrap")
+		if expectOK {
+			require.True(t, ok, "expected a valid consul server")
+			require.Equal(t, expected, parts)
+		} else {
+			ok, _ := metadata.IsConsulServer(m)
+			require.False(t, ok, "expected to not be a consul server")
+		}
 	}
 
-	delete(m.Tags, "role")
-	ok, _ = metadata.IsConsulServer(m)
-	require.False(t, ok, "expected to not be a consul server")
+	cases := map[string]bool{
+		"normal":             true,
+		"read-replica":       true,
+		"non-voter":          true,
+		"expect-3":           true,
+		"bootstrapped":       true,
+		"optionals":          true,
+		"feature-namespaces": true,
+		//
+		"no-role":            false,
+		"bad-grpc-port":      false,
+		"negative-grpc-port": false,
+		"zero-grpc-port":     false,
+	}
+
+	for variant, expectOK := range cases {
+		t.Run(variant, func(t *testing.T) {
+			run(t, variant, expectOK)
+		})
+	}
 }
