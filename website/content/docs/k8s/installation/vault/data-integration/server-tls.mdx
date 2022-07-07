@@ -8,7 +8,7 @@ description: >-
 # Vault as the Server TLS Certificate Provider on Kubernetes
 
 ## Overview
-To use an Vault as the Server TLS Certificate Provider on Kubernetes, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+To use Vault as the server TLS certificate provider on Kubernetes, complete a modified version of the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section.
 
 Complete the following steps once:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
@@ -170,8 +170,8 @@ this is required for the Consul components to communicate with the Consul server
 
 ## Update Consul on Kubernetes Helm chart
 
-Now that we've configured Vault, you can configure the Consul Helm chart to
-use the Server TLS certificates from Vault:
+Next, configure the Consul Helm chart to
+use the server TLS certificates from Vault:
 
 <CodeBlockConfig filename="values.yaml">
 
