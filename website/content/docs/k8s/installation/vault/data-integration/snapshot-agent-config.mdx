@@ -9,7 +9,7 @@ description: >-
 
 This topic describes how to configure the Consul Helm chart to use a snapshot agent config stored in Vault.
 ## Overview
-To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
+To use an ACL replication token stored in Vault, follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section.
 
 Complete the following steps once:
   1. Store the secret in Vault.
@@ -76,7 +76,7 @@ $ helm template --release-name ${RELEASE_NAME} -s templates/client-snapshot-agen
 ## Update Consul on Kubernetes Helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
-use the snapshot agent config in Vault:
+use the snapshot agent configuration in Vault:
 
 <CodeBlockConfig filename="values.yaml">
 
