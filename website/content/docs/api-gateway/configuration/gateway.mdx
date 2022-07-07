@@ -156,7 +156,7 @@ Allowed values `TCP`, `HTTP`, `HTTPS`
 ### listeners.tls.certificateRefs
 `CertificateRefs` contains a series of references to Kubernetes objects that contains TLS certificates and private keys. These certificates are used to establish a TLS handshake for requests that match the hostname of the associated `listener`. Each reference must be a Kubernetes Secret, and, if using a Secret in a namespace other than the`Gateway`'s, must have a corresponding `ReferencePolicy` created.
 * Type: Object or Array
-* Required: required if tls is set
+* Required: required if `tls` is set
 
 ### listeners.tls.mode
 * Type: String
