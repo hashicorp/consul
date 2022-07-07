@@ -1,5 +1,14 @@
 peer:
   search-bar:
+    state:
+      name: Status
+      options:
+        pending: Pending
+        establishing: Establishing
+        active: Active
+        failing: Failing
+        terminated: Terminated
+        deleting: Deleting
     sort:
       state:
         name: Status
