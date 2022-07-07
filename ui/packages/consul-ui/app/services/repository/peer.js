@@ -70,4 +70,30 @@ export default class PeerService extends RepositoryService {
         };
     });
   }
+
+  async remove(item, request) {
+    // soft delete
+    // we just return the item we want to delete
+    // but mark it as DELETING ourselves as the request is successfull
+    // and we don't have blocking queries here to get immediate updates
+    return (await request`
+      DELETE /v1/peering/${item.Name}
+    `)((headers, body, cache) => {
+        const partition = item.Partition;
+        const ns = item.Namespace;
+        const dc = item.Datacenter;
+        return {
+          meta: {
+            version: 2,
+          },
+          body: cache(
+            {
+              ...item,
+              State: 'DELETING'
+            },
+            uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          )
+        };
+    });
+  }
 }
