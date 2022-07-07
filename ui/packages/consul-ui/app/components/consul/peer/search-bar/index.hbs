@@ -78,6 +78,8 @@ as |key value|}}
             {{#let (from-entries (array
                   (array "Name:asc" (t "common.sort.alpha.asc"))
                   (array "Name:desc" (t "common.sort.alpha.desc"))
+                  (array "State:asc" (t "components.consul.peer.search-bar.sort.state.asc"))
+                  (array "State:desc" (t "components.consul.peer.search-bar.sort.state.desc"))
                 ))
               as |selectable|
             }}
@@ -87,6 +89,10 @@ as |key value|}}
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Optgroup @label={{t "components.consul.peer.search-bar.sort.state.name"}}>
+            <Option @value="State:asc" @selected={{eq "State:asc" @sort.value}}>{{t "components.consul.peer.search-bar.sort.state.asc"}}</Option>
+            <Option @value="State:desc" @selected={{eq "State:desc" @sort.value}}>{{t "components.consul.peer.search-bar.sort.state.desc"}}</Option>
+          </Optgroup>
           <Optgroup @label={{t "common.consul.name"}}>
             <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
             <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>

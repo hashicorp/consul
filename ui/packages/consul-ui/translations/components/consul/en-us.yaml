@@ -1,3 +1,10 @@
+peer:
+  search-bar:
+    sort:
+      state:
+        name: Status
+        asc: Pending to Deleting
+        desc: Deleting to Pending
 service:
   search-bar:
     kind: Service Type
