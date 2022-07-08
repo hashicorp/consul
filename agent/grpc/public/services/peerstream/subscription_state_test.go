@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"context"

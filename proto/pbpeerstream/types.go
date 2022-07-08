@@ -1,4 +1,4 @@
-package pbpeering
+package pbpeerstream
 
 const (
 	TypeURLService = "type.googleapis.com/consul.api.Service"

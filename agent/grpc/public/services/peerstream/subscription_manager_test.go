@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"context"
@@ -35,7 +35,9 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
-	}, connect.TestTrustDomain, backend)
+	}, connect.TestTrustDomain, backend, func() StateStore {
+		return backend.store
+	})
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	var (
@@ -479,7 +481,9 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
-	}, connect.TestTrustDomain, backend)
+	}, connect.TestTrustDomain, backend, func() StateStore {
+		return backend.store
+	})
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	// Register two services that are not yet exported
@@ -606,7 +610,9 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
-	}, connect.TestTrustDomain, backend)
+	}, connect.TestTrustDomain, backend, func() StateStore {
+		return backend.store
+	})
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	testutil.RunStep(t, "initial events contain trust bundle", func(t *testing.T) {
@@ -680,10 +686,6 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	backend.ensureService(t, "placeholder", placeholder.Service)
 
 	return backend
-}
-
-func (b *testSubscriptionBackend) Store() Store {
-	return b.store
 }
 
 func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {

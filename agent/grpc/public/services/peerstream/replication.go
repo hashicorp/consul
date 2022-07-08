@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -15,8 +14,10 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbstatus"
+	"github.com/hashicorp/consul/types"
 )
 
 /*
@@ -37,7 +38,7 @@ import (
 func makeServiceResponse(
 	logger hclog.Logger,
 	update cache.UpdateEvent,
-) *pbpeering.ReplicationMessage {
+) *pbpeerstream.ReplicationMessage {
 	any, csn, err := marshalToProtoAny[*pbservice.IndexedCheckServiceNodes](update.Result)
 	if err != nil {
 		// Log the error and skip this response to avoid locking up peering due to a bad update event.
@@ -55,14 +56,14 @@ func makeServiceResponse(
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
 	if len(csn.Nodes) == 0 {
-		resp := &pbpeering.ReplicationMessage{
-			Payload: &pbpeering.ReplicationMessage_Response_{
-				Response: &pbpeering.ReplicationMessage_Response{
-					ResourceURL: pbpeering.TypeURLService,
+		resp := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Response_{
+				Response: &pbpeerstream.ReplicationMessage_Response{
+					ResourceURL: pbpeerstream.TypeURLService,
 					// TODO(peering): Nonce management
 					Nonce:      "",
 					ResourceID: serviceName,
-					Operation:  pbpeering.ReplicationMessage_Response_DELETE,
+					Operation:  pbpeerstream.Operation_OPERATION_DELETE,
 				},
 			},
 		}
@@ -70,14 +71,14 @@ func makeServiceResponse(
 	}
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
-	resp := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_Response_{
-			Response: &pbpeering.ReplicationMessage_Response{
-				ResourceURL: pbpeering.TypeURLService,
+	resp := &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Response_{
+			Response: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLService,
 				// TODO(peering): Nonce management
 				Nonce:      "",
 				ResourceID: serviceName,
-				Operation:  pbpeering.ReplicationMessage_Response_UPSERT,
+				Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
 				Resource:   any,
 			},
 		},
@@ -88,7 +89,7 @@ func makeServiceResponse(
 func makeCARootsResponse(
 	logger hclog.Logger,
 	update cache.UpdateEvent,
-) *pbpeering.ReplicationMessage {
+) *pbpeerstream.ReplicationMessage {
 	any, _, err := marshalToProtoAny[*pbpeering.PeeringTrustBundle](update.Result)
 	if err != nil {
 		// Log the error and skip this response to avoid locking up peering due to a bad update event.
@@ -96,14 +97,14 @@ func makeCARootsResponse(
 		return nil
 	}
 
-	resp := &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_Response_{
-			Response: &pbpeering.ReplicationMessage_Response{
-				ResourceURL: pbpeering.TypeURLRoots,
+	resp := &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Response_{
+			Response: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLRoots,
 				// TODO(peering): Nonce management
 				Nonce:      "",
 				ResourceID: "roots",
-				Operation:  pbpeering.ReplicationMessage_Response_UPSERT,
+				Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
 				Resource:   any,
 			},
 		},
@@ -128,12 +129,12 @@ func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
 	return any, typ, nil
 }
 
-func (s *Service) processResponse(
+func (s *Server) processResponse(
 	peerName string,
 	partition string,
-	resp *pbpeering.ReplicationMessage_Response,
-) (*pbpeering.ReplicationMessage, error) {
-	if !pbpeering.KnownTypeURL(resp.ResourceURL) {
+	resp *pbpeerstream.ReplicationMessage_Response,
+) (*pbpeerstream.ReplicationMessage, error) {
+	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
 		return makeReply(
 			resp.ResourceURL,
@@ -144,7 +145,7 @@ func (s *Service) processResponse(
 	}
 
 	switch resp.Operation {
-	case pbpeering.ReplicationMessage_Response_UPSERT:
+	case pbpeerstream.Operation_OPERATION_UPSERT:
 		if resp.Resource == nil {
 			err := fmt.Errorf("received upsert response with no content")
 			return makeReply(
@@ -166,7 +167,7 @@ func (s *Service) processResponse(
 
 		return makeReply(resp.ResourceURL, resp.Nonce, code.Code_OK, ""), nil
 
-	case pbpeering.ReplicationMessage_Response_DELETE:
+	case pbpeerstream.Operation_OPERATION_DELETE:
 		if err := s.handleDelete(peerName, partition, resp.ResourceURL, resp.ResourceID); err != nil {
 			return makeReply(
 				resp.ResourceURL,
@@ -179,7 +180,7 @@ func (s *Service) processResponse(
 
 	default:
 		var errMsg string
-		if op := pbpeering.ReplicationMessage_Response_Operation_name[int32(resp.Operation)]; op != "" {
+		if op := pbpeerstream.Operation_name[int32(resp.Operation)]; op != "" {
 			errMsg = fmt.Sprintf("unsupported operation: %q", op)
 		} else {
 			errMsg = fmt.Sprintf("unsupported operation: %d", resp.Operation)
@@ -193,7 +194,7 @@ func (s *Service) processResponse(
 	}
 }
 
-func (s *Service) handleUpsert(
+func (s *Server) handleUpsert(
 	peerName string,
 	partition string,
 	resourceURL string,
@@ -201,7 +202,7 @@ func (s *Service) handleUpsert(
 	resource *anypb.Any,
 ) error {
 	switch resourceURL {
-	case pbpeering.TypeURLService:
+	case pbpeerstream.TypeURLService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
 
@@ -212,7 +213,7 @@ func (s *Service) handleUpsert(
 
 		return s.handleUpdateService(peerName, partition, sn, csn)
 
-	case pbpeering.TypeURLRoots:
+	case pbpeerstream.TypeURLRoots:
 		roots := &pbpeering.PeeringTrustBundle{}
 		if err := ptypes.UnmarshalAny(resource, roots); err != nil {
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
@@ -233,14 +234,14 @@ func (s *Service) handleUpsert(
 //	On a DELETE event:
 //		- A reconciliation against nil or empty input pbNodes leads to deleting all stored catalog resources
 //		  associated with the service name.
-func (s *Service) handleUpdateService(
+func (s *Server) handleUpdateService(
 	peerName string,
 	partition string,
 	sn structs.ServiceName,
 	pbNodes *pbservice.IndexedCheckServiceNodes,
 ) error {
 	// Capture instances in the state store for reconciliation later.
-	_, storedInstances, err := s.Backend.Store().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
+	_, storedInstances, err := s.GetStore().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
 	if err != nil {
 		return fmt.Errorf("failed to read imported services: %w", err)
 	}
@@ -256,14 +257,14 @@ func (s *Service) handleUpdateService(
 	for _, nodeSnap := range snap.Nodes {
 		// First register the node
 		req := nodeSnap.Node.ToRegisterRequest()
-		if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+		if err := s.Backend.CatalogRegister(&req); err != nil {
 			return fmt.Errorf("failed to register node: %w", err)
 		}
 
 		// Then register all services on that node
 		for _, svcSnap := range nodeSnap.Services {
 			req.Service = svcSnap.Service
-			if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+			if err := s.Backend.CatalogRegister(&req); err != nil {
 				return fmt.Errorf("failed to register service: %w", err)
 			}
 		}
@@ -278,7 +279,7 @@ func (s *Service) handleUpdateService(
 		}
 
 		req.Checks = chks
-		if err := s.Backend.Apply().CatalogRegister(&req); err != nil {
+		if err := s.Backend.CatalogRegister(&req); err != nil {
 			return fmt.Errorf("failed to register check: %w", err)
 		}
 	}
@@ -315,7 +316,7 @@ func (s *Service) handleUpdateService(
 			// instance is not in the snapshot either, since a service instance can't
 			// exist without a node.
 			// This will also delete all service checks.
-			err := s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
+			err := s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 				Node:           csn.Node.Node,
 				ServiceID:      csn.Service.ID,
 				EnterpriseMeta: csn.Service.EnterpriseMeta,
@@ -335,7 +336,7 @@ func (s *Service) handleUpdateService(
 		// Delete the service instance if not in the snapshot.
 		sid := csn.Service.CompoundServiceID()
 		if _, ok := snap.Nodes[csn.Node.ID].Services[sid]; !ok {
-			err := s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
+			err := s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 				Node:           csn.Node.Node,
 				ServiceID:      csn.Service.ID,
 				EnterpriseMeta: csn.Service.EnterpriseMeta,
@@ -369,7 +370,7 @@ func (s *Service) handleUpdateService(
 				// If the check isn't a node check then it's a service check.
 				// Service checks that were not present can be deleted immediately because
 				// checks for a given service ID will only be attached to a single CheckServiceNode.
-				err := s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
+				err := s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 					Node:           chk.Node,
 					CheckID:        chk.CheckID,
 					EnterpriseMeta: chk.EnterpriseMeta,
@@ -387,7 +388,7 @@ func (s *Service) handleUpdateService(
 	// Delete all deduplicated node checks.
 	for chk := range deletedNodeChecks {
 		nodeMeta := structs.NodeEnterpriseMetaInPartition(sn.PartitionOrDefault())
-		err := s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
+		err := s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 			Node:           chk.node,
 			CheckID:        chk.checkID,
 			EnterpriseMeta: *nodeMeta,
@@ -402,7 +403,7 @@ func (s *Service) handleUpdateService(
 	// Delete any nodes that do not have any other services registered on them.
 	for node := range unusedNodes {
 		nodeMeta := structs.NodeEnterpriseMetaInPartition(sn.PartitionOrDefault())
-		_, ns, err := s.Backend.Store().NodeServices(nil, node, nodeMeta, peerName)
+		_, ns, err := s.GetStore().NodeServices(nil, node, nodeMeta, peerName)
 		if err != nil {
 			return fmt.Errorf("failed to query services on node: %w", err)
 		}
@@ -412,7 +413,7 @@ func (s *Service) handleUpdateService(
 		}
 
 		// All services on the node were deleted, so the node is also cleaned up.
-		err = s.Backend.Apply().CatalogDeregister(&structs.DeregisterRequest{
+		err = s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 			Node:           node,
 			PeerName:       peerName,
 			EnterpriseMeta: *nodeMeta,
@@ -425,7 +426,7 @@ func (s *Service) handleUpdateService(
 	return nil
 }
 
-func (s *Service) handleUpsertRoots(
+func (s *Server) handleUpsertRoots(
 	peerName string,
 	partition string,
 	trustBundle *pbpeering.PeeringTrustBundle,
@@ -437,17 +438,17 @@ func (s *Service) handleUpsertRoots(
 	req := &pbpeering.PeeringTrustBundleWriteRequest{
 		PeeringTrustBundle: trustBundle,
 	}
-	return s.Backend.Apply().PeeringTrustBundleWrite(req)
+	return s.Backend.PeeringTrustBundleWrite(req)
 }
 
-func (s *Service) handleDelete(
+func (s *Server) handleDelete(
 	peerName string,
 	partition string,
 	resourceURL string,
 	resourceID string,
 ) error {
 	switch resourceURL {
-	case pbpeering.TypeURLService:
+	case pbpeerstream.TypeURLService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
 		return s.handleUpdateService(peerName, partition, sn, nil)
@@ -457,7 +458,7 @@ func (s *Service) handleDelete(
 	}
 }
 
-func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbpeering.ReplicationMessage {
+func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbpeerstream.ReplicationMessage {
 	var rpcErr *pbstatus.Status
 	if errCode != code.Code_OK || errMsg != "" {
 		rpcErr = &pbstatus.Status{
@@ -467,9 +468,9 @@ func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbp
 	}
 
 	// TODO: shouldn't this be response?
-	return &pbpeering.ReplicationMessage{
-		Payload: &pbpeering.ReplicationMessage_Request_{
-			Request: &pbpeering.ReplicationMessage_Request{
+	return &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Request_{
+			Request: &pbpeerstream.ReplicationMessage_Request{
 				ResourceURL: resourceURL,
 				Nonce:       nonce,
 				Error:       rpcErr,
