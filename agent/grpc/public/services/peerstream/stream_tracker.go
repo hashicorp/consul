@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"fmt"
@@ -6,86 +6,94 @@ import (
 	"time"
 )
 
-// streamTracker contains a map of (PeerID -> StreamStatus).
+// Tracker contains a map of (PeerID -> Status).
 // As streams are opened and closed we track details about their status.
-type streamTracker struct {
+type Tracker struct {
 	mu      sync.RWMutex
-	streams map[string]*lockableStreamStatus
+	streams map[string]*MutableStatus
 
 	// timeNow is a shim for testing.
 	timeNow func() time.Time
 }
 
-func newStreamTracker() *streamTracker {
-	return &streamTracker{
-		streams: make(map[string]*lockableStreamStatus),
+func NewTracker() *Tracker {
+	return &Tracker{
+		streams: make(map[string]*MutableStatus),
 		timeNow: time.Now,
 	}
 }
 
-// connected registers a stream for a given peer, and marks it as connected.
+func (t *Tracker) SetClock(clock func() time.Time) {
+	if clock == nil {
+		t.timeNow = time.Now
+	} else {
+		t.timeNow = clock
+	}
+}
+
+// Connected registers a stream for a given peer, and marks it as connected.
 // It also enforces that there is only one active stream for a peer.
-func (t *streamTracker) connected(id string) (*lockableStreamStatus, error) {
+func (t *Tracker) Connected(id string) (*MutableStatus, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	status, ok := t.streams[id]
 	if !ok {
-		status = newLockableStreamStatus(t.timeNow)
+		status = newMutableStatus(t.timeNow)
 		t.streams[id] = status
 		return status, nil
 	}
 
-	if status.connected() {
+	if status.IsConnected() {
 		return nil, fmt.Errorf("there is an active stream for the given PeerID %q", id)
 	}
-	status.trackConnected()
+	status.TrackConnected()
 
 	return status, nil
 }
 
-// disconnected ensures that if a peer id's stream status is tracked, it is marked as disconnected.
-func (t *streamTracker) disconnected(id string) {
+// Disconnected ensures that if a peer id's stream status is tracked, it is marked as disconnected.
+func (t *Tracker) Disconnected(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if status, ok := t.streams[id]; ok {
-		status.trackDisconnected()
+		status.TrackDisconnected()
 	}
 }
 
-func (t *streamTracker) streamStatus(id string) (resp StreamStatus, found bool) {
+func (t *Tracker) StreamStatus(id string) (resp Status, found bool) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	s, ok := t.streams[id]
 	if !ok {
-		return StreamStatus{}, false
+		return Status{}, false
 	}
-	return s.status(), true
+	return s.GetStatus(), true
 }
 
-func (t *streamTracker) connectedStreams() map[string]chan struct{} {
+func (t *Tracker) ConnectedStreams() map[string]chan struct{} {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	resp := make(map[string]chan struct{})
 	for peer, status := range t.streams {
-		if status.connected() {
+		if status.IsConnected() {
 			resp[peer] = status.doneCh
 		}
 	}
 	return resp
 }
 
-func (t *streamTracker) deleteStatus(id string) {
+func (t *Tracker) DeleteStatus(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	delete(t.streams, id)
 }
 
-type lockableStreamStatus struct {
+type MutableStatus struct {
 	mu sync.RWMutex
 
 	// timeNow is a shim for testing.
@@ -95,12 +103,12 @@ type lockableStreamStatus struct {
 	// to the peer before the stream's context is cancelled.
 	doneCh chan struct{}
 
-	StreamStatus
+	Status
 }
 
-// StreamStatus contains information about the replication stream to a peer cluster.
+// Status contains information about the replication stream to a peer cluster.
 // TODO(peering): There's a lot of fields here...
-type StreamStatus struct {
+type Status struct {
 	// Connected is true when there is an open stream for the peer.
 	Connected bool
 
@@ -136,9 +144,9 @@ type StreamStatus struct {
 	LastReceiveErrorMessage string
 }
 
-func newLockableStreamStatus(now func() time.Time) *lockableStreamStatus {
-	return &lockableStreamStatus{
-		StreamStatus: StreamStatus{
+func newMutableStatus(now func() time.Time) *MutableStatus {
+	return &MutableStatus{
+		Status: Status{
 			Connected: true,
 		},
 		timeNow: now,
@@ -146,54 +154,58 @@ func newLockableStreamStatus(now func() time.Time) *lockableStreamStatus {
 	}
 }
 
-func (s *lockableStreamStatus) trackAck() {
+func (s *MutableStatus) Done() <-chan struct{} {
+	return s.doneCh
+}
+
+func (s *MutableStatus) TrackAck() {
 	s.mu.Lock()
 	s.LastAck = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackSendError(error string) {
+func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
 	s.LastSendError = s.timeNow().UTC()
 	s.LastSendErrorMessage = error
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackReceiveSuccess() {
+func (s *MutableStatus) TrackReceiveSuccess() {
 	s.mu.Lock()
 	s.LastReceiveSuccess = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackReceiveError(error string) {
+func (s *MutableStatus) TrackReceiveError(error string) {
 	s.mu.Lock()
 	s.LastReceiveError = s.timeNow().UTC()
 	s.LastReceiveErrorMessage = error
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackNack(msg string) {
+func (s *MutableStatus) TrackNack(msg string) {
 	s.mu.Lock()
 	s.LastNack = s.timeNow().UTC()
 	s.LastNackMessage = msg
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackConnected() {
+func (s *MutableStatus) TrackConnected() {
 	s.mu.Lock()
 	s.Connected = true
 	s.DisconnectTime = time.Time{}
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) trackDisconnected() {
+func (s *MutableStatus) TrackDisconnected() {
 	s.mu.Lock()
 	s.Connected = false
 	s.DisconnectTime = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
-func (s *lockableStreamStatus) connected() bool {
+func (s *MutableStatus) IsConnected() bool {
 	var resp bool
 
 	s.mu.RLock()
@@ -203,9 +215,9 @@ func (s *lockableStreamStatus) connected() bool {
 	return resp
 }
 
-func (s *lockableStreamStatus) status() StreamStatus {
+func (s *MutableStatus) GetStatus() Status {
 	s.mu.RLock()
-	copy := s.StreamStatus
+	copy := s.Status
 	s.mu.RUnlock()
 
 	return copy

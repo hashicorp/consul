@@ -51,6 +51,7 @@ type TestPortConfig struct {
 	SerfLan      int `json:"serf_lan,omitempty"`
 	SerfWan      int `json:"serf_wan,omitempty"`
 	Server       int `json:"server,omitempty"`
+	GRPC         int `json:"grpc,omitempty"`
 	ProxyMinPort int `json:"proxy_min_port,omitempty"`
 	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
@@ -150,7 +151,7 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		panic(err)
 	}
 
-	ports, err := freeport.Take(6)
+	ports, err := freeport.Take(7)
 	if err != nil {
 		t.Fatalf("failed to take ports: %v", err)
 	}
@@ -176,6 +177,7 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 			SerfLan: ports[3],
 			SerfWan: ports[4],
 			Server:  ports[5],
+			GRPC:    ports[6],
 		},
 		ReadyTimeout:   10 * time.Second,
 		StopTimeout:    10 * time.Second,
@@ -226,6 +228,7 @@ type TestServer struct {
 	HTTPSAddr string
 	LANAddr   string
 	WANAddr   string
+	GRPCAddr  string
 
 	HTTPClient *http.Client
 
@@ -306,6 +309,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
 		LANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
 		WANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		GRPCAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
 
 		HTTPClient: client,
 

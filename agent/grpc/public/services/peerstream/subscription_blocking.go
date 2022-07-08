@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 func (m *subscriptionManager) notifyExportedServicesForPeerID(ctx context.Context, state *subscriptionState, peerID string) {
 	// syncSubscriptionsAndBlock ensures that the subscriptions to the subscription backend
 	// match the list of services exported to the peer.
-	m.syncViaBlockingQuery(ctx, "exported-services", func(ctx context.Context, store Store, ws memdb.WatchSet) (interface{}, error) {
+	m.syncViaBlockingQuery(ctx, "exported-services", func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		// Get exported services for peer id
 		_, list, err := store.ExportedServicesForPeer(ws, peerID, m.config.Datacenter)
 		if err != nil {
@@ -34,7 +34,7 @@ func (m *subscriptionManager) notifyExportedServicesForPeerID(ctx context.Contex
 
 // TODO: add a new streaming subscription type to list-by-kind-and-partition since we're getting evictions
 func (m *subscriptionManager) notifyMeshGatewaysForPartition(ctx context.Context, state *subscriptionState, partition string) {
-	m.syncViaBlockingQuery(ctx, "mesh-gateways", func(ctx context.Context, store Store, ws memdb.WatchSet) (interface{}, error) {
+	m.syncViaBlockingQuery(ctx, "mesh-gateways", func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		// Fetch our current list of all mesh gateways.
 		entMeta := structs.DefaultEnterpriseMetaInPartition(partition)
 		idx, nodes, err := store.ServiceDump(ws, structs.ServiceKindMeshGateway, true, entMeta, structs.DefaultPeerKeyword)
@@ -61,7 +61,7 @@ func (m *subscriptionManager) notifyMeshGatewaysForPartition(ctx context.Context
 func (m *subscriptionManager) syncViaBlockingQuery(
 	ctx context.Context,
 	queryType string,
-	queryFn func(ctx context.Context, store Store, ws memdb.WatchSet) (interface{}, error),
+	queryFn func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error),
 	correlationID string,
 	updateCh chan<- cache.UpdateEvent,
 ) {
@@ -77,7 +77,7 @@ func (m *subscriptionManager) syncViaBlockingQuery(
 		logger = m.logger.With("queryType", queryType)
 	}
 
-	store := m.backend.Store()
+	store := m.getStore()
 
 	for {
 		ws := memdb.NewWatchSet()

@@ -14,15 +14,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -36,8 +35,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1999,7 +1996,7 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	// the actual tests
 	// when leadership has been established s2 should have the address of s1
 	// in the peering service
-	peeringLeaderAddr := s2.peeringService.Backend.LeaderAddress().Get()
+	peeringLeaderAddr := s2.peeringBackend.GetLeaderAddress()
 
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
 	// test corollary by transitivity to future-proof against any setup bugs

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -28,8 +29,6 @@ import (
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -44,6 +43,7 @@ import (
 	aclgrpc "github.com/hashicorp/consul/agent/grpc/public/services/acl"
 	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
+	"github.com/hashicorp/consul/agent/grpc/public/services/peerstream"
 	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -55,7 +55,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -364,8 +363,13 @@ type Server struct {
 	// this into the Deps struct and created it much earlier on.
 	publisher *stream.EventPublisher
 
-	// peering is a service used to handle peering streams.
-	peeringService *peering.Service
+	// peeringBackend is shared between the public and private gRPC services for peering
+	peeringBackend *PeeringBackend
+
+	// peerStreamServer is a server used to handle peering streams
+	peerStreamServer  *peerstream.Server
+	peeringServer     *peering.Server
+	peerStreamTracker *peerstream.Tracker
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -717,6 +721,19 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 
+	s.peerStreamTracker = peerstream.NewTracker()
+	s.peeringBackend = NewPeeringBackend(s)
+	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
+		Backend:        s.peeringBackend,
+		Tracker:        s.peerStreamTracker,
+		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
+		Logger:         logger.Named("grpc-api.peerstream"),
+		ACLResolver:    s.ACLResolver,
+		Datacenter:     s.config.Datacenter,
+		ConnectEnabled: s.config.ConnectEnabled,
+	})
+	s.peerStreamServer.Register(s.publicGRPCServer)
+
 	// Initialize private gRPC server.
 	//
 	// Note: some "public" gRPC services are also exposed on the private gRPC server
@@ -757,15 +774,25 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
-	p := peering.NewService(
-		deps.Logger.Named("grpc-api.peering"),
-		peering.Config{
-			Datacenter:     config.Datacenter,
-			ConnectEnabled: config.ConnectEnabled,
+	if s.peeringBackend == nil {
+		panic("peeringBackend is required during construction")
+	}
+
+	p := peering.NewServer(peering.Config{
+		Backend: s.peeringBackend,
+		Tracker: s.peerStreamTracker,
+		Logger:  deps.Logger.Named("grpc-api.peering"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
-		NewPeeringBackend(s, deps.GRPCConnPool),
-	)
-	s.peeringService = p
+		Datacenter:     config.Datacenter,
+		ConnectEnabled: config.ConnectEnabled,
+	})
+	s.peeringServer = p
 
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
@@ -773,7 +800,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
 				deps.Logger.Named("grpc-api.subscription")))
 		}
-		pbpeering.RegisterPeeringServiceServer(srv, s.peeringService)
+		s.peeringServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: these public gRPC services are also exposed on the private server to
@@ -1658,7 +1685,7 @@ func (s *Server) trackLeaderChanges() {
 			}
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
-			s.peeringService.Backend.LeaderAddress().Set(string(leaderObs.LeaderAddr))
+			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

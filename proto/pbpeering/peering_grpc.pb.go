@@ -33,12 +33,6 @@ type PeeringServiceClient interface {
 	// TODO(peering): Rename this to PeeredServiceRoots? or something like that?
 	TrustBundleListByService(ctx context.Context, in *TrustBundleListByServiceRequest, opts ...grpc.CallOption) (*TrustBundleListByServiceResponse, error)
 	TrustBundleRead(ctx context.Context, in *TrustBundleReadRequest, opts ...grpc.CallOption) (*TrustBundleReadResponse, error)
-	// StreamResources opens an event stream for resources to share between peers, such as services.
-	// Events are streamed as they happen.
-	// buf:lint:ignore RPC_REQUEST_STANDARD_NAME
-	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	StreamResources(ctx context.Context, opts ...grpc.CallOption) (PeeringService_StreamResourcesClient, error)
 }
 
 type peeringServiceClient struct {
@@ -121,37 +115,6 @@ func (c *peeringServiceClient) TrustBundleRead(ctx context.Context, in *TrustBun
 	return out, nil
 }
 
-func (c *peeringServiceClient) StreamResources(ctx context.Context, opts ...grpc.CallOption) (PeeringService_StreamResourcesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &PeeringService_ServiceDesc.Streams[0], "/peering.PeeringService/StreamResources", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &peeringServiceStreamResourcesClient{stream}
-	return x, nil
-}
-
-type PeeringService_StreamResourcesClient interface {
-	Send(*ReplicationMessage) error
-	Recv() (*ReplicationMessage, error)
-	grpc.ClientStream
-}
-
-type peeringServiceStreamResourcesClient struct {
-	grpc.ClientStream
-}
-
-func (x *peeringServiceStreamResourcesClient) Send(m *ReplicationMessage) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *peeringServiceStreamResourcesClient) Recv() (*ReplicationMessage, error) {
-	m := new(ReplicationMessage)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // PeeringServiceServer is the server API for PeeringService service.
 // All implementations should embed UnimplementedPeeringServiceServer
 // for forward compatibility
@@ -167,12 +130,6 @@ type PeeringServiceServer interface {
 	// TODO(peering): Rename this to PeeredServiceRoots? or something like that?
 	TrustBundleListByService(context.Context, *TrustBundleListByServiceRequest) (*TrustBundleListByServiceResponse, error)
 	TrustBundleRead(context.Context, *TrustBundleReadRequest) (*TrustBundleReadResponse, error)
-	// StreamResources opens an event stream for resources to share between peers, such as services.
-	// Events are streamed as they happen.
-	// buf:lint:ignore RPC_REQUEST_STANDARD_NAME
-	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-	StreamResources(PeeringService_StreamResourcesServer) error
 }
 
 // UnimplementedPeeringServiceServer should be embedded to have forward compatible implementations.
@@ -202,9 +159,6 @@ func (UnimplementedPeeringServiceServer) TrustBundleListByService(context.Contex
 }
 func (UnimplementedPeeringServiceServer) TrustBundleRead(context.Context, *TrustBundleReadRequest) (*TrustBundleReadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TrustBundleRead not implemented")
-}
-func (UnimplementedPeeringServiceServer) StreamResources(PeeringService_StreamResourcesServer) error {
-	return status.Errorf(codes.Unimplemented, "method StreamResources not implemented")
 }
 
 // UnsafePeeringServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -362,32 +316,6 @@ func _PeeringService_TrustBundleRead_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PeeringService_StreamResources_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(PeeringServiceServer).StreamResources(&peeringServiceStreamResourcesServer{stream})
-}
-
-type PeeringService_StreamResourcesServer interface {
-	Send(*ReplicationMessage) error
-	Recv() (*ReplicationMessage, error)
-	grpc.ServerStream
-}
-
-type peeringServiceStreamResourcesServer struct {
-	grpc.ServerStream
-}
-
-func (x *peeringServiceStreamResourcesServer) Send(m *ReplicationMessage) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *peeringServiceStreamResourcesServer) Recv() (*ReplicationMessage, error) {
-	m := new(ReplicationMessage)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // PeeringService_ServiceDesc is the grpc.ServiceDesc for PeeringService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -428,13 +356,6 @@ var PeeringService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PeeringService_TrustBundleRead_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StreamResources",
-			Handler:       _PeeringService_StreamResources_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/pbpeering/peering.proto",
 }

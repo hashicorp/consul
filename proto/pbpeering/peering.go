@@ -91,10 +91,6 @@ func (p *Peering) ShouldDial() bool {
 	return len(p.PeerServerAddresses) > 0
 }
 
-func (x ReplicationMessage_Response_Operation) GoString() string {
-	return x.String()
-}
-
 func (x PeeringState) GoString() string {
 	return x.String()
 }
