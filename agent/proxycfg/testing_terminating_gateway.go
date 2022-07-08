@@ -633,6 +633,125 @@ func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
 	})
 }
 
+func TestConfigSnapshotTerminatingGatewayHTTP2(t testing.T) *ConfigSnapshot {
+	web := structs.NewServiceName("web", nil)
+
+	return TestConfigSnapshotTerminatingGateway(t, false, nil, []UpdateEvent{
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service:  web,
+						CAFile:   "ca.cert.pem",
+						Protocol: "http2",
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: serviceConfigIDPrefix + web.String(),
+			Result: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{"protocol": "http2"},
+			},
+		},
+		{
+			CorrelationID: externalServiceIDPrefix + web.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: []structs.CheckServiceNode{
+					{
+						Node: &structs.Node{
+							ID:         "external",
+							Node:       "external",
+							Address:    "web.external.service",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "web",
+							Port:    9090,
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestConfigSnapshotTerminatingGatewaySubsetsHTTP2(t testing.T) *ConfigSnapshot {
+	web := structs.NewServiceName("web", nil)
+
+	return TestConfigSnapshotTerminatingGateway(t, false, nil, []UpdateEvent{
+		{
+			CorrelationID: serviceResolverIDPrefix + web.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": {
+							Filter: "Service.Meta.version == 1",
+						},
+						"v2": {
+							Filter: "Service.Meta.version == 2",
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: gatewayServicesWatchID,
+			Result: &structs.IndexedGatewayServices{
+				Services: []*structs.GatewayService{
+					{
+						Service:  web,
+						CAFile:   "ca.cert.pem",
+						Protocol: "http2",
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: serviceConfigIDPrefix + web.String(),
+			Result: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{"protocol": "http2"},
+			},
+		},
+		{
+			CorrelationID: externalServiceIDPrefix + web.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: []structs.CheckServiceNode{
+					{
+						Node: &structs.Node{
+							ID:         "external",
+							Node:       "external",
+							Address:    "web.external.service",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "web",
+							Port:    9090,
+							Meta:    map[string]string{"version": "1"},
+						},
+					},
+					{
+						Node: &structs.Node{
+							ID:         "external2",
+							Node:       "external2",
+							Address:    "web.external2.service",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "web",
+							Port:    9091,
+							Meta:    map[string]string{"version": "2"},
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestConfigSnapshotTerminatingGatewayHostnameSubsets(t testing.T) *ConfigSnapshot {
 	var (
 		api   = structs.NewServiceName("api", nil)

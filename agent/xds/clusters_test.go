@@ -590,6 +590,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySNI,
 		},
 		{
+			name:   "terminating-gateway-http2-upstream",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2,
+		},
+		{
+			name:   "terminating-gateway-http2-upstream-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2,
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
 		},

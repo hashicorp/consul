@@ -425,6 +425,14 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 		}
 		clusters = append(clusters, cluster)
 
+		gatewaySvc, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]
+		isHTTP2 := ok && gatewaySvc.Protocol == "http2"
+		if isHTTP2 {
+			if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+				return nil, err
+			}
+		}
+
 		// If there is a service-resolver for this service then also setup a cluster for each subset
 		for name, subset := range resolver.Subsets {
 			subsetHostnameEndpoints, err := s.filterSubsetEndpoints(&subset, hostnameEndpoints)
@@ -443,6 +451,11 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 
 			if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
 				return nil, err
+			}
+			if isHTTP2 {
+				if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+					return nil, err
+				}
 			}
 			clusters = append(clusters, cluster)
 		}
