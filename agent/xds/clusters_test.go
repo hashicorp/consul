@@ -585,6 +585,90 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "terminating-gateway-http2-upstream",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				web := structs.NewServiceName("web", nil)
+				snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
+					web: {
+						ProxyConfig: map[string]interface{}{"protocol": "http"},
+					},
+				}
+				snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+					web: {
+						Service: web,
+						CAFile:  "ca.cert.pem",
+					},
+				}
+				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: {
+						{
+							Node: &structs.Node{
+								ID:         "external",
+								Node:       "external",
+								Address:    "web.external.service",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "web",
+								Port:    9090,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-http2-upstream-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				web := structs.NewServiceName("web", nil)
+
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					web: {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": {
+								Filter: "Service.Meta.Version == 2",
+							},
+						},
+					},
+				}
+				snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
+					web: {
+						ProxyConfig: map[string]interface{}{"protocol": "http"},
+					},
+				}
+				snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+					web: {
+						Service: web,
+						CAFile:  "ca.cert.pem",
+					},
+				}
+				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: {
+						{
+							Node: &structs.Node{
+								ID:         "external",
+								Node:       "external",
+								Address:    "web.external.service",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "web",
+								Port:    9090,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
