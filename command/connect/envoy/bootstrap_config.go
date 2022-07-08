@@ -653,9 +653,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 								}
 							],
 							"validationContextSdsSecretConfig": {
-								"trustedCa": {
-									"name": "prometheus_validation_context"
-								}
+								"name": "prometheus_validation_context"
 							}
 						}
 					}
