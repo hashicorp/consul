@@ -536,7 +536,7 @@ function suite_setup {
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
     # TODO -Line below commented for testing
-    # docker build -t bats-verify -f Dockerfile-bats-windows .
+    docker build -t bats-verify -f Dockerfile-bats-windows .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
     # the machine image to the latest version using this listing:
