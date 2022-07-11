@@ -29,6 +29,10 @@ module.exports = function(environment, $ = process.env) {
       disableRedirectInitializer: false,
     },
 
+    features: {
+      peering: env('CONSUL_PEERS_ENABLED', false),
+    },
+
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -110,10 +114,6 @@ module.exports = function(environment, $ = process.env) {
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
-        features: {
-          peering: true,
-        },
-
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
@@ -134,14 +134,15 @@ module.exports = function(environment, $ = process.env) {
           autoboot: false,
         }),
       });
+
+      // peers are on by default in tests
+      ENV.features.peering = env('CONSUL_PEERS_ENABLED', true);
+
       break;
     case environment === 'development':
       ENV = Object.assign({}, ENV, {
         torii: {
           disableRedirectInitializer: true,
-        },
-        features: {
-          peering: true,
         },
       });
       break;
