@@ -50,6 +50,8 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultNodeWrite", prefix: "foo", check: checkDefaultNodeWrite},
 				{name: "DefaultMeshRead", prefix: "foo", check: checkDefaultMeshRead},
 				{name: "DefaultMeshWrite", prefix: "foo", check: checkDefaultMeshWrite},
+				{name: "DefaultPeeringRead", prefix: "foo", check: checkDefaultPeeringRead},
+				{name: "DefaultPeeringWrite", prefix: "foo", check: checkDefaultPeeringWrite},
 				{name: "DefaultOperatorRead", prefix: "foo", check: checkDefaultOperatorRead},
 				{name: "DefaultOperatorWrite", prefix: "foo", check: checkDefaultOperatorWrite},
 				{name: "DefaultPreparedQueryRead", prefix: "foo", check: checkDefaultPreparedQueryRead},
