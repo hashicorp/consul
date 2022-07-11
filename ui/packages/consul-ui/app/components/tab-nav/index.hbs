@@ -32,7 +32,7 @@ as |select name|}}
     <Action
       {{on 'click'
         (if (not-eq @onclick undefined)
-          (fn @onclick (uppercase item.label))
+          (fn @onclick (or item.state (uppercase item.label)))
           (noop)
         )
       }}

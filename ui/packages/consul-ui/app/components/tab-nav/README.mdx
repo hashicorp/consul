@@ -11,7 +11,9 @@ Each item in the list should be a hash of `label`, `href` and `selected`.
 - `label`: The text to show
 - `href`: a href, probably generated via `href-to`
 - `selected`: whether the item is in the selected state or not, probably
-  generated via `is-href`
+- `state`: when used with an @onclick using `StateMachine.dispatch`, the name
+  of the state to transition to.
+
 
 **Please note:** This component should probably be rebuilt using contextual
 components, alternatively this could be hand built with native HTML using the
@@ -33,6 +35,31 @@ components)
           (hash label="Metadata" href="#" selected=false)
       )
 }}/>
+</figure>
+```
+
+A TabNav with using a `StateMachine.dispatch`
+
+```hbs
+<figure>
+  <figcaption>A TabNav with using a StateMachine.dispatch</figcaption>
+  <TabNav @items={{
+    compact
+      (array
+        (hash
+          label="1"
+          selected=(state-matches fsm.state 'one')
+          state="ONE"
+        )
+        (hash
+          label="2"
+          selected=(state-matches fsm.state 'two')
+          state="TWO"
+        )
+      )
+    }}
+    @onclick={{fsm.dispatch}}
+  />
 </figure>
 ```
 
