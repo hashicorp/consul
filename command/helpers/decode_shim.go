@@ -1,4 +1,4 @@
-package write
+package helpers
 
 import (
 	"encoding/json"
