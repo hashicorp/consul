@@ -11,12 +11,12 @@ import { inject as service } from '@ember/service';
 // to the node.
 
 export default class NodeAdapter extends Adapter {
-  @service features;
+  @service abilities;
 
   get peeringQuery() {
     const query = {};
 
-    if (this.features.isEnabled('peering')) {
+    if (this.abilities.can('use peers')) {
       query['with-peers'] = true;
     }
 
