@@ -29,10 +29,6 @@ module.exports = function(environment, $ = process.env) {
       disableRedirectInitializer: false,
     },
 
-    features: {
-      peering: env('CONSUL_PEERS_ENABLED', false),
-    },
-
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -86,6 +82,7 @@ module.exports = function(environment, $ = process.env) {
       ACLsEnabled: false,
       NamespacesEnabled: false,
       SSOEnabled: false,
+      PeeringEnabled: env('CONSUL_PEERING_ENABLED', false),
       PartitionsEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
@@ -109,6 +106,8 @@ module.exports = function(environment, $ = process.env) {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', false),
           SSOEnabled: env('CONSUL_SSO_ENABLED', false),
+          // in testing peering feature is on by default
+          PeeringEnabled: env('CONSUL_PEERING_ENABLED', true),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
@@ -134,9 +133,6 @@ module.exports = function(environment, $ = process.env) {
           autoboot: false,
         }),
       });
-
-      // peers are on by default in tests
-      ENV.features.peering = env('CONSUL_PEERS_ENABLED', true);
 
       break;
     case environment === 'development':
