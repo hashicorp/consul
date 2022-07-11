@@ -47,15 +47,13 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 ## Establish a connection between clusters
 
-Next, use the peering token to establish a secure connection between the clusters. In the client agents of "cluster-02," establish the peering connection using the HTTP API. This endpoint does not generate an output unless there is an error.
+Next, use `peering_token.json` to establish a secure connection between the clusters. In the client agents of "cluster-02," establish the peering connection using the HTTP API. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
 ```
 
-In the peer parameter, specify a name for the first cluster. The `PeeringToken` parameter should include the entire peering token created in the first cluster.
-
-When you connect server agents through cluster peering, they will peer their default partitions. To establish peering connections for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
+When you connect server agents through cluster peering, they peer their default partitions. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
 
 ## Export service endpoints
 
@@ -131,7 +129,7 @@ To confirm that you peered your clusters, you can [query the `/health/service` e
 
 ```shell-session
 $ curl \
-    "http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01"
+    "http://127.0.0.1:8500/v1/health/service/<service-name>?peer=cluster-01"
 ```
 
 A successful query will include service information in the output.
