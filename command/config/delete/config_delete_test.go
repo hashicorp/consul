@@ -194,7 +194,7 @@ func TestConfigDelete_InvalidArgs(t *testing.T) {
 		},
 		"kind, name, and filename": {
 			args: []string{"-kind", api.ServiceDefaults, "-name", "db", "-filename", "config-file.hcl"},
-			err:  "Filename and kind,name can't be set together",
+			err:  "filename can't be used with kind or name",
 		},
 	}
 

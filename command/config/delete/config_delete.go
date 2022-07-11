@@ -122,7 +122,7 @@ func (c *cmd) validateArgs() error {
 	}
 
 	if count >= 3 {
-		return errors.New("Filename and kind,name can't be set together")
+		return errors.New("filename can't be used with kind or name")
 	} else if count == 0 {
 		return errors.New("Must specify the -kind or -filename parameter")
 	}
@@ -170,6 +170,6 @@ Usage: consul config delete [options] ([-kind <config kind> -name <config name>]
   Example:
 
     $ consul config delete -kind service-defaults -name web
-    $ consul config delete -file ./intention-allow-config.hcl
+    $ consul config delete -filename service-defaults-web.hcl
 `
 )
