@@ -7,7 +7,7 @@
 {{#let (hash
   data=data
   error=error
-  invalidate=(action "invalidate")
+  invalidate=this.invalidate
   dispatchError=(queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR"))
 ) as |api|}}
 
@@ -25,7 +25,9 @@
               @src={{src}}
               @onchange={{queue (action "change" value="data") (action dispatch "SUCCESS")}}
               @onerror={{api.dispatchError}}
-            />
+            as |source|>
+              {{did-insert (set this 'invalidate' source.invalidate)}}
+            </DataSource>
           {{/if}}
         </State>
       {{/if}}
