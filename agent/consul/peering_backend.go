@@ -70,6 +70,9 @@ func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
 		}
 		addrs = append(addrs, node.Address+":"+grpcPortStr)
 	}
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("grpc port is not configured on any servers")
+	}
 	return addrs, nil
 }
 
