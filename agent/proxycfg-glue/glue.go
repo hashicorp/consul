@@ -21,6 +21,7 @@ import (
 type Store interface {
 	watch.StateStore
 
+	GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.EnterpriseMeta) (uint64, structs.GatewayServices, error)
 	IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error)
 	ServiceDiscoveryChain(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, req discoverychain.CompileRequest) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
@@ -56,12 +57,6 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 // interface by sourcing data from the agent cache.
 func CacheFederationStateListMeshGateways(c *cache.Cache) proxycfg.FederationStateListMeshGateways {
 	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.FederationStateListMeshGatewaysName}
-}
-
-// CacheGatewayServices satisfies the proxycfg.GatewayServices interface by
-// sourcing data from the agent cache.
-func CacheGatewayServices(c *cache.Cache) proxycfg.GatewayServices {
-	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.GatewayServicesName}
 }
 
 // CacheHTTPChecks satisifies the proxycfg.HTTPChecks interface by sourcing
