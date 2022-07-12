@@ -38,7 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
-	publicgrpc "github.com/hashicorp/consul/agent/grpc/public"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -213,9 +213,9 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
+	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port (as
 	// opposed to the multiplexed "server" port).
-	publicGRPCServer *grpc.Server
+	externalGRPCServer *grpc.Server
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -539,7 +539,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to happen after the initial auto-config is loaded, because TLS
 	// can only be configured on the gRPC server at the point of creation.
-	a.buildPublicGRPCServer()
+	a.buildExternalGRPCServer()
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -578,7 +578,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.publicGRPCServer)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -760,13 +760,13 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) buildPublicGRPCServer() {
+func (a *Agent) buildExternalGRPCServer() {
 	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
 	var tls *tlsutil.Configurator
 	if a.config.HTTPSPort > 0 {
 		tls = a.tlsConfigurator
 	}
-	a.publicGRPCServer = publicgrpc.NewServer(a.logger.Named("grpc.public"), tls)
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), tls)
 }
 
 func (a *Agent) listenAndServeGRPC() error {
@@ -803,7 +803,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		},
 		a,
 	)
-	a.xdsServer.Register(a.publicGRPCServer)
+	a.xdsServer.Register(a.externalGRPCServer)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
@@ -816,7 +816,7 @@ func (a *Agent) listenAndServeGRPC() error {
 				"address", innerL.Addr().String(),
 				"network", innerL.Addr().Network(),
 			)
-			err := a.publicGRPCServer.Serve(innerL)
+			err := a.externalGRPCServer.Serve(innerL)
 			if err != nil {
 				a.logger.Error("gRPC server failed", "error", err)
 			}
@@ -1494,7 +1494,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop gRPC
-	a.publicGRPCServer.Stop()
+	a.externalGRPCServer.Stop()
 
 	// Stop the proxy config manager
 	if a.proxyConfig != nil {

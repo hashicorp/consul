@@ -82,19 +82,19 @@ func TestIsConsulServer(t *testing.T) {
 		}
 
 		expected := &metadata.Server{
-			Name:           "foo",
-			ShortName:      "foo",
-			ID:             "asdf",
-			Datacenter:     "east-aws",
-			Segment:        "",
-			Port:           10000,
-			SegmentAddrs:   map[string]string{},
-			SegmentPorts:   map[string]int{},
-			WanJoinPort:    1234,
-			LanJoinPort:    5454,
-			PublicGRPCPort: 9876,
-			Bootstrap:      false,
-			Expect:         3,
+			Name:             "foo",
+			ShortName:        "foo",
+			ID:               "asdf",
+			Datacenter:       "east-aws",
+			Segment:          "",
+			Port:             10000,
+			SegmentAddrs:     map[string]string{},
+			SegmentPorts:     map[string]int{},
+			WanJoinPort:      1234,
+			LanJoinPort:      5454,
+			ExternalGRPCPort: 9876,
+			Bootstrap:        false,
+			Expect:           3,
 			Addr: &net.TCPAddr{
 				IP:   net.IP([]byte{127, 0, 0, 1}),
 				Port: 10000,
@@ -133,7 +133,7 @@ func TestIsConsulServer(t *testing.T) {
 			expected.RaftVersion = 0
 			expected.Expect = 0
 			expected.WanJoinPort = 0
-			expected.PublicGRPCPort = 0
+			expected.ExternalGRPCPort = 0
 		case "feature-namespaces":
 			m.Tags["ft_ns"] = "1"
 			expected.FeatureFlags = map[string]int{"ns": 1}
