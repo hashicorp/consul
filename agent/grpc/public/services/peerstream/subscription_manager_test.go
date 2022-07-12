@@ -289,8 +289,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			Name: "mysql",
 			Failover: map[string]structs.ServiceResolverFailover{
 				"*": {
-					Service:     "failover",
-					Datacenters: []string{"dc2", "dc3"},
+					Service: "failover",
 				},
 			},
 		})
@@ -327,8 +326,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 								},
 								SpiffeID: []string{
 									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
-									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/failover",
-									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc3/svc/failover",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/failover",
 								},
 								Protocol: "tcp",
 							},

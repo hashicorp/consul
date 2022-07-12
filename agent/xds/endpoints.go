@@ -177,7 +177,6 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	keys := cfgSnap.MeshGateway.GatewayKeys()
 	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	endpointsPerRemoteGateway := make(map[string]structs.CheckServiceNodes)
 	for _, key := range keys {
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
 			continue // skip local
@@ -193,8 +192,6 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
 			continue
 		}
-
-		endpointsPerRemoteGateway[key.String()] = endpoints
 
 		{ // standard connect
 			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
@@ -274,7 +271,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	resources = append(resources, e...)
 
 	// Generate the endpoints for exported discovery chain targets.
-	e, err = s.makeExportedUpstreamEndpointsForMeshGateway(cfgSnap, endpointsPerRemoteGateway)
+	e, err = s.makeExportedUpstreamEndpointsForMeshGateway(cfgSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -479,6 +476,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			gatewayEndpoints,
 			targetID,
 			gatewayKey,
+			forMeshGateway,
 		)
 		if !valid {
 			continue // skip the cluster if we're still populating the snapshot
@@ -500,6 +498,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 					gatewayEndpoints,
 					failTargetID,
 					gatewayKey,
+					forMeshGateway,
 				)
 				if !valid {
 					continue // skip the failover target if we're still populating the snapshot
@@ -519,10 +518,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	return resources, nil
 }
 
-func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	endpointsPerRemoteGateway map[string]structs.CheckServiceNodes,
-) ([]proto.Message, error) {
+func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 
 	populatedExportedClusters := make(map[string]struct{}) // key=clusterName
@@ -531,41 +527,38 @@ func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(
 
 		chainEndpoints := make(map[string]structs.CheckServiceNodes)
 		for _, target := range chain.Targets {
-			if cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
-				// served locally
-				targetSvc := target.ServiceName()
+			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
+				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+					"target", target,
+					"gatewayLocality", cfgSnap.Locality,
+				)
+				continue
+			}
 
-				endpoints, ok := cfgSnap.MeshGateway.ServiceGroups[targetSvc]
+			targetSvc := target.ServiceName()
+
+			endpoints, ok := cfgSnap.MeshGateway.ServiceGroups[targetSvc]
+			if !ok {
+				continue // ignore; not ready
+			}
+
+			if target.ServiceSubset == "" {
+				chainEndpoints[target.ID] = endpoints
+			} else {
+				resolver, ok := cfgSnap.MeshGateway.ServiceResolvers[targetSvc]
+				if !ok {
+					continue // ignore; not ready
+				}
+				subset, ok := resolver.Subsets[target.ServiceSubset]
 				if !ok {
 					continue // ignore; not ready
 				}
 
-				if target.ServiceSubset == "" {
-					chainEndpoints[target.ID] = endpoints
-				} else {
-					resolver, ok := cfgSnap.MeshGateway.ServiceResolvers[targetSvc]
-					if !ok {
-						continue // ignore; not ready
-					}
-					subset, ok := resolver.Subsets[target.ServiceSubset]
-					if !ok {
-						continue // ignore; not ready
-					}
-
-					subsetEndpoints, err := s.filterSubsetEndpoints(&subset, endpoints)
-					if err != nil {
-						return nil, err
-					}
-					chainEndpoints[target.ID] = subsetEndpoints
+				subsetEndpoints, err := s.filterSubsetEndpoints(&subset, endpoints)
+				if err != nil {
+					return nil, err
 				}
-			} else {
-				// serve remotely
-				gk := proxycfg.GatewayKey{
-					Datacenter: target.Datacenter,
-					Partition:  target.Partition,
-				}
-				// TODO(peering): handle hostname endpoints logic
-				chainEndpoints[target.ID] = cfgSnap.GetMeshGatewayEndpoints(gk)
+				chainEndpoints[target.ID] = subsetEndpoints
 			}
 		}
 
@@ -575,7 +568,7 @@ func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(
 			cfgSnap.Locality,
 			nil,
 			chainEndpoints,
-			endpointsPerRemoteGateway,
+			nil,
 			true,
 		)
 		if err != nil {
@@ -652,6 +645,7 @@ func makeLoadAssignmentEndpointGroup(
 	gatewayHealth map[string]structs.CheckServiceNodes,
 	targetID string,
 	localKey proxycfg.GatewayKey,
+	forMeshGateway bool,
 ) (loadAssignmentEndpointGroup, bool) {
 	realEndpoints, ok := targetHealth[targetID]
 	if !ok {
@@ -666,12 +660,11 @@ func makeLoadAssignmentEndpointGroup(
 	case structs.MeshGatewayModeRemote:
 		gatewayKey.Datacenter = target.Datacenter
 		gatewayKey.Partition = target.Partition
-
 	case structs.MeshGatewayModeLocal:
 		gatewayKey = localKey
 	}
 
-	if gatewayKey.IsEmpty() || localKey.Matches(target.Datacenter, target.Partition) {
+	if forMeshGateway || gatewayKey.IsEmpty() || localKey.Matches(target.Datacenter, target.Partition) {
 		// Gateways are not needed if the request isn't for a remote DC or partition.
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,

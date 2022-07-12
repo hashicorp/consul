@@ -36,7 +36,7 @@
                 "prefix": "/api"
               },
               "route": {
-                "cluster": "exported~api.default.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "exported~v2.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             },
             {

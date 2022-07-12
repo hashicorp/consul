@@ -907,6 +907,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 		target := chain.Targets[targetID]
 
+		if forMeshGateway && !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
+			s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+				"target", target,
+				"gatewayLocality", cfgSnap.Locality,
+			)
+			continue
+		}
+
 		// Determine if we have to generate the entire cluster differently.
 		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node) && !forMeshGateway
 
