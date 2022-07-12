@@ -82,6 +82,7 @@ module.exports = function(environment, $ = process.env) {
       ACLsEnabled: false,
       NamespacesEnabled: false,
       SSOEnabled: false,
+      PeeringEnabled: env('CONSUL_PEERING_ENABLED', false),
       PartitionsEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
@@ -105,13 +106,11 @@ module.exports = function(environment, $ = process.env) {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', false),
           SSOEnabled: env('CONSUL_SSO_ENABLED', false),
+          // in testing peering feature is on by default
+          PeeringEnabled: env('CONSUL_PEERING_ENABLED', true),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
-        },
-
-        features: {
-          peering: true,
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -134,14 +133,12 @@ module.exports = function(environment, $ = process.env) {
           autoboot: false,
         }),
       });
+
       break;
     case environment === 'development':
       ENV = Object.assign({}, ENV, {
         torii: {
           disableRedirectInitializer: true,
-        },
-        features: {
-          peering: true,
         },
       });
       break;
