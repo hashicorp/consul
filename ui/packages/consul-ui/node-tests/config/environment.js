@@ -22,6 +22,7 @@ test(
           SSOEnabled: false,
           PeeringEnabled: true,
           PartitionsEnabled: false,
+          PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
         }
@@ -38,6 +39,7 @@ test(
           SSOEnabled: false,
           PeeringEnabled: true,
           PartitionsEnabled: false,
+          PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
         }
@@ -54,6 +56,7 @@ test(
           SSOEnabled: true,
           PeeringEnabled: true,
           PartitionsEnabled: false,
+          PeeringEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
         }
@@ -65,6 +68,7 @@ test(
           ACLsEnabled: true,
           NamespacesEnabled: true,
           SSOEnabled: true,
+          PeeringEnabled: true,
           PartitionsEnabled: true,
           LocalDatacenter: 'dc1',
           PrimaryDatacenter: 'dc1',
