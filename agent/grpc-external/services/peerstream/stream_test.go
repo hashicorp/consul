@@ -968,6 +968,9 @@ func (b *testStreamBackend) CatalogDeregister(req *structs.DeregisterRequest) er
 }
 
 func Test_processResponse_Validation(t *testing.T) {
+	peerName := "billing"
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
+
 	type testCase struct {
 		name    string
 		in      *pbpeerstream.ReplicationMessage_Response
@@ -975,10 +978,14 @@ func Test_processResponse_Validation(t *testing.T) {
 		wantErr bool
 	}
 
-	srv, _ := newTestServer(t, nil)
+	srv, store := newTestServer(t, nil)
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName},
+	))
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse("", "", tc.in)
+		reply, err := srv.processResponse(peerName, "", tc.in)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1244,10 +1251,10 @@ func TestHandleUpdateService(t *testing.T) {
 	apiSN := structs.NewServiceName("api", &defaultMeta)
 
 	// create a peering in the state store
-	store.PeeringWrite(31, &pbpeering.Peering{
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
 		ID:   peerID,
 		Name: peerName},
-	)
+	))
 
 	// connect the stream
 	_, err := srv.Tracker.Connected(peerID)
@@ -1271,8 +1278,8 @@ func TestHandleUpdateService(t *testing.T) {
 		}
 
 		// assert the imported services count modifications
-		mss, err := srv.Server.Tracker.MutableStreamStatus(peerID)
-		require.NoError(t, err)
+		mss, found := srv.Server.Tracker.MutableStreamStatus(peerID)
+		require.True(t, found)
 		require.Equal(t, tc.expectedImportedServicesCount, mss.GetImportedServicesCount())
 	}
 

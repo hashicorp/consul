@@ -240,28 +240,29 @@ func (s *Server) handleUpdateService(
 	}
 
 	// account for imported services
-	if len(storedInstances) > 0 && len(pbNodes.GetNodes()) < 1 {
+	if len(storedInstances) > 0 && len(pbNodes.GetNodes()) == 0 {
 		// decrement the service count as the service was removed/ is being removed
 		logger.Trace("decrementing imported services count", "serviceName", sn.String())
 
 		id := peering.GetID()
-		st, err := s.Tracker.MutableStreamStatus(id)
-		if err != nil {
+		st, found := s.Tracker.MutableStreamStatus(id)
+		if !found {
 			logger.Trace("failed to find stream status, abandoning decrement for imported services count", "serviceName", sn.String())
-		} else {
-			st.RemoveImportedService(sn)
+			return fmt.Errorf("failed to find stream status when decrementing imported services count")
 		}
-	} else if len(storedInstances) < 1 && len(pbNodes.GetNodes()) > 0 {
+		st.RemoveImportedService(sn)
+
+	} else if len(storedInstances) == 0 && len(pbNodes.GetNodes()) > 0 {
 		// increment the service count as no instances previously existed but they do now.
 		logger.Trace("incrementing imported services count", "serviceName", sn.String())
 
 		id := peering.GetID()
-		st, err := s.Tracker.MutableStreamStatus(id)
-		if err != nil {
+		st, found := s.Tracker.MutableStreamStatus(id)
+		if !found {
 			logger.Trace("failed to find stream status, abandoning increment for imported services count", "serviceName", sn.String())
-		} else {
-			st.TrackImportedService(sn)
+			return fmt.Errorf("failed to find stream status when incrementing imported services count")
 		}
+		st.TrackImportedService(sn)
 	}
 
 	structsNodes, err := pbNodes.CheckServiceNodesToStruct()

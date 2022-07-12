@@ -76,15 +76,15 @@ func (t *Tracker) StreamStatus(id string) (resp Status, found bool) {
 }
 
 // MutableStreamStatus gives a handle of the MutableStatus for a given peer ID
-func (t *Tracker) MutableStreamStatus(id string) (status *MutableStatus, err error) {
+func (t *Tracker) MutableStreamStatus(id string) (status *MutableStatus, found bool) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	s, ok := t.streams[id]
 	if !ok {
-		return nil, fmt.Errorf("did not find a stream for id: %q", id)
+		return nil, false
 	}
-	return s, nil
+	return s, true
 }
 
 func (t *Tracker) ConnectedStreams() map[string]chan struct{} {
