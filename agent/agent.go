@@ -4220,7 +4220,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
 		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
 		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
-		Health:                          proxycfgglue.Health(a.rpcClientHealth),
+		Health:                          proxycfgglue.ClientHealth(a.rpcClientHealth),
 		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
 		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
 		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
@@ -4247,6 +4247,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
 		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
+		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))

@@ -602,14 +602,14 @@ type serviceRequestStub struct {
 }
 
 func (r serviceRequestStub) NewMaterializer() (submatview.Materializer, error) {
-	view, err := newHealthView(r.ServiceSpecificRequest)
+	view, err := NewHealthView(r.ServiceSpecificRequest)
 	if err != nil {
 		return nil, err
 	}
 	deps := submatview.Deps{
 		View:    view,
 		Logger:  hclog.New(nil),
-		Request: newMaterializerRequest(r.ServiceSpecificRequest),
+		Request: NewMaterializerRequest(r.ServiceSpecificRequest),
 	}
 	return submatview.NewRPCMaterializer(r.streamClient, deps), nil
 }
