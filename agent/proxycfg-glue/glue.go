@@ -10,6 +10,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -22,6 +23,9 @@ type Store interface {
 
 	IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error)
 	ServiceDiscoveryChain(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, req discoverychain.CompileRequest) (uint64, *structs.CompiledDiscoveryChain, *configentry.DiscoveryChainSet, error)
+	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
+	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 }
 
 // CacheCARoots satisfies the proxycfg.CARoots interface by sourcing data from
@@ -100,18 +104,6 @@ func CachePrepraredQuery(c *cache.Cache) proxycfg.PreparedQuery {
 // interface by sourcing data from the agent cache.
 func CacheResolvedServiceConfig(c *cache.Cache) proxycfg.ResolvedServiceConfig {
 	return &cacheProxyDataSource[*structs.ServiceConfigRequest]{c, cachetype.ResolvedServiceConfigName}
-}
-
-// CacheTrustBundle satisfies the proxycfg.TrustBundle interface by sourcing
-// data from the agent cache.
-func CacheTrustBundle(c *cache.Cache) proxycfg.TrustBundle {
-	return &cacheProxyDataSource[*pbpeering.TrustBundleReadRequest]{c, cachetype.TrustBundleReadName}
-}
-
-// CacheTrustBundleList satisfies the proxycfg.TrustBundleList interface by sourcing
-// data from the agent cache.
-func CacheTrustBundleList(c *cache.Cache) proxycfg.TrustBundleList {
-	return &cacheProxyDataSource[*pbpeering.TrustBundleListByServiceRequest]{c, cachetype.TrustBundleListName}
 }
 
 // CacheExportedPeeredServices satisfies the proxycfg.ExportedPeeredServices

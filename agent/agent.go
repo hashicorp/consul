@@ -4251,6 +4251,8 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
+		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
+		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)
 	}
 
 	a.fillEnterpriseProxyDataSources(&sources)
