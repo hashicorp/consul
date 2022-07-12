@@ -53,6 +53,19 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		checkEvent(t, got, gatewayCorrID, 0)
 	})
 
+	// Initially add in L4 failover so that later we can test removing it. We
+	// cannot do the other way around because it would fail validation to
+	// remove a target.
+	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "mysql",
+		Failover: map[string]structs.ServiceResolverFailover{
+			"*": {
+				Service: "failover",
+			},
+		},
+	})
+
 	testutil.RunStep(t, "initial export syncs empty instance lists", func(t *testing.T) {
 		backend.ensureConfigEntry(t, &structs.ExportedServicesConfigEntry{
 			Name: "default",
@@ -262,6 +275,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 								},
 								SpiffeID: []string{
 									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/failover",
 								},
 								Protocol: "tcp",
 							},
@@ -287,59 +301,9 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 		backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
 			Kind: structs.ServiceResolver,
 			Name: "mysql",
-			Failover: map[string]structs.ServiceResolverFailover{
-				"*": {
-					Service: "failover",
-				},
-			},
 		})
 
 		// ensure we get updated peer meta
-
-		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				require.Equal(t, mysqlProxyCorrID, got.CorrelationID)
-				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
-				require.Equal(t, uint64(0), res.Index)
-
-				require.Len(t, res.Nodes, 1)
-				prototest.AssertDeepEqual(t, &pbservice.CheckServiceNode{
-					Node: pbNode("mgw", "10.1.1.1", partition),
-					Service: &pbservice.NodeService{
-						Kind:    "connect-proxy",
-						ID:      "mysql-sidecar-proxy-instance-0",
-						Service: "mysql-sidecar-proxy",
-						Port:    8443,
-						Weights: &pbservice.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-						EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
-						Proxy: &pbservice.ConnectProxyConfig{
-							DestinationServiceID:   "mysql-instance-0",
-							DestinationServiceName: "mysql",
-						},
-						Connect: &pbservice.ServiceConnect{
-							PeerMeta: &pbservice.PeeringServiceMeta{
-								SNI: []string{
-									"mysql.default.default.my-peering.external.11111111-2222-3333-4444-555555555555.consul",
-								},
-								SpiffeID: []string{
-									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
-									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/failover",
-								},
-								Protocol: "tcp",
-							},
-						},
-					},
-				}, res.Nodes[0])
-			},
-		)
-
-		// reset so the next subtest is valid
-		backend.deleteConfigEntry(t, structs.ServiceResolver, "mysql")
-
-		// ensure we get peer meta is restored
 
 		expectEvents(t, subCh,
 			func(t *testing.T, got cache.UpdateEvent) {
