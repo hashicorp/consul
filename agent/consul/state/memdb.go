@@ -184,6 +184,7 @@ var (
 	EventTopicServiceResolver      = pbsubscribe.Topic_ServiceResolver
 	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
 	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
+	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
@@ -192,6 +193,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 		aclChangeUnsubscribeEvent,
 		caRootsChangeEvents,
 		ServiceHealthEventsFromChanges,
+		ServiceListUpdateEventsFromChanges,
 		ConfigEntryEventsFromChanges,
 		// TODO: add other table handlers here.
 	}
