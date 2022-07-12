@@ -275,6 +275,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 								},
 								SpiffeID: []string{
 									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
 									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/failover",
 								},
 								Protocol: "tcp",
@@ -335,6 +336,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 								},
 								SpiffeID: []string{
 									"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+									"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
 								},
 								Protocol: "tcp",
 							},

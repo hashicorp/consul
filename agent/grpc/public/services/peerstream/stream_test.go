@@ -720,6 +720,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				require.Equal(t, "tcp", pm.Protocol)
 				spiffeIDs := []string{
 					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
 				}
 				require.Equal(t, spiffeIDs, pm.SpiffeID)
 			},
