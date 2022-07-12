@@ -5,7 +5,6 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // UpdateEvent contains new data for a resource we are subscribed to (e.g. an
@@ -220,13 +219,13 @@ type ServiceList interface {
 // TrustBundle is the interface used to consume updates about a single
 // peer's trust bundle.
 type TrustBundle interface {
-	Notify(ctx context.Context, req *pbpeering.TrustBundleReadRequest, correlationID string, ch chan<- UpdateEvent) error
+	Notify(ctx context.Context, req *cachetype.TrustBundleReadRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // TrustBundleList is the interface used to consume updates about trust bundles
 // for peered clusters that the given proxy is exported to.
 type TrustBundleList interface {
-	Notify(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest, correlationID string, ch chan<- UpdateEvent) error
+	Notify(ctx context.Context, req *cachetype.TrustBundleListRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
 // ExportedPeeredServices is the interface used to consume updates about the

@@ -32,11 +32,14 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	// Watch for all peer trust bundles we may need.
-	err = s.dataSources.TrustBundleList.Notify(ctx, &pbpeering.TrustBundleListByServiceRequest{
-		// TODO(peering): Pass ACL token
-		Kind:      string(structs.ServiceKindMeshGateway),
-		Namespace: s.proxyID.NamespaceOrDefault(),
-		Partition: s.proxyID.PartitionOrDefault(),
+	err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+		Request: &pbpeering.TrustBundleListByServiceRequest{
+			Kind:        string(structs.ServiceKindMeshGateway),
+			ServiceName: s.service,
+			Namespace:   s.proxyID.NamespaceOrDefault(),
+			Partition:   s.proxyID.PartitionOrDefault(),
+		},
+		QueryOptions: structs.QueryOptions{Token: s.token},
 	}, peeringTrustBundlesWatchID, s.ch)
 	if err != nil {
 		return snap, err

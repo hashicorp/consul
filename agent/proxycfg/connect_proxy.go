@@ -46,11 +46,13 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	err = s.dataSources.TrustBundleList.Notify(ctx, &pbpeering.TrustBundleListByServiceRequest{
-		// TODO(peering): Pass ACL token
-		ServiceName: s.proxyCfg.DestinationServiceName,
-		Namespace:   s.proxyID.NamespaceOrDefault(),
-		Partition:   s.proxyID.PartitionOrDefault(),
+	err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+		Request: &pbpeering.TrustBundleListByServiceRequest{
+			ServiceName: s.proxyCfg.DestinationServiceName,
+			Namespace:   s.proxyID.NamespaceOrDefault(),
+			Partition:   s.proxyID.PartitionOrDefault(),
+		},
+		QueryOptions: structs.QueryOptions{Token: s.token},
 	}, peeringTrustBundlesWatchID, s.ch)
 	if err != nil {
 		return snap, err
@@ -226,9 +228,12 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				// Check whether a watch for this peer exists to avoid duplicates.
 				if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
 					peerCtx, cancel := context.WithCancel(ctx)
-					if err := s.dataSources.TrustBundle.Notify(peerCtx, &pbpeering.TrustBundleReadRequest{
-						Name:      uid.Peer,
-						Partition: uid.PartitionOrDefault(),
+					if err := s.dataSources.TrustBundle.Notify(peerCtx, &cachetype.TrustBundleReadRequest{
+						Request: &pbpeering.TrustBundleReadRequest{
+							Name:      uid.Peer,
+							Partition: uid.PartitionOrDefault(),
+						},
+						QueryOptions: structs.QueryOptions{Token: s.token},
 					}, peerTrustBundleIDPrefix+uid.Peer, s.ch); err != nil {
 						cancel()
 						return snap, fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)
@@ -344,9 +349,12 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			// Check whether a watch for this peer exists to avoid duplicates.
 			if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
 				peerCtx, cancel := context.WithCancel(ctx)
-				if err := s.dataSources.TrustBundle.Notify(peerCtx, &pbpeering.TrustBundleReadRequest{
-					Name:      uid.Peer,
-					Partition: uid.PartitionOrDefault(),
+				if err := s.dataSources.TrustBundle.Notify(peerCtx, &cachetype.TrustBundleReadRequest{
+					Request: &pbpeering.TrustBundleReadRequest{
+						Name:      uid.Peer,
+						Partition: uid.PartitionOrDefault(),
+					},
+					QueryOptions: structs.QueryOptions{Token: s.token},
 				}, peerTrustBundleIDPrefix+uid.Peer, s.ch); err != nil {
 					cancel()
 					return fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)

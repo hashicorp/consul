@@ -335,6 +335,24 @@ func (a AllowAuthorizer) MeshWriteAllowed(ctx *AuthorizerContext) error {
 	return nil
 }
 
+// PeeringReadAllowed determines if the read-only Consul peering functions
+// can be used.
+func (a AllowAuthorizer) PeeringReadAllowed(ctx *AuthorizerContext) error {
+	if a.Authorizer.PeeringRead(ctx) != Allow {
+		return PermissionDeniedByACLUnnamed(a, ctx, ResourcePeering, AccessRead)
+	}
+	return nil
+}
+
+// PeeringWriteAllowed determines if the state-changing Consul peering
+// functions can be used.
+func (a AllowAuthorizer) PeeringWriteAllowed(ctx *AuthorizerContext) error {
+	if a.Authorizer.PeeringWrite(ctx) != Allow {
+		return PermissionDeniedByACLUnnamed(a, ctx, ResourcePeering, AccessWrite)
+	}
+	return nil
+}
+
 // NodeReadAllowed checks for permission to read (discover) a given node.
 func (a AllowAuthorizer) NodeReadAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.NodeRead(name, ctx) != Allow {

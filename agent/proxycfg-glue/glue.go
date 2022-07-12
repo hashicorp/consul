@@ -3,6 +3,7 @@ package proxycfgglue
 import (
 	"context"
 
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -14,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // Store is the state store interface required for server-local data sources.

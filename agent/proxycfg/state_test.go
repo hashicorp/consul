@@ -137,8 +137,8 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
-		TrustBundle:                     typedWatchRecorder[*pbpeering.TrustBundleReadRequest]{wr},
-		TrustBundleList:                 typedWatchRecorder[*pbpeering.TrustBundleListByServiceRequest]{wr},
+		TrustBundle:                     typedWatchRecorder[*cachetype.TrustBundleReadRequest]{wr},
+		TrustBundleList:                 typedWatchRecorder[*cachetype.TrustBundleListRequest]{wr},
 		ExportedPeeredServices:          typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 	}
 	recordWatchesEnterprise(sc, wr)
@@ -203,9 +203,9 @@ func verifyDatacentersWatch(t testing.TB, request any) {
 
 func genVerifyTrustBundleReadWatch(peer string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
-		reqReal, ok := request.(*pbpeering.TrustBundleReadRequest)
+		reqReal, ok := request.(*cachetype.TrustBundleReadRequest)
 		require.True(t, ok)
-		require.Equal(t, peer, reqReal.Name)
+		require.Equal(t, peer, reqReal.Request.Name)
 	}
 }
 
@@ -225,19 +225,19 @@ func genVerifyLeafWatch(expectedService string, expectedDatacenter string) verif
 
 func genVerifyTrustBundleListWatch(service string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
-		reqReal, ok := request.(*pbpeering.TrustBundleListByServiceRequest)
+		reqReal, ok := request.(*cachetype.TrustBundleListRequest)
 		require.True(t, ok)
-		require.Equal(t, service, reqReal.ServiceName)
+		require.Equal(t, service, reqReal.Request.ServiceName)
 	}
 }
 
 func genVerifyTrustBundleListWatchForMeshGateway(partition string) verifyWatchRequest {
 	return func(t testing.TB, request any) {
-		reqReal, ok := request.(*pbpeering.TrustBundleListByServiceRequest)
+		reqReal, ok := request.(*cachetype.TrustBundleListRequest)
 		require.True(t, ok)
-		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Kind)
-		require.True(t, acl.EqualPartitions(partition, reqReal.Partition), "%q != %q", partition, reqReal.Partition)
-		require.Empty(t, reqReal.ServiceName)
+		require.Equal(t, string(structs.ServiceKindMeshGateway), reqReal.Request.Kind)
+		require.True(t, acl.EqualPartitions(partition, reqReal.Request.Partition), "%q != %q", partition, reqReal.Request.Partition)
+		require.NotEmpty(t, reqReal.Request.ServiceName)
 	}
 }
 
