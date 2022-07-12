@@ -766,6 +766,9 @@ func (a *Agent) buildExternalGRPCServer() {
 	if a.config.HTTPSPort > 0 {
 		tls = a.tlsConfigurator
 	}
+	if a.tlsConfigurator != nil && a.tlsConfigurator.GRPCTLSConfigured() {
+		tls = a.tlsConfigurator
+	}
 	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), tls)
 }
 

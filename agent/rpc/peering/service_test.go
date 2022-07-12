@@ -59,7 +59,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, func(c *consul.Config) {
 		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
-		c.TLSConfig.InternalRPC.CAFile = cafile
+		c.TLSConfig.GRPC.CAFile = cafile
 		c.DataDir = dir
 	})
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))

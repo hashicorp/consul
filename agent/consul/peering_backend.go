@@ -52,7 +52,7 @@ func (b *PeeringBackend) GetLeaderAddress() string {
 // GetAgentCACertificates gets the server's raw CA data from its TLS Configurator.
 func (b *PeeringBackend) GetAgentCACertificates() ([]string, error) {
 	// TODO(peering): handle empty CA pems
-	return b.srv.tlsConfigurator.ManualCAPems(), nil
+	return b.srv.tlsConfigurator.GRPCManualCAPems(), nil
 }
 
 // GetServerAddresses looks up server node addresses from the state store.
