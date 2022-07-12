@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -137,25 +136,6 @@ func (c *cacheProxyDataSource[ReqType]) Notify(
 	ch chan<- proxycfg.UpdateEvent,
 ) error {
 	return c.c.NotifyCallback(ctx, c.t, req, correlationID, dispatchCacheUpdate(ch))
-}
-
-// Health wraps health.Client so that the proxycfg package doesn't need to
-// reference cache.UpdateEvent directly.
-func Health(client *health.Client) proxycfg.Health {
-	return &healthWrapper{client}
-}
-
-type healthWrapper struct {
-	client *health.Client
-}
-
-func (h *healthWrapper) Notify(
-	ctx context.Context,
-	req *structs.ServiceSpecificRequest,
-	correlationID string,
-	ch chan<- proxycfg.UpdateEvent,
-) error {
-	return h.client.Notify(ctx, *req, correlationID, dispatchCacheUpdate(ch))
 }
 
 func dispatchCacheUpdate(ch chan<- proxycfg.UpdateEvent) cache.Callback {
