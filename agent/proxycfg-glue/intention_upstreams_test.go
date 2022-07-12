@@ -3,7 +3,6 @@ package proxycfgglue
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -62,7 +61,7 @@ func TestServerIntentionUpstreams(t *testing.T) {
 	authz := policyAuthorizer(t, `service "db" { policy = "read" }`)
 
 	dataSource := ServerIntentionUpstreams(ServerDataSourceDeps{
-		ACLResolver: staticResolver{authz},
+		ACLResolver: newStaticResolver(authz),
 		GetStore:    func() Store { return store },
 	})
 
@@ -70,28 +69,16 @@ func TestServerIntentionUpstreams(t *testing.T) {
 	err := dataSource.Notify(ctx, &structs.ServiceSpecificRequest{ServiceName: serviceName}, "", ch)
 	require.NoError(t, err)
 
-	select {
-	case event := <-ch:
-		result, ok := event.Result.(*structs.IndexedServiceList)
-		require.Truef(t, ok, "expected IndexedServiceList, got: %T", event.Result)
-		require.Len(t, result.Services, 0)
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("timeout waiting for event")
-	}
+	result := getEventResult[*structs.IndexedServiceList](t, ch)
+	require.Len(t, result.Services, 0)
 
 	// Create an allow intention for the db service. This should *not* be filtered
 	// out because the ACL token *does* have read access on it.
 	createIntention("db")
 
-	select {
-	case event := <-ch:
-		result, ok := event.Result.(*structs.IndexedServiceList)
-		require.Truef(t, ok, "expected IndexedServiceList, got: %T", event.Result)
-		require.Len(t, result.Services, 1)
-		require.Equal(t, "db", result.Services[0].Name)
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("timeout waiting for event")
-	}
+	result = getEventResult[*structs.IndexedServiceList](t, ch)
+	require.Len(t, result.Services, 1)
+	require.Equal(t, "db", result.Services[0].Name)
 }
 
 func disableLegacyIntentions(t *testing.T, store *state.Store) {

@@ -4237,6 +4237,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 
 	if server, ok := a.delegate.(*consul.Server); ok {
 		deps := proxycfgglue.ServerDataSourceDeps{
+			Datacenter:     a.config.Datacenter,
 			EventPublisher: a.baseDeps.EventPublisher,
 			ViewStore:      a.baseDeps.ViewStore,
 			Logger:         a.logger.Named("proxycfg.server-data-sources"),
@@ -4245,6 +4246,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		}
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
 	}

@@ -19,6 +19,7 @@ import (
 // ServerDataSourceDeps contains the dependencies needed for sourcing data from
 // server-local sources (e.g. materialized views).
 type ServerDataSourceDeps struct {
+	Datacenter     string
 	ViewStore      *submatview.Store
 	EventPublisher *stream.EventPublisher
 	Logger         hclog.Logger
