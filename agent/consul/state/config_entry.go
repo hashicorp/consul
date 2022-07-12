@@ -804,7 +804,7 @@ func validateProposedConfigEntryInServiceGraph(
 		exportedServicesByPartition = make(map[string]map[structs.ServiceName]struct{})
 	)
 	for chain := range checkChains {
-		protocol, topNode, err := testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
+		protocol, topNode, newTargets, err := testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
@@ -829,6 +829,27 @@ func validateProposedConfigEntryInServiceGraph(
 		if _, exported := exportedServices[chainSvc]; exported {
 			if err := validateChainIsPeerExportSafe(tx, chainSvc, overrides); err != nil {
 				return err
+			}
+
+			// If a TCP (L4) discovery chain is peer exported we have to take
+			// care to prohibit certain edits to service-resolvers.
+			if !structs.IsProtocolHTTPLike(protocol) {
+				_, _, oldTargets, err := testCompileDiscoveryChain(tx, chain.ID, nil, &chain.EnterpriseMeta)
+				if err != nil {
+					return fmt.Errorf("error compiling current discovery chain for %q: %w", chainSvc, err)
+				}
+
+				// Ensure that you can't introduce any new targets that would
+				// produce a new SpiffeID for this L4 service.
+				oldSpiffeIDs := convertTargetsToTestSpiffeIDs(oldTargets)
+				newSpiffeIDs := convertTargetsToTestSpiffeIDs(newTargets)
+				for id, targetID := range newSpiffeIDs {
+					if _, exists := oldSpiffeIDs[id]; !exists {
+						return fmt.Errorf("peer exported service %q uses protocol=%q and cannot introduce new discovery chain targets like %q",
+							chainSvc, protocol, targetID,
+						)
+					}
+				}
 			}
 		}
 	}
@@ -964,10 +985,10 @@ func testCompileDiscoveryChain(
 	chainName string,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta *acl.EnterpriseMeta,
-) (string, *structs.DiscoveryGraphNode, error) {
+) (string, *structs.DiscoveryGraphNode, map[string]*structs.DiscoveryTarget, error) {
 	_, speculativeEntries, err := readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	// Note we use an arbitrary namespace and datacenter as those would not
@@ -984,10 +1005,10 @@ func testCompileDiscoveryChain(
 	}
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
-	return chain.Protocol, chain.Nodes[chain.StartNode], nil
+	return chain.Protocol, chain.Nodes[chain.StartNode], chain.Targets, nil
 }
 
 func (s *Store) ServiceDiscoveryChain(
@@ -1633,7 +1654,7 @@ func protocolForService(
 		EvaluateInPartition:  svc.PartitionOrDefault(),
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.
-		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
+		EvaluateInTrustDomain: dummyTrustDomain,
 		Entries:               entries,
 	}
 	chain, err := discoverychain.Compile(req)
@@ -1642,6 +1663,8 @@ func protocolForService(
 	}
 	return maxIdx, chain.Protocol, nil
 }
+
+const dummyTrustDomain = "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul"
 
 func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {
 	return configentry.NewKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
@@ -1663,4 +1686,25 @@ func (q ConfigEntryKindQuery) NamespaceOrDefault() string {
 // receiver for this method. Remove once that is fixed.
 func (q ConfigEntryKindQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+// convertTargetsToTestSpiffeIDs indexes the provided targets by their eventual
+// spiffeid values using a dummy trust domain. Returns a map of SpiffeIDs to
+// targetID values which can be used for error output.
+func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) map[string]string {
+	out := make(map[string]string)
+	for tid, t := range targets {
+		testSpiffeID := connect.SpiffeIDService{
+			Host:       dummyTrustDomain,
+			Partition:  t.Partition,
+			Namespace:  t.Namespace,
+			Datacenter: t.Datacenter,
+			Service:    t.Service,
+		}
+		uri := testSpiffeID.URI().String()
+		if _, ok := out[uri]; !ok {
+			out[uri] = tid
+		}
+	}
+	return out
 }

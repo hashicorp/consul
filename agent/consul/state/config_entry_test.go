@@ -1575,6 +1575,25 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			},
 			expectErr: `contains cross-datacenter failover`,
 		},
+		"cannot redirect a peer exported tcp service": {
+			entries: []structs.ConfigEntry{
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+				},
+			},
+			expectErr: `cannot introduce new discovery chain targets like`,
+		},
 	}
 
 	for name, tc := range cases {
