@@ -11,14 +11,12 @@ export default Component.extend(Slotted, {
   actions: {
     connect: function($el) {
       this.dialog = new A11yDialog($el);
-      this.dialog.on('hide', () => {
-        set(this, 'isOpen', false);
-        this.onclose({ target: $el });
-      });
-      this.dialog.on('show', () => {
-        set(this, 'isOpen', true);
-        this.onopen({ target: $el });
-      });
+      // these are split into multiple listeners to avoid the
+      // "ember double computation error"
+      this.dialog.on('show', () => set(this, 'isOpen', true));
+      this.dialog.on('hide', () => set(this, 'isOpen', false));
+      this.dialog.on('hide', () => this.onclose({ target: $el }));
+      this.dialog.on('show', () => this.onopen({ target: $el }));
       if (this.open) {
         this.actions.open.apply(this, []);
       }
