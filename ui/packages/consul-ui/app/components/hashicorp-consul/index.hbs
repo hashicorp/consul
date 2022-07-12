@@ -146,7 +146,7 @@
           @partition={{@partition}}
           @nspace={{@nspace}}
         />
-        {{#if (feature-flag "peering")}}
+        {{#if (can "use peers")}}
           <li role="separator">
             Organization
           </li>

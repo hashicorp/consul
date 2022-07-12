@@ -1,4 +1,4 @@
-package peering
+package peerstream
 
 import (
 	"context"
@@ -29,7 +29,6 @@ type MaterializedViewStore interface {
 
 type SubscriptionBackend interface {
 	Subscriber
-	Store() Store
 }
 
 // subscriptionManager handlers requests to subscribe to events from an events publisher.
@@ -39,6 +38,7 @@ type subscriptionManager struct {
 	trustDomain string
 	viewStore   MaterializedViewStore
 	backend     SubscriptionBackend
+	getStore    func() StateStore
 }
 
 // TODO(peering): Maybe centralize so that there is a single manager per datacenter, rather than per peering.
@@ -48,6 +48,7 @@ func newSubscriptionManager(
 	config Config,
 	trustDomain string,
 	backend SubscriptionBackend,
+	getStore func() StateStore,
 ) *subscriptionManager {
 	logger = logger.Named("subscriptions")
 	store := submatview.NewStore(logger.Named("viewstore"))
@@ -59,6 +60,7 @@ func newSubscriptionManager(
 		trustDomain: trustDomain,
 		viewStore:   store,
 		backend:     backend,
+		getStore:    getStore,
 	}
 }
 
@@ -347,7 +349,7 @@ func (m *subscriptionManager) subscribeCARoots(
 			// following a snapshot restore) reset idx to ensure we don't skip over the
 			// new store's events.
 			select {
-			case <-m.backend.Store().AbandonCh():
+			case <-m.getStore().AbandonCh():
 				idx = 0
 			default:
 			}

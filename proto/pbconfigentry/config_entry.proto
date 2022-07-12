@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-import "proto/pbcommon/common.proto";
+package configentry;
+
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
-
-package configentry;
+import "proto/pbcommon/common.proto";
 
 enum Kind {
   KindUnknown = 0;
@@ -240,7 +240,7 @@ message IngressListener {
   int32 Port = 1;
   string Protocol = 2;
   repeated IngressService Services = 3;
-  GatewayTLSConfig TLS = 4; 
+  GatewayTLSConfig TLS = 4;
 }
 
 // mog annotation:

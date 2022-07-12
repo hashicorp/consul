@@ -241,7 +241,9 @@ jobs:
       - run:
           name: Install protobuf
           command: make proto-tools
-
+      - run:
+          name: "Protobuf Format"
+          command: make proto-format
       - run:
           command: make --always-make proto
       - run: |
@@ -249,7 +251,7 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
-      - run: 
+      - run:
           name: "Protobuf Lint"
           command: make proto-lint
 
