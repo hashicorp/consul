@@ -32,3 +32,17 @@ func expectNoEvent(t *testing.T, eventCh <-chan proxycfg.UpdateEvent) {
 	case <-time.After(100 * time.Millisecond):
 	}
 }
+
+func getEventError(t *testing.T, eventCh <-chan proxycfg.UpdateEvent) error {
+	t.Helper()
+
+	select {
+	case event := <-eventCh:
+		require.Error(t, event.Err)
+		return event.Err
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timeout waiting for event")
+	}
+
+	panic("this should never be reached")
+}
