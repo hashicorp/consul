@@ -1219,7 +1219,7 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 }
 
 func TestHandleUpdateService(t *testing.T) {
-	srv, _ := newTestServer(t, func(c *Config) {
+	srv, store := newTestServer(t, func(c *Config) {
 		backend := c.Backend.(*testStreamBackend)
 		backend.leader = func() bool {
 			return false
@@ -1227,19 +1227,31 @@ func TestHandleUpdateService(t *testing.T) {
 	})
 
 	type testCase struct {
-		name   string
-		seed   []*structs.RegisterRequest
-		input  *pbservice.IndexedCheckServiceNodes
-		expect map[string]structs.CheckServiceNodes
+		name                          string
+		seed                          []*structs.RegisterRequest
+		input                         *pbservice.IndexedCheckServiceNodes
+		expect                        map[string]structs.CheckServiceNodes
+		expectedImportedServicesCount int
 	}
 
 	peerName := "billing"
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 	remoteMeta := pbcommon.NewEnterpriseMetaFromStructs(*structs.DefaultEnterpriseMetaInPartition("billing-ap"))
 
 	// "api" service is imported from the billing-ap partition, corresponding to the billing peer.
 	// Locally it is stored to the default partition.
 	defaultMeta := *acl.DefaultEnterpriseMeta()
 	apiSN := structs.NewServiceName("api", &defaultMeta)
+
+	// create a peering in the state store
+	store.PeeringWrite(31, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName},
+	)
+
+	// connect the stream
+	_, err := srv.Tracker.Connected(peerID)
+	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
 		// Seed the local catalog with some data to reconcile against.
@@ -1257,6 +1269,11 @@ func TestHandleUpdateService(t *testing.T) {
 				requireEqualInstances(t, expect, got)
 			})
 		}
+
+		// assert the imported services count modifications
+		mss, err := srv.Server.Tracker.MutableStreamStatus(peerID)
+		require.NoError(t, err)
+		require.Equal(t, tc.expectedImportedServicesCount, mss.GetImportedServicesCount())
 	}
 
 	tt := []testCase{
@@ -1390,6 +1407,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "upsert two service instances to different nodes",
@@ -1521,6 +1539,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "receiving a nil input leads to deleting data in the catalog",
@@ -1578,6 +1597,7 @@ func TestHandleUpdateService(t *testing.T) {
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 			},
+			expectedImportedServicesCount: 0,
 		},
 		{
 			name: "deleting one service name from a node does not delete other service names",
@@ -1668,6 +1688,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 0, // IRL, this count would be 1, but we pre-seed the redis service
 		},
 		{
 			name: "service checks are cleaned up when not present in a response",

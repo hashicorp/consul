@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
@@ -221,10 +222,46 @@ func (s *Server) handleUpdateService(
 	sn structs.ServiceName,
 	pbNodes *pbservice.IndexedCheckServiceNodes,
 ) error {
+	_, peering, err := s.GetStore().PeeringRead(nil, state.Query{Value: peerName})
+	if err != nil {
+		return fmt.Errorf("failed to read peering: %w", err)
+	}
+	// an invariant here should be that a peering exists for PeeringRead
+	if peering == nil {
+		return fmt.Errorf("did not find peering %q", peerName)
+	}
+
+	logger := s.Logger.With("peerName", peerName, "peerID", peering.ID)
+
 	// Capture instances in the state store for reconciliation later.
 	_, storedInstances, err := s.GetStore().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
 	if err != nil {
 		return fmt.Errorf("failed to read imported services: %w", err)
+	}
+
+	// account for imported services
+	if len(storedInstances) > 0 && len(pbNodes.GetNodes()) < 1 {
+		// decrement the service count as the service was removed/ is being removed
+		logger.Trace("decrementing imported services count", "serviceName", sn.String())
+
+		id := peering.GetID()
+		st, err := s.Tracker.MutableStreamStatus(id)
+		if err != nil {
+			logger.Trace("failed to find stream status, abandoning decrement for imported services count", "serviceName", sn.String())
+		} else {
+			st.RemoveImportedService(sn)
+		}
+	} else if len(storedInstances) < 1 && len(pbNodes.GetNodes()) > 0 {
+		// increment the service count as no instances previously existed but they do now.
+		logger.Trace("incrementing imported services count", "serviceName", sn.String())
+
+		id := peering.GetID()
+		st, err := s.Tracker.MutableStreamStatus(id)
+		if err != nil {
+			logger.Trace("failed to find stream status, abandoning increment for imported services count", "serviceName", sn.String())
+		} else {
+			st.TrackImportedService(sn)
+		}
 	}
 
 	structsNodes, err := pbNodes.CheckServiceNodesToStruct()
