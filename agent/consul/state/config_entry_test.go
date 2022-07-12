@@ -843,24 +843,75 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination_Wildcard(t *t
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
+	ensureConfigEntry := func(s *Store, idx uint64, entry structs.ConfigEntry) error {
+		if err := entry.Normalize(); err != nil {
+			return err
+		}
+		if err := entry.Validate(); err != nil {
+			return err
+		}
+		return s.EnsureConfigEntry(0, entry)
+	}
+
 	type tcase struct {
 		entries        []structs.ConfigEntry
-		op             func(t *testing.T, s *Store) error
+		opAdd          structs.ConfigEntry
+		opDelete       configentry.KindName
 		expectErr      string
 		expectGraphErr bool
 	}
+
+	EMPTY_KN := configentry.KindName{}
+
+	run := func(t *testing.T, tc tcase) {
+		s := testConfigStateStore(t)
+		for _, entry := range tc.entries {
+			require.NoError(t, ensureConfigEntry(s, 0, entry))
+		}
+
+		nOps := 0
+		if tc.opAdd != nil {
+			nOps++
+		}
+		if tc.opDelete != EMPTY_KN {
+			nOps++
+		}
+		require.Equal(t, 1, nOps, "exactly one operation is required")
+
+		var err error
+		switch {
+		case tc.opAdd != nil:
+			err = ensureConfigEntry(s, 0, tc.opAdd)
+		case tc.opDelete != EMPTY_KN:
+			kn := tc.opDelete
+			err = s.DeleteConfigEntry(0, kn.Kind, kn.Name, &kn.EnterpriseMeta)
+		default:
+			t.Fatal("not possible")
+		}
+
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			_, ok := err.(*structs.ConfigEntryGraphError)
+			if tc.expectGraphErr {
+				require.True(t, ok, "%T is not a *ConfigEntryGraphError", err)
+			} else {
+				require.False(t, ok, "did not expect a *ConfigEntryGraphError here: %v", err)
+			}
+		} else {
+			require.NoError(t, err)
+		}
+	}
+
 	cases := map[string]tcase{
 		"splitter fails without default protocol": {
 			entries: []structs.ConfigEntry{},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: structs.ServiceSplitter,
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 100},
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100},
+				},
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -873,15 +924,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Protocol: "tcp",
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: structs.ServiceSplitter,
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 100},
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100},
+				},
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -914,17 +962,14 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: structs.ServiceSplitter,
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 90, ServiceSubset: "v1"},
-						{Weight: 10, ServiceSubset: "v2"},
-					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 90, ServiceSubset: "v1"},
+					{Weight: 10, ServiceSubset: "v2"},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		"splitter works with http protocol (from proxy-defaults)": {
@@ -949,16 +994,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: structs.ServiceSplitter,
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 90, ServiceSubset: "v1"},
-						{Weight: 10, ServiceSubset: "v2"},
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 90, ServiceSubset: "v1"},
+					{Weight: 10, ServiceSubset: "v2"},
+				},
 			},
 		},
 		"router fails with tcp protocol": {
@@ -978,24 +1020,21 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceRouterConfigEntry{
-					Kind: structs.ServiceRouter,
-					Name: "main",
-					Routes: []structs.ServiceRoute{
-						{
-							Match: &structs.ServiceRouteMatch{
-								HTTP: &structs.ServiceRouteHTTPMatch{
-									PathExact: "/other",
-								},
-							},
-							Destination: &structs.ServiceRouteDestination{
-								ServiceSubset: "other",
+			opAdd: &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "main",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathExact: "/other",
 							},
 						},
+						Destination: &structs.ServiceRouteDestination{
+							ServiceSubset: "other",
+						},
 					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+				},
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -1012,24 +1051,21 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceRouterConfigEntry{
-					Kind: structs.ServiceRouter,
-					Name: "main",
-					Routes: []structs.ServiceRoute{
-						{
-							Match: &structs.ServiceRouteMatch{
-								HTTP: &structs.ServiceRouteHTTPMatch{
-									PathExact: "/other",
-								},
-							},
-							Destination: &structs.ServiceRouteDestination{
-								ServiceSubset: "other",
+			opAdd: &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "main",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathExact: "/other",
 							},
 						},
+						Destination: &structs.ServiceRouteDestination{
+							ServiceSubset: "other",
+						},
 					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+				},
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -1063,9 +1099,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main", nil)
-			},
+			opDelete:       configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
@@ -1099,9 +1133,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
-			},
+			opDelete:       configentry.NewKindName(structs.ProxyDefaults, structs.ProxyConfigGlobal, nil),
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
@@ -1140,9 +1172,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
-			},
+			opDelete: configentry.NewKindName(structs.ProxyDefaults, structs.ProxyConfigGlobal, nil),
 		},
 		"cannot change to tcp protocol after splitter created": {
 			entries: []structs.ConfigEntry{
@@ -1172,13 +1202,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceConfigEntry{
-					Kind:     structs.ServiceDefaults,
-					Name:     "main",
-					Protocol: "tcp",
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "main",
+				Protocol: "tcp",
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -1216,9 +1243,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main", nil)
-			},
+			opDelete:       configentry.NewKindName(structs.ServiceDefaults, "main", nil),
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
@@ -1255,13 +1280,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceConfigEntry{
-					Kind:     structs.ServiceDefaults,
-					Name:     "main",
-					Protocol: "tcp",
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "main",
+				Protocol: "tcp",
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
@@ -1280,16 +1302,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Protocol: "tcp",
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: structs.ServiceSplitter,
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 90},
-						{Weight: 10, Service: "other"},
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 90},
+					{Weight: 10, Service: "other"},
+				},
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
@@ -1307,24 +1326,21 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Protocol: "tcp",
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceRouterConfigEntry{
-					Kind: structs.ServiceRouter,
-					Name: "main",
-					Routes: []structs.ServiceRoute{
-						{
-							Match: &structs.ServiceRouteMatch{
-								HTTP: &structs.ServiceRouteHTTPMatch{
-									PathExact: "/other",
-								},
-							},
-							Destination: &structs.ServiceRouteDestination{
-								Service: "other",
+			opAdd: &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "main",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathExact: "/other",
 							},
 						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "other",
+						},
 					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+				},
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
@@ -1348,17 +1364,14 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					ConnectTimeout: 33 * time.Second,
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "main",
-					Failover: map[string]structs.ServiceResolverFailover{
-						"*": {
-							Service: "other",
-						},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service: "other",
 					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+				},
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
@@ -1381,15 +1394,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					ConnectTimeout: 33 * time.Second,
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "main",
-					Redirect: &structs.ServiceResolverRedirect{
-						Service: "other",
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+				},
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
@@ -1408,16 +1418,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "main",
-					Redirect: &structs.ServiceResolverRedirect{
-						Service:       "other",
-						ServiceSubset: "v1",
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:       "other",
+					ServiceSubset: "v1",
+				},
 			},
 		},
 		"cannot redirect to a subset that does not exist": {
@@ -1428,16 +1435,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					ConnectTimeout: 33 * time.Second,
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "main",
-					Redirect: &structs.ServiceResolverRedirect{
-						Service:       "other",
-						ServiceSubset: "v1",
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:       "other",
+					ServiceSubset: "v1",
+				},
 			},
 			expectErr:      `does not have a subset named "v1"`,
 			expectGraphErr: true,
@@ -1453,15 +1457,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "main",
-					Redirect: &structs.ServiceResolverRedirect{
-						Service: "other",
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+				},
 			},
 			expectErr:      `detected circular resolver redirect`,
 			expectGraphErr: true,
@@ -1483,45 +1484,102 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 			},
-			op: func(t *testing.T, s *Store) error {
-				entry := &structs.ServiceSplitterConfigEntry{
-					Kind: "service-splitter",
-					Name: "main",
-					Splits: []structs.ServiceSplit{
-						{Weight: 100, Service: "other"},
-					},
-				}
-				return s.EnsureConfigEntry(0, entry)
+			opAdd: &structs.ServiceSplitterConfigEntry{
+				Kind: "service-splitter",
+				Name: "main",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100, Service: "other"},
+				},
 			},
 			expectErr:      `detected circular reference`,
 			expectGraphErr: true,
 		},
+		/////////////////////////////////////////////////
+		"cannot peer export cross-dc redirect": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: "service-resolver",
+					Name: "main",
+					Redirect: &structs.ServiceResolverRedirect{
+						Datacenter: "dc3",
+					},
+				},
+			},
+			opAdd: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{{
+					Name:      "main",
+					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+				}},
+			},
+			expectErr: `contains cross-datacenter resolver redirect`,
+		},
+		"cannot peer export cross-dc redirect via wildcard": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: "service-resolver",
+					Name: "main",
+					Redirect: &structs.ServiceResolverRedirect{
+						Datacenter: "dc3",
+					},
+				},
+			},
+			opAdd: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{{
+					Name:      "*",
+					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+				}},
+			},
+			expectErr: `contains cross-datacenter resolver redirect`,
+		},
+		"cannot peer export cross-dc failover": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: "service-resolver",
+					Name: "main",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Datacenters: []string{"dc3"},
+						},
+					},
+				},
+			},
+			opAdd: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{{
+					Name:      "main",
+					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+				}},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
+		"cannot peer export cross-dc failover via wildcard": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: "service-resolver",
+					Name: "main",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Datacenters: []string{"dc3"},
+						},
+					},
+				},
+			},
+			opAdd: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{{
+					Name:      "*",
+					Consumers: []structs.ServiceConsumer{{PeerName: "my-peer"}},
+				}},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
 	}
 
 	for name, tc := range cases {
-		name := name
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
-			s := testConfigStateStore(t)
-			for _, entry := range tc.entries {
-				require.NoError(t, entry.Normalize())
-				require.NoError(t, s.EnsureConfigEntry(0, entry))
-			}
-
-			err := tc.op(t, s)
-			if tc.expectErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectErr)
-				_, ok := err.(*structs.ConfigEntryGraphError)
-				if tc.expectGraphErr {
-					require.True(t, ok, "%T is not a *ConfigEntryGraphError", err)
-				} else {
-					require.False(t, ok, "did not expect a *ConfigEntryGraphError here: %v", err)
-				}
-			} else {
-				require.NoError(t, err)
-			}
+			run(t, tc)
 		})
 	}
 }

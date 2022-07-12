@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -154,10 +155,10 @@ func peeringReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, *pbpeering.
 func (s *Store) PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
-	return s.peeringListTxn(ws, tx, entMeta)
+	return peeringListTxn(ws, tx, entMeta)
 }
 
-func (s *Store) peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
+func peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	var (
 		iter memdb.ResultIterator
 		err  error
@@ -322,21 +323,21 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string, dc str
 		return 0, &structs.ExportedServiceList{}, nil
 	}
 
-	return s.exportedServicesForPeerTxn(ws, tx, peering, dc)
+	return exportedServicesForPeerTxn(ws, tx, peering, dc)
 }
 
 func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	maxIdx, peerings, err := s.peeringListTxn(ws, tx, entMeta)
+	maxIdx, peerings, err := peeringListTxn(ws, tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to list peerings: %w", err)
 	}
 
 	out := make(map[string]structs.ServiceList)
 	for _, peering := range peerings {
-		idx, list, err := s.exportedServicesForPeerTxn(ws, tx, peering, "")
+		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, "")
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
 		}
@@ -356,24 +357,24 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl
 // specific peering, and optionally include information about discovery chain
 // reachable targets for these exported services if the "dc" parameter is
 // specified.
-func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peering *pbpeering.Peering, dc string) (uint64, *structs.ExportedServiceList, error) {
+func exportedServicesForPeerTxn(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	peering *pbpeering.Peering,
+	dc string,
+) (uint64, *structs.ExportedServiceList, error) {
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
-	idx, raw, err := configEntryTxn(tx, ws, structs.ExportedServices, entMeta.PartitionOrDefault(), entMeta)
+	idx, conf, err := getExportedServicesConfigEntryTxn(tx, ws, nil, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch exported-services config entry: %w", err)
 	}
 	if idx > maxIdx {
 		maxIdx = idx
 	}
-	if raw == nil {
+	if conf == nil {
 		return maxIdx, &structs.ExportedServiceList{}, nil
-	}
-
-	conf, ok := raw.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("expected type *structs.ExportedServicesConfigEntry, got %T", raw)
 	}
 
 	var (
@@ -381,9 +382,6 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 		discoSet  = make(map[structs.ServiceName]struct{})
 	)
 
-	// TODO(peering): filter the disco chain portion of the results to only be
-	// things reachable over the mesh to avoid replicating some clutter.
-	//
 	// At least one of the following should be true for a name for it to
 	// replicate:
 	//
@@ -426,7 +424,7 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 			}
 
 			// list all config entries of kind service-resolver, service-router, service-splitter?
-			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, svcMeta)
+			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, nil, svcMeta)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
 			}
@@ -463,7 +461,7 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 		if dc != "" && !structs.IsProtocolHTTPLike(protocol) {
 			// We only need to populate the targets for replication purposes for L4 protocols, which
 			// do not ultimately get intercepted by the mesh gateways.
-			idx, targets, err := s.discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
+			idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
 			if err != nil {
 				return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
 			}
@@ -502,6 +500,86 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 	}
 
 	return maxIdx, list, nil
+}
+
+func listAllExportedServices(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta acl.EnterpriseMeta,
+) (uint64, map[structs.ServiceName]struct{}, error) {
+	idx, export, err := getExportedServicesConfigEntryTxn(tx, ws, overrides, &entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	found := make(map[structs.ServiceName]struct{})
+	if export == nil {
+		return idx, found, nil
+	}
+
+	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
+	if err != nil {
+		return 0, nil, err
+	}
+	for _, svc := range services {
+		found[svc] = struct{}{}
+	}
+
+	return idx, found, nil
+}
+
+func listServicesExportedToAnyPeerByConfigEntry(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	conf *structs.ExportedServicesConfigEntry,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+) (uint64, []structs.ServiceName, error) {
+	var (
+		entMeta = conf.GetEnterpriseMeta()
+		found   = make(map[structs.ServiceName]struct{})
+		maxIdx  uint64
+	)
+
+	for _, svc := range conf.Services {
+		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+
+		sawPeer := false
+		for _, consumer := range svc.Consumers {
+			if consumer.PeerName == "" {
+				continue
+			}
+			sawPeer = true
+
+			sn := structs.NewServiceName(svc.Name, &svcMeta)
+			if _, ok := found[sn]; ok {
+				continue
+			}
+
+			if svc.Name != structs.WildcardSpecifier {
+				found[sn] = struct{}{}
+			}
+		}
+
+		if sawPeer && svc.Name == structs.WildcardSpecifier {
+			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, overrides, svcMeta)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			for _, sn := range discoChains {
+				found[sn] = struct{}{}
+			}
+		}
+	}
+
+	foundKeys := maps.SliceOfKeys(found)
+
+	structs.ServiceList(foundKeys).Sort()
+
+	return maxIdx, foundKeys, nil
 }
 
 // PeeringsForService returns the list of peerings that are associated with the service name provided in the query.
