@@ -12,7 +12,7 @@ export default class PeerAbility extends BaseAbility {
   }
   get canDelete() {
     // TODO: Need to confirm these states
-    return !['DELETING', 'TERMINATED', 'UNDEFINED'].includes(this.item.State);
+    return !['DELETING', 'TERMINATED', 'UNDEFINED'].includes(this.item.State) && this.canWrite;
   }
 
   get canUse() {
