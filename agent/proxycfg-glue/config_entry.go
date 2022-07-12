@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbconfigentry"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -194,7 +195,7 @@ func (v *configEntryListView) Result(index uint64) any {
 }
 
 func (v *configEntryListView) Update(events []*pbsubscribe.Event) error {
-	for _, event := range v.filterByEnterpriseMeta(events) {
+	for _, event := range filterByEnterpriseMeta(events, v.entMeta) {
 		update := event.GetConfigEntry()
 		configEntry := pbconfigentry.ConfigEntryToStructs(update.ConfigEntry)
 		name := structs.NewServiceName(configEntry.GetName(), configEntry.GetEnterpriseMeta()).String()
@@ -213,22 +214,26 @@ func (v *configEntryListView) Update(events []*pbsubscribe.Event) error {
 // don't match the request's enterprise meta - this is necessary because when
 // subscribing to a topic with SubjectWildcard we'll get events for resources
 // in all partitions and namespaces.
-func (v *configEntryListView) filterByEnterpriseMeta(events []*pbsubscribe.Event) []*pbsubscribe.Event {
-	partition := v.entMeta.PartitionOrDefault()
-	namespace := v.entMeta.NamespaceOrDefault()
+func filterByEnterpriseMeta(events []*pbsubscribe.Event, entMeta acl.EnterpriseMeta) []*pbsubscribe.Event {
+	partition := entMeta.PartitionOrDefault()
+	namespace := entMeta.NamespaceOrDefault()
 
 	filtered := make([]*pbsubscribe.Event, 0, len(events))
 	for _, event := range events {
-		configEntry := event.GetConfigEntry().GetConfigEntry()
-		if configEntry == nil {
+		var eventEntMeta *pbcommon.EnterpriseMeta
+		switch payload := event.Payload.(type) {
+		case *pbsubscribe.Event_ConfigEntry:
+			eventEntMeta = payload.ConfigEntry.ConfigEntry.GetEnterpriseMeta()
+		case *pbsubscribe.Event_Service:
+			eventEntMeta = payload.Service.GetEnterpriseMeta()
+		default:
 			continue
 		}
 
-		entMeta := configEntry.GetEnterpriseMeta()
-		if partition != acl.WildcardName && !acl.EqualPartitions(partition, entMeta.GetPartition()) {
+		if partition != acl.WildcardName && !acl.EqualPartitions(partition, eventEntMeta.GetPartition()) {
 			continue
 		}
-		if namespace != acl.WildcardName && !acl.EqualNamespaces(namespace, entMeta.GetNamespace()) {
+		if namespace != acl.WildcardName && !acl.EqualNamespaces(namespace, eventEntMeta.GetNamespace()) {
 			continue
 		}
 

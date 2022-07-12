@@ -103,12 +103,6 @@ func CacheResolvedServiceConfig(c *cache.Cache) proxycfg.ResolvedServiceConfig {
 	return &cacheProxyDataSource[*structs.ServiceConfigRequest]{c, cachetype.ResolvedServiceConfigName}
 }
 
-// CacheServiceList satisfies the proxycfg.ServiceList interface by sourcing
-// data from the agent cache.
-func CacheServiceList(c *cache.Cache) proxycfg.ServiceList {
-	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.CatalogServiceListName}
-}
-
 // CacheTrustBundle satisfies the proxycfg.TrustBundle interface by sourcing
 // data from the agent cache.
 func CacheTrustBundle(c *cache.Cache) proxycfg.TrustBundle {
