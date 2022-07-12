@@ -34,24 +34,6 @@
           },
         },
       },
-      peers: {
-        _options: { path: '/peers' },
-        index: {
-          _options: {
-            path: '/',
-          },
-        },
-        edit: {
-          _options: {
-            path: '/:name'
-          },
-          addresses: {
-            _options: {
-              path: '/addresses',
-            },
-          },
-        },
-      },
       services: {
         _options: { path: '/services' },
         index: {

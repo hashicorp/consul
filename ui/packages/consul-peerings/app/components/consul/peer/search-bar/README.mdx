@@ -8,12 +8,16 @@ Searchbar tailored for searching Peers. Follows our more generic
     @search={{this.search}}
     @onsearch={{fn (mut this.search) value="target.value"}}
 
-    @sort={{hash 
-      value='Name:asc'
+    @sort={{hash
+      value='State:asc'
       change=(noop)
     }}
 
     @filter={{hash
+      state=(hash
+        value=(array "PENDING")
+        change=(noop)
+      )
       searchproperty=(hash
         value=(array)
         change=(noop)
