@@ -347,8 +347,18 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 		}
 		clusters = append(clusters, cluster)
 
-		gatewaySvc, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]
-		isHTTP2 := ok && (gatewaySvc.Protocol == "http2" || gatewaySvc.Protocol == "grpc")
+		svcConfig, ok := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		isHTTP2 := false
+		if ok {
+			upstreamCfg, err := structs.ParseUpstreamConfig(svcConfig.ProxyConfig)
+			if err != nil {
+				// Don't hard fail on a config typo, just warn. The parse func returns
+				// default config if there is an error so it's safe to continue.
+				s.Logger.Warn("failed to parse", "upstream", svc, "error", err)
+			}
+			isHTTP2 = upstreamCfg.Protocol == "http2" || upstreamCfg.Protocol == "grpc"
+		}
+
 		if isHTTP2 {
 			cluster.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 		}
