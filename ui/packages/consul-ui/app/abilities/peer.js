@@ -4,7 +4,7 @@ import { inject as service } from '@ember/service';
 export default class PeerAbility extends BaseAbility {
   @service('env') env;
 
-  resource = 'operator';
+  resource = 'peering';
   segmented = false;
 
   get isLinkable() {
