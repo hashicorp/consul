@@ -642,9 +642,8 @@ func TestConfigSnapshotTerminatingGatewayHTTP2(t testing.T) *ConfigSnapshot {
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
 					{
-						Service:  web,
-						CAFile:   "ca.cert.pem",
-						Protocol: "http2",
+						Service: web,
+						CAFile:  "ca.cert.pem",
 					},
 				},
 			},
@@ -703,9 +702,8 @@ func TestConfigSnapshotTerminatingGatewaySubsetsHTTP2(t testing.T) *ConfigSnapsh
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
 					{
-						Service:  web,
-						CAFile:   "ca.cert.pem",
-						Protocol: "http2",
+						Service: web,
+						CAFile:  "ca.cert.pem",
 					},
 				},
 			},
