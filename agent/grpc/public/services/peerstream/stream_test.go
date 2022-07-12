@@ -139,8 +139,8 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	input2 := &pbpeerstream.ReplicationMessage{
 		Payload: &pbpeerstream.ReplicationMessage_Request_{
 			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL: pbpeerstream.TypeURLService,
-				Nonce:       "1",
+				ResourceURL:   pbpeerstream.TypeURLService,
+				ResponseNonce: "1",
 			},
 		},
 	}
@@ -225,8 +225,8 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 			input: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						PeerID: "63b60245-c475-426b-b314-4588d210859d",
-						Nonce:  "1",
+						PeerID:        "63b60245-c475-426b-b314-4588d210859d",
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -357,9 +357,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:      peerID,
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "1",
+					PeerID:        peerID,
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "1",
 
 					// Acks do not have an Error populated in the request
 				},
@@ -390,9 +390,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		nack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:      peerID,
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "2",
+					PeerID:        peerID,
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "2",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_UNAVAILABLE),
 						Message: "bad bad not good",
@@ -463,8 +463,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectAck := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "21",
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "21",
 				},
 			},
 		}
@@ -513,8 +513,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectNack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "24",
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "24",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_INVALID_ARGUMENT),
 						Message: `unsupported operation: "OPERATION_UNSPECIFIED"`,
@@ -1003,8 +1003,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -1021,8 +1021,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -1038,8 +1038,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: "nomad.Job",
-						Nonce:       "1",
+						ResourceURL:   "nomad.Job",
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `received response for unknown resource type "nomad.Job"`,
@@ -1059,8 +1059,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `unsupported operation: "OPERATION_UNSPECIFIED"`,
@@ -1080,8 +1080,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `unsupported operation: 100000`,
@@ -1187,7 +1187,7 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 			if reqA.ResourceURL != reqB.ResourceURL {
 				return reqA.ResourceURL < reqB.ResourceURL
 			}
-			return reqA.Nonce < reqB.Nonce
+			return reqA.ResponseNonce < reqB.ResponseNonce
 
 		case *pbpeerstream.ReplicationMessage_Response_:
 			respA, respB := a.GetResponse(), b.GetResponse()

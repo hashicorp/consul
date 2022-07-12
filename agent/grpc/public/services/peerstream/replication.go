@@ -38,12 +38,10 @@ import (
 func makeServiceResponse(
 	logger hclog.Logger,
 	update cache.UpdateEvent,
-) *pbpeerstream.ReplicationMessage {
+) (*pbpeerstream.ReplicationMessage_Response, error) {
 	any, csn, err := marshalToProtoAny[*pbservice.IndexedCheckServiceNodes](update.Result)
 	if err != nil {
-		// Log the error and skip this response to avoid locking up peering due to a bad update event.
-		logger.Error("failed to marshal", "error", err)
-		return nil
+		return nil, fmt.Errorf("failed to marshal: %w", err)
 	}
 
 	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
@@ -56,60 +54,43 @@ func makeServiceResponse(
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
 	if len(csn.Nodes) == 0 {
-		resp := &pbpeerstream.ReplicationMessage{
-			Payload: &pbpeerstream.ReplicationMessage_Response_{
-				Response: &pbpeerstream.ReplicationMessage_Response{
-					ResourceURL: pbpeerstream.TypeURLService,
-					// TODO(peering): Nonce management
-					Nonce:      "",
-					ResourceID: serviceName,
-					Operation:  pbpeerstream.Operation_OPERATION_DELETE,
-				},
-			},
-		}
-		return resp
+		return &pbpeerstream.ReplicationMessage_Response{
+			ResourceURL: pbpeerstream.TypeURLService,
+			// TODO(peering): Nonce management
+			Nonce:      "",
+			ResourceID: serviceName,
+			Operation:  pbpeerstream.Operation_OPERATION_DELETE,
+		}, nil
 	}
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
-	resp := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Response_{
-			Response: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLService,
-				// TODO(peering): Nonce management
-				Nonce:      "",
-				ResourceID: serviceName,
-				Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-				Resource:   any,
-			},
-		},
-	}
-	return resp
+	return &pbpeerstream.ReplicationMessage_Response{
+		ResourceURL: pbpeerstream.TypeURLService,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: serviceName,
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
+	}, nil
 }
 
 func makeCARootsResponse(
 	logger hclog.Logger,
 	update cache.UpdateEvent,
-) *pbpeerstream.ReplicationMessage {
+) (*pbpeerstream.ReplicationMessage_Response, error) {
 	any, _, err := marshalToProtoAny[*pbpeering.PeeringTrustBundle](update.Result)
 	if err != nil {
-		// Log the error and skip this response to avoid locking up peering due to a bad update event.
-		logger.Error("failed to marshal", "error", err)
-		return nil
+		return nil, fmt.Errorf("failed to marshal: %w", err)
 	}
 
-	resp := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Response_{
-			Response: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLRoots,
-				// TODO(peering): Nonce management
-				Nonce:      "",
-				ResourceID: "roots",
-				Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
-				Resource:   any,
-			},
-		},
-	}
-	return resp
+	return &pbpeerstream.ReplicationMessage_Response{
+		ResourceURL: pbpeerstream.TypeURLRoots,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: "roots",
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
+	}, nil
 }
 
 // marshalToProtoAny takes any input and returns:
@@ -136,7 +117,7 @@ func (s *Server) processResponse(
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
-		return makeReply(
+		return makeNACKReply(
 			resp.ResourceURL,
 			resp.Nonce,
 			code.Code_INVALID_ARGUMENT,
@@ -148,7 +129,7 @@ func (s *Server) processResponse(
 	case pbpeerstream.Operation_OPERATION_UPSERT:
 		if resp.Resource == nil {
 			err := fmt.Errorf("received upsert response with no content")
-			return makeReply(
+			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
 				code.Code_INVALID_ARGUMENT,
@@ -157,7 +138,7 @@ func (s *Server) processResponse(
 		}
 
 		if err := s.handleUpsert(peerName, partition, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
-			return makeReply(
+			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
 				code.Code_INTERNAL,
@@ -165,18 +146,18 @@ func (s *Server) processResponse(
 			), fmt.Errorf("upsert error: %w", err)
 		}
 
-		return makeReply(resp.ResourceURL, resp.Nonce, code.Code_OK, ""), nil
+		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	case pbpeerstream.Operation_OPERATION_DELETE:
 		if err := s.handleDelete(peerName, partition, resp.ResourceURL, resp.ResourceID); err != nil {
-			return makeReply(
+			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
 				code.Code_INTERNAL,
 				fmt.Sprintf("delete error, ResourceURL: %q, ResourceID: %q: %v", resp.ResourceURL, resp.ResourceID, err),
 			), fmt.Errorf("delete error: %w", err)
 		}
-		return makeReply(resp.ResourceURL, resp.Nonce, code.Code_OK, ""), nil
+		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	default:
 		var errMsg string
@@ -185,7 +166,7 @@ func (s *Server) processResponse(
 		} else {
 			errMsg = fmt.Sprintf("unsupported operation: %d", resp.Operation)
 		}
-		return makeReply(
+		return makeNACKReply(
 			resp.ResourceURL,
 			resp.Nonce,
 			code.Code_INVALID_ARGUMENT,
@@ -458,7 +439,14 @@ func (s *Server) handleDelete(
 	}
 }
 
-func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbpeerstream.ReplicationMessage {
+func makeACKReply(resourceURL, nonce string) *pbpeerstream.ReplicationMessage {
+	return makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
+		ResourceURL:   resourceURL,
+		ResponseNonce: nonce,
+	})
+}
+
+func makeNACKReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbpeerstream.ReplicationMessage {
 	var rpcErr *pbstatus.Status
 	if errCode != code.Code_OK || errMsg != "" {
 		rpcErr = &pbstatus.Status{
@@ -467,14 +455,27 @@ func makeReply(resourceURL, nonce string, errCode code.Code, errMsg string) *pbp
 		}
 	}
 
-	// TODO: shouldn't this be response?
+	return makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
+		ResourceURL:   resourceURL,
+		ResponseNonce: nonce,
+		Error:         rpcErr,
+	})
+}
+
+// makeReplicationRequest is a convenience method to make a Request-type ReplicationMessage.
+func makeReplicationRequest(req *pbpeerstream.ReplicationMessage_Request) *pbpeerstream.ReplicationMessage {
 	return &pbpeerstream.ReplicationMessage{
 		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL: resourceURL,
-				Nonce:       nonce,
-				Error:       rpcErr,
-			},
+			Request: req,
+		},
+	}
+}
+
+// makeReplicationResponse is a convenience method to make a Response-type ReplicationMessage.
+func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pbpeerstream.ReplicationMessage {
+	return &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Response_{
+			Response: resp,
 		},
 	}
 }
