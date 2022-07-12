@@ -558,6 +558,12 @@ func createDiscoChainHealth(
 			trustDomain,
 		)
 
+		gwSpiffeID := connect.SpiffeIDMeshGateway{
+			Host:       trustDomain,
+			Partition:  sn.PartitionOrDefault(),
+			Datacenter: datacenter,
+		}
+
 		// Create common peer meta.
 		//
 		// TODO(peering): should this be replicated by service and not by instance?
@@ -565,19 +571,14 @@ func createDiscoChainHealth(
 			SNI: []string{sni},
 			SpiffeID: []string{
 				mainSpiffeIDString,
+				// Always include the gateway id here to facilitate error-free
+				// L4/L7 upgrade/downgrade scenarios.
+				gwSpiffeID.URI().String(),
 			},
 			Protocol: info.Protocol,
 		}
 
-		if structs.IsProtocolHTTPLike(info.Protocol) {
-			gwSpiffeID := connect.SpiffeIDMeshGateway{
-				Host:       trustDomain,
-				Partition:  sn.PartitionOrDefault(),
-				Datacenter: datacenter,
-			}
-
-			peerMeta.SpiffeID = append(peerMeta.SpiffeID, gwSpiffeID.URI().String())
-		} else {
+		if !structs.IsProtocolHTTPLike(info.Protocol) {
 			for _, target := range info.TCPTargets {
 				targetSpiffeID := connect.SpiffeIDService{
 					Host:       trustDomain,
