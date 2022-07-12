@@ -426,7 +426,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 		clusters = append(clusters, cluster)
 
 		gatewaySvc, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]
-		isHTTP2 := ok && gatewaySvc.Protocol == "http2"
+		isHTTP2 := ok && (gatewaySvc.Protocol == "http2" || gatewaySvc.Protocol == "grpc")
 		if isHTTP2 {
 			if err := s.setHttp2ProtocolOptions(cluster); err != nil {
 				return nil, err
