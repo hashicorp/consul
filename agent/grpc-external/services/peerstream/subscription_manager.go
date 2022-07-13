@@ -169,13 +169,6 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			// skip checks since we just generated one from scratch
 		}
 
-		// Scrub raft indexes
-		for _, instance := range csn.Nodes {
-			instance.Node.RaftIndex = nil
-			instance.Service.RaftIndex = nil
-			// skip checks since we just generated one from scratch
-		}
-
 		id := servicePayloadIDPrefix + strings.TrimPrefix(u.CorrelationID, subExportedService)
 
 		// Just ferry this one directly along to the destination.
@@ -225,6 +218,9 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			if instance.Service.Connect != nil || instance.Service.Proxy != nil {
 				instance.Service.Connect = nil
 				instance.Service.Proxy = nil
+
+				// VirtualIPs assigned in this cluster won't make sense on the importing side
+				delete(instance.Service.TaggedAddresses, structs.TaggedAddressVirtualIP)
 			}
 		}
 
@@ -286,6 +282,9 @@ func filterConnectReferences(orig *pbservice.IndexedCheckServiceNodes) {
 			csn = proto.Clone(csn).(*pbservice.CheckServiceNode)
 			csn.Service.Connect = nil
 			csn.Service.Proxy = nil
+
+			// VirtualIPs assigned in this cluster won't make sense on the importing side
+			delete(csn.Service.TaggedAddresses, structs.TaggedAddressVirtualIP)
 		}
 
 		newNodes = append(newNodes, csn)
