@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package peering;
+package hashicorp.consul.internal.peering;
 
 import "google/protobuf/timestamp.proto";
 

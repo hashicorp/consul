@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package peerstream;
+package hashicorp.consul.internal.peerstream;
 
 import "google/protobuf/any.proto";
 // TODO(peering): Handle this some other way

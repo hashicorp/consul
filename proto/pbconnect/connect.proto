@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package connect;
+package hashicorp.consul.internal.connect;
 
 import "google/protobuf/timestamp.proto";
 import "proto/pbcommon/common.proto";
