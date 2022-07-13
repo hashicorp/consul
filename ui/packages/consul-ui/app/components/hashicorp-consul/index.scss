@@ -44,6 +44,11 @@
     top: 2px;
     margin-left: 2px;
   }
+  .dc-name {
+    color: rgb(var(--tone-gray-600));
+    margin-left: 18px;
+    font-weight: var(--typo-weight-semibold)
+  }
 }
 .hashicorp-consul {
   @extend %hashicorp-consul;

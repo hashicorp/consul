@@ -83,16 +83,21 @@
     <a
       href={{href-to 'index' params=(hash peer=undefined)}}
     ><Consul::Logo /></a>
+    {{#if (eq @dcs.length 1)}}
+      <div class="dc-name">{{@dc.Name}}</div>
+    {{/if}}
   </:home-nav>
 
   <:main-nav>
     <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
+      {{#if (gt @dcs.length 1)}}
+        <Consul::Datacenter::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @dcs={{@dcs}}
+        />
+      {{/if}}
       <Consul::Partition::Selector
         @dc={{@dc}}
         @partition={{@partition}}
