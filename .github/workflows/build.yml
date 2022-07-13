@@ -6,7 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
-      - release/1.12.x
+      - release/1.12.3
 
 env:
   PKG_NAME: consul
