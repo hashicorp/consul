@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	grpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -544,10 +544,10 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.Datacenter = conf.Datacenter
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
-	publicGRPCServer := gogrpc.NewServer()
+	externalGRPCServer := gogrpc.NewServer()
 
 	deps := newDefaultDeps(t, conf)
-	server, err := consul.NewServer(conf, deps, publicGRPCServer)
+	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown())
@@ -560,9 +560,9 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	ln, err := net.Listen("tcp", grpcAddr)
 	require.NoError(t, err)
 	go func() {
-		_ = publicGRPCServer.Serve(ln)
+		_ = externalGRPCServer.Serve(ln)
 	}()
-	t.Cleanup(publicGRPCServer.Stop)
+	t.Cleanup(externalGRPCServer.Stop)
 
 	testrpc.WaitForLeader(t, server.RPC, conf.Datacenter)
 
