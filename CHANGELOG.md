@@ -1,3 +1,15 @@
+## 1.11.7 (July 13, 2022)
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to 1.20.4, 1.19.5, 1.18.6, 1.17.4 [[GH-13434](https://github.com/hashicorp/consul/issues/13434)]
+
+BUG FIXES:
+
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13265](https://github.com/hashicorp/consul/issues/13265)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+* xds: Fix a bug where terminating gateway upstream clusters weren't configured properly when the service protocol was `http2`. [[GH-13699](https://github.com/hashicorp/consul/issues/13699)]
+
 ## 1.11.6 (May 25, 2022)
 
 IMPROVEMENTS:
