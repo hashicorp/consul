@@ -110,7 +110,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
@@ -228,13 +229,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 	// Looping over explicit upstreams is only needed for cross-peer because
 	// they do not have discovery chains.
-	//
-	// TODO(peering): make this work for tproxy
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}

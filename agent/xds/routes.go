@@ -50,7 +50,8 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 
 		explicit := cfgSnap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
