@@ -2,6 +2,7 @@ import Component from '@ember/component';
 import { set } from '@ember/object';
 import Slotted from 'block-slots';
 import A11yDialog from 'a11y-dialog';
+import { schedule } from '@ember/runloop';
 
 export default Component.extend(Slotted, {
   tagName: '',
@@ -11,12 +12,14 @@ export default Component.extend(Slotted, {
   actions: {
     connect: function($el) {
       this.dialog = new A11yDialog($el);
-      // these are split into multiple listeners to avoid the
-      // "ember double computation error"
-      this.dialog.on('show', () => set(this, 'isOpen', true));
-      this.dialog.on('hide', () => set(this, 'isOpen', false));
-      this.dialog.on('hide', () => this.onclose({ target: $el }));
-      this.dialog.on('show', () => this.onopen({ target: $el }));
+      this.dialog.on('hide', () => {
+        schedule('afterRender', _ => set(this, 'isOpen', false));
+        this.onclose({ target: $el })
+      });
+      this.dialog.on('show', () => {
+        set(this, 'isOpen', true)
+        this.onopen({ target: $el })
+      });
       if (this.open) {
         this.actions.open.apply(this, []);
       }
