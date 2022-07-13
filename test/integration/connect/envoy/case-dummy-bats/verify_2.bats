@@ -3,12 +3,12 @@
 load dummy-function
 
 setup() {
-  source $(pwd)/workdir/vars.sh
-  source $(pwd)/workdir/setup.sh "Content of the created setup.txt file in setup.sh" $TXT_FILE_NAME
+  source vars.sh
+  source setup.sh "Content of the created setup.txt file in setup.sh" $TXT_FILE_NAME
 }
 
 teardown() {
-  rm $TXT_FILE_NAME
+  cat /dev/null >$TXT_FILE_NAME
 }
 
 @test "Test with dummyFunction invoked" {
