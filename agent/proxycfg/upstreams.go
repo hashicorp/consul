@@ -71,7 +71,8 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 		case structs.ServiceKindConnectProxy:
 			explicit := snap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
-			if _, implicit := snap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			implicit := snap.ConnectProxy.IsImplicitUpstream(uid)
+			if !implicit && !explicit {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
 				// The associated watch was likely cancelled.
 				delete(upstreamsSnapshot.DiscoveryChain, uid)

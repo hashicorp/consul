@@ -170,6 +170,12 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.PeerUpstreamEndpointsUseHostnames) == 0
 }
 
+func (c *configSnapshotConnectProxy) IsImplicitUpstream(uid UpstreamID) bool {
+	_, intentionImplicit := c.IntentionUpstreams[uid]
+	_, peeringImplicit := c.PeeredUpstreams[uid]
+	return intentionImplicit || peeringImplicit
+}
+
 type configSnapshotTerminatingGateway struct {
 	MeshConfig    *structs.MeshConfigEntry
 	MeshConfigSet bool
