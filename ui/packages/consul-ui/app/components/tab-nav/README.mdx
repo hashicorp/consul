@@ -11,16 +11,21 @@ Each item in the list should be a hash of `label`, `href` and `selected`.
 - `label`: The text to show
 - `href`: a href, probably generated via `href-to`
 - `selected`: whether the item is in the selected state or not, probably
-- `state`: when used with an @onclick using `StateMachine.dispatch`, the name
   of the state to transition to.
+
+There are two similar event handlers, `@onclick` and `@onTabClick`.
+
+When using `@onclick`, the `item.label` is passed to the handler. When using
+`@onTabClick` the entire 'item' is passed instead, therefore you can add
+arbitrary properties to the 'item' to be used in the handler.
 
 
 **Please note:** This component should probably be rebuilt using contextual
-components, alternatively this could be hand built with native HTML using the
-same `nav/ul/li/a` pattern and you could just use the CSS component to style
-it. Unless there is a reason to do this, this component should be used pending
-a refactor (please remove this note once refactored into contextual
-components)
+components, and real events. Alternatively this could be hand built with native
+HTML using the same `nav/ul/li/a` pattern and you could just use the CSS
+component to style it. Unless there is a reason to do this, this component
+should be used pending a refactor (please remove this note once refactored into
+contextual components)
 
 ```hbs preview-template
 <figure>
@@ -58,7 +63,7 @@ A TabNav with using a `StateMachine.dispatch`
         )
       )
     }}
-    @onclick={{fsm.dispatch}}
+    @onTabClicked={{pick 'state' fsm.dispatch}}
   />
 </figure>
 ```
