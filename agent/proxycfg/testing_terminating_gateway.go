@@ -553,7 +553,7 @@ func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
 func TestConfigSnapshotTerminatingGatewayHTTP2(t testing.T) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
 
-	return TestConfigSnapshotTerminatingGateway(t, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, false, nil, []cache.UpdateEvent{
 		{
 			CorrelationID: gatewayServicesWatchID,
 			Result: &structs.IndexedGatewayServices{
@@ -596,19 +596,22 @@ func TestConfigSnapshotTerminatingGatewayHTTP2(t testing.T) *ConfigSnapshot {
 func TestConfigSnapshotTerminatingGatewaySubsetsHTTP2(t testing.T) *ConfigSnapshot {
 	web := structs.NewServiceName("web", nil)
 
-	return TestConfigSnapshotTerminatingGateway(t, false, nil, []UpdateEvent{
+	return TestConfigSnapshotTerminatingGateway(t, false, nil, []cache.UpdateEvent{
 		{
 			CorrelationID: serviceResolverIDPrefix + web.String(),
-			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "web",
-					Subsets: map[string]structs.ServiceResolverSubset{
-						"v1": {
-							Filter: "Service.Meta.version == 1",
-						},
-						"v2": {
-							Filter: "Service.Meta.version == 2",
+			Result: &structs.IndexedConfigEntries{
+				Kind: structs.ServiceResolver,
+				Entries: []structs.ConfigEntry{
+					&structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter: "Service.Meta.version == 2",
+							},
 						},
 					},
 				},
