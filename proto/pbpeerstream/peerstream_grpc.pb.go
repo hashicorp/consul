@@ -39,7 +39,7 @@ func NewPeerStreamServiceClient(cc grpc.ClientConnInterface) PeerStreamServiceCl
 }
 
 func (c *peerStreamServiceClient) StreamResources(ctx context.Context, opts ...grpc.CallOption) (PeerStreamService_StreamResourcesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &PeerStreamService_ServiceDesc.Streams[0], "/peerstream.PeerStreamService/StreamResources", opts...)
+	stream, err := c.cc.NewStream(ctx, &PeerStreamService_ServiceDesc.Streams[0], "/hashicorp.consul.internal.peerstream.PeerStreamService/StreamResources", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (x *peerStreamServiceStreamResourcesServer) Recv() (*ReplicationMessage, er
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PeerStreamService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "peerstream.PeerStreamService",
+	ServiceName: "hashicorp.consul.internal.peerstream.PeerStreamService",
 	HandlerType: (*PeerStreamServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
