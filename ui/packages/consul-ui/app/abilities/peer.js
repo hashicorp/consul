@@ -11,8 +11,10 @@ export default class PeerAbility extends BaseAbility {
     return this.canDelete;
   }
   get canDelete() {
-    // TODO: Need to confirm these states
-    return !['DELETING', 'TERMINATED', 'UNDEFINED'].includes(this.item.State) && super.canDelete;
+    return ![
+      'DELETING',
+      'TERMINATED'
+    ].includes(this.item.State) && super.canDelete;
   }
 
   get canUse() {
