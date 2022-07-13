@@ -6,21 +6,21 @@ description: Single Consul Datacenter deployed in multiple Kubernetes clusters
 
 # Single Consul Datacenter in Multiple Kubernetes Clusters
 
-This page describes how to deploy a single Consul datacenter in multiple Kubernetes clusters,
-with both servers and clients running in one cluster, and only clients running in the rest of the clusters.
+This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
+with servers and clients running in one cluster and only clients in the rest of the clusters.
 This example uses two Kubernetes clusters, but this approach could be extended to using more than two.
 
 ## Requirements
 
 * Consul-Helm version `v0.32.1` or higher
 * This deployment topology requires that the Kubernetes clusters have a flat network
-for both pods and nodes, so that pods or nodes from one cluster can connect
+for both pods and nodes so that pods or nodes from one cluster can connect
 to pods or nodes in another. In many hosted Kubernetes environments, this may have to be explicitly configured based on the hosting provider's network. Refer to the following documentation for instructions:
   * [Azure AKS CNI](https://docs.microsoft.com/en-us/azure/aks/concepts-network#azure-cni-advanced-networking)
   * [AWS EKS CNI](https://docs.aws.amazon.com/eks/latest/userguide/pod-networking.html)
   * [GKE VPC-native clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips).
 
-If a flat network is not available across all Kubernetes clusters, follow the instructions for using [Admin Partitions](/docs/enterprise/admin-partitions), which is a Consul Enterprise feature.
+If a flat network is unavailable across all Kubernetes clusters, follow the instructions for using [Admin Partitions](/docs/enterprise/admin-partitions), which is a Consul Enterprise feature.
 
 
 ## Prepare Helm release name ahead of installs
@@ -30,7 +30,7 @@ The Helm chart uses the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are identical, subsequent Consul on Kubernetes clusters overwrite existing ACL resources and cause the clusters to fail.
 
-Before proceeding with installation, prepare the Helm release names as environment variables for both the server and client installs to use.
+Before proceeding with installation, prepare the Helm release names as environment variables for both the server and client install.
 
 ```shell-session
   $ export HELM_RELEASE_SERVER=server
@@ -69,7 +69,7 @@ ui:
 
 Note that this will deploy a secure configuration with gossip encryption,
 TLS for all components and ACLs. In addition, this will enable the Consul Service Mesh and the controller for CRDs
-that can be used later to verify the services connectivity across clusters.
+that can be used later to verify the connectivity of services across clusters.
 
 The UI's service type is set to be `NodePort`.
 This is needed to connect to servers from another cluster without using the pod IPs of the servers,
@@ -178,11 +178,11 @@ To make sure that the hostname verification succeeds during the TLS handshake, s
 server name to a DNS name that *is* present in the certificate.
 
 Next, set `externalServers.k8sAuthMethodHost` to the address of the second Kubernetes API server.
-This should be the address that is reachable from the first cluster, and so it cannot be the internal DNS
+This should be the address that is reachable from the first cluster, so it cannot be the internal DNS
 available in each Kubernetes cluster. Consul needs it so that `consul login` with the Kubernetes auth method will work
 from the second cluster.
 More specifically, the Consul server will need to perform the verification of the Kubernetes service account
-whenever `consul login` is called, and to verify service accounts from the second cluster it needs to
+whenever `consul login` is called, and to verify service accounts from the second cluster, it needs to
 reach the Kubernetes API in that cluster.
 The easiest way to get it is from the `kubeconfig` by running `kubectl config view` and grabbing
 the value of `cluster.server` for the second cluster.
@@ -192,7 +192,7 @@ For this, Consul's cloud auto-join feature
 for the [Kubernetes provider](/docs/install/cloud-auto-join#kubernetes-k8s) can be used.
 
 This can be configured by saving the `kubeconfig` for the first cluster as a Kubernetes secret in the second cluster
-and reference it in the `clients.join` value. Note that the secret is made available to the client pods
+and referencing it in the `clients.join` value. Note that the secret is made available to the client pods
 by setting it in `client.extraVolumes`.
 
 ~> **Note:** The kubeconfig provided to the client should have minimal permissions.
@@ -208,7 +208,7 @@ $ helm install ${HELM_RELEASE_CLIENT} --values cluster2-config.yaml hashicorp/co
 
 ## Verifying the Consul Service Mesh works
 
-~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 
 Now that the Consul cluster spanning across multiple k8s clusters is up and running, deploy two services in separate k8s clusters and verify that they can connect to each other.
 
