@@ -12,4 +12,5 @@ RUN mkdir bats-core
 RUN tar -xf bats.zip -C bats-core --strip-components=1
 RUN cd "C:\\Program Files\\Git\\bin" && bash.exe -c "/c/bats-core/install.sh /c/bats"
 
+WORKDIR C:\\workdir
 ENTRYPOINT ["C:\\Program Files\\Git\\bin\\bash.exe", "C:\\bats\\bin\\bats"]
