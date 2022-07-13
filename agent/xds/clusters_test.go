@@ -591,7 +591,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				web := structs.NewServiceName("web", nil)
 				snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
 					web: {
-						ProxyConfig: map[string]interface{}{"protocol": "http"},
+						ProxyConfig: map[string]interface{}{"protocol": "http2"},
 					},
 				}
 				snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
@@ -600,21 +600,26 @@ func TestClustersFromSnapshot(t *testing.T) {
 						CAFile:  "ca.cert.pem",
 					},
 				}
-				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
-					web: {
-						{
-							Node: &structs.Node{
-								ID:         "external",
-								Node:       "external",
-								Address:    "web.external.service",
-								Datacenter: "dc1",
-							},
-							Service: &structs.NodeService{
-								Service: "web",
-								Port:    9090,
-							},
+
+				webNodes := structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							ID:         "external",
+							Node:       "external",
+							Address:    "web.external.service",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "web",
+							Port:    9090,
 						},
 					},
+				}
+				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: webNodes,
+				}
+				snap.TerminatingGateway.HostnameServices = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: webNodes,
 				}
 			},
 		},
@@ -641,7 +646,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 				snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
 					web: {
-						ProxyConfig: map[string]interface{}{"protocol": "http"},
+						ProxyConfig: map[string]interface{}{"protocol": "http2"},
 					},
 				}
 				snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
@@ -650,21 +655,26 @@ func TestClustersFromSnapshot(t *testing.T) {
 						CAFile:  "ca.cert.pem",
 					},
 				}
-				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
-					web: {
-						{
-							Node: &structs.Node{
-								ID:         "external",
-								Node:       "external",
-								Address:    "web.external.service",
-								Datacenter: "dc1",
-							},
-							Service: &structs.NodeService{
-								Service: "web",
-								Port:    9090,
-							},
+
+				webNodes := structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							ID:         "external",
+							Node:       "external",
+							Address:    "web.external.service",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							Service: "web",
+							Port:    9090,
 						},
 					},
+				}
+				snap.TerminatingGateway.ServiceGroups = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: webNodes,
+				}
+				snap.TerminatingGateway.HostnameServices = map[structs.ServiceName]structs.CheckServiceNodes{
+					web: webNodes,
 				}
 			},
 		},

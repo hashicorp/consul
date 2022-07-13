@@ -14,6 +14,9 @@
         }
       },
       "connectTimeout": "5s",
+      "http2ProtocolOptions": {
+
+      },
       "outlierDetection": {
 
       },
@@ -47,6 +50,9 @@
         }
       },
       "connectTimeout": "5s",
+      "http2ProtocolOptions": {
+
+      },
       "outlierDetection": {
 
       },
@@ -70,16 +76,34 @@
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          },
-          "resourceApiVersion": "V3"
-        }
-      },
+      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "web.external.service",
+                      "portValue": 9090
+                    }
+                  }
+                },
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "http2ProtocolOptions": {
+
+      },
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
 
       },
