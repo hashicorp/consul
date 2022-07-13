@@ -131,6 +131,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		IntentionUpstreams:              typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		InternalServiceDump:             typedWatchRecorder[*structs.ServiceDumpRequest]{wr},
 		LeafCertificate:                 typedWatchRecorder[*cachetype.ConnectCALeafRequest]{wr},
+		PeeredUpstreams:                 typedWatchRecorder[*structs.PartitionSpecificRequest]{wr},
 		PreparedQuery:                   typedWatchRecorder[*structs.PreparedQueryExecuteRequest]{wr},
 		ResolvedServiceConfig:           typedWatchRecorder[*structs.ServiceConfigRequest]{wr},
 		ServiceList:                     typedWatchRecorder[*structs.DCSpecificRequest]{wr},
@@ -321,6 +322,15 @@ func genVerifyServiceSpecificPeeredRequest(expectedService, expectedFilter, expe
 	}
 }
 
+func genVerifyPartitionSpecificRequest(expectedPartition, expectedDatacenter string) verifyWatchRequest {
+	return func(t testing.TB, request any) {
+		reqReal, ok := request.(*structs.PartitionSpecificRequest)
+		require.True(t, ok)
+		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
+		require.Equal(t, expectedPartition, reqReal.PartitionOrDefault())
+	}
+}
+
 func genVerifyGatewayServiceWatch(expectedService, expectedDatacenter string) verifyWatchRequest {
 	return genVerifyServiceSpecificRequest(expectedService, "", expectedDatacenter, false)
 }
@@ -404,9 +414,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		dbUID     = NewUpstreamIDFromServiceName(db)
 		pqUID     = UpstreamIDFromString("prepared_query:query")
 		extApiUID = NewUpstreamIDFromServiceName(apiA)
+		extDBUID  = NewUpstreamIDFromServiceName(db)
 	)
 	// TODO(peering): NewUpstreamIDFromServiceName should take a PeerName
 	extApiUID.Peer = "peer-a"
+	extDBUID.Peer = "peer-a"
 
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
@@ -2509,6 +2521,253 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
+		"transparent-proxy-initial-with-peers": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "api-proxy",
+				Service: "api-proxy",
+				Address: "10.0.1.1",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+					Mode:                   structs.ProxyModeTransparent,
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "api-a",
+							DestinationPeer: "peer-a",
+						},
+					},
+				},
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatch("api"),
+						peeredUpstreamsID:          genVerifyPartitionSpecificRequest(acl.DefaultEnterpriseMeta().PartitionOrDefault(), "dc1"),
+						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
+						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
+						leafWatchID:                genVerifyLeafWatch("api", "dc1"),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
+
+						require.False(t, snap.ConnectProxy.isEmpty())
+
+						// This is explicitly defined from proxy config
+						expectUpstreams := map[UpstreamID]*structs.Upstream{
+							extApiUID: {
+								DestinationName:      "api-a",
+								DestinationNamespace: structs.IntentionDefaultNamespace,
+								DestinationPartition: structs.IntentionDefaultNamespace,
+								DestinationPeer:      "peer-a",
+							},
+						}
+						require.Equal(t, expectUpstreams, snap.ConnectProxy.UpstreamConfig)
+					},
+				},
+				{
+					// Initial events
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: leafWatchID,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						{
+							CorrelationID: intentionsWatchID,
+							Result:        TestIntentions(),
+							Err:           nil,
+						},
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result:        peerTrustBundles,
+						},
+						{
+							CorrelationID: peeredUpstreamsID,
+							Result: &structs.IndexedPeeredServiceList{
+								Services: []structs.PeeredServiceName{
+									{
+										ServiceName: apiA,
+										Peer:        "peer-a",
+									},
+									{
+										// This service is dynamic (not from static config)
+										ServiceName: db,
+										Peer:        "peer-a",
+									},
+								},
+							},
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result: &structs.ConfigEntryResponse{
+								Entry: nil, // no explicit config
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Equal(t, issuedCert, snap.Leaf())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
+						require.True(t, snap.ConnectProxy.MeshConfigSet)
+						require.Nil(t, snap.ConnectProxy.MeshConfig)
+
+						// Check PeeredUpstream is populated
+						expect := map[UpstreamID]struct{}{
+							extDBUID:  {},
+							extApiUID: {},
+						}
+						require.Equal(t, expect, snap.ConnectProxy.PeeredUpstreams)
+
+						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extApiUID))
+						_, ok := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
+						require.False(t, ok, "expected initialized but empty PeerUpstreamEndpoint")
+
+						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extDBUID))
+						_, ok = snap.ConnectProxy.PeerUpstreamEndpoints.Get(extDBUID)
+						require.False(t, ok, "expected initialized but empty PeerUpstreamEndpoint")
+
+						require.True(t, snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched("peer-a"))
+						_, ok = snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
+						require.False(t, ok, "expected initialized but empty PeerTrustBundle")
+					},
+				},
+				{
+					// Peered upstream will have set up 3 more watches
+					requiredWatches: map[string]verifyWatchRequest{
+						upstreamPeerWatchIDPrefix + extApiUID.String(): genVerifyServiceSpecificPeeredRequest("api-a", "", "dc1", "peer-a", true),
+						upstreamPeerWatchIDPrefix + extDBUID.String():  genVerifyServiceSpecificPeeredRequest("db", "", "dc1", "peer-a", true),
+						peerTrustBundleIDPrefix + "peer-a":             genVerifyTrustBundleReadWatch("peer-a"),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: peerTrustBundleIDPrefix + "peer-a",
+							Result: &pbpeering.TrustBundleReadResponse{
+								Bundle: peerTrustBundles.Bundles[0],
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Equal(t, issuedCert, snap.Leaf())
+						require.True(t, snap.MeshGateway.isEmpty())
+						require.True(t, snap.IngressGateway.isEmpty())
+						require.True(t, snap.TerminatingGateway.isEmpty())
+						require.True(t, snap.ConnectProxy.MeshConfigSet)
+						require.Nil(t, snap.ConnectProxy.MeshConfig)
+
+						// Check PeeredUpstream is populated
+						expect := map[UpstreamID]struct{}{
+							extDBUID:  {},
+							extApiUID: {},
+						}
+						require.Equal(t, expect, snap.ConnectProxy.PeeredUpstreams)
+
+						// Expect two entries (DB and api-a)
+						require.Equal(t, 2, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+
+						// db does not have endpoints yet
+						ep, _ := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extDBUID)
+						require.Nil(t, ep)
+
+						// Expect a trust bundle
+						ptb, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
+						require.True(t, ok)
+						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
+
+						// Sanity check that local upstream maps are not populated
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+					},
+				},
+				{
+					// Add another instance of "api-a" service
+					events: []UpdateEvent{
+						{
+							CorrelationID: upstreamPeerWatchIDPrefix + extDBUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:     "node1",
+											Address:  "127.0.0.1",
+											PeerName: "peer-a",
+										},
+										Service: &structs.NodeService{
+											ID:       "db",
+											Service:  "db",
+											PeerName: "peer-a",
+											Connect:  structs.ServiceConnect{},
+										},
+									},
+								},
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
+
+						// Check PeeredUpstream is populated
+						expect := map[UpstreamID]struct{}{
+							extApiUID: {},
+							extDBUID:  {},
+						}
+						require.Equal(t, expect, snap.ConnectProxy.PeeredUpstreams)
+
+						// Expect two entries (api-a, db)
+						require.Equal(t, 2, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+
+						// db has an endpoint now
+						ep, _ := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extDBUID)
+						require.NotNil(t, ep)
+						require.Len(t, ep, 1)
+
+						// Expect a trust bundle
+						ptb, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
+						require.True(t, ok)
+						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], ptb)
+
+						// Sanity check that local upstream maps are not populated
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[extDBUID])
+						require.Empty(t, snap.ConnectProxy.PassthroughUpstreams[extDBUID])
+						require.Empty(t, snap.ConnectProxy.PassthroughIndices)
+					},
+				},
+				{
+					// Empty list of peered upstreams should clean up map keys
+					events: []UpdateEvent{
+						{
+							CorrelationID: peeredUpstreamsID,
+							Result: &structs.IndexedPeeredServiceList{
+								Services: []structs.PeeredServiceName{},
+							},
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "proxy with roots/leaf/intentions is valid")
+
+						require.Empty(t, snap.ConnectProxy.PeeredUpstreams)
+
+						// db endpoint should have been cleaned up
+						require.False(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extDBUID))
+
+						// Expect only api-a endpoint
+						require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+						require.Equal(t, 1, snap.ConnectProxy.UpstreamPeerTrustBundles.Len())
+					},
+				},
+			},
+		},
 		"connect-proxy":                    newConnectProxyCase(structs.MeshGatewayModeDefault),
 		"connect-proxy-mesh-gateway-local": newConnectProxyCase(structs.MeshGatewayModeLocal),
 		"connect-proxy-with-peers": {
@@ -2564,10 +2823,15 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 0, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 0, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
-						require.Len(t, snap.ConnectProxy.UpstreamPeerTrustBundles, 0, "%+v", snap.ConnectProxy.UpstreamPeerTrustBundles)
+						// watch initialized
+						require.True(t, snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched("peer-a"))
+						_, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
+						require.False(t, ok) // but no data
 
-						require.Len(t, snap.ConnectProxy.PeerUpstreamEndpoints, 0, "%+v", snap.ConnectProxy.PeerUpstreamEndpoints)
+						// watch initialized
+						require.True(t, snap.ConnectProxy.PeerUpstreamEndpoints.IsWatched(extApiUID))
+						_, ok = snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
+						require.False(t, ok) // but no data
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
@@ -2655,11 +2919,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.ConnectProxy.WatchedGateways, 1, "%+v", snap.ConnectProxy.WatchedGateways)
 						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 1, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamPeerTrustBundles, "peer-a", "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
-						require.Equal(t, peerTrustBundles.Bundles[0], snap.ConnectProxy.UpstreamPeerTrustBundles["peer-a"], "%+v", snap.ConnectProxy.WatchedUpstreamPeerTrustBundles)
+						tb, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get("peer-a")
+						require.True(t, ok)
+						prototest.AssertDeepEqual(t, peerTrustBundles.Bundles[0], tb)
 
-						require.Len(t, snap.ConnectProxy.PeerUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.PeerUpstreamEndpoints)
-						require.NotNil(t, snap.ConnectProxy.PeerUpstreamEndpoints[extApiUID])
+						require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+						ep, _ := snap.ConnectProxy.PeerUpstreamEndpoints.Get(extApiUID)
+						require.NotNil(t, ep)
 
 						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)

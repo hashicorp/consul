@@ -729,11 +729,12 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 				},
 			}
 		} else {
+			ep, _ := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
 			configureClusterWithHostnames(
 				s.Logger,
 				c,
 				"", /*TODO:make configurable?*/
-				cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid],
+				ep,
 				true,  /*isRemote*/
 				false, /*onlyPassing*/
 			)
@@ -743,7 +744,8 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	rootPEMs := cfgSnap.RootPEMs()
 	if uid.Peer != "" {
-		rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		tbs, _ := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		rootPEMs = tbs.ConcatenatedRootPEMs()
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -1077,13 +1079,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if configureTLS {
-			rootPEMs := cfgSnap.RootPEMs()
-			if uid.Peer != "" {
-				rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
-			}
 			commonTLSContext := makeCommonTLSContext(
 				cfgSnap.Leaf(),
-				rootPEMs,
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
 

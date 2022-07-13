@@ -69,6 +69,8 @@ type DataSources struct {
 	// notification channel.
 	LeafCertificate LeafCertificate
 
+	// PeeredUpstreams provides imported-service upstream updates on a
+	// notification channel.
 	PeeredUpstreams PeeredUpstreams
 
 	// PreparedQuery provides updates about the results of a prepared query.
