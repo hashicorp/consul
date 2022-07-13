@@ -109,7 +109,8 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		}
 	}()
 
-	p := writeEstablishedPeering(t, store, 1, "my-peer")
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
 	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
@@ -139,8 +140,8 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	input2 := &pbpeerstream.ReplicationMessage{
 		Payload: &pbpeerstream.ReplicationMessage_Request_{
 			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL: pbpeerstream.TypeURLService,
-				Nonce:       "1",
+				ResourceURL:   pbpeerstream.TypeURLService,
+				ResponseNonce: "1",
 			},
 		},
 	}
@@ -225,8 +226,8 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 			input: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						PeerID: "63b60245-c475-426b-b314-4588d210859d",
-						Nonce:  "1",
+						PeerID:        "63b60245-c475-426b-b314-4588d210859d",
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -275,16 +276,14 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 		c.Tracker.SetClock(it.Now)
 	})
 
-	p := writeEstablishedPeering(t, store, 1, "my-peer")
-	var (
-		peerID       = p.ID     // for Send
-		remotePeerID = p.PeerID // for Recv
-	)
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, peerID, remotePeerID)
+	client := makeClient(t, srv, peerID)
 
 	// TODO(peering): test fails if we don't drain the stream with this call because the
 	// server gets blocked sending the termination message. Figure out a way to let
@@ -334,13 +333,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	// Set the initial roots and CA configuration.
 	_, rootA := writeInitialRootsAndCA(t, store)
 
-	p := writeEstablishedPeering(t, store, 1, "my-peer")
-	var (
-		peerID       = p.ID     // for Send
-		remotePeerID = p.PeerID // for Recv
-	)
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+	peerID := p.ID
 
-	client := makeClient(t, srv, peerID, remotePeerID)
+	client := makeClient(t, srv, peerID)
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
@@ -357,9 +354,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:      peerID,
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "1",
+					PeerID:        peerID,
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "1",
 
 					// Acks do not have an Error populated in the request
 				},
@@ -390,9 +387,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		nack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:      peerID,
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "2",
+					PeerID:        peerID,
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "2",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_UNAVAILABLE),
 						Message: "bad bad not good",
@@ -463,8 +460,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectAck := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "21",
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "21",
 				},
 			},
 		}
@@ -513,8 +510,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectNack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLService,
-					Nonce:       "24",
+					ResourceURL:   pbpeerstream.TypeURLService,
+					ResponseNonce: "24",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_INVALID_ARGUMENT),
 						Message: `unsupported operation: "OPERATION_UNSPECIFIED"`,
@@ -577,12 +574,13 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
+	p := writePeeringToBeDialed(t, store, lastIdx, "my-peering")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, p.ID, p.PeerID)
+	client := makeClient(t, srv, p.ID)
 
 	// Register a service that is not yet exported
 	mysql := &structs.CheckServiceNode{
@@ -800,12 +798,13 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
+	p := writePeeringToBeDialed(t, store, lastIdx, "my-peering")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
 
 	// Set the initial roots and CA configuration.
 	clusterID, rootA := writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, p.ID, p.PeerID)
+	client := makeClient(t, srv, p.ID)
 
 	testutil.RunStep(t, "initial CA Roots replication", func(t *testing.T) {
 		expectReplEvents(t, client,
@@ -856,12 +855,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 // makeClient sets up a *MockClient with the initial subscription
 // message handshake.
-func makeClient(
-	t *testing.T,
-	srv pbpeerstream.PeerStreamServiceServer,
-	peerID string,
-	remotePeerID string,
-) *MockClient {
+func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID string) *MockClient {
 	t.Helper()
 
 	client := NewMockClient(context.Background())
@@ -896,7 +890,10 @@ func makeClient(
 		Payload: &pbpeerstream.ReplicationMessage_Request_{
 			Request: &pbpeerstream.ReplicationMessage_Request{
 				ResourceURL: pbpeerstream.TypeURLService,
-				PeerID:      remotePeerID,
+				// The PeerID field is only set for the messages coming FROM
+				// the establishing side and are going to be empty from the
+				// other side.
+				PeerID: "",
 			},
 		},
 	}
@@ -1003,8 +1000,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -1021,8 +1018,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 					},
 				},
 			},
@@ -1038,8 +1035,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: "nomad.Job",
-						Nonce:       "1",
+						ResourceURL:   "nomad.Job",
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `received response for unknown resource type "nomad.Job"`,
@@ -1059,8 +1056,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `unsupported operation: "OPERATION_UNSPECIFIED"`,
@@ -1080,8 +1077,8 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL: pbpeerstream.TypeURLService,
-						Nonce:       "1",
+						ResourceURL:   pbpeerstream.TypeURLService,
+						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
 							Message: `unsupported operation: 100000`,
@@ -1099,12 +1096,21 @@ func Test_processResponse_Validation(t *testing.T) {
 	}
 }
 
-// writeEstablishedPeering creates a peering with the provided name and ensures
+// writePeeringToDialFrom creates a peering with the provided name and ensures
 // the PeerID field is set for the ID of the remote peer.
-func writeEstablishedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
+func writePeeringToDialFrom(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
 	remotePeerID, err := uuid.GenerateUUID()
 	require.NoError(t, err)
+	return writeTestPeering(t, store, idx, peerName, remotePeerID)
+}
 
+// writePeeringToBeDialed creates a peering with the provided name and ensures
+// the PeerID field is NOT set for the ID of the remote peer.
+func writePeeringToBeDialed(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
+	return writeTestPeering(t, store, idx, peerName, "")
+}
+
+func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, remotePeerID string) *pbpeering.Peering {
 	peering := pbpeering.Peering{
 		ID:     testUUID(t),
 		Name:   peerName,
@@ -1187,7 +1193,7 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 			if reqA.ResourceURL != reqB.ResourceURL {
 				return reqA.ResourceURL < reqB.ResourceURL
 			}
-			return reqA.Nonce < reqB.Nonce
+			return reqA.ResponseNonce < reqB.ResponseNonce
 
 		case *pbpeerstream.ReplicationMessage_Response_:
 			respA, respB := a.GetResponse(), b.GetResponse()

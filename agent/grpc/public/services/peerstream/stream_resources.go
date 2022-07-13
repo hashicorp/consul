@@ -32,6 +32,9 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	logger.Trace("Started processing request")
 	defer logger.Trace("Finished processing request")
 
+	// NOTE: this code should have similar error handling to the new-request
+	// handling code in HandleStream()
+
 	if !s.Backend.IsLeader() {
 		// we are not the leader so we will hang up on the dialer
 
@@ -68,11 +71,14 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	if req.PeerID == "" {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must specify a PeerID")
 	}
-	if req.Nonce != "" {
+	if req.ResponseNonce != "" {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce")
 	}
+	if req.Error != nil {
+		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain an error")
+	}
 	if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
-		return grpcstatus.Error(codes.InvalidArgument, fmt.Sprintf("subscription request to unknown resource URL: %s", req.ResourceURL))
+		return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
 	}
 
 	_, p, err := s.GetStore().PeeringReadByID(nil, req.PeerID)
@@ -88,9 +94,13 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	// TODO(peering): Store subscription request so that an event publisher can separately handle pushing messages for it
 	logger.Info("accepted initial replication request from peer", "peer_id", p.ID)
 
+	if p.PeerID != "" {
+		return grpcstatus.Error(codes.InvalidArgument, "expected PeerID to be empty; the wrong end of peering is being dialed")
+	}
+
 	streamReq := HandleStreamRequest{
 		LocalID:   p.ID,
-		RemoteID:  p.PeerID,
+		RemoteID:  "",
 		PeerName:  p.Name,
 		Partition: p.Partition,
 		Stream:    stream,
@@ -123,6 +133,10 @@ type HandleStreamRequest struct {
 	Stream BidirectionalStream
 }
 
+func (r HandleStreamRequest) WasDialed() bool {
+	return r.RemoteID == ""
+}
+
 // DrainStream attempts to gracefully drain the stream when the connection is going to be torn down.
 // Tearing down the connection too quickly can lead our peer receiving a context cancellation error before the stream termination message.
 // Handling the termination message is important to set the expectation that the peering will not be reestablished unless recreated.
@@ -143,18 +157,21 @@ func (s *Server) DrainStream(req HandleStreamRequest) {
 
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Server) HandleStream(req HandleStreamRequest) error {
+func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 	// TODO: pass logger down from caller?
-	logger := s.Logger.Named("stream").With("peer_name", req.PeerName, "peer_id", req.LocalID)
+	logger := s.Logger.Named("stream").
+		With("peer_name", streamReq.PeerName).
+		With("peer_id", streamReq.LocalID).
+		With("dialed", streamReq.WasDialed())
 	logger.Trace("handling stream for peer")
 
-	status, err := s.Tracker.Connected(req.LocalID)
+	status, err := s.Tracker.Connected(streamReq.LocalID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
 	}
 
 	// TODO(peering) Also need to clear subscriptions associated with the peer
-	defer s.Tracker.Disconnected(req.LocalID)
+	defer s.Tracker.Disconnected(streamReq.LocalID)
 
 	var trustDomain string
 	if s.ConnectEnabled {
@@ -167,26 +184,22 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 	}
 
 	mgr := newSubscriptionManager(
-		req.Stream.Context(),
+		streamReq.Stream.Context(),
 		logger,
 		s.Config,
 		trustDomain,
 		s.Backend,
 		s.GetStore,
 	)
-	subCh := mgr.subscribe(req.Stream.Context(), req.LocalID, req.PeerName, req.Partition)
+	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
-	sub := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL: pbpeerstream.TypeURLService,
-				PeerID:      req.RemoteID,
-			},
-		},
-	}
+	sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
+		ResourceURL: pbpeerstream.TypeURLService,
+		PeerID:      streamReq.RemoteID,
+	})
 	logTraceSend(logger, sub)
 
-	if err := req.Stream.Send(sub); err != nil {
+	if err := streamReq.Stream.Send(sub); err != nil {
 		if err == io.EOF {
 			logger.Info("stream ended by peer")
 			status.TrackReceiveError(err.Error())
@@ -202,7 +215,7 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 	go func() {
 		defer close(recvChan)
 		for {
-			msg, err := req.Stream.Recv()
+			msg, err := streamReq.Stream.Recv()
 			if err == nil {
 				logTraceRecv(logger, msg)
 				recvChan <- msg
@@ -233,13 +246,13 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 			}
 			logTraceSend(logger, term)
 
-			if err := req.Stream.Send(term); err != nil {
+			if err := streamReq.Stream.Send(term); err != nil {
 				status.TrackSendError(err.Error())
 				return fmt.Errorf("failed to send to stream: %v", err)
 			}
 
 			logger.Trace("deleting stream status")
-			s.Tracker.DeleteStatus(req.LocalID)
+			s.Tracker.DeleteStatus(streamReq.LocalID)
 
 			return nil
 
@@ -248,6 +261,9 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 				logger.Trace("no longer receiving data on the stream")
 				return nil
 			}
+
+			// NOTE: this code should have similar error handling to the
+			// initial handling code in StreamResources()
 
 			if !s.Backend.IsLeader() {
 				// we are not the leader anymore so we will hang up on the dialer
@@ -265,8 +281,11 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 			}
 
 			if req := msg.GetRequest(); req != nil {
+				if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
+					return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
+				}
 				switch {
-				case req.Nonce == "":
+				case req.ResponseNonce == "":
 					// TODO(peering): This can happen on a client peer since they don't try to receive subscriptions before entering HandleStream.
 					//                Should change that behavior or only allow it that one time.
 
@@ -283,7 +302,7 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 
 			if resp := msg.GetResponse(); resp != nil {
 				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(req.PeerName, req.Partition, resp)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, resp)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackReceiveError(err.Error())
@@ -292,7 +311,7 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 				}
 
 				logTraceSend(logger, reply)
-				if err := req.Stream.Send(reply); err != nil {
+				if err := streamReq.Stream.Send(reply); err != nil {
 					status.TrackSendError(err.Error())
 					return fmt.Errorf("failed to send to stream: %v", err)
 				}
@@ -304,23 +323,33 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 				logger.Info("peering was deleted by our peer: marking peering as terminated and cleaning up imported resources")
 
 				// Once marked as terminated, a separate deferred deletion routine will clean up imported resources.
-				if err := s.Backend.PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: req.LocalID}); err != nil {
+				if err := s.Backend.PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: streamReq.LocalID}); err != nil {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
 				return nil
 			}
 
 		case update := <-subCh:
-			var resp *pbpeerstream.ReplicationMessage
+			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp = makeServiceResponse(logger, update)
+				resp, err = makeServiceResponse(logger, update)
+				if err != nil {
+					// Log the error and skip this response to avoid locking up peering due to a bad update event.
+					logger.Error("failed to create service response", "error", err)
+					continue
+				}
 
 			case strings.HasPrefix(update.CorrelationID, subMeshGateway):
 				// TODO(Peering): figure out how to sync this separately
 
 			case update.CorrelationID == subCARoot:
-				resp = makeCARootsResponse(logger, update)
+				resp, err = makeCARootsResponse(logger, update)
+				if err != nil {
+					// Log the error and skip this response to avoid locking up peering due to a bad update event.
+					logger.Error("failed to create ca roots response", "error", err)
+					continue
+				}
 
 			default:
 				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
@@ -329,8 +358,11 @@ func (s *Server) HandleStream(req HandleStreamRequest) error {
 			if resp == nil {
 				continue
 			}
-			logTraceSend(logger, resp)
-			if err := req.Stream.Send(resp); err != nil {
+
+			replResp := makeReplicationResponse(resp)
+
+			logTraceSend(logger, replResp)
+			if err := streamReq.Stream.Send(replResp); err != nil {
 				status.TrackSendError(err.Error())
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}

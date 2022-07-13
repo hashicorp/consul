@@ -32,11 +32,11 @@ message ReplicationMessage {
     // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
     string PeerID = 1;
 
-    // Nonce corresponding to that of the response being ACKed or NACKed.
+    // ResponseNonce corresponding to that of the response being ACKed or NACKed.
     // Initial subscription requests will have an empty nonce.
     // The nonce is generated and incremented by the exporting peer.
     // TODO
-    string Nonce = 2;
+    string ResponseNonce = 2;
 
     // The type URL for the resource being requested or ACK/NACKed.
     string ResourceURL = 3;

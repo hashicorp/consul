@@ -252,6 +252,10 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 			return err
 		}
 
+		if peer.PeerID == "" {
+			return fmt.Errorf("expected PeerID to be non empty; the wrong end of peering is being dialed")
+		}
+
 		streamReq := peerstream.HandleStreamRequest{
 			LocalID:   peer.ID,
 			RemoteID:  peer.PeerID,
