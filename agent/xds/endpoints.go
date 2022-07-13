@@ -47,7 +47,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// TODO: this estimate is wrong
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+
-			len(cfgSnap.ConnectProxy.PeerUpstreamEndpoints)+
+			cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Len()+
 			len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
@@ -110,7 +110,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid]
+		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
 		if ok {
 			la := makeLoadAssignment(
 				clusterName,

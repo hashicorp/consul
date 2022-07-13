@@ -745,6 +745,7 @@ func testConfigSnapshotFixture(
 			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
 			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
+			PeeredUpstreams:                 &noopDataSource[*structs.PartitionSpecificRequest]{},
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
 			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
 			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
@@ -971,6 +972,7 @@ type TestDataSources struct {
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
+	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
 	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
 	ServiceList                     *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList]
@@ -994,6 +996,7 @@ func (t *TestDataSources) ToDataSources() DataSources {
 		IntentionUpstreams:     t.IntentionUpstreams,
 		InternalServiceDump:    t.InternalServiceDump,
 		LeafCertificate:        t.LeafCertificate,
+		PeeredUpstreams:        t.PeeredUpstreams,
 		PreparedQuery:          t.PreparedQuery,
 		ResolvedServiceConfig:  t.ResolvedServiceConfig,
 		ServiceList:            t.ServiceList,

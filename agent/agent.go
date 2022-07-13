@@ -4113,6 +4113,8 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.TrustBundleListName, &cachetype.TrustBundles{Client: a.rpcClientPeering})
 
+	a.cache.RegisterType(cachetype.PeeredUpstreamsName, &cachetype.PeeredUpstreams{RPC: a})
+
 	a.registerEntCache()
 }
 

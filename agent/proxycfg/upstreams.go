@@ -103,18 +103,14 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			resp.Nodes,
 		)
 		if len(filteredNodes) > 0 {
-			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = filteredNodes
-			upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, filteredNodes); set {
+				upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+			}
 		} else {
-			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = resp.Nodes
-			delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, resp.Nodes); set {
+				delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+			}
 		}
-
-		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
-			return nil
-		}
-
-		s.logger.Warn("skipping transparent proxy update for peered upstream")
 
 	case strings.HasPrefix(u.CorrelationID, "upstream-target:"):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
@@ -157,6 +153,10 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 			// Make sure to use an external address when crossing partition or DC boundaries.
 			isRemote := !snap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
+			// If node is peered it must be remote
+			if node.Node.PeerOrEmpty() != "" {
+				isRemote = true
+			}
 			csnIdx, addr, _ := node.BestAddress(isRemote)
 
 			existing := upstreamsSnapshot.PassthroughIndices[addr]
