@@ -7,11 +7,7 @@ description: >-
 
 # Storing the Snapshot Agent Config in Vault
 
-## Prerequisites
-Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
-1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
-2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
-
+This topic describes how to configure the Consul Helm chart to use a snapshot agent config stored in Vault.
 ## Overview
 To use an ACL replication token stored in Vault, we will follow the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
@@ -23,7 +19,12 @@ To use an ACL replication token stored in Vault, we will follow the steps outlin
 ### Setup per Consul datacenter
 
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
+  1. Update the Consul on Kubernetes helm chart.
+
+## Prerequisites
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 
 ## One time setup in Vault
 ### Store the Secret in Vault
@@ -76,7 +77,7 @@ you can run the following `helm template` command with your Consul on Kubernetes
 $ helm template --release-name ${RELEASE_NAME} -s templates/client-snapshot-agent-serviceaccount.yaml hashicorp/consul
 ```
 
-### Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart
+### Update the Consul on Kubernetes helm chart
 
 Now that you have configured Vault, you can configure the Consul Helm chart to
 use the snapshot agent config in Vault:

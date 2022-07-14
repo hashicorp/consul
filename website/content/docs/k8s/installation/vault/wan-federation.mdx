@@ -309,7 +309,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must co
   1. Create a Vault policy that authorizes the desired level of access to the secrets.
 - Setup per Consul datacenter
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
-  1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes helm chart.
+  1. Update the Consul on Kubernetes helm chart.
 
 ### One time setup in Vault
 1. Store the ACL Replication Token, Gossip Encryption Key, and Root CA certificate secrets in Vault.
@@ -492,7 +492,7 @@ To use Vault as the Service Mesh Certificate Provider in Kubernetes, you must co
     ```
 
 #### Pre-installation for Secondary Datacenter (dc2)
-1. Configure the Vault Kubernetes auth role in the Consul on Kubernetes Helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
+1. Update the Consul on Kubernetes helm chart. For secondary datacenter (dc2), you will need to get the address of the mesh gateway from the **primary datacenter (dc1)** cluster.  
 
     Keep your Kubernetes context targeting dc1 and set the `MESH_GW_HOST` environment variable that you will use in the Consul Helm chart for secondary datacenter (dc2).
 
