@@ -264,8 +264,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, tlsInspector)
 	}
-	// Looping over explicit upstreams is only needed for cross-peer because
-	// they do not have discovery chains.
+
+	// Looping over explicit and implicit upstreams is only needed for cross-peer
+	// because they do not have discovery chains.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 

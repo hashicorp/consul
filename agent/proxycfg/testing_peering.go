@@ -110,6 +110,10 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 }
 
 func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
+	// Test two explicitly defined upstreams api-a and noEndpoints
+	// as well as one implicitly inferred upstream db.
+	// Should see listeners generated for api-a and db.
+
 	var (
 		noEndpointsUpstream = structs.Upstream{
 			DestinationName: "no-endpoints",
@@ -129,6 +133,11 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 			ServiceName: structs.NewServiceName("api-a", nil),
 			Peer:        "peer-a",
 		}
+
+		db = structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("db", nil),
+			Peer:        "peer-a",
+		}
 	)
 
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
@@ -143,11 +152,7 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.MeshConfigEntry{
-					TransparentProxy: structs.TransparentProxyMeshConfig{
-						MeshDestinationsOnly: true,
-					},
-				},
+				Entry: nil,
 			},
 		},
 		{
@@ -156,6 +161,7 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 				Services: []structs.PeeredServiceName{
 					apiA,
 					noEndpoints,
+					db, // implicitly added here
 				},
 			},
 		},
@@ -179,13 +185,53 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 							ID:       "api-a-1",
 							Service:  "api-a",
 							PeerName: "peer-a",
+							Address:  "1.2.3.4",
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								"virtual":                      {Address: "10.0.0.1"},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
 							Connect: structs.ServiceConnect{
 								PeerMeta: &structs.PeeringServiceMeta{
 									SNI: []string{
-										"apia-1.default.default.cloud.external." + peerTrustDomain,
+										"api-a.default.default.cloud.external." + peerTrustDomain,
 									},
 									SpiffeID: []string{
-										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/peer-a",
+										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/api-a",
+									},
+									Protocol: "tcp",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: upstreamPeerWatchIDPrefix + NewUpstreamIDFromPeeredServiceName(db).String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:     "node1",
+							Address:  "127.0.0.1",
+							PeerName: "peer-a",
+						},
+						Service: &structs.NodeService{
+							ID:       "db-1",
+							Service:  "db",
+							PeerName: "peer-a",
+							Address:  "2.3.4.5", // Expect no endpoint or listener for this address
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								"virtual":                      {Address: "10.0.0.2"},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.2"},
+							},
+							Connect: structs.ServiceConnect{
+								PeerMeta: &structs.PeeringServiceMeta{
+									SNI: []string{
+										"db.default.default.cloud.external." + peerTrustDomain,
+									},
+									SpiffeID: []string{
+										"spiffe://" + peerTrustDomain + "/ns/default/dc/cloud-dc/svc/db",
 									},
 									Protocol: "tcp",
 								},

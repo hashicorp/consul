@@ -3,8 +3,8 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "apia-1.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "altStatName": "apia-1.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "name": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "altStatName": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -50,12 +50,12 @@
               },
               "matchSubjectAltNames": [
                 {
-                  "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/peer-a"
+                  "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/api-a"
                 }
               ]
             }
           },
-          "sni": "apia-1.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+          "sni": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
       }
     },
@@ -83,6 +83,13 @@
           }
         ]
       }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "original-destination",
+      "type": "ORIGINAL_DST",
+      "connectTimeout": "5s",
+      "lbPolicy": "CLUSTER_PROVIDED"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",

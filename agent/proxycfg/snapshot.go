@@ -838,7 +838,9 @@ func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.Peeri
 	return *csn.Service.Connect.PeerMeta
 }
 
-func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
+// PeeredUpstreamIDsFromConfig returns a slice of peered UpstreamIDs from config entries.
+// Upstreams whose trust bundles have not been stored in the snapshot are ignored.
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDsFromConfig() []UpstreamID {
 	out := make([]UpstreamID, 0, len(u.UpstreamConfig))
 	for uid := range u.UpstreamConfig {
 		if uid.Peer == "" {
@@ -852,5 +854,21 @@ func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
 
 		out = append(out, uid)
 	}
+	return out
+}
+
+// PeeredUpstreamIDs returns a slice of peered UpstreamIDs from explicit config entries
+// and implicit imported services.
+// Upstreams whose trust bundles have not been stored in the snapshot are ignored.
+func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
+	out := make([]UpstreamID, 0, u.PeerUpstreamEndpoints.Len())
+	u.PeerUpstreamEndpoints.ForEachKey(func(uid UpstreamID) bool {
+		if _, ok := u.UpstreamPeerTrustBundles.Get(uid.Peer); !ok {
+			// The trust bundle for this upstream is not available yet, skip for now.
+			return true
+		}
+		out = append(out, uid)
+		return true
+	})
 	return out
 }

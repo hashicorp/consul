@@ -122,7 +122,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// NOTE: Any time we skip an upstream below we MUST also skip that same
 	// upstream in endpoints.go so that the sets of endpoints generated matches
 	// the sets of clusters.
-	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDsFromConfig() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
