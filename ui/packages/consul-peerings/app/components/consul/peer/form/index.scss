@@ -1,0 +1,62 @@
+
+.consul-peer-form-token-actions {
+  button:first-of-type {
+    @extend %primary-button;
+  }
+  button:last-of-type {
+    @extend %secondary-button;
+  }
+}
+
+.consul-peer-form-generate {
+  & {
+    width: 416px;
+    min-height: 200px;
+  }
+  ol {
+    list-style-position: outside;
+    list-style-type: none;
+    counter-reset: hexagonal-counter;
+    position: relative;
+  }
+  ol::before {
+    content: '';
+    border-left: var(--decor-border-100);
+    border-color: rgb(var(--tone-gray-300));
+    height: 100%;
+    position: absolute;
+    left: 2rem;
+  }
+  li {
+    counter-increment: hexagonal-counter;
+    position: relative;
+    margin-left: 60px;
+    margin-bottom: 1rem;
+  }
+  li .copyable-code {
+    margin-top: 1rem;
+  }
+  li::before {
+    --icon-name: icon-hexagon;
+    --icon-size: icon-600;
+    content: '';
+    position: absolute;
+    z-index: 2;
+  }
+  li::after {
+    content: counter(hexagonal-counter);
+    position: absolute;
+    top: 0px;
+    font-size: 14px;
+    font-weight: var(--typo-weight-bold);
+    background-color: rgb(var(--tone-gray-000));
+    z-index: 1;
+    text-align: center;
+  }
+  li::before,
+  li::after {
+    left: -2.4rem;
+    width: 20px;
+    height: 20px;
+  }
+}
