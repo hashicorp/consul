@@ -82,6 +82,7 @@
     "consul-hcp": "*",
     "consul-lock-sessions": "*",
     "consul-nspaces": "*",
+    "consul-peerings": "*",
     "consul-partitions": "*",
     "css.escape": "^1.5.1",
     "d3-array": "^2.8.0",

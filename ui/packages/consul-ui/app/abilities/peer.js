@@ -18,6 +18,6 @@ export default class PeerAbility extends BaseAbility {
   }
 
   get canUse() {
-    return this.env.var('CONSUL_PEERING_ENABLED');
+    return this.env.var('CONSUL_PEERINGS_ENABLED');
   }
 }

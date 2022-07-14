@@ -124,7 +124,7 @@ export default function(config = {}, win = window, doc = document) {
         return typeof operatorConfig.PartitionsEnabled === 'undefined'
           ? false
           : operatorConfig.PartitionsEnabled;
-      case 'CONSUL_PEERING_ENABLED':
+      case 'CONSUL_PEERINGS_ENABLED':
         return typeof operatorConfig.PeeringEnabled === 'undefined'
           ? false
           : operatorConfig.PeeringEnabled;
@@ -213,8 +213,8 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_METRICS_PROXY_ENABLE':
               prev['CONSUL_METRICS_PROXY_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
-            case 'CONSUL_PEERING_ENABLE':
-              prev['CONSUL_PEERING_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+            case 'CONSUL_PEERINGS_ENABLE':
+              prev['CONSUL_PEERINGS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
             case 'CONSUL_UI_CONFIG':
               prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
@@ -248,7 +248,7 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_DATACENTER_PRIMARY':
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
-      case 'CONSUL_PEERING_ENABLED':
+      case 'CONSUL_PEERINGS_ENABLED':
       case 'CONSUL_SSO_ENABLED':
       case 'CONSUL_PARTITIONS_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
