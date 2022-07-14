@@ -29,6 +29,9 @@ func (msg *PeeringReadRequest) IsRead() bool {
 // AllowStaleRead implements structs.RPCInfo
 func (msg *PeeringReadRequest) AllowStaleRead() bool {
 	// TODO(peering): figure out read semantics here
+	// TODO(peering): this needs to stay false for calls to head to the leader until we sync stream tracker information
+	// like ImportedServicesCount, ExportedServicesCount, as well as general Status fields thru raft to make available
+	// to followers as well
 	return false
 }
 
@@ -78,6 +81,9 @@ func (msg *PeeringListRequest) IsRead() bool {
 // AllowStaleRead implements structs.RPCInfo
 func (msg *PeeringListRequest) AllowStaleRead() bool {
 	// TODO(peering): figure out read semantics here
+	// TODO(peering): this needs to stay false for calls to head to the leader until we sync stream tracker information
+	// like ImportedServicesCount, ExportedServicesCount, as well as general Status fields thru raft to make available
+	// to followers as well
 	return false
 }
 
