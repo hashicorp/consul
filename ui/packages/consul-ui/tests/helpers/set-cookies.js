@@ -5,8 +5,8 @@ export default function(type, value, doc = document) {
     if (!doc.cookie.includes('CONSUL_ACLS_ENABLE=0')) {
       obj['CONSUL_ACLS_ENABLE'] = 1;
     }
-    if (!doc.cookie.includes('CONSUL_PEERING_ENABLE=0')) {
-      obj['CONSUL_PEERING_ENABLE'] = 1;
+    if (!doc.cookie.includes('CONSUL_PEERINGS_ENABLE=0')) {
+      obj['CONSUL_PEERINGS_ENABLE'] = 1;
     }
     switch (type) {
       case 'dc':
