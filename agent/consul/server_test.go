@@ -300,14 +300,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	var tls *tlsutil.Configurator
-	if deps.TLSConfigurator != nil {
-		if deps.TLSConfigurator.GRPCTLSConfigured() {
-			tls = deps.TLSConfigurator
-		}
-	}
-
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), tls))
+	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
 	if err != nil {
 		return nil, err
 	}
