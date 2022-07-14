@@ -53,7 +53,7 @@ Specify the following parameters to declare a Gateway:
 
 ## Specification
 
-This topic provides details about the configuration parameters
+This topic provides details about the configuration parameters.
 
 ### gatewayClassName
 Specifies the name of the `GatewayClass` resource used for the `Gateway` instance.
@@ -82,18 +82,18 @@ This parameter has the following properties:
 * Required: required
 
 You can specify one of the following strings:
-* All: Routes in all namespaces may be attached to the Gateway.
-* Same: Only routes in the same namespace as the Gateway may be attached.
-* Selector: Only routes in namespaces that match the selector configuration may be attached.
+* `All`: Routes in all namespaces may be attached to the `Gateway`.
+* `Same`: Only routes in the same namespace as the `Gateway` may be attached.
+* `Selector`: Only routes in namespaces that match the `selector` may be attached.
 
 ### listeners.allowedRoutes.namespaces.selector
-The `selector` configuration matches zero or more namespaces that determine which routes are allowed to attach to the listener.
+Specifies a method of matching namespaces from which routes are allowed to attach to the listener.
 * Type: Object
-* Required: Required when from is configured to selector.
+* Required: Required when `from` is configured to `Selector`.
 
 The selector configuration contains one of the following objects:
-* matchExpressions
-* matchLabels
+* `matchExpressions`
+* `matchLabels`
 
 ### listeners.allowedRoutes.namespaces.selector.matchExpressions
 Specifies an array of requirements for matching namespaces. If a match is found, then routes from the matching namespace(s) are allowed to attach to the `Gateway`. The following table describes members of the `matchExpressions` array:
@@ -128,12 +128,12 @@ namespaceSelector:
 For more on labels, see [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
 
 ### listeners.hostname
-Specifies the `listeners` hostname
+Specifies the `listener`'s hostname
 * Type: string
 * Required: required
 
 ### listeners.name
-Specifies the `listeners` name
+Specifies the `listener`'s name
 * Type: string
 * Required: required
 
@@ -147,16 +147,16 @@ Specifies the protocol the `listener` will use
 * Type: string
 * Required: required
 
-Allowed values `TCP`, `HTTP`, `HTTPS`
+Allowed values are `TCP`, `HTTP`, or `HTTPS`
 
 ### listeners.tls
 * Type: Object
-* Required: required if protocol is set to HTTPS
+* Required: required if `protocol` is set to `HTTPS`
 
 ### listeners.tls.certificateRefs
 `CertificateRefs` contains a series of references to Kubernetes objects that contains TLS certificates and private keys. These certificates are used to establish a TLS handshake for requests that match the hostname of the associated `listener`. Each reference must be a Kubernetes Secret, and, if using a Secret in a namespace other than the`Gateway`'s, must have a corresponding `ReferencePolicy` created.
 * Type: Object or Array
-* Required: required if tls is set
+* Required: required if `tls` is set
 
 ### listeners.tls.mode
 * Type: String
@@ -167,7 +167,7 @@ Allowed values `TCP`, `HTTP`, `HTTPS`
 * Required: optional
 
 ## Complete configuration
-The following example shows a fully configured Gateway.
+The following example shows a fully configured `Gateway`.
 
 ```yaml
 kind: Gateway

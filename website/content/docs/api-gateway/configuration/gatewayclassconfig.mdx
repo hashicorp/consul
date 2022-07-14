@@ -18,16 +18,15 @@ The following example creates a gateway class configuration called `test-gateway
   apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
   kind: GatewayClassConfig
   metadata:
-  name: test-gateway-class-config
+    name: test-gateway-class-config
   spec:
-  useHostPorts: true
-  logLevel: 'trace'
-  consul:
-  scheme: 'https'
-  ports:
-  http: 8501
-  grpc: 8502
-  ```
+    useHostPorts: true
+    logLevel: 'trace'
+    consul:
+      scheme: 'https'
+      ports:
+        http: 8501
+        grpc: 8502
 
 </CodeBlockConfig>
 

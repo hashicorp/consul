@@ -22,14 +22,13 @@ The following example creates a gateway class called `test-gateway-class`:
   apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: GatewayClass
   metadata:
-  name: test-gateway-class
+    name: test-gateway-class
   spec:
-  controllerName: 'hashicorp.com/consul-api-gateway-controller'
-  parametersRef:
-  group: api-gateway.consul.hashicorp.com
-  kind: GatewayClassConfig
-  name: test-gateway-class-config
-  ```
+    controllerName: 'hashicorp.com/consul-api-gateway-controller'
+    parametersRef:
+      group: api-gateway.consul.hashicorp.com
+      kind: GatewayClassConfig
+      name: test-gateway-class-config
 
 </CodeBlockConfig>
 
