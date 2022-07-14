@@ -2,6 +2,12 @@
   nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
+
+    .dcs-message {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgb(var(--tone-gray-400));
+      max-width: fit-content;
+    }
   }
   nav .dcs li.is-primary span,
   nav .dcs li.is-local span {

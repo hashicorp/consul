@@ -17,6 +17,9 @@
         @onchange={{action (mut @dcs) value="data"}}
       />
         <panel.Menu as |menu|>
+          <p class="dcs-message">
+            Datacenters shown in this dropdown are available through WAN Federation.
+          </p>
           {{#each menu.items as |item|}}
             <menu.Item
               aria-current={{if (eq @dc.Name item.Name) 'true'}}
