@@ -375,7 +375,7 @@ func TestLeader_Peering_ImportedServicesCount(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a peering by generating a token
-	ctx, cancel := context.WithTimeout(context.Background(), 10000000*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
 	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),

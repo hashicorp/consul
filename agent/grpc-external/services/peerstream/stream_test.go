@@ -985,7 +985,7 @@ func Test_processResponse_Validation(t *testing.T) {
 	))
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse(peerName, "", tc.in)
+		reply, err := srv.processResponse(peerName, "", nil, tc.in, srv.Logger)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1261,13 +1261,17 @@ func TestHandleUpdateService(t *testing.T) {
 	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
+
+		mst, found := srv.Tracker.MutableStreamStatus(peerID)
+		require.True(t, found)
+
 		// Seed the local catalog with some data to reconcile against.
 		for _, reg := range tc.seed {
 			require.NoError(t, srv.Backend.CatalogRegister(reg))
 		}
 
 		// Simulate an update arriving for billing/api.
-		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, tc.input))
+		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, mst, tc.input, srv.Logger))
 
 		for svc, expect := range tc.expect {
 			t.Run(svc, func(t *testing.T) {

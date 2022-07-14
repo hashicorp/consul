@@ -301,8 +301,15 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if resp := msg.GetResponse(); resp != nil {
+
+				st, found := s.Tracker.MutableStreamStatus(streamReq.LocalID)
+				if !found {
+					logger.Trace("failed to find stream status, abandoning process response")
+					return fmt.Errorf("failed to find stream status, abandoning process response")
+				}
+
 				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, resp)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, st, resp, logger)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackReceiveError(err.Error())
