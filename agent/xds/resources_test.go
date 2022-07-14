@@ -148,6 +148,10 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			name:   "connect-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeering,
 		},
+		{
+			name:   "transparent-proxy-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringTProxy,
+		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
