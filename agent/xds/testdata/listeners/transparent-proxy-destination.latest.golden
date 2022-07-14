@@ -38,79 +38,55 @@
       "filterChains": [
         {
           "filterChainMatch": {
+            "destinationPort": 9093,
             "prefixRanges": [
               {
-                "addressPrefix": "10.0.0.1",
-                "prefixLen": 32
-              },
-              {
-                "addressPrefix": "240.0.0.1",
+                "addressPrefix": "192.168.2.1",
                 "prefixLen": 32
               }
             ]
           },
           "filters": [
             {
-              "name": "envoy.filters.network.http_connection_manager",
+              "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "upstream.google.default.default.dc1",
-                "routeConfig": {
-                  "name": "google",
-                  "virtualHosts": [
-                    {
-                      "name": "google.default.default.dc1",
-                      "domains": [
-                        "*"
-                      ],
-                      "routes": [
-                        {
-                          "match": {
-                            "prefix": "/"
-                          },
-                          "route": {
-                            "cluster": "google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "tracing": {
-                  "randomSampling": {
-
-                  }
-                }
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.destination~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "destinationPort": 443,
+            "serverNames": [
+              "www.google.com"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.destination~google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination~google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
       ],
-      "defaultFilterChain": {
-        "filters": [
-          {
-            "name": "envoy.filters.network.tcp_proxy",
-            "typedConfig": {
-              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-              "statPrefix": "upstream.original-destination",
-              "cluster": "original-destination"
-            }
-          }
-        ]
-      },
       "listenerFilters": [
         {
           "name": "envoy.filters.listener.original_dst",
           "typedConfig": {
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+          }
+        },
+        {
+          "name": "envoy.filters.listener.tls_inspector",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
       ],

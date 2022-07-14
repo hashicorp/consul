@@ -47,6 +47,10 @@ type DataSources struct {
 	// notification channel.
 	GatewayServices GatewayServices
 
+	// ServiceGateways provides updates about a gateway's upstream services on a
+	// notification channel.
+	ServiceGateways ServiceGateways
+
 	// Health provides service health updates on a notification channel.
 	Health Health
 
@@ -60,6 +64,10 @@ type DataSources struct {
 	// IntentionUpstreams provides intention-inferred upstream updates on a
 	// notification channel.
 	IntentionUpstreams IntentionUpstreams
+
+	// IntentionUpstreamsDestination provides intention-inferred upstream updates on a
+	// notification channel.
+	IntentionUpstreamsDestination IntentionUpstreamsDestination
 
 	// InternalServiceDump provides updates about a (gateway) service on a
 	// notification channel.
@@ -115,7 +123,7 @@ type ConfigEntry interface {
 	Notify(ctx context.Context, req *structs.ConfigEntryQuery, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// ConfigEntry is the interface used to consume updates about a list of config
+// ConfigEntryList is the interface used to consume updates about a list of config
 // entries.
 type ConfigEntryList interface {
 	Notify(ctx context.Context, req *structs.ConfigEntryQuery, correlationID string, ch chan<- UpdateEvent) error
@@ -139,6 +147,11 @@ type GatewayServices interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
+// ServiceGateways is the interface used to consume updates about a service terminating gateways
+type ServiceGateways interface {
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
 // Health is the interface used to consume service health updates.
 type Health interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
@@ -159,6 +172,12 @@ type Intentions interface {
 // IntentionUpstreams is the interface used to consume updates about upstreams
 // inferred from service intentions.
 type IntentionUpstreams interface {
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// IntentionUpstreamsDestination is the interface used to consume updates about upstreams destination
+// inferred from service intentions.
+type IntentionUpstreamsDestination interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 

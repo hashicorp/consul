@@ -106,3 +106,18 @@ func (m Map[K, V]) ForEachKey(f func(K) bool) {
 		}
 	}
 }
+
+// ForEachKeyE iterates through the map, calling f
+// for each iteration. It is up to the caller to
+// Get the value and nil-check if required.
+// If a non-nil error is returned by f, iterating
+// stops and the error is returned.
+// Order of iteration is non-deterministic.
+func (m Map[K, V]) ForEachKeyE(f func(K) error) error {
+	for k := range m.M {
+		if err := f(k); err != nil {
+			return err
+		}
+	}
+	return nil
+}

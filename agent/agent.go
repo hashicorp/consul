@@ -4075,6 +4075,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
 	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
+	a.cache.RegisterType(cachetype.IntentionUpstreamsDestinationName, &cachetype.IntentionUpstreamsDestination{RPC: a})
 
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
@@ -4097,6 +4098,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
+	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
 
@@ -4220,10 +4222,12 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
 		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
 		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
+		ServiceGateways:                 proxycfgglue.CacheServiceGateways(a.cache),
 		Health:                          proxycfgglue.ClientHealth(a.rpcClientHealth),
 		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
 		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
 		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		IntentionUpstreamsDestination:   proxycfgglue.CacheIntentionUpstreamsDestination(a.cache),
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
 		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
 		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),

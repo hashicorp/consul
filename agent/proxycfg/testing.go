@@ -739,10 +739,12 @@ func testConfigSnapshotFixture(
 			Datacenters:                     &noopDataSource[*structs.DatacentersRequest]{},
 			FederationStateListMeshGateways: &noopDataSource[*structs.DCSpecificRequest]{},
 			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			ServiceGateways:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
 			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
 			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
 			Intentions:                      &noopDataSource[*structs.ServiceSpecificRequest]{},
 			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
+			IntentionUpstreamsDestination:   &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
 			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
 			PeeredUpstreams:                 &noopDataSource[*structs.PartitionSpecificRequest]{},
@@ -946,6 +948,7 @@ func NewTestDataSources() *TestDataSources {
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
 		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
+		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
@@ -966,10 +969,12 @@ type TestDataSources struct {
 	FederationStateListMeshGateways *TestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes]
 	Datacenters                     *TestDataSource[*structs.DatacentersRequest, *[]string]
 	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
+	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
 	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
+	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
 	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
@@ -984,24 +989,26 @@ type TestDataSources struct {
 
 func (t *TestDataSources) ToDataSources() DataSources {
 	ds := DataSources{
-		CARoots:                t.CARoots,
-		CompiledDiscoveryChain: t.CompiledDiscoveryChain,
-		ConfigEntry:            t.ConfigEntry,
-		ConfigEntryList:        t.ConfigEntryList,
-		Datacenters:            t.Datacenters,
-		GatewayServices:        t.GatewayServices,
-		Health:                 t.Health,
-		HTTPChecks:             t.HTTPChecks,
-		Intentions:             t.Intentions,
-		IntentionUpstreams:     t.IntentionUpstreams,
-		InternalServiceDump:    t.InternalServiceDump,
-		LeafCertificate:        t.LeafCertificate,
-		PeeredUpstreams:        t.PeeredUpstreams,
-		PreparedQuery:          t.PreparedQuery,
-		ResolvedServiceConfig:  t.ResolvedServiceConfig,
-		ServiceList:            t.ServiceList,
-		TrustBundle:            t.TrustBundle,
-		TrustBundleList:        t.TrustBundleList,
+		CARoots:                       t.CARoots,
+		CompiledDiscoveryChain:        t.CompiledDiscoveryChain,
+		ConfigEntry:                   t.ConfigEntry,
+		ConfigEntryList:               t.ConfigEntryList,
+		Datacenters:                   t.Datacenters,
+		GatewayServices:               t.GatewayServices,
+		ServiceGateways:               t.ServiceGateways,
+		Health:                        t.Health,
+		HTTPChecks:                    t.HTTPChecks,
+		Intentions:                    t.Intentions,
+		IntentionUpstreams:            t.IntentionUpstreams,
+		IntentionUpstreamsDestination: t.IntentionUpstreamsDestination,
+		InternalServiceDump:           t.InternalServiceDump,
+		LeafCertificate:               t.LeafCertificate,
+		PeeredUpstreams:               t.PeeredUpstreams,
+		PreparedQuery:                 t.PreparedQuery,
+		ResolvedServiceConfig:         t.ResolvedServiceConfig,
+		ServiceList:                   t.ServiceList,
+		TrustBundle:                   t.TrustBundle,
+		TrustBundleList:               t.TrustBundleList,
 	}
 	t.fillEnterpriseDataSources(&ds)
 	return ds
