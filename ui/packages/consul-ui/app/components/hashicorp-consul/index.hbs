@@ -84,7 +84,9 @@
       href={{href-to 'index' params=(hash peer=undefined)}}
     ><Consul::Logo /></a>
     {{#if (eq @dcs.length 1)}}
-      <div class="dc-name">{{@dc.Name}}</div>
+      <div class="dc-name" data-test-datacenter>
+        {{@dc.Name}}
+      </div>
     {{/if}}
   </:home-nav>
 
