@@ -19,6 +19,13 @@ import (
 // streaming machinery instead to be cheaper.
 
 func (m *subscriptionManager) notifyExportedServicesForPeerID(ctx context.Context, state *subscriptionState, peerID string) {
+	// Wait until this is subscribed-to.
+	select {
+	case <-m.serviceSubReady:
+	case <-ctx.Done():
+		return
+	}
+
 	// syncSubscriptionsAndBlock ensures that the subscriptions to the subscription backend
 	// match the list of services exported to the peer.
 	m.syncViaBlockingQuery(ctx, "exported-services", func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
@@ -34,6 +41,13 @@ func (m *subscriptionManager) notifyExportedServicesForPeerID(ctx context.Contex
 
 // TODO: add a new streaming subscription type to list-by-kind-and-partition since we're getting evictions
 func (m *subscriptionManager) notifyMeshGatewaysForPartition(ctx context.Context, state *subscriptionState, partition string) {
+	// Wait until this is subscribed-to.
+	select {
+	case <-m.serviceSubReady:
+	case <-ctx.Done():
+		return
+	}
+
 	m.syncViaBlockingQuery(ctx, "mesh-gateways", func(ctx context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		// Fetch our current list of all mesh gateways.
 		entMeta := structs.DefaultEnterpriseMetaInPartition(partition)

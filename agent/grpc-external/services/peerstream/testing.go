@@ -2,6 +2,7 @@ package peerstream
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -24,14 +25,7 @@ func (c *MockClient) Send(r *pbpeerstream.ReplicationMessage) error {
 }
 
 func (c *MockClient) Recv() (*pbpeerstream.ReplicationMessage, error) {
-	select {
-	case err := <-c.ErrCh:
-		return nil, err
-	case r := <-c.ReplicationStream.sendCh:
-		return r, nil
-	case <-time.After(10 * time.Millisecond):
-		return nil, io.EOF
-	}
+	return c.RecvWithTimeout(10 * time.Millisecond)
 }
 
 func (c *MockClient) RecvWithTimeout(dur time.Duration) (*pbpeerstream.ReplicationMessage, error) {
@@ -61,7 +55,6 @@ type MockStream struct {
 	recvCh chan *pbpeerstream.ReplicationMessage
 
 	ctx context.Context
-	mu  sync.Mutex
 }
 
 var _ pbpeerstream.PeerStreamService_StreamResourcesServer = (*MockStream)(nil)
@@ -117,12 +110,37 @@ func (s *MockStream) SendHeader(metadata.MD) error {
 // SetTrailer implements grpc.ServerStream
 func (s *MockStream) SetTrailer(metadata.MD) {}
 
+// incrementalTime is an artificial clock used during testing. For those
+// scenarios you would pass around the method pointer for `Now` in places where
+// you would be using `time.Now`.
 type incrementalTime struct {
 	base time.Time
 	next uint64
+	mu   sync.Mutex
 }
 
+// Now advances the internal clock by 1 second and returns that value.
 func (t *incrementalTime) Now() time.Time {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.next++
-	return t.base.Add(time.Duration(t.next) * time.Second)
+
+	dur := time.Duration(t.next) * time.Second
+
+	return t.base.Add(dur)
+}
+
+// FutureNow will return a given future value of the Now() function.
+// The numerical argument indicates which future Now value you wanted. The
+// value must be > 0.
+func (t *incrementalTime) FutureNow(n int) time.Time {
+	if n < 1 {
+		panic(fmt.Sprintf("argument must be > 1 but was %d", n))
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	dur := time.Duration(t.next+uint64(n)) * time.Second
+
+	return t.base.Add(dur)
 }

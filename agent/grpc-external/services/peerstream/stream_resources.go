@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
-	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
@@ -99,11 +98,12 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	}
 
 	streamReq := HandleStreamRequest{
-		LocalID:   p.ID,
-		RemoteID:  "",
-		PeerName:  p.Name,
-		Partition: p.Partition,
-		Stream:    stream,
+		LocalID:            p.ID,
+		RemoteID:           "",
+		PeerName:           p.Name,
+		Partition:          p.Partition,
+		InitialResourceURL: req.ResourceURL,
+		Stream:             stream,
 	}
 	err = s.HandleStream(streamReq)
 	// A nil error indicates that the peering was deleted and the stream needs to be gracefully shutdown.
@@ -128,6 +128,9 @@ type HandleStreamRequest struct {
 
 	// Partition is the local partition associated with the peer.
 	Partition string
+
+	// InitialResourceURL is the ResourceURL from the initial Request.
+	InitialResourceURL string
 
 	// Stream is the open stream to the peer cluster.
 	Stream BidirectionalStream
@@ -183,6 +186,13 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 		}
 	}
 
+	remoteSubTracker := newResourceSubscriptionTracker()
+	if streamReq.InitialResourceURL != "" {
+		if remoteSubTracker.Subscribe(streamReq.InitialResourceURL) {
+			logger.Info("subscribing to resource type", "resourceURL", streamReq.InitialResourceURL)
+		}
+	}
+
 	mgr := newSubscriptionManager(
 		streamReq.Stream.Context(),
 		logger,
@@ -190,24 +200,31 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 		trustDomain,
 		s.Backend,
 		s.GetStore,
+		remoteSubTracker,
 	)
 	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
-	sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
-		ResourceURL: pbpeerstream.TypeURLService,
-		PeerID:      streamReq.RemoteID,
-	})
-	logTraceSend(logger, sub)
+	// Subscribe to all relevant resource types.
+	for _, resourceURL := range []string{
+		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLPeeringTrustBundle,
+	} {
+		sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
+			ResourceURL: resourceURL,
+			PeerID:      streamReq.RemoteID,
+		})
+		logTraceSend(logger, sub)
 
-	if err := streamReq.Stream.Send(sub); err != nil {
-		if err == io.EOF {
-			logger.Info("stream ended by peer")
-			status.TrackReceiveError(err.Error())
-			return nil
+		if err := streamReq.Stream.Send(sub); err != nil {
+			if err == io.EOF {
+				logger.Info("stream ended by peer")
+				status.TrackReceiveError(err.Error())
+				return nil
+			}
+			// TODO(peering) Test error handling in calls to Send/Recv
+			status.TrackSendError(err.Error())
+			return fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
 		}
-		// TODO(peering) Test error handling in calls to Send/Recv
-		status.TrackSendError(err.Error())
-		return fmt.Errorf("failed to send to stream: %v", err)
 	}
 
 	// TODO(peering): Should this be buffered?
@@ -289,17 +306,86 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 				if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
 					return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
 				}
-				switch {
-				case req.ResponseNonce == "":
-					// TODO(peering): This can happen on a client peer since they don't try to receive subscriptions before entering HandleStream.
-					//                Should change that behavior or only allow it that one time.
 
-				case req.Error != nil && (req.Error.Code != int32(code.Code_OK) || req.Error.Message != ""):
+				// There are different formats of requests depending upon where in the stream lifecycle we are.
+				//
+				// 1. Initial Request: This is the first request being received
+				//    FROM the establishing peer. This is handled specially in
+				//    (*Server).StreamResources BEFORE calling
+				//    (*Server).HandleStream. This takes care of determining what
+				//    the PeerID is for the stream. This is ALSO treated as (2) below.
+				//
+				// 2. Subscription Request: This is the first request for a
+				//    given ResourceURL within a stream. The Initial Request (1)
+				//    is always one of these as well.
+				//
+				//    These must contain a valid ResourceURL with no Error or
+				//    ResponseNonce set.
+				//
+				//    It is valid to subscribe to the same ResourceURL twice
+				//    within the lifetime of a stream, but all duplicate
+				//    subscriptions are treated as no-ops upon receipt.
+				//
+				// 3. ACK Request: This is the message sent in reaction to an
+				//    earlier Response to indicate that the response was processed
+				//    by the other side successfully.
+				//
+				//    These must contain a ResponseNonce and no Error.
+				//
+				// 4. NACK Request: This is the message sent in reaction to an
+				//    earlier Response to indicate that the response was NOT
+				//    processed by the other side successfully.
+				//
+				//    These must contain a ResponseNonce and an Error.
+				//
+				if !remoteSubTracker.IsSubscribed(req.ResourceURL) {
+					// This must be a new subscription request to add a new
+					// resource type, vet it like a new request.
+
+					if !streamReq.WasDialed() {
+						if req.PeerID != "" && req.PeerID != streamReq.RemoteID {
+							// Not necessary after the first request from the dialer,
+							// but if provided must match.
+							return grpcstatus.Errorf(codes.InvalidArgument,
+								"initial subscription requests for a resource type must have consistent PeerID values: got=%q expected=%q",
+								req.PeerID,
+								streamReq.RemoteID,
+							)
+						}
+					}
+					if req.ResponseNonce != "" {
+						return grpcstatus.Error(codes.InvalidArgument, "initial subscription requests for a resource type must not contain a nonce")
+					}
+					if req.Error != nil {
+						return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
+					}
+
+					if remoteSubTracker.Subscribe(req.ResourceURL) {
+						logger.Info("subscribing to resource type", "resourceURL", req.ResourceURL)
+					}
+					status.TrackAck()
+					continue
+				}
+
+				// At this point we have a valid ResourceURL and we are subscribed to it.
+
+				switch {
+				case req.ResponseNonce == "" && req.Error != nil:
+					return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
+
+				case req.ResponseNonce != "" && req.Error == nil: // ACK
+					// TODO(peering): handle ACK fully
+					status.TrackAck()
+
+				case req.ResponseNonce != "" && req.Error != nil: // NACK
+					// TODO(peering): handle NACK fully
 					logger.Warn("client peer was unable to apply resource", "code", req.Error.Code, "error", req.Error.Message)
 					status.TrackNack(fmt.Sprintf("client peer was unable to apply resource: %s", req.Error.Message))
 
 				default:
-					status.TrackAck()
+					// This branch might be dead code, but it could also happen
+					// during a stray 're-subscribe' so just ignore the
+					// message.
 				}
 
 				continue
@@ -424,4 +510,64 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 	}
 
 	logger.Trace("replication message", "direction", dir, "protobuf", out)
+}
+
+// resourceSubscriptionTracker is used to keep track of the ResourceURLs that a
+// stream has subscribed to and can notify you when a subscription comes in by
+// closing the channels returned by SubscribedChan.
+type resourceSubscriptionTracker struct {
+	// notifierMap keeps track of a notification channel for each resourceURL.
+	// Keys may exist in here even when they do not exist in 'subscribed' as
+	// calling SubscribedChan has to possibly create and and hand out a
+	// notification channel in advance of any notification.
+	notifierMap map[string]chan struct{}
+
+	// subscribed is a set that keeps track of resourceURLs that are currently
+	// subscribed to. Keys are never deleted. If a key is present in this map
+	// it is also present in 'notifierMap'.
+	subscribed map[string]struct{}
+}
+
+func newResourceSubscriptionTracker() *resourceSubscriptionTracker {
+	return &resourceSubscriptionTracker{
+		subscribed:  make(map[string]struct{}),
+		notifierMap: make(map[string]chan struct{}),
+	}
+}
+
+// IsSubscribed returns true if the given ResourceURL has an active subscription.
+func (t *resourceSubscriptionTracker) IsSubscribed(resourceURL string) bool {
+	_, ok := t.subscribed[resourceURL]
+	return ok
+}
+
+// Subscribe subscribes to the given ResourceURL. It will return true if this
+// was the FIRST time a subscription occurred. It will also close the
+// notification channel associated with this ResourceURL.
+func (t *resourceSubscriptionTracker) Subscribe(resourceURL string) bool {
+	if _, ok := t.subscribed[resourceURL]; ok {
+		return false
+	}
+	t.subscribed[resourceURL] = struct{}{}
+
+	// and notify
+	ch := t.ensureNotifierChan(resourceURL)
+	close(ch)
+
+	return true
+}
+
+// SubscribedChan returns a channel that will be closed when the ResourceURL is
+// subscribed using the Subscribe method.
+func (t *resourceSubscriptionTracker) SubscribedChan(resourceURL string) <-chan struct{} {
+	return t.ensureNotifierChan(resourceURL)
+}
+
+func (t *resourceSubscriptionTracker) ensureNotifierChan(resourceURL string) chan struct{} {
+	if ch, ok := t.notifierMap[resourceURL]; ok {
+		return ch
+	}
+	ch := make(chan struct{})
+	t.notifierMap[resourceURL] = ch
+	return ch
 }
