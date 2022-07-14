@@ -14,7 +14,7 @@ module('Integration | Adapter | node', function(hooks) {
       const adapter = this.owner.lookup('adapter:node');
       const client = this.owner.lookup('service:client/http');
       const request = client.requestParams.bind(client);
-      const expected = `GET /v1/internal/ui/nodes?dc=${dc}&with-peers=true${
+      const expected = `GET /v1/internal/ui/nodes?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter.requestForQuery(request, {

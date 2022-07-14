@@ -1,19 +1,6 @@
 import Adapter from './application';
-import { inject as service } from '@ember/service';
 
 export default class ServiceAdapter extends Adapter {
-  @service abilities;
-
-  get peeringQuery() {
-    const query = {};
-
-    if (this.abilities.can('use peers')) {
-      query['with-peers'] = true;
-    }
-
-    return query;
-  }
-
   requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
     if (typeof gateway !== 'undefined') {
       return request`
@@ -33,7 +20,6 @@ export default class ServiceAdapter extends Adapter {
         X-Request-ID: ${uri}
 
         ${{
-          ...this.peeringQuery,
           ns,
           partition,
           index,
