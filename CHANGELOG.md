@@ -1,3 +1,10 @@
+## 1.10.12 (July 13, 2022)
+
+BUG FIXES:
+
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13264](https://github.com/hashicorp/consul/issues/13264)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+
 ## 1.10.11 (May 25, 2022)
 
 SECURITY:
