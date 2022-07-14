@@ -1,0 +1,31 @@
+export default {
+  id: 'consul-peer-generate-form',
+  initial: 'idle',
+  on: {
+    RESET: {
+      target: 'idle'
+    }
+  },
+  states: {
+    idle: {
+      on: {
+        LOAD: {
+          target: 'loading'
+        }
+      }
+    },
+    loading: {
+      on: {
+        SUCCESS: {
+          target: 'success'
+        },
+        ERROR: {
+          target: 'error'
+        }
+      }
+    },
+    success: {
+    },
+    error: {},
+  },
+};
