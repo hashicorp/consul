@@ -403,6 +403,10 @@
         "path": "api-gateway/install"
       },
       {
+        "title": "Technical Specifications",
+        "path": "api-gateway/tech-specs"
+      },
+      {
         "title": "Upgrades",
         "path": "api-gateway/upgrades"
       },
