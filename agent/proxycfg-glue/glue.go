@@ -54,6 +54,12 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 	return &cacheProxyDataSource[*structs.DatacentersRequest]{c, cachetype.CatalogDatacentersName}
 }
 
+// CacheServiceGateways satisfies the proxycfg.ServiceGateways interface by
+// sourcing data from the agent cache.
+func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
+}
+
 // CacheHTTPChecks satisifies the proxycfg.HTTPChecks interface by sourcing
 // data from the agent cache.
 func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
@@ -64,6 +70,12 @@ func CacheHTTPChecks(c *cache.Cache) proxycfg.HTTPChecks {
 // by sourcing data from the agent cache.
 func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsName}
+}
+
+// CacheIntentionUpstreamsDestination satisfies the proxycfg.IntentionUpstreamsDestination interface
+// by sourcing data from the agent cache.
+func CacheIntentionUpstreamsDestination(c *cache.Cache) proxycfg.IntentionUpstreams {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsDestinationName}
 }
 
 // CacheInternalServiceDump satisfies the proxycfg.InternalServiceDump

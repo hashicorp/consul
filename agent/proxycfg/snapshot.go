@@ -142,6 +142,9 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
+
+	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
+	DestinationGateways  watch.Map[UpstreamID, structs.CheckServiceNodes]
 }
 
 // isEmpty is a test helper
@@ -163,6 +166,8 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
+		c.DestinationGateways.Len() == 0 &&
+		c.DestinationsUpstream.Len() == 0 &&
 		len(c.PeeredUpstreams) == 0 &&
 		!c.InboundPeerTrustBundlesSet &&
 		!c.MeshConfigSet &&

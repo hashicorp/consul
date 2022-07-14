@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -109,5 +110,45 @@ func TestMap_ForEach(t *testing.T) {
 			return false
 		})
 		require.Equal(t, 1, count)
+	}
+}
+
+func TestMap_ForEachE(t *testing.T) {
+	type testType struct {
+		s string
+	}
+
+	m := NewMap[string, any]()
+	inputs := map[string]any{
+		"hello": 13,
+		"foo":   struct{}{},
+		"bar":   &testType{s: "wow"},
+	}
+	for k, v := range inputs {
+		m.InitWatch(k, nil)
+		m.Set(k, v)
+	}
+	require.Equal(t, 3, m.Len())
+
+	// returning nil error continues iteration
+	{
+		var count int
+		err := m.ForEachKeyE(func(k string) error {
+			count++
+			return nil
+		})
+		require.Equal(t, 3, count)
+		require.Nil(t, err)
+	}
+
+	// returning an error should exit immediately
+	{
+		var count int
+		err := m.ForEachKeyE(func(k string) error {
+			count++
+			return errors.New("boooo")
+		})
+		require.Equal(t, 1, count)
+		require.Errorf(t, err, "boo")
 	}
 }
