@@ -93,6 +93,7 @@ export default class PeerService extends RepositoryService {
       ${{
         PeerName: item.Name,
         PeeringToken: item.PeeringToken,
+        Datacenter: item.Datacenter,
         Partition: item.Partition || undefined,
       }}
     `)((headers, body, cache) => {
