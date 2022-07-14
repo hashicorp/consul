@@ -376,6 +376,18 @@ proto-format: proto-tools
 proto-lint: proto-tools
 	@buf lint --config proto/buf.yaml --path proto
 	@buf lint --config proto-public/buf.yaml --path proto-public
+	@for fn in $$(find proto -name '*.proto'); do \
+		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
+			continue ; \
+		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
+			continue ; \
+		fi ; \
+		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \
+		if [[ "$$pkg" != hashicorp.consul.internal.* ]]; then \
+			echo "ERROR: $$fn: is missing 'hashicorp.consul.internal' package prefix: $$pkg" >&2; \
+			exit 1; \
+		fi \
+	done
 
 # utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
 print-%  : ; @echo $($*)

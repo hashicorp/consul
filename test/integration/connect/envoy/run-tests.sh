@@ -170,7 +170,8 @@ function start_consul {
   # an agent.
   #
   # When XDS_TARGET=client we'll start a Consul server with its gRPC port
-  # disabled, and a client agent with its gRPC port enabled.
+  # disabled (but only if REQUIRE_PEERS is not set), and a client agent with
+  # its gRPC port enabled.
   #
   # When XDS_TARGET=server (or anything else) we'll run a single Consul server
   # with its gRPC port enabled.
@@ -196,6 +197,11 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
+    server_grpc_port="-1"
+    if is_set $REQUIRE_PEERS; then
+      server_grpc_port="8502"
+    fi
+
     docker run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -206,7 +212,7 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port -1 \
+      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 

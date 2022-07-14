@@ -98,7 +98,8 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstream.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
@@ -129,13 +130,12 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// NOTE: Any time we skip an upstream below we MUST also skip that same
 	// upstream in endpoints.go so that the sets of endpoints generated matches
 	// the sets of clusters.
-	//
-	// TODO(peering): make this work for tproxy
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
@@ -425,6 +425,24 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 		}
 		clusters = append(clusters, cluster)
 
+		svcConfig, ok := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		isHTTP2 := false
+		if ok {
+			upstreamCfg, err := structs.ParseUpstreamConfig(svcConfig.ProxyConfig)
+			if err != nil {
+				// Don't hard fail on a config typo, just warn. The parse func returns
+				// default config if there is an error so it's safe to continue.
+				s.Logger.Warn("failed to parse", "upstream", svc, "error", err)
+			}
+			isHTTP2 = upstreamCfg.Protocol == "http2" || upstreamCfg.Protocol == "grpc"
+		}
+
+		if isHTTP2 {
+			if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+				return nil, err
+			}
+		}
+
 		// If there is a service-resolver for this service then also setup a cluster for each subset
 		for name, subset := range resolver.Subsets {
 			subsetHostnameEndpoints, err := s.filterSubsetEndpoints(&subset, hostnameEndpoints)
@@ -443,6 +461,11 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 
 			if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
 				return nil, err
+			}
+			if isHTTP2 {
+				if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+					return nil, err
+				}
 			}
 			clusters = append(clusters, cluster)
 		}
@@ -706,11 +729,12 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 				},
 			}
 		} else {
+			ep, _ := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
 			configureClusterWithHostnames(
 				s.Logger,
 				c,
 				"", /*TODO:make configurable?*/
-				cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid],
+				ep,
 				true,  /*isRemote*/
 				false, /*onlyPassing*/
 			)
@@ -720,7 +744,8 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 
 	rootPEMs := cfgSnap.RootPEMs()
 	if uid.Peer != "" {
-		rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
+		tbs, _ := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		rootPEMs = tbs.ConcatenatedRootPEMs()
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -907,6 +932,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 		target := chain.Targets[targetID]
 
+		if forMeshGateway && !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
+			s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+				"target", target,
+				"gatewayLocality", cfgSnap.Locality,
+			)
+			continue
+		}
+
 		// Determine if we have to generate the entire cluster differently.
 		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node) && !forMeshGateway
 
@@ -1046,13 +1079,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if configureTLS {
-			rootPEMs := cfgSnap.RootPEMs()
-			if uid.Peer != "" {
-				rootPEMs = cfgSnap.ConnectProxy.UpstreamPeerTrustBundles[uid.Peer].ConcatenatedRootPEMs()
-			}
 			commonTLSContext := makeCommonTLSContext(
 				cfgSnap.Leaf(),
-				rootPEMs,
+				cfgSnap.RootPEMs(),
 				makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 			)
 

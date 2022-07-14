@@ -1,0 +1,149 @@
+<Route @name={{routeName}} as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/peers'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  (hash
+    value=(or sortBy "State:asc")
+    change=(action (mut sortBy) value="target.selected")
+  )
+
+  (hash
+    state=(hash
+      value=(if state (split state ',') undefined)
+      change=(action (mut state) value="target.selectedItems")
+    )
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  loader.data
+
+as |sort filters items|}}
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title="Peers" />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0)}}
+        <Consul::Peer::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+      {{/if}}
+
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <DataWriter
+        @sink={{uri '/${partition}/${dc}/${nspace}/peer/'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+          )
+        }}
+        @type="peer"
+        @label="Peer"
+        @ondelete={{refresh-route}}
+      as |writer|>
+        <BlockSlot @name="removed" as |after|>
+          <Consul::Peer::Notifications
+            {{notification
+              after=(action after)
+            }}
+            @type="remove"
+          />
+        </BlockSlot>
+        <BlockSlot @name="content">
+          <DataCollection
+            @type="peer"
+            @sort={{sort.value}}
+            @filters={{filters}}
+            @search={{search}}
+            @items={{items}}
+          as |collection|>
+            <collection.Collection>
+
+                <Consul::Peer::List
+                  @items={{collection.items}}
+                  @onedit={{this.edit.open}}
+                  @ondelete={{writer.delete}}
+                />
+
+              </collection.Collection>
+              <collection.Empty>
+              {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
+              <EmptyState
+                @login={{route.model.app.login.open}}
+              >
+                <BlockSlot @name="header">
+                  <h2>
+                    {{#if (gt items.length 0)}}
+                      No peers found
+                    {{else}}
+                      Welcome to Peers
+                    {{/if}}
+                  </h2>
+                </BlockSlot>
+                <BlockSlot @name="body">
+                  {{#if (gt items.length 0)}}
+                    No peers where found matching that search, or you may not have access to view the peers you are searching for.
+                  {{else}}
+                    Peering allows an admin partition in one datacenter to communicate with a partition in a different
+                    datacenter. There don't seem to be any peers for this admin partition, or you may not have
+                    <code>peering:read</code> permissions to
+                    access this view.
+                  {{/if}}
+                </BlockSlot>
+                <BlockSlot @name="actions">
+                  <li class="docs-link">
+                    {{!-- what's the docs for peering?--}}
+                    <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
+                      Documentation on Peers
+                    </a>
+                  </li>
+                  <li class="learn-link">
+                    <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
+                      Take the tutorial
+                    </a>
+                  </li>
+                </BlockSlot>
+              </EmptyState>
+            </collection.Empty>
+          </DataCollection>
+        </BlockSlot>
+      </DataWriter>
+    </BlockSlot>
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

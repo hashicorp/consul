@@ -36,6 +36,12 @@ as |select name|}}
           (noop)
         )
       }}
+      {{on 'click'
+        (if @onTabClicked
+          (fn @onTabClicked item)
+          (noop)
+        )
+      }}
       @href={{item.href}}
     >
       {{item.label}}

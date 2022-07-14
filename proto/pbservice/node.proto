@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service;
+package hashicorp.consul.internal.service;
 
 import "proto/pbcommon/common.proto";
 import "proto/pbservice/healthcheck.proto";

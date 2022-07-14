@@ -1,0 +1,3 @@
+```release-note:feature
+server: broadcast the public grpc port using lan serf and update the consul service in the catalog with the same data
+```

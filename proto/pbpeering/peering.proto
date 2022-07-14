@@ -1,11 +1,8 @@
 syntax = "proto3";
 
-package peering;
+package hashicorp.consul.internal.peering;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
-// TODO(peering): Handle this some other way
-import "proto/pbstatus/status.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -24,13 +21,6 @@ service PeeringService {
   rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
 
   rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse);
-
-  // StreamResources opens an event stream for resources to share between peers, such as services.
-  // Events are streamed as they happen.
-  // buf:lint:ignore RPC_REQUEST_STANDARD_NAME
-  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-  rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
 }
 
 // PeeringState enumerates all the states a peering can be in
@@ -328,73 +318,3 @@ message EstablishRequest {
 // output=peering.gen.go
 // name=API
 message EstablishResponse {}
-
-message ReplicationMessage {
-  oneof Payload {
-    Request request = 1;
-    Response response = 2;
-    Terminated terminated = 3;
-  }
-
-  // A Request requests to subscribe to a resource of a given type.
-  message Request {
-    // An identifier for the peer making the request.
-    // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
-    string PeerID = 1;
-
-    // Nonce corresponding to that of the response being ACKed or NACKed.
-    // Initial subscription requests will have an empty nonce.
-    // The nonce is generated and incremented by the exporting peer.
-    string Nonce = 2;
-
-    // The type URL for the resource being requested or ACK/NACKed.
-    string ResourceURL = 3;
-
-    // The error if the previous response was not applied successfully.
-    // This field is empty in the first subscription request.
-    status.Status Error = 4;
-  }
-
-  // A Response contains resources corresponding to a subscription request.
-  message Response {
-    // Nonce identifying a response in a stream.
-    string Nonce = 1;
-
-    // The type URL of resource being returned.
-    string ResourceURL = 2;
-
-    // An identifier for the resource being returned.
-    // This could be the SPIFFE ID of the service.
-    string ResourceID = 3;
-
-    // The resource being returned.
-    google.protobuf.Any Resource = 4;
-
-    // Operation enumerates supported operations for replicated resources.
-    enum Operation {
-      Unknown = 0;
-
-      // UPSERT represents a create or update event.
-      UPSERT = 1;
-
-      // DELETE indicates the resource should be deleted.
-      // In DELETE operations no Resource will be returned.
-      // Deletion by an importing peer must be done with the type URL and ID.
-      DELETE = 2;
-    }
-
-    // REQUIRED. The operation to be performed in relation to the resource.
-    Operation operation = 5;
-  }
-
-  // Terminated is sent when a peering is deleted locally.
-  // This message signals to the peer that they should clean up their local state about the peering.
-  message Terminated {}
-}
-
-// LeaderAddress is sent when the peering service runs on a consul node
-// that is not a leader. The node either lost leadership, or never was a leader.
-message LeaderAddress {
-  // address is an ip:port best effort hint at what could be the cluster leader's address
-  string address = 1;
-}

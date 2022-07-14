@@ -59,7 +59,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 
 	// S1 should not have a stream tracked for dc2 because s1 generated a token for baz, and therefore needs to wait to be dialed.
 	time.Sleep(1 * time.Second)
-	_, found := s1.peeringService.StreamStatus(token.PeerID)
+	_, found := s1.peerStreamServer.StreamStatus(token.PeerID)
 	require.False(t, found)
 
 	var (
@@ -90,7 +90,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	require.NoError(t, s2.fsm.State().PeeringWrite(1000, p))
 
 	retry.Run(t, func(r *retry.R) {
-		status, found := s2.peeringService.StreamStatus(p.ID)
+		status, found := s2.peerStreamServer.StreamStatus(p.ID)
 		require.True(r, found)
 		require.True(r, status.Connected)
 	})
@@ -105,7 +105,7 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 	s2.logger.Trace("deleted peering for my-peer-s1")
 
 	retry.Run(t, func(r *retry.R) {
-		_, found := s2.peeringService.StreamStatus(p.ID)
+		_, found := s2.peerStreamServer.StreamStatus(p.ID)
 		require.False(r, found)
 	})
 
@@ -186,7 +186,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	require.NoError(t, s2.fsm.State().PeeringWrite(1000, p))
 
 	retry.Run(t, func(r *retry.R) {
-		status, found := s2.peeringService.StreamStatus(p.ID)
+		status, found := s2.peerStreamServer.StreamStatus(p.ID)
 		require.True(r, found)
 		require.True(r, status.Connected)
 	})
@@ -201,7 +201,7 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	s2.logger.Trace("deleted peering for my-peer-s1")
 
 	retry.Run(t, func(r *retry.R) {
-		_, found := s1.peeringService.StreamStatus(p.PeerID)
+		_, found := s1.peerStreamServer.StreamStatus(p.PeerID)
 		require.False(r, found)
 	})
 

@@ -3,10 +3,15 @@ Package event provides a service for subscribing to state change events.
 */
 syntax = "proto3";
 
+// TODO: ideally we would have prefixed this package as
+// "hashicorp.consul.internal.subscribe" before releasing but now correcting this will
+// require a grpc passthrough service shim since the package name is part of
+// the rpc method dispatch and editing it naively would break backwards
+// compatibility.
 package subscribe;
 
-import "proto/pbservice/node.proto";
 import "proto/pbconfigentry/config_entry.proto";
+import "proto/pbservice/node.proto";
 
 // StateChangeSubscription service allows consumers to subscribe to topics of
 // state change events. Events are streamed as they happen.
@@ -180,7 +185,7 @@ enum CatalogOp {
 
 message ServiceHealthUpdate {
   CatalogOp Op = 1;
-  service.CheckServiceNode CheckServiceNode = 2;
+  hashicorp.consul.internal.service.CheckServiceNode CheckServiceNode = 2;
 }
 
 message ConfigEntryUpdate {
@@ -190,5 +195,5 @@ message ConfigEntryUpdate {
   }
 
   UpdateOp Op = 1;
-  configentry.ConfigEntry ConfigEntry = 2;
+  hashicorp.consul.internal.configentry.ConfigEntry ConfigEntry = 2;
 }
