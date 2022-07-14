@@ -1,0 +1,3 @@
+ARG CONSUL_IMAGE_VERSION=latest
+FROM windows/consul:${CONSUL_IMAGE_VERSION}
+COPY dist/ C:\\consul
