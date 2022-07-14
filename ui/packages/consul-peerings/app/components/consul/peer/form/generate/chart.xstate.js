@@ -1,11 +1,6 @@
 export default {
   id: 'consul-peer-generate-form',
   initial: 'idle',
-  on: {
-    RESET: {
-      target: 'idle'
-    }
-  },
   states: {
     idle: {
       on: {
