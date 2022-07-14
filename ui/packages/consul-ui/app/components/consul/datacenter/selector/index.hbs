@@ -22,6 +22,9 @@
             Datacenters shown in this dropdown are available through WAN Federation.
           </p>
           <panel.Menu as |menu|>
+            <menu.Separator>
+              DATACENTERS
+            </menu.Separator>
             {{#each menu.items as |item|}}
               <menu.Item
                 aria-current={{if (eq @dc.Name item.Name) 'true'}}
