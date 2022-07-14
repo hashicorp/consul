@@ -875,6 +875,7 @@ jobs:
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
+      # TODO: Need to add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY once the PRs are merged for the test IAM creds.
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
