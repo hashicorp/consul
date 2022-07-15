@@ -346,6 +346,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 		s.Logger.Trace("did not find peer in stream tracker when reading peer", "peerID", peering.ID)
 	} else {
 		cp.ImportedServiceCount = uint64(len(st.ImportedServices))
+		cp.ExportedServiceCount = uint64(len(st.ExportedServices))
 	}
 
 	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
@@ -386,6 +387,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 			s.Logger.Trace("did not find peer in stream tracker when listing peers", "peerID", p.ID)
 		} else {
 			cp.ImportedServiceCount = uint64(len(st.ImportedServices))
+			cp.ExportedServiceCount = uint64(len(st.ExportedServices))
 		}
 
 		cPeerings = append(cPeerings, cp)
