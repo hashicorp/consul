@@ -14,7 +14,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22.2"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.22-latest"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -37,7 +37,7 @@ function command_error {
 }
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
-readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir"
 
 function network_snippet {
     local DC="$1"
@@ -67,7 +67,7 @@ function init_workdir {
   # Copy all the test files
   find ${CASE_DIR} -maxdepth 1 -name '*.bats' -type f -exec cp -f {} workdir/${CLUSTER}/bats \;
   # Copy CLUSTER specific bats
-  cp helpers.windows.bash workdir/${CLUSTER}/bats
+  cp helpers.windows.bash workdir/${CLUSTER}/bats/helpers.bash
 
   # Add any CLUSTER overrides
   if test -d "${CASE_DIR}/${CLUSTER}"
@@ -295,7 +295,7 @@ function pre_service_setup {
 function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
-  docker.exe cp workdir/. envoy_workdir_1:/workdir
+  # docker.exe cp workdir/. envoy_workdir_1:/workdir
 
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
@@ -416,7 +416,23 @@ function wipe_volumes {
     $WORKDIR_SNIPPET \
     --net=none \
     "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
-    rd /s /q "C:\\workdir"
+    cmd rd /s /q "C:\\workdir"
+}
+
+# Windows containers does not allow cp command while running.
+function stop_and_copy_files {
+    # Create CMD file to execute within the container
+    echo "XCOPY C:\workdir_bak C:\workdir /E /H /C /I" > copy.cmd
+    # Stop dummy container to copy local workdir to container's workdir_bak    
+    docker.exe stop envoy_workdir_1
+    docker.exe cp workdir/. envoy_workdir_1:/workdir_bak
+    # Copy CMD file into container
+    docker.exe cp copy.cmd envoy_workdir_1:/
+    # Start dummy container and execute the CMD file
+    docker.exe start envoy_workdir_1
+    docker.exe exec envoy_workdir_1 copy.cmd
+    # Delete local CMD file after execution
+    rm copy.cmd
 }
 
 function run_tests {
@@ -454,9 +470,8 @@ function run_tests {
   # Wipe state
   wipe_volumes
 
-  # Push the state to the shared docker volume (note this is because CircleCI
-  # can't use shared volumes)
- docker.exe cp workdir/. envoy_workdir_1:/workdir
+# Use this function to populate the shared volume
+ stop_and_copy_files
 
   start_consul primary
 
@@ -530,12 +545,13 @@ function suite_setup {
     docker.exe run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        mcr.microsoft.com/windows/nanoserver:1809 &>/dev/null
+        mcr.microsoft.com/oss/kubernetes/pause:3.6 &>/dev/null    
+    
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    # TODO -Line below commented for testing
+    
     docker build -t bats-verify -f Dockerfile-bats-windows .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
@@ -543,7 +559,7 @@ function suite_setup {
     #
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
-    # TODO - Line below commented for testing
+    
     docker.exe run --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
