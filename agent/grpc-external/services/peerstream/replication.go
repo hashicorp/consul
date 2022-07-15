@@ -63,7 +63,9 @@ func makeServiceResponse(
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
 	if len(csn.Nodes) == 0 {
+		logger.Trace("decrementing exported services count", "service_name", sn.String())
 		mst.RemoveExportedService(sn)
+
 		return &pbpeerstream.ReplicationMessage_Response{
 			ResourceURL: pbpeerstream.TypeURLExportedService,
 			// TODO(peering): Nonce management
@@ -73,7 +75,9 @@ func makeServiceResponse(
 		}, nil
 	}
 
+	logger.Trace("incrementing exported services count", "service_name", sn.String())
 	mst.TrackExportedService(sn)
+
 	// If there are nodes in the response, we push them as an UPSERT operation.
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedService,
