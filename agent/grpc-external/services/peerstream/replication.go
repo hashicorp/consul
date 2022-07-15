@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/genproto/googleapis/rpc/code"
+	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -39,7 +38,16 @@ func makeServiceResponse(
 	logger hclog.Logger,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
-	any, csn, err := marshalToProtoAny[*pbservice.IndexedCheckServiceNodes](update.Result)
+	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
+	if !ok {
+		return nil, fmt.Errorf("invalid type for service response: %T", update.Result)
+	}
+
+	export := &pbpeerstream.ExportedService{
+		Nodes: csn.Nodes,
+	}
+
+	any, err := anypb.New(export)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal: %w", err)
 	}
@@ -53,9 +61,9 @@ func makeServiceResponse(
 	//
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
-	if len(csn.Nodes) == 0 {
+	if len(export.Nodes) == 0 {
 		return &pbpeerstream.ReplicationMessage_Response{
-			ResourceURL: pbpeerstream.TypeURLService,
+			ResourceURL: pbpeerstream.TypeURLExportedService,
 			// TODO(peering): Nonce management
 			Nonce:      "",
 			ResourceID: serviceName,
@@ -65,7 +73,7 @@ func makeServiceResponse(
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
 	return &pbpeerstream.ReplicationMessage_Response{
-		ResourceURL: pbpeerstream.TypeURLService,
+		ResourceURL: pbpeerstream.TypeURLExportedService,
 		// TODO(peering): Nonce management
 		Nonce:      "",
 		ResourceID: serviceName,
@@ -84,7 +92,7 @@ func makeCARootsResponse(
 	}
 
 	return &pbpeerstream.ReplicationMessage_Response{
-		ResourceURL: pbpeerstream.TypeURLRoots,
+		ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
 		// TODO(peering): Nonce management
 		Nonce:      "",
 		ResourceID: "roots",
@@ -97,13 +105,13 @@ func makeCARootsResponse(
 // the protobuf.Any type, the asserted T type, and any errors
 // during marshalling or type assertion.
 // `in` MUST be of type T or it returns an error.
-func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
+func marshalToProtoAny[T newproto.Message](in any) (*anypb.Any, T, error) {
 	typ, ok := in.(T)
 	if !ok {
 		var outType T
 		return nil, typ, fmt.Errorf("input type is not %T: %T", outType, in)
 	}
-	any, err := ptypes.MarshalAny(typ)
+	any, err := anypb.New(typ)
 	if err != nil {
 		return nil, typ, err
 	}
@@ -186,20 +194,23 @@ func (s *Server) handleUpsert(
 	resource *anypb.Any,
 	logger hclog.Logger,
 ) error {
+	if resource.TypeUrl != resourceURL {
+		return fmt.Errorf("mismatched resourceURL %q and Any typeUrl %q", resourceURL, resource.TypeUrl)
+	}
+
 	switch resourceURL {
-	case pbpeerstream.TypeURLService:
+	case pbpeerstream.TypeURLExportedService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
 
-		csn := &pbservice.IndexedCheckServiceNodes{}
-		if err := ptypes.UnmarshalAny(resource, csn); err != nil {
+		export := &pbpeerstream.ExportedService{}
+		if err := resource.UnmarshalTo(export); err != nil {
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		err := s.handleUpdateService(peerName, partition, sn, csn)
+		err := s.handleUpdateService(peerName, partition, sn, export)
 		if err != nil {
-			logger.Error("did not increment imported services count", "service_name", sn.String(), "error", err)
-			return err
+			return fmt.Errorf("did not increment imported services count for service=%q: %w", sn.String(), err)
 		}
 
 		logger.Trace("incrementing imported services count", "service_name", sn.String())
@@ -207,9 +218,9 @@ func (s *Server) handleUpsert(
 
 		return nil
 
-	case pbpeerstream.TypeURLRoots:
+	case pbpeerstream.TypeURLPeeringTrustBundle:
 		roots := &pbpeering.PeeringTrustBundle{}
-		if err := ptypes.UnmarshalAny(resource, roots); err != nil {
+		if err := resource.UnmarshalTo(roots); err != nil {
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
@@ -232,7 +243,7 @@ func (s *Server) handleUpdateService(
 	peerName string,
 	partition string,
 	sn structs.ServiceName,
-	pbNodes *pbservice.IndexedCheckServiceNodes,
+	export *pbpeerstream.ExportedService,
 ) error {
 	// Capture instances in the state store for reconciliation later.
 	_, storedInstances, err := s.GetStore().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
@@ -240,7 +251,7 @@ func (s *Server) handleUpdateService(
 		return fmt.Errorf("failed to read imported services: %w", err)
 	}
 
-	structsNodes, err := pbNodes.CheckServiceNodesToStruct()
+	structsNodes, err := export.CheckServiceNodesToStruct()
 	if err != nil {
 		return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
 	}
@@ -444,7 +455,7 @@ func (s *Server) handleDelete(
 	logger hclog.Logger,
 ) error {
 	switch resourceURL {
-	case pbpeerstream.TypeURLService:
+	case pbpeerstream.TypeURLExportedService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
 

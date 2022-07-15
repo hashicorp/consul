@@ -12,15 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -97,18 +96,6 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		backend.leaderAddr = "expected:address"
 	})
 
-	client := NewMockClient(context.Background())
-
-	errCh := make(chan error, 1)
-	client.ErrCh = errCh
-
-	go func() {
-		err := srv.StreamResources(client.ReplicationStream)
-		if err != nil {
-			errCh <- err
-		}
-	}()
-
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
 	peerID := p.ID
@@ -116,53 +103,73 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	// Receive a subscription from a peer
-	sub := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				PeerID:      peerID,
-				ResourceURL: pbpeerstream.TypeURLService,
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		if err := srv.StreamResources(client.ReplicationStream); err != nil {
+			errCh <- err
+		}
+	}()
+
+	// Receive a subscription from a peer. This message arrives while the
+	// server is a leader and should work.
+	testutil.RunStep(t, "send subscription request to leader and consume its two requests", func(t *testing.T) {
+		sub := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					PeerID:      peerID,
+					ResourceURL: pbpeerstream.TypeURLExportedService,
+				},
 			},
-		},
-	}
-	err := client.Send(sub)
-	require.NoError(t, err)
+		}
+		err := client.Send(sub)
+		require.NoError(t, err)
 
-	msg, err := client.Recv()
-	require.NoError(t, err)
-	require.NotEmpty(t, msg)
+		msg1, err := client.Recv()
+		require.NoError(t, err)
+		require.NotEmpty(t, msg1)
 
-	receiveRoots, err := client.Recv()
-	require.NoError(t, err)
-	require.NotNil(t, receiveRoots.GetResponse())
-	require.Equal(t, pbpeerstream.TypeURLRoots, receiveRoots.GetResponse().ResourceURL)
+		msg2, err := client.Recv()
+		require.NoError(t, err)
+		require.NotEmpty(t, msg2)
+	})
 
-	input2 := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL:   pbpeerstream.TypeURLService,
-				ResponseNonce: "1",
+	// The ACK will be a new request but at this point the server is not the
+	// leader in the test and this should fail.
+	testutil.RunStep(t, "ack fails with non leader", func(t *testing.T) {
+		ack := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					ResourceURL:   pbpeerstream.TypeURLExportedService,
+					ResponseNonce: "1",
+				},
 			},
-		},
-	}
+		}
 
-	err2 := client.Send(input2)
-	require.NoError(t, err2)
+		err := client.Send(ack)
+		require.NoError(t, err)
 
-	// expect error
-	msg2, err2 := client.Recv()
-	require.Nil(t, msg2)
-	require.Error(t, err2)
-	require.EqualError(t, err2, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
+		// expect error
+		msg, err := client.Recv()
+		require.Nil(t, msg)
+		require.Error(t, err)
+		require.EqualError(t, err, "rpc error: code = FailedPrecondition desc = node is not a leader anymore; cannot continue streaming")
 
-	// expect a status error
-	st, ok := status.FromError(err2)
-	require.True(t, ok, "need to get back a grpc status error")
-	deets := st.Details()
+		// expect a status error
+		st, ok := status.FromError(err)
+		require.True(t, ok, "need to get back a grpc status error")
 
-	// expect a LeaderAddress message
-	exp := []interface{}{&pbpeerstream.LeaderAddress{Address: "expected:address"}}
-	prototest.AssertDeepEqual(t, exp, deets)
+		// expect a LeaderAddress message
+		expect := []interface{}{
+			&pbpeerstream.LeaderAddress{Address: "expected:address"},
+		}
+		prototest.AssertDeepEqual(t, expect, st.Details())
+	})
 }
 
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
@@ -204,7 +211,7 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 			input: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Response_{
 					Response: &pbpeerstream.ReplicationMessage_Response{
-						ResourceURL: pbpeerstream.TypeURLService,
+						ResourceURL: pbpeerstream.TypeURLExportedService,
 						ResourceID:  "api-service",
 						Nonce:       "2",
 					},
@@ -251,7 +258,7 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
 						PeerID:      "63b60245-c475-426b-b314-4588d210859d",
-						ResourceURL: pbpeerstream.TypeURLService,
+						ResourceURL: pbpeerstream.TypeURLExportedService,
 					},
 				},
 			},
@@ -291,7 +298,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	receiveRoots, err := client.Recv()
 	require.NoError(t, err)
 	require.NotNil(t, receiveRoots.GetResponse())
-	require.Equal(t, pbpeerstream.TypeURLRoots, receiveRoots.GetResponse().ResourceURL)
+	require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, receiveRoots.GetResponse().ResourceURL)
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
@@ -347,7 +354,6 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var sequence uint64
 	var lastSendSuccess time.Time
 
 	testutil.RunStep(t, "ack tracked as success", func(t *testing.T) {
@@ -355,18 +361,17 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
 					PeerID:        peerID,
-					ResourceURL:   pbpeerstream.TypeURLService,
+					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "1",
 
 					// Acks do not have an Error populated in the request
 				},
 			},
 		}
+
+		lastSendSuccess = it.FutureNow(1)
 		err := client.Send(ack)
 		require.NoError(t, err)
-		sequence++
-
-		lastSendSuccess = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
 		expect := Status{
 			Connected: true,
@@ -388,7 +393,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
 					PeerID:        peerID,
-					ResourceURL:   pbpeerstream.TypeURLService,
+					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "2",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_UNAVAILABLE),
@@ -397,12 +402,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 				},
 			},
 		}
+
+		lastNack = it.FutureNow(1)
 		err := client.Send(nack)
 		require.NoError(t, err)
-		sequence++
 
 		lastNackMsg = "client peer was unable to apply resource: bad bad not good"
-		lastNack = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
 		expect := Status{
 			Connected:       true,
@@ -424,22 +429,22 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		resp := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Response_{
 				Response: &pbpeerstream.ReplicationMessage_Response{
-					ResourceURL: pbpeerstream.TypeURLService,
+					ResourceURL: pbpeerstream.TypeURLExportedService,
 					ResourceID:  "api",
 					Nonce:       "21",
 					Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-					Resource:    makeAnyPB(t, &pbservice.IndexedCheckServiceNodes{}),
+					Resource:    makeAnyPB(t, &pbpeerstream.ExportedService{}),
 				},
 			},
 		}
+		lastRecvSuccess = it.FutureNow(1)
 		err := client.Send(resp)
 		require.NoError(t, err)
-		sequence++
 
 		expectRoots := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Response_{
 				Response: &pbpeerstream.ReplicationMessage_Response{
-					ResourceURL: pbpeerstream.TypeURLRoots,
+					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
 					ResourceID:  "roots",
 					Resource: makeAnyPB(t, &pbpeering.PeeringTrustBundle{
 						TrustDomain: connect.TestTrustDomain,
@@ -460,14 +465,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectAck := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL:   pbpeerstream.TypeURLService,
+					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "21",
 				},
 			},
 		}
 		prototest.AssertDeepEqual(t, expectAck, ack)
-
-		lastRecvSuccess = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
 		api := structs.NewServiceName("api", nil)
 
@@ -496,7 +499,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		resp := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Response_{
 				Response: &pbpeerstream.ReplicationMessage_Response{
-					ResourceURL: pbpeerstream.TypeURLService,
+					ResourceURL: pbpeerstream.TypeURLExportedService,
 					ResourceID:  "web",
 					Nonce:       "24",
 
@@ -505,9 +508,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 				},
 			},
 		}
+		lastRecvError = it.FutureNow(1)
 		err := client.Send(resp)
 		require.NoError(t, err)
-		sequence++
 
 		ack, err := client.Recv()
 		require.NoError(t, err)
@@ -515,7 +518,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		expectNack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL:   pbpeerstream.TypeURLService,
+					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "24",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_INVALID_ARGUMENT),
@@ -526,7 +529,6 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 		prototest.AssertDeepEqual(t, expectNack, ack)
 
-		lastRecvError = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 		lastRecvErrorMsg = `unsupported operation: "OPERATION_UNSPECIFIED"`
 
 		api := structs.NewServiceName("api", nil)
@@ -552,13 +554,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
+		lastRecvError = it.FutureNow(1)
+		disconnectTime := it.FutureNow(2)
+		lastRecvErrorMsg = io.EOF.Error()
+
 		client.Close()
-
-		sequence++
-		lastRecvError := it.base.Add(time.Duration(sequence) * time.Second).UTC()
-
-		sequence++
-		disconnectTime := it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
 		api := structs.NewServiceName("api", nil)
 
@@ -569,8 +569,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastNackMessage:         lastNackMsg,
 			DisconnectTime:          disconnectTime,
 			LastReceiveSuccess:      lastRecvSuccess,
-			LastReceiveErrorMessage: io.EOF.Error(),
 			LastReceiveError:        lastRecvError,
+			LastReceiveErrorMessage: lastRecvErrorMsg,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -654,35 +654,35 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLRoots, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				// Roots tested in TestStreamResources_Server_CARootUpdates
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				// no mongo instances exist
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_DELETE, msg.GetResponse().Operation)
 				require.Nil(t, msg.GetResponse().Resource)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				// proxies can't export because no mesh gateway exists yet
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_DELETE, msg.GetResponse().Operation)
 				require.Nil(t, msg.GetResponse().Resource)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlSN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
-				var nodes pbservice.IndexedCheckServiceNodes
-				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				var nodes pbpeerstream.ExportedService
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 				require.Len(t, nodes.Nodes, 1)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				// proxies can't export because no mesh gateway exists yet
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_DELETE, msg.GetResponse().Operation)
 				require.Nil(t, msg.GetResponse().Resource)
@@ -704,12 +704,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
-				var nodes pbservice.IndexedCheckServiceNodes
-				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				var nodes pbpeerstream.ExportedService
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 				require.Len(t, nodes.Nodes, 1)
 
 				pm := nodes.Nodes[0].Service.Connect.PeerMeta
@@ -721,12 +721,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				require.Equal(t, spiffeIDs, pm.SpiffeID)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
-				var nodes pbservice.IndexedCheckServiceNodes
-				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				var nodes pbpeerstream.ExportedService
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 				require.Len(t, nodes.Nodes, 1)
 
 				pm := nodes.Nodes[0].Service.Connect.PeerMeta
@@ -758,8 +758,8 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			require.Equal(r, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
 
-			var nodes pbservice.IndexedCheckServiceNodes
-			require.NoError(r, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+			var nodes pbpeerstream.ExportedService
+			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 			require.Len(r, nodes.Nodes, 1)
 		})
 	})
@@ -824,12 +824,12 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 	testutil.RunStep(t, "initial CA Roots replication", func(t *testing.T) {
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLRoots, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				require.Equal(t, "roots", msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 				var trustBundle pbpeering.PeeringTrustBundle
-				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &trustBundle))
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&trustBundle))
 
 				require.ElementsMatch(t, []string{rootA.RootCert}, trustBundle.RootPEMs)
 				expect := connect.SpiffeIDSigningForCluster(clusterID).Host()
@@ -853,12 +853,12 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLRoots, msg.GetResponse().ResourceURL)
+				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
 				require.Equal(t, "roots", msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 				var trustBundle pbpeering.PeeringTrustBundle
-				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &trustBundle))
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&trustBundle))
 
 				require.ElementsMatch(t, []string{rootB.RootCert, rootC.RootCert}, trustBundle.RootPEMs)
 				expect := connect.SpiffeIDSigningForCluster(clusterID).Host()
@@ -886,33 +886,57 @@ func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID s
 		}
 	}()
 
-	// Issue a services subscription to server
-	init := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				PeerID:      peerID,
-				ResourceURL: pbpeerstream.TypeURLService,
+	// Issue a services and roots subscription pair to server
+	for _, resourceURL := range []string{
+		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLPeeringTrustBundle,
+	} {
+		init := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					PeerID:      peerID,
+					ResourceURL: resourceURL,
+				},
 			},
-		},
+		}
+		require.NoError(t, client.Send(init))
 	}
-	require.NoError(t, client.Send(init))
 
-	// Receive a services subscription from server
-	receivedSub, err := client.Recv()
+	// Receive a services and roots subscription request pair from server
+	receivedSub1, err := client.Recv()
+	require.NoError(t, err)
+	receivedSub2, err := client.Recv()
 	require.NoError(t, err)
 
-	expect := &pbpeerstream.ReplicationMessage{
-		Payload: &pbpeerstream.ReplicationMessage_Request_{
-			Request: &pbpeerstream.ReplicationMessage_Request{
-				ResourceURL: pbpeerstream.TypeURLService,
-				// The PeerID field is only set for the messages coming FROM
-				// the establishing side and are going to be empty from the
-				// other side.
-				PeerID: "",
+	expect := []*pbpeerstream.ReplicationMessage{
+		{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					ResourceURL: pbpeerstream.TypeURLExportedService,
+					// The PeerID field is only set for the messages coming FROM
+					// the establishing side and are going to be empty from the
+					// other side.
+					PeerID: "",
+				},
+			},
+		},
+		{
+			Payload: &pbpeerstream.ReplicationMessage_Request_{
+				Request: &pbpeerstream.ReplicationMessage_Request{
+					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
+					// The PeerID field is only set for the messages coming FROM
+					// the establishing side and are going to be empty from the
+					// other side.
+					PeerID: "",
+				},
 			},
 		},
 	}
-	prototest.AssertDeepEqual(t, expect, receivedSub)
+	got := []*pbpeerstream.ReplicationMessage{
+		receivedSub1,
+		receivedSub2,
+	}
+	prototest.AssertElementsMatch[*pbpeerstream.ReplicationMessage](t, expect, got)
 
 	return client
 }
@@ -1017,16 +1041,16 @@ func Test_processResponse_Validation(t *testing.T) {
 		{
 			name: "valid upsert",
 			in: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLService,
+				ResourceURL: pbpeerstream.TypeURLExportedService,
 				ResourceID:  "api",
 				Nonce:       "1",
 				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-				Resource:    makeAnyPB(t, &pbservice.IndexedCheckServiceNodes{}),
+				Resource:    makeAnyPB(t, &pbpeerstream.ExportedService{}),
 			},
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL:   pbpeerstream.TypeURLService,
+						ResourceURL:   pbpeerstream.TypeURLExportedService,
 						ResponseNonce: "1",
 					},
 				},
@@ -1036,7 +1060,7 @@ func Test_processResponse_Validation(t *testing.T) {
 		{
 			name: "valid delete",
 			in: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLService,
+				ResourceURL: pbpeerstream.TypeURLExportedService,
 				ResourceID:  "api",
 				Nonce:       "1",
 				Operation:   pbpeerstream.Operation_OPERATION_DELETE,
@@ -1044,7 +1068,7 @@ func Test_processResponse_Validation(t *testing.T) {
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL:   pbpeerstream.TypeURLService,
+						ResourceURL:   pbpeerstream.TypeURLExportedService,
 						ResponseNonce: "1",
 					},
 				},
@@ -1075,14 +1099,14 @@ func Test_processResponse_Validation(t *testing.T) {
 		{
 			name: "unknown operation",
 			in: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLService,
+				ResourceURL: pbpeerstream.TypeURLExportedService,
 				Nonce:       "1",
 				Operation:   pbpeerstream.Operation_OPERATION_UNSPECIFIED,
 			},
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL:   pbpeerstream.TypeURLService,
+						ResourceURL:   pbpeerstream.TypeURLExportedService,
 						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
@@ -1096,14 +1120,14 @@ func Test_processResponse_Validation(t *testing.T) {
 		{
 			name: "out of range operation",
 			in: &pbpeerstream.ReplicationMessage_Response{
-				ResourceURL: pbpeerstream.TypeURLService,
+				ResourceURL: pbpeerstream.TypeURLExportedService,
 				Nonce:       "1",
 				Operation:   pbpeerstream.Operation(100000),
 			},
 			expect: &pbpeerstream.ReplicationMessage{
 				Payload: &pbpeerstream.ReplicationMessage_Request_{
 					Request: &pbpeerstream.ReplicationMessage_Request{
-						ResourceURL:   pbpeerstream.TypeURLService,
+						ResourceURL:   pbpeerstream.TypeURLExportedService,
 						ResponseNonce: "1",
 						Error: &pbstatus.Status{
 							Code:    int32(code.Code_INVALID_ARGUMENT),
@@ -1163,8 +1187,8 @@ func writeInitialRootsAndCA(t *testing.T, store *state.Store) (string, *structs.
 	return clusterID, rootA
 }
 
-func makeAnyPB(t *testing.T, pb proto.Message) *any.Any {
-	any, err := ptypes.MarshalAny(pb)
+func makeAnyPB(t *testing.T, pb proto.Message) *anypb.Any {
+	any, err := anypb.New(pb)
 	require.NoError(t, err)
 	return any
 }
@@ -1255,7 +1279,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	type testCase struct {
 		name                          string
 		seed                          []*structs.RegisterRequest
-		input                         *pbservice.IndexedCheckServiceNodes
+		input                         *pbpeerstream.ExportedService
 		expect                        map[string]structs.CheckServiceNodes
 		expectedImportedServicesCount int
 	}
@@ -1296,7 +1320,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 		}
 
 		in := &pbpeerstream.ReplicationMessage_Response{
-			ResourceURL: pbpeerstream.TypeURLService,
+			ResourceURL: pbpeerstream.TypeURLExportedService,
 			ResourceID:  apiSN.String(),
 			Nonce:       "1",
 			Operation:   op,
@@ -1322,7 +1346,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	tt := []testCase{
 		{
 			name: "upsert two service instances to the same node",
-			input: &pbservice.IndexedCheckServiceNodes{
+			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
@@ -1454,7 +1478,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 		},
 		{
 			name: "upsert two service instances to different nodes",
-			input: &pbservice.IndexedCheckServiceNodes{
+			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
@@ -1636,7 +1660,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 					},
 				},
 			},
-			input: &pbservice.IndexedCheckServiceNodes{},
+			input: &pbpeerstream.ExportedService{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 			},
@@ -1695,7 +1719,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 				},
 			},
 			// Nil input is for the "api" service.
-			input: &pbservice.IndexedCheckServiceNodes{},
+			input: &pbpeerstream.ExportedService{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 				// Existing redis service was not affected by deletion.
@@ -1761,7 +1785,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 					},
 				},
 			},
-			input: &pbservice.IndexedCheckServiceNodes{
+			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
@@ -1856,7 +1880,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 					},
 				},
 			},
-			input: &pbservice.IndexedCheckServiceNodes{
+			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
@@ -1991,7 +2015,7 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 					},
 				},
 			},
-			input: &pbservice.IndexedCheckServiceNodes{
+			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{

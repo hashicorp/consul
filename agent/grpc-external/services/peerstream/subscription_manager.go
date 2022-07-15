@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/consul/proto/pbservice"
 )
 
@@ -33,12 +34,14 @@ type SubscriptionBackend interface {
 
 // subscriptionManager handlers requests to subscribe to events from an events publisher.
 type subscriptionManager struct {
-	logger      hclog.Logger
-	config      Config
-	trustDomain string
-	viewStore   MaterializedViewStore
-	backend     SubscriptionBackend
-	getStore    func() StateStore
+	logger               hclog.Logger
+	config               Config
+	trustDomain          string
+	viewStore            MaterializedViewStore
+	backend              SubscriptionBackend
+	getStore             func() StateStore
+	serviceSubReady      <-chan struct{}
+	trustBundlesSubReady <-chan struct{}
 }
 
 // TODO(peering): Maybe centralize so that there is a single manager per datacenter, rather than per peering.
@@ -49,18 +52,21 @@ func newSubscriptionManager(
 	trustDomain string,
 	backend SubscriptionBackend,
 	getStore func() StateStore,
+	remoteSubTracker *resourceSubscriptionTracker,
 ) *subscriptionManager {
 	logger = logger.Named("subscriptions")
 	store := submatview.NewStore(logger.Named("viewstore"))
 	go store.Run(ctx)
 
 	return &subscriptionManager{
-		logger:      logger,
-		config:      config,
-		trustDomain: trustDomain,
-		viewStore:   store,
-		backend:     backend,
-		getStore:    getStore,
+		logger:               logger,
+		config:               config,
+		trustDomain:          trustDomain,
+		viewStore:            store,
+		backend:              backend,
+		getStore:             getStore,
+		serviceSubReady:      remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLExportedService),
+		trustBundlesSubReady: remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLPeeringTrustBundle),
 	}
 }
 
@@ -297,6 +303,13 @@ func (m *subscriptionManager) notifyRootCAUpdatesForPartition(
 	updateCh chan<- cache.UpdateEvent,
 	partition string,
 ) {
+	// Wait until this is subscribed-to.
+	select {
+	case <-m.trustBundlesSubReady:
+	case <-ctx.Done():
+		return
+	}
+
 	var idx uint64
 	// TODO(peering): retry logic; fail past a threshold
 	for {
