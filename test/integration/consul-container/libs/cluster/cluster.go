@@ -81,15 +81,26 @@ func (c *Cluster) Terminate() error {
 	return nil
 }
 
-func GetLeader(client *api.Client) (string, error) {
-	leaderAdd, err := client.Status().Leader()
+// Leader returns the cluster leader node, or an error if no leader is
+// available.
+func (c *Cluster) Leader() (node.Node, error) {
+	if len(c.Nodes) < 1 {
+		return nil, fmt.Errorf("no node available")
+	}
+	n0 := c.Nodes[0]
+
+	leaderAdd, err := GetLeader(n0.GetClient())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if leaderAdd == "" {
-		return "", fmt.Errorf("no leader available")
+
+	for _, n := range c.Nodes {
+		addr, _ := n.GetAddr()
+		if strings.Contains(leaderAdd, addr) {
+			return n, nil
+		}
 	}
-	return leaderAdd, nil
+	return nil, fmt.Errorf("leader not found")
 }
 
 func newSerfEncryptionKey() (string, error) {
@@ -105,27 +116,15 @@ func newSerfEncryptionKey() (string, error) {
 	return base64.StdEncoding.EncodeToString(key), nil
 }
 
-// Leader returns the cluster leader node, or an error if no leader is
-// available.
-func (c *Cluster) Leader() (node.Node, error) {
-	if len(c.Nodes) < 1 {
-		return nil, fmt.Errorf("no node available")
-	}
-	n0 := c.Nodes[0]
-	leaderAdd, err := n0.GetClient().Status().Leader()
+func GetLeader(client *api.Client) (string, error) {
+	leaderAdd, err := client.Status().Leader()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if leaderAdd == "" {
-		return nil, fmt.Errorf("no leader available")
+		return "", fmt.Errorf("no leader available")
 	}
-	for _, n := range c.Nodes {
-		addr, _ := n.GetAddr()
-		if strings.Contains(leaderAdd, addr) {
-			return n, nil
-		}
-	}
-	return nil, fmt.Errorf("leader not found")
+	return leaderAdd, nil
 }
 
 const retryTimeout = 20 * time.Second
