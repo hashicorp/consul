@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
@@ -309,11 +310,6 @@ func insertTestPeeringData(t *testing.T, store *state.Store, peer string, lastId
 				Node:        "aaa",
 				PeerName:    peer,
 			},
-			{
-				CheckID:  structs.SerfCheckID,
-				Node:     "aaa",
-				PeerName: peer,
-			},
 		},
 	}))
 
@@ -335,11 +331,6 @@ func insertTestPeeringData(t *testing.T, store *state.Store, peer string, lastId
 				ServiceID:   "b-service-1",
 				Node:        "bbb",
 				PeerName:    peer,
-			},
-			{
-				CheckID:  structs.SerfCheckID,
-				Node:     "bbb",
-				PeerName: peer,
 			},
 		},
 	}))
@@ -363,13 +354,269 @@ func insertTestPeeringData(t *testing.T, store *state.Store, peer string, lastId
 				Node:        "ccc",
 				PeerName:    peer,
 			},
-			{
-				CheckID:  structs.SerfCheckID,
-				Node:     "ccc",
-				PeerName: peer,
-			},
 		},
 	}))
 
 	return lastIdx
+}
+
+// TODO(peering): once we move away from leader only request for PeeringList, move this test to consul/server_test maybe
+func TestLeader_Peering_ImportedServicesCount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// TODO(peering): Configure with TLS
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	peeringClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-s2",
+	}
+	resp, err := peeringClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	var (
+		s2PeerID = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+		lastIdx  = uint64(0)
+	)
+
+	// Bring up s2 and store s1's token so that it attempts to dial.
+	_, s2 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s2.dc2"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Simulate a peering initiation event by writing a peering with data from a peering token.
+	// Eventually the leader in dc2 should dial and connect to the leader in dc1.
+	p := &pbpeering.Peering{
+		ID:                  s2PeerID,
+		Name:                "my-peer-s1",
+		PeerID:              token.PeerID,
+		PeerCAPems:          token.CA,
+		PeerServerName:      token.ServerName,
+		PeerServerAddresses: token.ServerAddresses,
+	}
+	require.True(t, p.ShouldDial())
+
+	lastIdx++
+	require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, p))
+
+	/// add services to S1 to be synced to S2
+	lastIdx++
+	require.NoError(t, s1.FSM().State().EnsureRegistration(lastIdx, &structs.RegisterRequest{
+		ID:      types.NodeID(generateUUID()),
+		Node:    "aaa",
+		Address: "10.0.0.1",
+		Service: &structs.NodeService{
+			Service: "a-service",
+			ID:      "a-service-1",
+			Port:    8080,
+		},
+		Checks: structs.HealthChecks{
+			{
+				CheckID:     "a-service-1-check",
+				ServiceName: "a-service",
+				ServiceID:   "a-service-1",
+				Node:        "aaa",
+			},
+		},
+	}))
+
+	lastIdx++
+	require.NoError(t, s1.FSM().State().EnsureRegistration(lastIdx, &structs.RegisterRequest{
+		ID: types.NodeID(generateUUID()),
+
+		Node:    "bbb",
+		Address: "10.0.0.2",
+		Service: &structs.NodeService{
+			Service: "b-service",
+			ID:      "b-service-1",
+			Port:    8080,
+		},
+		Checks: structs.HealthChecks{
+			{
+				CheckID:     "b-service-1-check",
+				ServiceName: "b-service",
+				ServiceID:   "b-service-1",
+				Node:        "bbb",
+			},
+		},
+	}))
+
+	lastIdx++
+	require.NoError(t, s1.FSM().State().EnsureRegistration(lastIdx, &structs.RegisterRequest{
+		ID: types.NodeID(generateUUID()),
+
+		Node:    "ccc",
+		Address: "10.0.0.3",
+		Service: &structs.NodeService{
+			Service: "c-service",
+			ID:      "c-service-1",
+			Port:    8080,
+		},
+		Checks: structs.HealthChecks{
+			{
+				CheckID:     "c-service-1-check",
+				ServiceName: "c-service",
+				ServiceID:   "c-service-1",
+				Node:        "ccc",
+			},
+		},
+	}))
+	/// finished adding services
+
+	type testCase struct {
+		name                          string
+		description                   string
+		exportedService               structs.ExportedServicesConfigEntry
+		expectedImportedServicesCount uint64
+	}
+
+	testCases := []testCase{
+		{
+			name:        "wildcard",
+			description: "for a wildcard exported services, we want to see all services synced",
+			exportedService: structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: structs.WildcardSpecifier,
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+				},
+			},
+			expectedImportedServicesCount: 4, // 3 services from above + the "consul" service
+		},
+		{
+			name:        "no sync",
+			description: "update the config entry to allow no service sync",
+			exportedService: structs.ExportedServicesConfigEntry{
+				Name: "default",
+			},
+			expectedImportedServicesCount: 0, // we want to see this decremented from 4 --> 0
+		},
+		{
+			name:        "just a, b services",
+			description: "export just two services",
+			exportedService: structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "a-service",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+					{
+						Name: "b-service",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+				},
+			},
+			expectedImportedServicesCount: 2,
+		},
+		{
+			name:        "unexport b service",
+			description: "by unexporting b we want to see the count decrement eventually",
+			exportedService: structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "a-service",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+				},
+			},
+			expectedImportedServicesCount: 1,
+		},
+		{
+			name:        "export c service",
+			description: "now export the c service and expect the count to increment",
+			exportedService: structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "a-service",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+					{
+						Name: "c-service",
+						Consumers: []structs.ServiceConsumer{
+							{
+								PeerName: "my-peer-s2",
+							},
+						},
+					},
+				},
+			},
+			expectedImportedServicesCount: 2,
+		},
+	}
+
+	conn2, err := grpc.DialContext(ctx, s2.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(s2.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn2.Close()
+
+	peeringClient2 := pbpeering.NewPeeringServiceClient(conn2)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			lastIdx++
+			require.NoError(t, s1.fsm.State().EnsureConfigEntry(lastIdx, &tc.exportedService))
+
+			retry.Run(t, func(r *retry.R) {
+				resp2, err := peeringClient2.PeeringList(ctx, &pbpeering.PeeringListRequest{})
+				require.NoError(r, err)
+				require.NotEmpty(r, resp2.Peerings)
+				require.Equal(r, tc.expectedImportedServicesCount, resp2.Peerings[0].ImportedServiceCount)
+			})
+		})
+	}
 }

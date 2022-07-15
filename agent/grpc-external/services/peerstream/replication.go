@@ -113,7 +113,9 @@ func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
 func (s *Server) processResponse(
 	peerName string,
 	partition string,
+	mutableStatus *MutableStatus,
 	resp *pbpeerstream.ReplicationMessage_Response,
+	logger hclog.Logger,
 ) (*pbpeerstream.ReplicationMessage, error) {
 	if !pbpeerstream.KnownTypeURL(resp.ResourceURL) {
 		err := fmt.Errorf("received response for unknown resource type %q", resp.ResourceURL)
@@ -137,7 +139,7 @@ func (s *Server) processResponse(
 			), err
 		}
 
-		if err := s.handleUpsert(peerName, partition, resp.ResourceURL, resp.ResourceID, resp.Resource); err != nil {
+		if err := s.handleUpsert(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, resp.Resource, logger); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -149,7 +151,7 @@ func (s *Server) processResponse(
 		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	case pbpeerstream.Operation_OPERATION_DELETE:
-		if err := s.handleDelete(peerName, partition, resp.ResourceURL, resp.ResourceID); err != nil {
+		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID, logger); err != nil {
 			return makeNACKReply(
 				resp.ResourceURL,
 				resp.Nonce,
@@ -178,9 +180,11 @@ func (s *Server) processResponse(
 func (s *Server) handleUpsert(
 	peerName string,
 	partition string,
+	mutableStatus *MutableStatus,
 	resourceURL string,
 	resourceID string,
 	resource *anypb.Any,
+	logger hclog.Logger,
 ) error {
 	switch resourceURL {
 	case pbpeerstream.TypeURLService:
@@ -192,7 +196,16 @@ func (s *Server) handleUpsert(
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		return s.handleUpdateService(peerName, partition, sn, csn)
+		err := s.handleUpdateService(peerName, partition, sn, csn)
+		if err != nil {
+			logger.Error("did not increment imported services count", "service_name", sn.String(), "error", err)
+			return err
+		}
+
+		logger.Trace("incrementing imported services count", "service_name", sn.String())
+		mutableStatus.TrackImportedService(sn)
+
+		return nil
 
 	case pbpeerstream.TypeURLRoots:
 		roots := &pbpeering.PeeringTrustBundle{}
@@ -425,14 +438,26 @@ func (s *Server) handleUpsertRoots(
 func (s *Server) handleDelete(
 	peerName string,
 	partition string,
+	mutableStatus *MutableStatus,
 	resourceURL string,
 	resourceID string,
+	logger hclog.Logger,
 ) error {
 	switch resourceURL {
 	case pbpeerstream.TypeURLService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
-		return s.handleUpdateService(peerName, partition, sn, nil)
+
+		err := s.handleUpdateService(peerName, partition, sn, nil)
+		if err != nil {
+			logger.Error("did not decrement imported services count", "service_name", sn.String(), "error", err)
+			return err
+		}
+
+		logger.Trace("decrementing imported services count", "service_name", sn.String())
+		mutableStatus.RemoveImportedService(sn)
+
+		return nil
 
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)

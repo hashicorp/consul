@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-// Tracker contains a map of (PeerID -> Status).
+// Tracker contains a map of (PeerID -> MutableStatus).
 // As streams are opened and closed we track details about their status.
 type Tracker struct {
 	mu      sync.RWMutex
@@ -142,6 +144,10 @@ type Status struct {
 	// - The error message when we failed to store a resource replicated FROM the peer.
 	// - The last error message when receiving from the stream.
 	LastReceiveErrorMessage string
+
+	// TODO(peering): consider keeping track of imported service counts thru raft
+	// ImportedServices is set that keeps track of which service names are imported for the peer
+	ImportedServices map[string]struct{}
 }
 
 func newMutableStatus(now func() time.Time) *MutableStatus {
@@ -221,4 +227,29 @@ func (s *MutableStatus) GetStatus() Status {
 	s.mu.RUnlock()
 
 	return copy
+}
+
+func (s *MutableStatus) RemoveImportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.ImportedServices, sn.String())
+}
+
+func (s *MutableStatus) TrackImportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ImportedServices == nil {
+		s.ImportedServices = make(map[string]struct{})
+	}
+
+	s.ImportedServices[sn.String()] = struct{}{}
+}
+
+func (s *MutableStatus) GetImportedServicesCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.ImportedServices)
 }

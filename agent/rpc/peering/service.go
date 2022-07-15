@@ -337,7 +337,17 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 	if peering == nil {
 		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
 	}
+
 	cp := copyPeeringWithNewState(peering, s.reconciledStreamStateHint(peering.ID, peering.State))
+
+	// add imported services count
+	st, found := s.Tracker.StreamStatus(peering.ID)
+	if !found {
+		s.Logger.Trace("did not find peer in stream tracker when reading peer", "peerID", peering.ID)
+	} else {
+		cp.ImportedServiceCount = uint64(len(st.ImportedServices))
+	}
+
 	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
 }
 
@@ -369,6 +379,15 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 	var cPeerings []*pbpeering.Peering
 	for _, p := range peerings {
 		cp := copyPeeringWithNewState(p, s.reconciledStreamStateHint(p.ID, p.State))
+
+		// add imported services count
+		st, found := s.Tracker.StreamStatus(p.ID)
+		if !found {
+			s.Logger.Trace("did not find peer in stream tracker when listing peers", "peerID", p.ID)
+		} else {
+			cp.ImportedServiceCount = uint64(len(st.ImportedServices))
+		}
+
 		cPeerings = append(cPeerings, cp)
 	}
 	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
@@ -586,17 +605,19 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 
 func copyPeeringWithNewState(p *pbpeering.Peering, state pbpeering.PeeringState) *pbpeering.Peering {
 	return &pbpeering.Peering{
-		ID:                  p.ID,
-		Name:                p.Name,
-		Partition:           p.Partition,
-		DeletedAt:           p.DeletedAt,
-		Meta:                p.Meta,
-		PeerID:              p.PeerID,
-		PeerCAPems:          p.PeerCAPems,
-		PeerServerAddresses: p.PeerServerAddresses,
-		PeerServerName:      p.PeerServerName,
-		CreateIndex:         p.CreateIndex,
-		ModifyIndex:         p.ModifyIndex,
+		ID:                   p.ID,
+		Name:                 p.Name,
+		Partition:            p.Partition,
+		DeletedAt:            p.DeletedAt,
+		Meta:                 p.Meta,
+		PeerID:               p.PeerID,
+		PeerCAPems:           p.PeerCAPems,
+		PeerServerAddresses:  p.PeerServerAddresses,
+		PeerServerName:       p.PeerServerName,
+		CreateIndex:          p.CreateIndex,
+		ModifyIndex:          p.ModifyIndex,
+		ImportedServiceCount: p.ImportedServiceCount,
+		ExportedServiceCount: p.ExportedServiceCount,
 
 		State: state,
 	}

@@ -302,7 +302,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 
 			if resp := msg.GetResponse(); resp != nil {
 				// TODO(peering): Ensure there's a nonce
-				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, resp)
+				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, logger)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
 					status.TrackReceiveError(err.Error())

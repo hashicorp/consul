@@ -475,6 +475,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastNack:           lastNack,
 			LastNackMessage:    lastNackMsg,
 			LastReceiveSuccess: lastRecvSuccess,
+			ImportedServices:   map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -532,6 +533,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveError:        lastRecvError,
 			LastReceiveErrorMessage: lastRecvErrorMsg,
+			ImportedServices:        map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -559,6 +561,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveErrorMessage: io.EOF.Error(),
 			LastReceiveError:        lastRecvError,
+			ImportedServices:        map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -968,6 +971,9 @@ func (b *testStreamBackend) CatalogDeregister(req *structs.DeregisterRequest) er
 }
 
 func Test_processResponse_Validation(t *testing.T) {
+	peerName := "billing"
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
+
 	type testCase struct {
 		name    string
 		in      *pbpeerstream.ReplicationMessage_Response
@@ -975,10 +981,18 @@ func Test_processResponse_Validation(t *testing.T) {
 		wantErr bool
 	}
 
-	srv, _ := newTestServer(t, nil)
+	srv, store := newTestServer(t, nil)
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName},
+	))
+
+	// connect the stream
+	mst, err := srv.Tracker.Connected(peerID)
+	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse("", "", tc.in)
+		reply, err := srv.processResponse(peerName, "", mst, tc.in, srv.Logger)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1218,8 +1232,8 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 	}
 }
 
-func TestHandleUpdateService(t *testing.T) {
-	srv, _ := newTestServer(t, func(c *Config) {
+func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
+	srv, store := newTestServer(t, func(c *Config) {
 		backend := c.Backend.(*testStreamBackend)
 		backend.leader = func() bool {
 			return false
@@ -1227,13 +1241,15 @@ func TestHandleUpdateService(t *testing.T) {
 	})
 
 	type testCase struct {
-		name   string
-		seed   []*structs.RegisterRequest
-		input  *pbservice.IndexedCheckServiceNodes
-		expect map[string]structs.CheckServiceNodes
+		name                          string
+		seed                          []*structs.RegisterRequest
+		input                         *pbservice.IndexedCheckServiceNodes
+		expect                        map[string]structs.CheckServiceNodes
+		expectedImportedServicesCount int
 	}
 
 	peerName := "billing"
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 	remoteMeta := pbcommon.NewEnterpriseMetaFromStructs(*structs.DefaultEnterpriseMetaInPartition("billing-ap"))
 
 	// "api" service is imported from the billing-ap partition, corresponding to the billing peer.
@@ -1241,14 +1257,43 @@ func TestHandleUpdateService(t *testing.T) {
 	defaultMeta := *acl.DefaultEnterpriseMeta()
 	apiSN := structs.NewServiceName("api", &defaultMeta)
 
+	// create a peering in the state store
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName},
+	))
+
+	// connect the stream
+	mst, err := srv.Tracker.Connected(peerID)
+	require.NoError(t, err)
+
 	run := func(t *testing.T, tc testCase) {
 		// Seed the local catalog with some data to reconcile against.
+		// and increment the tracker's imported services count
 		for _, reg := range tc.seed {
 			require.NoError(t, srv.Backend.CatalogRegister(reg))
+
+			mst.TrackImportedService(reg.Service.CompoundServiceName())
+		}
+
+		var op pbpeerstream.Operation
+		if len(tc.input.Nodes) == 0 {
+			op = pbpeerstream.Operation_OPERATION_DELETE
+		} else {
+			op = pbpeerstream.Operation_OPERATION_UPSERT
+		}
+
+		in := &pbpeerstream.ReplicationMessage_Response{
+			ResourceURL: pbpeerstream.TypeURLService,
+			ResourceID:  apiSN.String(),
+			Nonce:       "1",
+			Operation:   op,
+			Resource:    makeAnyPB(t, tc.input),
 		}
 
 		// Simulate an update arriving for billing/api.
-		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, tc.input))
+		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in, srv.Logger)
+		require.NoError(t, err)
 
 		for svc, expect := range tc.expect {
 			t.Run(svc, func(t *testing.T) {
@@ -1257,6 +1302,9 @@ func TestHandleUpdateService(t *testing.T) {
 				requireEqualInstances(t, expect, got)
 			})
 		}
+
+		// assert the imported services count modifications
+		require.Equal(t, tc.expectedImportedServicesCount, mst.GetImportedServicesCount())
 	}
 
 	tt := []testCase{
@@ -1390,6 +1438,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "upsert two service instances to different nodes",
@@ -1521,6 +1570,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "receiving a nil input leads to deleting data in the catalog",
@@ -1574,10 +1624,11 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
-			input: nil,
+			input: &pbservice.IndexedCheckServiceNodes{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 			},
+			expectedImportedServicesCount: 0,
 		},
 		{
 			name: "deleting one service name from a node does not delete other service names",
@@ -1632,7 +1683,7 @@ func TestHandleUpdateService(t *testing.T) {
 				},
 			},
 			// Nil input is for the "api" service.
-			input: nil,
+			input: &pbservice.IndexedCheckServiceNodes{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 				// Existing redis service was not affected by deletion.
@@ -1668,6 +1719,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "service checks are cleaned up when not present in a response",
@@ -1738,6 +1790,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
 			name: "node checks are cleaned up when not present in a response",
@@ -1872,6 +1925,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
 			name: "replacing a service instance on a node cleans up the old instance",
@@ -2019,6 +2073,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 	}
 
