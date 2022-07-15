@@ -424,7 +424,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(logger, update)
+				resp, err = makeServiceResponse(logger, status, update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)

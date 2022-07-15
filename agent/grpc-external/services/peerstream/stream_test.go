@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -1004,6 +1005,53 @@ func (b *testStreamBackend) CatalogDeregister(req *structs.DeregisterRequest) er
 		}
 	}
 	return nil
+}
+
+func Test_makeServiceResponse_ExportedServicesCount(t *testing.T) {
+	peerName := "billing"
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
+
+	srv, store := newTestServer(t, nil)
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName},
+	))
+
+	// connect the stream
+	mst, err := srv.Tracker.Connected(peerID)
+	require.NoError(t, err)
+
+	testutil.RunStep(t, "simulate an update to export a service", func(t *testing.T) {
+		update := cache.UpdateEvent{
+			CorrelationID: subExportedService + "api",
+			Result: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Service: &pbservice.NodeService{
+							ID:       "api-1",
+							Service:  "api",
+							PeerName: peerName,
+						},
+					},
+				},
+			}}
+		_, err := makeServiceResponse(srv.Logger, mst, update)
+		require.NoError(t, err)
+
+		require.Equal(t, 1, mst.GetExportedServicesCount())
+	})
+
+	testutil.RunStep(t, "simulate a delete for an exported service", func(t *testing.T) {
+		update := cache.UpdateEvent{
+			CorrelationID: subExportedService + "api",
+			Result: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{},
+			}}
+		_, err := makeServiceResponse(srv.Logger, mst, update)
+		require.NoError(t, err)
+
+		require.Equal(t, 0, mst.GetExportedServicesCount())
+	})
 }
 
 func Test_processResponse_Validation(t *testing.T) {

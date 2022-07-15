@@ -166,9 +166,11 @@ type Status struct {
 	// - The last error message when receiving from the stream.
 	LastReceiveErrorMessage string
 
-	// TODO(peering): consider keeping track of imported service counts thru raft
-	// ImportedServices is set that keeps track of which service names are imported for the peer
+	// TODO(peering): consider keeping track of imported and exported services thru raft
+	// ImportedServices keeps track of which service names are imported for the peer
 	ImportedServices map[string]struct{}
+	// ExportedServices keeps track of which service names a peer asks to export
+	ExportedServices map[string]struct{}
 }
 
 func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
@@ -273,4 +275,29 @@ func (s *MutableStatus) GetImportedServicesCount() int {
 	defer s.mu.RUnlock()
 
 	return len(s.ImportedServices)
+}
+
+func (s *MutableStatus) RemoveExportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.ExportedServices, sn.String())
+}
+
+func (s *MutableStatus) TrackExportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ExportedServices == nil {
+		s.ExportedServices = make(map[string]struct{})
+	}
+
+	s.ExportedServices[sn.String()] = struct{}{}
+}
+
+func (s *MutableStatus) GetExportedServicesCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.ExportedServices)
 }
