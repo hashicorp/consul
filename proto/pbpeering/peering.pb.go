@@ -379,7 +379,7 @@ func (x *PeeringTrustBundle) GetModifyIndex() uint64 {
 	return 0
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: Datacenter,LeaderReadTODO
 type PeeringReadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -490,7 +490,7 @@ func (x *PeeringReadResponse) GetPeering() *Peering {
 	return nil
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: Datacenter,LeaderReadTODO
 type PeeringListRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
