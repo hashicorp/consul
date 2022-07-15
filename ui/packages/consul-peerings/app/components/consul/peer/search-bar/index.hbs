@@ -81,7 +81,7 @@ as |key value|}}
     {{#each
       (get
         (require '/models/peer'
-          path='schema'
+          export='schema'
           from='/components/consul/peer/search-bar'
         )
         'State.allowedValues'

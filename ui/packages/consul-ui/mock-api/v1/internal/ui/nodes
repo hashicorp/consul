@@ -17,7 +17,7 @@
           {
             "ID":"${fake.random.uuid()}",
             "Node":"node-${i}",
-            ${location.search["with-peers"] ? peerNameString : ''}
+            ${env('CONSUL_PEERINGS_ENABLE') ? peerNameString : ''}
             "Address":"${fake.internet.ip()}",
             "TaggedAddresses":{
               "lan":"${fake.internet.ip()}",

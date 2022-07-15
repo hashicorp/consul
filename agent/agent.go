@@ -4075,6 +4075,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
 	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
+	a.cache.RegisterType(cachetype.IntentionUpstreamsDestinationName, &cachetype.IntentionUpstreamsDestination{RPC: a})
 
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
@@ -4097,6 +4098,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.CompiledDiscoveryChainName, &cachetype.CompiledDiscoveryChain{RPC: a})
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
+	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
 
@@ -4220,10 +4222,12 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		Datacenters:                     proxycfgglue.CacheDatacenters(a.cache),
 		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
 		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
-		Health:                          proxycfgglue.Health(a.rpcClientHealth),
+		ServiceGateways:                 proxycfgglue.CacheServiceGateways(a.cache),
+		Health:                          proxycfgglue.ClientHealth(a.rpcClientHealth),
 		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
 		Intentions:                      proxycfgglue.CacheIntentions(a.cache),
 		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
+		IntentionUpstreamsDestination:   proxycfgglue.CacheIntentionUpstreamsDestination(a.cache),
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
 		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
 		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
@@ -4237,6 +4241,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 
 	if server, ok := a.delegate.(*consul.Server); ok {
 		deps := proxycfgglue.ServerDataSourceDeps{
+			Datacenter:     a.config.Datacenter,
 			EventPublisher: a.baseDeps.EventPublisher,
 			ViewStore:      a.baseDeps.ViewStore,
 			Logger:         a.logger.Named("proxycfg.server-data-sources"),
@@ -4245,8 +4250,15 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		}
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
+		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
+		sources.FederationStateListMeshGateways = proxycfgglue.ServerFederationStateListMeshGateways(deps)
+		sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
+		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
+		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
+		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)
 	}
 
 	a.fillEnterpriseProxyDataSources(&sources)

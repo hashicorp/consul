@@ -86,47 +86,80 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
-
-		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
-
-		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, true)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config: %v", err)
+			return nil, err
 		}
-		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
-			// Routes can only be defined for HTTP services
-			continue
-		}
-
-		if !hasResolver {
-			// Use a zero value resolver with no timeout and no subsets
-			resolver = &structs.ServiceResolverConfigEntry{}
-		}
-
-		var lb *structs.LoadBalancer
-		if resolver.LoadBalancer != nil {
-			lb = resolver.LoadBalancer
-		}
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
-		if err != nil {
-			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
-			continue
-		}
-		resources = append(resources, route)
-
-		// If there is a service-resolver for this service then also setup routes for each subset
-		for name := range resolver.Subsets {
-			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
-			if err != nil {
-				s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
-				continue
-			}
-			resources = append(resources, route)
+		if routes != nil {
+			resources = append(resources, routes...)
 		}
 	}
 
+	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
+		clusterName := clusterNameForDestination(cfgSnap, svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
+		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, false)
+		if err != nil {
+			return nil, err
+		}
+		if routes != nil {
+			resources = append(resources, routes...)
+		}
+	}
+
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makeRoutes(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	svc structs.ServiceName,
+	clusterName string,
+	autoHostRewrite bool) ([]proto.Message, error) {
+	resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+	svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+	cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn(
+			"failed to parse Proxy.Config",
+			"service", svc.String(),
+			"error", err,
+		)
+	}
+	if !structs.IsProtocolHTTPLike(cfg.Protocol) {
+		// Routes can only be defined for HTTP services
+		return nil, nil
+	}
+
+	if !hasResolver {
+		// Use a zero value resolver with no timeout and no subsets
+		resolver = &structs.ServiceResolverConfigEntry{}
+	}
+
+	var resources []proto.Message
+	var lb *structs.LoadBalancer
+	if resolver.LoadBalancer != nil {
+		lb = resolver.LoadBalancer
+	}
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, autoHostRewrite)
+	if err != nil {
+		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
+		return nil, err
+	}
+	resources = append(resources, route)
+
+	// If there is a service-resolver for this service then also setup routes for each subset
+	for name := range resolver.Subsets {
+		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
+		if err != nil {
+			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
+			return nil, err
+		}
+		resources = append(resources, route)
+	}
 	return resources, nil
 }
 

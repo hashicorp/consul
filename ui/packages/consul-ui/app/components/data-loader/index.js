@@ -1,6 +1,5 @@
 import Component from '@ember/component';
 import { set } from '@ember/object';
-import { schedule } from '@ember/runloop';
 import Slotted from 'block-slots';
 
 import chart from './chart.xstate';
@@ -22,12 +21,6 @@ export default Component.extend(Slotted, {
     this.dispatch('LOAD');
   },
   actions: {
-    invalidate() {
-      this.dispatch('INVALIDATE');
-      schedule('afterRender', () => {
-        this.dispatch('LOAD');
-      });
-    },
     isLoaded: function() {
       return typeof this.items !== 'undefined' || typeof this.src === 'undefined';
     },

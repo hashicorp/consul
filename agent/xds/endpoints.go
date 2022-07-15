@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -148,6 +147,24 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			resources = append(resources, la)
 		}
 	}
+
+	// Loop over potential destinations in the mesh, then grab the gateway nodes associated with each
+	cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid proxycfg.UpstreamID) bool {
+		name := clusterNameForDestination(cfgSnap, uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+
+		endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
+		if ok {
+			la := makeLoadAssignment(
+				name,
+				[]loadAssignmentEndpointGroup{
+					{Endpoints: endpoints},
+				},
+				proxycfg.GatewayKey{ /*empty so it never matches*/ },
+			)
+			resources = append(resources, la)
+		}
+		return true
+	})
 
 	return resources, nil
 }

@@ -34,14 +34,22 @@ Consul is A, and version B is released.
    there are no compatibility issues that will affect your workload. If there
    are plan accordingly before continuing.
 
-2. On each server, install version B of Consul.
+2. On each Consul server agent, install version B of Consul.
 
-3. One server at a time, shut down version A via `consul leave` and restart with version B. Wait until
-   the server is healthy and has rejoined the cluster before moving on to the
-   next server.
+3. One Consul server agent at a time, shut down version A via `consul leave` and restart with version B. Wait until
+   the server agent is healthy and has rejoined the cluster before moving on to the
+   next server agent.
 
-4. Once all the servers are upgraded, begin a rollout of clients following
+4. Once all the server agents are upgraded, begin a rollout of client agents following
    the same process.
+
+   -> **Upgrade Envoy proxies:** If a client agent has associated Envoy proxies (e.g., sidecars, gateways),
+      install a [compatible Envoy version](/docs/connect/proxies/envoy#supported-versions)
+      for Consul version B.
+      After stopping client agent version A,
+      stop its associated Envoy proxies.
+      After restarting the client agent with version B,
+      restart its associated Envoy proxies with the compatible Envoy version.
 
 5. Done! You are now running the latest Consul agent. You can verify this
    by running `consul members` to make sure all members have the latest
