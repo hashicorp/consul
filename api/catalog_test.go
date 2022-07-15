@@ -36,43 +36,35 @@ func TestAPI_CatalogNodes(t *testing.T) {
 
 	s.WaitForSerfCheck(t)
 	catalog := c.Catalog()
+
 	retry.Run(t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
-		// We're not concerned about the createIndex of an agent
-		// Hence we're setting it to the default value
-		nodes[0].CreateIndex = 0
-		if err != nil {
-			r.Fatal(err)
-		}
-		if meta.LastIndex < 2 {
-			r.Fatal("Last index must be greater than 1")
-		}
-		want := []*Node{
-			{
-				ID:         s.Config.NodeID,
-				Node:       s.Config.NodeName,
-				Partition:  splitDefaultPartition,
-				Address:    "127.0.0.1",
-				Datacenter: "dc1",
-				TaggedAddresses: map[string]string{
-					"lan":      "127.0.0.1",
-					"lan_ipv4": "127.0.0.1",
-					"wan":      "127.0.0.1",
-					"wan_ipv4": "127.0.0.1",
-				},
-				Meta: map[string]string{
-					"consul-network-segment": "",
-				},
-				// CreateIndex will never always be meta.LastIndex - 1
-				// The purpose of this test is not to test CreateIndex value of an agent
-				// rather to check if the client agent can get the correct number
-				// of agents with a particular service, KV pair, etc...
-				// Hence reverting this to the default value here.
-				CreateIndex: 0,
-				ModifyIndex: meta.LastIndex,
+		require.NoError(r, err)
+		require.Len(r, nodes, 1)
+		require.True(r, meta.LastIndex >= 1, "Last index must be greater than 1")
+
+		// The raft indexes are not relevant for this test.
+		got := nodes[0]
+		got.CreateIndex = 0
+		got.ModifyIndex = 0
+
+		want := &Node{
+			ID:         s.Config.NodeID,
+			Node:       s.Config.NodeName,
+			Partition:  splitDefaultPartition,
+			Address:    "127.0.0.1",
+			Datacenter: "dc1",
+			TaggedAddresses: map[string]string{
+				"lan":      "127.0.0.1",
+				"lan_ipv4": "127.0.0.1",
+				"wan":      "127.0.0.1",
+				"wan_ipv4": "127.0.0.1",
+			},
+			Meta: map[string]string{
+				"consul-network-segment": "",
 			},
 		}
-		require.Equal(r, want, nodes)
+		require.Equal(r, want, got)
 	})
 }
 
