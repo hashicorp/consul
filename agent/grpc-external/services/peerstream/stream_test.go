@@ -478,7 +478,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastNackMessage:    lastNackMsg,
 			LastReceiveSuccess: lastRecvSuccess,
 			ImportedServices: map[string]struct{}{
-				api.String(): struct{}{},
+				api.String(): {},
 			},
 		}
 
@@ -540,7 +540,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveError:        lastRecvError,
 			LastReceiveErrorMessage: lastRecvErrorMsg,
 			ImportedServices: map[string]struct{}{
-				api.String(): struct{}{},
+				api.String(): {},
 			},
 		}
 
@@ -572,7 +572,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveErrorMessage: io.EOF.Error(),
 			LastReceiveError:        lastRecvError,
 			ImportedServices: map[string]struct{}{
-				api.String(): struct{}{},
+				api.String(): {},
 			},
 		}
 
