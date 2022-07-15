@@ -41,7 +41,6 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
-			c.TLSConfig.GRPC.VerifyOutgoing = true
 		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -89,7 +88,6 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-			c.TLSConfig.GRPC.VerifyOutgoing = true
 		}
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -160,7 +158,6 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
-			c.TLSConfig.GRPC.VerifyOutgoing = true
 		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -204,7 +201,6 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-			c.TLSConfig.GRPC.VerifyOutgoing = true
 		}
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -285,7 +281,6 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, peerMutateFn func(p *
 		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
 		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
-		c.TLSConfig.GRPC.VerifyOutgoing = true
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -333,7 +328,6 @@ func testLeader_PeeringSync_failsForTLSError(t *testing.T, peerMutateFn func(p *
 		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
 		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
-		c.TLSConfig.GRPC.VerifyOutgoing = true
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
