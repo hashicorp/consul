@@ -761,12 +761,7 @@ func (a *Agent) Failed() <-chan struct{} {
 }
 
 func (a *Agent) buildExternalGRPCServer() {
-	// TLS is only enabled on the gRPC server if there's an HTTPS port configured.
-	var tls *tlsutil.Configurator
-	if a.config.HTTPSPort > 0 {
-		tls = a.tlsConfigurator
-	}
-	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), tls)
+	a.externalGRPCServer = external.NewServer(a.logger.Named("grpc.external"), a.tlsConfigurator)
 }
 
 func (a *Agent) listenAndServeGRPC() error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -21,15 +22,27 @@ import (
 )
 
 func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
+	t.Run("without-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, false)
+	})
+	t.Run("with-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ClientDeletion(t, true)
+	})
+}
+func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// TODO(peering): Configure with TLS
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "s1.dc1"
+		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		if enableTLS {
+			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
+			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -69,9 +82,14 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 
 	// Bring up s2 and store s1's token so that it attempts to dial.
 	_, s2 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "s2.dc2"
+		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
+		if enableTLS {
+			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
+			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
+		}
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -121,15 +139,27 @@ func TestLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T) {
 }
 
 func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
+	t.Run("without-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ServerDeletion(t, false)
+	})
+	t.Run("with-tls", func(t *testing.T) {
+		testLeader_PeeringSync_Lifecycle_ServerDeletion(t, true)
+	})
+}
+func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// TODO(peering): Configure with TLS
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "s1.dc1"
+		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
+		if enableTLS {
+			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
+			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+		}
 	})
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -165,9 +195,14 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 
 	// Bring up s2 and store s1's token so that it attempts to dial.
 	_, s2 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "s2.dc2"
+		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
+		if enableTLS {
+			c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+			c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
+			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
+		}
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -213,6 +248,111 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		})
 		require.NoError(r, err)
 		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
+	})
+}
+
+func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Run("server-name-validation", func(t *testing.T) {
+		testLeader_PeeringSync_failsForTLSError(t, func(p *pbpeering.Peering) {
+			p.PeerServerName = "wrong.name"
+		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.consul, bob.server.dc1.consul, not wrong.name`)
+	})
+	t.Run("bad-ca-roots", func(t *testing.T) {
+		wrongRoot, err := ioutil.ReadFile("../../test/client_certs/rootca.crt")
+		require.NoError(t, err)
+
+		testLeader_PeeringSync_failsForTLSError(t, func(p *pbpeering.Peering) {
+			p.PeerCAPems = []string{string(wrongRoot)}
+		}, `transport: authentication handshake failed: x509: certificate signed by unknown authority`)
+	})
+}
+
+func testLeader_PeeringSync_failsForTLSError(t *testing.T, peerMutateFn func(p *pbpeering.Peering), expectErr string) {
+	require.NotNil(t, peerMutateFn)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "bob"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+
+		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Bob.crt"
+		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	peeringClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-s2",
+	}
+	resp, err := peeringClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	// S1 should not have a stream tracked for dc2 because s1 generated a token
+	// for baz, and therefore needs to wait to be dialed.
+	time.Sleep(1 * time.Second)
+	_, found := s1.peerStreamServer.StreamStatus(token.PeerID)
+	require.False(t, found)
+
+	var (
+		s2PeerID = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+	)
+
+	// Bring up s2 and store s1's token so that it attempts to dial.
+	_, s2 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "betty"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+
+		c.TLSConfig.GRPC.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.GRPC.CertFile = "../../test/hostname/Betty.crt"
+		c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
+	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Simulate a peering initiation event by writing a peering with data from a peering token.
+	// Eventually the leader in dc2 should dial and connect to the leader in dc1.
+	p := &pbpeering.Peering{
+		ID:                  s2PeerID,
+		Name:                "my-peer-s1",
+		PeerID:              token.PeerID,
+		PeerCAPems:          token.CA,
+		PeerServerName:      token.ServerName,
+		PeerServerAddresses: token.ServerAddresses,
+	}
+	peerMutateFn(p)
+	require.True(t, p.ShouldDial())
+
+	// We maintain a pointer to the peering on the write so that we can get the ID without needing to re-query the state store.
+	require.NoError(t, s2.fsm.State().PeeringWrite(1000, p))
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := s2.peerStreamTracker.StreamStatus(p.ID)
+		require.True(r, found)
+		require.False(r, status.Connected)
+		require.Contains(r, status.LastSendErrorMessage, expectErr)
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -14,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -225,6 +227,11 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 	retryCtx, cancel := context.WithCancel(ctx)
 	cancelFns[peer.ID] = cancel
 
+	streamStatus, err := s.peerStreamTracker.Register(peer.ID)
+	if err != nil {
+		return fmt.Errorf("failed to register stream: %v", err)
+	}
+
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
 	go retryLoopBackoff(retryCtx, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
@@ -238,8 +245,15 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 
 		logger.Trace("dialing peer", "addr", addr)
 		conn, err := grpc.DialContext(retryCtx, addr,
-			grpc.WithBlock(),
+			// TODO(peering): use a grpc.WithStatsHandler here?)
 			tlsOption,
+			// For keep alive parameters there is a larger comment in ClientConnPool.dial about that.
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:    30 * time.Second,
+				Timeout: 10 * time.Second,
+				// send keepalive pings even if there is no active streams
+				PermitWithoutStream: true,
+			}),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to dial: %w", err)
@@ -277,8 +291,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 		return err
 
 	}, func(err error) {
-		// TODO(peering): These errors should be reported in the peer status, otherwise they're only in the logs.
-		//                Lockable status isn't available here though. Could report it via the peering.Service?
+		streamStatus.TrackSendError(err.Error())
 		logger.Error("error managing peering stream", "peer_id", peer.ID, "error", err)
 	})
 

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -299,8 +300,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, grpc.NewServer())
-
+	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
 	if err != nil {
 		return nil, err
 	}

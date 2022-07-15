@@ -33,16 +33,37 @@ func (t *Tracker) SetClock(clock func() time.Time) {
 	}
 }
 
+// Register a stream for a given peer but do not mark it as connected.
+func (t *Tracker) Register(id string) (*MutableStatus, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	status, _, err := t.registerLocked(id, false)
+	return status, err
+}
+
+func (t *Tracker) registerLocked(id string, initAsConnected bool) (*MutableStatus, bool, error) {
+	status, ok := t.streams[id]
+	if !ok {
+		status = newMutableStatus(t.timeNow, initAsConnected)
+		t.streams[id] = status
+		return status, true, nil
+	}
+	return status, false, nil
+}
+
 // Connected registers a stream for a given peer, and marks it as connected.
 // It also enforces that there is only one active stream for a peer.
 func (t *Tracker) Connected(id string) (*MutableStatus, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	return t.connectedLocked(id)
+}
 
-	status, ok := t.streams[id]
-	if !ok {
-		status = newMutableStatus(t.timeNow)
-		t.streams[id] = status
+func (t *Tracker) connectedLocked(id string) (*MutableStatus, error) {
+	status, newlyRegistered, err := t.registerLocked(id, true)
+	if err != nil {
+		return nil, err
+	} else if newlyRegistered {
 		return status, nil
 	}
 
@@ -150,10 +171,10 @@ type Status struct {
 	ImportedServices map[string]struct{}
 }
 
-func newMutableStatus(now func() time.Time) *MutableStatus {
+func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
 	return &MutableStatus{
 		Status: Status{
-			Connected: true,
+			Connected: connected,
 		},
 		timeNow: now,
 		doneCh:  make(chan struct{}),
