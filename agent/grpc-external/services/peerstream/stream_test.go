@@ -469,13 +469,17 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		lastRecvSuccess = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
+		api := structs.NewServiceName("api", nil)
+
 		expect := Status{
 			Connected:          true,
 			LastAck:            lastSendSuccess,
 			LastNack:           lastNack,
 			LastNackMessage:    lastNackMsg,
 			LastReceiveSuccess: lastRecvSuccess,
-			ImportedServices:   map[string]struct{}{"api": {}},
+			ImportedServices: map[string]struct{}{
+				api.String(): {},
+			},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -525,6 +529,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		lastRecvError = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 		lastRecvErrorMsg = `unsupported operation: "OPERATION_UNSPECIFIED"`
 
+		api := structs.NewServiceName("api", nil)
+
 		expect := Status{
 			Connected:               true,
 			LastAck:                 lastSendSuccess,
@@ -533,7 +539,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveError:        lastRecvError,
 			LastReceiveErrorMessage: lastRecvErrorMsg,
-			ImportedServices:        map[string]struct{}{"api": {}},
+			ImportedServices: map[string]struct{}{
+				api.String(): {},
+			},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -552,6 +560,8 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		sequence++
 		disconnectTime := it.base.Add(time.Duration(sequence) * time.Second).UTC()
 
+		api := structs.NewServiceName("api", nil)
+
 		expect := Status{
 			Connected:               false,
 			LastAck:                 lastSendSuccess,
@@ -561,7 +571,9 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveErrorMessage: io.EOF.Error(),
 			LastReceiveError:        lastRecvError,
-			ImportedServices:        map[string]struct{}{"api": {}},
+			ImportedServices: map[string]struct{}{
+				api.String(): {},
+			},
 		}
 
 		retry.Run(t, func(r *retry.R) {
