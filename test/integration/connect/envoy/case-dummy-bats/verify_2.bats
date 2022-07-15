@@ -28,3 +28,20 @@ teardown() {
 
   [ "$status" -eq 100000 ]
 }
+
+@test "Test Function with Curl" {
+  run curlFunction
+
+  [ $status -eq 0 ]
+  [ -n "$output" ]
+  [ "$output" = "200" ]
+}
+
+@test "Test Function with jq" {
+  local INPUT='{"key1": "Test Value 1", "key2": "Test Value 2"}'
+  run jqFunction "$INPUT" "key1"
+
+  [ $status -eq 0 ]
+  [ -n "$output" ]
+  [ "$output" = "\"Test Value 1\"" ]
+}
