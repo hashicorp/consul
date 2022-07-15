@@ -1,4 +1,4 @@
-FROM golang:1.18.3-nanoserver-1809
+FROM golang:1.18.1-nanoserver-1809
 
 WORKDIR /go/src
 COPY ./ .

@@ -1,0 +1,7 @@
+# Note this arg has to be before the first FROM
+ARG ENVOY_VERSION=1.22-latest
+
+FROM windows/consul-dev as consul
+
+FROM docker.mirror.hashicorp.services/windows/envoy-windows:v${ENVOY_VERSION}
+COPY --from=consul C:\\consul C:\\consul
