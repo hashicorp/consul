@@ -367,8 +367,9 @@ type Server struct {
 	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
-	// peerStreamServer is a server used to handle peering streams
-	peerStreamServer  *peerstream.Server
+	// peerStreamServer is a server used to handle peering streams from external clusters.
+	peerStreamServer *peerstream.Server
+	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer     *peering.Server
 	peerStreamTracker *peerstream.Tracker
 
