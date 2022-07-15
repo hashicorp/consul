@@ -290,8 +290,8 @@ func (s *Server) handleUpdateService(
 		deletedNodeChecks = make(map[nodeCheckTuple]struct{})
 	)
 	for _, csn := range storedInstances {
-		if _, ok := snap.Nodes[csn.Node.ID]; !ok {
-			unusedNodes[string(csn.Node.ID)] = struct{}{}
+		if _, ok := snap.Nodes[csn.Node.Node]; !ok {
+			unusedNodes[csn.Node.Node] = struct{}{}
 
 			// Since the node is not in the snapshot we can know the associated service
 			// instance is not in the snapshot either, since a service instance can't
@@ -316,7 +316,7 @@ func (s *Server) handleUpdateService(
 
 		// Delete the service instance if not in the snapshot.
 		sid := csn.Service.CompoundServiceID()
-		if _, ok := snap.Nodes[csn.Node.ID].Services[sid]; !ok {
+		if _, ok := snap.Nodes[csn.Node.Node].Services[sid]; !ok {
 			err := s.Backend.CatalogDeregister(&structs.DeregisterRequest{
 				Node:           csn.Node.Node,
 				ServiceID:      csn.Service.ID,
@@ -335,7 +335,7 @@ func (s *Server) handleUpdateService(
 
 		// Reconcile checks.
 		for _, chk := range csn.Checks {
-			if _, ok := snap.Nodes[csn.Node.ID].Services[sid].Checks[chk.CheckID]; !ok {
+			if _, ok := snap.Nodes[csn.Node.Node].Services[sid].Checks[chk.CheckID]; !ok {
 				// Checks without a ServiceID are node checks.
 				// If the node exists but the check does not then the check was deleted.
 				if chk.ServiceID == "" {
