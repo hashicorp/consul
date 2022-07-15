@@ -215,7 +215,7 @@
               status: 'status',
               searchproperty: {
                 as: 'searchproperty',
-                empty: [['Node', 'Address', 'Meta']],
+                empty: [['Node', 'Address', 'Meta', 'PeerName']],
               },
               search: {
                 as: 'filter',
