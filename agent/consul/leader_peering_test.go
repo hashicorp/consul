@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -392,8 +392,8 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 
 	// The dialing peer should eventually reconnect.
 	retry.Run(t, func(r *retry.R) {
-		connStreams := acceptingServerRestart.peeringServer.Tracker.ConnectedStreams()
-		require.Len(r, connStreams, 1)
+		connStreams := acceptingServerRestart.peerStreamServer.ConnectedStreams()
+		require.Contains(r, connStreams, dialingServerPeerID)
 	})
 }
 
