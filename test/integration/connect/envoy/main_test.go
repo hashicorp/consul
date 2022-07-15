@@ -5,7 +5,8 @@ package envoy
 
 import (
 	"flag"
-	"io/ioutil"
+    "io/ioutil"
+    "log"
 	"os"
 	"os/exec"
 	"sort"
@@ -21,6 +22,11 @@ var (
 
 func TestEnvoy(t *testing.T) {
 	flag.Parse()
+
+	if *flagWin == true {
+		dir := "../../../"
+		check_dir_files(dir)
+	}
 
 	testcases, err := discoverCases()
 	require.NoError(t, err)
@@ -101,4 +107,59 @@ func discoverCases() ([]string, error) {
 
 	sort.Strings(out)
 	return out, nil
+}
+
+
+// CRLF convert functions
+// Recursively iterates through the directory passed by parameter looking for the sh and bash files. 
+// Upon finding them, it calls crlf_file_check.
+func check_dir_files(path string) {
+    files, err := ioutil.ReadDir(path)
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, fil := range files {
+        
+        v := strings.Split(fil.Name(), ".")  
+        file_extension := v[len(v)-1]
+
+        file_path := path + "/" + fil.Name()
+
+        if fil.IsDir() == true {
+            check_dir_files(file_path)
+        }
+
+        if file_extension == "sh" || file_extension == "bash" {
+            crlf_file_check(file_path)
+        }
+    }
+}
+
+// Check if a file contains CRLF line endings if so call crlf_normalize
+func crlf_file_check(file_name string) {
+    
+    file, err := ioutil.ReadFile(file_name)
+    text := string(file)
+    
+    if edit := crlf_verify(text); edit != -1 {
+        crlf_normalize(file_name, text)
+    }
+    
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+// Checks for the existence of CRLF line endings.
+func crlf_verify(text string) int {
+    position := strings.Index(text, "\r\n"); 
+    return position
+}
+
+// Replace CRLF line endings with LF.
+func crlf_normalize(filename, text string ) {
+    text = strings.Replace(text,"\r\n","\n",-1)
+    data := []byte(text)
+
+    ioutil.WriteFile(filename, data, 0644)
 }

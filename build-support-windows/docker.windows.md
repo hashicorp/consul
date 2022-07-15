@@ -131,3 +131,25 @@ To build the images, it is necessary to open a Git bash terminal and run
 ```shell
 ./build-images.sh
 ```
+
+---
+# Testing
+
+During development, it may be more convenient to check your work-in-progress by running only the tests which you expect to be affected by your changes, as the full test suite can take several minutes to execute. [Go's built-in test tool](https://golang.org/pkg/cmd/go/internal/test/) allows specifying a list of packages to test and the `-run` option to only include test names matching a regular expression.
+The `go test -short` flag can also be used to skip slower tests.
+
+Examples (run from the repository root):
+
+- `go test -v ./connect` will run all tests in the connect package (see `./connect` folder)
+- `go test -v -run TestRetryJoin ./command/agent` will run all tests in the agent package (see `./command/agent` folder) with name substring `TestRetryJoin`
+
+When a pull request is opened CI will run all tests and lint to verify the change.
+
+If you want to run the tests on Windows images you must attach the win=true flag.
+
+Example:
+
+```shell
+go test -v -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/case-badauthz" -win=true
+```
+
