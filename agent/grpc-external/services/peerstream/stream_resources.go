@@ -258,8 +258,13 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 
 		case msg, open := <-recvChan:
 			if !open {
-				logger.Trace("no longer receiving data on the stream")
-				return nil
+				// The only time we expect the stream to end is when we've received a "Terminated" message.
+				// We handle the case of receiving the Terminated message below and then this function exits.
+				// So if the channel is closed while this function is still running then we haven't received a Terminated
+				// message which means we want to try and reestablish the stream.
+				// It's the responsibility of the caller of this function to reestablish the stream on error and so that's
+				// why we return an error here.
+				return fmt.Errorf("stream ended unexpectedly")
 			}
 
 			// NOTE: this code should have similar error handling to the
