@@ -98,8 +98,10 @@ type PeeringEstablishRequest struct {
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
 	PeeringToken string `json:",omitempty"`
-	Datacenter   string `json:",omitempty"`
-	Token        string `json:",omitempty"`
+	// Partition to be peered.
+	Partition  string `json:",omitempty"`
+	Datacenter string `json:",omitempty"`
+	Token      string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 }
