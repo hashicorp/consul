@@ -241,7 +241,7 @@ service {
 
 ## Task
 
-A `task` block configures which task to execute in automation. When the task should execute can be determined by the `service` block (deprecated) and `condition` block. The `task` block may be specified multiple times to configure multiple tasks.
+A `task` block configures which task to execute in automation. When the task executes can be determined by the `condition` block. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/docs/nia/api/tasks#tasks) or the [CLI's `task` command](/docs/nia/cli/task#task).
 
 ```hcl
 task {
