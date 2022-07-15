@@ -69,8 +69,8 @@ func TestHealthSnapshot(t *testing.T) {
 				},
 			},
 			expect: &healthSnapshot{
-				Nodes: map[types.NodeID]*nodeSnapshot{
-					"abc-123": {
+				Nodes: map[string]*nodeSnapshot{
+					"abc": {
 						Node: newNode("abc-123", "abc", "my-peer"),
 						Services: map[structs.ServiceID]*serviceSnapshot{
 							structs.NewServiceID("xyz-123", nil): {
@@ -88,14 +88,14 @@ func TestHealthSnapshot(t *testing.T) {
 			name: "multiple",
 			in: []structs.CheckServiceNode{
 				{
-					Node:    newNode("abc-123", "abc", ""),
+					Node:    newNode("", "abc", ""),
 					Service: newService("xyz-123", 8080, ""),
 					Checks: structs.HealthChecks{
 						newCheck("abc", "xyz-123", ""),
 					},
 				},
 				{
-					Node:    newNode("abc-123", "abc", ""),
+					Node:    newNode("", "abc", ""),
 					Service: newService("xyz-789", 8181, ""),
 					Checks: structs.HealthChecks{
 						newCheck("abc", "xyz-789", ""),
@@ -110,9 +110,9 @@ func TestHealthSnapshot(t *testing.T) {
 				},
 			},
 			expect: &healthSnapshot{
-				Nodes: map[types.NodeID]*nodeSnapshot{
-					"abc-123": {
-						Node: newNode("abc-123", "abc", "my-peer"),
+				Nodes: map[string]*nodeSnapshot{
+					"abc": {
+						Node: newNode("", "abc", "my-peer"),
 						Services: map[structs.ServiceID]*serviceSnapshot{
 							structs.NewServiceID("xyz-123", nil): {
 								Service: newService("xyz-123", 8080, "my-peer"),
@@ -128,7 +128,7 @@ func TestHealthSnapshot(t *testing.T) {
 							},
 						},
 					},
-					"def-456": {
+					"def": {
 						Node: newNode("def-456", "def", "my-peer"),
 						Services: map[structs.ServiceID]*serviceSnapshot{
 							structs.NewServiceID("xyz-456", nil): {
