@@ -109,7 +109,7 @@ func processFile(path string) error {
 				log.Printf("    ReadTODO from %s", ann.ReadTODO)
 			}
 			if ann.LeaderReadTODO != "" {
-				log.Printf("    LeaderReadTODO from %s", ann.ReadTODO)
+				log.Printf("    LeaderReadTODO from %s", ann.LeaderReadTODO)
 			}
 			if ann.WriteTODO != "" {
 				log.Printf("    WriteTODO from %s", ann.WriteTODO)
@@ -161,7 +161,7 @@ var _ time.Month
 			buf.WriteString(fmt.Sprintf(tmplDatacenter, typ.Name, typ.Annotation.Datacenter))
 		}
 		if typ.Annotation.LeaderReadTODO != "" {
-			buf.WriteString(fmt.Sprintf(tmplLeaderOnlyReadTODO, typ.Name, typ.Annotation.ReadTODO))
+			buf.WriteString(fmt.Sprintf(tmplLeaderOnlyReadTODO, typ.Name, typ.Annotation.LeaderReadTODO))
 		}
 		if typ.Annotation.ReadTODO != "" {
 			buf.WriteString(fmt.Sprintf(tmplReadTODO, typ.Name, typ.Annotation.ReadTODO))
