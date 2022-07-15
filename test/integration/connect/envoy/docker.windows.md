@@ -43,6 +43,8 @@ verify_1.bats
 verify_2.bats
     ✔ Test with dummyFunction invoked
     - Test skipped (skipped)
+    ✔ Test Function with Curl
+    ✔ Test Function with jq
 
 4 tests, 0 failures, 1 skipped
 ```
