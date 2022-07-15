@@ -983,11 +983,6 @@ function register_lambdas {
     retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
       echo "Registered Lambda: $(jq -r .Service.Service $f)"
   done
-  # write service-defaults config entries for lambdas
-  for f in $(find workdir/${DC}/register -type f -name 'cfg_lambda_*.json'); do
-    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
-      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
-  done
 }
 
 function assert_lambda_envoy_dynamic_cluster_exists {
