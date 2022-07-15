@@ -475,6 +475,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastNack:           lastNack,
 			LastNackMessage:    lastNackMsg,
 			LastReceiveSuccess: lastRecvSuccess,
+			ImportedServices:   map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -532,6 +533,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveError:        lastRecvError,
 			LastReceiveErrorMessage: lastRecvErrorMsg,
+			ImportedServices:        map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -559,6 +561,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			LastReceiveSuccess:      lastRecvSuccess,
 			LastReceiveErrorMessage: io.EOF.Error(),
 			LastReceiveError:        lastRecvError,
+			ImportedServices:        map[string]struct{}{"api": {}},
 		}
 
 		retry.Run(t, func(r *retry.R) {
@@ -984,8 +987,12 @@ func Test_processResponse_Validation(t *testing.T) {
 		Name: peerName},
 	))
 
+	// connect the stream
+	mst, err := srv.Tracker.Connected(peerID)
+	require.NoError(t, err)
+
 	run := func(t *testing.T, tc testCase) {
-		reply, err := srv.processResponse(peerName, "", nil, tc.in, srv.Logger)
+		reply, err := srv.processResponse(peerName, "", mst, tc.in, srv.Logger)
 		if tc.wantErr {
 			require.Error(t, err)
 		} else {
@@ -1225,7 +1232,7 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 	}
 }
 
-func TestHandleUpdateService(t *testing.T) {
+func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
 		backend := c.Backend.(*testStreamBackend)
 		backend.leader = func() bool {
@@ -1257,21 +1264,36 @@ func TestHandleUpdateService(t *testing.T) {
 	))
 
 	// connect the stream
-	_, err := srv.Tracker.Connected(peerID)
+	mst, err := srv.Tracker.Connected(peerID)
 	require.NoError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
-
-		mst, found := srv.Tracker.MutableStreamStatus(peerID)
-		require.True(t, found)
-
 		// Seed the local catalog with some data to reconcile against.
+		// and increment the tracker's imported services count
 		for _, reg := range tc.seed {
 			require.NoError(t, srv.Backend.CatalogRegister(reg))
+
+			mst.TrackImportedService(reg.Service.CompoundServiceName())
+		}
+
+		var op pbpeerstream.Operation
+		if len(tc.input.Nodes) == 0 {
+			op = pbpeerstream.Operation_OPERATION_DELETE
+		} else {
+			op = pbpeerstream.Operation_OPERATION_UPSERT
+		}
+
+		in := &pbpeerstream.ReplicationMessage_Response{
+			ResourceURL: pbpeerstream.TypeURLService,
+			ResourceID:  apiSN.String(),
+			Nonce:       "1",
+			Operation:   op,
+			Resource:    makeAnyPB(t, tc.input),
 		}
 
 		// Simulate an update arriving for billing/api.
-		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, mst, tc.input, srv.Logger))
+		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in, srv.Logger)
+		require.NoError(t, err)
 
 		for svc, expect := range tc.expect {
 			t.Run(svc, func(t *testing.T) {
@@ -1282,9 +1304,7 @@ func TestHandleUpdateService(t *testing.T) {
 		}
 
 		// assert the imported services count modifications
-		mss, found := srv.Server.Tracker.MutableStreamStatus(peerID)
-		require.True(t, found)
-		require.Equal(t, tc.expectedImportedServicesCount, mss.GetImportedServicesCount())
+		require.Equal(t, tc.expectedImportedServicesCount, mst.GetImportedServicesCount())
 	}
 
 	tt := []testCase{
@@ -1604,7 +1624,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
-			input: nil,
+			input: &pbservice.IndexedCheckServiceNodes{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 			},
@@ -1663,7 +1683,7 @@ func TestHandleUpdateService(t *testing.T) {
 				},
 			},
 			// Nil input is for the "api" service.
-			input: nil,
+			input: &pbservice.IndexedCheckServiceNodes{},
 			expect: map[string]structs.CheckServiceNodes{
 				"api": {},
 				// Existing redis service was not affected by deletion.
@@ -1699,7 +1719,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedServicesCount: 0, // IRL, this count would be 1, but we pre-seed the redis service
+			expectedImportedServicesCount: 1,
 		},
 		{
 			name: "service checks are cleaned up when not present in a response",
@@ -1770,6 +1790,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
 			name: "node checks are cleaned up when not present in a response",
@@ -1904,6 +1925,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 		{
 			name: "replacing a service instance on a node cleans up the old instance",
@@ -2051,6 +2073,7 @@ func TestHandleUpdateService(t *testing.T) {
 					},
 				},
 			},
+			expectedImportedServicesCount: 2,
 		},
 	}
 

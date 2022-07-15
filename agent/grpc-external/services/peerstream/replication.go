@@ -196,7 +196,16 @@ func (s *Server) handleUpsert(
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		return s.handleUpdateService(peerName, partition, sn, mutableStatus, csn, logger)
+		err := s.handleUpdateService(peerName, partition, sn, csn)
+		if err != nil {
+			logger.Error("did not increment imported services count", "service_name", sn.String(), "error", err)
+			return err
+		}
+
+		logger.Trace("incrementing imported services count", "service_name", sn.String())
+		mutableStatus.TrackImportedService(sn)
+
+		return nil
 
 	case pbpeerstream.TypeURLRoots:
 		roots := &pbpeering.PeeringTrustBundle{}
@@ -223,27 +232,12 @@ func (s *Server) handleUpdateService(
 	peerName string,
 	partition string,
 	sn structs.ServiceName,
-	mutableStatus *MutableStatus,
 	pbNodes *pbservice.IndexedCheckServiceNodes,
-	logger hclog.Logger,
 ) error {
 	// Capture instances in the state store for reconciliation later.
 	_, storedInstances, err := s.GetStore().CheckServiceNodes(nil, sn.Name, &sn.EnterpriseMeta, peerName)
 	if err != nil {
 		return fmt.Errorf("failed to read imported services: %w", err)
-	}
-
-	// account for imported services
-	if len(storedInstances) > 0 && len(pbNodes.GetNodes()) == 0 {
-		// decrement the service count as the service was removed/ is being removed
-
-		logger.Trace("decrementing imported services count", "service_name", sn.String())
-		mutableStatus.RemoveImportedService(sn)
-	} else if len(storedInstances) == 0 && len(pbNodes.GetNodes()) > 0 {
-		// increment the service count as no instances previously existed but they do now.
-
-		logger.Trace("incrementing imported services count", "service_name", sn.String())
-		mutableStatus.TrackImportedService(sn)
 	}
 
 	structsNodes, err := pbNodes.CheckServiceNodesToStruct()
@@ -453,7 +447,17 @@ func (s *Server) handleDelete(
 	case pbpeerstream.TypeURLService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
-		return s.handleUpdateService(peerName, partition, sn, mutableStatus, nil, logger)
+
+		err := s.handleUpdateService(peerName, partition, sn, nil)
+		if err != nil {
+			logger.Error("did not decrement imported services count", "service_name", sn.String(), "error", err)
+			return err
+		}
+
+		logger.Trace("decrementing imported services count", "service_name", sn.String())
+		mutableStatus.RemoveImportedService(sn)
+
+		return nil
 
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
