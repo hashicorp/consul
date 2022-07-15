@@ -5,6 +5,7 @@
 - [About](#about-this-file)
 - [Pre-requisites](#pre-requisites)
 - [Dockerfile-bats-windows](#dockerfile-bats-windows)
+- [Dockerfile-consul-envoy-windows](#dockerfile-consul-envoy-windows)
 - [Dockerfile-test-sds-server-windows](#dockerfile-test-sds-server-windows)
 
 ## About this File
@@ -12,6 +13,7 @@
 In this file you will find which Dockerfiles are needed to run the Envoy integration tests on Windows, as well as information on how to run each of these files individually for testing purposes.
 
 ## Pre-requisites
+
 After building and running the images and containers, you need to have pre-built the base images used by these Dockerfiles. See [pre-built images required in Windows](../../../../build-support-windows/docker.windows.md)
 
 ## Dockerfile-bats-windows
@@ -44,6 +46,26 @@ verify_2.bats
 
 4 tests, 0 failures, 1 skipped
 ```
+
+## Dockerfile-consul-envoy-windows
+
+This Dockerfile allows to build a envoyproxy custom image for Windows OS. This uses as base a pre-built image of [envoyproxy/envoy-windows](https://hub.docker.com/r/envoyproxy/envoy-windows). Check [Pre-requisites](#pre-requisites) section for more information.
+
+To build this image you need to run the following command on your terminal:
+
+```shell
+docker build -t consul-dev-envoy . -f Dockerfile-consul-envoy-windows
+```
+
+This is the same command used in run-tests.sh
+
+You can test the built file by running the following command:
+
+```shell
+docker run --rm -p 9901:9901 --name envoyproxy consul-envoy
+```
+
+If everything works properly you should openning the browser and check that the Envoy server running on: `http://localhost:9901`
 
 ## Dockerfile-test-sds-server-windows
 
