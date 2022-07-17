@@ -8,15 +8,15 @@ import (
 )
 
 // Recommended name for registration.
-const ServiceGatewaysName = "service-gateways"
+const CheckGatewayServiceNodesName = "check-gateway-service-nodes"
 
 // GatewayUpstreams supports fetching upstreams for a given gateway name.
-type ServiceGateways struct {
+type CheckGatewayServiceNodes struct {
 	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
-func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (g *CheckGatewayServiceNodes) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -41,8 +41,8 @@ func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	reqReal.AllowStale = true
 
 	// Fetch
-	var reply structs.IndexedGatewayServices
-	if err := g.RPC.RPC("Catalog.ServiceGateways", reqReal, &reply); err != nil {
+	var reply structs.IndexedCheckServiceNodes
+	if err := g.RPC.RPC("Internal.CheckGatewayServiceNodes", reqReal, &reply); err != nil {
 		return result, err
 	}
 

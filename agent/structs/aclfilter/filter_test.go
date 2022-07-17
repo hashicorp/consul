@@ -459,7 +459,14 @@ func TestACL_filterGatewayServices(t *testing.T) {
 	makeList := func() *structs.IndexedGatewayServices {
 		return &structs.IndexedGatewayServices{
 			Services: structs.GatewayServices{
-				{Service: structs.ServiceName{Name: "foo"}},
+				{
+					Service: structs.NewServiceName("foo", nil),
+					Gateway: structs.NewServiceName("gateway-1", nil),
+				},
+				{
+					Service: structs.NewServiceName("foo", nil),
+					Gateway: structs.NewServiceName("gateway-2", nil),
+				},
 			},
 		}
 	}
@@ -468,6 +475,31 @@ func TestACL_filterGatewayServices(t *testing.T) {
 
 		policy, err := acl.NewPolicyFromSource(`
 			service "foo" {
+			  policy = "read"
+			}
+			service_prefix "gateway" {
+			  policy = "read"
+			}
+		`, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Len(t, list.Services, 2)
+		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	t.Run("filered by gateway", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+			service "gateway-1" {
 			  policy = "read"
 			}
 		`, acl.SyntaxLegacy, nil, nil)
@@ -480,7 +512,7 @@ func TestACL_filterGatewayServices(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Services, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -1104,8 +1136,14 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 				},
 			},
 			Gateways: structs.GatewayServices{
-				{Service: structs.ServiceNameFromString("foo")},
-				{Service: structs.ServiceNameFromString("bar")},
+				{
+					Service: structs.NewServiceName("foo", nil),
+					Gateway: structs.NewServiceName("gateway-1", nil),
+				},
+				{
+					Service: structs.NewServiceName("bar", nil),
+					Gateway: structs.NewServiceName("gateway-2", nil),
+				},
 			},
 		}
 	}
@@ -1119,10 +1157,13 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			service "bar" {
 			  policy = "read"
 			}
+			service_prefix "gateway" {
+			  policy = "read"
+			}	
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1142,10 +1183,13 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
+			service_prefix "gateway" {
+			  policy = "read"
+			}	
 			service "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1165,10 +1209,13 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
+			service_prefix "gateway" {
+			  policy = "read"
+			}	
 			service "bar" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -1182,7 +1229,7 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
-	t.Run("not allowed to read the other gatway service", func(t *testing.T) {
+	t.Run("not allowed to read the other gateway (service name)", func(t *testing.T) {
 
 		policy, err := acl.NewPolicyFromSource(`
 			service "foo" {
@@ -1191,7 +1238,39 @@ func TestACL_filterIndexedNodesWithGateways(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-		`, acl.SyntaxLegacy, nil, nil)
+			service_prefix "gateway" {
+			  policy = "read"
+			}	
+		`, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+
+		list := makeList()
+		New(authz, logger).Filter(list)
+
+		require.Len(t, list.Nodes, 1)
+		require.Len(t, list.Gateways, 1)
+		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	t.Run("not allowed to read the other gateway (gateway name)", func(t *testing.T) {
+
+		policy, err := acl.NewPolicyFromSource(`
+			service "foo" {
+			  policy = "read"
+			}
+			service "foo" {
+			  policy = "read"
+			}
+			node "node1" {
+			  policy = "read"
+			}
+			service "gateway-1" {
+			  policy = "read"
+			}	
+		`, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

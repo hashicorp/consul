@@ -251,13 +251,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateGatewayTLSConfig(e.TLS); err != nil {
 		return err
 	}
-
-	validProtocols := map[string]bool{
-		"tcp":   true,
-		"http":  true,
-		"http2": true,
-		"grpc":  true,
-	}
+	
 	declaredPorts := make(map[int]bool)
 
 	for _, listener := range e.Listeners {

@@ -4099,6 +4099,7 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.GatewayServicesName, &cachetype.GatewayServices{RPC: a})
 	a.cache.RegisterType(cachetype.ServiceGatewaysName, &cachetype.ServiceGateways{RPC: a})
+	a.cache.RegisterType(cachetype.CheckGatewayServiceNodesName, &cachetype.CheckGatewayServiceNodes{RPC: a})
 
 	a.cache.RegisterType(cachetype.ConfigEntryListName, &cachetype.ConfigEntryList{RPC: a})
 
@@ -4223,6 +4224,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		FederationStateListMeshGateways: proxycfgglue.CacheFederationStateListMeshGateways(a.cache),
 		GatewayServices:                 proxycfgglue.CacheGatewayServices(a.cache),
 		ServiceGateways:                 proxycfgglue.CacheServiceGateways(a.cache),
+		CheckGatewayServiceNodes:        proxycfgglue.CacheCheckGatewayServiceNodes(a.cache),
 		Health:                          proxycfgglue.ClientHealth(a.rpcClientHealth),
 		HTTPChecks:                      proxycfgglue.CacheHTTPChecks(a.cache),
 		Intentions:                      proxycfgglue.CacheIntentions(a.cache),

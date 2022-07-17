@@ -803,16 +803,28 @@ func (f *Filter) filterGatewayServices(mappings *structs.GatewayServices) bool {
 	ret := make(structs.GatewayServices, 0, len(*mappings))
 	var removed bool
 	for _, s := range *mappings {
-		// This filter only checks ServiceRead on the linked service.
-		// ServiceRead on the gateway is checked in the GatewayServices endpoint before filtering.
-		var authzContext acl.AuthorizerContext
-		s.Service.FillAuthzContext(&authzContext)
 
-		if f.authorizer.ServiceRead(s.Service.Name, &authzContext) != acl.Allow {
-			f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
-			removed = true
-			continue
+		{
+			var authzContext acl.AuthorizerContext
+			s.Service.FillAuthzContext(&authzContext)
+
+			if f.authorizer.ServiceRead(s.Service.String(), &authzContext) != acl.Allow {
+				f.logger.Debug("dropping service from result due to ACLs", "service", s.Service.String())
+				removed = true
+				continue
+			}
 		}
+		{
+			var authzContext acl.AuthorizerContext
+			s.Gateway.FillAuthzContext(&authzContext)
+
+			if f.authorizer.ServiceRead(s.Gateway.String(), &authzContext) != acl.Allow {
+				f.logger.Debug("dropping service from result due to ACLs", "gateway", s.Gateway.String())
+				removed = true
+				continue
+			}
+		}
+
 		ret = append(ret, s)
 	}
 	*mappings = ret

@@ -226,8 +226,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 	}
-	hasDestination := false
 
+	requiresTLSInspector := false
 	err = cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
 		destination, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
 
@@ -247,9 +247,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return err
 			}
 			filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort(destination.Destination.Address, destination.Destination.Port)
+			// If RequireEgressTLS is set, we only allow
+			if listenerRequiresTLSFilter(cfgSnap, uid) {
+				filterChain.FilterChainMatch.TransportProtocol = "tls"
+				requiresTLSInspector = true
+			}
+
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 
-			hasDestination = len(filterChain.FilterChainMatch.ServerNames) != 0 || hasDestination
+			requiresTLSInspector = len(filterChain.FilterChainMatch.ServerNames) != 0 || requiresTLSInspector
 		}
 		return nil
 	})
@@ -257,7 +263,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		return nil, err
 	}
 
-	if hasDestination {
+	if requiresTLSInspector {
 		tlsInspector, err := makeTLSInspectorListenerFilter()
 		if err != nil {
 			return nil, err
@@ -481,6 +487,47 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	}
 
 	return resources, nil
+}
+
+// listenerRequiresTLSFilter compares the mesh settings to the TLS settings at the gateway(s)
+// to see if operators require all non-TLS traffic to be filtered out at the connect proxy.
+func listenerRequiresTLSFilter(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) bool {
+	meshConf := cfgSnap.MeshConfig()
+	if meshConf == nil {
+		return false // default is false
+	}
+
+	// We should already be listening for the protocol in the config entry before getting
+	// the gateway service info. Fail-safe here.
+	config, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+	if !ok {
+		return true
+	}
+
+	requiredProcotolMap := meshConf.TransparentProxy.RequireEgressTLS
+
+	// Check that a CAFile wasn't provided to encrypt external traffic already.
+	// If it isn't, we need to add the listener filter
+	if required, ok := requiredProcotolMap[config.Protocol]; ok && required {
+		services, ok := cfgSnap.ConnectProxy.DestinationServices.Get(uid)
+		if !ok {
+			return true
+		}
+
+		// If any gateway terminating this destination doesn't have a CAFile, assume it is
+		// unsafe to route unencrypted traffic
+		for _, service := range services {
+			if service.GatewayKind != structs.ServiceKindTerminatingGateway {
+				continue
+			}
+			if service.CAFile == "" {
+				return true
+			}
+		}
+		return false
+	}
+
+	return false
 }
 
 func makeFilterChainMatchFromAddrs(addrs map[string]struct{}) *envoy_listener_v3.FilterChainMatch {

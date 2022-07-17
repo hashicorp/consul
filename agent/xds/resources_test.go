@@ -174,6 +174,10 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
 		},
 		{
+			name:   "transparent-proxy-destination-require-tls",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDestinationRequireTLS,
+		},
+		{
 			name: "transparent-proxy-terminating-gateway-destinations-only",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)

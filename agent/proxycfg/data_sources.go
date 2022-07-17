@@ -47,9 +47,13 @@ type DataSources struct {
 	// notification channel.
 	GatewayServices GatewayServices
 
-	// ServiceGateways provides updates about a gateway's upstream services on a
+	// ServiceGateways provides updates about a service's upstream gateways on a
 	// notification channel.
 	ServiceGateways ServiceGateways
+
+	// CheckGatewayServiceNodes provides updates about a service's upstream gateway instances on a
+	// notification channel.
+	CheckGatewayServiceNodes CheckGatewayServiceNodes
 
 	// Health provides service health updates on a notification channel.
 	Health Health
@@ -147,8 +151,14 @@ type GatewayServices interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// ServiceGateways is the interface used to consume updates about a service terminating gateways
+// ServiceGateways is the interface used to consume updates about a service's
+// upstream gateways.
 type ServiceGateways interface {
+	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
+}
+
+// CheckGatewayServiceNodes is the interface used to consume updates about a service's terminating gateway nodes
+type CheckGatewayServiceNodes interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
@@ -169,7 +179,7 @@ type Intentions interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error
 }
 
-// IntentionUpstreams is the interface used to consume updates about upstreams
+// IntentionUpstreams is the interface used to consume updates about upstreamsstat
 // inferred from service intentions.
 type IntentionUpstreams interface {
 	Notify(ctx context.Context, req *structs.ServiceSpecificRequest, correlationID string, ch chan<- UpdateEvent) error

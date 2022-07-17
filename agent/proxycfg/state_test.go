@@ -126,6 +126,7 @@ func recordWatches(sc *stateConfig) *watchRecorder {
 		FederationStateListMeshGateways: typedWatchRecorder[*structs.DCSpecificRequest]{wr},
 		GatewayServices:                 typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		ServiceGateways:                 typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
+		CheckGatewayServiceNodes:        typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		Health:                          typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
 		HTTPChecks:                      typedWatchRecorder[*cachetype.ServiceHTTPChecksRequest]{wr},
 		Intentions:                      typedWatchRecorder[*structs.ServiceSpecificRequest]{wr},
@@ -2434,7 +2435,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.NotNil(t, snap.ConnectProxy.MeshConfig)
 					},
 				},
-				// Receiving an intention should lead to spinning up a DestinationConfigEntryID
+				// Receiving an intention should lead to spinning up a DestinationConfigEntryPrefix
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						intentionsWatchID:               genVerifyIntentionWatch("api", "dc1"),
@@ -2461,21 +2462,21 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, 1, snap.ConnectProxy.DestinationsUpstream.Len())
 					},
 				},
-				// DestinationConfigEntryID updates should be stored
+				// DestinationConfigEntryPrefix updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						DestinationConfigEntryID + dbUID.String(): genVerifyConfigEntryWatch(structs.ServiceDefaults, db.Name, "dc1"),
+						DestinationConfigEntryPrefix + dbUID.String(): genVerifyConfigEntryWatch(structs.ServiceDefaults, db.Name, "dc1"),
 					},
 					events: []UpdateEvent{
 						{
-							CorrelationID: DestinationConfigEntryID + dbUID.String(),
+							CorrelationID: DestinationConfigEntryPrefix + dbUID.String(),
 							Result: &structs.ConfigEntryResponse{
 								Entry: &structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}},
 							},
 							Err: nil,
 						},
 						{
-							CorrelationID: DestinationGatewayID + dbUID.String(),
+							CorrelationID: DestinationGatewayPrefix + dbUID.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -2496,11 +2497,26 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 							Err: nil,
 						},
+						{
+							CorrelationID: DestinationServicePrefix + dbUID.String(),
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
+									{
+										GatewayKind: structs.ServiceKindTerminatingGateway,
+										Gateway:     structs.NewServiceName("gtwy1", structs.DefaultEnterpriseMetaInDefaultPartition()),
+										Service:     structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition()),
+									},
+								},
+							},
+							Err: nil,
+						},
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "should still be valid")
 						require.Equal(t, 1, snap.ConnectProxy.DestinationsUpstream.Len())
 						require.Equal(t, 1, snap.ConnectProxy.DestinationGateways.Len())
+						require.Equal(t, 1, snap.ConnectProxy.DestinationServices.Len())
+
 						snap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid UpstreamID) bool {
 							_, ok := snap.ConnectProxy.DestinationsUpstream.Get(uid)
 							require.True(t, ok)
@@ -2509,6 +2525,23 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						dbDest, ok := snap.ConnectProxy.DestinationsUpstream.Get(dbUID)
 						require.True(t, ok)
 						require.Equal(t, structs.ServiceConfigEntry{Name: "db", Destination: &structs.DestinationConfig{}}, *dbDest)
+
+						snap.ConnectProxy.DestinationServices.ForEachKey(func(uid UpstreamID) bool {
+							_, ok := snap.ConnectProxy.DestinationServices.Get(uid)
+							require.True(t, ok)
+							return true
+						})
+						dbSvc, ok := snap.ConnectProxy.DestinationServices.Get(dbUID)
+						require.True(t, ok)
+
+						expectedGWS := structs.GatewayServices{
+							{
+								Service:     db,
+								GatewayKind: structs.ServiceKindTerminatingGateway,
+								Gateway:     structs.NewServiceName("gtwy1", structs.DefaultEnterpriseMetaInDefaultPartition()),
+							},
+						}
+						require.Equal(t, expectedGWS, dbSvc)
 					},
 				},
 			},

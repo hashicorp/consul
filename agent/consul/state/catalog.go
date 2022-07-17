@@ -2907,9 +2907,29 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
-// TODO: Find a way to consolidate this with CheckIngressServiceNodes
 // ServiceGateways is used to query all gateways associated with a service
-func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, entMeta *acl.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := tx.Get(tableGatewayServices, indexService, structs.NewServiceName(service, entMeta))
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
+	}
+	idx := maxIndexTxn(tx, tableGatewayServices)
+
+	return lib.MaxUint64(maxIdx, idx), results, nil
+}
+
+// TODO: Find a way to consolidate this with CheckIngressServiceNodes
+// CheckGatewayServiceNodes is used to query all gateways associated with a service
+func (s *Store) CheckGatewayServiceNodes(ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

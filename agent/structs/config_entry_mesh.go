@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/types"
@@ -28,6 +29,18 @@ type TransparentProxyMeshConfig struct {
 	// MeshDestinationsOnly can be used to disable the pass-through that
 	// allows traffic to destinations outside of the mesh.
 	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
+
+	// RequireEgressTLS can be used to enforce client encryption for traffic going
+	// outside the cluster on a per-protocol basis.
+	//
+	// If a CAFile is specified for the service in the Terminating Gateway config entry,
+	// that is sufficient to meet this policy and no mesh configuration will be modified.
+	// This setup assumes that the traffic from the dialer is unencrypted and TLS will
+	// be terminating separately from sidecar to gateway and gateway to external Destination.
+	//
+	// If no CAFile is specified, enabling this setting will add a filter that only allows TLS
+	// traffic for this Destination. Non-TLS traffic to this location will cause the connection to reset.
+	RequireEgressTLS map[string]bool `json:",omitempty" alias:"require_egress_tls"`
 }
 
 type MeshTLSConfig struct {
@@ -85,6 +98,10 @@ func (e *MeshConfigEntry) Validate() error {
 		return err
 	}
 
+	if err := validateRequireEgressTLS(e.TransparentProxy.RequireEgressTLS); err != nil {
+		return err
+	}
+
 	if e.TLS != nil {
 		if e.TLS.Incoming != nil {
 			if err := validateMeshDirectionalTLSConfig(e.TLS.Incoming); err != nil {
@@ -99,6 +116,19 @@ func (e *MeshConfigEntry) Validate() error {
 	}
 
 	return e.validateEnterpriseMeta()
+}
+
+func validateRequireEgressTLS(protocolMap map[string]bool) error {
+	var result error
+
+	for protocol, _ := range protocolMap {
+		if _, ok := validProtocols[protocol]; !ok {
+			result = multierror.Append(
+				result,
+				fmt.Errorf("protocol must be 'tcp', 'http', 'http2', or 'grpc'. '%s' is an unsupported protocol", protocol))
+		}
+	}
+	return result
 }
 
 func (e *MeshConfigEntry) CanRead(authz acl.Authorizer) error {

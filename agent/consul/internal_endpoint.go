@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -453,9 +452,60 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
-// ServiceGateways returns all the nodes for services associated with a gateway along with their gateway config
-func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+// ServiceGateways returns all the gateway services for the associated service name.
+// It is the caller's responsibility to filter on the type of gateway (e.g. ingress, terminating).
+func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
 	if done, err := m.srv.ForwardRPC("Internal.ServiceGateways", args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide service name")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// We need read access to the service we're trying to find gateways for, so check that first.
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
+	}
+
+	err = m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var maxIdx uint64
+			idx, gwServices, err := state.ServiceGateways(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			reply.Index, reply.Services = maxIdx, gwServices
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		})
+
+	return err
+}
+
+// CheckGatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
+func (m *Internal) CheckGatewayServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+	if done, err := m.srv.ForwardRPC("Internal.CheckGatewayServiceNodes", args, reply); done {
 		return err
 	}
 
@@ -484,7 +534,7 @@ func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var maxIdx uint64
-			idx, gateways, err := state.ServiceGateways(ws, args.ServiceName, args.ServiceKind, args.EnterpriseMeta)
+			idx, gateways, err := state.CheckGatewayServiceNodes(ws, args.ServiceName, args.ServiceKind, args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}

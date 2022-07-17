@@ -1705,6 +1705,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				transparent_proxy {
 					mesh_destinations_only = true
+					require_egress_tls = {
+					   http = true
+					   tcp = false
+					   http2 = true
+					}
 				}
 				tls {
 					incoming {
@@ -1736,6 +1741,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				TransparentProxy {
 					MeshDestinationsOnly = true
+					RequireEgressTLS {
+					   http = true
+					   tcp = false
+					   http2 = true
+					}
 				}
 				TLS {
 					Incoming {
@@ -1766,6 +1776,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+					RequireEgressTLS: map[string]bool{
+						"http":  true,
+						"tcp":   false,
+						"http2": true,
+					},
 				},
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{

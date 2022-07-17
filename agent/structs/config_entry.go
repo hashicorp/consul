@@ -51,6 +51,13 @@ var AllConfigEntryKinds = []string{
 	ExportedServices,
 }
 
+var validProtocols = map[string]bool{
+	"tcp":   true,
+	"http":  true,
+	"http2": true,
+	"grpc":  true,
+}
+
 // ConfigEntry is the interface for centralized configuration stored in Raft.
 // Currently only service-defaults and proxy-defaults are supported.
 type ConfigEntry interface {

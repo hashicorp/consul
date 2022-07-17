@@ -740,6 +740,7 @@ func testConfigSnapshotFixture(
 			FederationStateListMeshGateways: &noopDataSource[*structs.DCSpecificRequest]{},
 			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
 			ServiceGateways:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
+			CheckGatewayServiceNodes:        &noopDataSource[*structs.ServiceSpecificRequest]{},
 			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
 			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
 			Intentions:                      &noopDataSource[*structs.ServiceSpecificRequest]{},
@@ -944,6 +945,8 @@ func NewTestDataSources() *TestDataSources {
 		Datacenters:                     NewTestDataSource[*structs.DatacentersRequest, *[]string](),
 		FederationStateListMeshGateways: NewTestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes](),
 		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
+		ServiceGateways:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
+		CheckGatewayServiceNodes:        NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
 		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
 		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
@@ -969,7 +972,8 @@ type TestDataSources struct {
 	FederationStateListMeshGateways *TestDataSource[*structs.DCSpecificRequest, *structs.DatacenterIndexedCheckServiceNodes]
 	Datacenters                     *TestDataSource[*structs.DatacentersRequest, *[]string]
 	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
-	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
+	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
+	CheckGatewayServiceNodes        *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
 	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
@@ -996,6 +1000,7 @@ func (t *TestDataSources) ToDataSources() DataSources {
 		Datacenters:                   t.Datacenters,
 		GatewayServices:               t.GatewayServices,
 		ServiceGateways:               t.ServiceGateways,
+		CheckGatewayServiceNodes:      t.CheckGatewayServiceNodes,
 		Health:                        t.Health,
 		HTTPChecks:                    t.HTTPChecks,
 		Intentions:                    t.Intentions,

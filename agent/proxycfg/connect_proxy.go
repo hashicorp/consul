@@ -34,6 +34,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
 	snap.ConnectProxy.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
 	snap.ConnectProxy.DestinationGateways = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
+	snap.ConnectProxy.DestinationServices = watch.NewMap[UpstreamID, structs.GatewayServices]()
+
 	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 
 	// Watch for root changes
@@ -530,6 +532,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			uid := NewUpstreamIDFromServiceName(svc)
 			seenUpstreams[uid] = struct{}{}
 			{
+				// Watch for the config entry to get the address/port configuration
 				childCtx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.ConfigEntry.Notify(childCtx, &structs.ConfigEntryQuery{
 					Kind:           structs.ServiceDefaults,
@@ -537,7 +540,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					EnterpriseMeta: svc.EnterpriseMeta,
-				}, DestinationConfigEntryID+svc.String(), s.ch)
+				}, DestinationConfigEntryPrefix+svc.String(), s.ch)
 				if err != nil {
 					cancel()
 					return err
@@ -545,19 +548,36 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				snap.ConnectProxy.DestinationsUpstream.InitWatch(uid, cancel)
 			}
 			{
+				// Watch for terminating gateways terminating this service
+				childCtx, cancel := context.WithCancel(ctx)
+				err := s.dataSources.CheckGatewayServiceNodes.Notify(childCtx, &structs.ServiceSpecificRequest{
+					ServiceName:    svc.Name,
+					Datacenter:     s.source.Datacenter,
+					QueryOptions:   structs.QueryOptions{Token: s.token},
+					EnterpriseMeta: svc.EnterpriseMeta,
+					ServiceKind:    structs.ServiceKindTerminatingGateway,
+				}, DestinationGatewayPrefix+svc.String(), s.ch)
+				if err != nil {
+					cancel()
+					return err
+				}
+				snap.ConnectProxy.DestinationGateways.InitWatch(uid, cancel)
+			}
+			{
+				// Watch for matching Gateway Services; this is used to determine the TLS configuration
+				// on the Terminating Gateway side of the connection (used for RequireEgressTLS setting).
 				childCtx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.ServiceGateways.Notify(childCtx, &structs.ServiceSpecificRequest{
 					ServiceName:    svc.Name,
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					EnterpriseMeta: svc.EnterpriseMeta,
-					ServiceKind:    structs.ServiceKindTerminatingGateway,
-				}, DestinationGatewayID+svc.String(), s.ch)
+				}, DestinationServicePrefix+svc.String(), s.ch)
 				if err != nil {
 					cancel()
 					return err
 				}
-				snap.ConnectProxy.DestinationGateways.InitWatch(uid, cancel)
+				snap.ConnectProxy.DestinationServices.InitWatch(uid, cancel)
 			}
 		}
 
@@ -574,13 +594,20 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 			return true
 		})
-	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID):
+
+		snap.ConnectProxy.DestinationServices.ForEachKey(func(uid UpstreamID) bool {
+			if _, ok := seenUpstreams[uid]; !ok {
+				snap.ConnectProxy.DestinationServices.CancelWatch(uid)
+			}
+			return true
+		})
+	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryPrefix):
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID)
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryPrefix)
 		uid := UpstreamIDFromString(pq)
 		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
 		if !ok {
@@ -588,15 +615,24 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 
 		snap.ConnectProxy.DestinationsUpstream.Set(uid, serviceConf)
-	case strings.HasPrefix(u.CorrelationID, DestinationGatewayID):
+	case strings.HasPrefix(u.CorrelationID, DestinationGatewayPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
-		pq := strings.TrimPrefix(u.CorrelationID, DestinationGatewayID)
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationGatewayPrefix)
 		uid := UpstreamIDFromString(pq)
 		snap.ConnectProxy.DestinationGateways.Set(uid, resp.Nodes)
+	case strings.HasPrefix(u.CorrelationID, DestinationServicePrefix):
+		services, ok := u.Result.(*structs.IndexedGatewayServices)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationServicePrefix)
+		uid := UpstreamIDFromString(pq)
+		snap.ConnectProxy.DestinationServices.Set(uid, services.Services)
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {

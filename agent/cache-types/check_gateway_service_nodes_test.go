@@ -10,35 +10,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServiceGateways(t *testing.T) {
+func TestCheckGatewayServiceNodes(t *testing.T) {
 	rpc := TestRPC(t)
-	typ := &ServiceGateways{RPC: rpc}
+	typ := &CheckGatewayServiceNodes{RPC: rpc}
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
-	var resp *structs.IndexedGatewayServices
-	rpc.On("RPC", "Catalog.ServiceGateways", mock.Anything, mock.Anything).Return(nil).
+	var resp *structs.IndexedCheckServiceNodes
+	rpc.On("RPC", "Internal.CheckGatewayServiceNodes", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.ServiceSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
-			require.Equal(t, "api", req.ServiceName)
+			require.Equal(t, "foo", req.ServiceName)
 
-			services := structs.GatewayServices{
+			nodes := []structs.CheckServiceNode{
 				{
-					Service:     structs.NewServiceName("api", nil),
-					Gateway:     structs.NewServiceName("gateway", nil),
-					GatewayKind: structs.ServiceKindIngressGateway,
-					Port:        1234,
-					CAFile:      "api/ca.crt",
-					CertFile:    "api/client.crt",
-					KeyFile:     "api/client.key",
-					SNI:         "my-domain",
+					Service: &structs.NodeService{
+						Tags: req.ServiceTags,
+					},
 				},
 			}
-			reply := args.Get(2).(*structs.IndexedGatewayServices)
-			reply.Services = services
+
+			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
+			reply.Nodes = nodes
 			reply.QueryMeta.Index = 48
 			resp = reply
 		})
@@ -49,7 +45,7 @@ func TestServiceGateways(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
-		ServiceName: "api",
+		ServiceName: "foo",
 	})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{

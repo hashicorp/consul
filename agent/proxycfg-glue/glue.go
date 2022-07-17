@@ -54,10 +54,16 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 	return &cacheProxyDataSource[*structs.DatacentersRequest]{c, cachetype.CatalogDatacentersName}
 }
 
-// CacheServiceGateways satisfies the proxycfg.ServiceGateways interface by
+// CacheServiceGateways satisfies the proxycfg.CacheServiceGateways interface by
 // sourcing data from the agent cache.
-func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
+func CacheServiceGateways(c *cache.Cache) proxycfg.ServiceGateways {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
+}
+
+// CacheCheckGatewayServiceNodes satisfies the proxycfg.CheckGatewayServiceNodes interface by
+// sourcing data from the agent cache.
+func CacheCheckGatewayServiceNodes(c *cache.Cache) proxycfg.CheckGatewayServiceNodes {
+	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.CheckGatewayServiceNodesName}
 }
 
 // CacheHTTPChecks satisifies the proxycfg.HTTPChecks interface by sourcing
@@ -74,7 +80,7 @@ func CacheIntentionUpstreams(c *cache.Cache) proxycfg.IntentionUpstreams {
 
 // CacheIntentionUpstreamsDestination satisfies the proxycfg.IntentionUpstreamsDestination interface
 // by sourcing data from the agent cache.
-func CacheIntentionUpstreamsDestination(c *cache.Cache) proxycfg.IntentionUpstreams {
+func CacheIntentionUpstreamsDestination(c *cache.Cache) proxycfg.IntentionUpstreamsDestination {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.IntentionUpstreamsDestinationName}
 }
 

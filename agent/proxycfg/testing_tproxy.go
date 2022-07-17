@@ -1,8 +1,9 @@
 package proxycfg
 
 import (
-	"github.com/hashicorp/consul/api"
 	"time"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/mitchellh/go-testing-interface"
 
@@ -560,19 +561,19 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 			},
 		},
 		{
-			CorrelationID: DestinationConfigEntryID + googleUID.String(),
+			CorrelationID: DestinationConfigEntryPrefix + googleUID.String(),
 			Result: &structs.ConfigEntryResponse{
 				Entry: &googleCE,
 			},
 		},
 		{
-			CorrelationID: DestinationConfigEntryID + kafkaUID.String(),
+			CorrelationID: DestinationConfigEntryPrefix + kafkaUID.String(),
 			Result: &structs.ConfigEntryResponse{
 				Entry: &kafkaCE,
 			},
 		},
 		{
-			CorrelationID: DestinationGatewayID + googleUID.String(),
+			CorrelationID: DestinationGatewayPrefix + googleUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: structs.CheckServiceNodes{
 					{
@@ -604,7 +605,276 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 			},
 		},
 		{
-			CorrelationID: DestinationGatewayID + kafkaUID.String(),
+			CorrelationID: DestinationGatewayPrefix + kafkaUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestConfigSnapshotTransparentProxyDestinationRequireTLS(t testing.T) *ConfigSnapshot {
+	// DiscoveryChain without an UpstreamConfig should yield a
+	// filter chain when in transparent proxy mode
+	var (
+		// Has the CA cert, so doesn't need filter
+		google    = structs.NewServiceName("google", nil)
+		googleUID = NewUpstreamIDFromServiceName(google)
+		googleCE  = structs.ServiceConfigEntry{Name: "google", Protocol: "http", Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443}}
+		googleGWS = structs.GatewayService{
+			Service:     google,
+			Gateway:     structs.NewServiceName("tgtw", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "/path/on/disk",
+		}
+
+		// Needs the filter
+		example    = structs.NewServiceName("has-filter", nil)
+		exampleUID = NewUpstreamIDFromServiceName(example)
+		exampleCE  = structs.ServiceConfigEntry{Name: "has-filter", Protocol: "http", Destination: &structs.DestinationConfig{Address: "api.has-filter.com", Port: 443}}
+		exampleGWS = structs.GatewayService{
+			Service:     example,
+			Gateway:     structs.NewServiceName("tgtw", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+		}
+
+		// Routed by two gateways, but only one specified the CAFile. This one needs a filter.
+		exampleTwo     = structs.NewServiceName("also-has-filter", nil)
+		exampleTwoUID  = NewUpstreamIDFromServiceName(exampleTwo)
+		exampleTwoCE   = structs.ServiceConfigEntry{Name: "also-has-filter", Protocol: "http", Destination: &structs.DestinationConfig{Address: "api.also-has-filter.com", Port: 443}}
+		exampleTwoGWS1 = structs.GatewayService{
+			Service:     exampleTwo,
+			Gateway:     structs.NewServiceName("tgtw", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "/path/on/disk",
+		}
+		exampleTwoGWS2 = structs.GatewayService{
+			Service:     exampleTwo,
+			Gateway:     structs.NewServiceName("tgtw-two", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+		}
+
+		// Filter should not be applied for tcp service
+		kafka    = structs.NewServiceName("kafka", nil)
+		kafkaUID = NewUpstreamIDFromServiceName(kafka)
+		kafkaCE  = structs.ServiceConfigEntry{Name: "kafka", Destination: &structs.DestinationConfig{Address: "192.168.2.1", Port: 9093}}
+		kafkaGWS = structs.GatewayService{
+			Service:     kafka,
+			Gateway:     structs.NewServiceName("tgtw", nil),
+			GatewayKind: structs.ServiceKindTerminatingGateway,
+			CAFile:      "/path/on/disk",
+		}
+	)
+
+	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		ns.Proxy.Mode = structs.ProxyModeTransparent
+	}, []UpdateEvent{
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: &structs.MeshConfigEntry{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+						RequireEgressTLS: map[string]bool{
+							"http":  true,
+							"http2": false,
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: intentionUpstreamsDestinationID,
+			Result: &structs.IndexedServiceList{
+				Services: structs.ServiceList{
+					google,
+					kafka,
+					example,
+					exampleTwo,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryPrefix + googleUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &googleCE,
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryPrefix + kafkaUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &kafkaCE,
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryPrefix + exampleUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &exampleCE,
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryPrefix + exampleTwoUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &exampleTwoCE,
+			},
+		},
+		{
+			CorrelationID: DestinationServicePrefix + googleUID.String(),
+			Result: &structs.IndexedGatewayServices{
+				Services: structs.GatewayServices{
+					&googleGWS,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationServicePrefix + kafkaUID.String(),
+			Result: &structs.IndexedGatewayServices{
+				Services: structs.GatewayServices{
+					&kafkaGWS,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationServicePrefix + exampleUID.String(),
+			Result: &structs.IndexedGatewayServices{
+				Services: structs.GatewayServices{
+					&exampleGWS,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationServicePrefix + exampleTwoUID.String(),
+			Result: &structs.IndexedGatewayServices{
+				Services: structs.GatewayServices{
+					&exampleTwoGWS1,
+					&exampleTwoGWS2,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayPrefix + googleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayPrefix + kafkaUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayPrefix + exampleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayPrefix + exampleTwoUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: structs.CheckServiceNodes{
 					{

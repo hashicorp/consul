@@ -55,6 +55,9 @@ func TestConfig_Get(t *testing.T) {
 			Entry: &structs.MeshConfigEntry{
 				TransparentProxy: structs.TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+					RequireEgressTLS: map[string]bool{
+						"http": true,
+					},
 				},
 				Meta: map[string]string{
 					"key1": "value1",
@@ -129,7 +132,10 @@ func TestConfig_Get(t *testing.T) {
 {
 	"Kind": "mesh",
 	"TransparentProxy": {
-		"MeshDestinationsOnly": true
+		"MeshDestinationsOnly": true,
+		"RequireEgressTLS": {
+			"http": true
+		}
 	},
 	"Meta":{
 		"key1": "value1",
