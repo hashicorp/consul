@@ -36,10 +36,14 @@ import (
 // If there are no instances in the event, we consider that to be a de-registration.
 func makeServiceResponse(
 	logger hclog.Logger,
+	mst *MutableStatus,
 	update cache.UpdateEvent,
 ) (*pbpeerstream.ReplicationMessage_Response, error) {
+	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
+	sn := structs.ServiceNameFromString(serviceName)
 	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
 	if !ok {
+		logger.Error("did not increment or decrement exported services count", "service_name", serviceName)
 		return nil, fmt.Errorf("invalid type for service response: %T", update.Result)
 	}
 
@@ -51,9 +55,6 @@ func makeServiceResponse(
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal: %w", err)
 	}
-
-	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
-
 	// If no nodes are present then it's due to one of:
 	// 1. The service is newly registered or exported and yielded a transient empty update.
 	// 2. All instances of the service were de-registered.
@@ -61,7 +62,10 @@ func makeServiceResponse(
 	//
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
-	if len(export.Nodes) == 0 {
+	if len(csn.Nodes) == 0 {
+		logger.Trace("decrementing exported services count", "service_name", sn.String())
+		mst.RemoveExportedService(sn)
+
 		return &pbpeerstream.ReplicationMessage_Response{
 			ResourceURL: pbpeerstream.TypeURLExportedService,
 			// TODO(peering): Nonce management
@@ -70,6 +74,9 @@ func makeServiceResponse(
 			Operation:  pbpeerstream.Operation_OPERATION_DELETE,
 		}, nil
 	}
+
+	logger.Trace("incrementing exported services count", "service_name", sn.String())
+	mst.TrackExportedService(sn)
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
 	return &pbpeerstream.ReplicationMessage_Response{
