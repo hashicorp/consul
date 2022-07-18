@@ -247,11 +247,9 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
-
 	if err := validateGatewayTLSConfig(e.TLS); err != nil {
 		return err
 	}
-	
 	declaredPorts := make(map[int]bool)
 
 	for _, listener := range e.Listeners {

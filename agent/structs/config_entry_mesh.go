@@ -121,7 +121,7 @@ func (e *MeshConfigEntry) Validate() error {
 func validateRequireEgressTLS(protocolMap map[string]bool) error {
 	var result error
 
-	for protocol, _ := range protocolMap {
+	for protocol := range protocolMap {
 		if _, ok := validProtocols[protocol]; !ok {
 			result = multierror.Append(
 				result,

@@ -37,6 +37,18 @@ type MeshConfigEntry struct {
 
 type TransparentProxyMeshConfig struct {
 	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
+
+	// RequireEgressTLS can be used to enforce client encryption for traffic going
+	// outside the cluster on a per-protocol basis.
+	//
+	// If a CAFile is specified for the service in the Terminating Gateway config entry,
+	// that is sufficient to meet this policy and no mesh configuration will be modified.
+	// This setup assumes that the traffic from the dialer is unencrypted and TLS will
+	// be terminating separately from sidecar to gateway and gateway to external Destination.
+	//
+	// If no CAFile is specified, enabling this setting will add a filter that only allows TLS
+	// traffic for this Destination. Non-TLS traffic to this location will cause the connection to reset.
+	RequireEgressTLS map[string]bool `json:",omitempty" alias:"require_egress_tls"`
 }
 
 type MeshTLSConfig struct {

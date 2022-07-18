@@ -208,7 +208,13 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 	t.Run("Mesh", func(t *testing.T) {
 		mesh := &MeshConfigEntry{
-			TransparentProxy: TransparentProxyMeshConfig{MeshDestinationsOnly: true},
+			TransparentProxy: TransparentProxyMeshConfig{
+				MeshDestinationsOnly: true,
+				RequireEgressTLS: map[string]bool{
+					"http": true,
+					"tcp":  false,
+				},
+			},
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -1284,7 +1290,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"TransparentProxy": {
-					"MeshDestinationsOnly": true
+					"MeshDestinationsOnly": true,
+					"RequireEgressTLS": {
+						"http": true,
+						"tcp": false
+					}
 				},
 				"TLS": {
 					"Incoming": {
@@ -1316,6 +1326,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+					RequireEgressTLS: map[string]bool{
+						"http": true,
+						"tcp":  false,
+					},
 				},
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
