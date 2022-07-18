@@ -25,6 +25,7 @@ message ReplicationMessage {
     Request request = 1;
     Response response = 2;
     Terminated terminated = 3;
+    Heartbeat heartbeat = 4;
   }
 
   // A Request requests to subscribe to a resource of a given type.
@@ -69,6 +70,9 @@ message ReplicationMessage {
   // Terminated is sent when a peering is deleted locally.
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
+
+  // Heartbeat is sent to verify that the connection is still active.
+  message Heartbeat {}
 }
 
 // Operation enumerates supported operations for replicated resources.
