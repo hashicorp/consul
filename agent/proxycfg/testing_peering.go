@@ -112,15 +112,15 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 	// Test two explicitly defined upstreams api-a and noEndpoints
 	// as well as one implicitly inferred upstream db.
-	// Should see listeners generated for api-a and db.
 
 	var (
 		noEndpointsUpstream = structs.Upstream{
 			DestinationName: "no-endpoints",
 			DestinationPeer: "peer-a",
+			LocalBindPort:   1234,
 		}
 		noEndpoints = structs.PeeredServiceName{
-			ServiceName: structs.NewServiceName("noEndpoints", nil),
+			ServiceName: structs.NewServiceName("no-endpoints", nil),
 			Peer:        "peer-a",
 		}
 
@@ -169,6 +169,12 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 			CorrelationID: peerTrustBundleIDPrefix + "peer-a",
 			Result: &pbpeering.TrustBundleReadResponse{
 				Bundle: TestPeerTrustBundles(t).Bundles[0],
+			},
+		},
+		{
+			CorrelationID: upstreamPeerWatchIDPrefix + NewUpstreamID(&noEndpointsUpstream).String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: []structs.CheckServiceNode{},
 			},
 		},
 		{

@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -84,7 +85,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// NOTE: Any time we skip an upstream below we MUST also skip that same
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
-	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDsFromConfig() {
+	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
