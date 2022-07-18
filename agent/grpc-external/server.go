@@ -5,6 +5,8 @@ import (
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
+	"time"
 
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/tlsutil"
@@ -25,6 +27,12 @@ func NewServer(logger agentmiddleware.Logger, tls *tlsutil.Configurator) *grpc.S
 			// Add middlware interceptors to recover in case of panics.
 			recovery.StreamServerInterceptor(recoveryOpts...),
 		),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			// This must be less than the keealive.ClientParameters Time setting, otherwise
+			// the server will disconnect the client for sending too many keepalive pings.
+			// Currently the client param is set to 30s.
+			MinTime: 15 * time.Second,
+		}),
 	}
 	if tls != nil && tls.GRPCTLSConfigured() {
 		creds := credentials.NewTLS(tls.IncomingGRPCConfig())
