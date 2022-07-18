@@ -51,8 +51,47 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.destination~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "cluster": "destination~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "statPrefix": "upstream.destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "destinationPort": 9093,
+            "prefixRanges": [
+              {
+                "addressPrefix": "192.168.2.2",
+                "prefixLen": 32
+              }
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.destination.192-168-2-2.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination.192-168-2-2.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "destinationPort": 443,
+            "serverNames": [
+              "api.google.com"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.destination.api-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination.api-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -69,8 +108,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.destination~google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "cluster": "destination~google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "statPrefix": "upstream.destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "cluster": "destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

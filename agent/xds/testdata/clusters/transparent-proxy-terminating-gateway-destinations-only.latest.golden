@@ -3,39 +3,11 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "destination~external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "destination.192-168-0-1.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "STATIC",
       "connectTimeout": "5s",
       "loadAssignment": {
-        "clusterName": "destination~external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-        "endpoints": [
-          {
-            "lbEndpoints": [
-              {
-                "endpoint": {
-                  "address": {
-                    "socketAddress": {
-                      "address": "192.168.0.2",
-                      "portValue": 80
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "outlierDetection": {
-
-      }
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "destination~external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "STATIC",
-      "connectTimeout": "5s",
-      "loadAssignment": {
-        "clusterName": "destination~external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "clusterName": "destination.192-168-0-1.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
           {
             "lbEndpoints": [
@@ -59,11 +31,124 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "destination~external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "STATIC",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "destination.192-168-0-2.external-IP-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "192.168.0.2",
+                      "portValue": 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "destination.192-168-0-2.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "STATIC",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "destination.192-168-0-2.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "192.168.0.2",
+                      "portValue": 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "destination.192-168-0-3.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "STATIC",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "destination.192-168-0-3.external-IP-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "192.168.0.3",
+                      "portValue": 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "destination.api-hashicorp-com.external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
       "loadAssignment": {
-        "clusterName": "destination~external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "clusterName": "destination.api-hashicorp-com.external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "api.hashicorp.com",
+                      "portValue": 8089
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "dnsRefreshRate": "10s",
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
           {
             "lbEndpoints": [
@@ -88,11 +173,11 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "destination~external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "destination.web-hashicorp-com.external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
       "loadAssignment": {
-        "clusterName": "destination~external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "clusterName": "destination.web-hashicorp-com.external-hostname-TCP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
           {
             "lbEndpoints": [
@@ -100,7 +185,7 @@
                 "endpoint": {
                   "address": {
                     "socketAddress": {
-                      "address": "api.hashicorp.com",
+                      "address": "web.hashicorp.com",
                       "portValue": 8089
                     }
                   }

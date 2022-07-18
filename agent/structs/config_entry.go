@@ -3,6 +3,7 @@ package structs
 import (
 	"errors"
 	"fmt"
+	"github.com/miekg/dns"
 	"net"
 	"strconv"
 	"strings"
@@ -201,8 +202,21 @@ func (e *ServiceConfigEntry) Validate() error {
 	}
 
 	if e.Destination != nil {
-		if err := validateEndpointAddress(e.Destination.Address); err != nil {
-			validationErr = multierror.Append(validationErr, fmt.Errorf("Destination address is invalid %w", err))
+		if e.Destination.Addresses == nil || len(e.Destination.Addresses) == 0 {
+			validationErr = multierror.Append(validationErr, errors.New("Destination must contain at least one valid address"))
+		}
+
+		seen := make(map[string]bool, len(e.Destination.Addresses))
+		for _, address := range e.Destination.Addresses {
+			if _, ok := seen[address]; ok {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("Duplicate address '%s' is not allowed", address))
+				continue
+			}
+			seen[address] = true
+
+			if err := validateEndpointAddress(address); err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("Destination address '%s' is invalid %w", address, err))
+			}
 		}
 
 		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
@@ -219,15 +233,12 @@ func validateEndpointAddress(address string) error {
 	ip := net.ParseIP(address)
 	valid = ip != nil
 
-	_, _, err := net.ParseCIDR(address)
-	valid = valid || err == nil
-
-	// Since we don't know if this will be a TLS connection, setting tlsEnabled to false will be more permissive with wildcards
-	err = validateHost(false, address)
-	valid = valid || err == nil
+	hasWildcard := strings.Contains(address, "*")
+	_, ok := dns.IsDomainName(address)
+	valid = valid || (ok && !hasWildcard)
 
 	if !valid {
-		return fmt.Errorf("Could not validate address %s as an IP, CIDR block or Hostname", address)
+		return fmt.Errorf("Could not validate address %s as an IP or Hostname", address)
 	}
 	return nil
 }
@@ -294,20 +305,20 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul
 type DestinationConfig struct {
-	// Address of the endpoint; hostname, IP, or CIDR
-	Address string `json:",omitempty"`
+	// Addresses of the endpoint; hostname or IP
+	Addresses []string `json:",omitempty"`
 
 	// Port allowed within this endpoint
 	Port int `json:",omitempty"`
 }
 
-func (d *DestinationConfig) HasHostname() bool {
-	ip := net.ParseIP(d.Address)
+func IsHostname(address string) bool {
+	ip := net.ParseIP(address)
 	return ip == nil
 }
 
-func (d *DestinationConfig) HasIP() bool {
-	ip := net.ParseIP(d.Address)
+func IsIP(address string) bool {
+	ip := net.ParseIP(address)
 	return ip != nil
 }
 

@@ -3177,7 +3177,7 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 			Datacenter: "dc1",
 			Entry: &structs.ServiceConfigEntry{
 				Name:           "google",
-				Destination:    &structs.DestinationConfig{Address: "www.google.com", Port: 443},
+				Destination:    &structs.DestinationConfig{Addresses: []string{"www.google.com"}, Port: 443},
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		}
