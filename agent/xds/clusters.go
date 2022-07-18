@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -249,38 +250,46 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 	}
 
 	err := cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
-		name := clusterNameForDestination(cfgSnap, uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig.Destination == nil {
+			return nil
+		}
 
-		c := envoy_cluster_v3.Cluster{
-			Name:           name,
-			AltStatName:    name,
-			ConnectTimeout: durationpb.New(5 * time.Second),
-			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
-				HealthyPanicThreshold: &envoy_type_v3.Percent{
-					Value: 0, // disable panic threshold
-				},
-			},
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
-			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
-				EdsConfig: &envoy_core_v3.ConfigSource{
-					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
-					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
-						Ads: &envoy_core_v3.AggregatedConfigSource{},
+		// One Cluster per Destination Address
+		for _, address := range svcConfig.Destination.Addresses {
+			name := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+
+			c := envoy_cluster_v3.Cluster{
+				Name:           name,
+				AltStatName:    name,
+				ConnectTimeout: durationpb.New(5 * time.Second),
+				CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
+					HealthyPanicThreshold: &envoy_type_v3.Percent{
+						Value: 0, // disable panic threshold
 					},
 				},
-			},
-			// Endpoints are managed separately by EDS
-			// Having an empty config enables outlier detection with default config.
-			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-		}
+				ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+				EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
+					EdsConfig: &envoy_core_v3.ConfigSource{
+						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+							Ads: &envoy_core_v3.AggregatedConfigSource{},
+						},
+					},
+				},
+				// Endpoints are managed separately by EDS
+				// Having an empty config enables outlier detection with default config.
+				OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
+			}
 
-		// Use the cluster name as the SNI to match on in the terminating gateway
-		transportSocket, err := makeMTLSTransportSocket(cfgSnap, uid, name)
-		if err != nil {
-			return err
+			// Use the cluster name as the SNI to match on in the terminating gateway
+			transportSocket, err := makeMTLSTransportSocket(cfgSnap, uid, name)
+			if err != nil {
+				return err
+			}
+			c.TransportSocket = transportSocket
+			clusters = append(clusters, &c)
 		}
-		c.TransportSocket = transportSocket
-		clusters = append(clusters, &c)
 		return nil
 	})
 	if err != nil {
@@ -319,11 +328,18 @@ func makeMTLSTransportSocket(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 	return transportSocket, nil
 }
 
-func clusterNameForDestination(cfgSnap *proxycfg.ConfigSnapshot, name string, namespace string, partition string) string {
+func clusterNameForDestination(cfgSnap *proxycfg.ConfigSnapshot, name string, address string, namespace string, partition string) string {
+	name = destinationSpecificServiceName(name, address)
 	sni := connect.ServiceSNI(name, "", namespace, partition, cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 	// Prefixed with destination to distinguish from non-passthrough clusters for the same upstream.
-	return "destination~" + sni
+	return "destination." + sni
+}
+
+func destinationSpecificServiceName(name string, address string) string {
+	address = strings.ReplaceAll(address, ":", "-")
+	address = strings.ReplaceAll(address, ".", "-")
+	return fmt.Sprintf("%s.%s", address, name)
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
@@ -529,18 +545,21 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 		svcConfig, _ := serviceConfigs[svcName]
 		dest := svcConfig.Destination
 
-		opts := clusterOpts{
-			name:            clusterNameForDestination(cfgSnap, svcName.Name, svcName.NamespaceOrDefault(), svcName.PartitionOrDefault()),
-			addressEndpoint: dest,
-		}
+		for _, address := range dest.Addresses {
+			opts := clusterOpts{
+				name:    clusterNameForDestination(cfgSnap, svcName.Name, address, svcName.NamespaceOrDefault(), svcName.PartitionOrDefault()),
+				address: address,
+				port:    dest.Port,
+			}
 
-		var cluster *envoy_cluster_v3.Cluster
-		if dest.HasIP() {
-			cluster = s.makeTerminatingIPCluster(cfgSnap, opts)
-		} else {
-			cluster = s.makeTerminatingHostnameCluster(cfgSnap, opts)
+			var cluster *envoy_cluster_v3.Cluster
+			if structs.IsIP(address) {
+				cluster = s.makeTerminatingIPCluster(cfgSnap, opts)
+			} else {
+				cluster = s.makeTerminatingHostnameCluster(cfgSnap, opts)
+			}
+			clusters = append(clusters, cluster)
 		}
-		clusters = append(clusters, cluster)
 	}
 	return clusters, nil
 }
@@ -1261,8 +1280,9 @@ type clusterOpts struct {
 	// hostnameEndpoints is a list of endpoints with a hostname as their address
 	hostnameEndpoints structs.CheckServiceNodes
 
-	// addressEndpoint is a singular ip/port endpoint
-	addressEndpoint structs.DestinationConfig
+	// Corresponds to a valid ip/port in a Destination
+	address string
+	port    int
 }
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
@@ -1412,7 +1432,7 @@ func (s *ResourceGenerator) makeTerminatingIPCluster(snap *proxycfg.ConfigSnapsh
 	}
 
 	endpoints := []*envoy_endpoint_v3.LbEndpoint{
-		makeEndpoint(opts.addressEndpoint.Address, opts.addressEndpoint.Port),
+		makeEndpoint(opts.address, opts.port),
 	}
 
 	cluster.LoadAssignment = &envoy_endpoint_v3.ClusterLoadAssignment{
@@ -1449,7 +1469,7 @@ func (s *ResourceGenerator) makeTerminatingHostnameCluster(snap *proxycfg.Config
 	rate := 10 * time.Second
 	cluster.DnsRefreshRate = durationpb.New(rate)
 
-	address := makeAddress(opts.addressEndpoint.Address, opts.addressEndpoint.Port)
+	address := makeAddress(opts.address, opts.port)
 
 	endpoints := []*envoy_endpoint_v3.LbEndpoint{
 		{

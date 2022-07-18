@@ -226,30 +226,31 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 	}
-	hasDestination := false
+	requiresTLSInspector := false
 
 	err = cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
-		destination, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig == nil {
+			return nil
+		}
 
-		if ok && destination != nil {
-			upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-			cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, nil)
-
-			clusterName := clusterNameForDestination(cfgSnap, uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+		for _, address := range svcConfig.Destination.Addresses {
+			clusterName := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:   uid.EnvoyID(),
 				clusterName: clusterName,
 				filterName:  clusterName,
-				protocol:    cfg.Protocol,
-				useRDS:      cfg.Protocol != "tcp",
+				protocol:    svcConfig.Protocol,
+				useRDS:      structs.IsProtocolHTTPLike(svcConfig.Protocol),
 			})
 			if err != nil {
 				return err
 			}
-			filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort(destination.Destination.Address, destination.Destination.Port)
+
+			filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort(address, svcConfig.Destination.Port)
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 
-			hasDestination = len(filterChain.FilterChainMatch.ServerNames) != 0 || hasDestination
+			requiresTLSInspector = len(filterChain.FilterChainMatch.ServerNames) != 0 || requiresTLSInspector
 		}
 		return nil
 	})
@@ -257,7 +258,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		return nil, err
 	}
 
-	if hasDestination {
+	if requiresTLSInspector {
 		tlsInspector, err := makeTLSInspectorListenerFilter()
 		if err != nil {
 			return nil, err
@@ -1327,7 +1328,14 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, nil)
+		opts := terminatingGatewayFilterChainOpts{
+			cluster:    clusterName,
+			service:    svc,
+			intentions: intentions,
+			protocol:   cfg.Protocol,
+		}
+
+		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
 		}
@@ -1339,7 +1347,8 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			for subsetName := range resolver.Subsets {
 				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, subsetClusterName, svc, intentions, cfg.Protocol, nil)
+				opts.cluster = subsetClusterName
+				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", subsetClusterName, err)
 				}
@@ -1349,8 +1358,6 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	}
 
 	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
-		clusterName := clusterNameForDestination(cfgSnap, svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
-
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
 
@@ -1367,11 +1374,25 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 		var dest *structs.DestinationConfig
 		dest = &svcConfig.Destination
-		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, clusterName, svc, intentions, cfg.Protocol, dest)
-		if err != nil {
-			return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+
+		opts := terminatingGatewayFilterChainOpts{
+			service:    svc,
+			intentions: intentions,
+			protocol:   cfg.Protocol,
+			port:       dest.Port,
 		}
-		l.FilterChains = append(l.FilterChains, clusterChain)
+		for _, address := range dest.Addresses {
+			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
+
+			opts.cluster = clusterName
+			opts.address = address
+			clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
+			if err != nil {
+				return nil, fmt.Errorf("failed to make filter chain for cluster %q: %v", clusterName, err)
+			}
+			l.FilterChains = append(l.FilterChains, clusterChain)
+		}
+
 	}
 
 	// Before we add the fallback, sort these chains by the matched name. All
@@ -1407,10 +1428,19 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, cluster string, service structs.ServiceName, intentions structs.Intentions, protocol string, dest *structs.DestinationConfig) (*envoy_listener_v3.FilterChain, error) {
+type terminatingGatewayFilterChainOpts struct {
+	cluster    string
+	service    structs.ServiceName
+	intentions structs.Intentions
+	protocol   string
+	address    string // only valid for destination listeners
+	port       int    // only valid for destination listeners
+}
+
+func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
-			cfgSnap.TerminatingGateway.ServiceLeaves[service],
+			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
 			cfgSnap.RootPEMs(),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		),
@@ -1422,18 +1452,18 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	}
 
 	filterChain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: makeSNIFilterChainMatch(cluster),
+		FilterChainMatch: makeSNIFilterChainMatch(tgtwyOpts.cluster),
 		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
 		TransportSocket:  transportSocket,
 	}
 
 	// This controls if we do L4 or L7 intention checks.
-	useHTTPFilter := structs.IsProtocolHTTPLike(protocol)
+	useHTTPFilter := structs.IsProtocolHTTPLike(tgtwyOpts.protocol)
 
 	// If this is L4, the first filter we setup is to do intention checks.
 	if !useHTTPFilter {
 		authFilter, err := makeRBACNetworkFilter(
-			intentions,
+			tgtwyOpts.intentions,
 			cfgSnap.IntentionDefaultAllow,
 			rbacLocalInfo{
 				trustDomain: cfgSnap.Roots.TrustDomain,
@@ -1452,10 +1482,10 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
-		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
-		routeName:  cluster, // Set cluster name for route config since each will have its own
-		cluster:    cluster,
+		protocol:   tgtwyOpts.protocol,
+		filterName: fmt.Sprintf("%s.%s.%s.%s", tgtwyOpts.service.Name, tgtwyOpts.service.NamespaceOrDefault(), tgtwyOpts.service.PartitionOrDefault(), cfgSnap.Datacenter),
+		routeName:  tgtwyOpts.cluster, // Set cluster name for route config since each will have its own
+		cluster:    tgtwyOpts.cluster,
 		statPrefix: "upstream.",
 		routePath:  "",
 	}
@@ -1463,7 +1493,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	if useHTTPFilter {
 		var err error
 		opts.httpAuthzFilter, err = makeRBACHTTPFilter(
-			intentions,
+			tgtwyOpts.intentions,
 			cfgSnap.IntentionDefaultAllow,
 			rbacLocalInfo{
 				trustDomain: cfgSnap.Roots.TrustDomain,
@@ -1488,7 +1518,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 
 	filter, err := makeListenerFilter(opts)
 	if err != nil {
-		s.Logger.Error("failed to make listener", "cluster", cluster, "error", err)
+		s.Logger.Error("failed to make listener", "cluster", tgtwyOpts.cluster, "error", err)
 		return nil, err
 	}
 	filterChain.Filters = append(filterChain.Filters, filter)

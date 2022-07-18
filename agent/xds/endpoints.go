@@ -151,19 +151,27 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 	// Loop over potential destinations in the mesh, then grab the gateway nodes associated with each
 	cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid proxycfg.UpstreamID) bool {
-		name := clusterNameForDestination(cfgSnap, uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
-
-		endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
-		if ok {
-			la := makeLoadAssignment(
-				name,
-				[]loadAssignmentEndpointGroup{
-					{Endpoints: endpoints},
-				},
-				proxycfg.GatewayKey{ /*empty so it never matches*/ },
-			)
-			resources = append(resources, la)
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig.Destination == nil {
+			return true
 		}
+
+		for _, address := range svcConfig.Destination.Addresses {
+			name := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+
+			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
+			if ok {
+				la := makeLoadAssignment(
+					name,
+					[]loadAssignmentEndpointGroup{
+						{Endpoints: endpoints},
+					},
+					proxycfg.GatewayKey{ /*empty so it never matches*/ },
+				)
+				resources = append(resources, la)
+			}
+		}
+
 		return true
 	})
 

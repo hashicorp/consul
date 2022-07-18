@@ -96,13 +96,17 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 	}
 
 	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
-		clusterName := clusterNameForDestination(cfgSnap, svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
-		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, false)
-		if err != nil {
-			return nil, err
-		}
-		if routes != nil {
-			resources = append(resources, routes...)
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		for _, address := range svcConfig.Destination.Addresses {
+			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
+			routes, err := s.makeRoutes(cfgSnap, svc, clusterName, false)
+			if err != nil {
+				return nil, err
+			}
+			if routes != nil {
+				resources = append(resources, routes...)
+			}
 		}
 	}
 
