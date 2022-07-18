@@ -48,32 +48,34 @@ definitions:
 
 ```json
 {
-  "service": {
-    "name": "web",
-    "port": 8080
-  }
-}
-{
-  "name": "web-sidecar-proxy",
-  "port": 20000,
-  "kind": "connect-proxy",
-  "checks": [
+  "services": [
     {
-      "Name": "Connect Sidecar Listening",
-      "TCP": "127.0.0.1:20000",
-      "Interval": "10s"
+      "name": "web",
+      "port": 8080
     },
     {
-      "name": "Connect Sidecar Aliasing web",
-      "alias_service": "web"
+      "name": "web-sidecar-proxy",
+      "port": 20000,
+      "kind": "connect-proxy",
+      "checks": [
+        {
+          "Name": "Connect Sidecar Listening",
+          "TCP": "127.0.0.1:20000",
+          "Interval": "10s"
+        },
+        {
+          "name": "Connect Sidecar Aliasing web",
+          "alias_service": "web"
+        }
+      ],
+      "proxy": {
+        "destination_service_name": "web",
+        "destination_service_id": "web",
+        "local_service_address": "127.0.0.1",
+        "local_service_port": 8080
+      }
     }
-  ],
-  "proxy": {
-    "destination_service_name": "web",
-    "destination_service_id": "web",
-    "local_service_address": "127.0.0.1",
-    "local_service_port": 8080,
-  }
+  ]
 }
 ```
 
