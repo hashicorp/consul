@@ -731,10 +731,12 @@ func TransparentProxyMeshConfigToStructs(s *TransparentProxyMeshConfig, t *struc
 		return
 	}
 	t.MeshDestinationsOnly = s.MeshDestinationsOnly
+	t.RequireEgressTLS = s.RequireEgressTLS
 }
 func TransparentProxyMeshConfigFromStructs(t *structs.TransparentProxyMeshConfig, s *TransparentProxyMeshConfig) {
 	if s == nil {
 		return
 	}
 	s.MeshDestinationsOnly = t.MeshDestinationsOnly
+	s.RequireEgressTLS = t.RequireEgressTLS
 }

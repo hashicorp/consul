@@ -49,6 +49,7 @@ message MeshConfig {
 // name=Structs
 message TransparentProxyMeshConfig {
   bool MeshDestinationsOnly = 1;
+  map<string, bool> RequireEgressTLS = 4;
 }
 
 // mog annotation:
