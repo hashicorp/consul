@@ -1,0 +1,53 @@
+<div
+  class={{class-map
+    'consul-peer-form-initiate-fieldsets'
+  }}
+  ...attributes
+>
+  {{#let
+    (hash
+      help='Enter a name to locally identify the new peer.'
+      Name=(array
+        (hash
+          test=(t 'common.validations.dns-hostname.test')
+          error=(t 'common.validations.dns-hostname.error' name="Name")
+        )
+      )
+    )
+
+    (hash
+      help='Enter the token received from the operator of the desired peer.'
+      PeeringToken=(array)
+    )
+
+  as |Name PeeringToken|}}
+    <p>
+      Enter a token generated in the desired peer.
+    </p>
+      <StateMachine
+        @src={{require '/machines/validate.xstate' from="/components/consul/peer/form/generate/fieldsets"}}
+      as |fsm|>
+
+      <fieldset>
+        <TextInput
+          @name="Name"
+          @label="Name of peer"
+          @item={{@item}}
+          @validations={{Name}}
+          @chart={{fsm}}
+        />
+        <TextInput
+          @expanded={{true}}
+          @name="Token"
+          @item={{@item}}
+          @validations={{PeeringToken}}
+          @chart={{fsm}}
+        />
+        {{yield (hash
+          valid=(not (state-matches fsm.state 'error'))
+        )}}
+      </fieldset>
+
+    </StateMachine>
+  {{/let}}
+</div>
