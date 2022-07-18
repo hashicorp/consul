@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -610,22 +611,13 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 }
 
 func copyPeeringWith(p *pbpeering.Peering, state pbpeering.PeeringState, isc, esc uint64) *pbpeering.Peering {
-	return &pbpeering.Peering{
-		ID:                  p.ID,
-		Name:                p.Name,
-		Partition:           p.Partition,
-		DeletedAt:           p.DeletedAt,
-		Meta:                p.Meta,
-		PeerID:              p.PeerID,
-		PeerCAPems:          p.PeerCAPems,
-		PeerServerAddresses: p.PeerServerAddresses,
-		PeerServerName:      p.PeerServerName,
-		CreateIndex:         p.CreateIndex,
-		ModifyIndex:         p.ModifyIndex,
+	var copyP pbpeering.Peering
+	proto.Merge(&copyP, p)
 
-		ImportedServiceCount: isc,
-		ExportedServiceCount: esc,
+	// add new state, imported & exported services counts
+	copyP.State = state
+	copyP.ImportedServiceCount = isc
+	copyP.ExportedServiceCount = esc
 
-		State: state,
-	}
+	return &copyP
 }
