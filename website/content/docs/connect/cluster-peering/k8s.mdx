@@ -35,6 +35,7 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   ```yaml
   global:
+    image: "hashicorp/consul:1.13.0-alpha2"
     peering:
       enabled: true
   connectInject:
