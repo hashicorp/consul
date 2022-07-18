@@ -338,17 +338,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
 	}
 
-	cp := copyPeeringWithNewState(peering, s.reconciledStreamStateHint(peering.ID, peering.State))
-
-	// add imported services count
-	st, found := s.Tracker.StreamStatus(peering.ID)
-	if !found {
-		s.Logger.Trace("did not find peer in stream tracker when reading peer", "peerID", peering.ID)
-	} else {
-		cp.ImportedServiceCount = uint64(len(st.ImportedServices))
-		cp.ExportedServiceCount = uint64(len(st.ExportedServices))
-	}
-
+	cp := s.reconcilePeering(peering)
 	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
 }
 
@@ -379,20 +369,23 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 	// reconcile the actual peering state; need to copy over the ds for peering
 	var cPeerings []*pbpeering.Peering
 	for _, p := range peerings {
-		cp := copyPeeringWithNewState(p, s.reconciledStreamStateHint(p.ID, p.State))
-
-		// add imported services count
-		st, found := s.Tracker.StreamStatus(p.ID)
-		if !found {
-			s.Logger.Trace("did not find peer in stream tracker when listing peers", "peerID", p.ID)
-		} else {
-			cp.ImportedServiceCount = uint64(len(st.ImportedServices))
-			cp.ExportedServiceCount = uint64(len(st.ExportedServices))
-		}
-
+		cp := s.reconcilePeering(p)
 		cPeerings = append(cPeerings, cp)
 	}
+
 	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
+}
+
+// TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state
+// reconcilePeering enriches the peering with the following information:
+// -- PeeringState.Active if the peering is active
+// -- ImportedServicesCount and ExportedServicesCount
+// NOTE: we return a new peering with this additional data
+func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
+	newPeeringState := s.reconciledStreamStateHint(peering.ID, peering.State)
+	isc, esc := s.getImportedExportedServicesCount(peering.ID)
+
+	return copyPeeringWith(peering, newPeeringState, isc, esc)
 }
 
 // TODO(peering): Maybe get rid of this when actually monitoring the stream health
@@ -407,6 +400,17 @@ func (s *Server) reconciledStreamStateHint(pID string, pState pbpeering.PeeringS
 
 	// default, no reconciliation
 	return pState
+}
+
+func (s *Server) getImportedExportedServicesCount(pID string) (isc, esc uint64) {
+	// add imported services count
+	st, found := s.Tracker.StreamStatus(pID)
+	if !found {
+		s.Logger.Trace("did not find peer in stream tracker; cannot populate imported and exported services count", "peerID", pID)
+		return
+	}
+
+	return uint64(len(st.ImportedServices)), uint64(len(st.ExportedServices))
 }
 
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
@@ -605,21 +609,22 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 	return id, nil
 }
 
-func copyPeeringWithNewState(p *pbpeering.Peering, state pbpeering.PeeringState) *pbpeering.Peering {
+func copyPeeringWith(p *pbpeering.Peering, state pbpeering.PeeringState, isc, esc uint64) *pbpeering.Peering {
 	return &pbpeering.Peering{
-		ID:                   p.ID,
-		Name:                 p.Name,
-		Partition:            p.Partition,
-		DeletedAt:            p.DeletedAt,
-		Meta:                 p.Meta,
-		PeerID:               p.PeerID,
-		PeerCAPems:           p.PeerCAPems,
-		PeerServerAddresses:  p.PeerServerAddresses,
-		PeerServerName:       p.PeerServerName,
-		CreateIndex:          p.CreateIndex,
-		ModifyIndex:          p.ModifyIndex,
-		ImportedServiceCount: p.ImportedServiceCount,
-		ExportedServiceCount: p.ExportedServiceCount,
+		ID:                  p.ID,
+		Name:                p.Name,
+		Partition:           p.Partition,
+		DeletedAt:           p.DeletedAt,
+		Meta:                p.Meta,
+		PeerID:              p.PeerID,
+		PeerCAPems:          p.PeerCAPems,
+		PeerServerAddresses: p.PeerServerAddresses,
+		PeerServerName:      p.PeerServerName,
+		CreateIndex:         p.CreateIndex,
+		ModifyIndex:         p.ModifyIndex,
+
+		ImportedServiceCount: isc,
+		ExportedServiceCount: esc,
 
 		State: state,
 	}
