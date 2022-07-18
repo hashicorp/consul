@@ -152,9 +152,7 @@ func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	})
 	defer s2.Stop()
 
-	testutil.RunStep(t, "register services to get synced dc2", func(t *testing.T) {
-		testNodeServiceCheckRegistrations(t, c2, "dc2")
-	})
+	testNodeServiceCheckRegistrations(t, c2, "dc2")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

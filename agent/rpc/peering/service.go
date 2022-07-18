@@ -389,7 +389,7 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 }
 
 // TODO(peering): Maybe get rid of this when actually monitoring the stream health
-// reconciledStreamStateHint peaks into the streamTracker and determines whether a peering should be marked
+// reconciledStreamStateHint uses the streamTracker to determine whether a peering should be marked
 // as PeeringState.Active or not
 func (s *Server) reconciledStreamStateHint(pID string, pState pbpeering.PeeringState) pbpeering.PeeringState {
 	streamState, found := s.Tracker.StreamStatus(pID)
