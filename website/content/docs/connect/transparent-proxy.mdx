@@ -62,7 +62,7 @@ the traffic redirection command is automatically set up via an init container.
 * Consul Helm chart 0.32.0 or later 
 * Consul on Kubernetes 0.26.0 or later
 * Consul 1.10.0 or later
-* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
+* If your default ACLs policy is `deny`, you must configure service intentions to explicitly allow services to connect to each other.
 Otherwise, Connect services will not be able to talk as the default Service Intentions policy will be inherited from the default ACL policy.
 * If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
 
