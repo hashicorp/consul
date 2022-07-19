@@ -821,7 +821,7 @@ function run_container_jaeger {
   docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
+    "${HASHICORP_DOCKER_PROXY}/windows/jaegertracing" \
     --collector.zipkin.http-port=9411
 }
 

@@ -29,6 +29,9 @@ docker build -t "${HASHICORP_DOCKER_PROXY}/windows/bats:1.7.0" -f Dockerfile-bat
 # Build Windows Fortio Image
 docker build -t "${HASHICORP_DOCKER_PROXY}/windows/fortio" -f Dockerfile-fortio-windows .
 
+# Build Windows Jaegertracing Image
+docker build -t "${HASHICORP_DOCKER_PROXY}/windows/jaegertracing" -f Dockerfile-jaegertracing-windows .
+
 # Build Windows Socat Image
 docker build -t "${HASHICORP_DOCKER_PROXY}/windows/socat" -f Dockerfile-socat-windows .
 
