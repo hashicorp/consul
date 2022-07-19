@@ -27,6 +27,7 @@
             </menu.Separator>
             {{#each menu.items as |item|}}
               <menu.Item
+                data-test-dc-item
                 aria-current={{if (eq @dc.Name item.Name) 'true'}}
                 class={{class-map
                   (array 'is-local' item.Local)
@@ -55,7 +56,9 @@
       </disclosure.Menu>
     </DisclosureMenu>
   {{else}}
-    <li class="dc-name" data-test-datacenter-single>{{@dcs.firstObject.Name}}</li>
+    <div class="dc-name" data-test-datacenter-single>
+      {{@dcs.firstObject.Name}}
+    </div>
   {{/if}}
 </li>
 
