@@ -383,24 +383,25 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 // -- ImportedServicesCount and ExportedServicesCount
 // NOTE: we return a new peering with this additional data
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
-	newPeeringState := s.reconciledStreamStateHint(peering.ID, peering.State)
-	isc, esc := s.getImportedExportedServicesCount(peering.ID)
+	streamState, found := s.Tracker.StreamStatus(peering.ID)
+	if !found {
+		s.Logger.Trace("did not find peer in stream tracker; cannot populate imported and"+
+			" exported services count or reconcile peering state", "peerID", peering.ID)
+		return peering
+	} else {
+		cp := copyPeering(peering)
 
-	return copyPeeringWith(peering, newPeeringState, isc, esc)
-}
+		// reconcile pbpeering.PeeringState_Active
+		if streamState.Connected {
+			cp.State = pbpeering.PeeringState_ACTIVE
+		}
 
-// TODO(peering): Maybe get rid of this when actually monitoring the stream health
-// reconciledStreamStateHint uses the streamTracker to determine whether a peering should be marked
-// as PeeringState.Active or not
-func (s *Server) reconciledStreamStateHint(pID string, pState pbpeering.PeeringState) pbpeering.PeeringState {
-	streamState, found := s.Tracker.StreamStatus(pID)
+		// add imported & exported services counts
+		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
+		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
 
-	if found && streamState.Connected {
-		return pbpeering.PeeringState_ACTIVE
+		return cp
 	}
-
-	// default, no reconciliation
-	return pState
 }
 
 func (s *Server) getImportedExportedServicesCount(pID string) (isc, esc uint64) {
@@ -610,14 +611,9 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 	return id, nil
 }
 
-func copyPeeringWith(p *pbpeering.Peering, state pbpeering.PeeringState, isc, esc uint64) *pbpeering.Peering {
+func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
 	var copyP pbpeering.Peering
 	proto.Merge(&copyP, p)
-
-	// add new state, imported & exported services counts
-	copyP.State = state
-	copyP.ImportedServiceCount = isc
-	copyP.ExportedServiceCount = esc
 
 	return &copyP
 }
