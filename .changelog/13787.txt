@@ -1,0 +1,3 @@
+```release-note:bug
+cli: when `acl token read` is used with the `-self` and `-expanded` flags, return an error instead of panicking
+```
