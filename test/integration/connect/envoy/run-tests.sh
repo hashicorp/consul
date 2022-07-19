@@ -43,13 +43,17 @@ function network_snippet {
     echo "--net container:envoy_consul-${DC}_1"
 }
 
-function aws_creds_snippet {
+function aws_snippet {
   local snippet=""
-  if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
-    snippet="-e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-    # This allows the Lambda integration tests to run when AWS credentials are obtained through STS
-    [[ -n "$AWS_SESSION_TOKEN" ]] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-  fi
+  for key in \
+    AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY \
+    AWS_SESSION_TOKEN \
+    AWS_LAMBDA_REGION \
+    AWS_LAMBDA_ARN; do
+    [[ -n "$(set | grep $key)" ]] && snippet="${snippet} -e ${key}=${!key}"
+  done
+
   echo "$snippet"
 }
 
@@ -343,6 +347,7 @@ function verify {
     $WORKDIR_SNIPPET \
     --pid=host \
     $(network_snippet $CLUSTER) \
+    $(aws_snippet) \
     bats-verify \
     --pretty /workdir/${CLUSTER}/bats ; then
     echogreen "✓ PASS"
@@ -689,7 +694,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
-    $(aws_creds_snippet) \
+    $(aws_snippet) \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
@@ -776,7 +781,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    $(aws_creds_snippet) \
+    $(aws_snippet) \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \

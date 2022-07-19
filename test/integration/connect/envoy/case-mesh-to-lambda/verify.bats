@@ -3,19 +3,19 @@
 load helpers
 
 @test "s1 has lambda cluster for l1" {
-  assert_lambda_envoy_dynamic_cluster_exists localhost:19000 l1 us-west-2 443
+  assert_lambda_envoy_dynamic_cluster_exists localhost:19000 l1
 }
 
 @test "s1 has lambda http filter for l1" {
-  assert_lambda_envoy_dynamic_http_filter_exists localhost:19000 l1 arn:aws:lambda:us-west-2:977604411308:function:consul-envoy-integration-test true null
+  assert_lambda_envoy_dynamic_http_filter_exists localhost:19000 l1 $AWS_LAMBDA_ARN
 }
 
 @test "terminating gateway has lambda cluster for l2" {
-  assert_lambda_envoy_dynamic_cluster_exists localhost:20000 l2 us-west-2 443
+  assert_lambda_envoy_dynamic_cluster_exists localhost:20000 l2
 }
 
 @test "terminating gateway has lambda http filter for l2" {
-  assert_lambda_envoy_dynamic_http_filter_exists localhost:20000 l2 arn:aws:lambda:us-west-2:977604411308:function:consul-envoy-integration-test null null
+  assert_lambda_envoy_dynamic_http_filter_exists localhost:20000 l2 $AWS_LAMBDA_ARN
 }
 
 @test "s1 can call l1 through its sidecar-proxy" {

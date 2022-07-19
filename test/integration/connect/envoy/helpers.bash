@@ -983,40 +983,38 @@ function register_lambdas {
     retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
       echo "Registered Lambda: $(jq -r .Service.Service $f)"
   done
+  # write service-defaults config entries for lambdas
+  for f in $(find workdir/${DC}/register -type f -name 'service_defaults_*.json'); do
+    varsub ${f} AWS_LAMBDA_REGION AWS_LAMBDA_ARN
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
+      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
+  done
 }
 
 function assert_lambda_envoy_dynamic_cluster_exists {
   local HOSTPORT=$1
   local NAME_PREFIX=$2
-  local REGION=$3
-  local PORT=$4
 
   local BODY=$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)
   [ -n "$BODY" ]
 
-  [ "$(echo $BODY | jq -r '.cluster.type')" == "LOGICAL_DNS" ]
   [ "$(echo $BODY | jq -r '.cluster.transport_socket.typed_config.sni')" == '*.amazonaws.com' ]
-  [ "$(echo $BODY | jq -r '.cluster.dns_lookup_family')" == "V4_ONLY" ]
-  [ "$(echo $BODY | jq -r '.cluster.metadata.filter_metadata|.["com.amazonaws.lambda"].egress_gateway')" == "true" ]
-
-  local SOCK_ADDR="$(echo $BODY | jq -r '.cluster.load_assignment.endpoints[0].lb_endpoints[0].endpoint.address.socket_address')"
-  [ -n "$SOCK_ADDR" ]
-
-  [ "$(echo $SOCK_ADDR | jq -r '.address')" == "lambda.${REGION}.amazonaws.com" ]
-  [ "$(echo $SOCK_ADDR | jq -r '.port_value')" == "${PORT}" ]
 }
 
 function assert_lambda_envoy_dynamic_http_filter_exists {
   local HOSTPORT=$1
   local NAME_PREFIX=$2
   local ARN=$3
-  local PAYLOAD_PT=$4
-  local INVOC_MODE=$5
 
   local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
   [ -n "$FILTER" ]
 
   [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
-  [ "$(echo $FILTER | jq -r '.payload_passthrough')" == "$PAYLOAD_PT" ]
-  [ "$(echo $FILTER | jq -r '.invocation_mode')" == "$INVOC_MODE" ]
+}
+
+function varsub {
+  local file=$1 ; shift
+  for v in "$@"; do
+    sed -i "s/\${$v}/${!v}/g" $file
+  done
 }

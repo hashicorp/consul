@@ -875,7 +875,12 @@ jobs:
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
-      # TODO: Need to add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY once the PRs are merged for the test IAM creds.
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_LAMBDA
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_LAMBDA
+      AWS_LAMBDA_REGION: us-west-2
+      # The ARN to the Lambda function used to test the Envoy-Lambda integration is set to an existing
+      # Lambda function that has been created for this test case.
+      AWS_LAMBDA_ARN: $AWS_LAMBDA_ARN
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
