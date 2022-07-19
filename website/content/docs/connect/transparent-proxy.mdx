@@ -59,7 +59,9 @@ the traffic redirection command is automatically set up via an init container.
 
 ### Kubernetes
 
-* To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to Consul >= `1.10.0`.
+* Consul Helm chart 0.32.0 or later 
+* Consul on Kubernetes 0.26.0 r later
+* Consul 1.10.0 or later
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, Connect services will not be able to talk as the default Service Intentions policy will be inherited from the default ACL policy.
 * If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
