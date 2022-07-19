@@ -134,7 +134,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 
 		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
 
-		upstreamCluster, err := s.makeUpstreamClusterForPeerService(upstreamCfg, peerMeta, cfgSnap)
+		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, upstreamCfg, peerMeta, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -693,6 +693,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 }
 
 func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
+	uid proxycfg.UpstreamID,
 	upstream *structs.Upstream,
 	peerMeta structs.PeeringServiceMeta,
 	cfgSnap *proxycfg.ConfigSnapshot,
@@ -701,8 +702,6 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		c   *envoy_cluster_v3.Cluster
 		err error
 	)
-
-	uid := proxycfg.NewUpstreamID(upstream)
 
 	cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
 	if cfg.EnvoyClusterJSON != "" {

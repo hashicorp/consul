@@ -224,7 +224,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 				}
 
 				// Check whether a watch for this peer exists to avoid duplicates.
-				if _, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer); !ok {
+				if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
 					peerCtx, cancel := context.WithCancel(ctx)
 					if err := s.dataSources.TrustBundle.Notify(peerCtx, &pbpeering.TrustBundleReadRequest{
 						Name:      uid.Peer,
@@ -342,7 +342,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			snap.ConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, hcancel)
 
 			// Check whether a watch for this peer exists to avoid duplicates.
-			if _, ok := snap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer); !ok {
+			if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
 				peerCtx, cancel := context.WithCancel(ctx)
 				if err := s.dataSources.TrustBundle.Notify(peerCtx, &pbpeering.TrustBundleReadRequest{
 					Name:      uid.Peer,

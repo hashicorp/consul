@@ -264,8 +264,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, tlsInspector)
 	}
-	// Looping over explicit upstreams is only needed for cross-peer because
-	// they do not have discovery chains.
+
+	// Looping over explicit and implicit upstreams is only needed for cross-peer
+	// because they do not have discovery chains.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
@@ -326,7 +327,50 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
 
-		// TODO(peering): tproxy
+		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+			routeName:   uid.EnvoyID(),
+			clusterName: clusterName,
+			filterName:  uid.EnvoyID(),
+			protocol:    cfg.Protocol,
+			useRDS:      false,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		endpoints, _ := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
+		uniqueAddrs := make(map[string]struct{})
+
+		// Match on the virtual IP for the upstream service (identified by the chain's ID).
+		// We do not match on all endpoints here since it would lead to load balancing across
+		// all instances when any instance address is dialed.
+		for _, e := range endpoints {
+			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
+				uniqueAddrs[vip.Address] = struct{}{}
+			}
+
+			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
+			// For services imported from a peer,the partition will be equal in all cases.
+			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+			}
+		}
+		if len(uniqueAddrs) > 2 {
+			s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+				"upstream", uid, "ip_count", len(uniqueAddrs))
+		}
+
+		// For every potential address we collected, create the appropriate address prefix to match on.
+		// In this case we are matching on exact addresses, so the prefix is the address itself,
+		// and the prefix length is based on whether it's IPv4 or IPv6.
+		filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
+
+		// Only attach the filter chain if there are addresses to match on
+		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
+			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+		}
 
 	}
 

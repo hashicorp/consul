@@ -757,10 +757,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_MixedNoTLS,
 		},
 		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
-		},
-		{
 			name:   "transparent-proxy-http-upstream",
 			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
 		},
