@@ -10,6 +10,7 @@ func EstablishRequestToAPI(s *EstablishRequest, t *api.PeeringEstablishRequest) 
 	}
 	t.PeerName = s.PeerName
 	t.PeeringToken = s.PeeringToken
+	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
 	t.Token = s.Token
 	t.Meta = s.Meta
@@ -20,6 +21,7 @@ func EstablishRequestFromAPI(t *api.PeeringEstablishRequest, s *EstablishRequest
 	}
 	s.PeerName = t.PeerName
 	s.PeeringToken = t.PeeringToken
+	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
 	s.Token = t.Token
 	s.Meta = t.Meta

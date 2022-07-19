@@ -130,6 +130,14 @@ func (s *HTTPHandlers) PeeringEstablish(resp http.ResponseWriter, req *http.Requ
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "PeeringToken is required in the payload when establishing a peering."}
 	}
 
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
+	if args.Partition == "" {
+		args.Partition = entMeta.PartitionOrEmpty()
+	}
+
 	out, err := s.agent.rpcClientPeering.Establish(req.Context(), args)
 	if err != nil {
 		return nil, err

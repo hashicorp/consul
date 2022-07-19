@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-// Tracker contains a map of (PeerID -> Status).
+// Tracker contains a map of (PeerID -> MutableStatus).
 // As streams are opened and closed we track details about their status.
 type Tracker struct {
 	mu      sync.RWMutex
@@ -31,16 +33,37 @@ func (t *Tracker) SetClock(clock func() time.Time) {
 	}
 }
 
+// Register a stream for a given peer but do not mark it as connected.
+func (t *Tracker) Register(id string) (*MutableStatus, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	status, _, err := t.registerLocked(id, false)
+	return status, err
+}
+
+func (t *Tracker) registerLocked(id string, initAsConnected bool) (*MutableStatus, bool, error) {
+	status, ok := t.streams[id]
+	if !ok {
+		status = newMutableStatus(t.timeNow, initAsConnected)
+		t.streams[id] = status
+		return status, true, nil
+	}
+	return status, false, nil
+}
+
 // Connected registers a stream for a given peer, and marks it as connected.
 // It also enforces that there is only one active stream for a peer.
 func (t *Tracker) Connected(id string) (*MutableStatus, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	return t.connectedLocked(id)
+}
 
-	status, ok := t.streams[id]
-	if !ok {
-		status = newMutableStatus(t.timeNow)
-		t.streams[id] = status
+func (t *Tracker) connectedLocked(id string) (*MutableStatus, error) {
+	status, newlyRegistered, err := t.registerLocked(id, true)
+	if err != nil {
+		return nil, err
+	} else if newlyRegistered {
 		return status, nil
 	}
 
@@ -142,12 +165,18 @@ type Status struct {
 	// - The error message when we failed to store a resource replicated FROM the peer.
 	// - The last error message when receiving from the stream.
 	LastReceiveErrorMessage string
+
+	// TODO(peering): consider keeping track of imported and exported services thru raft
+	// ImportedServices keeps track of which service names are imported for the peer
+	ImportedServices map[string]struct{}
+	// ExportedServices keeps track of which service names a peer asks to export
+	ExportedServices map[string]struct{}
 }
 
-func newMutableStatus(now func() time.Time) *MutableStatus {
+func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
 	return &MutableStatus{
 		Status: Status{
-			Connected: true,
+			Connected: connected,
 		},
 		timeNow: now,
 		doneCh:  make(chan struct{}),
@@ -221,4 +250,54 @@ func (s *MutableStatus) GetStatus() Status {
 	s.mu.RUnlock()
 
 	return copy
+}
+
+func (s *MutableStatus) RemoveImportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.ImportedServices, sn.String())
+}
+
+func (s *MutableStatus) TrackImportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ImportedServices == nil {
+		s.ImportedServices = make(map[string]struct{})
+	}
+
+	s.ImportedServices[sn.String()] = struct{}{}
+}
+
+func (s *MutableStatus) GetImportedServicesCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.ImportedServices)
+}
+
+func (s *MutableStatus) RemoveExportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.ExportedServices, sn.String())
+}
+
+func (s *MutableStatus) TrackExportedService(sn structs.ServiceName) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ExportedServices == nil {
+		s.ExportedServices = make(map[string]struct{})
+	}
+
+	s.ExportedServices[sn.String()] = struct{}{}
+}
+
+func (s *MutableStatus) GetExportedServicesCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.ExportedServices)
 }

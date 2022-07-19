@@ -88,7 +88,7 @@ type ProtocolConfig struct {
 	// certificate authority. This is used to verify authenticity of server
 	// nodes.
 	//
-	// Note: this setting doesn't apply to the gRPC configuration, as Consul
+	// Note: this setting doesn't apply to the external gRPC configuration, as Consul
 	// makes no outgoing connections using this protocol.
 	VerifyOutgoing bool
 
@@ -231,6 +231,13 @@ func (c *Configurator) ManualCAPems() []string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.internalRPC.manualCAPEMs
+}
+
+// GRPCManualCAPems returns the currently loaded CAs for the gRPC in PEM format.
+func (c *Configurator) GRPCManualCAPems() []string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.grpc.manualCAPEMs
 }
 
 // Update updates the internal configuration which is used to generate

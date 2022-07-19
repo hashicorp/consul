@@ -24,10 +24,7 @@ func makeRBACNetworkFilter(
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
 ) (*envoy_listener_v3.Filter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, localInfo, false, peerTrustBundles)
-	if err != nil {
-		return nil, err
-	}
+	rules := makeRBACRules(intentions, intentionDefaultAllow, localInfo, false, peerTrustBundles)
 
 	cfg := &envoy_network_rbac_v3.RBAC{
 		StatPrefix: "connect_authz",
@@ -42,10 +39,7 @@ func makeRBACHTTPFilter(
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
 ) (*envoy_http_v3.HttpFilter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, localInfo, true, peerTrustBundles)
-	if err != nil {
-		return nil, err
-	}
+	rules := makeRBACRules(intentions, intentionDefaultAllow, localInfo, true, peerTrustBundles)
 
 	cfg := &envoy_http_rbac_v3.RBAC{
 		Rules: rules,
@@ -485,7 +479,7 @@ func makeRBACRules(
 	localInfo rbacLocalInfo,
 	isHTTP bool,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
-) (*envoy_rbac_v3.RBAC, error) {
+) *envoy_rbac_v3.RBAC {
 	// TODO(banks,rb): Implement revocation list checking?
 
 	// TODO(peering): mkeeler asked that these maps come from proxycfg instead of
@@ -565,7 +559,7 @@ func makeRBACRules(
 	if len(rbac.Policies) == 0 {
 		rbac.Policies = nil
 	}
-	return rbac, nil
+	return rbac
 }
 
 func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {

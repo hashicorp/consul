@@ -3,6 +3,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.peerstream;
 
 import "google/protobuf/any.proto";
+import "proto/pbservice/node.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
 
@@ -88,4 +89,9 @@ enum Operation {
 message LeaderAddress {
   // address is an ip:port best effort hint at what could be the cluster leader's address
   string address = 1;
+}
+
+// ExportedService is one of the types of data returned via peer stream replication.
+message ExportedService {
+  repeated hashicorp.consul.internal.service.CheckServiceNode Nodes = 1;
 }

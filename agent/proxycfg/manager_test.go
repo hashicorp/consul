@@ -11,6 +11,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -230,11 +231,13 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						},
 						PassthroughUpstreams:              map[UpstreamID]map[string]map[string]struct{}{},
 						PassthroughIndices:                map[string]indexedTarget{},
-						UpstreamPeerTrustBundles:          map[string]*pbpeering.PeeringTrustBundle{},
-						PeerUpstreamEndpoints:             map[UpstreamID]structs.CheckServiceNodes{},
+						UpstreamPeerTrustBundles:          watch.NewMap[PeerName, *pbpeering.PeeringTrustBundle](),
+						PeerUpstreamEndpoints:             watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 						PeerUpstreamEndpointsUseHostnames: map[UpstreamID]struct{}{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
+					DestinationsUpstream:   watch.NewMap[UpstreamID, *structs.ServiceConfigEntry](),
+					DestinationGateways:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions(),
 					IntentionsSet:          true,
@@ -291,11 +294,13 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						},
 						PassthroughUpstreams:              map[UpstreamID]map[string]map[string]struct{}{},
 						PassthroughIndices:                map[string]indexedTarget{},
-						UpstreamPeerTrustBundles:          map[string]*pbpeering.PeeringTrustBundle{},
-						PeerUpstreamEndpoints:             map[UpstreamID]structs.CheckServiceNodes{},
+						UpstreamPeerTrustBundles:          watch.NewMap[PeerName, *pbpeering.PeeringTrustBundle](),
+						PeerUpstreamEndpoints:             watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 						PeerUpstreamEndpointsUseHostnames: map[UpstreamID]struct{}{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
+					DestinationsUpstream:   watch.NewMap[UpstreamID, *structs.ServiceConfigEntry](),
+					DestinationGateways:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 					Intentions:             TestIntentions(),
 					IntentionsSet:          true,

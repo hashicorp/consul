@@ -10,6 +10,7 @@ syntax = "proto3";
 // compatibility.
 package subscribe;
 
+import "proto/pbcommon/common.proto";
 import "proto/pbconfigentry/config_entry.proto";
 import "proto/pbservice/node.proto";
 
@@ -62,6 +63,13 @@ enum Topic {
 
   // ServiceIntentions topic contains events for changes to service intentions.
   ServiceIntentions = 6;
+
+  // ServiceList topic contains events about services (not service instances)
+  // getting registered/deregistered. It can be used to materialize a list of
+  // the services in the given datacenter.
+  //
+  // Note: WildcardSubject is the only supported Subject on this topic.
+  ServiceList = 7;
 }
 
 message NamedSubject {
@@ -171,6 +179,9 @@ message Event {
 
     // ConfigEntry is used for config entry topics (e.g. MeshConfig).
     ConfigEntryUpdate ConfigEntry = 11;
+
+    // Service is used for ServiceList topic.
+    ServiceListUpdate Service = 12;
   }
 }
 
@@ -196,4 +207,12 @@ message ConfigEntryUpdate {
 
   UpdateOp Op = 1;
   hashicorp.consul.internal.configentry.ConfigEntry ConfigEntry = 2;
+}
+
+message ServiceListUpdate {
+  CatalogOp Op = 1;
+
+  string Name = 2;
+  hashicorp.consul.internal.common.EnterpriseMeta EnterpriseMeta = 3;
+  string PeerName = 4;
 }

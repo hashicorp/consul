@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+type PeerName = string
+
 type UpstreamID struct {
 	Type       string
 	Name       string
@@ -32,7 +34,16 @@ func NewUpstreamID(u *structs.Upstream) UpstreamID {
 	return id
 }
 
-// TODO(peering): confirm we don't need peername here
+func NewUpstreamIDFromPeeredServiceName(psn structs.PeeredServiceName) UpstreamID {
+	id := UpstreamID{
+		Name:           psn.ServiceName.Name,
+		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
+		Peer:           psn.Peer,
+	}
+	id.normalize()
+	return id
+}
+
 func NewUpstreamIDFromServiceName(sn structs.ServiceName) UpstreamID {
 	id := UpstreamID{
 		Name:           sn.Name,

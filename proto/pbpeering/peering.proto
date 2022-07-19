@@ -136,7 +136,7 @@ message PeeringTrustBundle {
   uint64 ModifyIndex = 7;
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: Datacenter,LeaderReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
@@ -152,7 +152,7 @@ message PeeringReadResponse {
 //TODO(peering) query metadata
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: Datacenter,LeaderReadTODO
 message PeeringListRequest {
   string Partition = 1;
 
