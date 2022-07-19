@@ -26,11 +26,6 @@ type BidirectionalStream interface {
 	Context() context.Context
 }
 
-var (
-	outgoingHeartbeatInterval = 15 * time.Second
-	incomingHeartbeatTimeout  = 2 * time.Minute
-)
-
 // StreamResources handles incoming streaming connections.
 func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamResourcesServer) error {
 	logger := s.Logger.Named("stream-resources").With("request_id", external.TraceID())
@@ -274,7 +269,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 
 	// Heartbeat sender.
 	go func() {
-		tick := time.NewTicker(outgoingHeartbeatInterval)
+		tick := time.NewTicker(s.outgoingHeartbeatInterval)
 		defer tick.Stop()
 
 		for {
@@ -300,7 +295,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 	incomingHeartbeatCtx, cancel := context.WithCancel(context.Background())
 	// incomingHeartbeatTimer cancels incomingHeartbeatCtx if it isn't reset in time.
 	// It gets reset by receiving heartbeats.
-	incomingHeartbeatTimer := time.AfterFunc(incomingHeartbeatTimeout, func() {
+	incomingHeartbeatTimer := time.AfterFunc(s.incomingHeartbeatTimeout, func() {
 		cancel()
 	})
 
@@ -475,7 +470,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if msg.GetHeartbeat() != nil {
-				incomingHeartbeatTimer.Reset(incomingHeartbeatTimeout)
+				incomingHeartbeatTimer.Reset(s.incomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:

@@ -870,18 +870,13 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 // Test that when the client doesn't send a heartbeat in time, the stream is terminated.
 func TestStreamResources_Server_TerminatesOnHeartbeatTimeout(t *testing.T) {
-
-	// Set a short timeout
-	old := incomingHeartbeatTimeout
-	defer func() { incomingHeartbeatTimeout = old }()
-	incomingHeartbeatTimeout = 5 * time.Millisecond
-
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
+		c.incomingHeartbeatTimeout = 5 * time.Millisecond
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -920,18 +915,14 @@ func TestStreamResources_Server_TerminatesOnHeartbeatTimeout(t *testing.T) {
 
 // Test that the server sends heartbeats at the expected interval.
 func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
-
-	// Set a short interval.
-	old := outgoingHeartbeatInterval
-	defer func() { outgoingHeartbeatInterval = old }()
-	outgoingHeartbeatInterval = 5 * time.Millisecond
-
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
+	outgoingHeartbeatInterval := 5 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
+		c.outgoingHeartbeatInterval = outgoingHeartbeatInterval
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -984,18 +975,14 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 
 // Test that as long as the server receives heartbeats it keeps the connection open.
 func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
-
-	// Set timeout to 10ms.
-	old := incomingHeartbeatTimeout
-	defer func() { incomingHeartbeatTimeout = old }()
-	incomingHeartbeatTimeout = 10 * time.Millisecond
-
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
+	incomingHeartbeatTimeout := 10 * time.Millisecond
 
 	srv, store := newTestServer(t, func(c *Config) {
 		c.Tracker.SetClock(it.Now)
+		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
