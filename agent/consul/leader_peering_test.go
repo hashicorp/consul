@@ -747,10 +747,11 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 	/// finished adding services
 
 	type testCase struct {
-		name                                  string
-		description                           string
-		exportedService                       structs.ExportedServicesConfigEntry
-		expectedImportedExportedServicesCount uint64 // same count for a server that imports the services form a server that exports them
+		name                       string
+		description                string
+		exportedService            structs.ExportedServicesConfigEntry
+		expectedImportedServsCount uint64
+		expectedExportedServsCount uint64
 	}
 
 	testCases := []testCase{
@@ -770,7 +771,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedExportedServicesCount: 4, // 3 services from above + the "consul" service
+			expectedImportedServsCount: 4, // 3 services from above + the "consul" service
+			expectedExportedServsCount: 4, // 3 services from above + the "consul" service
 		},
 		{
 			name:        "no sync",
@@ -778,7 +780,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 			exportedService: structs.ExportedServicesConfigEntry{
 				Name: "default",
 			},
-			expectedImportedExportedServicesCount: 0, // we want to see this decremented from 4 --> 0
+			expectedImportedServsCount: 0, // we want to see this decremented from 4 --> 0
+			expectedExportedServsCount: 0, // we want to see this decremented from 4 --> 0
 		},
 		{
 			name:        "just a, b services",
@@ -804,7 +807,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedExportedServicesCount: 2,
+			expectedImportedServsCount: 2,
+			expectedExportedServsCount: 2,
 		},
 		{
 			name:        "unexport b service",
@@ -822,7 +826,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedExportedServicesCount: 1,
+			expectedImportedServsCount: 1,
+			expectedExportedServsCount: 1,
 		},
 		{
 			name:        "export c service",
@@ -848,7 +853,8 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 					},
 				},
 			},
-			expectedImportedExportedServicesCount: 2,
+			expectedImportedServsCount: 2,
+			expectedExportedServsCount: 2,
 		},
 	}
 
@@ -872,13 +878,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient2.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedExportedServicesCount, resp.Peering.ImportedServiceCount)
+				require.Equal(r, tc.expectedImportedServsCount, resp.Peering.ImportedServiceCount)
 
 				// on List
 				resp2, err2 := peeringClient2.PeeringList(ctx, &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedImportedExportedServicesCount, resp2.Peerings[0].ImportedServiceCount)
+				require.Equal(r, tc.expectedExportedServsCount, resp2.Peerings[0].ImportedServiceCount)
 			})
 
 			// Check that exported services count on S1 are what we expect
@@ -887,13 +893,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s2"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedExportedServicesCount, resp.Peering.ExportedServiceCount)
+				require.Equal(r, tc.expectedImportedServsCount, resp.Peering.ExportedServiceCount)
 
 				// on List
 				resp2, err2 := peeringClient.PeeringList(ctx, &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedImportedExportedServicesCount, resp2.Peerings[0].ExportedServiceCount)
+				require.Equal(r, tc.expectedExportedServsCount, resp2.Peerings[0].ExportedServiceCount)
 			})
 		})
 	}

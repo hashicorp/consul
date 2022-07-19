@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -338,17 +339,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
 	}
 
-	cp := copyPeeringWithNewState(peering, s.reconciledStreamStateHint(peering.ID, peering.State))
-
-	// add imported services count
-	st, found := s.Tracker.StreamStatus(peering.ID)
-	if !found {
-		s.Logger.Trace("did not find peer in stream tracker when reading peer", "peerID", peering.ID)
-	} else {
-		cp.ImportedServiceCount = uint64(len(st.ImportedServices))
-		cp.ExportedServiceCount = uint64(len(st.ExportedServices))
-	}
-
+	cp := s.reconcilePeering(peering)
 	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
 }
 
@@ -379,34 +370,38 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 	// reconcile the actual peering state; need to copy over the ds for peering
 	var cPeerings []*pbpeering.Peering
 	for _, p := range peerings {
-		cp := copyPeeringWithNewState(p, s.reconciledStreamStateHint(p.ID, p.State))
-
-		// add imported services count
-		st, found := s.Tracker.StreamStatus(p.ID)
-		if !found {
-			s.Logger.Trace("did not find peer in stream tracker when listing peers", "peerID", p.ID)
-		} else {
-			cp.ImportedServiceCount = uint64(len(st.ImportedServices))
-			cp.ExportedServiceCount = uint64(len(st.ExportedServices))
-		}
-
+		cp := s.reconcilePeering(p)
 		cPeerings = append(cPeerings, cp)
 	}
+
 	return &pbpeering.PeeringListResponse{Peerings: cPeerings}, nil
 }
 
-// TODO(peering): Maybe get rid of this when actually monitoring the stream health
-// reconciledStreamStateHint peaks into the streamTracker and determines whether a peering should be marked
-// as PeeringState.Active or not
-func (s *Server) reconciledStreamStateHint(pID string, pState pbpeering.PeeringState) pbpeering.PeeringState {
-	streamState, found := s.Tracker.StreamStatus(pID)
+// TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state
+// reconcilePeering enriches the peering with the following information:
+// -- PeeringState.Active if the peering is active
+// -- ImportedServicesCount and ExportedServicesCount
+// NOTE: we return a new peering with this additional data
+func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
+	streamState, found := s.Tracker.StreamStatus(peering.ID)
+	if !found {
+		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
+			" exported services count or reconcile peering state", "peerID", peering.ID)
+		return peering
+	} else {
+		cp := copyPeering(peering)
 
-	if found && streamState.Connected {
-		return pbpeering.PeeringState_ACTIVE
+		// reconcile pbpeering.PeeringState_Active
+		if streamState.Connected {
+			cp.State = pbpeering.PeeringState_ACTIVE
+		}
+
+		// add imported & exported services counts
+		cp.ImportedServiceCount = streamState.GetImportedServicesCount()
+		cp.ExportedServiceCount = streamState.GetExportedServicesCount()
+
+		return cp
 	}
-
-	// default, no reconciliation
-	return pState
 }
 
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
@@ -605,22 +600,9 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 	return id, nil
 }
 
-func copyPeeringWithNewState(p *pbpeering.Peering, state pbpeering.PeeringState) *pbpeering.Peering {
-	return &pbpeering.Peering{
-		ID:                   p.ID,
-		Name:                 p.Name,
-		Partition:            p.Partition,
-		DeletedAt:            p.DeletedAt,
-		Meta:                 p.Meta,
-		PeerID:               p.PeerID,
-		PeerCAPems:           p.PeerCAPems,
-		PeerServerAddresses:  p.PeerServerAddresses,
-		PeerServerName:       p.PeerServerName,
-		CreateIndex:          p.CreateIndex,
-		ModifyIndex:          p.ModifyIndex,
-		ImportedServiceCount: p.ImportedServiceCount,
-		ExportedServiceCount: p.ExportedServiceCount,
+func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
+	var copyP pbpeering.Peering
+	proto.Merge(&copyP, p)
 
-		State: state,
-	}
+	return &copyP
 }

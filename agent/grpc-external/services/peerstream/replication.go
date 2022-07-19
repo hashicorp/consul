@@ -43,7 +43,6 @@ func makeServiceResponse(
 	sn := structs.ServiceNameFromString(serviceName)
 	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
 	if !ok {
-		logger.Error("did not increment or decrement exported services count", "service_name", serviceName)
 		return nil, fmt.Errorf("invalid type for service response: %T", update.Result)
 	}
 
@@ -63,7 +62,6 @@ func makeServiceResponse(
 	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
 	// Case #1 is a no-op for the importing peer.
 	if len(csn.Nodes) == 0 {
-		logger.Trace("decrementing exported services count", "service_name", sn.String())
 		mst.RemoveExportedService(sn)
 
 		return &pbpeerstream.ReplicationMessage_Response{
@@ -75,7 +73,6 @@ func makeServiceResponse(
 		}, nil
 	}
 
-	logger.Trace("incrementing exported services count", "service_name", sn.String())
 	mst.TrackExportedService(sn)
 
 	// If there are nodes in the response, we push them as an UPSERT operation.
@@ -220,7 +217,6 @@ func (s *Server) handleUpsert(
 			return fmt.Errorf("did not increment imported services count for service=%q: %w", sn.String(), err)
 		}
 
-		logger.Trace("incrementing imported services count", "service_name", sn.String())
 		mutableStatus.TrackImportedService(sn)
 
 		return nil
@@ -468,11 +464,9 @@ func (s *Server) handleDelete(
 
 		err := s.handleUpdateService(peerName, partition, sn, nil)
 		if err != nil {
-			logger.Error("did not decrement imported services count", "service_name", sn.String(), "error", err)
 			return err
 		}
 
-		logger.Trace("decrementing imported services count", "service_name", sn.String())
 		mutableStatus.RemoveImportedService(sn)
 
 		return nil

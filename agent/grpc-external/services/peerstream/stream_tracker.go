@@ -173,6 +173,14 @@ type Status struct {
 	ExportedServices map[string]struct{}
 }
 
+func (s *Status) GetImportedServicesCount() uint64 {
+	return uint64(len(s.ImportedServices))
+}
+
+func (s *Status) GetExportedServicesCount() uint64 {
+	return uint64(len(s.ExportedServices))
+}
+
 func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
 	return &MutableStatus{
 		Status: Status{
