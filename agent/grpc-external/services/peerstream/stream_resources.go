@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -24,6 +25,11 @@ type BidirectionalStream interface {
 	Recv() (*pbpeerstream.ReplicationMessage, error)
 	Context() context.Context
 }
+
+var (
+	outgoingHeartbeatInterval = 15 * time.Second
+	incomingHeartbeatTimeout  = 2 * time.Minute
+)
 
 // StreamResources handles incoming streaming connections.
 func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamResourcesServer) error {
@@ -266,6 +272,38 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 		}
 	}()
 
+	// Heartbeat sender.
+	go func() {
+		tick := time.NewTicker(outgoingHeartbeatInterval)
+		defer tick.Stop()
+
+		for {
+			select {
+			case <-streamReq.Stream.Context().Done():
+				return
+
+			case <-tick.C:
+			}
+
+			heartbeat := &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
+					Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
+				},
+			}
+			if err := streamSend(heartbeat); err != nil {
+				logger.Warn("error sending heartbeat", "err", err)
+			}
+		}
+	}()
+
+	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
+	incomingHeartbeatCtx, cancel := context.WithCancel(context.Background())
+	// incomingHeartbeatTimer cancels incomingHeartbeatCtx if it isn't reset in time.
+	// It gets reset by receiving heartbeats.
+	incomingHeartbeatTimer := time.AfterFunc(incomingHeartbeatTimeout, func() {
+		cancel()
+	})
+
 	for {
 		select {
 		// When the doneCh is closed that means that the peering was deleted locally.
@@ -285,6 +323,11 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			s.Tracker.DeleteStatus(streamReq.LocalID)
 
 			return nil
+
+		// We haven't received a heartbeat within the expected interval. Kill the stream.
+		case <-incomingHeartbeatCtx.Done():
+			logger.Error("ending stream due to heartbeat timeout")
+			return fmt.Errorf("heartbeat timeout")
 
 		case msg, open := <-recvChan:
 			if !open {
@@ -429,6 +472,10 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
 				return nil
+			}
+
+			if msg.GetHeartbeat() != nil {
+				incomingHeartbeatTimer.Reset(incomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:
