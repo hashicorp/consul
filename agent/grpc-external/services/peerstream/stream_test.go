@@ -1014,18 +1014,26 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 		Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
 			Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{}}}
 
-	// Set up a goroutine to send the heartbeat every 1/2 of the timeout.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	// errCh is used to collect any send errors from within the goroutine.
+	errCh := make(chan error)
+
+	// Set up a goroutine to send the heartbeat every 1/2 of the timeout.
 	go func() {
 		// This is just a do while loop. We want to send the heartbeat right away to start
 		// because the test setup above takes some time and we might be close to the heartbeat
 		// timeout already.
 		for {
-			require.NoError(t, client.Send(heartbeatMsg))
+			err := client.Send(heartbeatMsg)
+			if err != nil {
+				errCh <- err
+				return
+			}
 			select {
 			case <-time.After(incomingHeartbeatTimeout / 2):
 			case <-ctx.Done():
+				close(errCh)
 				return
 			}
 		}
@@ -1039,6 +1047,13 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 		}
 		return !status.Connected
 	}, incomingHeartbeatTimeout*5, incomingHeartbeatTimeout)
+
+	// Kill the heartbeat sending goroutine and check if it had any errors.
+	cancel()
+	err, ok := <-errCh
+	if ok {
+		require.NoError(t, err)
+	}
 }
 
 // makeClient sets up a *MockClient with the initial subscription
