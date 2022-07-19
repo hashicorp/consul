@@ -385,7 +385,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
-		s.Logger.Trace("did not find peer in stream tracker; cannot populate imported and"+
+		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
 		return peering
 	} else {
@@ -402,17 +402,6 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 
 		return cp
 	}
-}
-
-func (s *Server) getImportedExportedServicesCount(pID string) (isc, esc uint64) {
-	// add imported services count
-	st, found := s.Tracker.StreamStatus(pID)
-	if !found {
-		s.Logger.Trace("did not find peer in stream tracker; cannot populate imported and exported services count", "peerID", pID)
-		return
-	}
-
-	return uint64(len(st.ImportedServices)), uint64(len(st.ExportedServices))
 }
 
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
