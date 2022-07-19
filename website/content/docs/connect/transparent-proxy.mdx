@@ -64,7 +64,7 @@ the traffic redirection command is automatically set up via an init container.
 * Consul 1.10.0 or later
 * If your default ACLs policy is `deny`, you must configure service intentions to explicitly allow services to connect to each other.
 Services in the mesh inherit the default ACL policy and will not be able to communicate if the default policy is to deny.
-* If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
+* All worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
