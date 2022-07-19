@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-#set -eEuo pipefail
+
 if [ $2 != "false" ]
 then
   export $2
 fi
+
 readonly self_name="$0"
 
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
@@ -14,7 +15,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22-latest"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.22.1"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -37,6 +38,7 @@ function command_error {
 }
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
+
 readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir"
 
 function network_snippet {
@@ -171,7 +173,8 @@ function start_consul {
   # an agent.
   #
   # When XDS_TARGET=client we'll start a Consul server with its gRPC port
-  # disabled, and a client agent with its gRPC port enabled.
+  # disabled (but only if REQUIRE_PEERS is not set), and a client agent with
+  # its gRPC port enabled.
   #
   # When XDS_TARGET=server (or anything else) we'll run a single Consul server
   # with its gRPC port enabled.
@@ -197,6 +200,11 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
+    server_grpc_port="-1"
+    if is_set $REQUIRE_PEERS; then
+      server_grpc_port="8502"
+    fi
+
     docker.exe run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -207,7 +215,7 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port -1 \
+      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
@@ -470,8 +478,8 @@ function run_tests {
   # Wipe state
   wipe_volumes
 
-# Use this function to populate the shared volume
- stop_and_copy_files
+  # Use this function to populate the shared volume
+  stop_and_copy_files
 
   start_consul primary
 
@@ -545,13 +553,11 @@ function suite_setup {
     docker.exe run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        mcr.microsoft.com/oss/kubernetes/pause:3.6 &>/dev/null    
-    
+        mcr.microsoft.com/oss/kubernetes/pause:3.6 &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    
     docker build -t bats-verify -f Dockerfile-bats-windows .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
@@ -559,15 +565,13 @@ function suite_setup {
     #
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
-    
     docker.exe run --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    # TODO - Line below commented for testing
-    # docker build -t consul-dev-envoy:${ENVOY_VERSION} \
-    #     --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-    #     -f Dockerfile-consul-envoy .
+    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+        -f Dockerfile-consul-envoy-windows .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
@@ -612,7 +616,7 @@ function common_run_container_service {
   docker.exe run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $CLUSTER) \
-   "${HASHICORP_DOCKER_PROXY}/windows/fortio" \
+    "${HASHICORP_DOCKER_PROXY}/windows/fortio" \
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
@@ -678,6 +682,10 @@ function run_container_s2-alpha {
   common_run_container_service s2-alpha alpha 8181 8179
 }
 
+function run_container_s3-alpha {
+  common_run_container_service s3-alpha alpha 8282 8279
+}
+
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
@@ -689,7 +697,7 @@ function common_run_container_sidecar_proxy {
   docker.exe run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy-windows:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
     -l trace \
@@ -760,6 +768,9 @@ function run_container_s1-sidecar-proxy-alpha {
 function run_container_s2-sidecar-proxy-alpha {
   common_run_container_sidecar_proxy s2 alpha
 }
+function run_container_s3-sidecar-proxy-alpha {
+  common_run_container_sidecar_proxy s3 alpha
+}
 
 function common_run_container_gateway {
   local name="$1"
@@ -772,7 +783,7 @@ function common_run_container_gateway {
   docker.exe run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy-windows:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l trace \
@@ -810,13 +821,13 @@ function run_container_fake-statsd {
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
 
-#https://hub.docker.com/r/openzipkin/zipkin-base
 function run_container_zipkin {
   docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
 }
+
 function run_container_jaeger {
   docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
@@ -866,6 +877,7 @@ function common_run_container_tcpdump {
     local DC="$1"
 
     # we cant run this in circle but its only here to temporarily enable.
+
     docker.exe build -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
     docker.exe run -d --name $(container_name_prev) \

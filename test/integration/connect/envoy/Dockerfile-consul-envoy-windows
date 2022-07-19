@@ -1,5 +1,5 @@
 # Note this arg has to be before the first FROM
-ARG ENVOY_VERSION=1.22-latest
+ARG ENVOY_VERSION=1.22.1
 
 FROM windows/consul-dev as consul
 
