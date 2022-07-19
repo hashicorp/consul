@@ -12,15 +12,9 @@ export default {
         target: 'generate',
       },
     ],
-    SUCCESS: [
-      {
-        target: 'success',
-      },
-    ],
   },
   states: {
     initiate: {},
     generate: {},
-    success: {},
   },
 };
