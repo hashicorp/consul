@@ -24,9 +24,10 @@ references:
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
   envoy-versions: &supported_envoy_versions
-    - &default_envoy_version "1.19.5"
-    - "1.20.4"
-    - "1.21.3"
+    - &default_envoy_version "1.20.6"
+    - "1.21.4"
+    - "1.22.2"
+    - "1.23.0"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
