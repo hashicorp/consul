@@ -1,7 +1,6 @@
-import { module, skip, test } from 'qunit';
+import { module, skip } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
-import { render } from '@ember/test-helpers';
 
 module('Integration | Component | hashicorp consul', function(hooks) {
   setupRenderingTest(hooks);
