@@ -75,12 +75,7 @@ func (s *Server) emitPeeringMetrics(ctx context.Context, logger hclog.Logger, ti
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
-			stateS := s.fsm.State()
-			ws := memdb.NewWatchSet()
-			ws.Add(stateS.AbandonCh())
-			ws.Add(ctx.Done())
-
-			_, peers, err := stateS.PeeringList(ws, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
+			_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
 			if err != nil {
 				return err
 			}
