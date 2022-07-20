@@ -409,7 +409,7 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// Upstream listener metrics are prefixed by consul.upstream
 		//
 		// Listener metric name format:
-		// <tcp|http>.upstream.<service>.<namespace>.<partition>.<datacenter>
+		// <tcp|http>.upstream<_peered>.<service>.<namespace>.<partition>.<datacenter>
 		//
 		// Examples:
 		// - tcp.upstream.db.dc1.downstream_cx_total: 0
