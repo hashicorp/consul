@@ -1,3 +1,11 @@
+.consul-peer-form {
+  & {
+    width: 416px;
+  }
+  nav {
+    margin-bottom: 20px;
+  }
+}
 
 .consul-peer-form-token-actions {
   button:first-of-type {
