@@ -367,6 +367,8 @@ func (s *Server) revokeLeadership() {
 	s.resetConsistentReadReady()
 
 	s.autopilot.DisableReconciliation()
+
+	s.stopPeeringMetrics()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
