@@ -480,6 +480,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 				// NOTE: IDEs and govet think that the reassigned cancel below never gets
 				// called, but it does by the defer when the heartbeat ctx is first created.
 				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
+				// nolint:govet
 				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
 					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
