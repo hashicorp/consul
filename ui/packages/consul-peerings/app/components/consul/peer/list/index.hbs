@@ -43,6 +43,24 @@ as |item index|>
 
     <Actions as |Action|>
       <Action
+        data-test-edit-action
+        @href={{href-to 'dc.peers.edit' item.Name}}
+      >
+        <BlockSlot @name="label">
+          View
+        </BlockSlot>
+      </Action>
+{{#if (can "write peer" item=item)}}
+        <Action
+          data-test-edit-action
+          {{on 'click' (fn @onedit item)}}
+        >
+          <BlockSlot @name="label">
+            Regenerate token
+          </BlockSlot>
+        </Action>
+{{/if}}
+      <Action
         data-test-delete-action
         @onclick={{fn @ondelete item}}
         class="dangerous"
