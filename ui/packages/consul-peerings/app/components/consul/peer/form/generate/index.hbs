@@ -47,6 +47,19 @@
       </fsm.State>
 
       <fsm.State @matches={{'success'}}>
+        {{yield (hash
+          Fieldsets=(component "consul/peer/form/token/fieldsets"
+            item=@item
+            token=fsm.state.context.PeeringToken
+            regenerate=@regenerate
+            onclick=(queue (set @item 'Name' ''))
+          )
+          Actions=(component "consul/peer/form/token/actions"
+            token=fsm.state.context.PeeringToken
+            item=@item
+            id=id
+          )
+        )}}
       </fsm.State>
 
     </form>
