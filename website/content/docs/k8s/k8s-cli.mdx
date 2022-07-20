@@ -90,35 +90,6 @@ The following example commands install Consul on Kubernetes using custom values,
  $ consul-k8s install -set-string key=value-bool
 ```
 
-### `uninstall`
-
-The `uninstall` command removes Consul from Kubernetes.
-
-```shell-session
-$ consul-k8s uninstall <OPTIONS>
-```
-
-The following options are available.
-
-| Flag                                                                                                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                | Default                                                                      | Required |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
-| `-auto-approve` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Boolean value that enables you to skip the removal confirmation prompt.                                                                                                                                                                                                                                                                                                                                    | `false`                                                                      | Optional |
-| `-name`                                                                                                                                       | String value for the name of the installation to remove.                                                                                                                                                                                                                                                                                                                                                   | none                                                                         | Optional |
-| `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation to remove.                                                                                                                                                                                                                                                                                                                            | `consul`                                                                     | Optional |
-| `-timeout`                                                                                                                                    | Specifies how long to wait for the removal process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>`h` (hours) <br/>In the following example, removal will timeout after one minute:<br/> `consul-k8s uninstall -timeout 1m` | `10m`                                                                     | Optional    |
-| `-wipe-data`                                                                                                                                  | Boolean value that deletes PVCs and secrets associated with the Consul installation during installation. <br/> Data will be removed without a verification prompt if the `-auto-approve` flag is set to `true`.                                                                                                                                                                                             |  `false` <br/> Instructions for removing data will be printed to the console. | Optional |
-| `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                                  | none                                                                         | Optional |
-
-See [Global Options](#global-options) for additional commands that you can use when uninstalling Consul from Kubernetes.
-
-#### Example Command
-
-The following example command immediately uninstalls Consul from the `my-ns` namespace with the name `my-consul` and removes PVCs and secrets associated with the installation without asking for verification:
-
-```shell-session
-$ consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-approve=true
-```
-
 ### `status`
 
 The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the config that was used to deploy Consul K8s and provides a quick glance at the health of both Consul servers and clients. This command does not take in any flags.
@@ -162,6 +133,35 @@ $ consul-k8s status
 
  ✓ Consul servers healthy (1/1)
  ✓ Consul clients healthy (3/3)
+```
+
+### `uninstall`
+
+The `uninstall` command removes Consul from Kubernetes.
+
+```shell-session
+$ consul-k8s uninstall <OPTIONS>
+```
+
+The following options are available.
+
+| Flag                                                                                                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                | Default                                                                      | Required |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
+| `-auto-approve` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Boolean value that enables you to skip the removal confirmation prompt.                                                                                                                                                                                                                                                                                                                                    | `false`                                                                      | Optional |
+| `-name`                                                                                                                                       | String value for the name of the installation to remove.                                                                                                                                                                                                                                                                                                                                                   | none                                                                         | Optional |
+| `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation to remove.                                                                                                                                                                                                                                                                                                                            | `consul`                                                                     | Optional |
+| `-timeout`                                                                                                                                    | Specifies how long to wait for the removal process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>`h` (hours) <br/>In the following example, removal will timeout after one minute:<br/> `consul-k8s uninstall -timeout 1m` | `10m`                                                                     | Optional    |
+| `-wipe-data`                                                                                                                                  | Boolean value that deletes PVCs and secrets associated with the Consul installation during installation. <br/> Data will be removed without a verification prompt if the `-auto-approve` flag is set to `true`.                                                                                                                                                                                             |  `false` <br/> Instructions for removing data will be printed to the console. | Optional |
+| `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                                  | none                                                                         | Optional |
+
+See [Global Options](#global-options) for additional commands that you can use when uninstalling Consul from Kubernetes.
+
+#### Example Command
+
+The following example command immediately uninstalls Consul from the `my-ns` namespace with the name `my-consul` and removes PVCs and secrets associated with the installation without asking for verification:
+
+```shell-session
+$ consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-approve=true
 ```
 
 ### `upgrade`
