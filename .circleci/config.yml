@@ -32,7 +32,7 @@ references:
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
-    GO_VERSION: 1.18.1
+    GO_VERSION: 1.17.12
 
 steps:
   install-gotestsum: &install-gotestsum
