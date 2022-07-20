@@ -23,7 +23,8 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
    ```
 
-1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
+1. Create a `values.yaml` file for your Consul API Gateway deployment. 
+1. Copy the following example configuration into the `values.yaml` file. The Consul Helm chart uses the `values.yaml` file to install Consul.
 
    <CodeBlockConfig hideClipboard filename="values.yaml">
 
@@ -37,10 +38,11 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
    apiGateway:
      enabled: true
      image: hashicorp/consul-api-gateway:VERSION
-   ```
+    ```
 
    </CodeBlockConfig>
-
+     
+    Refer to the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway] (https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) DockerHub pages for information about all available versions, as well as additional context about version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
 1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
    ```shell-session
