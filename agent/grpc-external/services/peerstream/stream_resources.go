@@ -292,12 +292,14 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 	}()
 
 	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
-	incomingHeartbeatCtx, cancel := context.WithCancel(context.Background())
-	// incomingHeartbeatTimer cancels incomingHeartbeatCtx if it isn't reset in time.
-	// It gets reset by receiving heartbeats.
-	incomingHeartbeatTimer := time.AfterFunc(s.incomingHeartbeatTimeout, func() {
-		cancel()
-	})
+	incomingHeartbeatCtx, incomingHeartbeatCtxCancel :=
+		context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+	// NOTE: It's important that we wrap the call to cancel in a wrapper func because during the loop we're
+	// re-assigning the value of incomingHeartbeatCtxCancel and we want the defer to run on the last assigned
+	// value, not the current value.
+	defer func() {
+		incomingHeartbeatCtxCancel()
+	}()
 
 	for {
 		select {
@@ -470,7 +472,16 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if msg.GetHeartbeat() != nil {
-				incomingHeartbeatTimer.Reset(s.incomingHeartbeatTimeout)
+				// Reset the heartbeat timeout by creating a new context.
+				// We first must cancel the old context so there's no leaks. This is safe to do because we're only
+				// reading that context within this for{} loop, and so we won't accidentally trigger the heartbeat
+				// timeout.
+				incomingHeartbeatCtxCancel()
+				// NOTE: IDEs and govet think that the reassigned cancel below never gets
+				// called, but it does by the defer when the heartbeat ctx is first created.
+				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
+				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
+					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:
