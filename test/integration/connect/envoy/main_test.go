@@ -64,7 +64,7 @@ func discoverCases() ([]string, error) {
 
 	var out []string
 	for _, fi := range dirs {
-		if fi.IsDir() && strings.HasPrefix(fi.Name(), "case-") {
+		if fi.IsDir() && strings.HasPrefix(fi.Name(), "case-mesh") {
 			out = append(out, fi.Name())
 		}
 	}

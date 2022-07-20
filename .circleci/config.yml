@@ -872,12 +872,15 @@ jobs:
         type: enum
         enum: ["server", "client"]
         default: "server"
+      lambda-arn:
+        type: env_var_name
+        default: AWS_LAMBDA_ARN
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
       # The ARN to the Lambda function used to test the Envoy-Lambda integration is set to an existing
       # Lambda function that has been created for this test case.
-      AWS_LAMBDA_ARN: $AWS_LAMBDA_ARN
+      AWS_LAMBDA_ARN: << parameters.lambda-arn >>
       AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
