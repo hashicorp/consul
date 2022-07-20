@@ -881,7 +881,6 @@ jobs:
       AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
-      - *get-aws-cli
       - assume-role:
           access-key: AWS_ACCESS_KEY_ID_LAMBDA
           secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
