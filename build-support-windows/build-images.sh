@@ -32,6 +32,9 @@ docker build -t "${HASHICORP_DOCKER_PROXY}/windows/fortio" -f Dockerfile-fortio-
 # Build Windows Jaegertracing Image
 docker build -t "${HASHICORP_DOCKER_PROXY}/windows/jaegertracing" -f Dockerfile-jaegertracing-windows .
 
+# Build Windows Openzipkin Image
+docker build -t "${HASHICORP_DOCKER_PROXY}/windows/openzipkin" -f Dockerfile-openzipkin-windows .
+
 # Build Windows Socat Image
 docker build -t "${HASHICORP_DOCKER_PROXY}/windows/socat" -f Dockerfile-socat-windows .
 

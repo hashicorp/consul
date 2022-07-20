@@ -1,0 +1,9 @@
+FROM openjdk:jdk-windowsservercore
+
+RUN curl.exe -sSL 'https://search.maven.org/remote_content?g=io.zipkin&a=zipkin-server&v=LATEST&c=exec' -o zipkin.jar
+
+EXPOSE 9410/tcp
+
+EXPOSE 9411/tcp
+
+ENTRYPOINT ["java", "-jar", "zipkin.jar"]

@@ -8,6 +8,7 @@
 - [Dockerfile-consul-dev-windows](#dockerfile-consul-dev-windows)
 - [Dockerfile-fortio-windows](#dockerfile-fortio-windows)
 - [Dockerfile-jaegertracing-windows](#dockerfile-jaegertracing-windows)
+- [Dockerfile-openzipkin-windows](#dockerfile-openzipkin-windows)
 - [Dockerfile-socat-windows](#dockerfile-socat-windows)
 - [Build images](#build-images)
 
@@ -119,6 +120,30 @@ If everything works properly you should get the following output:
 
 ```shell
 {"gitCommit":"b5e2b65c690c3b4ed55e91f1afe1efb0570dc542","GitVersion":"v1.11.0","BuildDate":"2019-03-07T12:56:46Z"}
+```
+
+## Dockerfile-openzipkin-windows
+
+Due to the unavailability of an official Openzipkin Docker image for Windows, the [openjdk Windows image](https://hub.docker.com/layers/openjdk/library/openjdk/jdk-windowsservercore-1809/images/sha256-b0cc238d2ec5fb58109a0006ff9e1bcaf66a5301f49bcb8dece9599ac5be6331) was used, where the latest self-contained executable Openzipkin jar is downloaded.
+
+To build this image you need to run the following command on your terminal:
+
+```shell
+docker build -t openzipkin -f Dockerfile-openzipkin-windows .
+```
+
+You can test the built file by running the following command:
+
+```shell
+docker run --rm --name openzipkin
+```
+
+If everything works as it should, you will see the zipkin logo being displayed, along with the current version and port configuration:
+
+```shell
+:: version 2.23.18 :: commit 4b71677 ::
+
+20XX-XX-XX XX:XX:XX.XXX  INFO [/] 1252 --- [oss-http-*:9411] c.l.a.s.Server                           : Serving HTTP at /[0:0:0:0:0:0:0:0]:9411 - http://127.0.0.1:9411/
 ```
 
 ## Dockerfile-socat-windows
