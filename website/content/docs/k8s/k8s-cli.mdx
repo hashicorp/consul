@@ -5,15 +5,15 @@ description: >-
   Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
 ---
 
-# Consul K8s CLI Reference
+# Consul on Kubernetes CLI Reference
 
-Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. 
-The Consul K8s CLI allows you to manage the lifecycle of Consul without requiring the usage of `Helm`, [Consul CLI](/commands/index), and `kubectl`. 
-The Consul K8s CLI offers a Kubernetes native experience for managing Consul. 
+The Consul on Kubernetes CLI, `consul-k8s`, is a tool for managing Consul
+without requiring `Helm`, the [Consul CLI](/commands/index), or `kubectl`.
 
--> **Note**: For guidance on how to install the Consul K8s CLI, visit the [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli) documentation. 
+-> **Note**: For guidance on how to install `consul-k8s`, visit the
+[Installing the Consul K8s CLI](/docs/k8s/installation/install-cli) documentation.
 
-This topic describes the subcommands and available options for using Consul K8s CLI.
+This topic describes the subcommands and available options for using `consul-k8s`.
 
 ## Usage
 
@@ -27,11 +27,12 @@ $ consul-k8s <SUBCOMMAND> <OPTIONS>
 
 You can use the following subcommands with `consul-k8s`.
 
-  - [install](#install)
-  - [uninstall](#uninstall)
-  - [status](#status)
-  - [upgrade](#upgrade) <sup>BETA</sup>
-  - [version](#version) 
+  - [`install`](#install)
+  - [`proxy`](#proxy)
+  - [`status`](#status)
+  - [`uninstall`](#uninstall)
+  - [`upgrade`](#upgrade)
+  - [`version`](#version)
 
 ### `install`
 
@@ -68,7 +69,7 @@ The following example command installs Consul according in the `myNS` namespace 
 $ consul-k8s install -preset=secure -namespace=myNS
 ```
 
-The following example commands install Consul on Kubernetes using custom values, files, or strings that are set via flags. The underlying Consul-on-Kubernetes Helm chart uses the flags to customize the installation. The flags are comparable to the `helm install` [flags](https://helm.sh/docs/helm/helm_install/#helm-install).  
+The following example commands install Consul on Kubernetes using custom values, files, or strings that are set via flags. The underlying Consul-on-Kubernetes Helm chart uses the flags to customize the installation. The flags are comparable to the `helm install` [flags](https://helm.sh/docs/helm/helm_install/#helm-install).
 
 ```shell-session
  $ consul-k8s install -set key=value
@@ -120,7 +121,7 @@ $ consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-ap
 
 ### `status`
 
-The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the config that was used to deploy Consul K8s and provides a quick glance at the health of both Consul servers and clients. This command does not take in any flags. 
+The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the config that was used to deploy Consul K8s and provides a quick glance at the health of both Consul servers and clients. This command does not take in any flags.
 
 ```shell-session
 $ consul-k8s status
@@ -165,7 +166,7 @@ $ consul-k8s status
 
 ### `upgrade`
 
--> The `consul-k8s upgrade` **subcommand is currently in beta**: This subcommand is not recommended for production environments. 
+-> The `consul-k8s upgrade` **subcommand is currently in beta**: This subcommand is not recommended for production environments.
 
 The `upgrade` command upgrades the Consul on Kubernetes components to the current version of the `consul-k8s` cli. Prior to running `consul-k8s upgrade`, the `consul-k8s` CLI should first be upgraded to the latest version as described [Upgrade the Consul K8s CLI](#upgrade-the-consul-k8s-cli)
 
