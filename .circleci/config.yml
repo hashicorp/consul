@@ -875,14 +875,17 @@ jobs:
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
-      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_LAMBDA
-      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_LAMBDA
-      AWS_LAMBDA_REGION: us-west-2
       # The ARN to the Lambda function used to test the Envoy-Lambda integration is set to an existing
       # Lambda function that has been created for this test case.
       AWS_LAMBDA_ARN: $AWS_LAMBDA_ARN
+      AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
+      - *get-aws-cli
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_LAMBDA
+          secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
+          role-arn: ROLE_ARN_LAMBDA
       # Get go binary from workspace
       - attach_workspace:
           at: .

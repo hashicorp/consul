@@ -45,11 +45,11 @@ function network_snippet {
 
 function aws_snippet {
   local snippet=""
-  [[ -n "$(set | grep AWS_ACCESS_KEY_ID)" ]] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-  [[ -n "$(set | grep AWS_SECRET_ACCESS_KEY)" ]] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-  [[ -n "$(set | grep AWS_SESSION_TOKEN)" ]] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-  [[ -n "$(set | grep AWS_LAMBDA_REGION)" ]] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
-  [[ -n "$(set | grep AWS_LAMBDA_ARN)" ]] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
+  [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+  [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+  [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+  [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
+  [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
 
   echo "$snippet"
 }
