@@ -57,7 +57,7 @@ export default class ConsulBucketList extends Component {
   }
 
   get namespacePart() {
-    const { item, nspace, partition } = this.args;
+    const { item, nspace } = this.args;
     const { abilities, partitionPart } = this;
 
     const nspaceItem = {
