@@ -825,7 +825,7 @@ function run_container_zipkin {
   docker.exe run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
+    "${HASHICORP_DOCKER_PROXY}/windows/openzipkin"
 }
 
 function run_container_jaeger {
