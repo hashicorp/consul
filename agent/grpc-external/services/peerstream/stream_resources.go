@@ -313,6 +313,9 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 				},
 			}
 			if err := streamSend(term); err != nil {
+				// Nolint directive needed due to bug in govet that doesn't see that the cancel
+				// func of the incomingHeartbeatTimer _does_ get called.
+				//nolint:govet
 				return fmt.Errorf("failed to send to stream: %v", err)
 			}
 
@@ -480,7 +483,7 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 				// NOTE: IDEs and govet think that the reassigned cancel below never gets
 				// called, but it does by the defer when the heartbeat ctx is first created.
 				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
-				// nolint:govet
+				//nolint:govet
 				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
 					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
