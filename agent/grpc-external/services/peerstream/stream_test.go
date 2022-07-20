@@ -1027,7 +1027,10 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 		for {
 			err := client.Send(heartbeatMsg)
 			if err != nil {
-				errCh <- err
+				select {
+				case errCh <- err:
+				case <-ctx.Done():
+				}
 				return
 			}
 			select {
