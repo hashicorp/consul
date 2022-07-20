@@ -12,14 +12,17 @@ export default class ConsulBucketList extends Component {
 
     if (partition && abilities.can('use partitions')) {
       if (item.Partition !== partition) {
-        this._addPeer(items);
-        this._addPartition(items);
+        if (item.PeerName) {
+          this._addPeer(items);
+        } else {
+          this._addPartition(items);
+        }
         this._addNamespace(items);
         this._addService(items);
       } else {
         this._addPeerInfo(items);
       }
-    } else if (nspace && abilities.can('use nspace')) {
+    } else if (nspace && abilities.can('use nspaces')) {
       if (item.Namespace !== nspace) {
         this._addPeerInfo(items);
         this._addService(items);
@@ -38,7 +41,10 @@ export default class ConsulBucketList extends Component {
 
     if (item.PeerName) {
       this._addPeer(items);
-      this._addNamespace(items);
+
+      if (this.abilities.can('use nspaces')) {
+        this._addNamespace(items);
+      }
     }
   }
 
