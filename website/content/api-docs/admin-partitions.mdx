@@ -19,14 +19,14 @@ This endpoint creates a new partition and has the following characteristics:
 
 | Characteristic | Value |
 | -------------- | ----- |
-| [HTTP Method] | `PUT` |
-| [URL Path] | `/partition` |
-| [Response Type] | `application/json` |
+| HTTP method | `PUT` |
+| URL path | `/v1/partition` |
+| Response type | `application/json` |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI Command | [`consul partition create`](/commands/partition#create) |
-| [Consistency Modes] | N/A |
-| [Blocking Queries] | N/A |
-| [Agent Caching] | N/A |
+| Corresponding CLI command | [`consul partition create`](/commands/partition#create) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
 
 ### JSON Request Body Schema
 
@@ -70,14 +70,14 @@ This endpoint reads a partition with the given name and has the following charac
 
 | Characteristic | Value |
 | -------------- | ----- |
-| [HTTP Method] | `GET` |
-| [URL Path] | `/partition/:name` |
-| [Response Type] | `application/json` |
+| HTTP method | `GET` |
+| URL path | `/v1/partition/:name` |
+| Response type | `application/json` |
 | [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
-| Corresponding CLI Command | [`consul partition read`](/commands/partition#read) |
-| [Consistency Modes] | `default`, `consistent` |
-| [Blocking Queries] | no |
-| [Agent Caching] | no |
+| Corresponding CLI command | [`consul partition read`](/commands/partition#read) |
+| [Consistency modes] | `default`, `consistent` |
+| [Blocking queries] | No |
+| [Agent caching] | No |
 
 ### Path Parameters
 
@@ -107,14 +107,14 @@ This endpoint updates a partition description and has the following characterist
 
 | Characteristic | Value |
 | -------------- | ----- |
-| [HTTP Method] | `PUT` |
-| [URL Path] | `/partition/:name` |
-| [Response Type] | `application/json` |
+| HTTP method | `PUT` |
+| URL path | `/v1/partition/:name` |
+| Response type | `application/json` |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI Command | [`consul partition write`](/commands/partition#write) |
-| [Consistency Modes] | N/A |
-| [Blocking Queries] | N/A |
-| [Agent Caching] | N/A |
+| Corresponding CLI command | [`consul partition write`](/commands/partition#write) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
 
 ### Path Parameters
 
@@ -169,14 +169,14 @@ This endpoint has the following characteristics:
 
 | Characteristic | Value |
 | -------------- | ----- |
-| [HTTP Method] | `DELETE` |
-| [URL Path] | `/partition/:name` |
-| [Response Type] | none; success or failure is indicated by the HTTP response status code |
+| HTTP method | `DELETE` |
+| URL path | `/v1/partition/:name` |
+| Response type | none; success or failure is indicated by the HTTP response status code |
 | [Required ACLs] | `operator:write` |
-| Corresponding CLI Command | [`consul partition delete`](/commands/partition#delete) |
-| [Consistency Modes] | N/A |
-| [Blocking Queries] | N/A |
-| [Agent Caching] | N/A |
+| Corresponding CLI command | [`consul partition delete`](/commands/partition#delete) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
 
 ### Path Parameters
 
@@ -208,14 +208,14 @@ This endpoint lists all the partitions and has the following characteristics:
 
 | Characteristic | Value |
 | -------------- | ----- |
-| [HTTP Method] | `GET` |
-| [URL Path] | `/partitions` |
-| [Response Type] | `application/json` |
+| HTTP method | `GET` |
+| URL path | `/v1/partitions` |
+| Response type | `application/json` |
 | [Required ACLs] | `operator:read` |
-| Corresponding CLI Command | [`consul partition list`](/commands/partition#list) |
-| [Consistency Modes] | `default`, `consistent` |
-| [Blocking Queries] | no |
-| [Agent Caching] | no |
+| Corresponding CLI command | [`consul partition list`](/commands/partition#list) |
+| [Consistency modes] | `default`, `consistent` |
+| [Blocking queries] | No |
+| [Agent caching] | No |
 
 ### Sample Request
 
