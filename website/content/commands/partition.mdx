@@ -73,9 +73,9 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API Endpoint | [\[PUT\] /partition](/api-docs/admin-partitions#create-a-partition) |
-| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition](/api-docs/admin-partitions#create-a-partition) |
+| [Blocking queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -107,9 +107,9 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API Endpoint | [\[PUT\] /partition/:name](/api-docs/admin-partitions#update-a-partition) |
-| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition/:name](/api-docs/admin-partitions#update-a-partition) |
+| [Blocking queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
 Use the following syntax to write from file:
 
@@ -153,9 +153,9 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
-| Corresponding HTTP API Endpoint | [\[GET\] /partition/:name](/api-docs/admin-partitions#read-a-partition) |
-| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/partition/:name](/api-docs/admin-partitions#read-a-partition) |
+| [Blocking queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -184,9 +184,9 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:read` |
-| Corresponding HTTP API Endpoint | [\[GET\] /partitions](/api-docs/admin-partitions#list-all-partitions) |
-| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/partitions](/api-docs/admin-partitions#list-all-partitions) |
+| [Blocking queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
 The admin partition is created according to the values specified in the options. You can specify the following options:
 
@@ -229,9 +229,9 @@ This subcommand has the following characteristics:
 | Characteristic | Value |
 | -------------- | ----- |
 | [Required ACLs] | `operator:write` |
-| Corresponding HTTP API Endpoint | [\[DELETE\] /partitions](/api-docs/admin-partitions#delete-a-partition) |
-| [Blocking Queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
-| [Agent Caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| Corresponding HTTP API endpoint | [\[DELETE\] /v1/partitions](/api-docs/admin-partitions#delete-a-partition) |
+| [Blocking queries] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
+| [Agent caching] | Not supported from commands, but may be from the corresponding HTTP API endpoint |
 
 In the following example, the `webdev-bu` partition is deleted:
 
