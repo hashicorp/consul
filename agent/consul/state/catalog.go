@@ -1990,7 +1990,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 				}
 			}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
-			if err := freeServiceVirtualIP(tx, psn, nil); err != nil {
+			if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
 			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -2008,6 +2008,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 // is removed.
 func freeServiceVirtualIP(
 	tx WriteTxn,
+	idx uint64,
 	psn structs.PeeredServiceName,
 	excludeGateway *structs.ServiceName,
 ) error {
@@ -2057,6 +2058,10 @@ func freeServiceVirtualIP(
 	newEntry := FreeVirtualIP{IP: serviceVIP.(ServiceVirtualIP).IP}
 	if err := tx.Insert(tableFreeVirtualIPs, newEntry); err != nil {
 		return fmt.Errorf("failed updating freed virtual IP table: %v", err)
+	}
+
+	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
+		return err
 	}
 
 	return nil
@@ -3497,7 +3502,7 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 		}
 		if len(nodes) == 0 {
 			psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: sn}
-			if err := freeServiceVirtualIP(tx, psn, &gatewayName); err != nil {
+			if err := freeServiceVirtualIP(tx, idx, psn, &gatewayName); err != nil {
 				return err
 			}
 		}
