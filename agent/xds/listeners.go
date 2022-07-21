@@ -312,7 +312,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				routeName:  uid.EnvoyID(),
 				protocol:   cfg.Protocol,
 				useRDS:     false,
-				statPrefix: "upstream_peered",
+				statPrefix: "upstream_peered.",
 			})
 			if err != nil {
 				return nil, err
@@ -342,7 +342,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				uid.Peer),
 			protocol:   cfg.Protocol,
 			useRDS:     false,
-			statPrefix: "upstream_peered",
+			statPrefix: "upstream_peered.",
 		})
 		if err != nil {
 			return nil, err
