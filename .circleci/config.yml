@@ -876,8 +876,13 @@ jobs:
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
+      AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_LAMBDA
+          secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
+          role-arn: ROLE_ARN_LAMBDA
       # Get go binary from workspace
       - attach_workspace:
           at: .

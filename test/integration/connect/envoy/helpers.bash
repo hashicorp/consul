@@ -966,3 +966,55 @@ function create_peering {
   # echo "$output" >&3
   [ "$status" == 0 ]
 }
+
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+}
+
+function register_lambdas {
+  local DC=${1:-primary}
+  # register lambdas to the catalog
+  for f in $(find workdir/${DC}/register -type f -name 'lambda_*.json'); do
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
+      echo "Registered Lambda: $(jq -r .Service.Service $f)"
+  done
+  # write service-defaults config entries for lambdas
+  for f in $(find workdir/${DC}/register -type f -name 'service_defaults_*.json'); do
+    varsub ${f} AWS_LAMBDA_REGION AWS_LAMBDA_ARN
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
+      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
+  done
+}
+
+function assert_lambda_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+
+  local BODY=$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)
+  [ -n "$BODY" ]
+
+  [ "$(echo $BODY | jq -r '.cluster.transport_socket.typed_config.sni')" == '*.amazonaws.com' ]
+}
+
+function assert_lambda_envoy_dynamic_http_filter_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local ARN=$3
+
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
+  [ -n "$FILTER" ]
+
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
+}
+
+function varsub {
+  local file=$1 ; shift
+  for v in "$@"; do
+    sed -i "s/\${$v}/${!v}/g" $file
+  done
+}
