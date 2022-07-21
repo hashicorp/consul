@@ -27,16 +27,18 @@ $ consul-k8s <SUBCOMMAND> <OPTIONS>
 
 You can use the following subcommands with `consul-k8s`.
 
-  - [`install`](#install)
-  - [`proxy`](#proxy)
-  - [`status`](#status)
+  - [`install`](#install) installs Consul to your Kubernetes cluster.
+  - [`proxy`](#proxy) allows you to interact with proxies managed by Consul on your Kubernetes cluster.
+      - [`proxy list`](#proxy-list)
+      - [`proxy read`](#proxy-read)
+  - [`status`](#status) displays the
   - [`uninstall`](#uninstall)
   - [`upgrade`](#upgrade)
   - [`version`](#version)
 
 ### `install`
 
-The `install` command installs Consul on Kubernetes.
+The `install` command installs Consul to your Kubernetes cluster.
 
 ```shell-session
 $ consul-k8s install <OPTIONS>
@@ -57,7 +59,7 @@ The following options are available.
 | `-timeout`                                                                                                                                    | Specifies how long to wait for the installation process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>In the following example, installation will timeout after one minute:<br/> `consul-k8s install -timeout 1m` | `10m`                                  |  Optional  |
 | `-wait`                                                                                                                                       | Boolean value that determines if Consul should wait for resources in the installation to be ready before exiting the command.                                                                                                                                                                                                                                                                     | `true`                                |  Optional |
 | `-verbose`, `-v`                                                                                                                              | Boolean value that specifies whether to output verbose logs from the install command with the status of resources being installed.                                                                                                                                                                                                                                                                     | `false`                                |  Optional |
-| `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                         | none                                    | Optional |
+| `-help`, `-h`                                                                                                                                 | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                         | none                                    | Optional |
 
 See [Global Options](#global-options) for additional commands that you can use when installing Consul on Kubernetes.
 
@@ -89,6 +91,101 @@ The following example commands install Consul on Kubernetes using custom values,
 ```shell-session
  $ consul-k8s install -set-string key=value-bool
 ```
+
+### `proxy`
+
+The `proxy` command exposes two subcommands for interacting proxies managed by
+Consul in your Kubernetes Cluster.
+
+- [`proxy list`](#proxy-list) List all Kubernetes pods running proxies managed by Consul.
+- [`proxy read`](#proxy-read) Inspect the Envoy configuration for a given Pod.
+
+### `proxy list`
+
+```shell-session
+$ consul-k8s proxy list <OPTIONS>
+```
+
+| Flag                                         | Description                                           | Default                                                                                                                | Required |
+| -------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------- |
+| `-all-namespaces`, `-A` &nbsp; &nbsp; &nbsp; | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                | Optional |
+| `-namespace`, `-n`                           | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. | Optional |
+
+See [Global Options](#global-options) for additional commands that you can use
+when installing Consul on Kubernetes.
+
+This command will list proxies alongside their `Type`. Types of proxies include
+
+- `Sidecar`: these will be the majority of pods in the cluster. They run the
+  proxy in a sidecar pattern to network the pod as a service in the mesh.
+- `API Gateway`: these pods run a proxy to manage connections with networks
+  outside of the Consul cluster. [Read more about API gateways](/docs/api-gateway)
+- `Ingress Gateway`: these pods run a proxy to manage ingress into the
+  Kubernetes cluster. [Read more about ingress gateways](/docs/k8s/connect/ingress-gateways)
+- `Terminating Gateway`: these pods run a proxy to control connections to
+  external services. [Read more about terminating gateways](/docs/k8s/connect/terminating-gateways)
+- `Mesh Gateway`: these pods run a proxy to manage connections between
+  Consul clusters connected using mesh federation. [Read more about Consul Mesh Federation](/docs/k8s/installation/multi-cluster/kubernetes)
+
+#### Example Commands
+
+Display all pods in the current Kubernetes namespace which run proxies managed
+by Consul. Note that `Sidecar` pods are pods which are running the proxy in a
+sidecar pattern and are services running in the mesh.
+
+```shell-session
+$ consul-k8s proxy list
+```
+
+```
+Namespace: default
+
+Name                     	Type
+backend-658b679b45-d5xlb 	Sidecar
+client-767ccfc8f9-6f6gx  	Sidecar
+client-767ccfc8f9-f8nsn  	Sidecar
+client-767ccfc8f9-ggrtx  	Sidecar
+frontend-676564547c-v2mfq	Sidecar
+```
+
+Display all pods in the `consul` Kubernetes namespace which run proxies managed
+by Consul. Note that these pods are labeled with the type `Ingress Gateway`.
+They run a proxy managed by Consul for controlling ingress into the Kubernetes
+cluster.
+
+```shell-session
+$ consul-k8s proxy list -n consul
+```
+
+```
+Namespace: consul
+
+Name                                   	Type
+consul-ingress-gateway-6fb5544485-br6fl	Ingress Gateway
+consul-ingress-gateway-6fb5544485-m54sp	Ingress Gateway
+```
+
+Display all pods across all
+
+```shell-session
+$ consul-k8s proxy list -A
+```
+
+```
+Namespace: All Namespaces
+
+Namespace	Name                                   	Type
+consul   	consul-ingress-gateway-6fb5544485-br6fl	Ingress Gateway
+consul   	consul-ingress-gateway-6fb5544485-m54sp	Ingress Gateway
+default  	backend-658b679b45-d5xlb               	Sidecar
+default  	client-767ccfc8f9-6f6gx                	Sidecar
+default  	client-767ccfc8f9-f8nsn                	Sidecar
+default  	client-767ccfc8f9-ggrtx                	Sidecar
+default  	frontend-676564547c-v2mfq              	Sidecar
+```
+
+### `proxy read`
+
 
 ### `status`
 
