@@ -43,7 +43,7 @@ readonly WORKDIR_SNIPPET="-v envoy_workdir:C:\workdir"
 
 function network_snippet {
     local DC="$1"
-    echo "--net container:envoy_consul-${DC}_1"
+    echo "--net=envoy-tests"
 }
 
 function init_workdir {
@@ -211,7 +211,7 @@ function start_consul {
       --hostname "consul-${DC}-server" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
-      consul-dev \
+      windows/consul-dev \
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
@@ -226,7 +226,7 @@ function start_consul {
       --network-alias "consul-${DC}-client" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      consul-dev \
+      windows/consul-dev \
       agent -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -data-dir "/tmp/consul" \
@@ -245,7 +245,7 @@ function start_consul {
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
       ${ports[@]} \
-      consul-dev \
+      windows/consul-dev \
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
@@ -279,7 +279,7 @@ function start_partitioned_client {
     --hostname "consul-${PARTITION}-client" \
     --network-alias "consul-${PARTITION}-client" \
     -e "CONSUL_LICENSE=$license" \
-    consul-dev agent \
+    windows/consul-dev agent \
     -datacenter "primary" \
     -retry-join "consul-primary-server" \
     -grpc-port 8502 \
@@ -541,10 +541,10 @@ function workdir_cleanup {
 
 function suite_setup {
     # Cleanup from any previous unclean runs.
-    suite_teardown
+    suite_teardown 
 
-    docker.exe network create envoy-tests &>/dev/null
-
+    docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
+    
     # Start the volume container
     #
     # This is a dummy container that we use to create volume and keep it

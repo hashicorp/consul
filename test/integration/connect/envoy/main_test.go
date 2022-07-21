@@ -52,37 +52,44 @@ func TestEnvoy(t *testing.T) {
 	}
 }
 
-func runCmd(t *testing.T, c string, env ...string) {
+
+func runCmdLinux(t *testing.T, c string, env ...string) {
 	t.Helper()
 
-	param_1 := " "
-	param_2 := " "
-	param_3 := " "
-	param_4 := " "
-	param_5 := "false"
-
-	if *flagWin == true {
-		param_1 = "cmd"
-		param_2 = "/C"
-		param_3 = "bash run-tests.windows.sh"
-		param_4 = c
-		if env != nil {
-			param_5 = strings.Join(env, " ")
-		}
-
-	} else {
-		param_1 = "./run-tests.sh"
-		param_2 = c
-	}
-
-	cmd := exec.Command(param_1, param_2, param_3, param_4, param_5)
-
+	cmd := exec.Command("./run-tests.sh", c)
 	cmd.Env = append(os.Environ(), env...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("command failed: %v", err)
+	}
+}
+
+func runCmdWindows(t *testing.T, c string, env ...string) {
+	t.Helper()
+
+	param_5 := "false"
+	if env != nil {
+		param_5 = strings.Join(env, " ")
+	}
+
+	cmd := exec.Command("cmd", "/C", "bash run-tests.windows.sh", c, param_5)
+	cmd.Env = append(os.Environ(), env...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("command failed: %v", err)
+	}
+}
+
+func runCmd(t *testing.T, c string, env ...string) {
+	t.Helper()
+
+	if *flagWin == true {
+		runCmdWindows(t, c, env...)
+
+	} else {
+		runCmdLinux(t, c, env...)
 	}
 }
 
