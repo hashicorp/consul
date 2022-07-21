@@ -181,12 +181,28 @@ func (s *Server) GenerateToken(
 		return nil, err
 	}
 
-	canRetry := true
-RETRY_ONCE:
-	id, err := s.getExistingOrCreateNewPeerID(req.PeerName, req.Partition)
+	peeringOrNil, err := s.getExistingPeering(req.PeerName, req.Partition)
 	if err != nil {
 		return nil, err
 	}
+
+	// validate that this peer name is not being used as a dialer already
+	if err = s.validatePeerRole(peeringOrNil, false); err != nil {
+		return nil, err
+	}
+
+	var id string
+	if peeringOrNil != nil {
+		id = peeringOrNil.ID
+	} else {
+		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	canRetry := true
+RETRY_ONCE:
 
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
@@ -273,15 +289,30 @@ func (s *Server) Establish(
 
 	defer metrics.MeasureSince([]string{"peering", "establish"}, time.Now())
 
+	peeringOrNil, err := s.getExistingPeering(req.PeerName, req.Partition)
+	if err != nil {
+		return nil, err
+	}
+
+	// validate that this peer name is not being used as an acceptor already
+	if err = s.validatePeerRole(peeringOrNil, true); err != nil {
+		return nil, err
+	}
+
+	var id string
+	if peeringOrNil != nil {
+		id = peeringOrNil.ID
+	} else {
+		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// convert ServiceAddress values to strings
 	serverAddrs := make([]string, len(tok.ServerAddresses))
 	for i, addr := range tok.ServerAddresses {
 		serverAddrs[i] = addr
-	}
-
-	id, err := s.getExistingOrCreateNewPeerID(req.PeerName, req.Partition)
-	if err != nil {
-		return nil, err
 	}
 
 	// as soon as a peering is written with a list of ServerAddresses that is
@@ -581,16 +612,12 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 }
 
 func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (string, error) {
-	q := state.Query{
-		Value:          strings.ToLower(peerName),
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(partition),
-	}
-	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
+	peeringOrNil, err := s.getExistingPeering(peerName, partition)
 	if err != nil {
 		return "", err
 	}
-	if peering != nil {
-		return peering.ID, nil
+	if peeringOrNil != nil {
+		return peeringOrNil.ID, nil
 	}
 
 	id, err := lib.GenerateUUID(s.Backend.CheckPeeringUUID)
@@ -598,6 +625,32 @@ func (s *Server) getExistingOrCreateNewPeerID(peerName, partition string) (strin
 		return "", err
 	}
 	return id, nil
+}
+
+func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peering, error) {
+	q := state.Query{
+		Value:          strings.ToLower(peerName),
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(partition),
+	}
+	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
+	if err != nil {
+		return nil, err
+	}
+
+	return peering, nil
+}
+
+// validatePeerRole enforces the following rule for an existing peering:
+// - if a peering already exists, it can only be used as an acceptor or dialer
+//
+// We define a DIALER as a peering that has server addresses (or a peering that is created via the Establish endpoint)
+// Conversely, we define an ACCEPTOR as a peering that is created via the GenerateToken endpoint
+func (s *Server) validatePeerRole(peering *pbpeering.Peering, allowedToDial bool) error {
+	if peering != nil && peering.ShouldDial() != allowedToDial {
+		return fmt.Errorf("cannot create peering with name: %q; there is already a peering with that name and different role", peering.Name)
+	}
+
+	return nil
 }
 
 func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
