@@ -28,6 +28,7 @@ type Store interface {
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
 	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	VirtualIPsForAllImportedServices(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []state.ServiceVirtualIP, error)
 }
 
 // CacheCARoots satisfies the proxycfg.CARoots interface by sourcing data from
@@ -88,12 +89,6 @@ func CacheInternalServiceDump(c *cache.Cache) proxycfg.InternalServiceDump {
 // sourcing data from the agent cache.
 func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
 	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
-}
-
-// CachePeeredUpstreams satisfies the proxycfg.PeeredUpstreams interface
-// by sourcing data from the agent cache.
-func CachePeeredUpstreams(c *cache.Cache) proxycfg.PeeredUpstreams {
-	return &cacheProxyDataSource[*structs.PartitionSpecificRequest]{c, cachetype.PeeredUpstreamsName}
 }
 
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by

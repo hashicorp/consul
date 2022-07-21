@@ -4251,6 +4251,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
+		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
 		sources.ServiceList = proxycfgglue.ServerServiceList(deps, proxycfgglue.CacheServiceList(a.cache))
 		sources.TrustBundle = proxycfgglue.ServerTrustBundle(deps)
 		sources.TrustBundleList = proxycfgglue.ServerTrustBundleList(deps)
