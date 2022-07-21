@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -266,6 +267,40 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 		}
 	}()
 
+	// Heartbeat sender.
+	go func() {
+		tick := time.NewTicker(s.outgoingHeartbeatInterval)
+		defer tick.Stop()
+
+		for {
+			select {
+			case <-streamReq.Stream.Context().Done():
+				return
+
+			case <-tick.C:
+			}
+
+			heartbeat := &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
+					Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
+				},
+			}
+			if err := streamSend(heartbeat); err != nil {
+				logger.Warn("error sending heartbeat", "err", err)
+			}
+		}
+	}()
+
+	// incomingHeartbeatCtx will complete if incoming heartbeats time out.
+	incomingHeartbeatCtx, incomingHeartbeatCtxCancel :=
+		context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
+	// NOTE: It's important that we wrap the call to cancel in a wrapper func because during the loop we're
+	// re-assigning the value of incomingHeartbeatCtxCancel and we want the defer to run on the last assigned
+	// value, not the current value.
+	defer func() {
+		incomingHeartbeatCtxCancel()
+	}()
+
 	for {
 		select {
 		// When the doneCh is closed that means that the peering was deleted locally.
@@ -278,6 +313,9 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 				},
 			}
 			if err := streamSend(term); err != nil {
+				// Nolint directive needed due to bug in govet that doesn't see that the cancel
+				// func of the incomingHeartbeatTimer _does_ get called.
+				//nolint:govet
 				return fmt.Errorf("failed to send to stream: %v", err)
 			}
 
@@ -285,6 +323,11 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 			s.Tracker.DeleteStatus(streamReq.LocalID)
 
 			return nil
+
+		// We haven't received a heartbeat within the expected interval. Kill the stream.
+		case <-incomingHeartbeatCtx.Done():
+			logger.Error("ending stream due to heartbeat timeout")
+			return fmt.Errorf("heartbeat timeout")
 
 		case msg, open := <-recvChan:
 			if !open {
@@ -429,6 +472,20 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
 				return nil
+			}
+
+			if msg.GetHeartbeat() != nil {
+				// Reset the heartbeat timeout by creating a new context.
+				// We first must cancel the old context so there's no leaks. This is safe to do because we're only
+				// reading that context within this for{} loop, and so we won't accidentally trigger the heartbeat
+				// timeout.
+				incomingHeartbeatCtxCancel()
+				// NOTE: IDEs and govet think that the reassigned cancel below never gets
+				// called, but it does by the defer when the heartbeat ctx is first created.
+				// They just can't trace the execution properly for some reason (possibly golang/go#29587).
+				//nolint:govet
+				incomingHeartbeatCtx, incomingHeartbeatCtxCancel =
+					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
 
 		case update := <-subCh:

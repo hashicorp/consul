@@ -272,7 +272,6 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }
 
 func TestStreamResources_Server_Terminate(t *testing.T) {
@@ -867,6 +866,197 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 			},
 		)
 	})
+}
+
+// Test that when the client doesn't send a heartbeat in time, the stream is terminated.
+func TestStreamResources_Server_TerminatesOnHeartbeatTimeout(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	srv, store := newTestServer(t, func(c *Config) {
+		c.Tracker.SetClock(it.Now)
+		c.incomingHeartbeatTimeout = 5 * time.Millisecond
+	})
+
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+	peerID := p.ID
+
+	// Set the initial roots and CA configuration.
+	_, _ = writeInitialRootsAndCA(t, store)
+
+	client := makeClient(t, srv, peerID)
+
+	// TODO(peering): test fails if we don't drain the stream with this call because the
+	// server gets blocked sending the termination message. Figure out a way to let
+	// messages queue and filter replication messages.
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, receiveRoots.GetResponse().ResourceURL)
+
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			status, ok := srv.StreamStatus(peerID)
+			require.True(r, ok)
+			require.True(r, status.Connected)
+		})
+	})
+
+	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			status, ok := srv.StreamStatus(peerID)
+			require.True(r, ok)
+			require.False(r, status.Connected)
+		})
+	})
+}
+
+// Test that the server sends heartbeats at the expected interval.
+func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+	outgoingHeartbeatInterval := 5 * time.Millisecond
+
+	srv, store := newTestServer(t, func(c *Config) {
+		c.Tracker.SetClock(it.Now)
+		c.outgoingHeartbeatInterval = outgoingHeartbeatInterval
+	})
+
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+	peerID := p.ID
+
+	// Set the initial roots and CA configuration.
+	_, _ = writeInitialRootsAndCA(t, store)
+
+	client := makeClient(t, srv, peerID)
+
+	// TODO(peering): test fails if we don't drain the stream with this call because the
+	// server gets blocked sending the termination message. Figure out a way to let
+	// messages queue and filter replication messages.
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, receiveRoots.GetResponse().ResourceURL)
+
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			status, ok := srv.StreamStatus(peerID)
+			require.True(r, ok)
+			require.True(r, status.Connected)
+		})
+	})
+
+	testutil.RunStep(t, "sends first heartbeat", func(t *testing.T) {
+		retry.RunWith(&retry.Timer{
+			Timeout: outgoingHeartbeatInterval * 2,
+			Wait:    outgoingHeartbeatInterval / 2,
+		}, t, func(r *retry.R) {
+			heartbeat, err := client.Recv()
+			require.NoError(t, err)
+			require.NotNil(t, heartbeat.GetHeartbeat())
+		})
+	})
+
+	testutil.RunStep(t, "sends second heartbeat", func(t *testing.T) {
+		retry.RunWith(&retry.Timer{
+			Timeout: outgoingHeartbeatInterval * 2,
+			Wait:    outgoingHeartbeatInterval / 2,
+		}, t, func(r *retry.R) {
+			heartbeat, err := client.Recv()
+			require.NoError(t, err)
+			require.NotNil(t, heartbeat.GetHeartbeat())
+		})
+	})
+}
+
+// Test that as long as the server receives heartbeats it keeps the connection open.
+func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+	incomingHeartbeatTimeout := 10 * time.Millisecond
+
+	srv, store := newTestServer(t, func(c *Config) {
+		c.Tracker.SetClock(it.Now)
+		c.incomingHeartbeatTimeout = incomingHeartbeatTimeout
+	})
+
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+	peerID := p.ID
+
+	// Set the initial roots and CA configuration.
+	_, _ = writeInitialRootsAndCA(t, store)
+
+	client := makeClient(t, srv, peerID)
+
+	// TODO(peering): test fails if we don't drain the stream with this call because the
+	// server gets blocked sending the termination message. Figure out a way to let
+	// messages queue and filter replication messages.
+	receiveRoots, err := client.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, receiveRoots.GetResponse())
+	require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, receiveRoots.GetResponse().ResourceURL)
+
+	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			status, ok := srv.StreamStatus(peerID)
+			require.True(r, ok)
+			require.True(r, status.Connected)
+		})
+	})
+
+	heartbeatMsg := &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
+			Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{}}}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// errCh is used to collect any send errors from within the goroutine.
+	errCh := make(chan error)
+
+	// Set up a goroutine to send the heartbeat every 1/2 of the timeout.
+	go func() {
+		// This is just a do while loop. We want to send the heartbeat right away to start
+		// because the test setup above takes some time and we might be close to the heartbeat
+		// timeout already.
+		for {
+			err := client.Send(heartbeatMsg)
+			if err != nil {
+				select {
+				case errCh <- err:
+				case <-ctx.Done():
+				}
+				return
+			}
+			select {
+			case <-time.After(incomingHeartbeatTimeout / 2):
+			case <-ctx.Done():
+				close(errCh)
+				return
+			}
+		}
+	}()
+
+	// Assert that the stream remains connected for 5 heartbeat timeouts.
+	require.Never(t, func() bool {
+		status, ok := srv.StreamStatus(peerID)
+		if !ok {
+			return true
+		}
+		return !status.Connected
+	}, incomingHeartbeatTimeout*5, incomingHeartbeatTimeout)
+
+	// Kill the heartbeat sending goroutine and check if it had any errors.
+	cancel()
+	err, ok := <-errCh
+	if ok {
+		require.NoError(t, err)
+	}
 }
 
 // makeClient sets up a *MockClient with the initial subscription
