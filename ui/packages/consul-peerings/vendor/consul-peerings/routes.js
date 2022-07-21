@@ -21,16 +21,6 @@
           },
         },
       },
-      edit: {
-        _options: {
-          path: '/:name'
-        },
-        addresses: {
-          _options: {
-            path: '/addresses',
-          },
-        },
-      },
     },
   },
 }))(
