@@ -1,5 +1,5 @@
-{{#if @service.PeerName}}
-  <div class="consul-service-peer-info" data-test-service-peer-info>
+{{#if @item.PeerName}}
+  <div class="consul-peer-info" data-test-peer-info>
 
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {{tooltip "Peer" }}>
       <path
@@ -18,6 +18,6 @@
         d="M11 7C10.4477 7 10 7.44772 10 8C10 8.55229 10.4477 9 11 9H11.01C11.5623 9 12.01 8.55229 12.01 8C12.01 7.44772 11.5623 7 11.01 7H11Z"
         fill="#77838A" />
     </svg>
-    <span class="consul-service-peer-info__description">Imported from <span data-test-peer-name>{{@service.PeerName}}</span></span>
+    <span class="consul-peer-info__description">Imported from <span data-test-peer-name>{{@item.PeerName}}</span></span>
   </div>
 {{/if}}

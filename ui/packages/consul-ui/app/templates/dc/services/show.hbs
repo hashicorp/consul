@@ -145,7 +145,7 @@ as |items item dc|}}
               </h1>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
-              <Consul::Service::PeerInfo @service={{item.Service}} />
+              <Consul::Peer::Info @item={{item.Service}} />
           </BlockSlot>
           <BlockSlot @name="nav">
             {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
