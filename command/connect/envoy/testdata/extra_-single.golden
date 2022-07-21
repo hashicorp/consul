@@ -92,8 +92,12 @@
         "tag_name": "consul.destination.partition"
       },
       {
-        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.internal[^.]*\\.[^.]+\\.consul\\.)",
         "tag_name": "consul.destination.datacenter"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.external\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.peer"
       },
       {
         "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.[^.]+\\.consul\\.)",
@@ -112,7 +116,7 @@
         "tag_name": "consul.destination.full_target"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.(([^.]+)(?:\\.[^.]+)?(?:\\.[^.]+)?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.(([^.]+)(?:\\.[^.]+)?(?:\\.[^.]+)?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.service"
       },
       {
@@ -120,11 +124,15 @@
         "tag_name": "consul.upstream.datacenter"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.([^.]+))?(?:\\.[^.]+)?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream_peered\\.([^.]+(?:\\.[^.]+)?(?:\\.[^.]+)?\\.([^.]+)\\.)",
+        "tag_name": "consul.upstream.peer"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.([^.]+(?:\\.([^.]+))?(?:\\.[^.]+)?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.namespace"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.partition"
       },
       {
@@ -144,7 +152,7 @@
         "tag_name": "consul.namespace"
       },
       {
-        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.internal[^.]*\\.[^.]+\\.consul\\.)",
         "tag_name": "consul.datacenter"
       },
       {
