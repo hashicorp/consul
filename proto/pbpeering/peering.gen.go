@@ -45,6 +45,7 @@ func GenerateTokenRequestToAPI(s *GenerateTokenRequest, t *api.PeeringGenerateTo
 	t.Datacenter = s.Datacenter
 	t.Token = s.Token
 	t.Meta = s.Meta
+	t.ServerExternalAddresses = s.ServerExternalAddresses
 }
 func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *GenerateTokenRequest) {
 	if s == nil {
@@ -55,6 +56,7 @@ func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *Generate
 	s.Datacenter = t.Datacenter
 	s.Token = t.Token
 	s.Meta = t.Meta
+	s.ServerExternalAddresses = t.ServerExternalAddresses
 }
 func GenerateTokenResponseToAPI(s *GenerateTokenResponse, t *api.PeeringGenerateTokenResponse) {
 	if s == nil {
