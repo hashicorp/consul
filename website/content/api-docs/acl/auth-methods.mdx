@@ -25,9 +25,9 @@ This endpoint creates a new ACL auth method.
 | `PUT`  | `/acl/auth-method` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -36,7 +36,12 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl auth-method create`](/commands/acl/auth-method/create).
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you create.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL auth method. The
   name can contain alphanumeric characters, dashes `-`, and underscores `_`.
@@ -54,7 +59,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/commands/acl
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/api/acl/tokens#expirationtime) field on all tokens
+  [`ExpirationTime`](/api-docs/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
@@ -71,11 +76,9 @@ The corresponding CLI command is [`consul acl auth-method create`](/commands/acl
   For more information on configuring specific auth method types, see the [auth
   method documentation](/docs/security/acl/auth-methods).
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to
-  create the auth method within. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
+  the auth method you create. This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 - `NamespaceRules` `(array<NamespaceRule>)` <EnterpriseAlert inline /> - A set
   of rules that can control which namespace tokens created via this auth method
@@ -153,9 +156,9 @@ auth method exists with the given name, a 404 is returned instead of a
 | `GET`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -164,16 +167,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl auth-method read`](/commands/acl/auth-method/read).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the ACL auth method to
-  read. This is required and is specified as part of the URL path.
+- `name` `(string: <required>)` - Specifies the name of the ACL auth method to read.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the auth method within. This value can be specified as the `ns` URL query
-  parameter or in the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -207,9 +208,9 @@ This endpoint updates an existing ACL auth method.
 | `PUT`  | `/acl/auth-method/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -218,11 +219,19 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl auth-method update`](/commands/acl/auth-method/update).
 
-### Parameters
+### Path Parameters
 
-- `Name` `(string: <required>)` - Specifies the name of the auth method to
-  update. This is required in the URL path but may also be specified in the
-  JSON body. If specified in both places then they must match exactly.
+- `name` `(string: <required>)` - Specifies the name of the auth method you update.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
+
+- `Name` `(string: <optional>)` - If specified, this field must be an exact match
+  with the `name` path parameter.
 
 - `Type` `(string: <required>)` - Specifies the type of the auth method being
   updated. This field is immutable so if present in the body then it must
@@ -237,7 +246,7 @@ The corresponding CLI command is [`consul acl auth-method update`](/commands/acl
 
 - `MaxTokenTTL` `(duration: 0s)` - This specifies the maximum life of any token
   created by this auth method. When set it will initialize the
-  [`ExpirationTime`](/api/acl/tokens#expirationtime) field on all tokens
+  [`ExpirationTime`](/api-docs/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
   `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
@@ -255,10 +264,8 @@ The corresponding CLI command is [`consul acl auth-method update`](/commands/acl
   method documentation](/docs/security/acl/auth-methods).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the auth method to update. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+  the auth method you update. This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 - `NamespaceRules` `(array<NamespaceRule>)` <EnterpriseAlert inline /> - A set
   of rules that can control which namespace tokens created via this auth method
@@ -329,8 +336,8 @@ $ curl --request PUT \
 This endpoint deletes an ACL auth method.
 
 ~> Deleting an auth method will also immediately delete all associated
-[binding rules](/api/acl/binding-rules) as well as any
-outstanding [tokens](/api/acl/tokens) created from this auth method.
+[binding rules](/api-docs/acl/binding-rules) as well as any
+outstanding [tokens](/api-docs/acl/tokens) created from this auth method.
 
 | Method   | Path                     | Produces           |
 | -------- | ------------------------ | ------------------ |
@@ -340,9 +347,9 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -351,16 +358,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl auth-method delete`](/commands/acl/auth-method/delete).
 
-### Parameters
+### Path Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the ACL auth method to
-  delete. This is required and is specified as part of the URL path.
+- `name` `(string: <required>)` - Specifies the name of the ACL auth method to delete.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the
-  Auth Method to delete. This value can be specified as the `ns` URL query
-  parameter or in the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you delete.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -384,9 +389,9 @@ This endpoint lists all the ACL auth methods.
 | `GET`  | `/acl/auth-methods` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -395,14 +400,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl auth-method list`](/commands/acl/auth-method/list).
 
-### Parameters
+### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list
-  the auth methods for. This value can be specified as the `ns` URL query
-  parameter or in the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. The namespace may be specified as '\*' and then
-  results will be returned for all namespaces. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the auth methods in the specified namespace.
+  The namespace may be specified as '\*' to return results for all namespaces.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+The namespace may be specified as '\*' and then
+  results will be returned for all namespaces.
 
 ## Sample Request
 
@@ -433,3 +438,15 @@ listing and must be retrieved by the [auth method reading endpoint](#read-an-aut
   }
 ]
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Auth method create, read, update, and delete endpoints
+support several methods for specifying the namespace of the auth method resource.
+When multiple methods are used, namespace precedence occurs in the following order:
+1. `Namespace` field of the JSON request body -
+   only applies to [create](#create-an-auth-method) and [update](#update-an-auth-method) endpoints
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

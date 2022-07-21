@@ -3,16 +3,20 @@
 
 package pbcommon
 
-import (
-	"github.com/hashicorp/consul/agent/structs"
-)
+import "github.com/hashicorp/consul/acl"
 
-var DefaultEnterpriseMeta = EnterpriseMeta{}
+var DefaultEnterpriseMeta = &EnterpriseMeta{}
 
-func EnterpriseMetaToStructs(_ *EnterpriseMeta) structs.EnterpriseMeta {
-	return *structs.DefaultEnterpriseMetaInDefaultPartition()
-}
-
-func NewEnterpriseMetaFromStructs(_ structs.EnterpriseMeta) *EnterpriseMeta {
+func NewEnterpriseMetaFromStructs(_ acl.EnterpriseMeta) *EnterpriseMeta {
 	return &EnterpriseMeta{}
+}
+func EnterpriseMetaToStructs(s *EnterpriseMeta, t *acl.EnterpriseMeta) {
+	if s == nil {
+		return
+	}
+}
+func EnterpriseMetaFromStructs(t *acl.EnterpriseMeta, s *EnterpriseMeta) {
+	if s == nil {
+		return
+	}
 }

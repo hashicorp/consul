@@ -1,14 +1,9 @@
-#!/bin/bash
-SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
-pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
-SCRIPT_DIR=$(pwd)
-pushd ../.. > /dev/null
-SOURCE_DIR=$(pwd)
-popd > /dev/null
-pushd ../functions > /dev/null
-FN_DIR=$(pwd)
-popd > /dev/null
-popd > /dev/null
+#!/usr/bin/env bash
+
+readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
+readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+readonly SOURCE_DIR="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+readonly FN_DIR="$(dirname "${SCRIPT_DIR}")/functions"
 
 source "${SCRIPT_DIR}/functions.sh"
 
@@ -25,7 +20,7 @@ Description:
       * Update version/version*.go files
       * Update CHANGELOG.md to put things into release mode
       * Create a release commit. It changes in the commit include the CHANGELOG.md
-        version files and the assetfs.
+        version files.
       * Tag the release
       * Generate the SHA256SUMS file for the binaries
       * Sign the SHA256SUMS file with a GPG key
@@ -40,7 +35,7 @@ Options:
                                  release mode
                                  Defaults to 1.
                                  
-   -b | --build      BOOL        Whether to perform the build of the ui's, assetfs and
+   -b | --build      BOOL        Whether to perform the build of the ui's and
                                  binaries. Defaults to 1.
                                  
    -S | --sign       BOOL        Whether to sign the generated SHA256SUMS file.

@@ -3,7 +3,7 @@ package connect
 import (
 	"net/url"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 )
 
 // SpiffeIDService is the structure to represent the SPIFFE ID for an agent.
@@ -15,7 +15,7 @@ type SpiffeIDAgent struct {
 }
 
 func (id SpiffeIDAgent) PartitionOrDefault() string {
-	return structs.PartitionOrDefault(id.Partition)
+	return acl.PartitionOrDefault(id.Partition)
 }
 
 // URI returns the *url.URL for this SPIFFE ID.

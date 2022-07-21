@@ -2,93 +2,149 @@
 
 package pbservice
 
-import structs "github.com/hashicorp/consul/agent/structs"
+import "github.com/hashicorp/consul/agent/structs"
 
-func ConnectProxyConfigToStructs(s ConnectProxyConfig) structs.ConnectProxyConfig {
-	var t structs.ConnectProxyConfig
+func ConnectProxyConfigToStructs(s *ConnectProxyConfig, t *structs.ConnectProxyConfig) {
+	if s == nil {
+		return
+	}
 	t.DestinationServiceName = s.DestinationServiceName
 	t.DestinationServiceID = s.DestinationServiceID
 	t.LocalServiceAddress = s.LocalServiceAddress
 	t.LocalServicePort = int(s.LocalServicePort)
 	t.LocalServiceSocketPath = s.LocalServiceSocketPath
-	t.Mode = s.Mode
+	t.Mode = structs.ProxyMode(s.Mode)
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
 	t.Upstreams = UpstreamsToStructs(s.Upstreams)
-	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
-	t.Expose = ExposeConfigToStructs(s.Expose)
-	t.TransparentProxy = TransparentProxyConfigToStructs(s.TransparentProxy)
-	return t
+	if s.MeshGateway != nil {
+		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
+	}
+	if s.Expose != nil {
+		ExposeConfigToStructs(s.Expose, &t.Expose)
+	}
+	if s.TransparentProxy != nil {
+		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
+	}
 }
-func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxyConfig {
-	var s ConnectProxyConfig
+func ConnectProxyConfigFromStructs(t *structs.ConnectProxyConfig, s *ConnectProxyConfig) {
+	if s == nil {
+		return
+	}
 	s.DestinationServiceName = t.DestinationServiceName
 	s.DestinationServiceID = t.DestinationServiceID
 	s.LocalServiceAddress = t.LocalServiceAddress
 	s.LocalServicePort = int32(t.LocalServicePort)
 	s.LocalServiceSocketPath = t.LocalServiceSocketPath
-	s.Mode = t.Mode
+	s.Mode = string(t.Mode)
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
 	s.Upstreams = NewUpstreamsFromStructs(t.Upstreams)
-	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
-	s.Expose = NewExposeConfigFromStructs(t.Expose)
-	s.TransparentProxy = NewTransparentProxyConfigFromStructs(t.TransparentProxy)
-	return s
+	{
+		var x MeshGatewayConfig
+		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
+		s.MeshGateway = &x
+	}
+	{
+		var x ExposeConfig
+		ExposeConfigFromStructs(&t.Expose, &x)
+		s.Expose = &x
+	}
+	{
+		var x TransparentProxyConfig
+		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
+		s.TransparentProxy = &x
+	}
 }
-func ExposeConfigToStructs(s ExposeConfig) structs.ExposeConfig {
-	var t structs.ExposeConfig
+func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
+	if s == nil {
+		return
+	}
 	t.Checks = s.Checks
 	t.Paths = ExposePathSliceToStructs(s.Paths)
-	return t
 }
-func NewExposeConfigFromStructs(t structs.ExposeConfig) ExposeConfig {
-	var s ExposeConfig
+func ExposeConfigFromStructs(t *structs.ExposeConfig, s *ExposeConfig) {
+	if s == nil {
+		return
+	}
 	s.Checks = t.Checks
 	s.Paths = NewExposePathSliceFromStructs(t.Paths)
-	return s
 }
-func ExposePathToStructs(s ExposePath) structs.ExposePath {
-	var t structs.ExposePath
+func ExposePathToStructs(s *ExposePath, t *structs.ExposePath) {
+	if s == nil {
+		return
+	}
 	t.ListenerPort = int(s.ListenerPort)
 	t.Path = s.Path
 	t.LocalPathPort = int(s.LocalPathPort)
 	t.Protocol = s.Protocol
 	t.ParsedFromCheck = s.ParsedFromCheck
-	return t
 }
-func NewExposePathFromStructs(t structs.ExposePath) ExposePath {
-	var s ExposePath
+func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
+	if s == nil {
+		return
+	}
 	s.ListenerPort = int32(t.ListenerPort)
 	s.Path = t.Path
 	s.LocalPathPort = int32(t.LocalPathPort)
 	s.Protocol = t.Protocol
 	s.ParsedFromCheck = t.ParsedFromCheck
-	return s
 }
-func MeshGatewayConfigToStructs(s MeshGatewayConfig) structs.MeshGatewayConfig {
-	var t structs.MeshGatewayConfig
-	t.Mode = s.Mode
-	return t
+func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConfig) {
+	if s == nil {
+		return
+	}
+	t.Mode = structs.MeshGatewayMode(s.Mode)
 }
-func NewMeshGatewayConfigFromStructs(t structs.MeshGatewayConfig) MeshGatewayConfig {
-	var s MeshGatewayConfig
-	s.Mode = t.Mode
-	return s
+func MeshGatewayConfigFromStructs(t *structs.MeshGatewayConfig, s *MeshGatewayConfig) {
+	if s == nil {
+		return
+	}
+	s.Mode = string(t.Mode)
 }
-func ServiceConnectToStructs(s ServiceConnect) structs.ServiceConnect {
-	var t structs.ServiceConnect
+func PeeringServiceMetaToStructs(s *PeeringServiceMeta, t *structs.PeeringServiceMeta) {
+	if s == nil {
+		return
+	}
+	t.SNI = s.SNI
+	t.SpiffeID = s.SpiffeID
+	t.Protocol = s.Protocol
+}
+func PeeringServiceMetaFromStructs(t *structs.PeeringServiceMeta, s *PeeringServiceMeta) {
+	if s == nil {
+		return
+	}
+	s.SNI = t.SNI
+	s.SpiffeID = t.SpiffeID
+	s.Protocol = t.Protocol
+}
+func ServiceConnectToStructs(s *ServiceConnect, t *structs.ServiceConnect) {
+	if s == nil {
+		return
+	}
 	t.Native = s.Native
 	t.SidecarService = ServiceDefinitionPtrToStructs(s.SidecarService)
-	return t
+	if s.PeerMeta != nil {
+		var x structs.PeeringServiceMeta
+		PeeringServiceMetaToStructs(s.PeerMeta, &x)
+		t.PeerMeta = &x
+	}
 }
-func NewServiceConnectFromStructs(t structs.ServiceConnect) ServiceConnect {
-	var s ServiceConnect
+func ServiceConnectFromStructs(t *structs.ServiceConnect, s *ServiceConnect) {
+	if s == nil {
+		return
+	}
 	s.Native = t.Native
 	s.SidecarService = NewServiceDefinitionPtrFromStructs(t.SidecarService)
-	return s
+	if t.PeerMeta != nil {
+		var x PeeringServiceMeta
+		PeeringServiceMetaFromStructs(t.PeerMeta, &x)
+		s.PeerMeta = &x
+	}
 }
-func ServiceDefinitionToStructs(s ServiceDefinition) (structs.ServiceDefinition, error) {
-	var t structs.ServiceDefinition
-	t.Kind = s.Kind
+func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefinition) {
+	if s == nil {
+		return
+	}
+	t.Kind = structs.ServiceKind(s.Kind)
 	t.ID = s.ID
 	t.Name = s.Name
 	t.Tags = s.Tags
@@ -97,27 +153,22 @@ func ServiceDefinitionToStructs(s ServiceDefinition) (structs.ServiceDefinition,
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
 	t.SocketPath = s.SocketPath
-	check, err := CheckTypeToStructs(s.Check)
-	if err != nil {
-		return t, err
+	if s.Check != nil {
+		CheckTypeToStructs(s.Check, &t.Check)
 	}
-	t.Check = check
-	checks, err := CheckTypesToStructs(s.Checks)
-	if err != nil {
-		return t, err
-	}
-	t.Checks = checks
+	t.Checks = CheckTypesToStructs(s.Checks)
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.Token = s.Token
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Proxy = ConnectProxyConfigPtrToStructs(s.Proxy)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Connect = ServiceConnectPtrToStructs(s.Connect)
-	return t, nil
 }
-func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinition {
-	var s ServiceDefinition
-	s.Kind = t.Kind
+func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefinition) {
+	if s == nil {
+		return
+	}
+	s.Kind = string(t.Kind)
 	s.ID = t.ID
 	s.Name = t.Name
 	s.Tags = t.Tags
@@ -126,7 +177,11 @@ func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinit
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
 	s.SocketPath = t.SocketPath
-	s.Check = NewCheckTypeFromStructs(t.Check)
+	{
+		var x CheckType
+		CheckTypeFromStructs(&t.Check, &x)
+		s.Check = &x
+	}
 	s.Checks = NewCheckTypesFromStructs(t.Checks)
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.Token = t.Token
@@ -134,25 +189,29 @@ func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinit
 	s.Proxy = NewConnectProxyConfigPtrFromStructs(t.Proxy)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Connect = NewServiceConnectPtrFromStructs(t.Connect)
-	return s
 }
-func TransparentProxyConfigToStructs(s TransparentProxyConfig) structs.TransparentProxyConfig {
-	var t structs.TransparentProxyConfig
+func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
+	if s == nil {
+		return
+	}
 	t.OutboundListenerPort = int(s.OutboundListenerPort)
 	t.DialedDirectly = s.DialedDirectly
-	return t
 }
-func NewTransparentProxyConfigFromStructs(t structs.TransparentProxyConfig) TransparentProxyConfig {
-	var s TransparentProxyConfig
+func TransparentProxyConfigFromStructs(t *structs.TransparentProxyConfig, s *TransparentProxyConfig) {
+	if s == nil {
+		return
+	}
 	s.OutboundListenerPort = int32(t.OutboundListenerPort)
 	s.DialedDirectly = t.DialedDirectly
-	return s
 }
-func UpstreamToStructs(s Upstream) structs.Upstream {
-	var t structs.Upstream
+func UpstreamToStructs(s *Upstream, t *structs.Upstream) {
+	if s == nil {
+		return
+	}
 	t.DestinationType = s.DestinationType
 	t.DestinationNamespace = s.DestinationNamespace
 	t.DestinationPartition = s.DestinationPartition
+	t.DestinationPeer = s.DestinationPeer
 	t.DestinationName = s.DestinationName
 	t.Datacenter = s.Datacenter
 	t.LocalBindAddress = s.LocalBindAddress
@@ -160,15 +219,19 @@ func UpstreamToStructs(s Upstream) structs.Upstream {
 	t.LocalBindSocketPath = s.LocalBindSocketPath
 	t.LocalBindSocketMode = s.LocalBindSocketMode
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
-	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
+	if s.MeshGateway != nil {
+		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
+	}
 	t.CentrallyConfigured = s.CentrallyConfigured
-	return t
 }
-func NewUpstreamFromStructs(t structs.Upstream) Upstream {
-	var s Upstream
+func UpstreamFromStructs(t *structs.Upstream, s *Upstream) {
+	if s == nil {
+		return
+	}
 	s.DestinationType = t.DestinationType
 	s.DestinationNamespace = t.DestinationNamespace
 	s.DestinationPartition = t.DestinationPartition
+	s.DestinationPeer = t.DestinationPeer
 	s.DestinationName = t.DestinationName
 	s.Datacenter = t.Datacenter
 	s.LocalBindAddress = t.LocalBindAddress
@@ -176,7 +239,10 @@ func NewUpstreamFromStructs(t structs.Upstream) Upstream {
 	s.LocalBindSocketPath = t.LocalBindSocketPath
 	s.LocalBindSocketMode = t.LocalBindSocketMode
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
-	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
+	{
+		var x MeshGatewayConfig
+		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
+		s.MeshGateway = &x
+	}
 	s.CentrallyConfigured = t.CentrallyConfigured
-	return s
 }

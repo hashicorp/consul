@@ -3,14 +3,20 @@ package proxycfg
 import (
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+type PeerName = string
 
 type UpstreamID struct {
 	Type       string
 	Name       string
 	Datacenter string
-	structs.EnterpriseMeta
+	// If Peer is not empty, Namespace refers to the remote
+	// peer namespace and Partition refers to the local partition
+	Peer string
+	acl.EnterpriseMeta
 }
 
 func NewUpstreamID(u *structs.Upstream) UpstreamID {
@@ -18,10 +24,21 @@ func NewUpstreamID(u *structs.Upstream) UpstreamID {
 		Type:       u.DestinationType,
 		Name:       u.DestinationName,
 		Datacenter: u.Datacenter,
-		EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 			u.DestinationPartition,
 			u.DestinationNamespace,
 		),
+		Peer: u.DestinationPeer,
+	}
+	id.normalize()
+	return id
+}
+
+func NewUpstreamIDFromPeeredServiceName(psn structs.PeeredServiceName) UpstreamID {
+	id := UpstreamID{
+		Name:           psn.ServiceName.Name,
+		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
+		Peer:           psn.Peer,
 	}
 	id.normalize()
 	return id
@@ -36,6 +53,7 @@ func NewUpstreamIDFromServiceName(sn structs.ServiceName) UpstreamID {
 	return id
 }
 
+// TODO(peering): confirm we don't need peername here
 func NewUpstreamIDFromServiceID(sid structs.ServiceID) UpstreamID {
 	id := UpstreamID{
 		Name:           sid.ID,
@@ -45,6 +63,7 @@ func NewUpstreamIDFromServiceID(sid structs.ServiceID) UpstreamID {
 	return id
 }
 
+// TODO(peering): confirm we don't need peername here
 func NewUpstreamIDFromTargetID(tid string) UpstreamID {
 	// Drop the leading subset if one is present in the target ID.
 	separators := strings.Count(tid, ".")
@@ -57,7 +76,7 @@ func NewUpstreamIDFromTargetID(tid string) UpstreamID {
 
 	id := UpstreamID{
 		Name:           split[0],
-		EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(split[2], split[1]),
+		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(split[2], split[1]),
 		Datacenter:     split[3],
 	}
 	id.normalize()
@@ -75,7 +94,7 @@ func (u *UpstreamID) normalize() {
 // String encodes the UpstreamID into a string for use in agent cache keys.
 // You can decode it back again using UpstreamIDFromString.
 func (u UpstreamID) String() string {
-	return UpstreamIDString(u.Type, u.Datacenter, u.Name, &u.EnterpriseMeta)
+	return UpstreamIDString(u.Type, u.Datacenter, u.Name, &u.EnterpriseMeta, u.Peer)
 }
 
 func (u UpstreamID) GoString() string {
@@ -83,12 +102,13 @@ func (u UpstreamID) GoString() string {
 }
 
 func UpstreamIDFromString(input string) UpstreamID {
-	typ, dc, name, entMeta := ParseUpstreamIDString(input)
+	typ, dc, name, entMeta, peerName := ParseUpstreamIDString(input)
 	id := UpstreamID{
 		Type:           typ,
 		Datacenter:     dc,
 		Name:           name,
 		EnterpriseMeta: *entMeta,
+		Peer:           peerName,
 	}
 	id.normalize()
 	return id
@@ -96,21 +116,25 @@ func UpstreamIDFromString(input string) UpstreamID {
 
 const upstreamTypePreparedQueryPrefix = structs.UpstreamDestTypePreparedQuery + ":"
 
-func ParseUpstreamIDString(input string) (typ, dc, name string, meta *structs.EnterpriseMeta) {
+func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.EnterpriseMeta, peerName string) {
 	if strings.HasPrefix(input, upstreamTypePreparedQueryPrefix) {
 		typ = structs.UpstreamDestTypePreparedQuery
 		input = strings.TrimPrefix(input, upstreamTypePreparedQueryPrefix)
 	}
 
-	idx := strings.LastIndex(input, "?dc=")
-	if idx != -1 {
-		dc = input[idx+4:]
-		input = input[0:idx]
+	before, after, found := strings.Cut(input, "?")
+	input = before
+	if found {
+		if _, peerVal, ok := strings.Cut(after, "peer="); ok {
+			peerName = peerVal
+		} else if _, dcVal, ok2 := strings.Cut(after, "dc="); ok2 {
+			dc = dcVal
+		}
 	}
 
 	name, meta = parseInnerUpstreamIDString(input)
 
-	return typ, dc, name, meta
+	return typ, dc, name, meta, peerName
 }
 
 // EnvoyID returns a string representation that uniquely identifies the
@@ -125,7 +149,9 @@ func (u UpstreamID) EnvoyID() string {
 	name := u.enterpriseIdentifierPrefix() + u.Name
 	typ := u.Type
 
-	if u.Datacenter != "" {
+	if u.Peer != "" {
+		name += "?peer=" + u.Peer
+	} else if u.Datacenter != "" {
 		name += "?dc=" + u.Datacenter
 	}
 

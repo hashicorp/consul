@@ -1,15 +1,9 @@
 @keyframes icon-redirect {
-  50% {
-
-    background-color: var(--icon-color, var(--color-redirect-500, currentColor));
-    -webkit-mask-image: var(--icon-redirect-24);
-    mask-image: var(--icon-redirect-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-redirect-500, currentColor));
     -webkit-mask-image: var(--icon-redirect-16);
     mask-image: var(--icon-redirect-16);
+    background-color: var(--icon-color, var(--color-redirect-500, currentColor));
+
   }
 }

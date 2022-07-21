@@ -1,15 +1,9 @@
 @keyframes icon-arrow-up-left {
-  50% {
-
-    background-color: var(--icon-color, var(--color-arrow-up-left-500, currentColor));
-    -webkit-mask-image: var(--icon-arrow-up-left-24);
-    mask-image: var(--icon-arrow-up-left-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-arrow-up-left-500, currentColor));
     -webkit-mask-image: var(--icon-arrow-up-left-16);
     mask-image: var(--icon-arrow-up-left-16);
+    background-color: var(--icon-color, var(--color-arrow-up-left-500, currentColor));
+
   }
 }

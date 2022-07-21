@@ -14,10 +14,12 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
@@ -27,6 +29,8 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -93,13 +97,13 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
+func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
 	m.Lock()
 	defer m.Unlock()
 	// ch might be nil but then it will just block forever
 	return m.chans[proxyID], func() {
 		m.cancels <- proxyID
-	}
+	}, nil
 }
 
 // AssertWatchCancelled checks that the most recent call to a Watch cancel func
@@ -151,11 +155,11 @@ func newTestServerDeltaScenario(
 	})
 
 	s := NewServer(
+		"node-123",
 		testutil.Logger(t),
 		serverlessPluginEnabled,
 		mgr,
 		resolveToken,
-		nil, /*checkFetcher HTTPCheckFetcher*/
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {
@@ -229,9 +233,9 @@ func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
-	uri ...connect.SpiffeIDService,
+	spiffeID ...string,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, false, false, sni, uri...)
+	return xdsNewTransportSocket(t, snap, false, false, sni, spiffeID...)
 }
 
 func xdsNewTransportSocket(
@@ -240,7 +244,7 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
-	uri ...connect.SpiffeIDService,
+	spiffeID ...string,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
@@ -257,8 +261,8 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if len(uri) > 0 {
-		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
+	if len(spiffeID) > 0 {
+		require.NoError(t, injectSANMatcher(commonTLSContext, spiffeID...))
 	}
 
 	var tlsContext proto.Message
@@ -300,6 +304,18 @@ func xdsNewInlineString(s string) *envoy_core_v3.DataSource {
 
 func xdsNewFilter(t *testing.T, name string, cfg proto.Message) *envoy_listener_v3.Filter {
 	f, err := makeFilter(name, cfg)
+	require.NoError(t, err)
+	return f
+}
+
+func xdsNewListenerFilter(t *testing.T, name string, cfg proto.Message) *envoy_listener_v3.ListenerFilter {
+	f, err := makeEnvoyListenerFilter(name, cfg)
+	require.NoError(t, err)
+	return f
+}
+
+func xdsNewHttpFilter(t *testing.T, name string, cfg proto.Message) *envoy_http_v3.HttpFilter {
+	f, err := makeEnvoyHTTPFilter(name, cfg)
 	require.NoError(t, err)
 	return f
 }
@@ -348,22 +364,22 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			Namespace:  "default",
 			Datacenter: "dc1",
 			Service:    "db",
-		}
+		}.URI().String()
 
 		geocacheSNI  = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-		geocacheURIs = []connect.SpiffeIDService{
-			{
+		geocacheURIs = []string{
+			connect.SpiffeIDService{
 				Host:       "11111111-2222-3333-4444-555555555555.consul",
 				Namespace:  "default",
 				Datacenter: "dc1",
 				Service:    "geo-cache-target",
-			},
-			{
+			}.URI().String(),
+			connect.SpiffeIDService{
 				Host:       "11111111-2222-3333-4444-555555555555.consul",
 				Namespace:  "default",
 				Datacenter: "dc2",
 				Service:    "geo-cache-target",
-			},
+			}.URI().String(),
 		}
 	)
 
@@ -374,7 +390,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_STATIC,
 			},
-			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+			ConnectTimeout: durationpb.New(5 * time.Second),
 			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: "local_app",
 				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
@@ -399,7 +415,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
-			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
+			ConnectTimeout:  durationpb.New(5 * time.Second),
 			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
 	case "tcp:db:timeout":
@@ -417,11 +433,11 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
-			ConnectTimeout:  ptypes.DurationProto(1337 * time.Second),
+			ConnectTimeout:  durationpb.New(1337 * time.Second),
 			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
 	case "http2:db":
-		return &envoy_cluster_v3.Cluster{
+		c := &envoy_cluster_v3.Cluster{
 			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
@@ -435,10 +451,24 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			TransportSocket:      xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
-			Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+			ConnectTimeout:  durationpb.New(5 * time.Second),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
+		typedExtensionProtocolOptions := &envoy_upstreams_v3.HttpProtocolOptions{
+			UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+				ExplicitHttpConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig{
+					ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+						Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+					},
+				},
+			},
+		}
+		typedExtensionProtocolOptionsEncoded, err := ptypes.MarshalAny(typedExtensionProtocolOptions)
+		require.NoError(t, err)
+		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": typedExtensionProtocolOptionsEncoded,
+		}
+		return c
 	case "http:db":
 		return &envoy_cluster_v3.Cluster{
 			Name: dbSNI,
@@ -454,7 +484,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
-			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
+			ConnectTimeout:  durationpb.New(5 * time.Second),
 			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 			// HttpProtocolOptions: &envoy_core_v3.Http1ProtocolOptions{},
 		}
@@ -469,7 +499,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			},
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-			ConnectTimeout:   ptypes.DurationProto(5 * time.Second),
+			ConnectTimeout:   durationpb.New(5 * time.Second),
 			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURIs...),
 		}
 	default:
@@ -610,7 +640,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_RouteConfig{
 								RouteConfig: makeTestRoute(t, "http2:db:inline"),
@@ -635,7 +665,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
 								Rds: &envoy_http_v3.Rds{
@@ -663,7 +693,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
-								{Name: "envoy.filters.http.router"},
+								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
 								Rds: &envoy_http_v3.Rds{
@@ -763,13 +793,6 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 	default:
 		t.Fatalf("unexpected fixture name: %s", fixtureName)
 		return nil
-	}
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
 	}
 }
 

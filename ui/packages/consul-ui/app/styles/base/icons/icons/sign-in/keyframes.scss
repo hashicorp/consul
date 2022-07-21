@@ -1,15 +1,9 @@
 @keyframes icon-sign-in {
-  50% {
-
-    background-color: var(--icon-color, var(--color-sign-in-500, currentColor));
-    -webkit-mask-image: var(--icon-sign-in-24);
-    mask-image: var(--icon-sign-in-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-sign-in-500, currentColor));
     -webkit-mask-image: var(--icon-sign-in-16);
     mask-image: var(--icon-sign-in-16);
+    background-color: var(--icon-color, var(--color-sign-in-500, currentColor));
+
   }
 }

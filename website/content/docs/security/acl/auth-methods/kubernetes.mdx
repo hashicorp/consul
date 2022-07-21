@@ -21,7 +21,7 @@ documentation](/docs/security/acl/auth-methods).
 
 ## Config Parameters
 
-The following auth method [`Config`](/api/acl/auth-methods#config)
+The following auth method [`Config`](/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
 `kubernetes`:
 
@@ -37,27 +37,27 @@ parameters are required to properly configure an auth method of type
   validate application JWTs during login.
 
 - `MapNamespaces` `(bool: <false>)` <EnterpriseAlert inline /> -
-  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).**
+  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).**
   Indicates whether the auth method should attempt to map the Kubernetes namespace to a Consul
   namespace instead of creating tokens in the auth methods own namespace. Note
   that mapping namespaces requires the auth method to reside within the
   `default` namespace.
-  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).
 
 - `ConsulNamespacePrefix` `(string: <optional>)` <EnterpriseAlert inline /> -
-  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).**
+  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).**
   When `MapNamespaces` is enabled, this value will be prefixed to the Kubernetes
   namespace to determine the Consul namespace to create the new token within.
-  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).
 
 - `ConsulNamespaceOverrides` `(map: <string:string>)` <EnterpriseAlert inline /> -
-  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).**
+  **Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).**
   This field is a mapping of Kubernetes namespace names to Consul namespace
   names. If a Kubernetes namespace is present within this map, the value will
   be used without adding the `ConsulNamespacePrefix`. If the value in the map
   is `""` then the auth methods namespace will be used instead of attempting
   to determine an alternate namespace.
-  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api/acl/auth-methods#namespacerules).
+  Deprecated in Consul 1.8.0 in favor of [namespace rules](/api-docs/acl/auth-methods#namespacerules).
 
 ### Sample Config
 

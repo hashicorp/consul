@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/pem"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -288,8 +289,13 @@ func TestConnectCARoots_PEMEncoding(t *testing.T) {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
-	pool := x509.NewCertPool()
-	require.True(t, pool.AppendCertsFromPEM(data))
+
 	// expecting the root cert from dc1 and an intermediate in dc2
-	require.Len(t, pool.Subjects(), 2)
+	block, rest := pem.Decode(data)
+	_, err = x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+
+	block, _ = pem.Decode(rest)
+	_, err = x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
 }

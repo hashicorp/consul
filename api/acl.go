@@ -62,6 +62,20 @@ type ACLToken struct {
 	AuthMethodNamespace string `json:",omitempty"`
 }
 
+type ACLTokenExpanded struct {
+	ExpandedPolicies []ACLPolicy
+	ExpandedRoles    []ACLRole
+
+	NamespaceDefaultPolicyIDs []string
+	NamespaceDefaultRoleIDs   []string
+
+	AgentACLDefaultPolicy string
+	AgentACLDownPolicy    string
+	ResolvedByAgent       string
+
+	ACLToken
+}
+
 type ACLTokenListEntry struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
@@ -781,6 +795,32 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 	qm.RequestTime = rtt
 
 	var out ACLToken
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
+}
+
+// TokenReadExpanded retrieves the full token details, as well as the contents of any policies affecting the token.
+// The tokenID parameter must be a valid Accessor ID of an existing token.
+func (a *ACL) TokenReadExpanded(tokenID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+	r.setQueryOptions(q)
+	r.params.Set("expanded", "true")
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out ACLTokenExpanded
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

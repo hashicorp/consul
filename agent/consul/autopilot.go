@@ -9,10 +9,11 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
-	"math"
 
+	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -29,11 +30,12 @@ var AutopilotGauges = []prometheus.GaugeDefinition{
 
 // AutopilotDelegate is a Consul delegate for autopilot operations.
 type AutopilotDelegate struct {
-	server *Server
+	server                *Server
+	readyServersPublisher *autopilotevents.ReadyServersEventPublisher
 }
 
 func (d *AutopilotDelegate) AutopilotConfig() *autopilot.Config {
-	return d.server.getOrCreateAutopilotConfig().ToAutopilotLibraryConfig()
+	return d.server.getAutopilotConfigOrDefault().ToAutopilotLibraryConfig()
 }
 
 func (d *AutopilotDelegate) KnownServers() map[raft.ServerID]*autopilot.Server {
@@ -45,24 +47,14 @@ func (d *AutopilotDelegate) FetchServerStats(ctx context.Context, servers map[ra
 }
 
 func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
-	// emit metrics if we are the leader regarding overall healthiness and the failure tolerance
-	if d.server.raft.State() == raft.Leader {
-		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(state.FailureTolerance))
-		if state.Healthy {
-			metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
-		} else {
-			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
-		}
+	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(state.FailureTolerance))
+	if state.Healthy {
+		metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
 	} else {
-
-		// if we are not a leader, emit NaN per
-		// https://www.consul.io/docs/agent/telemetry#autopilot
-		metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
-
-		// also emit NaN for failure tolerance to be backwards compatible
-		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
-
+		metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 	}
+
+	d.readyServersPublisher.PublishReadyServersEvents(state)
 }
 
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
@@ -75,7 +67,13 @@ func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
 }
 
 func (s *Server) initAutopilot(config *Config) {
-	apDelegate := &AutopilotDelegate{s}
+	apDelegate := &AutopilotDelegate{
+		server: s,
+		readyServersPublisher: autopilotevents.NewReadyServersEventPublisher(autopilotevents.Config{
+			Publisher: s.publisher,
+			GetStore:  func() autopilotevents.StateStore { return s.fsm.State() },
+		}),
+	}
 
 	s.autopilot = autopilot.New(
 		s.raft,
@@ -84,10 +82,11 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithReconcileInterval(config.AutopilotInterval),
 		autopilot.WithUpdateInterval(config.ServerHealthInterval),
 		autopilot.WithPromoter(s.autopilotPromoter()),
+		autopilot.WithReconciliationDisabled(),
 	)
 
-	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
-	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
+	// registers a snapshot handler for the event publisher to send as the first event for a new stream
+	s.publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, apDelegate.readyServersPublisher.HandleSnapshot, false)
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
@@ -143,7 +142,7 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	// populate the node meta if there is any. When a node first joins or if
 	// there are ACL issues then this could be empty if the server has not
 	// yet been able to register itself in the catalog
-	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition())
+	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition(), structs.DefaultPeerKeyword)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node from state store: %w", err)
 	}
@@ -153,4 +152,23 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	}
 
 	return server, nil
+}
+
+func (s *Server) getAutopilotConfigOrDefault() *structs.AutopilotConfig {
+	logger := s.loggers.Named(logging.Autopilot)
+	state := s.fsm.State()
+	_, config, err := state.AutopilotConfig()
+	if err != nil {
+		logger.Error("failed to get config", "error", err)
+		return nil
+	}
+
+	if config != nil {
+		return config
+	}
+
+	// autopilot may start running prior to there ever being a leader
+	// and having an autopilot configuration created. In that case
+	// use the one from the local configuration for now.
+	return s.config.AutopilotConfig
 }

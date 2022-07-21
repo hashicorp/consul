@@ -28,7 +28,7 @@ as |route|>
   @src={{uri 'settings://consul:theme'}}
 as |source|>
 {{#each-in source.data as |key value|}}
-  {{#if (and value (contains key (array "color-scheme" "contrast")))}}
+  {{#if (and value (includes key (array "color-scheme" "contrast")))}}
     {{document-attrs class=(concat 'prefers-' key '-' value)}}
   {{/if}}
 {{/each-in}}
@@ -47,7 +47,12 @@ as |source|>
 
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
-  {{did-insert (route-action 'replaceWith' 'dc.show'
+{{! until we get to the dc route we don't know any permissions }}
+{{! as we don't know the dc, any inital permission based }}
+{{! redirects are in the dc.show route}}
+
+{{! 2022-04-15: Temporarily reverting the services page to the default }}
+  {{did-insert (route-action 'replaceWith' 'dc.services.index'
     (hash
       dc=(env 'CONSUL_DATACENTER_LOCAL')
     )

@@ -3,7 +3,11 @@
 
 package structs
 
-func (us *Upstream) GetEnterpriseMeta() *EnterpriseMeta {
+import (
+	"github.com/hashicorp/consul/acl"
+)
+
+func (us *Upstream) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 

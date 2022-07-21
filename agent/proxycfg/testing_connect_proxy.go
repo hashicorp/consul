@@ -1,22 +1,24 @@
 package proxycfg
 
 import (
+	"time"
+
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 // TestConfigSnapshot returns a fully populated snapshot
-func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []cache.UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
-	assert.True(t, dbChain.IsDefault())
+	assert.True(t, dbChain.Default)
 
 	var (
 		upstreams   = structs.TestUpstreams(t)
@@ -29,7 +31,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -40,11 +42,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -94,7 +92,7 @@ func TestConfigSnapshotDiscoveryChain(
 	t testing.T,
 	variation string,
 	nsFn func(ns *structs.NodeService),
-	extraUpdates []cache.UpdateEvent,
+	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
@@ -108,7 +106,7 @@ func TestConfigSnapshotDiscoveryChain(
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := testSpliceEvents([]cache.UpdateEvent{
+	baseEvents := testSpliceEvents([]UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -119,10 +117,12 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
+			Result:        structs.Intentions{}, // no intentions defined
+		},
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil,
 			},
 		},
 		{
@@ -165,7 +165,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		webSN = structs.ServiceIDString("web", nil)
 	)
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -175,11 +175,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -217,6 +213,33 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 	}, nsFn, nil, baseEvents)
 }
 
+func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
+	return TestConfigSnapshot(t,
+		func(ns *structs.NodeService) {
+			ns.Address = "1.2.3.4"
+			ns.Port = 8080
+			ns.Proxy.Upstreams = nil
+			ns.Proxy.Expose = structs.ExposeConfig{
+				Checks: true,
+			}
+		},
+		[]UpdateEvent{
+			{
+				CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("web", nil),
+				Result: []structs.CheckType{{
+					CheckID:   types.CheckID("http"),
+					Name:      "http",
+					HTTP:      "http://127.0.0.1:8181/debug",
+					ProxyHTTP: "http://:21500/debug",
+					Method:    "GET",
+					Interval:  10 * time.Second,
+					Timeout:   1 * time.Second,
+				}},
+			},
+		},
+	)
+}
+
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
@@ -246,7 +269,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nil, nil, []cache.UpdateEvent{
+	}, nil, nil, []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
@@ -257,11 +280,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),

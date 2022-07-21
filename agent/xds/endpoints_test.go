@@ -218,6 +218,9 @@ func Test_makeLoadAssignment(t *testing.T) {
 }
 
 func TestEndpointsFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -227,12 +230,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 		create             func(t testinf.T) *proxycfg.ConfigSnapshot
 		overrideGoldenName string
 	}{
-		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
 		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -504,7 +501,7 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					setupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					endpoints, err := g.endpointsFromSnapshot(snap)

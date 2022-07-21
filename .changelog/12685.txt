@@ -1,0 +1,3 @@
+```release-note:security
+agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled.
+```

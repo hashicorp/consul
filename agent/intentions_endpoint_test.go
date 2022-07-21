@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -61,6 +62,36 @@ func TestIntentionList(t *testing.T) {
 			ids = append(ids, reply)
 		}
 
+		// set up an intention for a peered service
+		// TODO(peering): when we handle Upserts, we can use the for loop above. But it may be that we
+		// rip out legacy intentions before supporting that use case so run a config entry request instead here.
+		{
+			configEntryIntention := structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "bar",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "peered",
+						Peer:   "peer1",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			}
+
+			req, err := http.NewRequest("PUT", "/v1/config", jsonReader(configEntryIntention))
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+
+			obj, err := a.srv.ConfigApply(resp, req)
+			require.NoError(t, err)
+
+			if applied, ok := obj.(bool); ok {
+				require.True(t, applied)
+			} else {
+				t.Fatal("ConfigApply returns a boolean type")
+			}
+		}
+
 		// Request
 		req, err := http.NewRequest("GET", "/v1/connect/intentions", nil)
 		require.NoError(t, err)
@@ -70,22 +101,27 @@ func TestIntentionList(t *testing.T) {
 		require.NoError(t, err)
 
 		value := obj.(structs.Intentions)
-		require.Len(t, value, 4)
+		require.Len(t, value, 5)
 
-		require.Equal(t, []string{"bar->db", "foo->db", "zim->gir", "*->db"},
+		require.Equal(t, []string{"bar->db", "foo->db", "zim->gir", "peered->bar", "*->db"},
 			[]string{
 				value[0].SourceName + "->" + value[0].DestinationName,
 				value[1].SourceName + "->" + value[1].DestinationName,
 				value[2].SourceName + "->" + value[2].DestinationName,
 				value[3].SourceName + "->" + value[3].DestinationName,
+				value[4].SourceName + "->" + value[4].DestinationName,
 			})
-		require.Equal(t, []string{ids[2], ids[1], "", ids[0]},
+		require.Equal(t, []string{ids[2], ids[1], "", "", ids[0]},
 			[]string{
 				value[0].ID,
 				value[1].ID,
 				value[2].ID,
 				value[3].ID,
+				value[4].ID,
 			})
+
+		// check that a source peer exists for the intention of the peered service
+		require.Equal(t, "peer1", value[3].SourcePeer)
 	})
 }
 
@@ -313,6 +349,105 @@ func TestIntentionCheck(t *testing.T) {
 	})
 }
 
+func TestIntentionGetExact_PeerIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	testutil.RunStep(t, "create a peer intentions", func(t *testing.T) {
+		configEntryIntention := structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "bar",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "foo",
+					Peer:   "peer1",
+					Action: structs.IntentionActionAllow,
+				},
+			},
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/config", jsonReader(configEntryIntention))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+
+		obj, err := a.srv.ConfigApply(resp, req)
+		require.NoError(t, err)
+
+		applied, ok := obj.(bool)
+		require.True(t, ok)
+		require.True(t, applied)
+	})
+
+	t.Run("get peer intention", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=peer:peer1/foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.NoError(t, err)
+		require.NotNil(t, obj)
+
+		value, ok := obj.(*structs.Intention)
+		require.True(t, ok)
+		require.Equal(t, "peer1", value.SourcePeer)
+		require.Equal(t, "foo", value.SourceName)
+		require.Equal(t, "bar", value.DestinationName)
+	})
+}
+func TestIntentionGetExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	hcl := `
+	bootstrap = false
+	bootstrap_expect = 2
+	server = true
+	`
+
+	a1 := NewTestAgent(t, hcl)
+	a2 := NewTestAgent(t, hcl)
+
+	_, err := a1.JoinLAN([]string{
+		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
+	}, nil)
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	run := func(t *testing.T, a *TestAgent) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/exact?source=foo&destination=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		testutil.RequireErrorContains(t, err, "Intention not found")
+		httpErr, ok := err.(HTTPError)
+		require.True(t, ok)
+		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+		require.Nil(t, obj)
+	}
+
+	// One of these will be the leader and the other will be a follower so we
+	// test direct RPC handling and RPC forwarding of errors at the same time.
+	for i, a := range []*TestAgent{a1, a2} {
+		t.Run(fmt.Sprintf("test agent %d of 2", i+1), func(t *testing.T) {
+			run(t, a)
+		})
+	}
+}
+
 func TestIntentionPutExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -482,7 +617,7 @@ func TestIntentionSpecificGet(t *testing.T) {
 		obj, err := a.srv.IntentionSpecific(resp, req)
 		require.Nil(t, obj)
 		require.Error(t, err)
-		require.IsType(t, BadRequestError{}, err)
+		require.True(t, isHTTPBadRequest(err))
 		require.Contains(t, err.Error(), "UUID")
 	})
 
@@ -744,6 +879,8 @@ func TestParseIntentionStringComponent(t *testing.T) {
 	cases := []struct {
 		TestName     string
 		Input        string
+		AllowsPeers  bool
+		ExpectedPeer string
 		ExpectedAP   string
 		ExpectedNS   string
 		ExpectedName string
@@ -782,20 +919,47 @@ func TestParseIntentionStringComponent(t *testing.T) {
 			Input:    "uhoh/blah/foo/bar",
 			Err:      true,
 		},
+		{
+			TestName:     "peered without namespace",
+			Input:        "peer:peer1/service_name",
+			AllowsPeers:  true,
+			ExpectedPeer: "peer1",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "service_name",
+		},
+		{
+			TestName: "need to specify at least a service",
+			Input:    "peer:peer1",
+			Err:      true,
+		},
+		{
+			TestName:    "peered not allowed error",
+			Input:       "peer:peer1/service_name",
+			AllowsPeers: false,
+			Err:         true,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.TestName, func(t *testing.T) {
-			var entMeta structs.EnterpriseMeta
-			ap, ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
+			var entMeta acl.EnterpriseMeta
+			parsed, err := parseIntentionStringComponent(tc.Input, &entMeta, tc.AllowsPeers)
 			if tc.Err {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 
-				assert.Equal(t, tc.ExpectedAP, ap)
-				assert.Equal(t, tc.ExpectedNS, ns)
-				assert.Equal(t, tc.ExpectedName, name)
+				if tc.AllowsPeers {
+					assert.Equal(t, tc.ExpectedPeer, parsed.peer)
+					assert.Equal(t, "", parsed.ap)
+				} else {
+					assert.Equal(t, tc.ExpectedAP, parsed.ap)
+					assert.Equal(t, "", parsed.peer)
+				}
+
+				assert.Equal(t, tc.ExpectedNS, parsed.ns)
+				assert.Equal(t, tc.ExpectedName, parsed.name)
 			}
 		})
 	}

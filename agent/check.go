@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -23,5 +24,5 @@ type persistedCheckState struct {
 	Output  string
 	Status  string
 	Expires int64
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }

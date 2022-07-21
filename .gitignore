@@ -6,12 +6,14 @@
 *.test
 .envrc
 .gotools
+.protobuf
 .vagrant/
 /pkg
 bin/
 changelog.tmp
 exit-code
 Thumbs.db
+.idea
 
 # MacOS
 .DS_Store

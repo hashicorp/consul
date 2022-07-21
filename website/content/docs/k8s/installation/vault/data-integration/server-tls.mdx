@@ -1,0 +1,206 @@
+---
+layout: docs
+page_title: Vault as the Server TLS Certificate Provider on Kubernetes
+description: >-
+  Configuring the Consul Helm chart to use TLS certificates issued by Vault for the Consul server.
+---
+
+# Vault as the Server TLS Certificate Provider on Kubernetes
+
+## Overview
+To use Vault as the server TLS certificate provider on Kubernetes, complete a modified version of the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section.
+
+Complete the following steps once:
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+
+Repeat the following steps for each datacenter in the cluster:
+  1. (Added) Configure allowed domains for PKI certificates
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Update the Consul on Kubernetes helm chart.
+
+## Prerequisites
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/installation/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+2. Read the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
+3. Complete the [Bootstrapping the PKI Engine](#bootstrapping-the-pki-engine) section.
+
+## Bootstrapping the PKI Engine
+
+Issue the following commands to enable and configure the PKI Secrets Engine to server
+TLS certificates to Consul.
+
+* Enable the PKI Secrets Engine:
+
+  ```shell-session
+  $ vault secrets enable pki
+  ```
+
+* Tune the engine to enable longer TTL:
+
+  ```shell-session
+  $ vault secrets tune -max-lease-ttl=87600h pki
+  ```
+
+* Generate the root CA:
+
+  -> **Note:** The `common_name` value is comprised of combining `global.datacenter` dot `global.domain`.
+
+  ```shell-session
+  $ vault write -field=certificate pki/root/generate/internal \
+          common_name="dc1.consul" \
+          ttl=87600h
+  ```
+## Create Vault policies
+To use Vault to issue Server TLS certificates, you will need to create the following:
+
+1. Create a policy that allows `["create", "update"]` access to the
+    [certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so the Consul servers can
+    fetch a new certificate/key pair.
+
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `server.serverCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
+
+    <CodeBlockConfig filename="consul-server-policy.hcl">
+
+    ```HCL
+    path "pki/issue/consul-server" {
+      capabilities = ["create", "update"]
+    }
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the Vault policy by issuing the `vault policy write` CLI command:
+
+    ```shell-session
+    $ vault policy write consul-server consul-server-policy.hcl
+    ```
+
+1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate),
+this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
+    
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.tls.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
+
+    <CodeBlockConfig filename="ca-policy.hcl">
+
+    ```HCL
+    path "pki/cert/ca" {
+      capabilities = ["read"]
+    }
+    ```
+
+    </CodeBlockConfig>
+
+    ```shell-session
+    $ vault policy write ca-policy ca-policy.hcl
+    ```
+
+1. Configure allowed domains for PKI certificates.
+
+    Next, a Vault role for the PKI engine will set the default certificate issuance parameters:
+
+    ```shell-session
+    $ vault write pki/roles/consul-server \
+        allowed_domains="<Allowed-domains-string>" \
+        allow_subdomains=true \
+        allow_bare_domains=true \
+        allow_localhost=true \
+        generate_lease=true \
+        max_ttl="720h"
+    ```
+
+    To generate the `<Allowed-domains-string>` use the following script as a template:
+
+    ```shell-session
+    #!/bin/sh
+
+    # NAME is set to either the value from `global.name` from your Consul K8s value file, or your $HELM_RELEASE_NAME-consul
+    export NAME=consulk8s
+    # NAMESPACE is where the Consul on Kubernetes is installed
+    export NAMESPACE=consul
+    # DATACENTER is the value of `global.datacenter` from your Helm values config file
+    export DATACENTER=dc1
+
+    echo allowed_domains=\"$DATACENTER.consul, $NAME-server, $NAME-server.$NAMESPACE, $NAME-server.$NAMESPACE.svc\"
+    ```
+
+1. Finally, Kubernetes auth roles need to be created for servers, clients, and components.
+
+    Role for Consul servers:
+    ```shell-session
+    $ vault write auth/kubernetes/role/consul-server \
+        bound_service_account_names=<Consul server service account> \
+        bound_service_account_namespaces=<Consul installation namespace> \
+        policies=consul-server \
+        ttl=1h
+    ```
+
+    To find out the service account name of the Consul server,
+    you can run:
+
+    ```shell-session
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul
+    ```
+
+    Role for Consul clients:
+
+    ```shell-session
+    $ vault write auth/kubernetes/role/consul-client \
+        bound_service_account_names=<Consul client service account>  \
+        bound_service_account_namespaces=default \
+        policies=ca-policy \
+        ttl=1h
+    ```
+
+    To find out the service account name of the Consul client, use the command below.
+    ```shell-session
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/client-serviceaccount.yaml hashicorp/consul
+    ```
+
+    Role for CA components:
+    ```shell-session
+    $ vault write auth/kubernetes/role/consul-ca \
+        bound_service_account_names="*" \
+        bound_service_account_namespaces=<Consul installation namespace> \
+        policies=ca-policy \
+        ttl=1h
+    ```
+
+    The above Vault Roles will now be your Helm values for `global.secretsBackend.vault.consulServerRole` and
+    `global.secretsBackend.vault.consulCARole` respectively.
+
+## Update Consul on Kubernetes Helm chart
+
+Next, configure the Consul Helm chart to
+use the server TLS certificates from Vault:
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+      consulCARole: consul-ca
+  tls:
+    enableAutoEncrypt: true
+    enabled: true
+    caCert:
+      secretName: "pki/cert/ca"
+server:
+  serverCert:
+    secretName: "pki/issue/consul-server"
+  extraVolumes:
+    - type: "secret"
+      name: <vaultCASecret>
+      load: "false"
+```
+
+</CodeBlockConfig>
+
+The `vaultCASecret` is the Kubernetes secret that stores the CA Certificate that is used for Vault communication. To provide a CA, you first need to create a Kubernetes secret containing the CA. For example, you may create a secret with the Vault CA like so:
+
+```shell-session
+$ kubectl create secret generic vault-ca --from-file vault.ca=/path/to/your/vault/
+```

@@ -8,6 +8,7 @@ import (
 //
 // This interface is typically implemented by request structures in
 // the agent/structs package.
+//go:generate mockery --name Request --inpackage
 type Request interface {
 	// CacheInfo returns information used for caching this request.
 	CacheInfo() RequestInfo
@@ -16,6 +17,9 @@ type Request interface {
 // RequestInfo represents cache information for a request. The caching
 // framework uses this to control the behavior of caching and to determine
 // cacheability.
+//
+// TODO(peering): finish ensuring everything that sets a Datacenter sets or doesn't set PeerName.
+// TODO(peering): also make sure the peer name is present in the cache key likely in lieu of the datacenter somehow.
 type RequestInfo struct {
 	// Key is a unique cache key for this request. This key should
 	// be globally unique to identify this request, since any conflicting
@@ -28,14 +32,17 @@ type RequestInfo struct {
 	//
 	// Datacenter is the datacenter that the request is targeting.
 	//
-	// Both of these values are used to partition the cache. The cache framework
+	// PeerName is the peer that the request is targeting.
+	//
+	// All of these values are used to partition the cache. The cache framework
 	// today partitions data on these values to simplify behavior: by
 	// partitioning ACL tokens, the cache doesn't need to be smart about
-	// filtering results. By filtering datacenter results, the cache can
-	// service the multi-DC nature of Consul. This comes at the expense of
+	// filtering results. By filtering datacenter/peer results, the cache can
+	// service the multi-DC/multi-peer nature of Consul. This comes at the expense of
 	// working set size, but in general the effect is minimal.
 	Token      string
 	Datacenter string
+	PeerName   string
 
 	// MinIndex is the minimum index being queried. This is used to
 	// determine if we already have data satisfying the query or if we need

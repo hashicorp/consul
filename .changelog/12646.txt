@@ -1,0 +1,3 @@
+```release-note:improvement
+metrics: The `consul.raft.boltdb.writeCapacity` metric was added and indicates a theoretical number of writes/second that can be performed to Consul.
+```

@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
 )
 
 // Recommended name for registration.
@@ -103,7 +105,7 @@ type ServiceHTTPChecksRequest struct {
 	ServiceID     string
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (s *ServiceHTTPChecksRequest) CacheInfo() cache.RequestInfo {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -46,41 +47,36 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromQuery,
-					writeIndex:  indexFromNode,
-					prefixIndex: prefixIndexFromQueryNoNamespace,
+				Indexer: indexerSingleWithPrefix[Query, *structs.Node, any]{
+					readIndex:   indexWithPeerName(indexFromQuery),
+					writeIndex:  indexWithPeerName(indexFromNode),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexUUID: {
 				Name:         indexUUID,
 				AllowMissing: true,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromUUIDQuery,
-					writeIndex:  indexIDFromNode,
-					prefixIndex: prefixIndexFromUUIDQuery,
+				Indexer: indexerSingleWithPrefix[Query, *structs.Node, Query]{
+					readIndex:   indexWithPeerName(indexFromUUIDQuery),
+					writeIndex:  indexWithPeerName(indexIDFromNode),
+					prefixIndex: prefixIndexFromUUIDWithPeerQuery,
 				},
 			},
 			indexMeta: {
 				Name:         indexMeta,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerMulti{
-					readIndex:       indexFromKeyValueQuery,
-					writeIndexMulti: indexMetaFromNode,
+				Indexer: indexerMulti[KeyValueQuery, *structs.Node]{
+					readIndex:       indexWithPeerName(indexFromKeyValueQuery),
+					writeIndexMulti: multiIndexWithPeerName(indexMetaFromNode),
 				},
 			},
 		},
 	}
 }
 
-func indexFromNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.Node)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
-	}
-
+func indexFromNode(n *structs.Node) ([]byte, error) {
 	if n.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -90,12 +86,7 @@ func indexFromNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexIDFromNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.Node)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
-	}
-
+func indexIDFromNode(n *structs.Node) ([]byte, error) {
 	if n.ID == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -108,12 +99,7 @@ func indexIDFromNode(raw interface{}) ([]byte, error) {
 	return v, nil
 }
 
-func indexMetaFromNode(raw interface{}) ([][]byte, error) {
-	n, ok := raw.(*structs.Node)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
-	}
-
+func indexMetaFromNode(n *structs.Node) ([][]byte, error) {
 	// NOTE: this is case-sensitive!
 
 	vals := make([][]byte, 0, len(n.Meta))
@@ -144,70 +130,60 @@ func servicesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromNodeServiceQuery,
-					writeIndex:  indexFromServiceNode,
-					prefixIndex: prefixIndexFromQuery,
+				Indexer: indexerSingleWithPrefix[NodeServiceQuery, *structs.ServiceNode, any]{
+					readIndex:   indexWithPeerName(indexFromNodeServiceQuery),
+					writeIndex:  indexWithPeerName(indexFromServiceNode),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexNode: {
 				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNodeIdentity,
+				Indexer: indexerSingle[Query, nodeIdentifier]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexFromNodeIdentity),
 				},
 			},
 			indexService: {
 				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexServiceNameFromServiceNode,
+				Indexer: indexerSingle[Query, *structs.ServiceNode]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexServiceNameFromServiceNode),
 				},
 			},
 			indexConnect: {
 				Name:         indexConnect,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexConnectNameFromServiceNode,
+				Indexer: indexerSingle[Query, *structs.ServiceNode]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexConnectNameFromServiceNode),
 				},
 			},
 			indexKind: {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexKindFromServiceNode,
+				Indexer: indexerSingle[Query, *structs.ServiceNode]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexKindFromServiceNode),
 				},
 			},
 		},
 	}
 }
 
-func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
-	q, ok := arg.(NodeServiceQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery index", arg)
-	}
-
+func indexFromNodeServiceQuery(q NodeServiceQuery) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(q.Node))
 	b.String(strings.ToLower(q.Service))
 	return b.Bytes(), nil
 }
 
-func indexFromServiceNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.ServiceNode)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
-	}
-
+func indexFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 	if n.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -218,14 +194,17 @@ func indexFromServiceNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
-	n, ok := raw.(interface {
-		NodeIdentity() structs.Identity
-	})
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for index, type must provide NodeIdentity()", raw)
-	}
+type nodeIdentifier interface {
+	partitionIndexable
+	peerIndexable
 
+	NodeIdentity() structs.Identity
+}
+
+var _ nodeIdentifier = (*structs.HealthCheck)(nil)
+var _ nodeIdentifier = (*structs.ServiceNode)(nil)
+
+func indexFromNodeIdentity(n nodeIdentifier) ([]byte, error) {
 	id := n.NodeIdentity()
 	if id.ID == "" {
 		return nil, errMissingValueForIndex
@@ -236,12 +215,7 @@ func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexServiceNameFromServiceNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.ServiceNode)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
-	}
-
+func indexServiceNameFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 	if n.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -251,12 +225,7 @@ func indexServiceNameFromServiceNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexConnectNameFromServiceNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.ServiceNode)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
-	}
-
+func indexConnectNameFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 	name, ok := connectNameFromServiceNode(n)
 	if !ok {
 		return nil, errMissingValueForIndex
@@ -283,15 +252,60 @@ func connectNameFromServiceNode(sn *structs.ServiceNode) (string, bool) {
 	}
 }
 
-func indexKindFromServiceNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.ServiceNode)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
-	}
-
+func indexKindFromServiceNode(n *structs.ServiceNode) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(string(n.ServiceKind)))
 	return b.Bytes(), nil
+}
+
+// indexWithPeerName adds peer name to the index.
+func indexWithPeerName[T peerIndexable](
+	fn func(T) ([]byte, error),
+) func(T) ([]byte, error) {
+	return func(e T) ([]byte, error) {
+		v, err := fn(e)
+		if err != nil {
+			return nil, err
+		}
+
+		peername := e.PeerOrEmpty()
+		if peername == "" {
+			peername = structs.LocalPeerKeyword
+		}
+		b := newIndexBuilder(len(v) + len(peername) + 1)
+		b.String(strings.ToLower(peername))
+		b.Raw(v)
+		return b.Bytes(), nil
+	}
+}
+
+// multiIndexWithPeerName adds peer name to multiple indices, and returns multiple indices.
+func multiIndexWithPeerName[T any](
+	fn func(T) ([][]byte, error),
+) func(T) ([][]byte, error) {
+	return func(raw T) ([][]byte, error) {
+		n, ok := any(raw).(peerIndexable)
+		if !ok {
+			return nil, fmt.Errorf("type must be peerIndexable: %T", raw)
+		}
+
+		results, err := fn(raw)
+		if err != nil {
+			return nil, err
+		}
+
+		peername := n.PeerOrEmpty()
+		if peername == "" {
+			peername = structs.LocalPeerKeyword
+		}
+		for i, v := range results {
+			b := newIndexBuilder(len(v) + len(peername) + 1)
+			b.String(strings.ToLower(peername))
+			b.Raw(v)
+			results[i] = b.Bytes()
+		}
+		return results, nil
+	}
 }
 
 // checksTableSchema returns a new table schema used for storing and indexing
@@ -305,74 +319,64 @@ func checksTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   indexFromNodeCheckQuery,
-					writeIndex:  indexFromHealthCheck,
-					prefixIndex: prefixIndexFromQuery,
+				Indexer: indexerSingleWithPrefix[NodeCheckQuery, *structs.HealthCheck, any]{
+					readIndex:   indexWithPeerName(indexFromNodeCheckQuery),
+					writeIndex:  indexWithPeerName(indexFromHealthCheck),
+					prefixIndex: prefixIndexFromQueryWithPeer,
 				},
 			},
 			indexStatus: {
 				Name:         indexStatus,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexStatusFromHealthCheck,
+				Indexer: indexerSingle[Query, *structs.HealthCheck]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexStatusFromHealthCheck),
 				},
 			},
 			indexService: {
 				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexServiceNameFromHealthCheck,
+				Indexer: indexerSingle[Query, *structs.HealthCheck]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexServiceNameFromHealthCheck),
 				},
 			},
 			indexNode: {
 				Name:         indexNode,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNodeIdentity,
+				Indexer: indexerSingle[Query, nodeIdentifier]{
+					readIndex:  indexWithPeerName(indexFromQuery),
+					writeIndex: indexWithPeerName(indexFromNodeIdentity),
 				},
 			},
 			indexNodeService: {
 				Name:         indexNodeService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromNodeServiceQuery,
-					writeIndex: indexNodeServiceFromHealthCheck,
+				Indexer: indexerSingle[NodeServiceQuery, *structs.HealthCheck]{
+					readIndex:  indexWithPeerName(indexFromNodeServiceQuery),
+					writeIndex: indexWithPeerName(indexNodeServiceFromHealthCheck),
 				},
 			},
 		},
 	}
 }
 
-func indexFromNodeCheckQuery(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(NodeCheckQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for NodeCheckQuery index", raw)
-	}
-
-	if hc.Node == "" || hc.CheckID == "" {
+func indexFromNodeCheckQuery(q NodeCheckQuery) ([]byte, error) {
+	if q.Node == "" || q.CheckID == "" {
 		return nil, errMissingValueForIndex
 	}
 
 	var b indexBuilder
-	b.String(strings.ToLower(hc.Node))
-	b.String(strings.ToLower(hc.CheckID))
+	b.String(strings.ToLower(q.Node))
+	b.String(strings.ToLower(q.CheckID))
 	return b.Bytes(), nil
 }
 
-func indexFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
+func indexFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	if hc.Node == "" || hc.CheckID == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -383,12 +387,7 @@ func indexFromHealthCheck(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
+func indexNodeServiceFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	if hc.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -399,12 +398,7 @@ func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexStatusFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
+func indexStatusFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	if hc.Status == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -414,12 +408,7 @@ func indexStatusFromHealthCheck(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexServiceNameFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
+func indexServiceNameFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	if hc.ServiceName == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -587,9 +576,18 @@ type upstreamDownstream struct {
 
 // NodeCheckQuery is used to query the ID index of the checks table.
 type NodeCheckQuery struct {
-	Node    string
-	CheckID string
-	structs.EnterpriseMeta
+	Node     string
+	CheckID  string
+	PeerName string
+	acl.EnterpriseMeta
+}
+
+type peerIndexable interface {
+	PeerOrEmpty() string
+}
+
+func (q NodeCheckQuery) PeerOrEmpty() string {
+	return q.PeerName
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -607,8 +605,10 @@ func (q NodeCheckQuery) PartitionOrDefault() string {
 // ServiceVirtualIP is used to store a virtual IP associated with a service.
 // It is also used to store assigned virtual IPs when a snapshot is created.
 type ServiceVirtualIP struct {
-	Service structs.ServiceName
+	Service structs.PeeredServiceName
 	IP      net.IP
+
+	structs.RaftIndex
 }
 
 // FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
@@ -633,12 +633,22 @@ func serviceVirtualIPTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &ServiceNameIndex{
-					Field: "Service",
+				Indexer: indexerSingleWithPrefix[structs.PeeredServiceName, ServiceVirtualIP, Query]{
+					readIndex:  indexFromPeeredServiceName,
+					writeIndex: indexFromServiceVirtualIP,
+					// Read all peers in a cluster / partition
+					prefixIndex: prefixIndexFromQueryWithPeerWildcardable,
 				},
 			},
 		},
 	}
+}
+
+func indexFromServiceVirtualIP(vip ServiceVirtualIP) ([]byte, error) {
+	if vip.Service.ServiceName.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+	return indexFromPeeredServiceName(vip.Service)
 }
 
 func freeVirtualIPTableSchema() *memdb.TableSchema {
@@ -679,7 +689,16 @@ type KindServiceName struct {
 	structs.RaftIndex
 }
 
+func (n *KindServiceName) PartitionOrDefault() string {
+	return n.Service.PartitionOrDefault()
+}
+
+func (n *KindServiceName) NamespaceOrDefault() string {
+	return n.Service.NamespaceOrDefault()
+}
+
 func kindServiceNameTableSchema() *memdb.TableSchema {
+	// TODO(peering): make this peer-aware
 	return &memdb.TableSchema{
 		Name: tableKindServiceNames,
 		Indexes: map[string]*memdb.IndexSchema{
@@ -687,16 +706,16 @@ func kindServiceNameTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[any, any]{
 					readIndex:  indexFromKindServiceName,
 					writeIndex: indexFromKindServiceName,
 				},
 			},
-			indexKindOnly: {
-				Name:         indexKindOnly,
+			indexKind: {
+				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[enterpriseIndexable, enterpriseIndexable]{
 					readIndex:  indexFromKindServiceNameKindOnly,
 					writeIndex: indexFromKindServiceNameKindOnly,
 				},
@@ -709,7 +728,7 @@ func kindServiceNameTableSchema() *memdb.TableSchema {
 type KindServiceNameQuery struct {
 	Kind structs.ServiceKind
 	Name string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
@@ -724,27 +743,27 @@ func (q KindServiceNameQuery) PartitionOrDefault() string {
 	return q.EnterpriseMeta.PartitionOrDefault()
 }
 
-func indexFromKindServiceNameKindOnly(raw interface{}) ([]byte, error) {
+func indexFromKindServiceNameKindOnly(raw enterpriseIndexable) ([]byte, error) {
 	switch x := raw.(type) {
 	case *KindServiceName:
 		var b indexBuilder
 		b.String(strings.ToLower(string(x.Kind)))
 		return b.Bytes(), nil
 
-	case structs.ServiceKind:
+	case Query:
 		var b indexBuilder
-		b.String(strings.ToLower(string(x)))
+		b.String(strings.ToLower(x.Value))
 		return b.Bytes(), nil
 
 	default:
-		return nil, fmt.Errorf("type must be *KindServiceName or structs.ServiceKind: %T", raw)
+		return nil, fmt.Errorf("type must be *KindServiceName or Query: %T", raw)
 	}
 }
 
-func kindServiceNamesMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind) uint64 {
+func kindServiceNamesMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind string) uint64 {
 	return maxIndexWatchTxn(tx, ws, kindServiceNameIndexName(kind))
 }
 
-func kindServiceNameIndexName(kind structs.ServiceKind) string {
-	return "kind_service_names." + kind.Normalized()
+func kindServiceNameIndexName(kind string) string {
+	return "kind_service_names." + kind
 }

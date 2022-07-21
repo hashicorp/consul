@@ -1,15 +1,9 @@
 @keyframes icon-video-off {
-  50% {
-
-    background-color: var(--icon-color, var(--color-video-off-500, currentColor));
-    -webkit-mask-image: var(--icon-video-off-24);
-    mask-image: var(--icon-video-off-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-video-off-500, currentColor));
     -webkit-mask-image: var(--icon-video-off-16);
     mask-image: var(--icon-video-off-16);
+    background-color: var(--icon-color, var(--color-video-off-500, currentColor));
+
   }
 }

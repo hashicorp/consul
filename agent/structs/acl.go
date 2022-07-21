@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/consul/acl"
@@ -99,9 +101,8 @@ type ACLIdentity interface {
 	NodeIdentityList() []*ACLNodeIdentity
 	IsExpired(asOf time.Time) bool
 	IsLocal() bool
-	EnterpriseMetadata() *EnterpriseMeta
+	EnterpriseMetadata() *acl.EnterpriseMeta
 }
-
 type ACLTokenPolicyLink struct {
 	ID   string
 	Name string `hash:"ignore"`
@@ -128,7 +129,7 @@ type ACLServiceIdentity struct {
 
 func (s *ACLServiceIdentity) Clone() *ACLServiceIdentity {
 	s2 := *s
-	s2.Datacenters = CloneStringSlice(s.Datacenters)
+	s2.Datacenters = stringslice.CloneStringSlice(s.Datacenters)
 	return &s2
 }
 
@@ -147,7 +148,7 @@ func (s *ACLServiceIdentity) EstimateSize() int {
 	return size
 }
 
-func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
+func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
 	// Given that we validate this string name before persisting, we do not
 	// have to escape it before doing the following interpolation.
 	rules := aclServiceIdentityRules(s.ServiceName, entMeta)
@@ -158,13 +159,42 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy
 	policy := &ACLPolicy{}
 	policy.ID = hashID
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = "synthetic policy"
+	sn := NewServiceName(s.ServiceName, entMeta)
+	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
 	return policy
+}
+
+type ACLServiceIdentities []*ACLServiceIdentity
+
+// Deduplicate returns a new list of service identities without duplicates.
+// Identities with the same ServiceName but different datacenters will be
+// merged into a single identity with all datacenters.
+func (ids ACLServiceIdentities) Deduplicate() ACLServiceIdentities {
+	unique := make(map[string]*ACLServiceIdentity)
+
+	for _, id := range ids {
+		entry, ok := unique[id.ServiceName]
+		if ok {
+			dcs := stringslice.CloneStringSlice(id.Datacenters)
+			sort.Strings(dcs)
+			entry.Datacenters = stringslice.MergeSorted(dcs, entry.Datacenters)
+		} else {
+			entry = id.Clone()
+			sort.Strings(entry.Datacenters)
+			unique[id.ServiceName] = entry
+		}
+	}
+
+	results := make(ACLServiceIdentities, 0, len(unique))
+	for _, id := range unique {
+		results = append(results, id)
+	}
+	return results
 }
 
 // ACLNodeIdentity represents a high-level grant of all privileges
@@ -191,7 +221,7 @@ func (s *ACLNodeIdentity) EstimateSize() int {
 	return len(s.NodeName) + len(s.Datacenter)
 }
 
-func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
+func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
 	// Given that we validate this string name before persisting, we do not
 	// have to escape it before doing the following interpolation.
 	rules := aclNodeIdentityRules(s.NodeName, entMeta)
@@ -202,13 +232,34 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
 	policy := &ACLPolicy{}
 	policy.ID = hashID
 	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = "synthetic policy"
+	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
 	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
 	return policy
+}
+
+type ACLNodeIdentities []*ACLNodeIdentity
+
+// Deduplicate returns a new list of node identities without duplicates.
+func (ids ACLNodeIdentities) Deduplicate() ACLNodeIdentities {
+	type mapKey struct {
+		nodeName, datacenter string
+	}
+	seen := make(map[mapKey]struct{})
+
+	var results ACLNodeIdentities
+	for _, id := range ids {
+		key := mapKey{id.NodeName, id.Datacenter}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		results = append(results, id.Clone())
+		seen[key] = struct{}{}
+	}
+	return results
 }
 
 type ACLToken struct {
@@ -232,10 +283,10 @@ type ACLToken struct {
 	Roles []ACLTokenRoleLink `json:",omitempty"`
 
 	// List of services to generate synthetic policies for.
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
 
 	// The node identities that this token should be allowed to manage.
-	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
+	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
 	// Type is the V1 Token Type
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
@@ -286,7 +337,7 @@ type ACLToken struct {
 	Hash []byte
 
 	// Embedded Enterprise Metadata
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 
 	// Embedded Raft Metadata
 	RaftIndex
@@ -412,7 +463,7 @@ func (t *ACLToken) HasExpirationTime() bool {
 	return t.ExpirationTime != nil && !t.ExpirationTime.IsZero()
 }
 
-func (t *ACLToken) EnterpriseMetadata() *EnterpriseMeta {
+func (t *ACLToken) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return &t.EnterpriseMeta
 }
 
@@ -459,7 +510,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			nodeID.AddToHash(hash)
 		}
 
-		t.EnterpriseMeta.addToHash(hash, false)
+		t.EnterpriseMeta.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -485,7 +536,7 @@ func (t *ACLToken) EstimateSize() int {
 	for _, nodeID := range t.NodeIdentities {
 		size += nodeID.EstimateSize()
 	}
-	return size + t.EnterpriseMeta.estimateSize()
+	return size + t.EnterpriseMeta.EstimateSize()
 }
 
 // ACLTokens is a slice of ACLTokens.
@@ -495,10 +546,10 @@ type ACLTokenListStub struct {
 	AccessorID        string
 	SecretID          string
 	Description       string
-	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
-	Roles             []ACLTokenRoleLink    `json:",omitempty"`
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
-	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	Policies          []ACLTokenPolicyLink `json:",omitempty"`
+	Roles             []ACLTokenRoleLink   `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
+	NodeIdentities    ACLNodeIdentities    `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -507,7 +558,7 @@ type ACLTokenListStub struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
 	Legacy            bool `json:",omitempty"`
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	ACLAuthMethodEnterpriseMeta
 }
 
@@ -580,7 +631,7 @@ type ACLPolicy struct {
 	Hash []byte
 
 	// Embedded Enterprise ACL Metadata
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
@@ -606,7 +657,7 @@ func (t *ACLPolicy) UnmarshalJSON(data []byte) error {
 
 func (p *ACLPolicy) Clone() *ACLPolicy {
 	p2 := *p
-	p2.Datacenters = CloneStringSlice(p.Datacenters)
+	p2.Datacenters = stringslice.CloneStringSlice(p.Datacenters)
 	return &p2
 }
 
@@ -618,7 +669,7 @@ type ACLPolicyListStub struct {
 	Hash        []byte
 	CreateIndex uint64
 	ModifyIndex uint64
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (p *ACLPolicy) Stub() *ACLPolicyListStub {
@@ -661,7 +712,7 @@ func (p *ACLPolicy) SetHash(force bool) []byte {
 			hash.Write([]byte(dc))
 		}
 
-		p.EnterpriseMeta.addToHash(hash, false)
+		p.EnterpriseMeta.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -682,7 +733,7 @@ func (p *ACLPolicy) EstimateSize() int {
 		size += len(dc)
 	}
 
-	return size + p.EnterpriseMeta.estimateSize()
+	return size + p.EnterpriseMeta.EstimateSize()
 }
 
 // HashKey returns a consistent hash for a set of policies.
@@ -806,10 +857,10 @@ type ACLRole struct {
 	Policies []ACLRolePolicyLink `json:",omitempty"`
 
 	// List of services to generate synthetic policies for.
-	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
 
 	// List of nodes to generate synthetic policies for.
-	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
+	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
 	// Hash of the contents of the role
 	// This does not take into account the ID (which is immutable)
@@ -821,7 +872,7 @@ type ACLRole struct {
 	Hash []byte
 
 	// Embedded Enterprise ACL metadata
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
@@ -899,7 +950,7 @@ func (r *ACLRole) SetHash(force bool) []byte {
 			nodeID.AddToHash(hash)
 		}
 
-		r.EnterpriseMeta.addToHash(hash, false)
+		r.EnterpriseMeta.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -926,7 +977,7 @@ func (r *ACLRole) EstimateSize() int {
 		size += nodeID.EstimateSize()
 	}
 
-	return size + r.EnterpriseMeta.estimateSize()
+	return size + r.EnterpriseMeta.EstimateSize()
 }
 
 const (
@@ -1002,7 +1053,7 @@ type ACLBindingRule struct {
 	BindName string
 
 	// Embedded Enterprise ACL metadata
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
@@ -1031,7 +1082,7 @@ type ACLAuthMethodListStub struct {
 	TokenLocality string        `json:",omitempty"`
 	CreateIndex   uint64
 	ModifyIndex   uint64
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
@@ -1115,7 +1166,7 @@ type ACLAuthMethod struct {
 	Config map[string]interface{}
 
 	// Embedded Enterprise ACL Meta
-	EnterpriseMeta `mapstructure:",squash"`
+	acl.EnterpriseMeta `mapstructure:",squash"`
 
 	ACLAuthMethodEnterpriseFields `mapstructure:",squash"`
 
@@ -1217,8 +1268,9 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 type ACLTokenGetRequest struct {
 	TokenID     string         // id used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
-	Datacenter  string         // The datacenter to perform the request within
-	EnterpriseMeta
+	Expanded    bool
+	Datacenter  string // The datacenter to perform the request within
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1230,7 +1282,7 @@ func (r *ACLTokenGetRequest) RequestDatacenter() string {
 type ACLTokenDeleteRequest struct {
 	TokenID    string // ID of the token to delete
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	WriteRequest
 }
 
@@ -1247,7 +1299,7 @@ type ACLTokenListRequest struct {
 	AuthMethod    string // Auth Method filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1313,7 +1365,26 @@ type ACLTokenResponse struct {
 	Token            *ACLToken
 	Redacted         bool // whether the token's secret was redacted
 	SourceDatacenter string
+
+	ExpandedTokenInfo
 	QueryMeta
+}
+
+type ExpandedTokenInfo struct {
+	ExpandedPolicies []*ACLPolicy
+	ExpandedRoles    []*ACLRole
+
+	NamespaceDefaultPolicyIDs []string
+	NamespaceDefaultRoleIDs   []string
+
+	AgentACLDefaultPolicy string
+	AgentACLDownPolicy    string
+	ResolvedByAgent       string
+}
+
+type ACLTokenExpanded struct {
+	*ACLToken
+	ExpandedTokenInfo
 }
 
 // ACLTokenBatchResponse returns multiple Tokens associated with the same metadata
@@ -1339,7 +1410,7 @@ func (r *ACLPolicySetRequest) RequestDatacenter() string {
 type ACLPolicyDeleteRequest struct {
 	PolicyID   string // The id of the policy to delete
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	WriteRequest
 }
 
@@ -1352,7 +1423,7 @@ type ACLPolicyGetRequest struct {
 	PolicyID   string // id used for the policy lookup (one of PolicyID or PolicyName is allowed)
 	PolicyName string // name used for the policy lookup (one of PolicyID or PolicyName is allowed)
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1363,7 +1434,7 @@ func (r *ACLPolicyGetRequest) RequestDatacenter() string {
 // ACLPolicyListRequest is used at the RPC layer to request a listing of policies
 type ACLPolicyListRequest struct {
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1415,15 +1486,6 @@ type ACLPolicyBatchDeleteRequest struct {
 	PolicyIDs []string
 }
 
-func CloneStringSlice(s []string) []string {
-	if len(s) == 0 {
-		return nil
-	}
-	out := make([]string, len(s))
-	copy(out, s)
-	return out
-}
-
 // ACLRoleSetRequest is used at the RPC layer for creation and update requests
 type ACLRoleSetRequest struct {
 	Role       ACLRole // The role to upsert
@@ -1439,7 +1501,7 @@ func (r *ACLRoleSetRequest) RequestDatacenter() string {
 type ACLRoleDeleteRequest struct {
 	RoleID     string // id of the role to delete
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	WriteRequest
 }
 
@@ -1452,7 +1514,7 @@ type ACLRoleGetRequest struct {
 	RoleID     string // id used for the role lookup (one of RoleID or RoleName is allowed)
 	RoleName   string // name used for the role lookup (one of RoleID or RoleName is allowed)
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1464,7 +1526,7 @@ func (r *ACLRoleGetRequest) RequestDatacenter() string {
 type ACLRoleListRequest struct {
 	Policy     string // Policy filter
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1532,7 +1594,7 @@ func (r *ACLBindingRuleSetRequest) RequestDatacenter() string {
 type ACLBindingRuleDeleteRequest struct {
 	BindingRuleID string // id of the rule to delete
 	Datacenter    string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	WriteRequest
 }
 
@@ -1544,7 +1606,7 @@ func (r *ACLBindingRuleDeleteRequest) RequestDatacenter() string {
 type ACLBindingRuleGetRequest struct {
 	BindingRuleID string // id used for the rule lookup
 	Datacenter    string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1556,7 +1618,7 @@ func (r *ACLBindingRuleGetRequest) RequestDatacenter() string {
 type ACLBindingRuleListRequest struct {
 	AuthMethod string // optional filter
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1602,7 +1664,7 @@ func (r *ACLAuthMethodSetRequest) RequestDatacenter() string {
 type ACLAuthMethodDeleteRequest struct {
 	AuthMethodName string // name of the auth method to delete
 	Datacenter     string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	WriteRequest
 }
 
@@ -1614,7 +1676,7 @@ func (r *ACLAuthMethodDeleteRequest) RequestDatacenter() string {
 type ACLAuthMethodGetRequest struct {
 	AuthMethodName string // name used for the auth method lookup
 	Datacenter     string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1625,7 +1687,7 @@ func (r *ACLAuthMethodGetRequest) RequestDatacenter() string {
 // ACLAuthMethodListRequest is used at the RPC layer to request a listing of auth methods
 type ACLAuthMethodListRequest struct {
 	Datacenter string // The datacenter to perform the request within
-	EnterpriseMeta
+	acl.EnterpriseMeta
 	QueryOptions
 }
 
@@ -1659,14 +1721,14 @@ type ACLAuthMethodBatchDeleteRequest struct {
 	// delete a single entry. This is because AuthMethods unlike tokens, policies
 	// and roles are not replicated between datacenters and therefore never
 	// batch applied.
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 type ACLLoginParams struct {
 	AuthMethod  string
 	BearerToken string
 	Meta        map[string]string `json:",omitempty"`
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 type ACLLoginRequest struct {
@@ -1698,7 +1760,7 @@ type ACLAuthorizationRequest struct {
 	Resource acl.Resource
 	Segment  string `json:",omitempty"`
 	Access   string
-	EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 type ACLAuthorizationResponse struct {
@@ -1772,6 +1834,6 @@ func (id *AgentRecoveryTokenIdentity) IsLocal() bool {
 	return true
 }
 
-func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
+func (id *AgentRecoveryTokenIdentity) EnterpriseMetadata() *acl.EnterpriseMeta {
 	return nil
 }

@@ -34,8 +34,14 @@ type Store struct {
 	idleTTL time.Duration
 }
 
+// A Materializer maintains a materialized view of a subscription on an event stream.
+type Materializer interface {
+	Run(ctx context.Context)
+	Query(ctx context.Context, minIndex uint64) (Result, error)
+}
+
 type entry struct {
-	materializer *Materializer
+	materializer Materializer
 	expiry       *ttlcache.Entry
 	stop         func()
 	// requests is the count of active requests using this entry. This entry will
@@ -100,7 +106,7 @@ type Request interface {
 	// NewMaterializer will be called if there is no active materializer to fulfil
 	// the request. It should return a Materializer appropriate for streaming
 	// data to fulfil this request.
-	NewMaterializer() (*Materializer, error)
+	NewMaterializer() (Materializer, error)
 	// Type should return a string which uniquely identifies this type of request.
 	// The returned value is used as the prefix of the key used to index
 	// entries in the Store.
@@ -124,7 +130,7 @@ func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 		defer cancel()
 	}
 
-	result, err := materializer.getFromView(ctx, info.MinIndex)
+	result, err := materializer.Query(ctx, info.MinIndex)
 	// context.DeadlineExceeded is translated to nil to match the timeout
 	// behaviour of agent/cache.Cache.Get.
 	if err == nil || errors.Is(err, context.DeadlineExceeded) {
@@ -144,6 +150,23 @@ func (s *Store) Notify(
 	correlationID string,
 	updateCh chan<- cache.UpdateEvent,
 ) error {
+	return s.NotifyCallback(ctx, req, correlationID, func(ctx context.Context, event cache.UpdateEvent) {
+		select {
+		case updateCh <- event:
+		case <-ctx.Done():
+			return
+		}
+	})
+}
+
+// NotifyCallback subscribes to updates of the entry identified by req in the
+// same way as Notify, but accepts a callback function instead of a channel.
+func (s *Store) NotifyCallback(
+	ctx context.Context,
+	req Request,
+	correlationID string,
+	cb cache.Callback,
+) error {
 	info := req.CacheInfo()
 	key, materializer, err := s.readEntry(req)
 	if err != nil {
@@ -155,7 +178,7 @@ func (s *Store) Notify(
 
 		index := info.MinIndex
 		for {
-			result, err := materializer.getFromView(ctx, index)
+			result, err := materializer.Query(ctx, index)
 			switch {
 			case ctx.Err() != nil:
 				return
@@ -168,16 +191,11 @@ func (s *Store) Notify(
 			}
 
 			index = result.Index
-			u := cache.UpdateEvent{
+			cb(ctx, cache.UpdateEvent{
 				CorrelationID: correlationID,
 				Result:        result.Value,
 				Meta:          cache.ResultMeta{Index: result.Index, Hit: result.Cached},
-			}
-			select {
-			case updateCh <- u:
-			case <-ctx.Done():
-				return
-			}
+			})
 		}
 	}()
 	return nil
@@ -185,7 +203,7 @@ func (s *Store) Notify(
 
 // readEntry from the store, and increment the requests counter. releaseEntry
 // must be called when the request is finished to decrement the counter.
-func (s *Store) readEntry(req Request) (string, *Materializer, error) {
+func (s *Store) readEntry(req Request) (string, Materializer, error) {
 	info := req.CacheInfo()
 	key := makeEntryKey(req.Type(), info)
 

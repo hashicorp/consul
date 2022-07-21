@@ -6,9 +6,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type Cache interface {
@@ -62,7 +64,7 @@ type Identity struct {
 	// in a bind name within a binding rule.
 	ProjectedVars map[string]string
 
-	*structs.EnterpriseMeta
+	*acl.EnterpriseMeta
 }
 
 // ProjectedVarNames returns just the keyspace of the ProjectedVars map.

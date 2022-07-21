@@ -11,7 +11,7 @@ description: >-
 
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
-~> This topic is part of a [low-level API](/api/discovery-chain)
+~> This topic is part of a [low-level API](/api-docs/discovery-chain)
 primarily targeted at developers building external [Connect proxy
 integrations](/docs/connect/proxies/integrate).
 
@@ -74,7 +74,7 @@ discovery chain, we first compile them into a form more directly usable by the
 layers responsible for configuring Connect sidecar proxies.
 
 You can interact with the compiler directly using the [discovery-chain
-API](/api/discovery-chain).
+API](/api-docs/discovery-chain).
 
 ### Compilation Parameters
 
@@ -102,7 +102,7 @@ The response is a single wrapped `CompiledDiscoveryChain` field:
 The chain encodes a digraph of [nodes](#discoverygraphnode) and
 [targets](#discoverytarget). Nodes are the compiled representation of various
 discovery chain stages and targets are instructions on how to use the [health
-API](/api/health#list-nodes-for-connect-capable-service) to retrieve
+API](/api-docs/health#list-nodes-for-connect-capable-service) to retrieve
 relevant service instance lists.
 
 You should traverse the nodes starting with [`StartNode`](#startnode). The
@@ -121,8 +121,14 @@ resolved by name using the [`Targets`](#targets) field.
   balancer data plane objects to avoid sharing customized and non-customized
   versions.
 
+- `Default` `(bool: <optional>)` -  Indicates if this discovery chain is based on no
+   `service-resolver`, `service-splitter`, or `service-router` config entries.
+
 - `Protocol` `(string)` - The overall protocol shared by everything in the
   chain.
+
+- `ServiceMeta` `(map<string|string>)` - The metadata from the underlying `service-defaults` config
+   entry for the service named `ServiceName`.
 
 - `StartNode` `(string)` - The first key into the `Nodes` map that should be
   followed when traversing the discovery chain.
@@ -213,7 +219,7 @@ A single node in the compiled discovery chain.
   definition for this target.
 
   - `Filter` `(string: "")` - The
-    [filter expression](/api/features/filtering) to be used for selecting
+    [filter expression](/api-docs/features/filtering) to be used for selecting
     instances of the requested service. If empty all healthy instances are
     returned.
 
@@ -230,6 +236,10 @@ A single node in the compiled discovery chain.
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
 
 - `External` `(bool: false)` - True if this target is outside of this consul cluster.
+
+- `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
+  [`ConnectTimeout`](/docs/connect/config-entries/service-resolver#connecttimeout)
+  field. If one is not defined the default of `5s` is returned.
 
 - `SNI` `(string)` - This value should be used as the
   [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value when

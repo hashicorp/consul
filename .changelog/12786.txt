@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Added support for AWS IAM Auth Methods
+```

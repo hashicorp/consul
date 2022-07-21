@@ -13,7 +13,7 @@ import (
 // EnterpriseACLResolverDelegate stub
 type EnterpriseACLResolverDelegate interface{}
 
-func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
+func (s *Server) replicationEnterpriseMeta() *acl.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
@@ -48,4 +48,4 @@ func (_ *ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.AC
 	return nil, nil, false
 }
 
-func setEnterpriseConf(entMeta *structs.EnterpriseMeta, conf *acl.Config) {}
+func setEnterpriseConf(entMeta *acl.EnterpriseMeta, conf *acl.Config) {}

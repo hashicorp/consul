@@ -1,0 +1,3 @@
+```release-note:feature
+config: automatically reload config when a file changes using the `auto-reload-config` CLI flag or `auto_reload_config` config option.
+```

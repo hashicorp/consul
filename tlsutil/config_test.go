@@ -7,9 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestConfigurator_IncomingConfig_Common(t *testing.T) {
@@ -46,7 +47,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			t.Run("MinTLSVersion", func(t *testing.T) {
 				cfg := ProtocolConfig{
-					TLSMinVersion: "tls13",
+					TLSMinVersion: "TLSv1_3",
 					CertFile:      "../test/hostname/Alice.crt",
 					KeyFile:       "../test/hostname/Alice.key",
 				}
@@ -69,7 +70,7 @@ func TestConfigurator_IncomingConfig_Common(t *testing.T) {
 
 			t.Run("CipherSuites", func(t *testing.T) {
 				cfg := ProtocolConfig{
-					CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
+					CipherSuites: []types.TLSCipherSuite{types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
 					CertFile:     "../test/hostname/Alice.crt",
 					KeyFile:      "../test/hostname/Alice.key",
 				}
@@ -760,45 +761,6 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 	<-errc
 }
 
-func TestConfig_ParseCiphers(t *testing.T) {
-	testOk := strings.Join([]string{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-	}, ",")
-	ciphers := []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
-	v, err := ParseCiphers(testOk)
-	require.NoError(t, err)
-	if got, want := v, ciphers; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got ciphers %#v want %#v", got, want)
-	}
-
-	_, err = ParseCiphers("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX")
-	require.Error(t, err)
-
-	v, err = ParseCiphers("")
-	require.NoError(t, err)
-	require.Equal(t, []uint16{}, v)
-}
-
 func TestLoadKeyPair(t *testing.T) {
 	type variant struct {
 		cert, key string
@@ -866,14 +828,6 @@ func TestConfigurator_Validation(t *testing.T) {
 		}
 
 		testCases := map[string]testCase{
-			"invalid TLSMinVersion": {
-				ProtocolConfig{TLSMinVersion: "tls9"},
-				false,
-			},
-			"default TLSMinVersion": {
-				ProtocolConfig{TLSMinVersion: ""},
-				true,
-			},
 			"invalid CAFile": {
 				ProtocolConfig{CAFile: "bogus"},
 				false,
@@ -986,13 +940,6 @@ func TestConfigurator_Validation(t *testing.T) {
 			},
 		}
 
-		for _, v := range tlsVersions() {
-			testCases[fmt.Sprintf("MinTLSVersion(%s)", v)] = testCase{
-				ProtocolConfig{TLSMinVersion: v},
-				true,
-			}
-		}
-
 		for desc, tc := range testCases {
 			for _, p := range []string{"internal", "grpc", "https"} {
 				info := fmt.Sprintf("%s => %s", p, desc)
@@ -1073,15 +1020,16 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		shouldErr      bool
 		isNil          bool
 		count          int
+		expectedCaPool *x509.CertPool
 	}
 	variants := []variant{
-		{"", "", false, true, 0},
-		{"bogus", "", true, true, 0},
-		{"", "bogus", true, true, 0},
-		{"", "../test/bin", true, true, 0},
-		{"../test/ca/root.cer", "", false, false, 1},
-		{"", "../test/ca_path", false, false, 2},
-		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
+		{"", "", false, true, 0, nil},
+		{"bogus", "", true, true, 0, nil},
+		{"", "bogus", true, true, 0, nil},
+		{"", "../test/bin", true, true, 0, nil},
+		{"../test/ca/root.cer", "", false, false, 1, getExpectedCaPoolByFile(t)},
+		{"", "../test/ca_path", false, false, 2, getExpectedCaPoolByDir(t)},
+		{"../test/ca/root.cer", "../test/ca_path", false, false, 1, getExpectedCaPoolByFile(t)},
 	}
 	for i, v := range variants {
 		pems, err1 := LoadCAs(v.cafile, v.capath)
@@ -1100,7 +1048,7 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 		} else {
 			require.NotEmpty(t, pems, info)
 			require.NotNil(t, pool, info)
-			require.Len(t, pool.Subjects(), v.count, info)
+			assertDeepEqual(t, v.expectedCaPool, pool, cmpCertPool)
 			require.Len(t, pems, v.count, info)
 		}
 	}
@@ -1229,7 +1177,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 				}, nil)
@@ -1242,7 +1190,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
@@ -1257,7 +1205,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
@@ -1275,7 +1223,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
@@ -1292,7 +1240,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					NodeName:                "nodename",
@@ -1310,7 +1258,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
-						TLSMinVersion: "tls12",
+						TLSMinVersion: types.TLSv1_2,
 					},
 					EnableAgentTLSForChecks: true,
 					ServerName:              "servername",
@@ -1380,7 +1328,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4803632738), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
@@ -1517,12 +1465,6 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 	})
 }
 
-func TestConfig_tlsVersions(t *testing.T) {
-	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	expected := "tls10, tls11, tls12, tls13"
-	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
-}
-
 func TestConfigurator_GRPCTLSConfigured(t *testing.T) {
 	t.Run("certificate manually configured", func(t *testing.T) {
 		c := makeConfigurator(t, Config{
@@ -1630,4 +1572,52 @@ func loadFile(t *testing.T, path string) string {
 	data, err := ioutil.ReadFile(path)
 	require.NoError(t, err)
 	return string(data)
+}
+
+func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	if err != nil {
+		t.Fatal("could not open test file ../test/ca/root.cer for reading")
+	}
+	if !pool.AppendCertsFromPEM(data) {
+		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
+	}
+	return pool
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	if err != nil {
+		t.Fatal("could not open test dir ../test/ca_path for reading")
+	}
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			t.Fatalf("could not open test file %s for reading", filename)
+		}
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

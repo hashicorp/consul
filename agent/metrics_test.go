@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -9,12 +10,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-
-	"github.com/stretchr/testify/require"
 )
 
 func skipIfShortTesting(t *testing.T) {
@@ -43,6 +47,82 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
+// assertMetricExistsWithLabels looks in the prometheus metrics reponse for the metric name and all the labels. eg:
+// new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
+func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	if !strings.Contains(respRec.Body.String(), metric) {
+		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
+	}
+
+	foundAllLabels := false
+	metrics := respRec.Body.String()
+	for _, line := range strings.Split(metrics, "\n") {
+		// skip help lines
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, metric) {
+			hasAllLabels := true
+			for _, labelName := range labelNames {
+				if !strings.Contains(line, labelName) {
+					hasAllLabels = false
+					break
+				}
+			}
+
+			if hasAllLabels {
+				foundAllLabels = true
+
+				// done!
+				break
+			}
+		}
+	}
+
+	if !foundAllLabels {
+		t.Fatalf("Could not verify that all named labels \"%s\" exist for the metric \"%s\" in the /v1/agent/metrics response", strings.Join(labelNames, ", "), metric)
+	}
+}
+
+func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	if !strings.Contains(respRec.Body.String(), metric) {
+		t.Fatalf("Could not find the metric \"%s\" in the /v1/agent/metrics response", metric)
+	}
+
+	metrics := respRec.Body.String()
+	// don't look at _sum or _count or other aggregates
+	metricTarget := metric + "{"
+	// eg method="Status.Ping"
+	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+
+	matchesFound := 0
+	for _, line := range strings.Split(metrics, "\n") {
+		// skip help lines
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, metricTarget) {
+			if strings.Contains(line, labelWithValueTarget) {
+				matchesFound++
+			}
+		}
+	}
+
+	if matchesFound < occurrences {
+		t.Fatalf("Only found metric \"%s\" %d times. Wanted %d times.", metric, matchesFound, occurrences)
+	}
+}
+
 func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorder, metric string, value string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -66,13 +146,13 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 	}
 }
 
-// TestAgent_NewRPCMetrics test for the new RPC metrics presence. These are the labeled metrics coming from
+// TestAgent_OneTwelveRPCMetrics test for the 1.12 style RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
-func TestAgent_NewRPCMetrics(t *testing.T) {
+func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
-	t.Run("Check new rpc metrics are being emitted", func(t *testing.T) {
+	t.Run("Check that 1.12 rpc metrics are not emitted by default.", func(t *testing.T) {
 		metricsPrefix := "new_rpc_metrics"
 		hcl := fmt.Sprintf(`
 		telemetry = {
@@ -92,7 +172,85 @@ func TestAgent_NewRPCMetrics(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExists(t, respRec, metricsPrefix+"_rpc_server_call")
+		assertMetricNotExists(t, respRec, metricsPrefix+"_rpc_server_call")
+	})
+
+	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
+		metricsPrefix := "new_rpc_metrics_2"
+		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s"
+			disable_hostname = true
+			metrics_prefix = "%s"
+			prefix_filter = ["+%s"]
+		}
+		`, metricsPrefix, allowRPCMetricRule)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		var out struct{}
+		err := a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+		err = a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+		err = a.RPC("Status.Ping", struct{}{}, &out)
+		require.NoError(t, err)
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		// make sure the labels exist for this metric
+		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
+		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
+		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
+	})
+}
+
+func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	t.Run("check that metric isLeader is set properly on server", func(t *testing.T) {
+		hcl := `
+		telemetry = {
+			prometheus_retention_time = "5s",
+			metrics_prefix = "agent_is_leader"
+		}
+		`
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		retryWithBackoff := func(expectedStr string) error {
+			waiter := &retry.Waiter{
+				MaxWait: 1 * time.Minute,
+			}
+			ctx := context.Background()
+			for {
+				if waiter.Failures() > 7 {
+					return fmt.Errorf("reach max failure: %d", waiter.Failures())
+				}
+				respRec := httptest.NewRecorder()
+				recordPromMetrics(t, a, respRec)
+
+				out := respRec.Body.String()
+				if strings.Contains(out, expectedStr) {
+					return nil
+				}
+				waiter.Wait(ctx)
+			}
+		}
+		// agent hasn't become a leader
+		err := retryWithBackoff("isLeader 0")
+		require.NoError(t, err, "non-leader server should have isLeader 0")
+
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		// Verify agent's isLeader metrics is 1
+		err = retryWithBackoff("isLeader 1")
+		require.NoError(t, err, "leader should have isLeader 1")
 	})
 }
 
@@ -141,8 +299,8 @@ func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 		respRec := httptest.NewRecorder()
 		recordPromMetrics(t, a, respRec)
 
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "NaN")
-		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "NaN")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "1")
+		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "0")
 	})
 }
 

@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: 1.10.x
+description: >-
+  Consul release notes for version 1.10.x
+---
+
+# Consul 1.10.0
+
+## Release Highlights
+
+- **Transparent Proxy:** Simplifies deploying applications into the service mesh by using iptables to redirect traffic from applications running in virtual machines or Kubernetes through the Envoy proxy. [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) now provides a CLI interface for applying traffic redirection `iptables` rules to redirect traffic through an inbound and outbound listener on the Envoy sidecar. More information on how to utilize Transparent Proxy for Consul on Kubernetes could be found on [Transparent Proxy](/docs/connect/transparent-proxy).
+
+- **Support for xDS v3 and Incremental xDS:** Consul 1.10 will default to using xDS version 3 and Incremental xDS for all supported Envoy proxy versions bootstrapped by the Consul 1.10 CLI. This is driven by the fact that xDS v2 was deprecated in Envoy 1.15 and disabled in Envoy 1.17. Envoy proxies bootstrapped with older Consul CLI binaries will continue to use the xDS v2 state-of-the-world API.
+
+- **Streaming Enabled by Default for Service Health:** Streaming is a major architectural enhancement in how update notifications for blocking queries are delivered within the cluster which significantly reduces CPU and network bandwidth usage for large-scale Consul deployments. In Consul 1.10, streaming is now available for the service health HTTP endpoint and is enabled by default.
+
+- **Redesigned UI and Observability Enhancements:** The Consul UI has been redesigned with a new sidebar layout. Additionally, Kubernetes users now have the ability to deploy Prometheus via the Consul Helm chart which automatically integrates it with Consul’s Service Visualization UI for displaying traffic metrics between services. Lastly, Pod and Envoy metrics can now be exposed to Prometheus using Kubernetes annotations via a single aggregated endpoint.
+
+- **Deprecation of Legacy ACL System:** In Consul 1.4, we upgraded to a new Access Controls (ACLs) system. This upgrade made improvements in Consul’s ACL system handles the API, Tokens, and Policies. With Consul 1.10, the legacy system is officially deprecated, and will be removed from Consul in a later release. We strongly recommend that users begin the process of migrating to the newer ACL system.
+
+## What's Changed
+
+- Drops support for Envoy version 1.13.x.
+- (Enterprise Only) Consul Enterprise has removed support for temporary licensing. All server agents must have a valid license at startup and client agents must have a license at startup or be able to retrieve one from the servers.
+
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-10-0) and the changelogs.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [1.10.0](https://github.com/hashicorp/consul/releases/tag/v1.10.0)
+- [1.10.1](https://github.com/hashicorp/consul/releases/tag/v1.10.1)
+- [1.10.2](https://github.com/hashicorp/consul/releases/tag/v1.10.2)
+- [1.10.3](https://github.com/hashicorp/consul/releases/tag/v1.10.3)
+- [1.10.4](https://github.com/hashicorp/consul/releases/tag/v1.10.4)
+- [1.10.5](https://github.com/hashicorp/consul/releases/tag/v1.10.5)
+- [1.10.6](https://github.com/hashicorp/consul/releases/tag/v1.10.6)
+- [1.10.7](https://github.com/hashicorp/consul/releases/tag/v1.10.7)
+- [1.10.8](https://github.com/hashicorp/consul/releases/tag/v1.10.8)
+- [1.10.9](https://github.com/hashicorp/consul/releases/tag/v1.10.9)
+- [1.10.10](https://github.com/hashicorp/consul/releases/tag/v1.10.10)

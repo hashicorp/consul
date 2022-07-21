@@ -94,7 +94,7 @@ Command Options
 ## Authentication
 
 When the [ACL system is enabled](/docs/agent/options#acl_enabled) the Consul CLI will
-require an [ACL token](/docs/security/acl/acl-system#tokens) to perform API requests.
+require an [ACL token](/docs/security/acl#tokens) to perform API requests.
 
 The ACL token can be provided directly on the command line using the `-token` command line flag,
 from a file using the `-token-file` command line flag, or from the
@@ -118,6 +118,12 @@ reload  rtt
 $ consul operator raft
 list-peers   remove-peer
 ```
+
+## Arguments with URL-Invalid Characters
+
+The CLI automatically URL-encodes arguments, which are then
+[URL-decoded by the underlying HTTP API endpoints](/api-docs#url-encoded-resource-names).
+To avoid double-encoding arguments, do not URL-encode arguments passed to the CLI.
 
 ## Environment Variables
 
@@ -235,7 +241,7 @@ CONSUL_TLS_SERVER_NAME=consulserver.domain
 Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
 local agent is listening for gRPC requests. Currently gRPC is only used for
 integrating [Envoy proxy](/docs/connect/proxies/envoy) and must be [enabled
-explicitly](/docs/agent/options#grpc_port) in agent configuration.
+explicitly](/docs/agent/config/config-files#grpc_port) in agent configuration.
 
 ```
 CONSUL_GRPC_ADDR=127.0.0.1:8502

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -33,7 +34,7 @@ type ServiceDefinition struct {
 	// also called just "Config"
 	Proxy *ConnectProxyConfig
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	Connect *ServiceConnect
 }
@@ -89,7 +90,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
 			}
 
-			// If a proxy's namespace is not defined, inherit the proxied service's namespace.
+			// If a proxy's namespace and partition are not defined, inherit from the proxied service
 			// Applicable only to Consul Enterprise.
 			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
 				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()

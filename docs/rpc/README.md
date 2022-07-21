@@ -1,37 +1,76 @@
 # RPC
 
-This section is a work in progress.
+Consul uses two RPC systems for communication between components within the
+cluster and with other clients such as Envoy: [gRPC](https://grpc.io/)
+and Go's [`net/rpc`](https://pkg.go.dev/net/rpc) package.
 
-The RPC subsystem is exclusicely in Server Agents. It is comprised of two main components:
+Communication between client agents and servers uses a mix of both gRPC and
+`net/rpc`. Generally, gRPC is preferred because it supports modern features
+such as context deadlines/cancellation, streaming, and middleware - but Consul
+has been around for a while so the majority of RPC endpoints still use `net/rpc`.
 
-1. the "RPC Server" (for lack of a better term) handles multiplexing of many different
-   requests on a single TCP port.
-2. RPC endpoints handle RPC requests and return responses.
+## Multiplexed "Server" Port
 
-The RPC subsystems handles requests from:
+Most in-cluster communication happens over the multiplexed "server" TCP port
+(default: 8300). Consul servers implement a custom protocol for serving
+different kinds of traffic on the same port, whereby the first byte sent
+indicates the protocol (e.g. gRPC, `net/rpc`, Raft).
 
-1. Client Agents in the local DC
-2. (if the server is a leader) other Server Agents in the local DC
-3. Server Agents in other Datacenters
-4. in-process requests from other components running in the same process (ex: the HTTP API
-   or DNS interface).
+Servers also implement [TLS ALPN](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation)
+on this port, for situations where wrapping the real protocol with a byte prefix
+isn't practical (e.g. cross-DC traffic over mesh gateways).
 
-## Routing
+The diagram below shows all the possible routing flows:
 
-The "RPC Server" accepts requests to the [server port] and routes the requests based on
-configuration of the Server and the the first byte in the request. The diagram below shows
-all the possible routing flows.
-
-[server port]: https://www.consul.io/docs/agent/options#server_rpc_port
+[server port]: https://www.consul.io/docs/agent/config/config-files#server_rpc_port
 
 ![RPC Routing](./routing.svg)
 
 <sup>[source](./routing.mmd)</sup>
 
-The main entrypoint to RPC routing is `handleConn` in [agent/consul/rpc.go].
+The main entrypoint to connection routing is `handleConn` in [agent/consul/rpc.go].
 
 [agent/consul/rpc.go]: https://github.com/hashicorp/consul/blob/main/agent/consul/rpc.go
 
+### Development
+
+Multiplexing several protocols over a single server port helps to reduce our
+network requirements, but also makes interacting with Consul using local
+development tools such as [grpcurl] difficult.
+
+[grpcurl]: https://github.com/fullstorydev/grpcurl
+
+You can get a "plain" TCP connection to the gRPC server using this proxy script:
+
+```
+$ go run tools/internal-grpc-proxy/main.go localhost:8300
+Proxying connections to Consul's internal gRPC server
+Use this address: 127.0.0.1:64077
+```
+
+Pass the returned proxy address to your tool of choice.
+
+## Private vs Public vs Internal vs External
+When working on Consul's gRPC endpoints you may notice we use private/public and
+internal/external slightly differently.
+
+Private and public refer to whether an API is suitable for consumption by
+clients other than Consul's core components.
+
+Private gRPC APIs are defined in the `proto` directory, and should only be used
+by Consul servers and agents. Public gRPC APIs are defined in the `proto-public`
+directory and may be used by 3rd-party applications.
+
+Internal and external refer to how the gRPC APIs are exposed.
+
+Internal gRPC APIs are exposed on the multiplexed "server" port, whereas
+external APIs are exposed on a dedicated gRPC port (default: 8502).
+
+The reason for this differentiation is that some private APIs are exposed on the
+external port, such as peer streaming/replication; this API isn't (yet) suitable
+for consumption by 3rd-party applications but must be accessible from outside
+the cluster, and present a TLS certificate signed by a public CA, which the
+multiplexed port cannot.
 
 ## RPC Endpoints
 
@@ -51,4 +90,3 @@ Routing RPC request to Consul servers and for connection pooling.
 
 - [agent/router](https://github.com/hashicorp/consul/tree/main/agent/router)
 - [agent/pool](https://github.com/hashicorp/consul/tree/main/agent/pool)
-

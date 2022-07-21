@@ -1,6 +1,7 @@
 package acl
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"regexp"
 	"testing"
@@ -23,20 +24,24 @@ func RequirePermissionDeniedError(t testing.TB, err error, authz Authorizer, _ *
 func RequirePermissionDeniedMessage(t testing.TB, msg string, authz interface{}, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {
 	require.NotEmpty(t, msg, "expected non-empty error message")
 
+	baseRegex := ` lacks permission '(\S*):(\S*)' on \"([^\"]*)\"(?: in partition \"([^\"]*)\" in namespace \"([^\"]*)\")?\s*$`
+
 	var resourceIDFound string
 	if authz == nil {
-		expr := "^Permission denied" + `: provided accessor lacks permission '(\S*):(\S*)' on (.*)\s*$`
+		expr := "^Permission denied" + `: provided token` + baseRegex
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
+		require.NotNil(t, matched, fmt.Sprintf("RE %q didn't match %q", expr, msg))
 		require.Equal(t, string(resource), matched[1], "resource")
 		require.Equal(t, accessLevel.String(), matched[2], "access level")
 		resourceIDFound = matched[3]
 	} else {
-		expr := "^Permission denied" + `: accessor '(\S*)' lacks permission '(\S*):(\S*)' on (.*)\s*$`
+		expr := "^Permission denied" + `: token with AccessorID '(\S*)'` + baseRegex
 		re, _ := regexp.Compile(expr)
 		matched := re.FindStringSubmatch(msg)
 
+		require.NotNil(t, matched, fmt.Sprintf("RE %q didn't match %q", expr, msg))
 		require.Equal(t, extractAccessorID(authz), matched[1], "auth")
 		require.Equal(t, string(resource), matched[2], "resource")
 		require.Equal(t, accessLevel.String(), matched[3], "access level")

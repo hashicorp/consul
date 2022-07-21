@@ -91,6 +91,7 @@ func init() {
 	registerEndpoint("/v1/internal/ui/nodes", []string{"GET"}, (*HTTPHandlers).UINodes)
 	registerEndpoint("/v1/internal/ui/node/", []string{"GET"}, (*HTTPHandlers).UINodeInfo)
 	registerEndpoint("/v1/internal/ui/services", []string{"GET"}, (*HTTPHandlers).UIServices)
+	registerEndpoint("/v1/internal/ui/catalog-overview", []string{"GET"}, (*HTTPHandlers).UICatalogOverview)
 	registerEndpoint("/v1/internal/ui/gateway-services-nodes/", []string{"GET"}, (*HTTPHandlers).UIGatewayServicesNodes)
 	registerEndpoint("/v1/internal/ui/gateway-intentions/", []string{"GET"}, (*HTTPHandlers).UIGatewayIntentions)
 	registerEndpoint("/v1/internal/ui/service-topology/", []string{"GET"}, (*HTTPHandlers).UIServiceTopology)
@@ -102,6 +103,10 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/configuration", []string{"GET", "PUT"}, (*HTTPHandlers).OperatorAutopilotConfiguration)
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPHandlers).OperatorServerHealth)
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
+	registerEndpoint("/v1/peering/token", []string{"POST"}, (*HTTPHandlers).PeeringGenerateToken)
+	registerEndpoint("/v1/peering/establish", []string{"POST"}, (*HTTPHandlers).PeeringEstablish)
+	registerEndpoint("/v1/peering/", []string{"GET", "DELETE"}, (*HTTPHandlers).PeeringEndpoint)
+	registerEndpoint("/v1/peerings", []string{"GET"}, (*HTTPHandlers).PeeringList)
 	registerEndpoint("/v1/query", []string{"GET", "POST"}, (*HTTPHandlers).PreparedQueryGeneral)
 	// specific prepared query endpoints have more complex rules for allowed methods, so
 	// the prefix is registered with no methods.

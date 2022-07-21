@@ -80,6 +80,12 @@ const (
 	// HTTPPartitionEnvName defines an environment variable name which sets
 	// the HTTP Partition to be used by default. This can still be overridden.
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
+
+	// QueryBackendStreaming Query backend of type streaming
+	QueryBackendStreaming = "streaming"
+
+	// QueryBackendBlockingQuery Query backend of type blocking query
+	QueryBackendBlockingQuery = "blocking-query"
 )
 
 type StatusError struct {
@@ -184,6 +190,12 @@ type QueryOptions struct {
 	// Filter requests filtering data prior to it being returned. The string
 	// is a go-bexpr compatible expression.
 	Filter string
+
+	// MergeCentralConfig returns a service definition merged with the
+	// proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -277,6 +289,9 @@ type QueryMeta struct {
 	// response is.
 	CacheAge time.Duration
 
+	// QueryBackend represent which backend served the request.
+	QueryBackend string
+
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
 	// defined policy. This can be "allow" which means ACLs are used to
 	// deny-list, or "deny" which means ACLs are allow-lists.
@@ -310,6 +325,11 @@ type Config struct {
 
 	// Scheme is the URI scheme for the Consul server
 	Scheme string
+
+	// Prefix for URIs for when consul is behind an API gateway (reverse
+	// proxy).  The API gateway must strip off the PathPrefix before
+	// passing the request onto consul.
+	PathPrefix string
 
 	// Datacenter to use. If not provided, the default agent datacenter is used.
 	Datacenter string
@@ -703,6 +723,18 @@ func NewClient(config *Config) (*Client, error) {
 			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
+
+		// separate out a reverse proxy prefix, if it is present.
+		// NOTE: Rewriting this code to use url.Parse() instead of
+		// strings.SplitN() breaks existing test cases.
+		switch parts[0] {
+		case "http", "https":
+			parts := strings.SplitN(parts[1], "/", 2)
+			if len(parts) == 2 {
+				config.Address = parts[0]
+				config.PathPrefix = "/" + parts[1]
+			}
+		}
 	}
 
 	// If the TokenFile is set, always use that, even if a Token is configured.
@@ -832,6 +864,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 			r.header.Set("Cache-Control", strings.Join(cc, ", "))
 		}
 	}
+	if q.MergeCentralConfig {
+		r.params.Set("merge-central-config", "")
+	}
 
 	r.ctx = q.ctx
 }
@@ -944,7 +979,7 @@ func (c *Client) newRequest(method, path string) *request {
 		url: &url.URL{
 			Scheme: c.config.Scheme,
 			Host:   c.config.Address,
-			Path:   path,
+			Path:   c.config.PathPrefix + path,
 		},
 		params: make(map[string][]string),
 		header: c.Headers(),
@@ -1096,6 +1131,10 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.CacheAge = time.Duration(age) * time.Second
 	}
 
+	switch v := header.Get("X-Consul-Query-Backend"); v {
+	case QueryBackendStreaming, QueryBackendBlockingQuery:
+		q.QueryBackend = v
+	}
 	return nil
 }
 

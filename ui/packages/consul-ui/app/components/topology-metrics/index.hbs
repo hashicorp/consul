@@ -92,7 +92,7 @@
   </div>
 {{#if (gt this.upstreams.length 0)}}
   <div id="upstream-column">
-  {{#each-in (group-by "Datacenter" this.upstreams) as |dc upstreams|}}
+  {{#each-in (group-by "PeerOrDatacenter" this.upstreams) as |dc upstreams|}}
     <div
       id="upstream-container"
       {{did-insert this.setHeight 'upstream-lines'}}

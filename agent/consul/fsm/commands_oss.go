@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var CommandsSummaries = []prometheus.SummaryDefinition{
@@ -93,6 +94,10 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 		Name: []string{"fsm", "system_metadata"},
 		Help: "Measures the time it takes to apply a system metadata operation to the FSM.",
 	},
+	{
+		Name: []string{"fsm", "peering"},
+		Help: "Measures the time it takes to apply a peering operation to the FSM.",
+	},
 	// TODO(kit): We generate the config-entry fsm summaries by reading off of the request. It is
 	//  possible to statically declare these when we know all of the names, but I didn't get to it
 	//  in this patch. Config-entries are known though and we should add these in the future.
@@ -131,6 +136,11 @@ func init() {
 	registerCommand(structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation)
 	registerCommand(structs.FederationStateRequestType, (*FSM).applyFederationStateOperation)
 	registerCommand(structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation)
+	registerCommand(structs.PeeringWriteType, (*FSM).applyPeeringWrite)
+	registerCommand(structs.PeeringDeleteType, (*FSM).applyPeeringDelete)
+	registerCommand(structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate)
+	registerCommand(structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite)
+	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -159,17 +169,17 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
 	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
-		if err := c.state.DeleteService(index, req.Node, req.ServiceID, &req.EnterpriseMeta); err != nil {
+		if err := c.state.DeleteService(index, req.Node, req.ServiceID, &req.EnterpriseMeta, req.PeerName); err != nil {
 			c.logger.Warn("DeleteNodeService failed", "error", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteCheck(index, req.Node, req.CheckID, &req.EnterpriseMeta); err != nil {
+		if err := c.state.DeleteCheck(index, req.Node, req.CheckID, &req.EnterpriseMeta, req.PeerName); err != nil {
 			c.logger.Warn("DeleteNodeCheck failed", "error", err)
 			return err
 		}
 	} else {
-		if err := c.state.DeleteNode(index, req.Node, &req.EnterpriseMeta); err != nil {
+		if err := c.state.DeleteNode(index, req.Node, &req.EnterpriseMeta, req.PeerName); err != nil {
 			c.logger.Warn("DeleteNode failed", "error", err)
 			return err
 		}
@@ -678,4 +688,74 @@ func (c *FSM) applySystemMetadataOperation(buf []byte, index uint64) interface{}
 	default:
 		return fmt.Errorf("invalid system metadata operation type: %v", req.Op)
 	}
+}
+
+func (c *FSM) applyPeeringWrite(buf []byte, index uint64) interface{} {
+	var req pbpeering.PeeringWriteRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering write request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "write"}})
+
+	return c.state.PeeringWrite(index, req.Peering)
+}
+
+// TODO(peering): replace with deferred deletion since this operation
+// should involve cleanup of data associated with the peering.
+func (c *FSM) applyPeeringDelete(buf []byte, index uint64) interface{} {
+	var req pbpeering.PeeringDeleteRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering delete request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "delete"}})
+
+	q := state.Query{
+		Value:          req.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	}
+	return c.state.PeeringDelete(index, q)
+}
+
+func (c *FSM) applyPeeringTerminate(buf []byte, index uint64) interface{} {
+	var req pbpeering.PeeringTerminateByIDRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering delete request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "terminate"}})
+
+	return c.state.PeeringTerminateByID(index, req.ID)
+}
+
+func (c *FSM) applyPeeringTrustBundleWrite(buf []byte, index uint64) interface{} {
+	var req pbpeering.PeeringTrustBundleWriteRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering trust bundle write request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering_trust_bundle"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "write"}})
+
+	return c.state.PeeringTrustBundleWrite(index, req.PeeringTrustBundle)
+}
+
+func (c *FSM) applyPeeringTrustBundleDelete(buf []byte, index uint64) interface{} {
+	var req pbpeering.PeeringTrustBundleDeleteRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering trust bundle delete request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering_trust_bundle"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "delete"}})
+
+	q := state.Query{
+		Value:          req.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+	}
+	return c.state.PeeringTrustBundleDelete(index, q)
 }

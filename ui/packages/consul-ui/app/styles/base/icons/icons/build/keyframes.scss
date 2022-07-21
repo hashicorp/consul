@@ -1,15 +1,9 @@
 @keyframes icon-build {
-  50% {
-
-    background-color: var(--icon-color, var(--color-build-500, currentColor));
-    -webkit-mask-image: var(--icon-build-24);
-    mask-image: var(--icon-build-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-build-500, currentColor));
     -webkit-mask-image: var(--icon-build-16);
     mask-image: var(--icon-build-16);
+    background-color: var(--icon-color, var(--color-build-500, currentColor));
+
   }
 }

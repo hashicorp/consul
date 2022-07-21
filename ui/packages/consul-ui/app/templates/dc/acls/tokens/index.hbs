@@ -110,21 +110,16 @@ as |route|>
             >
               <BlockSlot @name="header">
                 <h2>
-                  {{#if (gt items.length 0)}}
-                    No tokens found
-                  {{else}}
-                    Welcome to ACL Tokens
-                  {{/if}}
+                  {{t 'routes.dc.acls.tokens.index.empty.header'
+                    items=items.length
+                  }}
                 </h2>
               </BlockSlot>
               <BlockSlot @name="body">
-                <p>
-                  {{#if (gt items.length 0)}}
-                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
-                  {{else}}
-                    There don't seem to be any tokens, or you may not have access to view tokens yet.
-                  {{/if}}
-                </p>
+                {{t 'routes.dc.acls.tokens.index.empty.body'
+                  items=items.length
+                  htmlSafe=true
+                }}
               </BlockSlot>
             </EmptyState>
           </collection.Empty>

@@ -18,8 +18,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestHealthChecksInState(t *testing.T) {
@@ -607,133 +609,169 @@ func TestHealthServiceNodes(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	testingPeerNames := []string{"", "my-peer"}
 
-	assertIndex(t, resp)
-
-	// Should be 1 health check for consul
-	nodes := obj.(structs.CheckServiceNodes)
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	req, _ = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	assertIndex(t, resp)
-
-	// Should be a non-nil empty list
-	nodes = obj.(structs.CheckServiceNodes)
-	if nodes == nil || len(nodes) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "bar",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "test",
-			Service: "test",
-		},
-	}
-
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	assertIndex(t, resp)
-
-	// Should be a non-nil empty list for checks
-	nodes = obj.(structs.CheckServiceNodes)
-	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
-
-	// Test caching
-	{
-		// List instances with cache enabled
-		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+	for _, peerName := range testingPeerNames {
+		req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1"+peerQuerySuffix(peerName), nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(t, err)
-		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 1)
 
-		// Should be a cache miss
-		assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		if peerName == "" {
+			// Should be 1 health check for consul
+			require.Len(t, nodes, 1)
+		} else {
+			require.NotNil(t, nodes)
+			require.Len(t, nodes, 0)
+		}
+
+		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+peerQuerySuffix(peerName), nil)
+		require.NoError(t, err)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.HealthServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		assertIndex(t, resp)
+
+		// Should be a non-nil empty list
+		nodes = obj.(structs.CheckServiceNodes)
+		require.NotNil(t, nodes)
+		require.Len(t, nodes, 0)
 	}
 
-	{
-		// List instances with cache enabled
-		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+	// TODO(peering): will have to seed this data differently in the future
+	originalRegister := make(map[string]*structs.RegisterRequest)
+	for _, peerName := range testingPeerNames {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.1",
+			PeerName:   peerName,
+			Service: &structs.NodeService{
+				ID:       "test",
+				Service:  "test",
+				PeerName: peerName,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		originalRegister[peerName] = args
+	}
+
+	verify := func(t *testing.T, peerName string, nodes structs.CheckServiceNodes) {
+		require.Len(t, nodes, 1)
+		require.Equal(t, peerName, nodes[0].Node.PeerName)
+		require.Equal(t, "bar", nodes[0].Node.Node)
+		require.Equal(t, peerName, nodes[0].Service.PeerName)
+		require.Equal(t, "test", nodes[0].Service.Service)
+		require.NotNil(t, nodes[0].Checks)
+		require.Len(t, nodes[0].Checks, 0)
+	}
+
+	for _, peerName := range testingPeerNames {
+		req, err := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+peerQuerySuffix(peerName), nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(t, err)
-		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 1)
 
-		// Should be a cache HIT now!
-		assert.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		assertIndex(t, resp)
+
+		// Should be a non-nil empty list for checks
+		nodes := obj.(structs.CheckServiceNodes)
+		verify(t, peerName, nodes)
+
+		// Test caching
+		{
+			// List instances with cache enabled
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			require.NoError(t, err)
+			nodes := obj.(structs.CheckServiceNodes)
+			verify(t, peerName, nodes)
+
+			// Should be a cache miss
+			require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+		}
+
+		{
+			// List instances with cache enabled
+			req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			require.NoError(t, err)
+			nodes := obj.(structs.CheckServiceNodes)
+			verify(t, peerName, nodes)
+
+			// Should be a cache HIT now!
+			require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		}
 	}
 
 	// Ensure background refresh works
 	{
-		// Register a new instance of the service
-		args2 := args
-		args2.Node = "baz"
-		args2.Address = "127.0.0.2"
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		// TODO(peering): will have to seed this data differently in the future
+		for _, peerName := range testingPeerNames {
+			args := originalRegister[peerName]
+			// Register a new instance of the service
+			args2 := *args
+			args2.Node = "baz"
+			args2.Address = "127.0.0.2"
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", &args2, &out))
+		}
 
-		retry.Run(t, func(r *retry.R) {
-			// List it again
-			req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.HealthServiceNodes(resp, req)
-			r.Check(err)
+		for _, peerName := range testingPeerNames {
+			retry.Run(t, func(r *retry.R) {
+				// List it again
+				req, err := http.NewRequest("GET", "/v1/health/service/test?cached"+peerQuerySuffix(peerName), nil)
+				require.NoError(r, err)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(r, err)
 
-			nodes := obj.(structs.CheckServiceNodes)
-			if len(nodes) != 2 {
-				r.Fatalf("Want 2 nodes")
-			}
-			header := resp.Header().Get("X-Consul-Index")
-			if header == "" || header == "0" {
-				r.Fatalf("Want non-zero header: %q", header)
-			}
-			_, err = strconv.ParseUint(header, 10, 64)
-			r.Check(err)
+				nodes := obj.(structs.CheckServiceNodes)
+				require.Len(r, nodes, 2)
 
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
-		})
+				header := resp.Header().Get("X-Consul-Index")
+				if header == "" || header == "0" {
+					r.Fatalf("Want non-zero header: %q", header)
+				}
+				_, err = strconv.ParseUint(header, 10, 64)
+				require.NoError(r, err)
+
+				// Should be a cache hit! The data should've updated in the cache
+				// in the background so this should've been fetched directly from
+				// the cache.
+				if resp.Header().Get("X-Cache") != "HIT" {
+					r.Fatalf("should be a cache hit")
+				}
+			})
+		}
 	}
 }
 
 func TestHealthServiceNodes_Blocking(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking(t, "my-peer")
+	})
+}
+
+func testHealthServiceNodes_Blocking(t *testing.T, peerName string) {
 	cases := []struct {
 		name         string
 		hcl          string
@@ -756,10 +794,23 @@ use_streaming_backend = true
 		},
 	}
 
+	verify := func(t *testing.T, expectN int, nodes structs.CheckServiceNodes) {
+		require.Len(t, nodes, expectN)
+
+		for i, node := range nodes {
+			require.Equal(t, peerName, node.Node.PeerName)
+			if i == 2 {
+				require.Equal(t, "zoo", node.Node.Node)
+			} else {
+				require.Equal(t, "bar", node.Node.Node)
+			}
+			require.Equal(t, "test", node.Service.Service)
+		}
+	}
+
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-
 			sink := metrics.NewInmemSink(5*time.Second, time.Minute)
 			metrics.NewGlobal(&metrics.Config{
 				ServiceName:     "testing",
@@ -771,14 +822,17 @@ use_streaming_backend = true
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 			// Register some initial service instances
+			// TODO(peering): will have to seed this data differently in the future
 			for i := 0; i < 2; i++ {
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
 					Node:       "bar",
 					Address:    "127.0.0.1",
+					PeerName:   peerName,
 					Service: &structs.NodeService{
-						ID:      fmt.Sprintf("test%03d", i),
-						Service: "test",
+						ID:       fmt.Sprintf("test%03d", i),
+						Service:  "test",
+						PeerName: peerName,
 					},
 				}
 
@@ -787,13 +841,13 @@ use_streaming_backend = true
 			}
 
 			// Initial request should return two instances
-			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1"+peerQuerySuffix(peerName), nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.HealthServiceNodes(resp, req)
 			require.NoError(t, err)
 
 			nodes := obj.(structs.CheckServiceNodes)
-			require.Len(t, nodes, 2)
+			verify(t, 2, nodes)
 
 			idx := getIndex(t, resp)
 			require.True(t, idx > 0)
@@ -823,13 +877,16 @@ use_streaming_backend = true
 			go func() {
 				time.Sleep(sleep)
 
+				// TODO(peering): will have to seed this data differently in the future
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
 					Node:       "zoo",
 					Address:    "127.0.0.3",
+					PeerName:   peerName,
 					Service: &structs.NodeService{
-						ID:      "test",
-						Service: "test",
+						ID:       "test",
+						Service:  "test",
+						PeerName: peerName,
 					},
 				}
 
@@ -839,7 +896,7 @@ use_streaming_backend = true
 
 			{
 				timeout := 30 * time.Second
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s", idx, timeout)
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+peerQuerySuffix(peerName), idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -852,7 +909,7 @@ use_streaming_backend = true
 					" it timed out. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
-				require.Len(t, nodes, 3)
+				verify(t, 3, nodes)
 
 				newIdx := getIndex(t, resp)
 				require.True(t, idx < newIdx, "index should have increased."+
@@ -869,7 +926,7 @@ use_streaming_backend = true
 			start = time.Now()
 			{
 				timeout := 200 * time.Millisecond
-				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s",
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s"+peerQuerySuffix(peerName),
 					idx, timeout)
 				req, _ := http.NewRequest("GET", url, nil)
 				resp := httptest.NewRecorder()
@@ -882,7 +939,7 @@ use_streaming_backend = true
 					" least as long as timeout. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
-				require.Len(t, nodes, 3)
+				verify(t, 3, nodes)
 
 				newIdx := getIndex(t, resp)
 				require.Equal(t, idx, newIdx)
@@ -898,6 +955,141 @@ use_streaming_backend = true
 					t.Errorf("expected at least 2 grpc gauge metrics, got: %v", count)
 				}
 			}
+		})
+	}
+}
+
+func TestHealthServiceNodes_Blocking_withFilter(t *testing.T) {
+	t.Run("local data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking_withFilter(t, structs.DefaultPeerKeyword)
+	})
+
+	t.Run("peered data", func(t *testing.T) {
+		testHealthServiceNodes_Blocking_withFilter(t, "my-peer")
+	})
+}
+
+func testHealthServiceNodes_Blocking_withFilter(t *testing.T, peerName string) {
+	cases := []struct {
+		name         string
+		hcl          string
+		queryBackend string
+	}{
+		{
+			name:         "no streaming",
+			queryBackend: "blocking-query",
+			hcl:          `use_streaming_backend = false`,
+		},
+		{
+			name: "streaming",
+			hcl: `
+rpc { enable_streaming = true }
+use_streaming_backend = true
+`,
+			queryBackend: "streaming",
+		},
+	}
+
+	// TODO(peering): will have to seed this data differently in the future
+	register := func(t *testing.T, a *TestAgent, name, tag string) {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			ID:         types.NodeID("43d419c0-433b-42c3-bf8a-193eba0b41a3"),
+			Node:       "node1",
+			Address:    "127.0.0.1",
+			PeerName:   peerName,
+			Service: &structs.NodeService{
+				ID:       name,
+				Service:  name,
+				PeerName: peerName,
+				Tags:     []string{tag},
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+			// Register one with a tag.
+			register(t, a, "web", "foo")
+
+			filterUrlPart := "filter=" + url.QueryEscape("foo in Service.Tags")
+
+			// TODO: use other call format
+
+			// Initial request with a filter should return one.
+			var lastIndex uint64
+			testutil.RunStep(t, "read original", func(t *testing.T) {
+				req, err := http.NewRequest("GET", "/v1/health/service/web?dc=dc1&"+filterUrlPart+peerQuerySuffix(peerName), nil)
+				require.NoError(t, err)
+
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
+
+				nodes := obj.(structs.CheckServiceNodes)
+
+				require.Len(t, nodes, 1)
+
+				node := nodes[0]
+				require.Equal(t, "node1", node.Node.Node)
+				require.Equal(t, "web", node.Service.Service)
+				require.Equal(t, []string{"foo"}, node.Service.Tags)
+
+				require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
+
+				idx := getIndex(t, resp)
+				require.True(t, idx > 0)
+
+				lastIndex = idx
+			})
+
+			const timeout = 30 * time.Second
+			testutil.RunStep(t, "read blocking query result", func(t *testing.T) {
+				var (
+					// out and resp are not safe to read until reading from errCh
+					out   structs.CheckServiceNodes
+					resp  = httptest.NewRecorder()
+					errCh = make(chan error, 1)
+				)
+				go func() {
+					url := fmt.Sprintf("/v1/health/service/web?dc=dc1&index=%d&wait=%s&%s"+peerQuerySuffix(peerName), lastIndex, timeout, filterUrlPart)
+					req, err := http.NewRequest("GET", url, nil)
+					if err != nil {
+						errCh <- err
+						return
+					}
+
+					obj, err := a.srv.HealthServiceNodes(resp, req)
+					if err != nil {
+						errCh <- err
+						return
+					}
+
+					nodes := obj.(structs.CheckServiceNodes)
+					out = nodes
+					errCh <- nil
+				}()
+
+				time.Sleep(200 * time.Millisecond)
+
+				// Change the tags.
+				register(t, a, "web", "bar")
+
+				if err := <-errCh; err != nil {
+					require.NoError(t, err)
+				}
+
+				require.Len(t, out, 0)
+				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+			})
 		})
 	}
 }
@@ -1241,9 +1433,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=nope-nope-nope", nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.HealthServiceNodes(resp, req)
-		if _, ok := err.(BadRequestError); !ok {
-			t.Fatalf("Expected bad request error but got %v", err)
-		}
+		require.True(t, isHTTPBadRequest(err), fmt.Sprintf("Expected bad request HTTP error but got %v", err))
 		if !strings.Contains(err.Error(), "Invalid value for ?passing") {
 			t.Errorf("bad %s", err.Error())
 		}
@@ -1649,8 +1839,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		resp := httptest.NewRecorder()
 		_, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.NotNil(t, err)
-		_, ok := err.(BadRequestError)
-		assert.True(t, ok)
+		assert.True(t, isHTTPBadRequest(err))
 
 		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))
 	})
@@ -1691,4 +1880,157 @@ func TestFilterNonPassing(t *testing.T) {
 	if len(out) != 1 && reflect.DeepEqual(out[0], nodes[2]) {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+	// Register service-defaults
+	serviceDefaultsConfigEntry := registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+
+	type testCase struct {
+		testCaseName string
+		serviceName  string
+		connect      bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		url := fmt.Sprintf("/v1/health/service/%s?merge-central-config", tc.serviceName)
+		if tc.connect {
+			url = fmt.Sprintf("/v1/health/connect/%s?merge-central-config", tc.serviceName)
+		}
+		req, _ := http.NewRequest("GET", url, nil)
+		resp := httptest.NewRecorder()
+		var obj interface{}
+		var err error
+		if tc.connect {
+			obj, err = a.srv.HealthConnectServiceNodes(resp, req)
+		} else {
+			obj, err = a.srv.HealthServiceNodes(resp, req)
+		}
+
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		checkServiceNodes := obj.(structs.CheckServiceNodes)
+
+		// validate response
+		require.Len(t, checkServiceNodes, 1)
+		v := checkServiceNodes[0]
+
+		validateMergeCentralConfigResponse(t, v.Service.ToServiceNode(registerServiceReq.Node), registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+	}
+	testCases := []testCase{
+		{
+			testCaseName: "List healthy service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Service,
+		},
+		{
+			testCaseName: "List healthy connect capable service instances with merge-central-config",
+			serviceName:  registerServiceReq.Service.Proxy.DestinationServiceName,
+			connect:      true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestHealthServiceNodes_MergeCentralConfigBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register the service
+	registerServiceReq := registerService(t, a)
+	// Register proxy-defaults
+	proxyGlobalEntry := registerProxyDefaults(t, a)
+
+	// Run the query
+	rpcReq := structs.ServiceSpecificRequest{
+		Datacenter:         "dc1",
+		ServiceName:        registerServiceReq.Service.Service,
+		MergeCentralConfig: true,
+	}
+	var rpcResp structs.IndexedCheckServiceNodes
+	require.NoError(t, a.RPC("Health.ServiceNodes", &rpcReq, &rpcResp))
+
+	require.Len(t, rpcResp.Nodes, 1)
+	nodeService := rpcResp.Nodes[0].Service
+	require.Equal(t, registerServiceReq.Service.Service, nodeService.Service)
+	// validate proxy global defaults are resolved in the merged service config
+	require.Equal(t, proxyGlobalEntry.Config, nodeService.Proxy.Config)
+	require.Equal(t, proxyGlobalEntry.Mode, nodeService.Proxy.Mode)
+
+	// Async cause a change - register service defaults
+	waitIndex := rpcResp.Index
+	start := time.Now()
+	var serviceDefaultsConfigEntry structs.ServiceConfigEntry
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		// Register service-defaults
+		serviceDefaultsConfigEntry = registerServiceDefaults(t, a, registerServiceReq.Service.Proxy.DestinationServiceName)
+	}()
+
+	const waitDuration = 3 * time.Second
+RUN_BLOCKING_QUERY:
+	url := fmt.Sprintf("/v1/health/service/%s?merge-central-config&wait=%s&index=%d",
+		registerServiceReq.Service.Service, waitDuration.String(), waitIndex)
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceNodes(resp, req)
+
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	elapsed := time.Since(start)
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad index returned: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	checkServiceNodes := obj.(structs.CheckServiceNodes)
+
+	// validate response
+	require.Len(t, checkServiceNodes, 1)
+	v := checkServiceNodes[0].Service.ToServiceNode(registerServiceReq.Node)
+
+	validateMergeCentralConfigResponse(t, v, registerServiceReq, proxyGlobalEntry, serviceDefaultsConfigEntry)
+}
+
+func peerQuerySuffix(peerName string) string {
+	if peerName == "" {
+		return ""
+	}
+	return "&peer=" + peerName
 }

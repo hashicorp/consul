@@ -6,7 +6,7 @@ description: The /acl/token endpoints manage Consul's ACL Tokens.
 
 # ACL Token HTTP API
 
--> **1.4.0+:** The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy).
+-> **1.4.0+:** The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api-docs/acl/legacy).
 
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
 [update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token) ACL tokens in Consul.
@@ -23,9 +23,9 @@ This endpoint creates a new ACL token.
 | `PUT`  | `/acl/token` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -34,7 +34,12 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token create`](/commands/acl/token/create).
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you create.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `AccessorID` `(string: "")` - Specifies a UUID to use as the token's Accessor ID.
   If not specified a UUID will be generated for this field. Added in v1.5.0.
@@ -62,7 +67,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -76,7 +81,7 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -101,11 +106,9 @@ The corresponding CLI command is [`consul acl token create`](/commands/acl/token
   respectively). This value must be no smaller than 1 minute and no longer than
   24 hours. Added in Consul 1.5.0.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to
-  create the token. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you create.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -166,9 +169,9 @@ This endpoint reads an ACL token with the given Accessor ID.
 | `GET`  | `/acl/token/:AccessorID` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -177,16 +180,17 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token read`](/commands/acl/token/read).
 
-### Parameters
+### Path Parameters
 
-- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
-  read. This is required and is specified as part of the URL path.
+- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the token you lookup.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the token. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+- `expanded` `(bool: false)` - If this field is set, the contents of all policies and
+  roles affecting the token will also be returned.
 
 ### Sample Request
 
@@ -225,6 +229,92 @@ for reading other secrets which given even more permissions.
 }
 ```
 
+Sample response when setting the `expanded` parameter:
+
+```json
+{
+    "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+    "SecretID": "869c6e91-4de9-4dab-b56e-87548435f9c6",
+    "Description": "test token",
+    "Policies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "foo"
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bar"
+        }
+    ],
+    "Local": false,
+    "CreateTime": "2020-05-22T18:52:31Z",
+    "Hash": "YWJjZGVmZ2g=",
+    "ExpandedPolicies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "foo",
+            "Description": "user policy on token",
+            "Rules": "service_prefix \"\" {\n  policy = \"read\"\n}",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bar",
+            "Description": "other user policy on token",
+            "Rules": "operator = \"read\"",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "6204f4cd-4709-441c-ac1b-cb029e940263",
+            "Name": "admin policy",
+            "Description": "policy for admin role",
+            "Rules": "operator = \"write\"",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ],
+    "ExpandedRoles": [
+      {
+          "ID": "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
+          "Name": "admin",
+          "Description": "admin role",
+          "Policies": [
+              {
+                  "ID": "6204f4cd-4709-441c-ac1b-cb029e940263",
+                  "Name": "admin policy"
+              }
+          ],
+          "ServiceIdentities": [
+              {
+                  "ServiceName": "web",
+                  "Datacenters": [
+                      "southwest"
+                  ]
+              }
+          ],
+          "Hash": null,
+          "CreateIndex": 0,
+          "ModifyIndex": 0
+      }
+    ],
+    "NamespaceDefaultPolicies": null,
+    "NamespaceDefaultRoles": null,
+    "AgentACLDefaultPolicy": "allow",
+    "AgentACLDownPolicy": "deny",
+    "ResolvedByAgent": "server-1",
+    "CreateIndex": 42,
+    "ModifyIndex": 100
+}
+```
+
 ## Read Self Token
 
 This endpoint returns the ACL token details that matches the secret ID
@@ -235,9 +325,9 @@ specified with the `X-Consul-Token` header or the `token` query parameter.
 | `GET`  | `/acl/token/self` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -290,9 +380,9 @@ This endpoint updates an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -301,11 +391,21 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token update`](/commands/acl/token/update).
 
-### Parameters
+### Path Parameters
 
-- `AccessorID` `(string: "")` - Specifies the accessor ID of the token being updated. This is
-  required in the URL path but may also be specified in the JSON body. If specified
-  in both places then they must match exactly. This field is immutable. If not present in
+- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the token you update.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you update.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
+
+- `AccessorID` `(string: "")` - Specifies the accessor ID of the token being updated.
+  This field is required in the URL path but may also be specified in the JSON body.
+  If specified in both places then they must be an exact match.
+  This field is immutable. If not present in
   the body and only in the URL then it will be filled in by Consul.
 
 - `SecretID` `(string: "")` - Specifies the secret ID of the token being updated. This field is
@@ -329,7 +429,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
   enables role renaming without breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/docs/security/acl/acl-system#acl-service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -343,7 +443,7 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/docs/security/acl/acl-system#acl-node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the token. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -368,11 +468,9 @@ The corresponding CLI command is [`consul acl token update`](/commands/acl/token
   match the existing value. If not present then the value will be filled in by
   Consul.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the token to update. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you update.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -440,9 +538,9 @@ This endpoint clones an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID/clone` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -451,18 +549,22 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token clone`](/commands/acl/token/clone).
 
-### Parameters
+### Path Parameters
 
-- `AccessorID` `(string: <required>)` - The accessor ID of the token to clone. This is required
-  in the URL path
+- `AccessorID` `(string: <required>)` - The accessor ID of the token to clone.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you clone.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `Description` `(string: "")` - Free form human readable description for the cloned token.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
-  the token to be cloned. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you clone.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 ### Sample Payload
 
@@ -521,9 +623,9 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -532,16 +634,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token delete`](/commands/acl/token/delete).
 
-### Parameters
+### Path Parameters
 
-- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
-  delete. This is required and is specified as part of the URL path.
+- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to delete.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the
-  token to delete. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you delete.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -565,9 +665,9 @@ This endpoint lists all the ACL tokens.
 | `GET`  | `/acl/tokens` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/features/blocking),
-[consistency modes](/api/features/consistency),
-[agent caching](/api/features/caching), and
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -576,29 +676,24 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl token list`](/commands/acl/token/list).
 
-## Parameters
+## Query Parameters
 
 - `policy` `(string: "")` - Filters the token list to those tokens that are
-  linked with the specific policy ID.
+  linked with this specific policy ID.
 
 - `role` `(string: "")` - Filters the token list to those tokens that are
-  linked with the specific role ID.
+  linked with this specific role ID.
 
 - `authmethod` `(string: "")` - Filters the token list to those tokens that are
-  linked with the specific named auth method.
+  linked with this specific named auth method.
 
-- `authmethod-ns` `(string: "")` <EnterpriseAlert inline /> - Specifics the namespace
-  of the `authmethod` being used for token lookup. If not provided, the namespace
-  provided by the `ns` parameter will be used. If neither of those is provided
-  then the namespace will be inherited from the request's ACL token. Added in
-  Consul 1.7.0.
+- `authmethod-ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the
+  `authmethod` used for token lookup. If not provided, the namespace
+  provided by the `ns` parameter or [through other methods](#methods-to-specify-namespace) will be used.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list
-  the tokens for. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. The namespace may be specified as '\*' and then
-  results will be returned for all namespaces. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the tokens in the specified namespace.
+  The namespace may be specified as '\*' to return results for all namespaces.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ## Sample Request
 
@@ -665,3 +760,15 @@ for reading other secrets which given even more permissions.
   }
 ]
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+ACL token endpoints
+support several methods for specifying the namespace of the ACL token resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to [create](#create-a-token) and [update](#update-a-token) endpoints
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

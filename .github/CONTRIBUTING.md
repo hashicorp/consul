@@ -85,6 +85,25 @@ To build Consul, run `make dev`. In a few moments, you'll have a working
 Go provides [tooling to apply consistent code formatting](https://golang.org/doc/effective_go#formatting).
 If you make any changes to the code, run `gofmt -s -w` to automatically format the code according to Go standards.
 
+##### Organizing Imports
+
+Group imports using `goimports -local github.com/hashicorp/consul/` to keep [local packages](https://github.com/golang/tools/commit/ed69e84b1518b5857a9f4e01d1f9cefdcc45246e) in their own section.
+
+Example: 
+```
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
+)
+```
+
 #### Updating Go Module Dependencies
 
 If a dependency is added or change, run `go mod tidy` to update `go.mod` and `go.sum`.
@@ -137,12 +156,25 @@ When you're ready to submit a pull request:
    if your changes aren't finalized but would benefit from in-process feedback.
 5. If there's any reason Consul users might need to know about this change,
    [add a changelog entry](../docs/contributing/add-a-changelog-entry.md).
-6. After you submit, the Consul maintainers team needs time to carefully review your
+6. Add labels to your pull request. A table of commonly use labels is below. 
+   If you have any questions about which to apply, feel free to call it out in the PR or comments.
+   | Label | When to Use |
+   | --- | --- |
+   | `pr/no-changelog` | This PR does not have an intended changelog entry |
+   | `pr/no-metrics-test` | This PR does not require any testing for metrics |
+   | `backport/stable-website` | This PR contains documentation changes that are ready to be deployed immediately. Changes will also automatically get backported to the latest release branch |
+   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. |
+   Other labels may automatically be added by the Github Action CI.
+7. After you submit, the Consul maintainers team needs time to carefully review your
    contribution and ensure it is production-ready, considering factors such as: security,
    backwards-compatibility, potential regressions, etc.
-7. After you address Consul maintainer feedback and the PR is approved, a Consul maintainer
+8. After you address Consul maintainer feedback and the PR is approved, a Consul maintainer
    will merge it. Your contribution will be available from the next major release (e.g., 1.x)
    unless explicitly backported to an existing or previous major release by the maintainer.
+9. Any backport labels will generate an additional PR to the targeted release branch. 
+   These will be linked in the original PR.
+   Assuming the tests pass, the PR will be merged automatically. 
+   If the tests fail, it is you responsibility to resolve the issues with backports and request another reviewer.
 
 #### Checklists
 

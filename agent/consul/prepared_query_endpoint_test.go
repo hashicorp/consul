@@ -10,15 +10,17 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -569,7 +571,7 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	query.Token = redactedToken
+	query.Token = aclfilter.RedactedToken
 	err = parseQuery(query)
 	if err == nil || !strings.Contains(err.Error(), "Bad Token") {
 		t.Fatalf("bad: %v", err)
@@ -679,7 +681,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	// Capture the ID and read back the query to verify. Note that the token
 	// will be redacted since this isn't a management token.
 	query.Query.ID = reply
-	query.Query.Token = redactedToken
+	query.Query.Token = aclfilter.RedactedToken
 	{
 		req := &structs.PreparedQuerySpecificRequest{
 			Datacenter:   "dc1",
@@ -778,7 +780,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	}
 
 	// The user can explain and see the redacted token.
-	query.Query.Token = redactedToken
+	query.Query.Token = aclfilter.RedactedToken
 	query.Query.Service.Service = "anything"
 	{
 		req := &structs.PreparedQueryExecuteRequest{
@@ -992,7 +994,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	}
 
 	// This should get redacted when we read it back without a token.
-	query.Query.Token = redactedToken
+	query.Query.Token = aclfilter.RedactedToken
 	{
 		req := &structs.PreparedQuerySpecificRequest{
 			Datacenter:   "dc1",
@@ -1126,7 +1128,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	// Capture the ID and read back the query to verify. We also make sure
 	// the captured token gets redacted.
 	query.Query.ID = reply
-	query.Query.Token = redactedToken
+	query.Query.Token = aclfilter.RedactedToken
 	{
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
@@ -1354,7 +1356,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	}
 
 	// Explain via the user token, which will redact the captured token.
-	query.Query.Token = redactedToken
+	query.Query.Token = aclfilter.RedactedToken
 	query.Query.Service.Service = "prod-redis"
 	{
 		req := &structs.PreparedQueryExecuteRequest{

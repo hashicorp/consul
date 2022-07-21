@@ -637,6 +637,29 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 			]
 		}
 	}`
+
+	// Enable TLS on the prometheus listener if cert/private key are provided.
+	var tlsConfig string
+	if args.PrometheusCertFile != "" {
+		tlsConfig = `,
+				"transportSocket": {
+					"name": "tls",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+						"commonTlsContext": {
+							"tlsCertificateSdsSecretConfigs": [
+								{
+									"name": "prometheus_cert"
+								}
+							],
+							"validationContextSdsSecretConfig": {
+								"name": "prometheus_validation_context"
+							}
+						}
+					}
+				}`
+	}
+
 	listenerJSON := `{
 		"name": "` + name + `_listener",
 		"address": {
@@ -686,15 +709,50 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							},
 							"http_filters": [
 								{
-									"name": "envoy.filters.http.router"
+									"name": "envoy.filters.http.router",
+									"typedConfig": {
+									"@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+									}
 								}
 							]
 						}
 					}
-				]
+				]` + tlsConfig + `
 			}
 		]
 	}`
+
+	secretsTemplate := `{
+		"name": "prometheus_cert",
+		"tlsCertificate": {
+			"certificateChain": {
+				"filename": "%s"
+			},
+			"privateKey": {
+				"filename": "%s"
+			}
+		}	
+	},
+	{
+		"name": "prometheus_validation_context",
+		"validationContext": {
+			%s
+		}
+	}`
+	var validationContext string
+	if args.PrometheusCAPath != "" {
+		validationContext = fmt.Sprintf(`"watchedDirectory": {
+			"path": "%s"
+		}`, args.PrometheusCAPath)
+	} else {
+		validationContext = fmt.Sprintf(`"trustedCa": {
+			"filename": "%s"
+		}`, args.PrometheusCAFile)
+	}
+	var secretsJSON string
+	if args.PrometheusCertFile != "" {
+		secretsJSON = fmt.Sprintf(secretsTemplate, args.PrometheusCertFile, args.PrometheusKeyFile, validationContext)
+	}
 
 	// Make sure we do not append the same cluster multiple times, as that will
 	// cause envoy startup to fail.
@@ -713,6 +771,12 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		listenerJSON = ",\n" + listenerJSON
 	}
 	args.StaticListenersJSON += listenerJSON
+
+	if args.StaticSecretsJSON != "" {
+		secretsJSON = ",\n" + secretsJSON
+	}
+	args.StaticSecretsJSON += secretsJSON
+
 	return nil
 }
 

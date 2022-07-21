@@ -1,20 +1,15 @@
-#!/bin/bash
-SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
-pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
-SCRIPT_DIR=$(pwd)
-pushd ../.. > /dev/null
-SOURCE_DIR=$(pwd)
-popd > /dev/null
-pushd ../functions > /dev/null
-FN_DIR=$(pwd)
-popd > /dev/null
-popd > /dev/null
+#!/usr/bin/env bash
+
+readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
+readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+readonly SOURCE_DIR="$(dirname "$(dirname "${SCRIPT_DIR}")")"
+readonly FN_DIR="$(dirname "${SCRIPT_DIR}")/functions"
 
 source "${SCRIPT_DIR}/functions.sh"
 
 function usage {
 cat <<-EOF
-Usage: ${SCRIPT_NAME} (consul|ui|static-assets) [<options ...>]
+Usage: ${SCRIPT_NAME} (consul|ui) [<options ...>]
 
 Description:
    This script will build the various Consul components within docker containers
@@ -81,7 +76,7 @@ function main {
             refresh=1
             shift
             ;;
-         consul | ui | static-assets )
+         consul | ui )
             command="$1"
             shift
             ;;
@@ -109,16 +104,6 @@ function main {
          status_stage "==> Building Consul"
          build_consul "${sdir}" "" "${image}" || return 1
          ;;
-      static-assets )
-         if is_set "${refresh}"
-         then
-            status_stage "==> Refreshing Consul build container image"
-            export GO_BUILD_TAG="${image:-${GO_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" go-build-image || return 1
-         fi
-         status_stage "==> Building Static Assets"
-         build_assetfs "${sdir}" "${image}" || return 1
-         ;;
       ui )
          if is_set "${refresh}"
          then
@@ -128,7 +113,7 @@ function main {
          fi
          status_stage "==> Building UI"
          build_ui "${sdir}" "${image}" || return 1
-         status "==> UI Built with Version: $(ui_version ${sdir}/pkg/web_ui/index.html), Logo: $(ui_logo_type ${sdir}/pkg/web_ui/index.html)"
+         status "==> UI Built with Version: $(ui_version ${sdir}/agent/uiserver/dist/index.html), Logo: $(ui_logo_type ${sdir}/agent/uiserver/dist/index.html)"
          ;;
       * )
          err_usage "ERROR: Unknown command: '${command}'"

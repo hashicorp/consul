@@ -7,12 +7,14 @@ description: Consul Enterprise enables data isolation with Namespaces.
 # Consul Enterprise Namespaces
 
 <EnterpriseAlert>
-  This feature requires{' '}
-  <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}
-  with the Governance and Policy module.
+  This feature requires
+  HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+  Refer to the{' '}
+  <a href="/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
+  {' '}for additional information.
 </EnterpriseAlert>
 
-With Consul Enterprise v1.7.0, data for different users or teams
+With Consul Enterprise 1.7.0+, data for different users or teams
 can be isolated from each other with the use of namespaces. Namespaces help reduce operational challenges
 by removing restrictions around uniqueness of resource names across distinct teams, and enable operators
 to provide self-service through delegation of administrative privileges.
@@ -24,7 +26,7 @@ For more information on how to use namespaces with Consul Enterprise please revi
 
 ## Namespace Definition
 
-Namespaces are managed exclusively through the [HTTP API](/api/namespaces) and the [Consul CLI](/commands/namespace).
+Namespaces are managed exclusively through the [HTTP API](/api-docs/namespaces) and the [Consul CLI](/commands/namespace).
 The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
 
 An example namespace definition looks like the following:

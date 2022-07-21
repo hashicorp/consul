@@ -1,15 +1,9 @@
 @keyframes icon-copy-success {
-  50% {
-
-    background-color: var(--icon-color, var(--color-copy-success-500, currentColor));
-    -webkit-mask-image: var(--icon-clipboard-checked-24);
-    mask-image: var(--icon-clipboard-checked-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-copy-success-500, currentColor));
     -webkit-mask-image: var(--icon-clipboard-checked-16);
     mask-image: var(--icon-clipboard-checked-16);
+    background-color: var(--icon-color, var(--color-copy-success-500, currentColor));
+
   }
 }

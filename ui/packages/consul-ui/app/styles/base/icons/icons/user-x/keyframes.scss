@@ -1,15 +1,9 @@
 @keyframes icon-user-x {
-  50% {
-
-    background-color: var(--icon-color, var(--color-user-x-500, currentColor));
-    -webkit-mask-image: var(--icon-user-x-24);
-    mask-image: var(--icon-user-x-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-user-x-500, currentColor));
     -webkit-mask-image: var(--icon-user-x-16);
     mask-image: var(--icon-user-x-16);
+    background-color: var(--icon-color, var(--color-user-x-500, currentColor));
+
   }
 }

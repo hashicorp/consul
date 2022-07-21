@@ -1,12 +1,12 @@
 {
-  "Valid": ${fake.random.boolean()},
+  "Valid": true,
   "License": {
     "license_id": "${fake.random.uuid()}",
     "customer_id": "${fake.random.uuid()}",
     "installation_id": "*",
     "issue_time": "2021-01-13T15:25:19.052900132Z",
     "start_time": "2021-01-13T00:00:00Z",
-    "expiration_time": "${env('CONSUL_LICENSE_EXPIRATION', '2022-01-13T23:59:59.999Z')}",
+    "expiration_time": "${env('CONSUL_LICENSE_EXPIRATION', '2022-05-02T23:59:59.999Z')}",
     "termination_time": "${env('CONSUL_LICENSE_TERMINATION', '2022-01-13T23:59:59.999Z')}",
     "product": "consul",
     "flags": {

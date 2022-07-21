@@ -16,6 +16,16 @@
       "partition": "default"
     }
   },
+  "layered_runtime": {
+    "layers": [
+      {
+        "name": "base",
+        "static_layer": {
+          "re2.max_program_size.error_level": 1048576
+        }
+      }
+    ]
+  },
   "static_resources": {
     "clusters": [
       {
@@ -121,7 +131,10 @@
                   },
                   "http_filters": [
                     {
-                      "name": "envoy.filters.http.router"
+                      "name": "envoy.filters.http.router",
+                      "typedConfig": {
+                        "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                      }
                     }
                   ]
                 }

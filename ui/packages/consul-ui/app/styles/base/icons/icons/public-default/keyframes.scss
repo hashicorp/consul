@@ -1,15 +1,9 @@
 @keyframes icon-public-default {
-  50% {
-
-    background-color: var(--icon-color, var(--color-public-default-500, currentColor));
-    -webkit-mask-image: var(--icon-globe-24);
-    mask-image: var(--icon-globe-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-public-default-500, currentColor));
     -webkit-mask-image: var(--icon-globe-16);
     mask-image: var(--icon-globe-16);
+    background-color: var(--icon-color, var(--color-public-default-500, currentColor));
+
   }
 }

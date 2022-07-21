@@ -8,8 +8,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -17,7 +16,7 @@ type handlerUpstreams struct {
 	handlerState
 }
 
-func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -34,6 +33,23 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		upstreamsSnapshot.Leaf = leaf
+
+	case u.CorrelationID == meshConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			upstreamsSnapshot.MeshConfig = meshConf
+		} else {
+			upstreamsSnapshot.MeshConfig = nil
+		}
+		upstreamsSnapshot.MeshConfigSet = true
 
 	case strings.HasPrefix(u.CorrelationID, "discovery-chain:"):
 		resp, ok := u.Result.(*structs.DiscoveryChainResponse)
@@ -55,7 +71,8 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 
 		case structs.ServiceKindConnectProxy:
 			explicit := snap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
-			if _, implicit := snap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			implicit := snap.ConnectProxy.IsImplicitUpstream(uid)
+			if !implicit && !explicit {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
 				// The associated watch was likely cancelled.
 				delete(upstreamsSnapshot.DiscoveryChain, uid)
@@ -70,6 +87,30 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 
 		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
+		}
+
+	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		uidString := strings.TrimPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix)
+
+		uid := UpstreamIDFromString(uidString)
+
+		filteredNodes := hostnameEndpoints(
+			s.logger,
+			GatewayKey{ /*empty so it never matches*/ },
+			resp.Nodes,
+		)
+		if len(filteredNodes) > 0 {
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, filteredNodes); set {
+				upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+			}
+		} else {
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, resp.Nodes); set {
+				delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+			}
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "upstream-target:"):
@@ -113,6 +154,10 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 
 			// Make sure to use an external address when crossing partition or DC boundaries.
 			isRemote := !snap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
+			// If node is peered it must be remote
+			if node.Node.PeerOrEmpty() != "" {
+				isRemote = true
+			}
 			csnIdx, addr, _ := node.BestAddress(isRemote)
 
 			existing := upstreamsSnapshot.PassthroughIndices[addr]
@@ -266,7 +311,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
+		chainEntMeta := acl.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: uid,
@@ -297,12 +342,12 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 
 		ctx, cancel := context.WithCancel(ctx)
 		opts := gatewayWatchOpts{
-			notifier:   s.cache,
-			notifyCh:   s.ch,
-			source:     *s.source,
-			token:      s.token,
-			key:        gwKey,
-			upstreamID: uid,
+			internalServiceDump: s.dataSources.InternalServiceDump,
+			notifyCh:            s.ch,
+			source:              *s.source,
+			token:               s.token,
+			key:                 gwKey,
+			upstreamID:          uid,
 		}
 		err := watchMeshGateway(ctx, opts)
 		if err != nil {
@@ -339,7 +384,7 @@ type targetWatchOpts struct {
 	service    string
 	filter     string
 	datacenter string
-	entMeta    *structs.EnterpriseMeta
+	entMeta    *acl.EnterpriseMeta
 }
 
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
@@ -349,13 +394,14 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 		"target", opts.chainID,
 	)
 
-	var finalMeta structs.EnterpriseMeta
+	var finalMeta acl.EnterpriseMeta
 	finalMeta.Merge(opts.entMeta)
 
 	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID.String()
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+	err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
+		PeerName:   opts.upstreamID.Peer,
 		Datacenter: opts.datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:  s.token,
@@ -395,7 +441,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+	err := s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
 		Datacenter:             s.source.Datacenter,
 		QueryOptions:           structs.QueryOptions{Token: s.token},
 		Name:                   opts.name,

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -51,12 +52,13 @@ func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request
 func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
-	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
-		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+
+	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot use a partition with this endpoint"}
 	}
 
 	args := structs.IntentionRequest{
@@ -69,10 +71,10 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 	}
 
 	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a destination partition with this endpoint"}
 	}
 	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a source partition with this endpoint"}
 	}
 
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)
@@ -114,7 +116,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -143,15 +145,15 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	// order of the returned responses.
 	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
 	for i, n := range names {
-		ap, ns, name, err := parseIntentionStringComponent(n, &entMeta)
+		parsed, err := parseIntentionStringComponent(n, &entMeta, false)
 		if err != nil {
 			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
 		}
 
 		args.Match.Entries[i] = structs.IntentionMatchEntry{
-			Partition: ap,
-			Namespace: ns,
-			Name:      name,
+			Partition: parsed.ap,
+			Namespace: parsed.ns,
+			Name:      parsed.name,
 		}
 	}
 
@@ -207,7 +209,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -233,23 +235,23 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	// We parse them the same way as matches to extract partition/namespace/name
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
-		ap, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		parsed, err := parseIntentionStringComponent(source[0], &entMeta, false)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Check.SourcePartition = ap
-		args.Check.SourceNS = ns
-		args.Check.SourceName = name
+		args.Check.SourcePartition = parsed.ap
+		args.Check.SourceNS = parsed.ns
+		args.Check.SourceName = parsed.name
 	}
 
 	// The destination is always in the Consul format
-	ap, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+	parsed, err := parseIntentionStringComponent(destination[0], &entMeta, false)
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
-	args.Check.DestinationPartition = ap
-	args.Check.DestinationNS = ns
-	args.Check.DestinationName = name
+	args.Check.DestinationPartition = parsed.ap
+	args.Check.DestinationNS = parsed.ns
+	args.Check.DestinationName = parsed.name
 
 	var reply structs.IntentionQueryCheckResponse
 	if err := s.agent.RPC("Intention.Check", args, &reply); err != nil {
@@ -275,7 +277,7 @@ func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Reques
 
 // GET /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -300,30 +302,32 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	{
-		ap, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		parsed, err := parseIntentionStringComponent(source[0], &entMeta, true)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Exact.SourcePartition = ap
-		args.Exact.SourceNS = ns
-		args.Exact.SourceName = name
+
+		args.Exact.SourcePeer = parsed.peer
+		args.Exact.SourcePartition = parsed.ap
+		args.Exact.SourceNS = parsed.ns
+		args.Exact.SourceName = parsed.name
 	}
 
 	{
-		ap, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+		parsed, err := parseIntentionStringComponent(destination[0], &entMeta, false)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
-		args.Exact.DestinationPartition = ap
-		args.Exact.DestinationNS = ns
-		args.Exact.DestinationName = name
+		args.Exact.DestinationPartition = parsed.ap
+		args.Exact.DestinationNS = parsed.ns
+		args.Exact.DestinationName = parsed.name
 	}
 
 	var reply structs.IndexedIntentions
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
-		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+		if strings.Contains(err.Error(), consul.ErrIntentionNotFound.Error()) {
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -331,7 +335,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 		// to detect a parameter error and return a 400 response. The error
 		// is not a constant type or message, so we have to use strings.Contains
 		if strings.Contains(err.Error(), "UUID") {
-			return nil, BadRequestError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 
 		return nil, err
@@ -349,7 +353,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 
 // PUT /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -365,7 +369,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Explicitly CLEAR the old legacy ID field
@@ -391,7 +395,7 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 
 // DELETE /v1/connect/intentions/exact
 func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
@@ -427,7 +431,7 @@ func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.
 // intentionCreateResponse is the response structure for creating an intention.
 type intentionCreateResponse struct{ ID string }
 
-func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta) (*structs.IntentionQueryExact, error) {
+func parseIntentionQueryExact(req *http.Request, entMeta *acl.EnterpriseMeta) (*structs.IntentionQueryExact, error) {
 	q := req.URL.Query()
 
 	// Extract the source/destination
@@ -442,52 +446,74 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 
 	var exact structs.IntentionQueryExact
 	{
-		ap, ns, name, err := parseIntentionStringComponent(source[0], entMeta)
+		parsed, err := parseIntentionStringComponent(source[0], entMeta, false)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		exact.SourcePartition = ap
-		exact.SourceNS = ns
-		exact.SourceName = name
+		exact.SourcePartition = parsed.ap
+		exact.SourceNS = parsed.ns
+		exact.SourceName = parsed.name
 	}
 
 	{
-		ap, ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
+		parsed, err := parseIntentionStringComponent(destination[0], entMeta, false)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
-		exact.DestinationPartition = ap
-		exact.DestinationNS = ns
-		exact.DestinationName = name
+		exact.DestinationPartition = parsed.ap
+		exact.DestinationNS = parsed.ns
+		exact.DestinationName = parsed.name
 	}
 
 	return &exact, nil
 }
 
-func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, string, error) {
+type parsedIntentionInput struct {
+	peer, ap, ns, name string
+}
+
+func parseIntentionStringComponent(input string, entMeta *acl.EnterpriseMeta, allowPeerKeyword bool) (*parsedIntentionInput, error) {
+	if strings.HasPrefix(input, "peer:") && !allowPeerKeyword {
+		return nil, fmt.Errorf("cannot specify a peer here")
+	}
+
 	ss := strings.Split(input, "/")
 	switch len(ss) {
 	case 1: // Name only
+		// need to specify at least the service name too
+		if strings.HasPrefix(ss[0], "peer:") {
+			return nil, fmt.Errorf("need to specify the service name as well")
+		}
+
 		ns := entMeta.NamespaceOrEmpty()
 		ap := entMeta.PartitionOrEmpty()
-		return ap, ns, ss[0], nil
-	case 2: // namespace/name
+		return &parsedIntentionInput{ap: ap, ns: ns, name: ss[0]}, nil
+	case 2: // peer:peer/name OR namespace/name
+		if strings.HasPrefix(ss[0], "peer:") {
+			peerName := strings.TrimPrefix(ss[0], "peer:")
+			ns := entMeta.NamespaceOrEmpty()
+
+			return &parsedIntentionInput{peer: peerName, ns: ns, name: ss[1]}, nil
+		}
+
 		ap := entMeta.PartitionOrEmpty()
-		return ap, ss[0], ss[1], nil
-	case 3: // partition/namespace/name
-		return ss[0], ss[1], ss[2], nil
+		return &parsedIntentionInput{ap: ap, ns: ss[0], name: ss[1]}, nil
+	case 3: // peer:peer/namespace/name OR partition/namespace/name
+		if strings.HasPrefix(ss[0], "peer:") {
+			peerName := strings.TrimPrefix(ss[0], "peer:")
+			return &parsedIntentionInput{peer: peerName, ns: ss[1], name: ss[2]}, nil
+		} else {
+			return &parsedIntentionInput{ap: ss[0], ns: ss[1], name: ss[2]}, nil
+		}
 	default:
-		return "", "", "", fmt.Errorf("input can contain at most two '/'")
+		return nil, fmt.Errorf("input can contain at most two '/'")
 	}
 }
 
 // IntentionSpecific handles the endpoint for /v1/connect/intentions/:id.
 // Deprecated: use IntentionExact.
 func (s *HTTPHandlers) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	id, err := getPathSuffixUnescaped(req.URL.Path, "/v1/connect/intentions/")
-	if err != nil {
-		return nil, err
-	}
+	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
 
 	switch req.Method {
 	case "GET":
@@ -519,7 +545,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds the error type
 		if err.Error() == consul.ErrIntentionNotFound.Error() {
-			return nil, NotFoundError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: err.Error()}
 		}
 
 		// Not ideal, but there are a number of error scenarios that are not
@@ -527,7 +553,7 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 		// to detect a parameter error and return a 400 response. The error
 		// is not a constant type or message, so we have to use strings.Contains
 		if strings.Contains(err.Error(), "UUID") {
-			return nil, BadRequestError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 
 		return nil, err
@@ -547,12 +573,13 @@ func (s *HTTPHandlers) IntentionSpecificGet(id string, resp http.ResponseWriter,
 func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
-	var entMeta structs.EnterpriseMeta
+	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
-	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
-		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+
+	if entMeta.PartitionOrDefault() != acl.PartitionOrDefault("") {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot use a partition with this endpoint"}
 	}
 
 	args := structs.IntentionRequest{
@@ -561,14 +588,14 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a destination partition with this endpoint"}
 	}
 	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
-		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify a source partition with this endpoint"}
 	}
 
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)

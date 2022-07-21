@@ -1,15 +1,9 @@
 @keyframes icon-list {
-  50% {
-
-    background-color: var(--icon-color, var(--color-list-500, currentColor));
-    -webkit-mask-image: var(--icon-list-24);
-    mask-image: var(--icon-list-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-list-500, currentColor));
     -webkit-mask-image: var(--icon-list-16);
     mask-image: var(--icon-list-16);
+    background-color: var(--icon-color, var(--color-list-500, currentColor));
+
   }
 }

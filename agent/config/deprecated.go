@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/consul/types"
 )
 
 type DeprecatedConfig struct {
@@ -178,9 +180,11 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 	var warns []string
 
-	defaults := &cfg.TLS.Defaults
-	internalRPC := &cfg.TLS.InternalRPC
-	https := &cfg.TLS.HTTPS
+	tls := &cfg.TLS
+	defaults := &tls.Defaults
+	internalRPC := &tls.InternalRPC
+	https := &tls.HTTPS
+	grpc := &tls.GRPC
 
 	if v := dep.CAFile; v != nil {
 		if defaults.CAFile == nil {
@@ -219,7 +223,16 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 
 	if v := dep.TLSMinVersion; v != nil {
 		if defaults.TLSMinVersion == nil {
-			defaults.TLSMinVersion = v
+			// NOTE: This inner check for deprecated values should eventually be
+			// removed
+			if version, ok := types.DeprecatedConsulAgentTLSVersions[*v]; ok {
+				// Log warning about deprecated config values
+				warns = append(warns, fmt.Sprintf("'tls_min_version' value '%s' is deprecated, please specify '%s' instead", *v, version))
+				versionString := version.String()
+				defaults.TLSMinVersion = &versionString
+			} else {
+				defaults.TLSMinVersion = v
+			}
 		}
 		warns = append(warns, deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"))
 	}
@@ -228,6 +241,16 @@ func applyDeprecatedTLSConfig(dep DeprecatedConfig, cfg *Config) []string {
 		if defaults.VerifyIncoming == nil {
 			defaults.VerifyIncoming = v
 		}
+
+		// Prior to Consul 1.12 it was not possible to enable client certificate
+		// verification on the gRPC port. We must override GRPC.VerifyIncoming to
+		// prevent it from inheriting Defaults.VerifyIncoming when we've mapped the
+		// deprecated top-level verify_incoming field.
+		if grpc.VerifyIncoming == nil {
+			grpc.VerifyIncoming = pBool(false)
+			tls.GRPCModifiedByDeprecatedConfig = &struct{}{}
+		}
+
 		warns = append(warns, deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"))
 	}
 

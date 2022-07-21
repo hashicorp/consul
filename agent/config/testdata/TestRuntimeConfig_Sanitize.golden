@@ -63,6 +63,8 @@
     "AutoEncryptDNSSAN": [],
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
+    "AutoReloadConfig": false,
+    "AutoReloadConfigCoalesceInterval": "0s",
     "AutopilotCleanupDeadServers": false,
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",
@@ -74,6 +76,7 @@
     "BindAddr": "127.0.0.1",
     "Bootstrap": false,
     "BootstrapExpect": 0,
+    "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
@@ -89,6 +92,7 @@
             "AliasService": "",
             "Body": "",
             "DeregisterCriticalServiceAfter": "0s",
+            "DisableRedirects": false,
             "DockerContainerID": "",
             "EnterpriseMeta": {},
             "FailuresBeforeCritical": 0,
@@ -115,7 +119,8 @@
             "TLSSkipVerify": false,
             "TTL": "0s",
             "Timeout": "0s",
-            "Token": "hidden"
+            "Token": "hidden",
+            "UDP": ""
         }
     ],
     "ClientAddrs": [],
@@ -182,8 +187,6 @@
     "EnableLocalScriptChecks": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
-    "EncryptVerifyIncoming": false,
-    "EncryptVerifyOutgoing": false,
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
@@ -298,6 +301,7 @@
                 "Body": "",
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
+                "DisableRedirects": false,
                 "DockerContainerID": "",
                 "FailuresBeforeCritical": 0,
                 "FailuresBeforeWarning": 0,
@@ -322,7 +326,8 @@
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
                 "TTL": "0s",
-                "Timeout": "0s"
+                "Timeout": "0s",
+                "UDP": ""
             },
             "Checks": [],
             "Connect": null,
@@ -348,6 +353,10 @@
     "SkipLeaveOnInt": false,
     "StartJoinAddrsLAN": [],
     "StartJoinAddrsWAN": [],
+    "StaticRuntimeConfig": {
+        "EncryptVerifyIncoming": false,
+        "EncryptVerifyOutgoing": false
+    },
     "SyncCoordinateIntervalMin": "0s",
     "SyncCoordinateRateTarget": 0,
     "TLS": {
@@ -408,7 +417,6 @@
         "CirconusSubmissionInterval": "",
         "CirconusSubmissionURL": "",
         "Disable": false,
-        "DisableCompatOneNine": false,
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
@@ -422,6 +430,7 @@
             "Registerer": null,
             "SummaryDefinitions": []
         },
+        "RetryFailedConfiguration": false,
         "StatsdAddr": "",
         "StatsiteAddr": ""
     },
@@ -432,6 +441,7 @@
         "DashboardURLTemplates": {},
         "Dir": "",
         "Enabled": false,
+        "HCPEnabled": false,
         "MetricsProvider": "",
         "MetricsProviderFiles": [],
         "MetricsProviderOptionsJSON": "",
@@ -451,6 +461,7 @@
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
     "Version": "",
+    "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": []
 }

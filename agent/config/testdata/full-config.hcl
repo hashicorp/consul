@@ -110,6 +110,7 @@ check = {
     }
     method = "Dou0nGT5"
     body = "5PBQd2OT"
+    disable_redirects = true
     tcp = "JY6fTTcw"
     h2ping = "rQ8eyCSF"
     h2ping_use_tls = false
@@ -138,6 +139,7 @@ checks = [
         }
         method = "aldrIQ4l"
         body = "wSjTy7dg"
+        disable_redirects = true
         tcp = "RJQND605"
         h2ping = "9N1cSb5B"
         h2ping_use_tls = false
@@ -165,6 +167,7 @@ checks = [
         }
         method = "gLrztrNw"
         body = "0jkKgGUC"
+        disable_redirects = false
         tcp = "4jG5casb"
         h2ping = "HCHU7gEb"
         h2ping_use_tls = false
@@ -389,6 +392,7 @@ service = {
         }
         method = "9afLm3Mj"
         body = "wVVL2V6f"
+        disable_redirects = true
         tcp = "fjiLFqVd"
         h2ping = "5NbNWhan"
         h2ping_use_tls = false
@@ -414,6 +418,7 @@ service = {
             }
             method = "T66MFBfR"
             body = "OwGjTFQi"
+            disable_redirects = true
             tcp = "bNnNfx2A"
             h2ping = "qC1pidiW"
             h2ping_use_tls = false
@@ -439,6 +444,7 @@ service = {
             }
             method = "ciYHWors"
             body = "lUVLGYU7"
+            disable_redirects = false
             tcp = "FfvCwlqH"
             h2ping = "spI3muI3"
             h2ping_use_tls = false
@@ -478,6 +484,7 @@ services = [
             }
             method = "X5DrovFc"
             body = "WeikigLh"
+            disable_redirects = true
             tcp = "ICbxkpSF"
             h2ping = "7s7BbMyb"
             h2ping_use_tls = false
@@ -520,6 +527,7 @@ services = [
                 }
                 method = "5wkAxCUE"
                 body = "7CRjCJyz"
+                disable_redirects = false
                 tcp = "MN3oA9D2"
                 h2ping = "OV6Q2XEg"
                 h2ping_use_tls = false
@@ -639,13 +647,13 @@ telemetry {
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
+    retry_failed_connection = true
     filter_default = true
     prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
     metrics_prefix = "ftO6DySn"
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
 tls {
     defaults {
@@ -653,8 +661,8 @@ tls {
         ca_path = "bN63LpXu"
         cert_file = "hB4PoxkL"
         key_file = "Po0hB1tY"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "yU0uIp1A"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        tls_min_version = "TLSv1_2"
         verify_incoming = true
         verify_outgoing = true
     }
@@ -663,8 +671,8 @@ tls {
         ca_path = "lOp1nhPa"
         cert_file = "dfJ4oPln"
         key_file = "aL1Knkpo"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "lPo1MklP"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_1"
         verify_incoming = true
         verify_outgoing = true
         verify_server_hostname = true
@@ -674,8 +682,7 @@ tls {
         ca_path = "nu4PlHzn"
         cert_file = "1yrhPlMk"
         key_file = "1bHapOkL"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "mK14iOpz"
+        tls_min_version = "TLSv1_3"
         verify_incoming = true
         verify_outgoing = true
     }
@@ -684,13 +691,13 @@ tls {
         ca_path = "fLponKpl"
         cert_file = "a674klPn"
         key_file = "1y4prKjl"
-        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-        tls_min_version = "lPo4fNkl"
+        tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+        tls_min_version = "TLSv1_0"
         verify_incoming = true
     }
 }
-tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
-tls_min_version = "pAOWafkR"
+tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+tls_min_version = "tls11"
 tls_prefer_server_cipher_suites = true
 translate_wan_addrs = true
 ui_config {

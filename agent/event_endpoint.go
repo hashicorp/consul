@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -19,13 +20,9 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	s.parseDC(req, &dc)
 
 	event := &UserEvent{}
-	var err error
-	event.Name, err = getPathSuffixUnescaped(req.URL.Path, "/v1/event/fire/")
-	if err != nil {
-		return nil, err
-	}
+	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
-		return nil, BadRequestError{Reason: "Missing name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing name"}
 	}
 
 	// Get the ACL token
@@ -55,7 +52,7 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if acl.IsErrPermissionDenied(err) {
-			return nil, ForbiddenError{Reason: acl.ErrPermissionDenied.Error()}
+			return nil, HTTPError{StatusCode: http.StatusForbidden, Reason: acl.ErrPermissionDenied.Error()}
 		}
 		resp.WriteHeader(http.StatusInternalServerError)
 		return nil, err

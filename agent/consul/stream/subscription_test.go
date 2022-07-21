@@ -6,31 +6,9 @@ import (
 	time "time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 func noopUnSub() {}
-
-func TestSubscription_Subject(t *testing.T) {
-	for desc, tc := range map[string]struct {
-		req SubscribeRequest
-		sub Subject
-	}{
-		"default partition and namespace": {
-			SubscribeRequest{Key: "foo", EnterpriseMeta: structs.EnterpriseMeta{}},
-			"default/default/foo",
-		},
-		"mixed casing": {
-			SubscribeRequest{Key: "BaZ"},
-			"default/default/baz",
-		},
-	} {
-		t.Run(desc, func(t *testing.T) {
-			require.Equal(t, tc.sub, tc.req.Subject())
-		})
-	}
-}
 
 func TestSubscription(t *testing.T) {
 	if testing.Short() {
@@ -50,8 +28,8 @@ func TestSubscription(t *testing.T) {
 	defer cancel()
 
 	req := SubscribeRequest{
-		Topic: testTopic,
-		Key:   "test",
+		Topic:   testTopic,
+		Subject: StringSubject("test"),
 	}
 	sub := newSubscription(req, startHead, noopUnSub)
 
@@ -124,8 +102,8 @@ func TestSubscription_Close(t *testing.T) {
 	defer cancel()
 
 	req := SubscribeRequest{
-		Topic: testTopic,
-		Key:   "test",
+		Topic:   testTopic,
+		Subject: StringSubject("test"),
 	}
 	sub := newSubscription(req, startHead, noopUnSub)
 

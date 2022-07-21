@@ -18,17 +18,19 @@ Verify that your environment meets the following requirements prior to using Con
 Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
 
 - Kubernetes 1.21+
+  - Kubernetes 1.24 is not supported at this time.
 - `kubectl` 1.21+
 - Consul 1.11.2+
-- HashiCorp Consul Helm chart 0.41.1+
+- HashiCorp Consul Helm chart 0.45.0+
 - Consul Service Mesh must be deployed on the Kubernetes cluster that API Gateway is deployed on.
+- Envoy:  Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
 ### TCP Port Requirements
 
 The following table describes the TCP port requirements for each component of the API Gateway.
 
 | Port | Description | Component |
-| ---- | ----------- | --------- | 
+| ---- | ----------- | --------- |
 | 9090 | Secret discovery service (SDS) | Gateway controller pod <br/> Gateway instance pod |
 | 20000 | Kubernetes readiness probe | Gateway instance pod |
 | Configurable | Port for scraping Prometheus metrics. Disabled by default. | Gateway controller pod |
@@ -49,10 +51,9 @@ Consul API Gateway can be deployed in the following Kubernetes-based environment
 - Google Kubernetes Engine (GKE)
 - Azure Kubernetes Service (AKS)
 
-## Kubernetes Gateway API Specification
+## Kubernetes Gateway API Specification - Supported Versions
 
-Supported version of the Gateway API spec: v1alpha2
-
+See the Release Notes for the version of Consul API Gateway being used.
 
 ## Resource Allocations
 
@@ -60,10 +61,10 @@ The following resources are allocated for each component of the API Gateway.
 
 ### Gateway Controller Pod
 
-* **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration. 
-* **Memory**: None. Either the the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
+- **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
+- **Memory**: None. Either the the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 
 ### Gateway Instance Pod
 
-* **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
-* **Memory**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
+- **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
+- **Memory**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.

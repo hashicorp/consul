@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
@@ -31,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -903,6 +902,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 		expected: func(rt *RuntimeConfig) {
 			rt.UIConfig.ContentPath = "/a/b/"
+			rt.DataDir = dataDir
+		},
+	})
+
+	run(t, testCase{
+		desc: "-datacenter empty",
+		args: []string{
+			`-auto-reload-config`,
+			`-data-dir=` + dataDir,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.AutoReloadConfig = true
 			rt.DataDir = dataDir
 		},
 	})
@@ -2327,7 +2338,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Telemetry.AllowedPrefixes = []string{"foo"}
-			rt.Telemetry.BlockedPrefixes = []string{"bar"}
+			rt.Telemetry.BlockedPrefixes = []string{"bar", "consul.rpc.server.call"}
 		},
 		expectedWarnings: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 	})
@@ -5395,8 +5406,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					ca_file = "default_ca_file"
 					ca_path = "default_ca_path"
 					cert_file = "default_cert_file"
-					tls_min_version = "tls12"
-					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+					tls_min_version = "TLSv1_2"
+					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 					verify_incoming = true
 				}
 
@@ -5406,7 +5417,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 				https {
 					cert_file = "https_cert_file"
-					tls_min_version = "tls13"
+					tls_min_version = "TLSv1_3"
 				}
 
 				grpc {
@@ -5425,8 +5436,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"ca_file": "default_ca_file",
 						"ca_path": "default_ca_path",
 						"cert_file": "default_cert_file",
-						"tls_min_version": "tls12",
-						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+						"tls_min_version": "TLSv1_2",
+						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
 						"verify_incoming": true
 					},
 					"internal_rpc": {
@@ -5434,7 +5445,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					"https": {
 						"cert_file": "https_cert_file",
-						"tls_min_version": "tls13"
+						"tls_min_version": "TLSv1_3"
 					},
 					"grpc": {
 						"verify_incoming": false,
@@ -5455,22 +5466,21 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
 			rt.TLS.InternalRPC.CAPath = "default_ca_path"
 			rt.TLS.InternalRPC.CertFile = "default_cert_file"
-			rt.TLS.InternalRPC.TLSMinVersion = "tls12"
-			rt.TLS.InternalRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.InternalRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
 			rt.TLS.HTTPS.CAFile = "default_ca_file"
 			rt.TLS.HTTPS.CAPath = "default_ca_path"
 			rt.TLS.HTTPS.CertFile = "https_cert_file"
-			rt.TLS.HTTPS.TLSMinVersion = "tls13"
-			rt.TLS.HTTPS.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256}
+			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
 			rt.TLS.HTTPS.VerifyIncoming = true
 
 			rt.TLS.GRPC.CAFile = "default_ca_file"
 			rt.TLS.GRPC.CAPath = "default_ca_path"
 			rt.TLS.GRPC.CertFile = "default_cert_file"
-			rt.TLS.GRPC.TLSMinVersion = "tls12"
-			rt.TLS.GRPC.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
+			rt.TLS.GRPC.TLSMinVersion = "TLSv1_2"
+			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
 		},
 	})
@@ -5606,7 +5616,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
-		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
 }
 
@@ -5617,13 +5627,6 @@ func runCase(t *testing.T, name string, fn func(t *testing.T)) {
 		t.Log("case:", name)
 		fn(t)
 	})
-}
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
 }
 
 func TestLoad_InvalidConfigFormat(t *testing.T) {
@@ -5657,6 +5660,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
 		VersionPrerelease: "ZT1JOQLn",
+		VersionMetadata:   "GtTCa13",
+		BuildDate:         time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  128,
@@ -5740,6 +5745,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "aldrIQ4l",
 				Body:                           "wSjTy7dg",
+				DisableRedirects:               true,
 				TCP:                            "RJQND605",
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
@@ -5767,6 +5773,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "gLrztrNw",
 				Body:                           "0jkKgGUC",
+				DisableRedirects:               false,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				H2PING:                         "HCHU7gEb",
@@ -5794,6 +5801,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				},
 				Method:                         "Dou0nGT5",
 				Body:                           "5PBQd2OT",
+				DisableRedirects:               true,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				H2PING:                         "rQ8eyCSF",
@@ -5915,24 +5923,27 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
 		EncryptKey:                             "A4wELWqH",
-		EncryptVerifyIncoming:                  true,
-		EncryptVerifyOutgoing:                  true,
-		GRPCPort:                               4881,
-		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
-		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
-		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
-		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
-		HTTPPort:                               7999,
-		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
-		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
-		HTTPMaxConnsPerClient:                  100,
-		HTTPMaxHeaderBytes:                     10,
-		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
-		HTTPSPort:                              15127,
-		HTTPUseCache:                           false,
-		KVMaxValueSize:                         1234567800,
-		LeaveDrainTime:                         8265 * time.Second,
-		LeaveOnTerm:                            true,
+		StaticRuntimeConfig: StaticRuntimeConfig{
+			EncryptVerifyIncoming: true,
+			EncryptVerifyOutgoing: true,
+		},
+
+		GRPCPort:              4881,
+		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
+		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
+		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
+		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
+		HTTPPort:              7999,
+		HTTPResponseHeaders:   map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
+		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient: 100,
+		HTTPMaxHeaderBytes:    10,
+		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
+		HTTPSPort:             15127,
+		HTTPUseCache:          false,
+		KVMaxValueSize:        1234567800,
+		LeaveDrainTime:        8265 * time.Second,
+		LeaveOnTerm:           true,
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6002,6 +6013,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "X5DrovFc",
 						Body:                           "WeikigLh",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						H2PING:                         "7s7BbMyb",
@@ -6198,6 +6210,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "T66MFBfR",
 						Body:                           "OwGjTFQi",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						H2PING:                         "qC1pidiW",
@@ -6223,6 +6236,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "ciYHWors",
 						Body:                           "lUVLGYU7",
+						DisableRedirects:               false,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						H2PING:                         "spI3muI3",
@@ -6248,6 +6262,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						},
 						Method:                         "9afLm3Mj",
 						Body:                           "wVVL2V6f",
+						DisableRedirects:               true,
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						H2PING:                         "5NbNWhan",
@@ -6288,13 +6303,13 @@ func TestLoad_FullConfig(t *testing.T) {
 			CirconusCheckTags:                  "prvO4uBl",
 			CirconusSubmissionInterval:         "DolzaflP",
 			CirconusSubmissionURL:              "gTcbS93G",
-			DisableCompatOneNine:               true,
 			DisableHostname:                    true,
 			DogstatsdAddr:                      "0wSndumK",
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
+			RetryFailedConfiguration:           true,
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"cazlEhGn"},
+			BlockedPrefixes:                    []string{"cazlEhGn", "ftO6DySn.rpc.server.call"},
 			MetricsPrefix:                      "ftO6DySn",
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
@@ -6310,8 +6325,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:               "lOp1nhPa",
 				CertFile:             "dfJ4oPln",
 				KeyFile:              "aL1Knkpo",
-				TLSMinVersion:        "lPo1MklP",
-				CipherSuites:         []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:        types.TLSv1_1,
+				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
 				VerifyServerHostname: true,
 			},
@@ -6321,8 +6336,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "fLponKpl",
 				CertFile:       "a674klPn",
 				KeyFile:        "1y4prKjl",
-				TLSMinVersion:  "lPo4fNkl",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_0,
+				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
@@ -6331,8 +6346,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				CAPath:         "nu4PlHzn",
 				CertFile:       "1yrhPlMk",
 				KeyFile:        "1bHapOkL",
-				TLSMinVersion:  "mK14iOpz",
-				CipherSuites:   []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
+				TLSMinVersion:  types.TLSv1_3,
 				VerifyOutgoing: true,
 			},
 			NodeName:                "otlLxGaI",
@@ -6385,7 +6399,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		RaftBoltDBConfig: consul.RaftBoltDBConfig{NoFreelistSync: true},
+		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
+		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 	entFullRuntimeConfig(expected)
 
@@ -6432,10 +6447,11 @@ func TestLoad_FullConfig(t *testing.T) {
 				ConfigFiles: []string{"testdata/full-config." + format},
 				HCL:         []string{fmt.Sprintf(`data_dir = "%s"`, dataDir)},
 			}
-			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
+			opts.Overrides = append(opts.Overrides, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn", "GtTCa13",
+				time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC)))
 			r, err := Load(opts)
 			require.NoError(t, err)
-			assertDeepEqual(t, expected, r.RuntimeConfig)
+			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})
 	}
@@ -6626,6 +6642,7 @@ func parseCIDR(t *testing.T, cidr string) *net.IPNet {
 func TestRuntimeConfig_Sanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
+		BuildDate:            time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC),
 		CheckOutputMaxSize:   checks.DefaultBufSize,
 		SerfAdvertiseAddrLAN: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		DNSAddrs: []net.Addr{
@@ -6770,7 +6787,8 @@ func TestRuntime_APIConfigHTTP(t *testing.T) {
 			&net.UnixAddr{Name: "/var/run/foo"},
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
 		},
-		Datacenter: "dc-test",
+		Datacenter:          "dc-test",
+		StaticRuntimeConfig: StaticRuntimeConfig{},
 	}
 
 	cfg, err := rt.APIConfig(false)

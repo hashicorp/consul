@@ -34,10 +34,10 @@ There are several different kinds of checks:
   In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
   can either use :
 
-  - [`enable_local_script_checks`](/docs/agent/options#_enable_local_script_checks):
+  - [`enable_local_script_checks`](/docs/agent/config/cli-flags#_enable_local_script_checks):
     enable script checks defined in local config files. Script checks defined via the HTTP
     API will not be allowed.
-  - [`enable_script_checks`](/docs/agent/options#_enable_script_checks): enable
+  - [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks): enable
     script checks regardless of how they are defined.
 
   ~> **Security Warning:** Enabling script checks in some configurations may
@@ -57,6 +57,7 @@ There are several different kinds of checks:
   fields can be set through the `header` field which is a map of lists of
   strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
   configured with a request timeout equal to 10 seconds.
+
   It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
@@ -65,6 +66,9 @@ There are several different kinds of checks:
   field to `true` in the check definition. When using TLS, the SNI will be set
   automatically from the URL if it uses a hostname (as opposed to an IP address);
   the value can be overridden by setting `tls_server_name`.
+
+  Consul follows HTTP redirects by default. Set the `disable_redirects` field to
+  `true` to disable redirects.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -81,6 +85,12 @@ There are several different kinds of checks:
   It is possible to configure a custom TCP check timeout value by specifying the
   `timeout` field in the check definition.
 
+- `UDP + Interval` - These checks direct the client to periodically send UDP datagrams
+  to the specified IP/hostname and port. The duration specified in the `interval` field sets the amount of time 
+  between attempts, such as `30s` to indicate 30 seconds. The check is logged as healthy if any response from the UDP server is received. Any other result sets the status to `critical`.
+  The default interval for, UDP checks is `10s`, but you can configure a custom UDP check timeout value by specifying the
+  `timeout` field in the check definition. If any timeout on read exists, the check is still considered healthy.
+
 - `Time to Live (TTL)` ((#ttl)) - These checks retain their last known state
   for a given TTL. The state of the check must be updated periodically over the HTTP
   interface. If an external system fails to update the status within a given TTL,
@@ -88,9 +98,9 @@ There are several different kinds of checks:
   dead man's switch, relies on the application to directly report its health. For
   example, a healthy app can periodically `PUT` a status update to the HTTP endpoint;
   if the app fails, the TTL will expire and the health check enters a critical state.
-  The endpoints used to update health information for a given check are: [pass](/api/agent/check#ttl-check-pass),
-  [warn](/api/agent/check#ttl-check-warn), [fail](/api/agent/check#ttl-check-fail),
-  and [update](/api/agent/check#ttl-check-update). TTL checks also persist their
+  The endpoints used to update health information for a given check are: [pass](/api-docs/agent/check#ttl-check-pass),
+  [warn](/api-docs/agent/check#ttl-check-warn), [fail](/api-docs/agent/check#ttl-check-fail),
+  and [update](/api-docs/agent/check#ttl-check-update). TTL checks also persist their
   last known status to disk. This allows the Consul agent to restore the last known
   status of the check across restarts. Persisted check status is valid through the
   end of the TTL from the time of the last check.
@@ -105,7 +115,7 @@ There are several different kinds of checks:
   has to be performed is configurable which makes it possible to run containers which
   have different shells on the same host. Check output for Docker is limited to
   4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
-  must be configured with [`enable_script_checks`](/docs/agent/options#_enable_script_checks)
+  must be configured with [`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks)
   set to `true` in order to enable Docker health checks.
 
 - `gRPC + Interval` - These checks are intended for applications that support the standard
@@ -147,7 +157,7 @@ A script check:
 ```hcl
 check = {
   id = "mem-util"
-  name =  "Memory utilization"
+  name = "Memory utilization"
   args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
   interval = "10s"
   timeout = "1s"
@@ -182,11 +192,12 @@ check = {
   tls_skip_verify = false
   method = "POST"
   header = {
-     Content-Type =  ["application/json"]
+     Content-Type = ["application/json"]
   }
   body = "{\"method\":\"health\"}"
-  interval =  "10s"
-  timeout =  "1s"
+  disable_redirects = true
+  interval = "10s"
+  timeout = "1s"
 }
 ```
 
@@ -238,16 +249,45 @@ check = {
 
 </CodeTabs>
 
+A UDP check:
+
+<CodeTabs heading="UDP Check">
+
+```hcl
+check = {
+  id = "dns"
+  name = "DNS UDP on port 53"
+  udp = "localhost:53"
+  interval = "10s"
+  timeout = "1s"
+}
+
+```
+
+```json
+{
+  "check": {
+    "id": "dns",
+    "name": "DNS UDP on port 53",
+    "udp": "localhost:53",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
+</CodeTabs>
+
 A TTL check:
 
 <CodeTabs heading="TTL Check">
 
 ```hcl
-check =  {
+check = {
   id = "web-app"
   name = "Web App Status"
   notes = "Web app does a curl internally every 10 seconds"
-  ttl =  "30s"
+  ttl = "30s"
 }
 ```
 
@@ -300,11 +340,11 @@ A gRPC check for the whole application:
 
 ```hcl
 check = {
-  id =  "mem-util"
+  id = "mem-util"
   name = "Service health status"
-  grpc =  "127.0.0.1:12345"
+  grpc = "127.0.0.1:12345"
   grpc_use_tls = true
-  interval =  "10s"
+  interval = "10s"
 }
 ```
 
@@ -424,7 +464,7 @@ used for any interaction with the catalog for the check, including
 For Alias checks, this token is used if a remote blocking query is necessary
 to watch the state of the aliased node or service.
 
-Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
+Script, TCP, UDP, HTTP, Docker, and gRPC checks must include an `interval` field. This
 field is parsed by Go's `time` package, and has the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration):
 
@@ -462,7 +502,7 @@ This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `output` field.
 
 In Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/docs/agent/options#_enable_script_checks) set to `true`
+[`enable_script_checks`](/docs/agent/config/cli-flags#_enable_script_checks) set to `true`
 in order to enable script checks.
 
 ## Initial Health Check Status
@@ -477,11 +517,11 @@ health check definition, like so:
 <CodeTabs heading="Status Field Example">
 
 ```hcl
-check =  {
-  "id": "mem",
-  "args": ["/bin/check_mem", "-limit", "256MB"]
-  "interval": "10s"
-  "status": "passing"
+check = {
+  id = "mem"
+  args = ["/bin/check_mem", "-limit", "256MB"]
+  interval = "10s"
+  status = "passing"
 }
 ```
 
@@ -511,10 +551,10 @@ provided by adding a `service_id` field to a check configuration:
 <CodeTabs heading="Status Field Example">
 
 ```hcl
-check =  {
+check = {
   id = "web-app"
-  name =  "Web App Status"
-  service_id =  "web-app"
+  name = "Web App Status"
+  service_id = "web-app"
   ttl = "30s"
 }
 ```
@@ -538,7 +578,7 @@ provided by the node will remain unchanged.
 
 ## Agent Certificates for TLS Checks
 
-The [enable_agent_tls_for_checks](/docs/agent/options#enable_agent_tls_for_checks)
+The [enable_agent_tls_for_checks](/docs/agent/config/config-files#enable_agent_tls_for_checks)
 agent configuration option can be utilized to have HTTP or gRPC health checks
 to use the agent's credentials when configured for TLS.
 
@@ -630,7 +670,7 @@ checks = [
     name = "HTTP TCP on port 80"
     tcp = "localhost:80"
     interval = "10s"
-    timeout =  "1s"
+    timeout  = "1s"
     success_before_passing =  3
     failures_before_warning =  1
     failures_before_critical =  3

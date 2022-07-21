@@ -138,16 +138,13 @@ $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @exter
 true
 ```
 
-### Update terminating gateway ACL token if ACLs are enabled
+### Update terminating gateway ACL role if ACLs are enabled
 
-If ACLs are enabled, update the terminating gateway acl token to have `service: write` permissions on all of the services
+If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
 being represented by the gateway:
 
 - Create a new policy that includes these permissions
-- Update the existing token to include the new policy
-
-~> The CLI command should be run with the `-merge-policies`, `-merge-roles` and `-merge-service-identities` so
-nothing is removed from the terminating gateway token
+- Update the existing role to include the new policy
 
 <CodeBlockConfig filename="write-policy.hcl">
 
@@ -174,28 +171,28 @@ service "example-https" {
 Now fetch the ID of the terminating gateway token
 
 ```shell-session
-consul acl token list | grep -B 6 -- "- terminating-gateway-terminating-gateway-token" | grep AccessorID
+consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
 
-AccessorID:       <token id>
+ID:       <role id>
 ```
 
 Update the terminating gateway acl token with the new policy
 
 ```shell-session
-$ consul acl token update -id <token-id> -policy-name example-https-write-policy -merge-policies -merge-roles -merge-service-identities
-AccessorID:       <token id>
+$ consul acl role update -id <role id> -policy-name example-https-write-policy
+AccessorID:       <role id>
 SecretID:         <secret id>
-Description:      terminating-gateway-terminating-gateway-token Token
+Description:      RELEASE_NAME-terminating-gateway-acl-role
 Local:            true
 Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
 Policies:
-   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - terminating-gateway-terminating-gateway-token
+   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-policy
    f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
 ```
 
 ### Create the configuration entry for the terminating gateway
 
-Once the tokens have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
+Once the roles have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
 resource to configure the terminating gateway:
 
 <CodeBlockConfig filename="terminating-gateway.yaml">
@@ -208,13 +205,16 @@ metadata:
 spec:
   services:
     - name: example-https
-      caFile: /etc/ssl/cert.pem
+      caFile: /etc/ssl/certs/ca-certificates.crt
 ```
 
 </CodeBlockConfig>
 
-~> If TLS is enabled a `caFile` must be provided, it must point to the system trust store of the terminating gateway
-container (`/etc/ssl/cert.pem`).
+If TLS is enabled, you must include the `caFile` parameter  that points to the system trust store of the terminating gateway container. By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
+
+Configure the `caFile` parameter to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+ * Consul Helm chart 0.43 or older 
+ * Or an Envoy image with an alpine base image
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 

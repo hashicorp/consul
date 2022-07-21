@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
@@ -24,7 +25,7 @@ func TestStore_Get(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
@@ -32,7 +33,7 @@ func TestStore_Get(t *testing.T) {
 		newEventServiceHealthRegister(10, 1, "srv1"),
 		newEventServiceHealthRegister(22, 2, "srv1"))
 
-	runStep(t, "from empty store, starts materializer", func(t *testing.T) {
+	testutil.RunStep(t, "from empty store, starts materializer", func(t *testing.T) {
 		var result Result
 		retry.Run(t, func(r *retry.R) {
 			var err error
@@ -56,7 +57,7 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 	})
 
-	runStep(t, "with an index that already exists in the view", func(t *testing.T) {
+	testutil.RunStep(t, "with an index that already exists in the view", func(t *testing.T) {
 		req.index = 21
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
@@ -84,7 +85,7 @@ func TestStore_Get(t *testing.T) {
 		chResult <- resultOrError{Result: result, Err: err}
 	}()
 
-	runStep(t, "blocks with an index that is not yet in the view", func(t *testing.T) {
+	testutil.RunStep(t, "blocks with an index that is not yet in the view", func(t *testing.T) {
 		select {
 		case <-chResult:
 			t.Fatalf("expected Get to block")
@@ -97,7 +98,7 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, 1, e.requests)
 	})
 
-	runStep(t, "blocks when an event is received but the index is still below minIndex", func(t *testing.T) {
+	testutil.RunStep(t, "blocks when an event is received but the index is still below minIndex", func(t *testing.T) {
 		req.client.QueueEvents(newEventServiceHealthRegister(24, 1, "srv1"))
 
 		select {
@@ -112,7 +113,7 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, 1, e.requests)
 	})
 
-	runStep(t, "unblocks when an event with index past minIndex", func(t *testing.T) {
+	testutil.RunStep(t, "unblocks when an event with index past minIndex", func(t *testing.T) {
 		req.client.QueueEvents(newEventServiceHealthRegister(41, 1, "srv1"))
 		var getResult resultOrError
 		select {
@@ -139,7 +140,7 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 	})
 
-	runStep(t, "with no index returns latest value", func(t *testing.T) {
+	testutil.RunStep(t, "with no index returns latest value", func(t *testing.T) {
 		req.index = 0
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
@@ -160,7 +161,7 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 	})
 
-	runStep(t, "blocks until timeout", func(t *testing.T) {
+	testutil.RunStep(t, "blocks until timeout", func(t *testing.T) {
 		req.index = 50
 		req.timeout = 25 * time.Millisecond
 
@@ -199,14 +200,14 @@ type resultOrError struct {
 	Err    error
 }
 
-type fakeRequest struct {
+type fakeRPCRequest struct {
 	index   uint64
 	timeout time.Duration
 	key     string
 	client  *TestStreamingClient
 }
 
-func (r *fakeRequest) CacheInfo() cache.RequestInfo {
+func (r *fakeRPCRequest) CacheInfo() cache.RequestInfo {
 	key := r.key
 	if key == "" {
 		key = "key"
@@ -220,26 +221,30 @@ func (r *fakeRequest) CacheInfo() cache.RequestInfo {
 	}
 }
 
-func (r *fakeRequest) NewMaterializer() (*Materializer, error) {
-	return NewMaterializer(Deps{
+func (r *fakeRPCRequest) NewMaterializer() (Materializer, error) {
+	deps := Deps{
 		View:   &fakeView{srvs: make(map[string]*pbservice.CheckServiceNode)},
-		Client: r.client,
 		Logger: hclog.New(nil),
-		Request: func(index uint64) pbsubscribe.SubscribeRequest {
-			req := pbsubscribe.SubscribeRequest{
-				Topic:      pbsubscribe.Topic_ServiceHealth,
-				Key:        "key",
+		Request: func(index uint64) *pbsubscribe.SubscribeRequest {
+			req := &pbsubscribe.SubscribeRequest{
+				Topic: pbsubscribe.Topic_ServiceHealth,
+				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+					NamedSubject: &pbsubscribe.NamedSubject{
+						Key:       "key",
+						Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+					},
+				},
 				Token:      "abcd",
 				Datacenter: "dc1",
 				Index:      index,
-				Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 			}
 			return req
 		},
-	}), nil
+	}
+	return NewRPCMaterializer(r.client, deps), nil
 }
 
-func (r *fakeRequest) Type() string {
+func (r *fakeRPCRequest) Type() string {
 	return fmt.Sprintf("%T", r)
 }
 
@@ -291,7 +296,7 @@ func TestStore_Notify(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(
@@ -304,7 +309,7 @@ func TestStore_Notify(t *testing.T) {
 	err := store.Notify(ctx, req, cID, ch)
 	require.NoError(t, err)
 
-	runStep(t, "from empty store, starts materializer", func(t *testing.T) {
+	testutil.RunStep(t, "from empty store, starts materializer", func(t *testing.T) {
 		store.lock.Lock()
 		defer store.lock.Unlock()
 		require.Len(t, store.byKey, 1)
@@ -313,7 +318,7 @@ func TestStore_Notify(t *testing.T) {
 		require.Equal(t, 1, e.requests)
 	})
 
-	runStep(t, "updates are received", func(t *testing.T) {
+	testutil.RunStep(t, "updates are received", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			select {
 			case update := <-ch:
@@ -339,7 +344,7 @@ func TestStore_Notify(t *testing.T) {
 		}
 	})
 
-	runStep(t, "closing the notify starts the expiry counter", func(t *testing.T) {
+	testutil.RunStep(t, "closing the notify starts the expiry counter", func(t *testing.T) {
 		cancel()
 
 		retry.Run(t, func(r *retry.R) {
@@ -360,7 +365,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 	store := NewStore(hclog.New(nil))
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
@@ -393,13 +398,13 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 		assertRequestCount(r, store, req, 4)
 	})
 
-	var req2 *fakeRequest
+	var req2 *fakeRPCRequest
 
-	runStep(t, "Get and Notify with a different key", func(t *testing.T) {
+	testutil.RunStep(t, "Get and Notify with a different key", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		req2 = &fakeRequest{client: req.client, key: "key2", index: 22}
+		req2 = &fakeRPCRequest{client: req.client, key: "key2", index: 22}
 
 		require.NoError(t, store.Notify(ctx, req2, cID, ch1))
 		go func() {
@@ -414,7 +419,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 		})
 	})
 
-	runStep(t, "end all the requests", func(t *testing.T) {
+	testutil.RunStep(t, "end all the requests", func(t *testing.T) {
 		req.client.QueueEvents(
 			newEventServiceHealthRegister(10, 1, "srv1"),
 			newEventServiceHealthRegister(12, 2, "srv1"),
@@ -433,7 +438,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 		})
 	})
 
-	runStep(t, "the expiry heap should contain two entries", func(t *testing.T) {
+	testutil.RunStep(t, "the expiry heap should contain two entries", func(t *testing.T) {
 		store.lock.Lock()
 		defer store.lock.Unlock()
 		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
@@ -472,7 +477,7 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	store.idleTTL = ttl
 	go store.Run(ctx)
 
-	req := &fakeRequest{
+	req := &fakeRPCRequest{
 		client: NewTestStreamingClient(pbcommon.DefaultEnterpriseMeta.Namespace),
 	}
 	req.client.QueueEvents(newEndOfSnapshotEvent(2))
@@ -503,11 +508,4 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	defer store.lock.Unlock()
 	require.Len(t, store.byKey, 0)
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }

@@ -15,12 +15,14 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 )
 
@@ -265,7 +267,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 	}
 	return &structs.CARoot{
 		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
-		Name:                fmt.Sprintf("%s CA Primary Cert", strings.Title(provider)),
+		Name:                fmt.Sprintf("%s CA Primary Cert", providerPrettyName(provider)),
 		SerialNumber:        primaryCert.SerialNumber.Uint64(),
 		SigningKeyID:        connect.EncodeSigningKeyID(primaryCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
@@ -1375,6 +1377,62 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 	return l.csrRateLimiter
 }
 
+// AuthorizeAndSignCertificate signs a leaf certificate for the service or agent
+// identified by the SPIFFE ID in the given CSR's SAN. It performs authorization
+// using the given acl.Authorizer.
+func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
+	// Parse the SPIFFE ID from the CSR SAN.
+	if len(csr.URIs) == 0 {
+		return nil, connect.InvalidCSRError("CSR SAN does not contain a SPIFFE ID")
+	}
+	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Perform authorization.
+	var authzContext acl.AuthorizerContext
+	allow := authz.ToAllowAuthorizer()
+	switch v := spiffeID.(type) {
+	case *connect.SpiffeIDService:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.ServiceWriteAllowed(v.Service, &authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the service URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
+	case *connect.SpiffeIDAgent:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {
+			return nil, err
+		}
+	case *connect.SpiffeIDMeshGateway:
+		// TODO(peering): figure out what is appropriate here for ACLs
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.MeshWriteAllowed(&authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the gateway URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
+	default:
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
+	}
+
+	return c.SignCertificate(csr, spiffeID)
+}
+
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
 	if provider == nil {
@@ -1392,18 +1450,25 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
-	if !isService && !isAgent {
-		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
-	}
+	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
 
-	var entMeta structs.EnterpriseMeta
-	if isService {
+	var entMeta acl.EnterpriseMeta
+	switch {
+	case isService:
 		if !signingID.CanSign(spiffeID) {
-			return nil, fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
-	} else {
+
+	case isMeshGateway:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", mgwID.Host, signingID.Host())
+		}
+		entMeta.Merge(mgwID.GetEnterpriseMeta())
+
+	case isAgent:
 		// isAgent - if we support more ID types then this would need to be an else if
 		// here we are just automatically fixing the trust domain. For auto-encrypt and
 		// auto-config they make certificate requests before learning about the roots
@@ -1427,6 +1492,9 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 			csr.URIs = uris
 		}
 		entMeta.Merge(agentID.GetEnterpriseMeta())
+
+	default:
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, or mesh gateway ID")
 	}
 
 	commonCfg, err := config.GetCommonConfig()
@@ -1479,7 +1547,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = pem + ca.EnsureTrailingNewline(p)
+		pem = pem + lib.EnsureTrailingNewline(p)
 	}
 
 	modIdx, err := c.delegate.ApplyCALeafRequest()
@@ -1504,12 +1572,19 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 			CreateIndex: modIdx,
 		},
 	}
-	if isService {
+
+	switch {
+	case isService:
 		reply.Service = serviceID.Service
 		reply.ServiceURI = cert.URIs[0].String()
-	} else if isAgent {
+	case isMeshGateway:
+		reply.Kind = structs.ServiceKindMeshGateway
+		reply.KindURI = cert.URIs[0].String()
+	case isAgent:
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
+	default:
+		return nil, errors.New("not possible")
 	}
 
 	return &reply, nil
@@ -1537,4 +1612,19 @@ func (c *CAManager) isIntermediateUsedToSignLeaf() bool {
 	}
 	provider, _ := c.getCAProvider()
 	return primaryUsesIntermediate(provider)
+}
+
+func providerPrettyName(provider string) string {
+	switch provider {
+	case "consul":
+		return "Consul"
+	case "vault":
+		return "Vault"
+	case "aws-pca":
+		return "Aws-Pca"
+	case "provider-name":
+		return "Provider-Name"
+	default:
+		return provider
+	}
 }

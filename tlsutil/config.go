@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/types"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and
@@ -36,13 +36,13 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// tlsLookup maps the tls_min_version configuration to the internal value
-var tlsLookup = map[string]uint16{
-	"":      tls.VersionTLS10, // default in golang
-	"tls10": tls.VersionTLS10,
-	"tls11": tls.VersionTLS11,
-	"tls12": tls.VersionTLS12,
-	"tls13": tls.VersionTLS13,
+// goTLSVersions maps types.TLSVersion to the Go internal value
+var goTLSVersions = map[types.TLSVersion]uint16{
+	types.TLSVersionAuto: tls.VersionTLS12,
+	types.TLSv1_0:        tls.VersionTLS10,
+	types.TLSv1_1:        tls.VersionTLS11,
+	types.TLSv1_2:        tls.VersionTLS12,
+	types.TLSv1_3:        tls.VersionTLS13,
 }
 
 // ProtocolConfig contains configuration for a given protocol.
@@ -71,27 +71,16 @@ type ProtocolConfig struct {
 	KeyFile string
 
 	// TLSMinVersion is the minimum accepted TLS version that can be used.
-	TLSMinVersion string
+
+	TLSMinVersion types.TLSVersion
 
 	// CipherSuites is the list of TLS cipher suites to use.
 	//
-	// The values should be a list of the following values:
-	//
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	//
-	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
-	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants
-	// todo(fs): since they are standardized by IANA.
-	CipherSuites []uint16
+	// We don't support the raw 0xNNNN values from
+	// https://golang.org/pkg/crypto/tls/#pkg-constants
+	// even though they are standardized by IANA because it would increase
+	// the likelihood of an operator inadvertently setting an insecure configuration
+	CipherSuites []types.TLSCipherSuite
 
 	// VerifyOutgoing is used to verify the authenticity of outgoing
 	// connections.  This means that TLS requests are used, and TCP
@@ -99,7 +88,7 @@ type ProtocolConfig struct {
 	// certificate authority. This is used to verify authenticity of server
 	// nodes.
 	//
-	// Note: this setting doesn't apply to the gRPC configuration, as Consul
+	// Note: this setting doesn't apply to the external gRPC configuration, as Consul
 	// makes no outgoing connections using this protocol.
 	VerifyOutgoing bool
 
@@ -146,17 +135,6 @@ type Config struct {
 	// AutoTLS opts the agent into provisioning agent
 	// TLS certificates.
 	AutoTLS bool
-}
-
-func tlsVersions() []string {
-	versions := []string{}
-	for v := range tlsLookup {
-		if v != "" {
-			versions = append(versions, v)
-		}
-	}
-	sort.Strings(versions)
-	return versions
 }
 
 // SpecificDC is used to invoke a static datacenter
@@ -255,6 +233,13 @@ func (c *Configurator) ManualCAPems() []string {
 	return c.internalRPC.manualCAPEMs
 }
 
+// GRPCManualCAPems returns the currently loaded CAs for the gRPC in PEM format.
+func (c *Configurator) GRPCManualCAPems() []string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.grpc.manualCAPEMs
+}
+
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
 // This function acquires a write lock because it writes the new config.
@@ -289,19 +274,12 @@ func (c *Configurator) Update(config Config) error {
 
 // loadProtocolConfig loads the certificates etc. for a given ProtocolConfig
 // and performs validation.
-func (c *Configurator) loadProtocolConfig(base Config, lc ProtocolConfig) (*protocolConfig, error) {
-	if min := lc.TLSMinVersion; min != "" {
-		if _, ok := tlsLookup[min]; !ok {
-			versions := strings.Join(tlsVersions(), ", ")
-			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", min, versions)
-		}
-	}
-
-	cert, err := loadKeyPair(lc.CertFile, lc.KeyFile)
+func (c *Configurator) loadProtocolConfig(base Config, pc ProtocolConfig) (*protocolConfig, error) {
+	cert, err := loadKeyPair(pc.CertFile, pc.KeyFile)
 	if err != nil {
 		return nil, err
 	}
-	pems, err := LoadCAs(lc.CAFile, lc.CAPath)
+	pems, err := LoadCAs(pc.CAFile, pc.CAPath)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +292,7 @@ func (c *Configurator) loadProtocolConfig(base Config, lc ProtocolConfig) (*prot
 		return nil, err
 	}
 
-	if lc.VerifyIncoming {
+	if pc.VerifyIncoming {
 		// Both auto-config and auto-encrypt require verifying the connection from the
 		// client to the server for secure operation. In order to be able to verify the
 		// server's certificate we must have some CA certs already provided. Therefore,
@@ -336,7 +314,7 @@ func (c *Configurator) loadProtocolConfig(base Config, lc ProtocolConfig) (*prot
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set.
-	if lc.VerifyOutgoing && combinedPool == nil {
+	if pc.VerifyOutgoing && combinedPool == nil {
 		return nil, fmt.Errorf("VerifyOutgoing set but no CA certificates were provided")
 	}
 
@@ -476,15 +454,19 @@ func (c *Configurator) Base() Config {
 // find bugs. By accepting a varargs of slices we remove the need for the
 // caller to append the groups, which should prevent any such bugs.
 func newX509CertPool(groups ...[]string) (*x509.CertPool, error) {
+	var haveCerts bool
 	pool := x509.NewCertPool()
 	for _, group := range groups {
 		for _, pem := range group {
 			if !pool.AppendCertsFromPEM([]byte(pem)) {
 				return nil, fmt.Errorf("failed to parse PEM %s", pem)
 			}
+			if len(pem) > 0 {
+				haveCerts = true
+			}
 		}
 	}
-	if len(pool.Subjects()) == 0 {
+	if !haveCerts {
 		return nil, nil
 	}
 	return pool, nil
@@ -572,7 +554,11 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 
 	// Set the cipher suites
 	if len(cfg.CipherSuites) != 0 {
-		tlsConfig.CipherSuites = cfg.CipherSuites
+		// TLS cipher suites are validated on input in agent config builder,
+		// so it's safe to ignore the error case here.
+
+		cipherSuites, _ := cipherSuiteLookup(cfg.CipherSuites)
+		tlsConfig.CipherSuites = cipherSuites
 	}
 
 	// GetCertificate is used when acting as a server and responding to
@@ -607,10 +593,11 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	tlsConfig.ClientCAs = state.combinedCAPool
 	tlsConfig.RootCAs = state.combinedCAPool
 
-	// This is possible because tlsLookup also contains "" with golang's
-	// default (tls10). And because the initial check makes sure the
-	// version correctly matches.
-	tlsConfig.MinVersion = tlsLookup[cfg.TLSMinVersion]
+	// Error handling is not needed here because agent config builder handles ""
+	// or a nil value as TLSVersionAuto with goTLSVersions mapping TLSVersionAuto
+	// to TLS 1.2 and because the initial check makes sure a specified version is
+	// not invalid.
+	tlsConfig.MinVersion = goTLSVersions[cfg.TLSMinVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
@@ -736,7 +723,7 @@ func (c *Configurator) AutoConfigTLSSettings() (*pbconfig.TLS, error) {
 	return &pbconfig.TLS{
 		VerifyOutgoing:       cfg.VerifyOutgoing,
 		VerifyServerHostname: cfg.VerifyServerHostname || c.autoTLS.verifyServerHostname,
-		MinVersion:           cfg.TLSMinVersion,
+		MinVersion:           types.ConsulAutoConfigTLSVersionStrings[cfg.TLSMinVersion],
 		CipherSuites:         cipherString,
 	}, nil
 }
@@ -1080,32 +1067,32 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 
 }
 
-// ParseCiphers parse ciphersuites from the comma-separated string into
-// recognized slice
-func ParseCiphers(cipherStr string) ([]uint16, error) {
+// NOTE: any new cipher suites will also need to be added in types/tls.go
+// TODO: should this be moved into types/tls.go? Would importing Go's tls
+// package in there be acceptable?
+var goTLSCipherSuites = map[types.TLSCipherSuite]uint16{
+	types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:          tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+
+	types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:          tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:       tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	types.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:          tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	types.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:       tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+}
+
+func cipherSuiteLookup(ciphers []types.TLSCipherSuite) ([]uint16, error) {
 	suites := []uint16{}
 
-	cipherStr = strings.TrimSpace(cipherStr)
-	if cipherStr == "" {
+	if len(ciphers) == 0 {
 		return []uint16{}, nil
 	}
-	ciphers := strings.Split(cipherStr, ",")
 
-	// Note: this needs to be kept up to date with the cipherMap in CipherString
-	cipherMap := map[string]uint16{
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	}
 	for _, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
+		if v, ok := goTLSCipherSuites[cipher]; ok {
 			suites = append(suites, v)
 		} else {
 			return suites, fmt.Errorf("unsupported cipher %q", cipher)
@@ -1115,29 +1102,16 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 	return suites, nil
 }
 
-// CipherString performs the inverse operation of ParseCiphers
-func CipherString(ciphers []uint16) (string, error) {
-	// Note: this needs to be kept up to date with the cipherMap in ParseCiphers
-	cipherMap := map[uint16]string{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+// CipherString performs the inverse operation of types.ParseCiphers
+func CipherString(ciphers []types.TLSCipherSuite) (string, error) {
+	err := types.ValidateConsulAgentCipherSuites(ciphers)
+	if err != nil {
+		return "", err
 	}
 
 	cipherStrings := make([]string, len(ciphers))
 	for i, cipher := range ciphers {
-		if v, ok := cipherMap[cipher]; ok {
-			cipherStrings[i] = v
-		} else {
-			return "", fmt.Errorf("unsupported cipher %d", cipher)
-		}
+		cipherStrings[i] = string(cipher)
 	}
 
 	return strings.Join(cipherStrings, ","), nil

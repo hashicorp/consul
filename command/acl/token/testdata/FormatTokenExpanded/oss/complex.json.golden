@@ -1,0 +1,191 @@
+{
+    "ExpandedPolicies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "hobbiton",
+            "Description": "user policy on token",
+            "Rules": "service_prefix \"\" {\n  policy = \"read\"\n}",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bywater",
+            "Description": "other user policy on token",
+            "Rules": "operator = \"read\"",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "6204f4cd-4709-441c-ac1b-cb029e940263",
+            "Name": "shire-policy",
+            "Description": "policy for shire role",
+            "Rules": "operator = \"write\"",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "e86f0d1f-71b1-4690-bdfd-ff8c2cd4ae93",
+            "Name": "west-farthing-policy",
+            "Description": "policy for west-farthing role",
+            "Rules": "service \"foo\" {\n  policy = \"read\"\n}",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "2b582ff1-4a43-457f-8a2b-30a8265e29a5",
+            "Name": "default-policy-1",
+            "Description": "default policy 1",
+            "Rules": "key \"foo\" { policy = \"write\" }",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "b55dce64-f2cc-4eb5-8e5f-50e90e63c6ea",
+            "Name": "default-policy-2",
+            "Description": "default policy 2",
+            "Rules": "key \"bar\" { policy = \"read\" }",
+            "Datacenters": null,
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ],
+    "ExpandedRoles": [
+        {
+            "ID": "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
+            "Name": "shire",
+            "Description": "shire role",
+            "Policies": [
+                {
+                    "ID": "6204f4cd-4709-441c-ac1b-cb029e940263",
+                    "Name": ""
+                }
+            ],
+            "ServiceIdentities": [
+                {
+                    "ServiceName": "foo",
+                    "Datacenters": [
+                        "middleearth-southwest"
+                    ]
+                }
+            ],
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "6c9d1e1d-34bc-4d55-80f3-add0890ad791",
+            "Name": "west-farthing",
+            "Description": "west-farthing role",
+            "Policies": [
+                {
+                    "ID": "e86f0d1f-71b1-4690-bdfd-ff8c2cd4ae93",
+                    "Name": ""
+                }
+            ],
+            "NodeIdentities": [
+                {
+                    "NodeName": "bar",
+                    "Datacenter": "middleearth-southwest"
+                }
+            ],
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        },
+        {
+            "ID": "56033f2b-e1a6-4905-b71d-e011c862bc65",
+            "Name": "ns-default",
+            "Description": "default role",
+            "Policies": [
+                {
+                    "ID": "b55dce64-f2cc-4eb5-8e5f-50e90e63c6ea",
+                    "Name": ""
+                }
+            ],
+            "ServiceIdentities": [
+                {
+                    "ServiceName": "web",
+                    "Datacenters": [
+                        "middleearth-northeast"
+                    ]
+                }
+            ],
+            "NodeIdentities": [
+                {
+                    "NodeName": "db",
+                    "Datacenter": "middleearth-northwest"
+                }
+            ],
+            "Hash": null,
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ],
+    "NamespaceDefaultPolicyIDs": [
+        "2b582ff1-4a43-457f-8a2b-30a8265e29a5"
+    ],
+    "NamespaceDefaultRoleIDs": [
+        "56033f2b-e1a6-4905-b71d-e011c862bc65"
+    ],
+    "AgentACLDefaultPolicy": "deny",
+    "AgentACLDownPolicy": "extend-cache",
+    "ResolvedByAgent": "server-1",
+    "CreateIndex": 5,
+    "ModifyIndex": 10,
+    "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+    "SecretID": "869c6e91-4de9-4dab-b56e-87548435f9c6",
+    "Description": "test token",
+    "Policies": [
+        {
+            "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+            "Name": "hobbiton"
+        },
+        {
+            "ID": "18788457-584c-4812-80d3-23d403148a90",
+            "Name": "bywater"
+        }
+    ],
+    "Roles": [
+        {
+            "ID": "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
+            "Name": "shire"
+        },
+        {
+            "ID": "6c9d1e1d-34bc-4d55-80f3-add0890ad791",
+            "Name": "west-farthing"
+        }
+    ],
+    "ServiceIdentities": [
+        {
+            "ServiceName": "gardener",
+            "Datacenters": [
+                "middleearth-northwest"
+            ]
+        }
+    ],
+    "NodeIdentities": [
+        {
+            "NodeName": "bagend",
+            "Datacenter": "middleearth-northwest"
+        }
+    ],
+    "Local": false,
+    "AuthMethod": "bar",
+    "ExpirationTime": "2020-05-22T19:52:31Z",
+    "CreateTime": "2020-05-22T18:52:31Z",
+    "Hash": "YWJjZGVmZ2g=",
+    "Namespace": "foo",
+    "AuthMethodNamespace": "baz"
+}

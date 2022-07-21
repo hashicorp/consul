@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -270,6 +271,41 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
+}
+
+// TestIntentionApply_NoSourcePeer makes sure that no intention is created with a SourcePeer since this is not supported
+func TestIntentionApply_NoSourcePeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1 := testServer(t)
+	codec := rpcClient(t, s1)
+
+	waitForLeaderEstablishment(t, s1)
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			SourcePeer:      "peer1",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			SourceType:      structs.IntentionSourceConsul,
+			Meta:            map[string]string{},
+		},
+	}
+	var reply string
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
+	require.Error(t, err)
+	require.Contains(t, err, "SourcePeer field is not supported on this endpoint. Use config entries instead")
+	require.Empty(t, reply)
 }
 
 // Shouldn't be able to update a non-existent intention
@@ -1801,7 +1837,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		)
 	}
 
-	runStep(t, "test the errNotFound path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotFound path", func(t *testing.T) {
 		run(t, "other", 0)
 	})
 
@@ -1829,7 +1865,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 		}
 	}
 
-	runStep(t, "test the errNotChanged path", func(t *testing.T) {
+	testutil.RunStep(t, "test the errNotChanged path", func(t *testing.T) {
 		run(t, "completely-different-other", 2)
 	})
 }

@@ -5,7 +5,8 @@ go 1.12
 replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
-	github.com/hashicorp/consul/sdk v0.8.0
+	github.com/google/go-cmp v0.5.7
+	github.com/hashicorp/consul/sdk v0.10.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-rootcerts v1.0.2

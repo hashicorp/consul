@@ -3,9 +3,11 @@ package structs
 import (
 	"strconv"
 
+	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/types"
-	"github.com/mitchellh/hashstructure"
 )
 
 // QueryDatacenterOptions sets options about how we fail over if there are no
@@ -77,8 +79,12 @@ type ServiceQuery struct {
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
 
+	// If not empty, PeerName represents the peer that the service
+	// was imported from.
+	PeerName string
+
 	// EnterpriseMeta is the embedded enterprise metadata
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 const (
@@ -306,7 +312,7 @@ type PreparedQueryExecuteResponse struct {
 	Service string
 
 	// EnterpriseMeta of the service that was queried.
-	EnterpriseMeta
+	acl.EnterpriseMeta
 
 	// Nodes has the nodes that were output by the query.
 	Nodes CheckServiceNodes

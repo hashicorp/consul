@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/acl"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 )
@@ -94,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 		if member.Tags[consulapi.MemberTagKeyPartition] == "" {
 			member.Tags[consulapi.MemberTagKeyPartition] = "default"
 		}
-		if structs.IsDefaultPartition(member.Tags[consulapi.MemberTagKeyPartition]) {
+		if acl.IsDefaultPartition(member.Tags[consulapi.MemberTagKeyPartition]) {
 			if c.segment == consulapi.AllSegments && member.Tags[consulapi.MemberTagKeyRole] == consulapi.MemberTagValueRoleServer {
 				member.Tags[consulapi.MemberTagKeySegment] = "<all>"
 			} else if member.Tags[consulapi.MemberTagKeySegment] == "" {

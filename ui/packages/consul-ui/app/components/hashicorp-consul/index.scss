@@ -2,6 +2,16 @@
   nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
+
+    .dcs-message {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgb(var(--tone-gray-400));
+      max-width: fit-content;
+    }
+  }
+  nav .dcs li.is-primary span,
+  nav .dcs li.is-local span {
+    @extend %menu-panel-badge;
   }
   nav li.partitions,
   nav li.nspaces {
@@ -39,6 +49,11 @@
     position: relative;
     top: 2px;
     margin-left: 2px;
+  }
+  .dc-name {
+    color: rgb(var(--tone-gray-600));
+    padding: 3.25px 0px;
+    font-weight: var(--typo-weight-semibold)
   }
 }
 .hashicorp-consul {

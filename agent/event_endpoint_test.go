@@ -103,8 +103,12 @@ func TestEventFire_token(t *testing.T) {
 			if !acl.IsErrPermissionDenied(err) {
 				t.Fatalf("bad: %s", err.Error())
 			}
-			if err, ok := err.(ForbiddenError); !ok {
-				t.Fatalf("Expected forbidden but got %v", err)
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 403 {
+					t.Fatalf("Expected 403 but got %d", err.StatusCode)
+				}
+			} else {
+				t.Fatalf("Expected HTTP Error %v", err)
 			}
 		}
 	}

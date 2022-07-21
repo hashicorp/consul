@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -265,7 +267,7 @@ func TestServerSideVerifier(t *testing.T) {
 // allows expecting a leaf cert different from the one in expect
 func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 	require.Equal(t, expect.RootCAs, got.RootCAs)
-	assertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
+	prototest.AssertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
 	require.Equal(t, expect.InsecureSkipVerify, got.InsecureSkipVerify)
 	require.Equal(t, expect.MinVersion, got.MinVersion)
 	require.Equal(t, expect.CipherSuites, got.CipherSuites)
@@ -294,15 +296,10 @@ func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 
 // cmpCertPool is a custom comparison for x509.CertPool, because CertPool.lazyCerts
 // has a func field which can't be compared.
-var cmpCertPool = cmp.Comparer(func(x, y *x509.CertPool) bool {
-	return cmp.Equal(x.Subjects(), y.Subjects())
-})
-
-func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
-	t.Helper()
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
-		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
-	}
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
 }
 
 // requireCorrectVerifier invokes got.VerifyPeerCertificate and expects the

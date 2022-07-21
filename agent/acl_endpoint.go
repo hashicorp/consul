@@ -16,7 +16,7 @@ type aclBootstrapResponse struct {
 	structs.ACLToken
 }
 
-var aclDisabled = UnauthorizedError{Reason: "ACL support disabled"}
+var aclDisabled = HTTPError{StatusCode: http.StatusUnauthorized, Reason: "ACL support disabled"}
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
@@ -122,12 +122,9 @@ func (s *HTTPHandlers) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	policyID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/")
-	if err != nil {
-		return nil, err
-	}
+	policyID := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/")
 	if policyID == "" && req.Method != "PUT" {
-		return nil, BadRequestError{Reason: "Missing policy ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing policy ID"}
 	}
 
 	return fn(resp, req, policyID)
@@ -170,12 +167,9 @@ func (s *HTTPHandlers) ACLPolicyReadByName(resp http.ResponseWriter, req *http.R
 		return nil, aclDisabled
 	}
 
-	policyName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/policy/name/")
-	if err != nil {
-		return nil, err
-	}
+	policyName := strings.TrimPrefix(req.URL.Path, "/v1/acl/policy/name/")
 	if policyName == "" {
-		return nil, BadRequestError{Reason: "Missing policy Name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing policy Name"}
 	}
 
 	return s.ACLPolicyRead(resp, req, "", policyName)
@@ -207,18 +201,18 @@ func (s *HTTPHandlers) aclPolicyWriteInternal(_resp http.ResponseWriter, req *ht
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Policy)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
 	args.Policy.Syntax = acl.SyntaxCurrent
 
 	if create {
 		if args.Policy.ID != "" {
-			return nil, BadRequestError{Reason: "Cannot specify the ID when creating a new policy"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify the ID when creating a new policy"}
 		}
 	} else {
 		if args.Policy.ID != "" && args.Policy.ID != policyID {
-			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Policy ID in URL and payload do not match"}
 		} else if args.Policy.ID == "" {
 			args.Policy.ID = policyID
 		}
@@ -308,16 +302,13 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	tokenID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/token/")
-	if err != nil {
-		return nil, err
-	}
+	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
 	if strings.HasSuffix(tokenID, "/clone") && req.Method == "PUT" {
 		tokenID = tokenID[:len(tokenID)-6]
 		fn = s.ACLTokenClone
 	}
 	if tokenID == "" && req.Method != "PUT" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing token ID"}
 	}
 
 	return fn(resp, req, tokenID)
@@ -378,6 +369,9 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
+	if _, ok := req.URL.Query()["expanded"]; ok {
+		args.Expanded = true
+	}
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -391,6 +385,14 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 
 	if out.Token == nil {
 		return nil, acl.ErrNotFound
+	}
+
+	if args.Expanded {
+		expanded := &structs.ACLTokenExpanded{
+			ACLToken:          out.Token,
+			ExpandedTokenInfo: out.ExpandedTokenInfo,
+		}
+		return expanded, nil
 	}
 
 	return out.Token, nil
@@ -411,12 +413,12 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.ACLToken)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
 	if !create {
 		if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
-			return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
 		} else if args.ACLToken.AccessorID == "" {
 			args.ACLToken.AccessorID = tokenID
 		}
@@ -461,7 +463,7 @@ func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.ACLToken)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)
 
@@ -530,12 +532,9 @@ func (s *HTTPHandlers) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	roleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/")
-	if err != nil {
-		return nil, err
-	}
+	roleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/")
 	if roleID == "" && req.Method != "PUT" {
-		return nil, BadRequestError{Reason: "Missing role ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing role ID"}
 	}
 
 	return fn(resp, req, roleID)
@@ -546,12 +545,9 @@ func (s *HTTPHandlers) ACLRoleReadByName(resp http.ResponseWriter, req *http.Req
 		return nil, aclDisabled
 	}
 
-	roleName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/role/name/")
-	if err != nil {
-		return nil, err
-	}
+	roleName := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/name/")
 	if roleName == "" {
-		return nil, BadRequestError{Reason: "Missing role Name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing role Name"}
 	}
 
 	return s.ACLRoleRead(resp, req, "", roleName)
@@ -610,11 +606,11 @@ func (s *HTTPHandlers) ACLRoleWrite(resp http.ResponseWriter, req *http.Request,
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Role)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Role decoding failed: %v", err)}
 	}
 
 	if args.Role.ID != "" && args.Role.ID != roleID {
-		return nil, BadRequestError{Reason: "Role ID in URL and payload do not match"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Role ID in URL and payload do not match"}
 	} else if args.Role.ID == "" {
 		args.Role.ID = roleID
 	}
@@ -700,12 +696,9 @@ func (s *HTTPHandlers) ACLBindingRuleCRUD(resp http.ResponseWriter, req *http.Re
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	bindingRuleID, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/binding-rule/")
-	if err != nil {
-		return nil, err
-	}
+	bindingRuleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/binding-rule/")
 	if bindingRuleID == "" && req.Method != "PUT" {
-		return nil, BadRequestError{Reason: "Missing binding rule ID"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing binding rule ID"}
 	}
 
 	return fn(resp, req, bindingRuleID)
@@ -759,11 +752,11 @@ func (s *HTTPHandlers) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.R
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.BindingRule)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
 	}
 
 	if args.BindingRule.ID != "" && args.BindingRule.ID != bindingRuleID {
-		return nil, BadRequestError{Reason: "BindingRule ID in URL and payload do not match"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "BindingRule ID in URL and payload do not match"}
 	} else if args.BindingRule.ID == "" {
 		args.BindingRule.ID = bindingRuleID
 	}
@@ -846,12 +839,9 @@ func (s *HTTPHandlers) ACLAuthMethodCRUD(resp http.ResponseWriter, req *http.Req
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	methodName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/acl/auth-method/")
-	if err != nil {
-		return nil, err
-	}
+	methodName := strings.TrimPrefix(req.URL.Path, "/v1/acl/auth-method/")
 	if methodName == "" && req.Method != "PUT" {
-		return nil, BadRequestError{Reason: "Missing auth method name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing auth method name"}
 	}
 
 	return fn(resp, req, methodName)
@@ -905,12 +895,12 @@ func (s *HTTPHandlers) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Re
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.AuthMethod)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
 	}
 
 	if methodName != "" {
 		if args.AuthMethod.Name != "" && args.AuthMethod.Name != methodName {
-			return nil, BadRequestError{Reason: "AuthMethod Name in URL and payload do not match"}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "AuthMethod Name in URL and payload do not match"}
 		} else if args.AuthMethod.Name == "" {
 			args.AuthMethod.Name = methodName
 		}
@@ -958,7 +948,7 @@ func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (in
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Auth)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
 	}
 
 	var out structs.ACLToken
@@ -1047,11 +1037,11 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	s.parseDC(req, &request.Datacenter)
 
 	if err := decodeBody(req.Body, &request.Requests); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
 	}
 
 	if len(request.Requests) > maxRequests {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Refusing to process more than %d authorizations at once", maxRequests)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Refusing to process more than %d authorizations at once", maxRequests)}
 	}
 
 	if len(request.Requests) == 0 {
@@ -1072,7 +1062,7 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 
 		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)
 		if err != nil {
-			return nil, BadRequestError{Reason: err.Error()}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 	}
 

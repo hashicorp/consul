@@ -1,15 +1,9 @@
 @keyframes icon-shopping-cart {
-  50% {
-
-    background-color: var(--icon-color, var(--color-shopping-cart-500, currentColor));
-    -webkit-mask-image: var(--icon-shopping-cart-24);
-    mask-image: var(--icon-shopping-cart-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-shopping-cart-500, currentColor));
     -webkit-mask-image: var(--icon-shopping-cart-16);
     mask-image: var(--icon-shopping-cart-16);
+    background-color: var(--icon-color, var(--color-shopping-cart-500, currentColor));
+
   }
 }

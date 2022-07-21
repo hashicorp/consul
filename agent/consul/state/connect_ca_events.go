@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // EventTopicCARoots is the streaming topic to which events will be published
@@ -12,11 +13,7 @@ import (
 //
 // Note: topics are ordinarily defined in subscribe.proto, but this one isn't
 // currently available via the Subscribe endpoint.
-const EventTopicCARoots stringTopic = "CARoots"
-
-type stringTopic string
-
-func (s stringTopic) String() string { return string(s) }
+const EventTopicCARoots stream.StringTopic = "CARoots"
 
 type EventPayloadCARoots struct {
 	CARoots structs.CARoots
@@ -25,9 +22,16 @@ type EventPayloadCARoots struct {
 func (e EventPayloadCARoots) Subject() stream.Subject { return stream.SubjectNone }
 
 func (e EventPayloadCARoots) HasReadPermission(authz acl.Authorizer) bool {
-	// TODO(agentless): implement this method once the Authorizer exposes a method
-	// to check for `service:write` on any service.
-	panic("EventPayloadCARoots does not implement HasReadPermission")
+	// Require `service:write` on any service in any partition and namespace.
+	var authzContext acl.AuthorizerContext
+	structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier).
+		FillAuthzContext(&authzContext)
+
+	return authz.ServiceWriteAny(&authzContext) == acl.Allow
+}
+
+func (e EventPayloadCARoots) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("EventPayloadCARoots does not implement ToSubscriptionEvent")
 }
 
 // caRootsChangeEvents returns an event on EventTopicCARoots whenever the list
@@ -60,23 +64,21 @@ func caRootsChangeEvents(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 
 // caRootsSnapshot returns a stream.SnapshotFunc that provides a snapshot of
 // the current active list of CA Roots.
-func caRootsSnapshot(db ReadDB) stream.SnapshotFunc {
-	return func(_ stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-		tx := db.ReadTxn()
-		defer tx.Abort()
+func (s *Store) CARootsSnapshot(_ stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
 
-		idx, roots, err := caRootsTxn(tx, nil)
-		if err != nil {
-			return 0, err
-		}
-
-		buf.Append([]stream.Event{
-			{
-				Topic:   EventTopicCARoots,
-				Index:   idx,
-				Payload: EventPayloadCARoots{CARoots: roots},
-			},
-		})
-		return idx, nil
+	idx, roots, err := caRootsTxn(tx, nil)
+	if err != nil {
+		return 0, err
 	}
+
+	buf.Append([]stream.Event{
+		{
+			Topic:   EventTopicCARoots,
+			Index:   idx,
+			Payload: EventPayloadCARoots{CARoots: roots},
+		},
+	})
+	return idx, nil
 }

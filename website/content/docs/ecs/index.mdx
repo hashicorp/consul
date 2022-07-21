@@ -8,15 +8,13 @@ description: >-
 
 # AWS ECS
 
-Consul service mesh applications can be deployed on [AWS Elastic Container Service](https://aws.amazon.com/ecs/) (ECS)
-using either our official [Terraform modules](/docs/ecs/terraform/install) or without Terraform by [manually configuring
-the task definition](/docs/ecs/manual/install).
+You can deploy Consul service mesh applications to [AWS Elastic Container Service](https://aws.amazon.com/ecs/) (ECS) using either our official [Terraform modules](/docs/ecs/terraform/install) or by [manually configuring the task definition](/docs/ecs/manual/install).
 
 ## Service Mesh
 
 Using Consul on AWS ECS enables you to add your ECS tasks to the service mesh and
 take advantage of features such as zero-trust-security, intentions, observability,
-traffic policy, and more.
+traffic policy, and more. You can also connect service meshes so that services deployed across your infrastructure environments can communicate.
 
 ## Architecture
 
@@ -24,7 +22,7 @@ traffic policy, and more.
 
 Consul on ECS follows an [architecture](/docs/internals/architecture) similar to other platforms, but each ECS task is a
 Consul node. An ECS task runs the user application container(s), as well as a Consul client container for control plane
-communication and an [Envoy](https://envoyproxy.io/) sidecar proxy container to faciliate data plane communication for
+communication and an [Envoy](https://envoyproxy.io/) sidecar proxy container to facilitate data plane communication for
 [Consul Connect](/docs/connect).
 
 For a detailed architecture overview, see the [Architecture](/docs/ecs/architecture) page.

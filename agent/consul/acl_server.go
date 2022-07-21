@@ -1,9 +1,12 @@
 package consul
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/auth"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -171,4 +174,45 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
 	filterACLWithAuthorizer(s.ACLResolver.logger, authorizer, subj)
+}
+
+func (s *Server) aclLogin() *auth.Login {
+	return auth.NewLogin(s.aclBinder(), s.aclTokenWriter())
+}
+
+func (s *Server) aclBinder() *auth.Binder {
+	return auth.NewBinder(s.fsm.State(), s.config.Datacenter)
+}
+
+func (s *Server) aclTokenWriter() *auth.TokenWriter {
+	return auth.NewTokenWriter(auth.TokenWriterConfig{
+		RaftApply:           s.raftApply,
+		ACLCache:            s.ACLResolver.cache,
+		Store:               s.fsm.State(),
+		CheckUUID:           s.checkTokenUUID,
+		MaxExpirationTTL:    s.config.ACLTokenMaxExpirationTTL,
+		MinExpirationTTL:    s.config.ACLTokenMinExpirationTTL,
+		PrimaryDatacenter:   s.config.PrimaryDatacenter,
+		InPrimaryDatacenter: s.InPrimaryDatacenter(),
+		LocalTokensEnabled:  s.LocalTokensEnabled(),
+	})
+}
+
+func (s *Server) loadAuthMethod(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, authmethod.Validator, error) {
+	idx, method, err := s.fsm.State().ACLAuthMethodGetByName(nil, methodName, entMeta)
+	if err != nil {
+		return nil, nil, err
+	} else if method == nil {
+		return nil, nil, fmt.Errorf("%w: auth method %q not found", acl.ErrNotFound, methodName)
+	}
+
+	if err := s.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return nil, nil, err
+	}
+
+	validator, err := s.loadAuthMethodValidator(idx, method)
+	if err != nil {
+		return nil, nil, err
+	}
+	return method, validator, nil
 }

@@ -1,99 +1,66 @@
 package lib
 
 import (
-	"reflect"
+	"errors"
+	"net"
+	"os"
 	"testing"
-	"time"
 
-	"github.com/armon/go-metrics/prometheus"
-
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
 
-func makeFullTelemetryConfig(t *testing.T) TelemetryConfig {
-	var (
-		promOpts    = prometheus.PrometheusOpts{}
-		strSliceVal = []string{"foo"}
-		strVal      = "foo"
-		intVal      = int64(1 * time.Second)
-	)
-
-	cfg := TelemetryConfig{}
-	cfgP := reflect.ValueOf(&cfg)
-	cfgV := cfgP.Elem()
-	for i := 0; i < cfgV.NumField(); i++ {
-		f := cfgV.Field(i)
-		if !f.IsValid() || !f.CanSet() {
-			continue
-		}
-		// Set non-zero values for all fields. We only implement kinds that exist
-		// now for brevity but will fail the test if a new field type is added since
-		// this is likely not implemented in MergeDefaults either.
-		switch f.Kind() {
-		case reflect.Struct:
-			if f.Type() != reflect.TypeOf(promOpts) {
-				t.Fatalf("unknown struct type in TelemetryConfig: actual %v, expected: %v", f.Type(), reflect.TypeOf(promOpts))
-			}
-			// TODO(kit): This should delve into the fields and set them individually rather than using an empty struct
-			f.Set(reflect.ValueOf(promOpts))
-		case reflect.Slice:
-			if f.Type() != reflect.TypeOf(strSliceVal) {
-				t.Fatalf("unknown slice type in TelemetryConfig." +
-					" You need to update MergeDefaults and this test code.")
-			}
-			f.Set(reflect.ValueOf(strSliceVal))
-		case reflect.Int, reflect.Int64: // time.Duration == int64
-			f.SetInt(intVal)
-		case reflect.String:
-			f.SetString(strVal)
-		case reflect.Bool:
-			f.SetBool(true)
-		default:
-			t.Fatalf("unknown field type in TelemetryConfig" +
-				" You need to update MergeDefaults and this test code.")
-		}
+func newCfg() TelemetryConfig {
+	return TelemetryConfig{
+		StatsdAddr:    "statsd.host:1234",
+		StatsiteAddr:  "statsite.host:1234",
+		DogstatsdAddr: "mydog.host:8125",
 	}
-	return cfg
 }
 
-func TestTelemetryConfig_MergeDefaults(t *testing.T) {
-	tests := []struct {
-		name     string
-		cfg      TelemetryConfig
-		defaults TelemetryConfig
-		want     TelemetryConfig
-	}{
-		{
-			name: "basic merge",
-			cfg: TelemetryConfig{
-				StatsiteAddr: "stats.it:4321",
-			},
-			defaults: TelemetryConfig{
-				StatsdAddr:   "localhost:5678",
-				StatsiteAddr: "localhost:1234",
-			},
-			want: TelemetryConfig{
-				StatsdAddr:   "localhost:5678",
-				StatsiteAddr: "stats.it:4321",
-			},
-		},
-		{
-			// This test uses reflect to build a TelemetryConfig with every value set
-			// to ensure that we exercise every possible field type. This means that
-			// if new fields are added that are not supported types in the code, this
-			// test should either ensure they work or fail to build the test case and
-			// fail the test.
-			name:     "exhaustive",
-			cfg:      TelemetryConfig{},
-			defaults: makeFullTelemetryConfig(t),
-			want:     makeFullTelemetryConfig(t),
-		},
+func TestConfigureSinks(t *testing.T) {
+	cfg := newCfg()
+	sinks, err := configureSinks(cfg, nil)
+	require.Error(t, err)
+	// 3 sinks: statsd, statsite, inmem
+	require.Equal(t, 3, len(sinks))
+
+	cfg = TelemetryConfig{
+		DogstatsdAddr: "",
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := tt.cfg
-			c.MergeDefaults(&tt.defaults)
-			require.Equal(t, tt.want, c)
-		})
-	}
+	_, err = configureSinks(cfg, nil)
+	require.NoError(t, err)
+
+}
+
+func TestIsRetriableError(t *testing.T) {
+	var err error
+	err = multierror.Append(err, errors.New("an error"))
+	r := isRetriableError(err)
+	require.False(t, r)
+
+	err = multierror.Append(err, &net.DNSError{
+		IsNotFound: true,
+	})
+	r = isRetriableError(err)
+	require.True(t, r)
+}
+
+func TestInitTelemetryRetrySuccess(t *testing.T) {
+	logger, err := logging.Setup(logging.Config{
+		LogLevel: "INFO",
+	}, os.Stdout)
+	require.NoError(t, err)
+	cfg := newCfg()
+	_, err = InitTelemetry(cfg, logger)
+	require.Error(t, err)
+
+	cfg.RetryFailedConfiguration = true
+	metricsCfg, err := InitTelemetry(cfg, logger)
+	require.NoError(t, err)
+	// TODO: we couldn't extract the metrics sinks from the
+	// global metrics due to it's limitation
+	// fanoutSink := metrics.Default()}
+	metricsCfg.cancelFn()
 }

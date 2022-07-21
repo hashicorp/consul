@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_ConfigEntries(t *testing.T) {
@@ -104,10 +106,16 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			},
 		}
 
+		dest := &DestinationConfig{
+			Address: "my.example.com",
+			Port:    80,
+		}
+
 		service2 := &ServiceConfigEntry{
-			Kind:     ServiceDefaults,
-			Name:     "bar",
-			Protocol: "tcp",
+			Kind:        ServiceDefaults,
+			Name:        "bar",
+			Protocol:    "tcp",
+			Destination: dest,
 		}
 
 		// set it
@@ -183,6 +191,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Kind, readService.Kind)
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
+				require.Equal(t, dest, readService.Destination)
 			}
 		}
 
@@ -204,12 +213,12 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: defaultPartition,
-			Namespace: defaultNamespace,
+			Partition: splitDefaultPartition,
+			Namespace: splitDefaultNamespace,
 		}
 		ce := c.ConfigEntries()
 
-		runStep(t, "set and get", func(t *testing.T) {
+		testutil.RunStep(t, "set and get", func(t *testing.T) {
 			_, wm, err := ce.Set(mesh, nil)
 			require.NoError(t, err)
 			require.NotNil(t, wm)
@@ -229,7 +238,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			require.Equal(t, mesh, result)
 		})
 
-		runStep(t, "list", func(t *testing.T) {
+		testutil.RunStep(t, "list", func(t *testing.T) {
 			entries, qm, err := ce.List(MeshConfig, nil)
 			require.NoError(t, err)
 			require.NotNil(t, qm)
@@ -237,7 +246,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			require.Len(t, entries, 1)
 		})
 
-		runStep(t, "delete", func(t *testing.T) {
+		testutil.RunStep(t, "delete", func(t *testing.T) {
 			wm, err := ce.Delete(MeshConfig, MeshConfigMesh, nil)
 			require.NoError(t, err)
 			require.NotNil(t, wm)
@@ -279,13 +288,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, deleted, "entry should have been deleted")
 	})
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	t.Helper()
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 func TestDecodeConfigEntry(t *testing.T) {
@@ -518,6 +520,29 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Interval:    4 * time.Second,
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults-endpoint",
+			body: `
+			{
+				"Kind": "service-defaults",
+				"Name": "external",
+				"Protocol": "http",
+				"Destination": {
+					"Address": "1.2.3.4/24",
+					"Port": 443
+				}
+			}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4/24",
+					Port:    443,
 				},
 			},
 		},
@@ -1260,6 +1285,27 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"TransparentProxy": {
 					"MeshDestinationsOnly": true
+				},
+				"TLS": {
+					"Incoming": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					},
+					"Outgoing": {
+						"TLSMinVersion": "TLSv1_1",
+						"TLSMaxVersion": "TLSv1_2",
+						"CipherSuites": [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				},
+				"HTTP": {
+					"SanitizeXForwardedClientCert": true
 				}
 			}
 			`,
@@ -1270,6 +1316,27 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: "TLSv1_1",
+						TLSMaxVersion: "TLSv1_2",
+						CipherSuites: []string{
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+						},
+					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},

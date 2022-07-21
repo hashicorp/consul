@@ -36,7 +36,7 @@ When using these binaries no further action is necessary to configure the licens
 ### Binaries Without Built In Licenses
 
 For Consul Enterprise 1.10.0 or greater, binaries that do not include built in licenses a license must be available at the time the agent starts.
-For server agents this means that they must either have the [`license_path`](/docs/agent/options#license_path)
+For server agents this means that they must either have the [`license_path`](/docs/agent/config/config-files#license_path)
 configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
 `CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
 environment variable point to a file containing the license whereas the `CONSUL_LICENSE` environment
@@ -55,9 +55,9 @@ to retrieve the license automatically under specific circumstances.
 When a client agent starts without a license in its configuration or environment, it will try to retrieve the
 license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
 request but the token doesn't need any particular permissions. As the license is required before the client
-actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/options#start_join)
-or [`retry_join`](/docs/agent/options#retry_join) configurations. If those are both unset or no
-[`agent` token](/docs/agent/options#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/config/config-files#start_join)
+or [`retry_join`](/docs/agent/config/config-files#retry_join) configurations. If those are both unset or no
+[`agent` token](/docs/agent/config/config-files#acl_tokens_agent) is set then the client agent will immediately shut itself down.
 
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
 request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a

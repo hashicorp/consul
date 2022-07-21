@@ -1,0 +1,118 @@
+<!-- START component-docs:@tagName -->
+# Consul::Server::Card
+<!-- END component-docs:@tagName -->
+
+<!-- START component-docs:@description -->
+A presentational component representing a Consul Server
+<!-- END component-docs:@description -->
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    Read Replicas just show the name of the Server
+  </figcaption>
+    <Consul::Server::Card
+      @item={{hash
+        Name="Server Name"
+        Healthy=true
+        ReadReplica=true
+        Status="voter"
+      }}
+    >
+    </Consul::Server::Card>
+</figure>
+
+<figure>
+  <figcaption>
+    Leaders have a special icon-tile
+  </figcaption>
+    <Consul::Server::Card
+      @item={{hash
+        Name="Server Name"
+        Healthy=true
+        ReadReplica=false
+        Status="leader"
+      }}
+    >
+    </Consul::Server::Card>
+</figure>
+
+<figure>
+  <figcaption>
+    Unhealthy voters have a differently colored badge
+  </figcaption>
+    <Consul::Server::Card
+      @item={{hash
+        Name="Server Name"
+        Healthy=false
+        ReadReplica=false
+        Status="voter"
+      }}
+    >
+    </Consul::Server::Card>
+</figure>
+
+<figure>
+  <figcaption>
+    Non-voters have different text and coloring
+  </figcaption>
+    <Consul::Server::Card
+      @item={{hash
+        Name="Server Name"
+        Healthy=true
+        ReadReplica=false
+        Status="non-voter"
+      }}
+    >
+    </Consul::Server::Card>
+</figure>
+<figure>
+    <Consul::Server::Card
+      style={{style-map
+        (array 'width' '200px')
+      }}
+      @item={{hash
+        Name="Server Name which happens to be a big long name"
+        Healthy=false
+        ReadReplica=false
+        Status="non-voter"
+      }}
+    >
+    </Consul::Server::Card>
+</figure>
+```
+
+## Attributes
+
+<!-- START component-docs:@attrs -->
+<!-- END component-docs:@attrs -->
+
+## Arguments
+
+<!-- START component-docs:@args -->
+
+| Argument | Type   | Default | Description                                |
+| :------- | :----- | :------ | :----------------------------------------- |
+| item     | object |         | Consul Server shaped object                |
+
+<!-- END component-docs:@args -->
+
+## Slots
+
+<!-- START component-docs:@slots -->
+<!-- END component-docs:@slots -->
+
+## CSS Parts
+
+<!-- START component-docs:@cssparts -->
+<!-- END component-docs:@cssparts -->
+
+## CSS Properties
+
+<!-- START component-docs:@cssprops -->
+<!-- END component-docs:@cssprops -->
+
+## Contextual Components
+
+<!-- START component-docs:@components -->
+<!-- END component-docs:@components -->

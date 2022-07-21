@@ -1,9 +1,11 @@
 package proxycfg
 
 import (
+	"github.com/hashicorp/consul/api"
+	"time"
+
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -26,7 +28,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -139,7 +141,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -243,7 +245,7 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -322,14 +324,18 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 
 		mongo      = structs.NewServiceName("mongo", nil)
 		mongoUID   = NewUpstreamIDFromServiceName(mongo)
-		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "mongo",
+			ConnectTimeout: 33 * time.Second,
+		})
 
 		db = structs.NewServiceName("db", nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -467,7 +473,7 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
-	}, []cache.UpdateEvent{
+	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
 			Result: &structs.ConfigEntryResponse{
@@ -513,6 +519,120 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 			CorrelationID: "upstream-target:" + kafkaChain.ID() + ":" + kafkaUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: []structs.CheckServiceNode{tgate},
+			},
+		},
+	})
+}
+
+func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot {
+	// DiscoveryChain without an UpstreamConfig should yield a
+	// filter chain when in transparent proxy mode
+	var (
+		google    = structs.NewServiceName("google", nil)
+		googleUID = NewUpstreamIDFromServiceName(google)
+		googleCE  = structs.ServiceConfigEntry{Name: "google", Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443}}
+
+		kafka    = structs.NewServiceName("kafka", nil)
+		kafkaUID = NewUpstreamIDFromServiceName(kafka)
+		kafkaCE  = structs.ServiceConfigEntry{Name: "kafka", Destination: &structs.DestinationConfig{Address: "192.168.2.1", Port: 9093}}
+	)
+
+	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		ns.Proxy.Mode = structs.ProxyModeTransparent
+	}, []UpdateEvent{
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: &structs.MeshConfigEntry{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
+						MeshDestinationsOnly: true,
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: intentionUpstreamsDestinationID,
+			Result: &structs.IndexedServiceList{
+				Services: structs.ServiceList{
+					google,
+					kafka,
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryID + googleUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &googleCE,
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryID + kafkaUID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &kafkaCE,
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayID + googleUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayID + kafkaUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
 			},
 		},
 	})

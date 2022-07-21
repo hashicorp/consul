@@ -46,12 +46,13 @@ as |sort filters items proxyMeta|}}
     {{/if}}
     {{#if proxyMeta.ServiceName}}
       <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}/${peer}'
           (hash
             partition=route.params.partition
             nspace=route.params.nspace
             dc=route.params.dc
             name=proxyMeta.ServiceName
+            peer=route.params.peer
           )
         }}
         @onchange={{action (mut proxies) value="data"}}
@@ -75,9 +76,10 @@ as |sort filters items proxyMeta|}}
       <collection.Empty>
         <EmptyState>
           <BlockSlot @name="body">
-            <p>
-              There are no instances{{#if (gt items.length 0)}} matching that search{{/if}}.
-            </p>
+            {{t "routes.dc.services.show.instances.empty"
+              items=items.length
+              htmlSafe=true
+            }}
           </BlockSlot>
         </EmptyState>
       </collection.Empty>

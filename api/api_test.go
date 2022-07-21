@@ -3,12 +3,14 @@ package api
 import (
 	crand "crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -16,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,6 +49,23 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
 	})
+}
+
+func makeClientWithCA(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t,
+		func(c *Config) {
+			c.TLSConfig = TLSConfig{
+				Address:  "consul.test",
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			}
+		},
+		func(c *testutil.TestServerConfig) {
+			c.CAFile = "../test/client_certs/rootca.crt"
+			c.CertFile = "../test/client_certs/server.crt"
+			c.KeyFile = "../test/client_certs/server.key"
+		})
 }
 
 func makeClientWithConfig(
@@ -589,9 +610,8 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(cc.RootCAs.Subjects()) != 2 {
-		t.Fatalf("didn't load root CAs")
-	}
+	expectedCaPoolByDir := getExpectedCaPoolByDir(t)
+	assertDeepEqual(t, expectedCaPoolByDir, cc.RootCAs, cmpCertPool)
 
 	// Load certs in-memory
 	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
@@ -1097,4 +1117,92 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	}
 
 	require.Equal(t, expected, c.GenerateEnv())
+}
+
+// TestAPI_PrefixPath() validates that Config.Address is split into
+// Config.Address and Config.PathPrefix as expected.  If we want to add end to
+// end testing in the future this will require configuring and running an
+// API gateway / reverse proxy (e.g. nginx)
+func TestAPI_PrefixPath(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		addr         string
+		expectAddr   string
+		expectPrefix string
+	}{
+		{
+			name:         "with http and prefix",
+			addr:         "http://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with https and prefix",
+			addr:         "https://reverse.proxy.com/consul/path/prefix",
+			expectAddr:   "reverse.proxy.com",
+			expectPrefix: "/consul/path/prefix",
+		},
+		{
+			name:         "with http and no prefix",
+			addr:         "http://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "with https and no prefix",
+			addr:         "https://localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+		{
+			name:         "no scheme and no prefix",
+			addr:         "localhost",
+			expectAddr:   "localhost",
+			expectPrefix: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &Config{Address: tc.addr}
+			client, err := NewClient(c)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectAddr, client.config.Address)
+			require.Equal(t, tc.expectPrefix, client.config.PathPrefix)
+		})
+	}
+}
+
+func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
+	pool := x509.NewCertPool()
+	entries, err := os.ReadDir("../test/ca_path")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		filename := path.Join("../test/ca_path", entry.Name())
+
+		data, err := ioutil.ReadFile(filename)
+		require.NoError(t, err)
+
+		if !pool.AppendCertsFromPEM(data) {
+			t.Fatalf("could not add test ca %s to pool", filename)
+		}
+	}
+
+	return pool
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }

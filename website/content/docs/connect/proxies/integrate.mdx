@@ -57,15 +57,15 @@ transport layer.
 
 -> **Note:** Some features, such as (local) rate limiting or max connections, are expected to be proxy-level configurations enforced separately when authorization calls are made. Proxies can enforce the configurations based on information about request rates and other states that should already be available.
 
-The proxy can authorize the connection by either calling the [`/v1/agent/connect/authorize`](/api/agent/connect) API endpoint or by querying the [intention match API](/api/connect/intentions#list-matching-intentions) endpoint.
+The proxy can authorize the connection by either calling the [`/v1/agent/connect/authorize`](/api-docs/agent/connect) API endpoint or by querying the [intention match API](/api-docs/connect/intentions#list-matching-intentions) endpoint.
 
-The [`/v1/agent/connect/authorize`](/api/agent/connect) endpoint should be called in the connection path for each received connection.
+The [`/v1/agent/connect/authorize`](/api-docs/agent/connect) endpoint should be called in the connection path for each received connection.
 If the local Consul agent is down or unresponsive, the success rate of new connections will be compromised.
 The agent uses locally-cached data to authorize the connection and typically responds in microseconds. As a result, the TLS handshake typically spans microseconds.
 
 ~> **Note:** This endpoint is only suitable for L4 (e.g., TCP) integration. The endpoint always treats intentions with `Permissions` defined (i.e., L7 criteria) as `deny` intentions during evaluation.
 
-The proxy can query the [intention match API](/api/connect/intentions#list-matching-intentions) endpoint on startup to retrieve a list of intentions that match the proxy destination. The matches should be stored in the native filter configuration of the proxy, such as RBAC for Envoy.
+The proxy can query the [intention match API](/api-docs/connect/intentions#list-matching-intentions) endpoint on startup to retrieve a list of intentions that match the proxy destination. The matches should be stored in the native filter configuration of the proxy, such as RBAC for Envoy.
 
 For performance and reliability reasons, querying the intention match API endpoint is the recommended method for implementing intention enforcement. The cached intentions should be consulted for each incoming connection (L4) or request (L7) to determine if the connection or request should be accepted or rejected.
 
@@ -90,7 +90,7 @@ background. The leaf, roots, and intentions should be updated in the background
 by the proxy.
 
 The leaf cert, root cert, and intentions endpoints support [blocking
-queries](/api/features/blocking), which should be used to get near-immediate
+queries](/api-docs/features/blocking), which should be used to get near-immediate
 updates for root key rotations, new leaf certs before expiry, and intention
 changes.
 
@@ -111,7 +111,7 @@ endpoint for a service and provide a client certificate from the
 
 ## Configuration Discovery
 
-The [`/v1/agent/service/:service_id`](/api/agent/service#get-service-configuration)
+The [`/v1/agent/service/:service_id`](/api-docs/agent/service#get-service-configuration)
 API endpoint enables any proxy to discover proxy configurations registered with a local service. This endpoint supports hash-based blocking, which enables long-polling for changes
 to the registration/configuration. Any changes to the registration/config will
 result in the new config being returned immediately.
@@ -119,11 +119,11 @@ result in the new config being returned immediately.
 Refer to the [built-in proxy](/docs/connect/proxies/built-in) for an example implementation. Using the Go SDK, the proxy calls the HTTP "pull" API via the `watch` package: [`consul/connect/proxy/config.go`].
 
 The [discovery chain] for each upstream service should be fetched from the
-[`/v1/discovery-chain/:service_id`](/api/discovery-chain#read-compiled-discovery-chain)
+[`/v1/discovery-chain/:service_id`](/api-docs/discovery-chain#read-compiled-discovery-chain)
 API endpoint. This will return a compiled graph of configurations a sidecar needs for a particular upstream service.
 
 If you are only implementing L4 support in your proxy, set the
-[`OverrideProtocol`](/api/discovery-chain#overrideprotocol) value to `tcp` when
+[`OverrideProtocol`](/api-docs/discovery-chain#overrideprotocol) value to `tcp` when
 fetching the discovery chain so that L7 features, such as HTTP routing rules, are
 not returned.
 
@@ -140,7 +140,7 @@ documentation for details about supported configuration parameters.
 
 ### Service Discovery
 
-Proxies can use Consul's [service discovery API](`/v1/health/connect/:service_id`) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/api/features/caching) to improve
+Proxies can use Consul's [service discovery API](`/v1/health/connect/:service_id`) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/api-docs/features/caching) to improve
 performance. The API package provides a [`UseCache`] query option to leverage caching.
 In addition to performance improvements, using the cache makes the mesh more resilient to Consul server outages. This is because the mesh "fails static" with the last known set of service instances still used, rather than errors on new connections.
 
@@ -152,7 +152,7 @@ proxies are likely to find it easier to integrate by pulling the set of
 endpoints and maintaining it in local memory using blocking queries.
 
 Upstreams may be defined with the Prepared Query target type. These upstreams
-should use Consul's [prepared query](/api/query) API to determine a list of upstream endpoints for the service. Note that the `PreparedQuery` API does not support blocking, so proxies choosing to populate endpoints in memory will need to poll the endpoint at a suitable and, ideally, configurable frequency.
+should use Consul's [prepared query](/api-docs/query) API to determine a list of upstream endpoints for the service. Note that the `PreparedQuery` API does not support blocking, so proxies choosing to populate endpoints in memory will need to poll the endpoint at a suitable and, ideally, configurable frequency.
 
 -> **Long-term support for [`service-resolver`](/docs/connect/config-entries/service-resolver) configuration
 entries**. The `service-resolver` configuration will completely replace prepared queries in future versions of Consul. In some instances, however, prepared queries are still used.

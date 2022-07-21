@@ -1,0 +1,51 @@
+---
+layout: docs
+page_title: 0.2.x
+description: >-
+  Consul API Gateway release notes for version 0.2.x
+---
+
+# Consul API Gateway 0.2.0
+
+## Release Highlights
+
+- **Cross Namespace Reference Policies:**  Reference Policies are security
+  mechanism in the Kubernetes Gateway API that allows users to better control
+  how traffic is routed between Kubernetes namespaces. With the previous
+  releases of Consul API Gateway, users could route requests from the API
+  Gateway across various namespaces without providing any sort of explicit
+  permissions. While this meant that any service connected to the service mesh
+  was reachable, it didn’t allow users to set the more granular restrictions or
+  permissions that they may expect.
+
+  This version of API Gateway implements Cross Namespace Reference Policies
+  and requires them when routes are in a different namespace than the services
+  (as specified by the `backendRefs`) they are routing traffic to.
+
+## Supported Software
+
+- Consul 1.11.2+
+- HashiCorp Consul Helm chart 0.43.0+
+- Kubernetes 1.21+
+- Kubectl 1.21+
+- Envoy proxy support is determined by the Consul version deployed. Refer to
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+
+## Kubernetes Gateway API Specification
+
+Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: `v1alpha2`(v0.4.1)
+
+## Upgrading
+
+~> **Note**: If your current deployment has routes and and services that cross namespaces, those routes will not be applied to their gateways until cross namespace reference policies are created for them.
+
+For detailed information on upgrading, including how to create the required reference policies, please refer to the [upgrade details page](/docs/api-gateway/upgrade-specific-versions)
+
+## Change logs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [0.2.0](https://github.com/hashicorp/consul-api-gateway/releases/tag/v0.2.0)
+- [0.2.1](https://github.com/hashicorp/consul-api-gateway/releases/tag/v0.2.1)

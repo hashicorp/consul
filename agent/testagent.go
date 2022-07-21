@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -43,7 +44,8 @@ type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
 
-	HCL string
+	configFiles []string
+	HCL         string
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -86,10 +88,18 @@ type TestAgent struct {
 
 // NewTestAgent returns a started agent with the given configuration. It fails
 // the test if the Agent could not be started.
-// The caller is responsible for calling Shutdown() to stop the agent and remove
-// temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
+}
+
+// NewTestAgent returns a started agent with the given configuration. It fails
+// the test if the Agent could not be started.
+// The caller is responsible for calling Shutdown() to stop the agent and remove
+// temporary directories.
+func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) *TestAgent {
+	a := StartTestAgent(t, TestAgent{configFiles: configFiles, HCL: hcl})
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -186,6 +196,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 				config.DefaultConsulSource(),
 				config.DevConsulSource(),
 			},
+			ConfigFiles: a.configFiles,
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
@@ -206,9 +217,14 @@ func (a *TestAgent) Start(t *testing.T) error {
 	bd.Logger = logger
 	// if we are not testing telemetry things, let's use a "mock" sink for metrics
 	if bd.RuntimeConfig.Telemetry.Disable {
-		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+		bd.MetricsConfig = &lib.MetricsConfig{
+			Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+		}
 	}
 
+	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {
+		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
+	}
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)

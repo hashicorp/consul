@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/go-memdb"
@@ -214,7 +215,7 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, roots, 1)
 	actual := roots[0]
-	assertDeepEqual(t, expected, *actual)
+	prototest.AssertDeepEqual(t, expected, *actual)
 }
 
 func TestStore_CARootSet_emptyID(t *testing.T) {

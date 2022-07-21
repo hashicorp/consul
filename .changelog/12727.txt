@@ -1,0 +1,4 @@
+```release-note:improvement
+telemetry: Add new `leader` label to `consul.rpc.server.call` and optional `target_datacenter`, `locality`,
+`allow_stale`, and `blocking` optional labels.
+```

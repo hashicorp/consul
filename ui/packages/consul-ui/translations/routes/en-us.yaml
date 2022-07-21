@@ -3,17 +3,98 @@ dc:
     title: Cluster Overview
     serverstatus:
       title: Server status
-    health:
+      unassigned: Unassigned Zones
+      tolerance:
+        link: |
+          <a href="{CONSUL_DOCS_URL}/architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance" target="_blank" rel="noopener noreferrer">Learn how to improve fault tolerance</a>
+        header: Server fault tolerance
+        immediate:
+          header: Immediate
+          body: the number of healthy active voting servers that can fail at once without causing an outage
+        optimistic:
+          header: Optimistic
+          body: the number of healthy active and back-up voting servers that can fail gradually without causing an outage
+    cataloghealth:
       title: Health
     license:
       title: License
+      expiry:
+        header: Expiry
+        expired:
+          header: Expired
+          body: |
+            <p>
+              Your license expired on {date} at {time}.
+            </p>
+        valid:
+          header: ''
+          body: |
+            <p>
+              Your license expires on {date} at {time}.
+            </p>
+      documentation:
+        title: Learn More
+        body: |
+          <ul>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire" target="_blank" rel="noopener noreferrer">
+                License expiration
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
+                Renewing a license
+              </a>
+            </li>
+            <li>
+              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise" target="_blank" rel="noopener noreferrer">
+                Applying a new license
+              </a>
+            </li>
+          </ul>
+
   nodes:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Nodes}
+            other {No Nodes found}
+          }
+        body: |
+          <p>
+            {items, select,
+              0 {There don't seem to be any registered Nodes in this Consul cluster}
+              other {No Nodes were found matching your search}
+          }, or you may not have <code>service:read</code> and <code>node:read</code> permissions access to this view.
+          </p>
     show:
+      rtt:
+        title: Round Trip Time
+      metadata:
+        title: Metadata
+      sessions:
+        title: Lock Sessions
+        empty:
+          header: Welcome to Lock Sessions
+          body: |
+            <p>
+            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between Nodes, Health Checks, and Key/Value data. There are currently no Lock Sessions present, or you may not have <code>key:read</code> or <code>session:read</code> permissions.
+            </p>
+      services:
+        title: Service Instances
+        empty: |
+          <p>
+            This Node has no Service Instances{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
       healthchecks:
         title: Health Checks
         empty: |
           <p>
-            This node has no health checks{items, select,
+            This Node has no Health Checks{items, select,
               0 {}
               other { matching that search}
             }.
@@ -24,15 +105,76 @@ dc:
             <p>
               This node has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
             </p>
-      services:
-        title: Service Instances
-      rtt:
-        title: Round Trip Time
-      sessions:
-        title: Lock Sessions
-      metadata:
-        title: Metadata
+  peers:
+    index:
+      detail:
+        imported:
+          count: |
+           {count} imported services
+          tooltip: The number of services imported from {name}
+        exported:
+          count: |
+           {count} exported services
+          tooltip: The number of services exported from {name}
   services:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Services}
+            other {No Services found}
+          }
+        body: |
+          <p>
+            {items, select,
+              0 {There don't seem to be any registered services in this Consul cluster}
+              other {No Services were found matching your search}
+          }, or you may not have <code>service:read</code> and <code>node:read</code> access to this view. Use Terraform, Kubernetes CRDs, Vault, or the Consul CLI to register Services.
+          </p>
+    instance:
+      exposedpaths:
+        intro: |
+          <p>
+            The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#expose-paths-configuration-reference" target="_blank" rel="noopener noreferrer">documentation</a>.
+          </p>
+
+        empty:
+          body: |
+            <p>
+              There are no individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our <a href="{CONSUL_DOCS_URL}/connect/registration/service-registration#expose-paths-configuration-reference" target="_blank" rel="noopener noreferrer">documentation</a>.
+            </p>
+      healthchecks:
+        empty: |
+          <p>
+            This instance has no health checks{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
+        critical-serf-notice:
+          header: Failing serf check
+          body: |
+            <p>
+              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
+            </p>
+      upstreams:
+        tproxy-mode:
+          header: Transparent proxy mode
+          body: |
+            <p>
+              The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
+            </p>
+          footer: |
+            <p>
+              <a href="{CONSUL_DOCS_URL}/connect/transparent-proxy" target="_blank" rel="noopener noreferrer">Read the documentation
+            </p>
+        empty: |
+          <p>
+            This Service Instance has no Upstreams{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
     show:
       topology:
         notices:
@@ -51,7 +193,7 @@ dc:
               </p>
           wildcard-intention:
             header: Permissive Intention
-            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this vizualization more useful.
+            body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this visualization more useful.
             footer: |
               <p>
                 <a href="{route_intentions}">Edit Intentions</a>
@@ -77,30 +219,168 @@ dc:
               <p>
                 <a href="{CONSUL_DOCS_URL}/security/acl/acl-system#configuring-acls" target="_blank" rel="noopener noreferrer">Read the documentation</a>
               </p>
+      intentions:
+        index:
+          empty:
+            header: |
+              {items, select,
+                0 {Welcome to Intentions}
+                other {No Intentions found}
+              }
+            body: |
+              <p>
+                {items, select,
+                  0 {There don't seem to be any Intentions in this Consul cluster}
+                  other {No Intentions were found matching your search}
+                }, or you may not have <code>intentions:read</code> permissions access to this view.
+              </p>
+
+      instances:
+        empty: |
+          <p>
+            This Service has no Instances{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
+      services:
+        intro: |
+          <p>
+            The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
+          </p>
+        empty: |
+          <p>
+            There are no Services{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
+      tags:
+        empty:
+          header: Welcome to Tags
+          body: |
+            <p>
+              There are no tags for this Service.
+            </p>
       upstreams:
         intro: |
           <p>
             Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your <code>Host:</code> header uses the correct domain name for the gateway to correctly proxy to its upstreams. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/ingress-gateways" target="_blank" rel="noopener noreferrer">documentation</a>.
           </p>
-    instance:
-      healthchecks:
         empty: |
           <p>
-            This instance has no health checks{items, select,
+            This Service has no Upstreams{items, select,
               0 {}
               other { matching that search}
             }.
           </p>
-        critical-serf-notice:
-          header: Failing serf check
-          body: |
-            <p>
-              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
-            </p>
-      upstreams:
-        tproxy-mode:
-          header: Transparent proxy mode
-          body: The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
-          footer: Read the documentation
+
   routing-config:
     source: Routing Configuration
+  intentions:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Intentions}
+            other {No Intentions found}
+          }
+        body: |
+          <p>
+            {items, select,
+              0 {There don't seem to be any Intentions in this Consul cluster}
+              other {No Intentions were found matching your search}
+            }, or you may not have <code>intentions:read</code> permissions access to this view.
+          </p>
+  kv:
+    index:
+      empty:
+        header: |
+          {items, select,
+            0 {Welcome to Key/Value}
+            other {No Key/Values found}
+          }
+        body: |
+          <p>
+            {items, select,
+              0 {There don't seem to be any K/V pairs in this Consul cluster yet}
+              other {No K/V pairs were found matching your search}
+            }, or you may not have <code>key:read</code> permissions access to this view.
+          </p>
+  acls:
+    tokens:
+      index:
+        empty:
+          header: |
+            {items, select,
+              0 {Welcome to Tokens}
+              other {No Tokens found}
+            }
+          body: |
+            <p>
+              {items, select,
+                0 {There don't seem to be any Tokens}
+                other {No Tokens were found matching your search}
+              }, or you may not have <code>acl:read</code> permissions to view Tokens yet.
+            </p>
+    policies:
+      index:
+        empty:
+          header: |
+            {items, select,
+              0 {Welcome to Policies}
+              other {No Policies found}
+            }
+          body: |
+            <p>
+              {items, select,
+                0 {There don't seem to be any Policies}
+                other {No Policies were found matching your search}
+              }, or you may not have <code>acl:read</code> permissions to view Policies yet.
+            </p>
+    roles:
+      index:
+        empty:
+          header: |
+            {items, select,
+              0 {Welcome to Roles}
+              other {No Roles found}
+            }
+          body: |
+            <p>
+              {items, select,
+                0 {There don't seem to be any Roles}
+                other {No Roles were found matching your search}
+              }, or you may not have <code>acl:read</code> permissions to view Roles yet.
+            </p>
+    auth-methods:
+      show:
+        binding-rules:
+          empty:
+            header: No Binding Rules
+            body: |
+              <p>
+                Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
+              </p>
+        nspace-rules:
+          empty:
+            header: No Namespace Rules
+            body: |
+              <p>
+                A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.
+              </p>
+
+      index:
+        empty:
+          header: |
+            {items, select,
+              0 {Welcome to Auth Methods}
+              other {No Auth Methods found}
+            }
+          body: |
+            <p>
+              {items, select,
+                0 {There don't seem to be any Auth Methods}
+                other {No Auth Methods were found matching your search}
+              }, or you may not have <code>acl:read</code> permissions to view Auth Methods yet.
+            </p>

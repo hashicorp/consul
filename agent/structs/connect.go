@@ -1,5 +1,7 @@
 package structs
 
+import "github.com/hashicorp/consul/acl"
+
 // ConnectAuthorizeRequest is the structure of a request to authorize
 // a connection.
 type ConnectAuthorizeRequest struct {
@@ -7,7 +9,7 @@ type ConnectAuthorizeRequest struct {
 	Target string
 
 	// EnterpriseMeta is the embedded Consul Enterprise specific metadata
-	EnterpriseMeta
+	acl.EnterpriseMeta
 
 	// ClientCertURI is a unique identifier for the requesting client. This
 	// is currently the URI SAN from the TLS client certificate.

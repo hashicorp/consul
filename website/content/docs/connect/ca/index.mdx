@@ -47,9 +47,9 @@ will generate the initial root certificates and setup the internal Consul server
 state.
 
 For the initial bootstrap, the CA provider can be configured through the
-[Agent configuration](/docs/agent/options#connect_ca_config). After
+[Agent configuration](/docs/agent/config/config-files#connect_ca_config). After
 initialization, the CA can only be updated through the
-[Update CA Configuration API endpoint](/api/connect/ca#update-ca-configuration).
+[Update CA Configuration API endpoint](/api-docs/connect/ca#update-ca-configuration).
 If a CA is already initialized, any changes to the CA configuration in the
 agent configuration file (including removing the configuration completely)
 will have no effect.
@@ -61,7 +61,7 @@ be generated automatically.
 ## Viewing Root Certificates
 
 Root certificates can be queried with the
-[list CA Roots endpoint](/api/connect/ca#list-ca-root-certificates).
+[list CA Roots endpoint](/api-docs/connect/ca#list-ca-root-certificates).
 With this endpoint, you can see the list of currently trusted root certificates.
 When a cluster first initializes, this will only list one trusted root. Multiple
 roots may appear as part of
@@ -96,7 +96,7 @@ $ curl http://localhost:8500/v1/connect/ca/roots
 ## CA Configuration
 
 After initialization, the CA provider configuration can be viewed with the
-[Get CA Configuration API endpoint](/api/connect/ca#get-ca-configuration).
+[Get CA Configuration API endpoint](/api-docs/connect/ca#get-ca-configuration).
 Consul will filter sensitive values from this endpoint depending on the
 provider in use, so the configuration may not be complete.
 
@@ -114,7 +114,7 @@ $ curl http://localhost:8500/v1/connect/ca/configuration
 ```
 
 The CA provider can be reconfigured using the
-[Update CA Configuration API endpoint](/api/connect/ca#update-ca-configuration).
+[Update CA Configuration API endpoint](/api-docs/connect/ca#update-ca-configuration).
 Specific options for reconfiguration can be found in the specific
 CA provider documentation in the sidebar to the left.
 
@@ -147,7 +147,7 @@ certificate or CA provider has been set up, the new root becomes the active one
 and is immediately used for signing any new incoming certificate requests.
 
 If we check the [list CA roots
-endpoint](/api/connect/ca#list-ca-root-certificates) after updating the
+endpoint](/api-docs/connect/ca#list-ca-root-certificates) after updating the
 configuration with a new root certificate, we can see both the old and new root
 certificates are present, and the currently active root has an intermediate
 certificate which has been generated and cross-signed automatically by the old
@@ -244,6 +244,6 @@ to each cluster and can be looked up by examining the `TrustDomain` field in
 the [List CA Roots](/api-docs/connect/ca#list-ca-root-certificates) endpoint.
 
 The contents of the generated cert and private key files from the above step should then be used with
-the [Update CA Configuration](/api/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
+the [Update CA Configuration](/api-docs/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
 updated on the primary datacenter, all secondary datacenters will pick up the changes and regenerate their intermediate
 and leaf certificates, after which any new requests that require certificate verification will succeed.

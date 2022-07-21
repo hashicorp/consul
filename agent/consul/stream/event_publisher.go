@@ -39,13 +39,17 @@ type EventPublisher struct {
 	publishCh chan []Event
 
 	snapshotHandlers SnapshotHandlers
+
+	// wildcards contains map keys used to access the buffer for a topic's wildcard
+	// subject — it is used to track which topics support wildcard subscriptions.
+	wildcards map[Topic]topicSubject
 }
 
 // topicSubject is used as a map key when accessing topic buffers and cached
 // snapshots.
 type topicSubject struct {
-	Topic   Topic
-	Subject Subject
+	Topic   string
+	Subject string
 }
 
 type subscriptions struct {
@@ -76,7 +80,8 @@ type SnapshotHandlers map[Topic]SnapshotFunc
 
 // SnapshotFunc builds a snapshot for the subscription request, and appends the
 // events to the Snapshot using SnapshotAppender.
-// If err is not nil the SnapshotFunc must return a non-zero index.
+//
+// Note: index MUST NOT be zero if any events were appended.
 type SnapshotFunc func(SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
@@ -91,7 +96,7 @@ type SnapshotAppender interface {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[topicSubject]*topicBuffer),
@@ -100,18 +105,69 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
-		snapshotHandlers: handlers,
+		snapshotHandlers: make(map[Topic]SnapshotFunc),
+		wildcards:        make(map[Topic]topicSubject),
 	}
 
 	return e
 }
 
+// RegisterHandler will register a new snapshot handler function. The expectation is
+// that all handlers get registered prior to the event publisher being Run. Handler
+// registration is therefore not concurrency safe and access to handlers is internally
+// not synchronized. Passing supportsWildcard allows consumers to subscribe to events
+// on this topic with *any* subject (by requesting SubjectWildcard) but this must be
+// supported by the handler function.
+func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
+	if topic.String() == "" {
+		return fmt.Errorf("the topic cannnot be empty")
+	}
+
+	if _, found := e.snapshotHandlers[topic]; found {
+		return fmt.Errorf("a handler is already registered for the topic: %s", topic.String())
+	}
+
+	e.snapshotHandlers[topic] = handler
+
+	if supportsWildcard {
+		e.wildcards[topic] = topicSubject{
+			Topic:   topic.String(),
+			Subject: SubjectWildcard.String(),
+		}
+	}
+
+	return nil
+}
+
+func (e *EventPublisher) RefreshTopic(topic Topic) error {
+	if _, found := e.snapshotHandlers[topic]; !found {
+		return fmt.Errorf("topic %s is not registered", topic)
+	}
+
+	e.forceEvictByTopic(topic)
+	e.subscriptions.closeAllByTopic(topic)
+
+	return nil
+}
+
 // Publish events to all subscribers of the event Topic. The events will be shared
 // with all subscriptions, so the Payload used in Event.Payload must be immutable.
 func (e *EventPublisher) Publish(events []Event) {
-	if len(events) > 0 {
-		e.publishCh <- events
+	if len(events) == 0 {
+		return
 	}
+
+	for idx, event := range events {
+		if _, ok := event.Payload.(closeSubscriptionPayload); ok {
+			continue
+		}
+
+		if event.Payload.Subject() == SubjectWildcard {
+			panic(fmt.Sprintf("SubjectWildcard can only be used for subscription, not for publishing (topic: %s, index: %d)", event.Topic, idx))
+		}
+	}
+
+	e.publishCh <- events
 }
 
 // Run the event publisher until ctx is cancelled. Run should be called from a
@@ -138,8 +194,20 @@ func (e *EventPublisher) publishEvent(events []Event) {
 			continue
 		}
 
-		groupKey := topicSubject{event.Topic, event.Payload.Subject()}
+		groupKey := topicSubject{
+			Topic:   event.Topic.String(),
+			Subject: event.Payload.Subject().String(),
+		}
 		groupedEvents[groupKey] = append(groupedEvents[groupKey], event)
+
+		// If the topic supports wildcard subscribers, copy the events to a wildcard
+		// buffer too.
+		e.lock.Lock()
+		wildcard, ok := e.wildcards[event.Topic]
+		e.lock.Unlock()
+		if ok {
+			groupedEvents[wildcard] = append(groupedEvents[wildcard], event)
+		}
 	}
 
 	e.lock.Lock()
@@ -193,13 +261,19 @@ func (e *EventPublisher) bufferForPublishing(key topicSubject) *eventBuffer {
 // When the caller is finished with the subscription for any reason, it must
 // call Subscription.Unsubscribe to free ACL tracking resources.
 func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
 	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
 
-	e.lock.Lock()
-	defer e.lock.Unlock()
+	if req.Subject == SubjectWildcard {
+		if _, supportsWildcard := e.wildcards[req.Topic]; !supportsWildcard {
+			return nil, fmt.Errorf("topic %s does not support wildcard subscriptions", req.Topic)
+		}
+	}
 
 	topicBuf := e.bufferForSubscription(req.topicSubject())
 	topicBuf.refs++
@@ -319,7 +393,20 @@ func (s *subscriptions) closeAll() {
 
 	for _, byRequest := range s.byToken {
 		for _, sub := range byRequest {
-			sub.forceClose()
+			sub.shutDown()
+		}
+	}
+}
+
+func (s *subscriptions) closeAllByTopic(topic Topic) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, byRequest := range s.byToken {
+		for _, sub := range byRequest {
+			if sub.req.Topic == topic {
+				sub.forceClose()
+			}
 		}
 	}
 }
@@ -346,4 +433,16 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 		defer e.lock.Unlock()
 		delete(e.snapCache, req.topicSubject())
 	})
+}
+
+// forceEvictByTopic will remove all entries from the snapshot cache for a given topic.
+// This method should be called while holding the publishers lock.
+func (e *EventPublisher) forceEvictByTopic(topic Topic) {
+	e.lock.Lock()
+	for key := range e.snapCache {
+		if key.Topic == topic.String() {
+			delete(e.snapCache, key)
+		}
+	}
+	e.lock.Unlock()
 }

@@ -2,35 +2,41 @@
 
 package pbservice
 
-import structs "github.com/hashicorp/consul/agent/structs"
+import "github.com/hashicorp/consul/agent/structs"
 
-func NodeToStructs(s Node) structs.Node {
-	var t structs.Node
-	t.ID = s.ID
+func NodeToStructs(s *Node, t *structs.Node) {
+	if s == nil {
+		return
+	}
+	t.ID = NodeIDType(s.ID)
 	t.Node = s.Node
 	t.Address = s.Address
 	t.Datacenter = s.Datacenter
 	t.Partition = s.Partition
+	t.PeerName = s.PeerName
 	t.TaggedAddresses = s.TaggedAddresses
 	t.Meta = s.Meta
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
-	return t
 }
-func NewNodeFromStructs(t structs.Node) Node {
-	var s Node
-	s.ID = t.ID
+func NodeFromStructs(t *structs.Node, s *Node) {
+	if s == nil {
+		return
+	}
+	s.ID = string(t.ID)
 	s.Node = t.Node
 	s.Address = t.Address
 	s.Datacenter = t.Datacenter
 	s.Partition = t.Partition
+	s.PeerName = t.PeerName
 	s.TaggedAddresses = t.TaggedAddresses
 	s.Meta = t.Meta
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
-	return s
 }
-func NodeServiceToStructs(s NodeService) structs.NodeService {
-	var t structs.NodeService
-	t.Kind = s.Kind
+func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
+	if s == nil {
+		return
+	}
+	t.Kind = structs.ServiceKind(s.Kind)
 	t.ID = s.ID
 	t.Service = s.Service
 	t.Tags = s.Tags
@@ -41,16 +47,22 @@ func NodeServiceToStructs(s NodeService) structs.NodeService {
 	t.SocketPath = s.SocketPath
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.EnableTagOverride = s.EnableTagOverride
-	t.Proxy = ConnectProxyConfigToStructs(s.Proxy)
-	t.Connect = ServiceConnectToStructs(s.Connect)
+	if s.Proxy != nil {
+		ConnectProxyConfigToStructs(s.Proxy, &t.Proxy)
+	}
+	if s.Connect != nil {
+		ServiceConnectToStructs(s.Connect, &t.Connect)
+	}
 	t.LocallyRegisteredAsSidecar = s.LocallyRegisteredAsSidecar
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
+	t.PeerName = s.PeerName
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
-	return t
 }
-func NewNodeServiceFromStructs(t structs.NodeService) NodeService {
-	var s NodeService
-	s.Kind = t.Kind
+func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
+	if s == nil {
+		return
+	}
+	s.Kind = string(t.Kind)
 	s.ID = t.ID
 	s.Service = t.Service
 	s.Tags = t.Tags
@@ -61,10 +73,18 @@ func NewNodeServiceFromStructs(t structs.NodeService) NodeService {
 	s.SocketPath = t.SocketPath
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.EnableTagOverride = t.EnableTagOverride
-	s.Proxy = NewConnectProxyConfigFromStructs(t.Proxy)
-	s.Connect = NewServiceConnectFromStructs(t.Connect)
+	{
+		var x ConnectProxyConfig
+		ConnectProxyConfigFromStructs(&t.Proxy, &x)
+		s.Proxy = &x
+	}
+	{
+		var x ServiceConnect
+		ServiceConnectFromStructs(&t.Connect, &x)
+		s.Connect = &x
+	}
 	s.LocallyRegisteredAsSidecar = t.LocallyRegisteredAsSidecar
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.PeerName = t.PeerName
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
-	return s
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // Topic is an identifier that partitions events. A subscription will only receive
@@ -17,12 +18,21 @@ type Topic fmt.Stringer
 // Subject identifies a portion of a topic for which a subscriber wishes to
 // receive events (e.g. health events for a particular service) usually the
 // normalized resource name (including partition and namespace if applicable).
-type Subject string
+type Subject fmt.Stringer
 
-// SubjectNone is used when all events on a given topic are "global" and not
-// further partitioned by subject. For example: the "CA Roots" topic which is
-// used to notify subscribers when the global set CA root certificates changes.
-const SubjectNone Subject = "none"
+const (
+	// SubjectNone is used when all events on a given topic are "global" and not
+	// further partitioned by subject. For example: the "CA Roots" topic which is
+	// used to notify subscribers when the global set CA root certificates changes.
+	SubjectNone StringSubject = "none"
+
+	// SubjectWildcard is used to subscribe to all events on a topic, regardless
+	// of their subject. For example: mesh gateways need to consume *all* service
+	// resolver config entries.
+	//
+	// Note: not all topics support wildcard subscriptions.
+	SubjectWildcard StringSubject = "♣"
+)
 
 // Event is a structure with identifiers and a payload. Events are Published to
 // EventPublisher and returned to Subscribers.
@@ -46,6 +56,10 @@ type Payload interface {
 	// it is usually the normalized resource name (including the partition and
 	// namespace if applicable).
 	Subject() Subject
+
+	// ToSubscriptionEvent is used to convert streaming events to their
+	// serializable equivalent.
+	ToSubscriptionEvent(idx uint64) *pbsubscribe.Event
 }
 
 // PayloadEvents is a Payload that may be returned by Subscription.Next when
@@ -109,6 +123,26 @@ func (PayloadEvents) Subject() Subject {
 	panic("PayloadEvents does not implement Subject")
 }
 
+func (p PayloadEvents) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	return &pbsubscribe.Event{
+		Index: idx,
+		Payload: &pbsubscribe.Event_EventBatch{
+			EventBatch: &pbsubscribe.EventBatch{
+				Events: batchEventsFromEventSlice(p.Items),
+			},
+		},
+	}
+}
+
+func batchEventsFromEventSlice(events []Event) []*pbsubscribe.Event {
+	result := make([]*pbsubscribe.Event, len(events))
+	for i := range events {
+		event := events[i]
+		result[i] = event.Payload.ToSubscriptionEvent(event.Index)
+	}
+	return result
+}
+
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
 // snapshot has completed. Subsequent events from Subscription.Next will be
 // streamed as they occur.
@@ -121,6 +155,12 @@ func (e Event) IsEndOfSnapshot() bool {
 // Subscription.Next will be a new snapshot, followed by an EndOfSnapshot event.
 func (e Event) IsNewSnapshotToFollow() bool {
 	return e.Payload == newSnapshotToFollow{}
+}
+
+// IsFramingEvent returns true if this is a framing event (e.g. EndOfSnapshot
+// or NewSnapshotToFollow).
+func (e Event) IsFramingEvent() bool {
+	return e.IsEndOfSnapshot() || e.IsNewSnapshotToFollow()
 }
 
 type framingEvent struct{}
@@ -136,16 +176,40 @@ func (framingEvent) Subject() Subject {
 	panic("framing events do not implement Subject")
 }
 
+func (framingEvent) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("framingEvent does not implement ToSubscriptionEvent")
+}
+
 type endOfSnapshot struct {
 	framingEvent
+}
+
+func (s endOfSnapshot) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	return &pbsubscribe.Event{
+		Index:   idx,
+		Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
+	}
 }
 
 type newSnapshotToFollow struct {
 	framingEvent
 }
 
+func (s newSnapshotToFollow) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	return &pbsubscribe.Event{
+		Index:   idx,
+		Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
+	}
+}
+
 type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
+}
+
+// closeSubscriptionPayload is only used internally and does not correspond to
+// a subscription event that would be sent to clients.
+func (s closeSubscriptionPayload) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	panic("closeSubscriptionPayload does not implement ToSubscriptionEvent")
 }
 
 func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {

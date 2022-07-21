@@ -6,18 +6,14 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
 
 const tableCoordinates = "coordinates"
 
-func indexFromCoordinate(raw interface{}) ([]byte, error) {
-	c, ok := raw.(*structs.Coordinate)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
-	}
-
+func indexFromCoordinate(c *structs.Coordinate) ([]byte, error) {
 	if c.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -28,12 +24,7 @@ func indexFromCoordinate(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexNodeFromCoordinate(raw interface{}) ([]byte, error) {
-	c, ok := raw.(*structs.Coordinate)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
-	}
-
+func indexNodeFromCoordinate(c *structs.Coordinate) ([]byte, error) {
 	if c.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -43,12 +34,7 @@ func indexNodeFromCoordinate(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexFromCoordinateQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(CoordinateQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for CoordinateQuery index", raw)
-	}
-
+func indexFromCoordinateQuery(q CoordinateQuery) ([]byte, error) {
 	if q.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -66,7 +52,7 @@ type CoordinateQuery struct {
 }
 
 func (c CoordinateQuery) PartitionOrDefault() string {
-	return structs.PartitionOrDefault(c.Partition)
+	return acl.PartitionOrDefault(c.Partition)
 }
 
 // coordinatesTableSchema returns a new table schema used for storing
@@ -79,7 +65,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[CoordinateQuery, *structs.Coordinate, any]{
 					readIndex:   indexFromCoordinateQuery,
 					writeIndex:  indexFromCoordinate,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -89,7 +75,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[Query, *structs.Coordinate]{
 					readIndex:  indexFromQuery,
 					writeIndex: indexNodeFromCoordinate,
 				},
@@ -128,7 +114,7 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
-func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
+func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -157,7 +143,7 @@ func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *structs.Ente
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Coordinates, error) {
+func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, structs.Coordinates, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

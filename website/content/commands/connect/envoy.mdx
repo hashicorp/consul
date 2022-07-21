@@ -42,7 +42,7 @@ proxy configuration needed.
   be used instead. The scheme can also be set to HTTPS by setting the
   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
   using `unix:///path/to/socket` if the [agent is configured to
-  listen](/docs/agent/options#addresses) that way.
+  listen](/docs/agent/config/config-files#addresses) that way.
 
   -> **Note:** gRPC uses the same TLS
   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
@@ -95,6 +95,22 @@ proxy configuration needed.
   is `0.0.0.0:20200`, and this flag is set to `/scrape-metrics`, prometheus metrics would
   be scrapable at `0.0.0.0:20200/scrape-metrics`.
 	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
+
+- `-prometheus-ca-file` - Path to a CA file for Envoy to use when serving TLS on
+  the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-ca-path` - Path to a directory of CA certificates for Envoy to use when
+  serving the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-cert-file` - Path to a certificate file for Envoy to use when serving
+  TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
+
+- `-prometheus-key-file` - Path to a private key file for Envoy to use when serving
+  TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
+  is set in proxy config.
 
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's

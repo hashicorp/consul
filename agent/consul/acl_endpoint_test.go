@@ -9,16 +9,18 @@ import (
 	"testing"
 	"time"
 
-	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -204,6 +206,181 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		require.Nil(t, resp.Token)
 		require.EqualError(t, err, "failed acl token lookup: index error: UUID must be 36 characters")
 	})
+
+	t.Run("expanded output with role/policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		p2, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p2.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID: p1.ID,
+					},
+				},
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1, p2}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with multiple roles that share a policy", func(t *testing.T) {
+		p1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
+		require.NoError(t, err)
+
+		r1, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		r2, err := upsertTestCustomizedRole(codec, TestDefaultInitialManagementToken, "dc1", func(role *structs.ACLRole) {
+			role.Policies = []structs.ACLRolePolicyLink{
+				{
+					ID: p1.ID,
+				},
+			}
+		})
+		require.NoError(t, err)
+
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Roles: []structs.ACLTokenRoleLink{
+					{
+						ID: r1.ID,
+					},
+					{
+						ID: r2.ID,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		setResp := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, []*structs.ACLPolicy{p1}, resp.ExpandedPolicies)
+		require.ElementsMatch(t, []*structs.ACLRole{r1, r2}, resp.ExpandedRoles)
+	})
+
+	t.Run("expanded output with node/service identities", func(t *testing.T) {
+		setReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "web",
+						Datacenters: []string{"dc1"},
+					},
+					{
+						ServiceName: "db",
+						Datacenters: []string{"dc2"},
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "dc1",
+					},
+					{
+						NodeName:   "bar",
+						Datacenter: "dc1",
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		var expectedPolicies []*structs.ACLPolicy
+		entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+		for _, serviceIdentity := range setReq.ACLToken.ServiceIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+		for _, serviceIdentity := range setReq.ACLToken.NodeIdentities {
+			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+
+		setResp := structs.ACLToken{}
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &setReq, &setResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, setResp.AccessorID)
+
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      setResp.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			Expanded:     true,
+			QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLTokenResponse{}
+
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.Token)
+		require.ElementsMatch(t, expectedPolicies, resp.ExpandedPolicies)
+	})
 }
 
 func TestACLEndpoint_TokenClone(t *testing.T) {
@@ -302,7 +479,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	}, false)
 	waitForLeaderEstablishment(t, srv)
 
-	acl := ACL{srv: srv}
+	a := ACL{srv: srv}
 
 	var tokenID string
 
@@ -325,7 +502,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -356,7 +533,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -396,7 +573,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err = acl.TokenSet(&req, &resp)
+		err = a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Delete both policies to ensure that we skip resolving ID->Name
@@ -442,7 +619,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err = acl.TokenSet(&req, &resp)
+		err = a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Delete both roles to ensure that we skip resolving ID->Name
@@ -475,8 +652,8 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "AuthMethod field is disallowed outside of Login")
+		err := a.TokenSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "AuthMethod field is disallowed outside of login")
 	})
 
 	t.Run("Update auth method linked token and try to change auth method", func(t *testing.T) {
@@ -591,12 +768,12 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
-		long := strings.Repeat("x", serviceIdentityNameMaxLength+1)
+		long := strings.Repeat("x", acl.ServiceIdentityNameMaxLength+1)
 		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -612,7 +789,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NotNil(t, err)
 	})
 
@@ -658,7 +835,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			resp := structs.ACLToken{}
 
-			err := acl.TokenSet(&req, &resp)
+			err := a.TokenSet(&req, &resp)
 			if test.ok {
 				require.NoError(t, err)
 
@@ -691,7 +868,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -725,7 +902,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -755,7 +932,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
 	})
 
@@ -783,7 +960,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			resp := structs.ACLToken{}
 
-			err := acl.TokenSet(&req, &resp)
+			err := a.TokenSet(&req, &resp)
 			if test.errString != "" {
 				testutil.RequireErrorContains(t, err, test.errString)
 			} else {
@@ -805,7 +982,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 			resp := structs.ACLToken{}
 
-			err := acl.TokenSet(&req, &resp)
+			err := a.TokenSet(&req, &resp)
 			if test.errString != "" {
 				testutil.RequireErrorContains(t, err, test.errStringTTL)
 			} else {
@@ -829,7 +1006,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
 	})
 
@@ -847,7 +1024,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -882,7 +1059,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -914,7 +1091,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Cannot change expiration time")
 	})
 
@@ -932,7 +1109,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -960,7 +1137,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
@@ -996,7 +1173,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err = acl.TokenSet(&req, &resp)
+		err = a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Cannot find token")
 	})
 
@@ -1015,7 +1192,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity is missing the node name field on this token")
 	})
 
@@ -1035,7 +1212,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity has an invalid name.")
 	})
 	t.Run("invalid node identity - no datacenter", func(t *testing.T) {
@@ -1053,7 +1230,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenSet(&req, &resp)
+		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this token")
 	})
 }
@@ -1678,7 +1855,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		}
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 		for _, token := range resp.Tokens {
-			require.Equal(t, redactedToken, token.SecretID)
+			require.Equal(t, aclfilter.RedactedToken, token.SecretID)
 		}
 	})
 }
@@ -2213,7 +2390,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	acl := ACL{srv: srv}
+	a := ACL{srv: srv}
 	var roleID string
 
 	testPolicy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
@@ -2243,7 +2420,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		}
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		require.NoError(t, err)
 		require.NotNil(t, resp.ID)
 
@@ -2281,7 +2458,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		}
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		require.NoError(t, err)
 		require.NotNil(t, resp.ID)
 
@@ -2322,7 +2499,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		}
 		resp := structs.ACLRole{}
 
-		err = acl.RoleSet(&req, &resp)
+		err = a.RoleSet(&req, &resp)
 		require.NoError(t, err)
 		require.NotNil(t, resp.ID)
 
@@ -2364,12 +2541,12 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		}
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
-		long := strings.Repeat("x", serviceIdentityNameMaxLength+1)
+		long := strings.Repeat("x", acl.ServiceIdentityNameMaxLength+1)
 		req := structs.ACLRoleSetRequest{
 			Datacenter: "dc1",
 			Role: structs.ACLRole{
@@ -2383,7 +2560,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		}
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		require.NotNil(t, err)
 	})
 
@@ -2428,7 +2605,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 			resp := structs.ACLRole{}
 
-			err := acl.RoleSet(&req, &resp)
+			err := a.RoleSet(&req, &resp)
 			if test.ok {
 				require.NoError(t, err)
 
@@ -2459,7 +2636,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the role directly to validate that it exists
@@ -2491,7 +2668,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		require.NoError(t, err)
 
 		// Get the role directly to validate that it exists
@@ -2520,7 +2697,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity is missing the node name field on this role")
 	})
 
@@ -2541,7 +2718,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity has an invalid name.")
 	})
 	t.Run("invalid node identity - no datacenter", func(t *testing.T) {
@@ -2560,7 +2737,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		resp := structs.ACLRole{}
 
-		err := acl.RoleSet(&req, &resp)
+		err := a.RoleSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this role")
 	})
 }
@@ -5138,109 +5315,9 @@ func gatherIDs(t *testing.T, v interface{}) []string {
 	return out
 }
 
-func TestValidateBindingRuleBindName(t *testing.T) {
-	t.Parallel()
-
-	type testcase struct {
-		name     string
-		bindType string
-		bindName string
-		fields   string
-		valid    bool // valid HIL, invalid contents
-		err      bool // invalid HIL
-	}
-
-	for _, test := range []testcase{
-		{"no bind type",
-			"", "", "", false, false},
-		{"bad bind type",
-			"invalid", "blah", "", false, true},
-		// valid HIL, invalid name
-		{"empty",
-			"both", "", "", false, false},
-		{"just end",
-			"both", "}", "", false, false},
-		{"var without start",
-			"both", " item }", "item", false, false},
-		{"two vars missing second start",
-			"both", "before-${ item }after--more }", "item,more", false, false},
-		// names for the two types are validated differently
-		{"@ is disallowed",
-			"both", "bad@name", "", false, false},
-		{"leading dash",
-			"role", "-name", "", true, false},
-		{"leading dash",
-			"service", "-name", "", false, false},
-		{"trailing dash",
-			"role", "name-", "", true, false},
-		{"trailing dash",
-			"service", "name-", "", false, false},
-		{"inner dash",
-			"both", "name-end", "", true, false},
-		{"upper case",
-			"role", "NAME", "", true, false},
-		{"upper case",
-			"service", "NAME", "", false, false},
-		// valid HIL, valid name
-		{"no vars",
-			"both", "nothing", "", true, false},
-		{"just var",
-			"both", "${item}", "item", true, false},
-		{"var in middle",
-			"both", "before-${item}after", "item", true, false},
-		{"two vars",
-			"both", "before-${item}after-${more}", "item,more", true, false},
-		// bad
-		{"no bind name",
-			"both", "", "", false, false},
-		{"just start",
-			"both", "${", "", false, true},
-		{"backwards",
-			"both", "}${", "", false, true},
-		{"no varname",
-			"both", "${}", "", false, true},
-		{"missing map key",
-			"both", "${item}", "", false, true},
-		{"var without end",
-			"both", "${ item ", "item", false, true},
-		{"two vars missing first end",
-			"both", "before-${ item after-${ more }", "item,more", false, true},
-	} {
-		var cases []testcase
-		if test.bindType == "both" {
-			test1 := test
-			test1.bindType = "role"
-			test2 := test
-			test2.bindType = "service"
-			cases = []testcase{test1, test2}
-		} else {
-			cases = []testcase{test}
-		}
-
-		for _, test := range cases {
-			test := test
-			t.Run(test.bindType+"--"+test.name, func(t *testing.T) {
-				t.Parallel()
-				valid, err := validateBindingRuleBindName(
-					test.bindType,
-					test.bindName,
-					strings.Split(test.fields, ","),
-				)
-				if test.err {
-					require.NotNil(t, err)
-					require.False(t, valid)
-				} else {
-					require.NoError(t, err)
-					require.Equal(t, test.valid, valid)
-				}
-			})
-		}
-	}
-}
-
 // upsertTestToken creates a token for testing purposes
 func upsertTestTokenInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string,
-	tokenModificationFn func(token *structs.ACLToken), entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	tokenModificationFn func(token *structs.ACLToken), entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
@@ -5280,7 +5357,7 @@ func upsertTestToken(codec rpc.ClientCodec, initialManagementToken string, datac
 		tokenModificationFn, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+func upsertTestTokenWithPolicyRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
 	policy, err := upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, entMeta)
 	if err != nil {
 		return nil, err
@@ -5410,7 +5487,7 @@ func upsertTestPolicyWithRules(codec rpc.ClientCodec, initialManagementToken str
 	return upsertTestPolicyWithRulesInEntMeta(codec, initialManagementToken, datacenter, rules, structs.DefaultEnterpriseMetaInDefaultPartition())
 }
 
-func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+func upsertTestPolicyWithRulesInEntMeta(codec rpc.ClientCodec, initialManagementToken string, datacenter string, rules string, entMeta *acl.EnterpriseMeta) (*structs.ACLPolicy, error) {
 	return upsertTestCustomizedPolicy(codec, initialManagementToken, datacenter, func(policy *structs.ACLPolicy) {
 		if entMeta == nil {
 			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()

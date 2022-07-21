@@ -4,13 +4,18 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
 type Deps struct {
+	EventPublisher  *stream.EventPublisher
 	Logger          hclog.InterceptLogger
 	TLSConfigurator *tlsutil.Configurator
 	Tokens          *token.Store
@@ -18,6 +23,12 @@ type Deps struct {
 	ConnPool        *pool.ConnPool
 	GRPCConnPool    GRPCClientConner
 	LeaderForwarder LeaderForwarder
+	// GetNetRPCInterceptorFunc, if not nil, sets the net/rpc rpc.ServerServiceCallInterceptor on
+	// the server side to record metrics around the RPC requests. If nil, no interceptor is added to
+	// the rpc server.
+	GetNetRPCInterceptorFunc func(recorder *middleware.RequestRecorder) rpc.ServerServiceCallInterceptor
+	// NewRequestRecorderFunc provides a middleware.RequestRecorder for the server to use; it cannot be nil
+	NewRequestRecorderFunc func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder
 	EnterpriseDeps
 }
 

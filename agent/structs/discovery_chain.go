@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -26,8 +27,16 @@ type CompiledDiscoveryChain struct {
 	// non-customized versions.
 	CustomizationHash string `json:",omitempty"`
 
+	// Default indicates if this discovery chain is based on no
+	// service-resolver, service-splitter, or service-router config entries.
+	Default bool `json:",omitempty"`
+
 	// Protocol is the overall protocol shared by everything in the chain.
 	Protocol string `json:",omitempty"`
+
+	// ServiceMeta is the metadata from the underlying service-defaults config
+	// entry for the service named ServiceName.
+	ServiceMeta map[string]string `json:",omitempty"`
 
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
@@ -62,33 +71,6 @@ func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryG
 	return false
 }
 
-// IsDefault returns true if the compiled chain represents no routing, no
-// splitting, and only the default resolution.  We have to be careful here to
-// avoid returning "yep this is default" when the only resolver action being
-// applied is redirection to another resolver that is default, so we double
-// check the resolver matches the requested resolver.
-func (c *CompiledDiscoveryChain) IsDefault() bool {
-	if c.StartNode == "" || len(c.Nodes) == 0 {
-		return true
-	}
-
-	node := c.Nodes[c.StartNode]
-	if node == nil {
-		panic("not possible: missing node named '" + c.StartNode + "' in chain '" + c.ServiceName + "'")
-	}
-
-	if node.Type != DiscoveryGraphNodeTypeResolver {
-		return false
-	}
-	if !node.Resolver.Default {
-		return false
-	}
-
-	target := c.Targets[node.Resolver.Target]
-
-	return target.Service == c.ServiceName && target.Namespace == c.Namespace && target.Partition == c.Partition
-}
-
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
@@ -96,7 +78,7 @@ func (c *CompiledDiscoveryChain) ID() string {
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
-	entMeta := NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
+	entMeta := acl.NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
 	return NewServiceName(c.ServiceName, &entMeta)
 }
 
@@ -225,6 +207,8 @@ type DiscoveryTarget struct {
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`
 	Subset      ServiceResolverSubset `json:",omitempty"`
 
+	ConnectTimeout time.Duration `json:",omitempty"`
+
 	// External is true if this target is outside of this consul cluster.
 	External bool `json:",omitempty"`
 
@@ -236,6 +220,42 @@ type DiscoveryTarget struct {
 	// balancer objects.  This has a structure similar to SNI, but will not be
 	// affected by SNI customizations.
 	Name string `json:",omitempty"`
+}
+
+func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type Alias DiscoveryTarget
+	exported := struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: t.ConnectTimeout.String(),
+		Alias:          (*Alias)(t),
+	}
+	if t.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
+	type Alias DiscoveryTarget
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if t.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter string) *DiscoveryTarget {
@@ -268,4 +288,8 @@ func (t *DiscoveryTarget) String() string {
 
 func (t *DiscoveryTarget) ServiceID() ServiceID {
 	return NewServiceID(t.Service, t.GetEnterpriseMetadata())
+}
+
+func (t *DiscoveryTarget) ServiceName() ServiceName {
+	return NewServiceName(t.Service, t.GetEnterpriseMetadata())
 }

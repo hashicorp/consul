@@ -43,13 +43,13 @@ At any given point in time, between any pair of services **only one intention
 controls authorization**. This may be either an L4 intention or an L7
 intention, but at any given point in time only one of those applies.
 
-The [intention match API](/api/connect/intentions#list-matching-intentions)
+The [intention match API](/api-docs/connect/intentions#list-matching-intentions)
 should be periodically called to retrieve all relevant intentions for the
 target destination. After verifying the TLS client certificate, the cached
 intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
-The default intention behavior is defined by the [`default_policy`](/docs/agent/options#acl_default_policy) configuration.
+The default intention behavior is defined by the [`default_policy`](/docs/agent/config/config-files#acl_default_policy) configuration.
 If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
 If is set to `deny`, then all connections or requests will be denied by default.
 

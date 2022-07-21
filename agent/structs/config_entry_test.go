@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -423,6 +424,36 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxConcurrentRequests: intPointer(5),
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "service-defaults-with-destination",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					address = "1.2.3.4/24"
+					port = 8080
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Address = "1.2.3.4/24"
+					Port = 8080
+				}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4/24",
+					Port:    8080,
 				},
 			},
 		},
@@ -1675,6 +1706,27 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				tls {
+					incoming {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					outgoing {
+						tls_min_version = "TLSv1_1"
+						tls_max_version = "TLSv1_2"
+						cipher_suites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1685,6 +1737,27 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				TLS {
+					Incoming {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+					Outgoing {
+						TLSMinVersion = "TLSv1_1"
+						TLSMaxVersion = "TLSv1_2"
+						CipherSuites = [
+							"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+						]
+					}
+				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1693,6 +1766,27 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
+				},
+				TLS: &MeshTLSConfig{
+					Incoming: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+					Outgoing: &MeshDirectionalTLSConfig{
+						TLSMinVersion: types.TLSv1_1,
+						TLSMaxVersion: types.TLSv1_2,
+						CipherSuites: []types.TLSCipherSuite{
+							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},
@@ -1715,6 +1809,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								partition = "baz"
+							},
+							{
+								peer_name = "flarm"
 							}
 						]
 					},
@@ -1746,6 +1843,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition = "baz"
+							},
+							{
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -1776,6 +1876,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Partition: "baz",
+							},
+							{
+								PeerName: "flarm",
 							},
 						},
 					},
@@ -2318,6 +2421,119 @@ func TestServiceConfigEntry(t *testing.T) {
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
+		"validate: missing destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: destination ipv4 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "1.2.3.4",
+					Port:    443,
+				},
+			},
+		},
+		"validate: destination ipv4 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "10.0.0.1/16",
+					Port:    8080,
+				},
+			},
+		},
+		"validate: destination ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:0db8:0000:8a2e:0370:7334:1234:5678",
+					Port:    443,
+				},
+			},
+		},
+		"valid destination shortened ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334",
+					Port:    443,
+				},
+			},
+		},
+		"validate: destination ipv6 CIDR address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+					Port:    443,
+				},
+			},
+		},
+		"validate: invalid destination port": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "2001:db8::8a2e:370:7334/64",
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"validate: invalid hostname 1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "*external.com",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: invalid hostname 2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Address: "..hello.",
+					Port:    443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: all web traffic allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Address: "*",
+					Port:    443,
+				},
+			},
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -2696,7 +2912,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
 				opts := cmp.Options{
-					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+					cmp.Comparer(func(a, b acl.EnterpriseMeta) bool {
 						return a.IsSame(&b)
 					}),
 				}

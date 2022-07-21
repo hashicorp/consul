@@ -2,35 +2,32 @@
 # https://www.consul.io/docs/install#compiling-from-source
 
 SHELL = bash
-GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
-GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
-	github.com/hashicorp/go-bindata/go-bindata@master \
-	golang.org/x/tools/cmd/cover@master \
-	golang.org/x/tools/cmd/stringer@master \
-	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/hashicorp/protoc-gen-go-binary@master \
-	github.com/vektra/mockery/cmd/mockery@master \
-	github.com/golangci/golangci-lint/cmd/golangci-lint@v1.40.1 \
-	github.com/hashicorp/lint-consul-retry@master
+
+###
+# These version variables can either be a valid string for "go install <module>@<version>"
+# or the string @DEV to imply use what is currently installed locally.
+###
+GOLANGCI_LINT_VERSION='v1.46.2'
+MOCKERY_VERSION='v2.12.2'
+BUF_VERSION='v1.4.0'
+PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
+MOG_VERSION='v0.3.0'
+PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 
 GOTAGS ?=
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-export PATH := $(PWD)/bin:$(PATH)
+export PATH := $(PWD)/bin:$(GOPATH)/bin:$(PATH)
 
-ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT=github.com/hashicorp/consul/version
-GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
-
-PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
-PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
-PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
+DATE_FORMAT="%Y-%m-%dT%H:%M:%SZ" # it's tricky to do an RFC3339 format in a cross platform way, so we hardcode UTC
+GIT_DATE=$(shell $(CURDIR)/build-support/scripts/build-date.sh) # we're using this for build date because it's stable across platform builds
+GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).BuildDate=$(GIT_DATE)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -154,7 +151,8 @@ dev-docker: linux
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	#  'consul:local' tag is needed to run the integration tests
+	@DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' -t 'consul:local' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 # In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
@@ -268,29 +266,36 @@ other-consul:
 		exit 1 ; \
 	fi
 
-lint:
-	@echo "--> Running go golangci-lint"
+lint: lint-tools
+	@echo "--> Running golangci-lint"
 	@golangci-lint run --build-tags '$(GOTAGS)' && \
 		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
+	@echo "--> Running lint-consul-retry"
+	@lint-consul-retry
+	@echo "--> Running enumcover"
+	@enumcover ./...
 
-# If you've run "make ui" manually then this will get called for you. This is
-# also run as part of the release build script when it verifies that there are no
-# changes to the UI assets that aren't checked in.
-static-assets:
-	@go-bindata-assetfs -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
-	@go fmt $(ASSETFS_PATH)
+# Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
+ui: ui-docker
 
-
-# Build the static web ui and build static assets inside a Docker container
-ui: ui-docker static-assets-docker
+# Build the static web ui with yarn. This is the version to commit.
+.PHONY: ui-regen
+ui-regen:
+	cd $(CURDIR)/ui && make && cd ..
+	rm -rf $(CURDIR)/agent/uiserver/dist
+	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
 
 tools:
-	@if [[ -d .gotools ]]; then rm -rf .gotools ; fi
-	@for TOOL in $(GOTOOLS); do \
-		echo "=== TOOL: $$TOOL" ; \
-		go install -v $$TOOL ; \
-	done
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
+
+.PHONY: lint-tools
+lint-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -lint
+
+.PHONY: proto-tools
+proto-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -protobuf
 
 version:
 	@echo -n "Version:                    "
@@ -307,14 +312,11 @@ docker-images: go-build-image ui-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) --build-arg 'GOTOOLS=$(GOTOOLS)' -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
 
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-static-assets-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
 
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
@@ -324,6 +326,27 @@ ui-docker: ui-build-image
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@go test -v -timeout=30m -tags integration ./test/integration/connect/envoy
+
+.PHONY: test-compat-integ
+test-compat-integ: dev-docker
+ifeq ("$(GOTAGS)","")
+	@docker tag consul-dev:latest consul:local
+	@docker run --rm -t consul:local consul version
+	@cd ./test/integration/consul-container && \
+		go test -v -timeout=30m ./... --target-version local --latest-version latest
+else
+	@docker tag consul-dev:latest hashicorp/consul-enterprise:local
+	@docker run --rm -t hashicorp/consul-enterprise:local consul version
+	@cd ./test/integration/consul-container && \
+		go test -v -timeout=30m ./... --tags $(GOTAGS) --target-version local --latest-version latest
+endif
+
+.PHONY: test-metrics-integ
+test-metrics-integ: dev-docker
+	@docker tag consul-dev:latest consul:local
+	@docker run --rm -t consul:local consul version
+	@cd ./test/integration/consul-container && \
+		go test -v -timeout=7m ./metrics --target-version local
 
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
@@ -341,12 +364,33 @@ else
 	@go test -v ./agent -run Vault
 endif
 
-proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
-	@echo "Generated all protobuf Go files"
+.PHONY: proto
+proto: proto-tools
+	@$(SHELL) $(CURDIR)/build-support/scripts/protobuf.sh
 
+.PHONY: proto-format
+proto-format: proto-tools
+	@buf format -w
 
-%.pb.go %.pb.binary.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+.PHONY: proto-lint
+proto-lint: proto-tools
+	@buf lint --config proto/buf.yaml --path proto
+	@buf lint --config proto-public/buf.yaml --path proto-public
+	@for fn in $$(find proto -name '*.proto'); do \
+		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
+			continue ; \
+		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
+			continue ; \
+		fi ; \
+		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \
+		if [[ "$$pkg" != hashicorp.consul.internal.* ]]; then \
+			echo "ERROR: $$fn: is missing 'hashicorp.consul.internal' package prefix: $$pkg" >&2; \
+			exit 1; \
+		fi \
+	done
+
+# utility to echo a makefile variable (i.e. 'make print-PROTOC_VERSION')
+print-%  : ; @echo $($*)
 
 .PHONY: module-versions
 # Print a list of modules which can be updated.
@@ -370,6 +414,12 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
-.PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: help
+help:
+	$(info available make targets)
+	$(info ----------------------)
+	@grep "^[a-z0-9-][a-z0-9.-]*:" GNUmakefile  | cut -d':' -f1 | sort
+
+.PHONY: all bin dev dist cov test test-internal cover lint ui tools
+.PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
+.PHONY: version test-envoy-integ

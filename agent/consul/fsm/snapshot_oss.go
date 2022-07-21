@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func init() {
@@ -35,6 +36,8 @@ func init() {
 	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
 	registerRestorer(structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP)
 	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
+	registerRestorer(structs.PeeringWriteType, restorePeering)
+	registerRestorer(structs.PeeringTrustBundleWriteType, restorePeeringTrustBundle)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -86,6 +89,12 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistIndex(sink, encoder); err != nil {
 		return err
 	}
+	if err := s.persistPeerings(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistPeeringTrustBundles(sink, encoder); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -103,16 +112,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		n := node.(*structs.Node)
 		nodeEntMeta := n.GetEnterpriseMeta()
 
-		req := structs.RegisterRequest{
-			ID:              n.ID,
-			Node:            n.Node,
-			Datacenter:      n.Datacenter,
-			Address:         n.Address,
-			TaggedAddresses: n.TaggedAddresses,
-			NodeMeta:        n.Meta,
-			RaftIndex:       n.RaftIndex,
-			EnterpriseMeta:  *nodeEntMeta,
-		}
+		req := n.ToRegisterRequest()
 
 		// Register the node itself
 		if _, err := sink.Write([]byte{byte(structs.RegisterRequestType)}); err != nil {
@@ -123,7 +123,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services, err := s.state.Services(n.Node, nodeEntMeta)
+		services, err := s.state.Services(n.Node, nodeEntMeta, n.PeerName)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks, err := s.state.Checks(n.Node, nodeEntMeta)
+		checks, err := s.state.Checks(n.Node, nodeEntMeta, n.PeerName)
 		if err != nil {
 			return err
 		}
@@ -161,7 +161,6 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	if err != nil {
 		return err
 	}
-	// TODO(partitions)
 	for coord := coords.Next(); coord != nil; coord = coords.Next() {
 		if _, err := sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)}); err != nil {
 			return err
@@ -547,6 +546,42 @@ func (s *snapshot) persistVirtualIPs(sink raft.SnapshotSink, encoder *codec.Enco
 	return nil
 }
 
+func (s *snapshot) persistPeerings(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	peerings, err := s.state.Peerings()
+	if err != nil {
+		return err
+	}
+
+	for entry := peerings.Next(); entry != nil; entry = peerings.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.Peering)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *snapshot) persistPeeringTrustBundles(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	ptbs, err := s.state.PeeringTrustBundles()
+	if err != nil {
+		return err
+	}
+
+	for entry := ptbs.Next(); entry != nil; entry = ptbs.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringTrustBundleWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.PeeringTrustBundle)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -845,6 +880,28 @@ func restoreFreeVirtualIP(header *SnapshotHeader, restore *state.Restore, decode
 		return err
 	}
 	if err := restore.FreeVirtualIP(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeering(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.Peering
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.Peering(&req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeeringTrustBundle(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.PeeringTrustBundle
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.PeeringTrustBundle(&req); err != nil {
 		return err
 	}
 	return nil

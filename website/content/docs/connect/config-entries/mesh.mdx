@@ -17,6 +17,99 @@ Settings in this config entry apply across all namespaces and federated datacent
 
 ## Sample Configuration Entries
 
+### Mesh-wide TLS Min Version
+
+Enforce that service mesh mTLS traffic uses TLS v1.2 or newer.
+
+<Tabs>
+<Tab heading="Consul OSS">
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "mesh"
+TLS {
+  Incoming {
+    TLSMinVersion = "TLSv1_2"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+spec:
+  tls:
+    incoming:
+      tlsMinVersion: TLSv1_2
+```
+
+```json
+{
+  "Kind": "mesh",
+  "TLS": {
+    "Incoming": {
+      "TLSMinVersion": "TLSv1_2"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+The `mesh` configuration entry can only be created in the `default` namespace and will apply to proxies across **all** namespaces.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "mesh"
+Namespace = "default" # Can only be set to "default".
+Partition = "default"
+
+TLS {
+  Incoming {
+    TLSMinVersion = "TLSv1_2"
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+  namespace: default
+spec:
+  tls:
+    incoming:
+      tlsMinVersion: TLSv1_2
+```
+
+```json
+{
+  "Kind": "mesh",
+  "Namespace": "default",
+  "Partition": "default",
+  "TLS": {
+    "Incoming": {
+      "TLSMinVersion": "TLSv1_2"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/docs/k8s/crds), which can only be scoped to their own partition.
+
 ### Mesh Destinations Only
 
 Only allow transparent proxies to dial addresses in the mesh.
@@ -168,6 +261,116 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                         proxy traffic to IP addresses not registered in Consul's mesh. If enabled, traffic will only be proxied
                         to upstream proxies or Connect-native services. If disabled, requests will be proxied as-is to the
                         original destination IP address. Consul will not encrypt the connection.`,
+        },
+      ],
+    },
+    {
+      name: 'TLS',
+      type: 'TLSConfig: <optional>',
+      description: 'TLS configuration for the service mesh.',
+      children: [
+        {
+          name: 'Incoming',
+          yaml: false,
+          type: 'TLSDirectionConfig: <optional>',
+          description: `TLS configuration for inbound mTLS connections targeting
+                        the public listener on \`connect-proxy\` and \`terminating-gateway\`
+                        proxy kinds.`,
+          children: [
+            {
+              name: 'TLSMinVersion',
+              yaml: false,
+              type: 'string: ""',
+              description:
+                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+            },
+            {
+              name: 'TLSMaxVersion',
+              yaml: false,
+              type: 'string: ""',
+              description: {
+                hcl:
+                  "Set the default maximum TLS version supported. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy will default to TLS 1.3 as a max version for incoming connections.",
+                yaml:
+                  "Set the default maximum TLS version supported. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy will default to TLS 1.3 as a max version for incoming connections.",
+              },
+            },
+            {
+              name: 'CipherSuites',
+              yaml: false,
+              type: 'array<string>: <optional>',
+              description: `Set the default list of TLS cipher suites
+                            to support when negotiating connections using
+                            TLS 1.2 or earlier. If unspecified, Envoy will use a
+                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
+                            The list of supported cipher suites can seen in
+                            [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+                            and is dependent on underlying support in Envoy. Future
+                            releases of Envoy may remove currently-supported but
+                            insecure cipher suites, and future releases of Consul
+                            may add new supported cipher suites if any are added to
+                            Envoy.`,
+            },
+          ],
+        },
+        {
+          name: 'Outgoing',
+          yaml: false,
+          type: 'TLSDirectionConfig: <optional>',
+          description: `TLS configuration for outbound mTLS connections dialing upstreams
+                        from \`connect-proxy\` and \`ingress-gateway\`
+                        proxy kinds.`,
+          children: [
+            {
+              name: 'TLSMinVersion',
+              yaml: false,
+              type: 'string: ""',
+              description:
+                "Set the default minimum TLS version supported. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy v1.22.0 and newer [will default to TLS 1.2 as a min version](https://github.com/envoyproxy/envoy/pull/19330), while older releases of Envoy default to TLS 1.0.",
+            },
+            {
+              name: 'TLSMaxVersion',
+              yaml: false,
+              type: 'string: ""',
+              description: {
+                hcl:
+                  "Set the default maximum TLS version supported. Must be greater than or equal to `TLSMinVersion`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy will default to TLS 1.2 as a max version for outgoing connections, but future Envoy releases [may change this to TLS 1.3](https://github.com/envoyproxy/envoy/issues/9300).",
+                yaml:
+                  "Set the default maximum TLS version supported. Must be greater than or equal to `tls_min_version`. One of `TLS_AUTO`, `TLSv1_0`, `TLSv1_1`, `TLSv1_2`, or `TLSv1_3`. If unspecified, Envoy will default to TLS 1.2 as a max version for outgoing connections, but future Envoy releases [may change this to TLS 1.3](https://github.com/envoyproxy/envoy/issues/9300).",
+              },
+            },
+            {
+              name: 'CipherSuites',
+              yaml: false,
+              type: 'array<string>: <optional>',
+              description: `Set the default list of TLS cipher suites
+                            to support when negotiating connections using
+                            TLS 1.2 or earlier. If unspecified, Envoy will use a
+                            [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
+                            The list of supported cipher suites can seen in
+                            [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+                            and is dependent on underlying support in Envoy. Future
+                            releases of Envoy may remove currently-supported but
+                            insecure cipher suites, and future releases of Consul
+                            may add new supported cipher suites if any are added to
+                            Envoy.`,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'HTTP',
+      type: 'HTTPConfig: <optional>',
+      description: 'HTTP configuration for the service mesh.',
+      children: [
+        {
+          name: 'SanitizeXForwardedClientCert',
+          yaml: false,
+          type: 'bool: <optional>',
+          description: `If configured to \`true\`, the \`forward_client_cert_details\` option will be set to \`SANITIZE\` 
+                        for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
+                        If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },
       ],
     },

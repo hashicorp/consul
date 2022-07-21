@@ -12,18 +12,8 @@ parameters:
     description: "Boolean whether to run the load test workflow"
 
 references:
-  images:
-    # When updating the Go version, remember to also update the versions in the
-    # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.17.5
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
-
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
-
-  cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
-
   environment: &ENVIRONMENT
     TEST_RESULTS_DIR: *TEST_RESULTS_DIR
     EMAIL: noreply@hashicorp.com
@@ -31,7 +21,21 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    VAULT_BINARY_VERSION: 1.2.2
+    VAULT_BINARY_VERSION: 1.9.4
+    GO_VERSION: 1.18.1
+  envoy-versions: &supported_envoy_versions
+    - &default_envoy_version "1.20.6"
+    - "1.21.4"
+    - "1.22.2"
+    - "1.23.0"
+  images:
+    # When updating the Go version, remember to also update the versions in the
+    # workflows section for go-test-lib jobs.
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.18.1
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+    ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -169,6 +173,14 @@ jobs:
       - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
       - run: *notify-slack-failure
 
+  lint-enums:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
+      - run: *notify-slack-failure
+
   lint:
     description: "Run golangci-lint"
     parameters:
@@ -177,6 +189,7 @@ jobs:
         default: ""
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: xlarge
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
       GOARCH: "<<parameters.go-arch>>"
@@ -185,14 +198,12 @@ jobs:
       - run: go env
       - run:
           name: Install golangci-lint
-          command: |
-            download=https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            wget -O- -q $download | sh -x -s -- -d -b /home/circleci/go/bin v1.40.1
+          command: make lint-tools
       - run: go mod download
       - run:
           name: lint
           command: &lintcmd |
-            golangci-lint run --build-tags="$GOTAGS" -v --concurrency 2
+            golangci-lint run --build-tags="$GOTAGS" -v
       - run:
           name: lint api
           working_directory: api
@@ -224,22 +235,16 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
+      # tput complains if this isn't set to something.
+      TERM: ansi
     steps:
       - checkout
       - run:
           name: Install protobuf
-          command: |
-            wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
-            sudo unzip -d /usr/local protoc-*.zip
-            sudo chmod +x /usr/local/bin/protoc
-            rm protoc-*.zip
+          command: make proto-tools
       - run:
-          name: Install gogo/protobuf
-          command: |
-            gogo_version=$(go list -m github.com/gogo/protobuf | awk '{print $2}')
-            go install -v github.com/hashicorp/protoc-gen-go-binary@master
-            go install -v github.com/gogo/protobuf/protoc-gen-gofast@${gogo_version}
-
+          name: "Protobuf Format"
+          command: make proto-format
       - run:
           command: make --always-make proto
       - run: |
@@ -247,11 +252,14 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
+      - run:
+          name: "Protobuf Lint"
+          command: make proto-lint
 
   go-test-arm64:
     machine:
-      image: ubuntu-2004:202101-01
-    resource_class: arm.medium
+      image: *UBUNTU_CI_IMAGE
+    resource_class: arm.large
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
@@ -262,10 +270,10 @@ jobs:
     steps:
       - checkout
       - run:
-         command: |
+          command: |
             sudo rm -rf /usr/local/go
-            wget https://golang.org/dl/go1.17.5.linux-arm64.tar.gz
-            sudo tar -C /usr/local -xzvf go1.17.5.linux-arm64.tar.gz
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
       - run: *install-gotestsum
       - run: go mod download
       - run:
@@ -278,10 +286,11 @@ jobs:
             fi
       - run-go-test-full:
           go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
-      
+
   go-test:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
@@ -330,14 +339,15 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
-  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned 
+  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned
   # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
-  # Running tests with GOARCH=386 seems to be the best way to detect this 
+  # Running tests with GOARCH=386 seems to be the best way to detect this
   # problem. Only runs tests that are -short to limit the time we spend checking
   # for these bugs.
   go-test-32bit:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -411,6 +421,7 @@ jobs:
   build-distros: &build-distros
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment: &build-env
       <<: *ENVIRONMENT
     steps:
@@ -420,7 +431,7 @@ jobs:
           command: |
             for os in $XC_OS; do
               target="./pkg/bin/${GOOS}_${GOARCH}/"
-              GOOS="$os" CGO_ENABLED=0 go build -o "$target" -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+              GOOS="$os" CGO_ENABLED=0 go build -o "${target}" -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}"
             done
 
       # save dev build to CircleCI
@@ -448,6 +459,7 @@ jobs:
   build-arm:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       CGO_ENABLED: 1
@@ -480,6 +492,7 @@ jobs:
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
     steps:
@@ -551,17 +564,17 @@ jobs:
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.10
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: v0.8.7
     steps: &NOMAD_INTEGRATION_TEST_STEPS
       - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
-          at: /go/bin
+          at: /home/circleci/go/bin
 
       # make dev build of nomad
       - run:
@@ -591,56 +604,12 @@ jobs:
   # run integration tests on nomad/main
   nomad-integration-main:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.17 # TODO: replace with cimg/go (requires steps update)
+      - image: docker.mirror.hashicorp.services/cimg/go:1.18
     environment:
       <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
       NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
-
-  build-website-docker-image:
-    docker:
-      - image: docker.mirror.hashicorp.services/circleci/buildpack-deps
-    shell: /usr/bin/env bash -euo pipefail -c
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build Docker Image if Necessary
-          command: |
-            # Ignore job if running an enterprise build
-            IMAGE_TAG=$(cat website/Dockerfile website/package-lock.json | sha256sum | awk '{print $1;}')
-            echo "Using $IMAGE_TAG"
-            if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/consul.git" ]; then
-              echo "Not Consul OSS Repo, not building website docker image"
-            elif curl https://hub.docker.com/v2/repositories/hashicorp/consul-website/tags/$IMAGE_TAG -fsL > /dev/null; then
-                echo "Dependencies have not changed, not building a new website docker image."
-            else
-                cd website/
-                docker build -t hashicorp/consul-website:$IMAGE_TAG .
-                docker tag hashicorp/consul-website:$IMAGE_TAG hashicorp/consul-website:latest
-                docker login -u $WEBSITE_DOCKER_USER -p $WEBSITE_DOCKER_PASS
-                docker push hashicorp/consul-website
-            fi
-      - run: *notify-slack-failure
-
-  algolia-index:
-    docker:
-      - image: docker.mirror.hashicorp.services/node:14
-    steps:
-      - checkout
-      - run:
-          name: Push content to Algolia Index
-          command: |
-            if  [ "$CIRCLE_REPOSITORY_URL" != "git@github.com:hashicorp/consul.git" ]; then
-              echo "Not Consul OSS Repo, not indexing Algolia"
-              exit 0
-            fi
-            cd website/
-            npm install -g npm@latest
-            npm install
-            node scripts/index_search_content.js
-      - run: *notify-slack-failure
 
   # build frontend yarn cache
   frontend-cache:
@@ -710,23 +679,6 @@ jobs:
             - packages/consul-ui/dist
       - run: *notify-slack-failure
 
-  # build static-assets file
-  build-static-assets:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ./pkg
-      - run: mv pkg/packages/consul-ui/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
-      - run: make tools
-      - run: make static-assets
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./agent/uiserver/bindata_assetfs.go
-      - run: *notify-slack-failure
-
   # commits static assets to git
   publish-static-assets:
     docker:
@@ -739,7 +691,12 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
+          name: move compiled ui files to agent/uiserver
+          command: |
+            rm -rf agent/uiserver/dist
+            mv packages/consul-ui/dist agent/uiserver
+      - run:
+          name: commit agent/uiserver/dist/ if there are UI changes
           command: |
             # check if there are any changes in ui/
             # if there are, we commit the ui static asset file
@@ -747,14 +704,14 @@ jobs:
             if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "github-team-consul-core@hashicorp.com"
               git config --local user.name "hc-github-team-consul-core"
-            
+
               # -B resets the CI branch to main which may diverge history
               # but we will force push anyways.
               git checkout -B ci/main-assetfs-build main
-            
+
               short_sha=$(git rev-parse --short HEAD)
-              git add agent/uiserver/bindata_assetfs.go
-              git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
+              git add agent/uiserver/dist/
+              git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
               git push --force origin ci/main-assetfs-build
             else
               echo "no UI changes so no static assets to publish"
@@ -849,20 +806,82 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_17_4: &ENVOY_TESTS
-    docker:
-      # We only really need bash and docker-compose which is installed on all
-      # Circle images but pick Go since we have to pick one of them.
-      - image: *GOLANG_IMAGE
-    parallelism: 2
+  compatibility-integration-test:
+    machine:
+      image: *UBUNTU_CI_IMAGE
+      docker_layer_caching: true
+    parallelism: 1
+    steps:
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      # Build the consul-dev image from the already built binary
+      - run:
+          command: |
+            sudo rm -rf /usr/local/go
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+          environment:
+            <<: *ENVIRONMENT
+      - run: *install-gotestsum
+      - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - run:
+          name: Compatibility Integration Tests
+          command: |
+            mkdir -p /tmp/test-results/
+            cd ./test/integration/consul-container
+            docker run --rm consul:local consul version
+            gotestsum \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              --packages="./..." \
+              -- \
+              -timeout=30m \
+              ./... \
+              --target-version local \
+              --latest-version latest
+            ls -lrt
+          environment:
+            # this is needed because of incompatibility between RYUK container and circleci
+            GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+            GOTESTSUM_FORMAT: standard-verbose
+            COMPOSE_INTERACTIVE_NO_CLI: 1
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/consul-container/upgrade/workdir/logs
+          destination: container-logs
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
+
+  envoy-integration-test: &ENVOY_TESTS
+    machine:
+      image: *UBUNTU_CI_IMAGE
+    parallelism: 4
+    resource_class: medium
+    parameters:
+      envoy-version:
+        type: enum
+        enum: *supported_envoy_versions
+        default: *default_envoy_version
+      xds-target:
+        type: enum
+        enum: ["server", "client"]
+        default: "server"
     environment:
-      ENVOY_VERSION: "1.17.4"
+      ENVOY_VERSION: << parameters.envoy-version >>
+      XDS_TARGET: << parameters.xds-target >>
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker
+      - run: *install-gotestsum
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
@@ -889,21 +908,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_18_6:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.18.6"
-
-  envoy-integration-test-1_19_3:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.19.3"
-
-  envoy-integration-test-1_20_2:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.20.2"
-
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
     docker:
@@ -926,34 +930,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *notify-slack-failure
-
-  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
-  cherry-picker:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress git bash curl ncurses jq openssh-client
-      - checkout
-      - add_ssh_keys: # needs a key to push cherry-picked commits back to github
-          fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
-      - run: .circleci/scripts/cherry-picker.sh
-      - run: *notify-slack-failure
-
-  trigger-oss-merge:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress curl jq
-      - run:
-          name: trigger oss merge
-          command: |
-            curl -s -X POST \
-                    --header "Circle-Token: ${CIRCLECI_API_TOKEN}" \
-                    --header "Content-Type: application/json" \
-                    -d '{"build_parameters": {"CIRCLE_JOB": "oss-merge"}}' \
-                    "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
       - run: *notify-slack-failure
 
   # Run load tests against a commit
@@ -988,6 +964,7 @@ jobs:
               LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
             fi
             echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
+            git checkout ${LOCAL_COMMIT_SHA}
 
             short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
             echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
@@ -1007,7 +984,8 @@ jobs:
           working_directory: .circleci/terraform/load-test
           name: terraform init
           command: |
-            echo "commit is ${LOCAL_COMMIT_SHA}"
+            short_ref=$(git rev-parse --short HEAD)
+            echo "Testing commit id: $short_ref"
             terraform init \
             -backend-config="bucket=${BUCKET}" \
             -backend-config="key=${LOCAL_COMMIT_SHA}" \
@@ -1023,7 +1001,7 @@ jobs:
           when: always
           name: terraform destroy
           command: |
-            terraform destroy -auto-approve
+            for i in $(seq 1 5); do terraform destroy -auto-approve && s=0 && break || s=$? && sleep 20; done; (exit $s)
       - run: *notify-slack-failure
 
   # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
@@ -1039,7 +1017,7 @@ workflows:
   # verify-ci is a no-op workflow that must run on every PR. It is used in a
   # branch protection rule to detect when CI workflows are not running.
   verify-ci:
-    jobs: [ noop ]
+    jobs: [noop]
 
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
@@ -1052,6 +1030,7 @@ workflows:
                 - /^docs\/.*/
                 - /^ui\/.*/
       - check-generated-protobuf: *filter-ignore-non-go-branches
+      - lint-enums: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
       - lint:
@@ -1062,29 +1041,30 @@ workflows:
       - go-test-arm64: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
-          requires: [ dev-build ]
-      - go-test-lib:
-          name: "go-test-api go1.16"
-          path: api
-          go-version: "1.16"
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-api go1.17"
           path: api
           go-version: "1.17"
-          requires: [ dev-build ]
+          requires: [dev-build]
       - go-test-lib:
-          name: "go-test-sdk go1.16"
-          path: sdk
-          go-version: "1.16"
-          <<: *filter-ignore-non-go-branches
+          name: "go-test-api go1.18"
+          path: api
+          go-version: "1.18"
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.17"
           path: sdk
           go-version: "1.17"
           <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.18"
+          path: sdk
+          go-version: "1.18"
+          <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
+      - noop
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1103,20 +1083,12 @@ workflows:
       - ember-build-prod:
           requires:
             - frontend-cache
-      - build-static-assets:
+      - publish-static-assets:
           requires:
             - ember-build-prod
-      - publish-static-assets:
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
-          requires:
-            - build-static-assets
       - dev-build:
           requires:
-            - build-static-assets
+            - ember-build-prod
       - dev-upload-s3:
           requires:
             - dev-build
@@ -1124,6 +1096,7 @@ workflows:
           requires:
             - dev-build
           context: consul-ci
+      - noop
   test-integrations:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1145,33 +1118,17 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_17_4:
+      - envoy-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_6:
+          matrix:
+            parameters:
+              envoy-version: *supported_envoy_versions
+              xds-target: ["server", "client"]
+      - compatibility-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_3:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_20_2:
-          requires:
-            - dev-build
-
-  website:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - build-website-docker-image:
-          context: website-docker-image
-          filters:
-            branches:
-              only:
-                - main
-      - algolia-index:
-          filters:
-            branches:
-              only:
-                - stable-website
+      - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1204,23 +1161,8 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
-  workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - trigger-oss-merge:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
-      - cherry-picker:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
+      - noop
+
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:

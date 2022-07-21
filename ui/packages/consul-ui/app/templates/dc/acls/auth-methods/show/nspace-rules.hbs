@@ -1,5 +1,5 @@
 <Route
-  @routeName={{routeName}}
+  @name={{routeName}}
 as |route|>
 {{#let
   route.model.item
@@ -13,12 +13,14 @@ as |item|}}
   {{else}}
     <EmptyState>
       <BlockSlot @name="header">
-        <h2>No namespace rules</h2>
+        <h2>
+          {{compute (fn route.t 'empty.header')}}
+        </h2>
       </BlockSlot>
       <BlockSlot @name="body">
-        <p>
-          A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.
-        </p>
+        {{compute (fn route.t 'empty.body' (hash
+          htmlSafe=true
+        ))}}
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">

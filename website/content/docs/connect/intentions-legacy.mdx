@@ -25,7 +25,7 @@ is allowed by testing the intentions. If authorize returns false the
 connection must be terminated.
 
 The default intention behavior is defined by the default [ACL
-policy](/docs/agent/options#acl_default_policy). If the default ACL policy is
+policy](/docs/agent/config/config-files#acl_default_policy). If the default ACL policy is
 "allow all", then all Connect connections are allowed by default. If the
 default ACL policy is "deny all", then all Connect connections are denied by
 default.
@@ -107,7 +107,7 @@ top to bottom, with larger numbers being evaluated first.
 | Exact            | `*`         | `*`                   | `*`              | 2          |
 | `*`              | `*`         | `*`                   | `*`              | 1          |
 
-The precedence value can be read from the [API](/api/connect/intentions)
+The precedence value can be read from the [API](/api-docs/connect/intentions)
 after an intention is created.
 Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.

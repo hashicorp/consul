@@ -28,7 +28,7 @@ the context of the server process. If you're using Systemd to manage your Consul
 processes, then adding `Environment=TMPDIR=/path/to/dir` to your Consul unit file will work.
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -73,5 +73,5 @@ This is useful for situations where a cluster is in a degraded state and no
 leader is available. To target a specific server for a snapshot, you can run
 the `consul snapshot save` command on that specific server.
 
-Please see the [HTTP API](/api/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.

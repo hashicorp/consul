@@ -73,8 +73,8 @@ type ServiceRouterConfigEntry struct {
 	// the default service.
 	Routes []ServiceRoute
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -298,7 +298,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	return out
 }
 
-func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceRouterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -485,8 +485,8 @@ type ServiceSplitterConfigEntry struct {
 	// to the FIRST split.
 	Splits []ServiceSplit
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -610,7 +610,7 @@ func (e *ServiceSplitterConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -815,8 +815,8 @@ type ServiceResolverConfigEntry struct {
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -948,7 +948,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
 		}
-		if PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
+		if acl.PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
 		}
 
@@ -1085,7 +1085,7 @@ func (e *ServiceResolverConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

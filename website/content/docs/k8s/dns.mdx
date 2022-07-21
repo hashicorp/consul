@@ -26,11 +26,11 @@ to turn on [Consul to Kubernetes Service Sync](/docs/k8s/service-sync#consul-to-
 To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
 DNS service created by the [Helm chart](/docs/k8s/helm).
 
-The default name of the Consul DNS service will be `consul-consul-dns`. Use
+The default name of the Consul DNS service will be `consul-dns`. Use
 that name to get the `ClusterIP`:
 
 ```shell-session
-$ kubectl get svc consul-consul-dns --output jsonpath='{.spec.clusterIP}'
+$ kubectl get svc consul-dns --output jsonpath='{.spec.clusterIP}'
 10.35.240.78%
 ```
 

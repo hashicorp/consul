@@ -145,6 +145,10 @@ func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string, entCt
 	require.Equal(t, Allow, authz.ServiceWrite(prefix, entCtx))
 }
 
+func checkAllowServiceWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ServiceWriteAny(entCtx))
+}
+
 func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.SessionRead(prefix, entCtx))
 }
@@ -265,6 +269,10 @@ func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx
 	require.Equal(t, Deny, authz.ServiceWrite(prefix, entCtx))
 }
 
+func checkDenyServiceWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ServiceWriteAny(entCtx))
+}
+
 func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.SessionRead(prefix, entCtx))
 }
@@ -383,6 +391,10 @@ func checkDefaultServiceReadAll(t *testing.T, authz Authorizer, _ string, entCtx
 
 func checkDefaultServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ServiceWrite(prefix, entCtx))
+}
+
+func checkDefaultServiceWriteAny(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ServiceWriteAny(entCtx))
 }
 
 func checkDefaultSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {

@@ -1,15 +1,12 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
@@ -19,12 +16,14 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	grpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
@@ -40,17 +39,12 @@ import (
 type BaseDeps struct {
 	consul.Deps // TODO: un-embed
 
-	RuntimeConfig  *config.RuntimeConfig
-	MetricsHandler MetricsHandler
-	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
-	Cache          *cache.Cache
-	ViewStore      *submatview.Store
-}
-
-// MetricsHandler provides an http.Handler for displaying metrics.
-type MetricsHandler interface {
-	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
-	Stream(ctx context.Context, encoder metrics.Encoder)
+	RuntimeConfig *config.RuntimeConfig
+	MetricsConfig *lib.MetricsConfig
+	AutoConfig    *autoconf.AutoConfig // TODO: use an interface
+	Cache         *cache.Cache
+	ViewStore     *submatview.Store
+	WatchedFiles  []string
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -61,7 +55,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-
+	d.WatchedFiles = result.WatchedFiles
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
@@ -88,7 +82,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
+
+	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
@@ -150,6 +145,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
+	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
+	d.GetNetRPCInterceptorFunc = middleware.GetNetRPCInterceptor
+
+	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
+
 	return d, nil
 }
 
@@ -164,11 +164,14 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 	}
 
 	pool := &pool.ConnPool{
-		Server:          config.ServerMode,
-		SrcAddr:         rpcSrcAddr,
-		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-		TLSConfigurator: tls,
-		Datacenter:      config.Datacenter,
+		Server:           config.ServerMode,
+		SrcAddr:          rpcSrcAddr,
+		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		TLSConfigurator:  tls,
+		Datacenter:       config.Datacenter,
+		Timeout:          config.RPCHoldTimeout,
+		MaxQueryTime:     config.MaxQueryTime,
+		DefaultQueryTime: config.DefaultQueryTime,
 	}
 	if config.ServerMode {
 		pool.MaxTime = 2 * time.Minute
@@ -202,6 +205,13 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		},
 	}
 
+	serverGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"server", "isLeader"},
+			Help: "Tracks if the server is a leader.",
+		},
+	}
+
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -214,6 +224,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		CertExpirationGauges,
 		Gauges,
 		raftGauges,
+		serverGauges,
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc

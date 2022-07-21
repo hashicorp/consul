@@ -3,6 +3,8 @@ package structs
 import (
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -29,7 +31,9 @@ type CheckDefinition struct {
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
+	DisableRedirects               bool
 	TCP                            string
+	UDP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
 	Shell                          string
@@ -47,7 +51,7 @@ type CheckDefinition struct {
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
@@ -71,6 +75,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
 		H2PingUseTLSSnake                   bool        `json:"h2ping_use_tls"`
+		DisableRedirectsSnake               bool        `json:"disable_redirects"`
 
 		*Alias
 	}{
@@ -115,6 +120,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
+	}
+	if aux.DisableRedirectsSnake {
+		t.DisableRedirects = aux.DisableRedirectsSnake
 	}
 
 	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
@@ -205,8 +213,10 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Header:                         c.Header,
 		Method:                         c.Method,
 		Body:                           c.Body,
+		DisableRedirects:               c.DisableRedirects,
 		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
+		UDP:                            c.UDP,
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,
 		Shell:                          c.Shell,

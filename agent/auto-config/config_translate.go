@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/types"
 )
 
 // translateAgentConfig is meant to take in a proto/pbconfig.Config type
@@ -83,9 +84,19 @@ func translateConfig(c *pbconfig.Config) config.Config {
 	if t := c.TLS; t != nil {
 		result.TLS.Defaults = config.TLSProtocolConfig{
 			VerifyOutgoing:  &t.VerifyOutgoing,
-			TLSMinVersion:   stringPtrOrNil(t.MinVersion),
 			TLSCipherSuites: stringPtrOrNil(t.CipherSuites),
 		}
+
+		// NOTE: This inner check for deprecated values should eventually be
+		// removed, and possibly replaced with a versioning scheme for autoconfig
+		// or a proper integration with the deprecated config handling in
+		// agent/config/deprecated.go
+		if v, ok := types.DeprecatedConsulAgentTLSVersions[t.MinVersion]; ok {
+			result.TLS.Defaults.TLSMinVersion = stringPtrOrNil(v.String())
+		} else {
+			result.TLS.Defaults.TLSMinVersion = stringPtrOrNil(t.MinVersion)
+		}
+
 		result.TLS.InternalRPC.VerifyServerHostname = &t.VerifyServerHostname
 	}
 

@@ -1,15 +1,9 @@
 @keyframes icon-logo-oracle-monochrome {
-  50% {
-
-    background-color: var(--icon-color, var(--color-logo-oracle-monochrome-500, currentColor));
-    -webkit-mask-image: var(--icon-oracle-color-24);
-    mask-image: var(--icon-oracle-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-logo-oracle-monochrome-500, currentColor));
     -webkit-mask-image: var(--icon-oracle-color-16);
     mask-image: var(--icon-oracle-color-16);
+    background-color: var(--icon-color, var(--color-logo-oracle-monochrome-500, currentColor));
+
   }
 }

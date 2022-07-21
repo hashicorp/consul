@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -25,7 +24,7 @@ var (
 	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
 	// RPC mechanism it's hard to know how to make that much better though.
 	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
-	ErrRateLimited          = errors.New("Rate limit reached, try again later")
+	ErrRateLimited          = errors.New("Rate limit reached, try again later") // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
 	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
 	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
 )
@@ -145,54 +144,17 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	// Parse the CSR
 	csr, err := connect.ParseCSR(args.CSR)
 	if err != nil {
 		return err
 	}
 
-	// Parse the SPIFFE ID
-	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
-	if err != nil {
-		return err
-	}
-
-	// Verify that the ACL token provided has permission to act as this service
 	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	var authzContext acl.AuthorizerContext
-	var entMeta structs.EnterpriseMeta
-
-	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
-	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
-	if !isService && !isAgent {
-		return fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
-	}
-
-	if isService {
-		entMeta.Merge(serviceID.GetEnterpriseMeta())
-		entMeta.FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceID.Service, &authzContext); err != nil {
-			return err
-		}
-
-		// Verify that the DC in the service URI matches us. We might relax this
-		// requirement later but being restrictive for now is safer.
-		if serviceID.Datacenter != s.srv.config.Datacenter {
-			return fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
-				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
-		}
-	} else if isAgent {
-		agentID.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(agentID.Agent, &authzContext); err != nil {
-			return err
-		}
-	}
-
-	cert, err := s.srv.caManager.SignCertificate(csr, spiffeID)
+	cert, err := s.srv.caManager.AuthorizeAndSignCertificate(csr, authz)
 	if err != nil {
 		return err
 	}

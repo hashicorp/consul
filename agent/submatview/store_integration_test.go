@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
+	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
@@ -37,16 +37,14 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 	var maxIndex uint64 = 200
 	count := &counter{latest: 3}
 	producers := map[string]*eventProducer{
-		"srv1": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv1", count, maxIndex),
-		"srv2": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv2", count, maxIndex),
-		"srv3": newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv3", count, maxIndex),
+		state.EventSubjectService{Key: "srv1"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv1", count, maxIndex),
+		state.EventSubjectService{Key: "srv2"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv2", count, maxIndex),
+		state.EventSubjectService{Key: "srv3"}.String(): newEventProducer(pbsubscribe.Topic_ServiceHealth, "srv3", count, maxIndex),
 	}
 
 	sh := snapshotHandler{producers: producers}
-	handlers := map[stream.Topic]stream.SnapshotFunc{
-		pbsubscribe.Topic_ServiceHealth: sh.Snapshot,
-	}
-	pub := stream.NewEventPublisher(handlers, 10*time.Millisecond)
+	pub := stream.NewEventPublisher(10 * time.Millisecond)
+	pub.RegisterHandler(pbsubscribe.Topic_ServiceHealth, sh.Snapshot, false)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -88,7 +86,7 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 		t.Run(fmt.Sprintf("consumer %d", i), func(t *testing.T) {
 			require.True(t, len(consumer.states) > 2, "expected more than %d events", len(consumer.states))
 
-			expected := producers[consumer.srvName].nodesByIndex
+			expected := producers[state.EventSubjectService{Key: consumer.srvName}.String()].nodesByIndex
 			for idx, nodes := range consumer.states {
 				assertDeepEqual(t, idx, expected[idx], nodes)
 			}
@@ -142,7 +140,7 @@ type backend struct {
 	pub *stream.EventPublisher
 }
 
-func (b backend) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
+func (b backend) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (acl.Authorizer, error) {
 	return acl.AllowAll(), nil
 }
 
@@ -255,7 +253,6 @@ func (e *eventProducer) Produce(ctx context.Context, pub *stream.EventPublisher)
 					},
 				},
 			}
-
 		}
 
 		e.nodesLock.Lock()
@@ -323,7 +320,12 @@ func (c *consumer) Consume(ctx context.Context, maxIndex uint64) error {
 
 	group, cctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		return c.healthClient.Notify(cctx, req, "", updateCh)
+		return c.healthClient.Notify(cctx, req, "", func(ctx context.Context, event cache.UpdateEvent) {
+			select {
+			case updateCh <- event:
+			case <-ctx.Done():
+			}
+		})
 	})
 	group.Go(func() error {
 		var idx uint64
@@ -348,7 +350,7 @@ type snapshotHandler struct {
 }
 
 func (s *snapshotHandler) Snapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
-	producer := s.producers[req.Key]
+	producer := s.producers[req.Subject.String()]
 
 	producer.nodesLock.Lock()
 	defer producer.nodesLock.Unlock()

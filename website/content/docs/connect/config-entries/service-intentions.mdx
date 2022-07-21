@@ -446,27 +446,37 @@ spec:
       },
     },
     {
-      name: 'Namespace',
-      enterprise: true,
-      type: 'string',
+      name: 'Peer',
+      type: 'string: ""',
       description: {
         hcl:
-          "The namespace of the source service. Defaults to the namespace of the destination service (i.e. the config entry's namespace)",
+          "Specifies the [peer](/docs/connect/cluster-peering/index.mdx) of the source service. `Peer` is mutually exclusive with `Partition`.",
         yaml:
-          'The namespace of the source service. Defaults to the namespace of the destination service (i.e. `spec.destination.namespace`)',
+          "Specifies the [peer](/docs/connect/cluster-peering/index.mdx) of the source service. `peer` is mutually exclusive with `partition`.",
+      },
+    },
+    {
+      name: 'Namespace',
+      enterprise: true,
+      type: 'string: ""',
+      description: {
+        hcl:
+          "The namespace of the source service. If `Peer` is empty, `Namespace` defaults to the namespace of the destination service (i.e. the config entry's namespace).",
+        yaml:
+          'The namespace of the source service. If `peer` is empty, `namespace` defaults to the namespace of the destination service (i.e. `spec.destination.namespace`).',
       },
     },
     {
       name: 'Partition',
       enterprise: true,
-      type: 'string',
+      type: 'string: ""',
       description: {
         hcl:
-          "Specifies the admin partition of the source service. Defaults to the destination service's partition, i.e., the configuration entry's partition",
+          "Specifies the admin partition of the source service. If `Peer` is empty, `Partition` defaults to the destination service's partition (i.e. the configuration entry's partition). `Partition` is mutually exclusive with `Peer`.",
         yaml:
-          "Specifies the admin partition of the source service. Defaults to the destination service's partition, i.e. `spec.destination.partition`",
+          "Specifies the admin partition of the source service. If `peer` is empty, `partition` defaults to the destination service's partition (i.e. `spec.destination.partition`). `partition` is mutually exclusive with `peer`.",
       },
-    },    
+    },
     {
       name: 'Action',
       type: 'string: ""',
@@ -488,7 +498,7 @@ spec:
                       first permission to match in the list is terminal and stops further
                       evaluation. As with L4 intentions, traffic that fails to match any of the
                       provided permissions in this intention will be subject to the default
-                      intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
+                      intention behavior is defined by the default [ACL policy](/docs/agent/config/config-files#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`Action\` field.<br><br>
                       Setting \`Permissions\` is not valid if a wildcard is used for the \`Name\` or \`Namespace\` because they can only be
@@ -498,10 +508,10 @@ spec:
                       first permission to match in the list is terminal and stops further
                       evaluation. As with L4 intentions, traffic that fails to match any of the
                       provided permissions in this intention will be subject to the default
-                      intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
+                      intention behavior is defined by the default [ACL policy](/docs/agent/config/config-files#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`action\` field.<br><br>
-                      Setting \`permissions\` is not valid if a wildcard is used for the \`spec.destination.name\` or \`spec.destination.namespace\` 
+                      Setting \`permissions\` is not valid if a wildcard is used for the \`spec.destination.name\` or \`spec.destination.namespace\`
                       because they can only be applied to services with a compatible protocol.`,
       },
     },

@@ -48,7 +48,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 			// TODO(freddy): Why can the protocol of the listener be overridden here?
-			useRDS := cfg.Protocol != "tcp" && !chain.IsDefault()
+			useRDS := cfg.Protocol != "tcp" && !chain.Default
 
 			var clusterName string
 			if !useRDS {
@@ -180,7 +180,7 @@ func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnap
 		// Set up listener TLS from SDS
 		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
 	} else if connectTLSEnabled {
-		tlsContext = makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
+		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
 	}
 
 	return tlsContext, nil
@@ -214,23 +214,8 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 		}
 	}
 
-	var TLSVersionsWithConfigurableCipherSuites = map[types.TLSVersion]struct{}{
-		// Remove these two if Envoy ever sets TLS 1.3 as default minimum
-		types.TLSVersionUnspecified: {},
-		types.TLSVersionAuto:        {},
-
-		types.TLSv1_0: {},
-		types.TLSv1_1: {},
-		types.TLSv1_2: {},
-	}
-
-	// Validate. Configuring cipher suites is only applicable to connections negotiated
-	// via TLS 1.2 or earlier. Other cases shouldn't be possible as we validate them at
-	// input but be resilient to bugs later.
-	if len(mergedCfg.CipherSuites) != 0 {
-		if _, ok := TLSVersionsWithConfigurableCipherSuites[mergedCfg.TLSMinVersion]; !ok {
-			return nil, fmt.Errorf("configuring CipherSuites is only applicable to connections negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s in listener or gateway config", mergedCfg.TLSMinVersion)
-		}
+	if err := validateListenerTLSConfig(mergedCfg.TLSMinVersion, mergedCfg.CipherSuites); err != nil {
+		return nil, err
 	}
 
 	return &mergedCfg, nil
@@ -365,32 +350,8 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	return chains, nil
 }
 
-var envoyTLSVersions = map[types.TLSVersion]envoy_tls_v3.TlsParameters_TlsProtocol{
-	types.TLSVersionAuto: envoy_tls_v3.TlsParameters_TLS_AUTO,
-	types.TLSv1_0:        envoy_tls_v3.TlsParameters_TLSv1_0,
-	types.TLSv1_1:        envoy_tls_v3.TlsParameters_TLSv1_1,
-	types.TLSv1_2:        envoy_tls_v3.TlsParameters_TLSv1_2,
-	types.TLSv1_3:        envoy_tls_v3.TlsParameters_TLSv1_3,
-}
-
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
-	tlsParams := envoy_tls_v3.TlsParameters{}
-
-	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-		if minVersion, ok := envoyTLSVersions[tlsCfg.TLSMinVersion]; ok {
-			tlsParams.TlsMinimumProtocolVersion = minVersion
-		}
-	}
-	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
-		if maxVersion, ok := envoyTLSVersions[tlsCfg.TLSMaxVersion]; ok {
-			tlsParams.TlsMaximumProtocolVersion = maxVersion
-		}
-	}
-	if len(tlsCfg.CipherSuites) != 0 {
-		tlsParams.CipherSuites = types.MarshalEnvoyTLSCipherSuiteStrings(tlsCfg.CipherSuites)
-	}
-
-	return &tlsParams
+	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {

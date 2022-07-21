@@ -1,0 +1,9 @@
+```release-note:improvement
+autopilot: Autopilot state is now tracked on Raft followers in addition to the leader. 
+Stale queries may be used to query for the non-leaders state.
+```
+
+```release-note:improvement
+autopilot: The `autopilot.healthy` and `autopilot.failure_tolerance` metrics are now 
+regularly emitted by all servers.
+```

@@ -1,6 +1,7 @@
 package configentry
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -11,7 +12,7 @@ import (
 type KindName struct {
 	Kind string
 	Name string
-	structs.EnterpriseMeta
+	acl.EnterpriseMeta
 }
 
 // NewKindName returns a new KindName. The EnterpriseMeta values will be
@@ -19,7 +20,7 @@ type KindName struct {
 //
 // Any caller which modifies the EnterpriseMeta field must call Normalize
 // before persisting or using the value as a map key.
-func NewKindName(kind, name string, entMeta *structs.EnterpriseMeta) KindName {
+func NewKindName(kind, name string, entMeta *acl.EnterpriseMeta) KindName {
 	ret := KindName{
 		Kind: kind,
 		Name: name,

@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
@@ -105,7 +106,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
-		s.CheckFetcher,
 		s.CfgFetcher,
 		true,
 	)
@@ -215,9 +215,8 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			if s.serverlessPluginEnabled {
 				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-
 				if err != nil {
-					generator.Logger.Warn("failed to patch xDS resources in the serverless plugin", "err", err)
+					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
 				}
 			}
 
@@ -243,11 +242,21 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				// is received but lets not panic about it.
 				continue
 			}
+
+			nodeName := node.GetMetadata().GetFields()["node_name"].GetStringValue()
+			if nodeName == "" {
+				nodeName = s.NodeName
+			}
+
 			// Start authentication process, we need the proxyID
 			proxyID = structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
 
 			// Start watching config for that proxy
-			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
+			var err error
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
 			// the end of the current loop iteration. We have to do it in the loop
@@ -471,16 +480,6 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 		t.wildcard = len(req.ResourceNamesSubscribe) == 0
 		t.registered = true
 		registeredThisTime = true
-
-		if sf.ForceLDSandCDSToAlwaysUseWildcardsOnReconnect {
-			switch t.typeURL {
-			case xdscommon.ListenerType, xdscommon.ClusterType:
-				if !t.wildcard {
-					t.wildcard = true
-					logger.Trace("fixing Envoy bug fixed in 1.19.0 by inferring wildcard mode for type")
-				}
-			}
-		}
 	}
 
 	/*

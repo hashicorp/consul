@@ -1,0 +1,3 @@
+```release-note:bug
+connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault.
+```

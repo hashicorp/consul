@@ -13,7 +13,7 @@
   state=state
 )
 as |el|}}
-  {{#if (contains this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
+  {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
     <div
       data-property={{this.prop}}
       class="type-{{this.type}}{{if (state-matches state 'error') ' has-error'}}"

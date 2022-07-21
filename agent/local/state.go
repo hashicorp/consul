@@ -9,13 +9,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -152,7 +154,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 }
 
 // State is used to represent the node's services,
@@ -179,7 +181,7 @@ type State struct {
 	// Config is the agent config
 	config Config
 
-	agentEnterpriseMeta structs.EnterpriseMeta
+	agentEnterpriseMeta acl.EnterpriseMeta
 
 	// nodeInfoInSync tracks whether the server has our correct top-level
 	// node information in sync
@@ -409,11 +411,11 @@ func (l *State) AllServices() map[structs.ServiceID]*structs.NodeService {
 // and are being kept in sync with the server
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+func (l *State) Services(entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	return l.listServices(true, entMeta)
 }
 
-func (l *State) listServices(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+func (l *State) listServices(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -485,7 +487,7 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 // ServiceStates returns a shallow copy of all service state records.
 // The service record still points to the original service record and
 // must not be modified.
-func (l *State) ServiceStates(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*ServiceState {
+func (l *State) ServiceStates(entMeta *acl.EnterpriseMeta) map[structs.ServiceID]*ServiceState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -551,7 +553,7 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 
 	// hard-set the node name and partition
 	check.Node = l.config.NodeName
-	check.EnterpriseMeta = structs.NewEnterpriseMetaWithPartition(
+	check.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(
 		l.agentEnterpriseMeta.PartitionOrEmpty(),
 		check.NamespaceOrEmpty(),
 	)
@@ -750,11 +752,11 @@ func (l *State) AllChecks() map[structs.CheckID]*structs.HealthCheck {
 // agent is aware of and are being kept in sync with the server
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) Checks(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+func (l *State) Checks(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	return l.listChecks(true, entMeta)
 }
 
-func (l *State) listChecks(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+func (l *State) listChecks(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	m := make(map[structs.CheckID]*structs.HealthCheck)
 	for id, c := range l.listCheckStates(filtered, entMeta) {
 		m[id] = c.Check
@@ -844,11 +846,11 @@ func (l *State) AllCheckStates() map[structs.CheckID]*CheckState {
 // The defer timers still point to the original values and must not be modified.
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) CheckStates(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	return l.listCheckStates(true, entMeta)
 }
 
-func (l *State) listCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) listCheckStates(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -881,11 +883,11 @@ func (l *State) AllCriticalCheckStates() map[structs.CheckID]*CheckState {
 // The defer timers still point to the original values and must not be modified.
 //
 // Results are scoped to the provided namespace and partition.
-func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) CriticalCheckStates(entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	return l.listCriticalCheckStates(true, entMeta)
 }
 
-func (l *State) listCriticalCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+func (l *State) listCriticalCheckStates(filtered bool, entMeta *acl.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -1104,7 +1106,7 @@ func (l *State) updateSyncState() error {
 		// copy so that we don't retain a pointer to any actual state
 		// store info for in-memory RPCs.
 		if nextService.EnableTagOverride {
-			nextService.Tags = structs.CloneStringSlice(rs.Tags)
+			nextService.Tags = stringslice.CloneStringSlice(rs.Tags)
 			changed = true
 		}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -159,7 +160,7 @@ func parseQuery(query *structs.PreparedQuery) error {
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
 	// which if we allowed in would be super hard to debug and understand.
-	if query.Token == redactedToken {
+	if query.Token == aclfilter.RedactedToken {
 		return fmt.Errorf("Bad Token '%s', it looks like a query definition with a redacted token was submitted", query.Token)
 	}
 
@@ -404,7 +405,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		qs.Node = args.Agent.Node
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
-			_, nodes, err := state.Nodes(nil, structs.NodeEnterpriseMetaInDefaultPartition())
+			_, nodes, err := state.Nodes(nil, structs.NodeEnterpriseMetaInDefaultPartition(), structs.TODOPeerKeyword)
 			if err != nil {
 				return err
 			}
@@ -534,7 +535,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta, query.Service.PeerName)
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -189,15 +191,15 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	// After some time, both root and leaves should be different but both should
 	// still be correct.
-	oldRootSubjects := bytes.Join(tlsCfg.RootCAs.Subjects(), []byte(", "))
+	oldRootSubjects := getSubjects(tlsCfg.RootCAs)
 	oldLeafSerial := cert.SerialNumber
 	oldLeafKeyID := cert.SubjectKeyId
 	retry.Run(t, func(r *retry.R) {
 		updatedCfg := service.ServerTLSConfig()
 
 		// Wait until roots are different
-		rootSubjects := bytes.Join(updatedCfg.RootCAs.Subjects(), []byte(", "))
-		if bytes.Equal(oldRootSubjects, rootSubjects) {
+		rootSubjects := getSubjects(updatedCfg.RootCAs)
+		if oldRootSubjects == rootSubjects {
 			r.Fatalf("root certificates should have changed, got %s",
 				rootSubjects)
 		}
@@ -287,4 +289,16 @@ func TestService_HasDefaultHTTPResolverFromAddr(t *testing.T) {
 	got, err := fn("foo.service.consul")
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
+}
+
+func getSubjects(cp *x509.CertPool) string {
+	subjectsIter := reflect.ValueOf(cp).Elem().FieldByName("byName").MapRange()
+	subjects := []string{}
+	for subjectsIter.Next() {
+		k := subjectsIter.Key()
+		subjects = append(subjects, k.String())
+	}
+	sort.Strings(subjects)
+	subjectList := strings.Join(subjects, ",")
+	return subjectList
 }

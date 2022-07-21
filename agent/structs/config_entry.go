@@ -1,15 +1,18 @@
 package structs
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -60,12 +63,12 @@ type ConfigEntry interface {
 
 	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
-	// TODO(acl-error-enhancements) This should be ACLResolveResult or similar but we have to wait until we move things to the acl package
+	// TODO(acl-error-enhancements) This should be resolver.Result or similar but we have to wait until we move things to the acl package
 	CanRead(acl.Authorizer) error
 	CanWrite(acl.Authorizer) error
 
 	GetMeta() map[string]string
-	GetEnterpriseMeta() *EnterpriseMeta
+	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
 }
 
@@ -82,21 +85,31 @@ type UpdatableConfigEntry interface {
 	ConfigEntry
 }
 
+// WarningConfigEntry is an optional interface implemented by a ConfigEntry
+// if it wants to be able to emit warnings when it is being upserted.
+type WarningConfigEntry interface {
+	Warnings() []string
+
+	ConfigEntry
+}
+
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Protocol         string
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Kind                  string
+	Name                  string
+	Protocol              string
+	Mode                  ProxyMode              `json:",omitempty"`
+	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                ExposeConfig           `json:",omitempty"`
+	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Destination           *DestinationConfig     `json:",omitempty"`
+	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -166,6 +179,12 @@ func (e *ServiceConfigEntry) Validate() error {
 
 	validationErr := validateConfigEntryMeta(e.Meta)
 
+	// External endpoints are invalid with an existing service's upstream configuration
+	if e.UpstreamConfig != nil && e.Destination != nil {
+		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Destination are mutually exclusive for service defaults"))
+		return validationErr
+	}
+
 	if e.UpstreamConfig != nil {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.ValidateWithName()
@@ -181,7 +200,36 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
+	if e.Destination != nil {
+		if err := validateEndpointAddress(e.Destination.Address); err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Destination address is invalid %w", err))
+		}
+
+		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Destination.Port))
+		}
+	}
+
 	return validationErr
+}
+
+func validateEndpointAddress(address string) error {
+	var valid bool
+
+	ip := net.ParseIP(address)
+	valid = ip != nil
+
+	_, _, err := net.ParseCIDR(address)
+	valid = valid || err == nil
+
+	// Since we don't know if this will be a TLS connection, setting tlsEnabled to false will be more permissive with wildcards
+	err = validateHost(false, address)
+	valid = valid || err == nil
+
+	if !valid {
+		return fmt.Errorf("Could not validate address %s as an IP, CIDR block or Hostname", address)
+	}
+	return nil
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -204,7 +252,7 @@ func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ServiceConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -244,6 +292,25 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 	return &c2
 }
 
+// DestinationConfig represents a virtual service, i.e. one that is external to Consul
+type DestinationConfig struct {
+	// Address of the endpoint; hostname, IP, or CIDR
+	Address string `json:",omitempty"`
+
+	// Port allowed within this endpoint
+	Port int `json:",omitempty"`
+}
+
+func (d *DestinationConfig) HasHostname() bool {
+	ip := net.ParseIP(d.Address)
+	return ip == nil
+}
+
+func (d *DestinationConfig) HasIP() bool {
+	ip := net.ParseIP(d.Address)
+	return ip != nil
+}
+
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
 	Kind             string
@@ -254,8 +321,8 @@ type ProxyConfigEntry struct {
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -325,7 +392,7 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ProxyConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *ProxyConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -547,7 +614,7 @@ type ConfigEntryQuery struct {
 	Name       string
 	Datacenter string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -593,7 +660,7 @@ type ConfigEntryListAllRequest struct {
 	Kinds      []string
 	Datacenter string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -621,7 +688,7 @@ type ServiceConfigRequest struct {
 	// uniquely identify a service.
 	Upstreams []string
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -646,7 +713,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// and change it.
 	v, err := hashstructure.Hash(struct {
 		Name              string
-		EnterpriseMeta    EnterpriseMeta
+		EnterpriseMeta    acl.EnterpriseMeta
 		Upstreams         []string    `hash:"set"`
 		UpstreamIDs       []ServiceID `hash:"set"`
 		MeshGatewayConfig MeshGatewayConfig
@@ -675,7 +742,7 @@ type UpstreamConfig struct {
 	// Name is only accepted within a service-defaults config entry.
 	Name string `json:",omitempty"`
 	// EnterpriseMeta is only accepted within a service-defaults config entry.
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
@@ -765,10 +832,10 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 func (cfg *UpstreamConfig) NormalizeWithoutName() error {
 	return cfg.normalize(false, nil)
 }
-func (cfg *UpstreamConfig) NormalizeWithName(entMeta *EnterpriseMeta) error {
+func (cfg *UpstreamConfig) NormalizeWithName(entMeta *acl.EnterpriseMeta) error {
 	return cfg.normalize(true, entMeta)
 }
-func (cfg *UpstreamConfig) normalize(named bool, entMeta *EnterpriseMeta) error {
+func (cfg *UpstreamConfig) normalize(named bool, entMeta *acl.EnterpriseMeta) error {
 	if named {
 		// If the upstream namespace is omitted it inherits that of the enclosing
 		// config entry.
@@ -986,6 +1053,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Destination       DestinationConfig      `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }

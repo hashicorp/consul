@@ -7,33 +7,32 @@
       index: {
         _options: {
           path: '/',
-          redirect: '../show/serverstatus',
+          redirect: '../services',
         },
       },
       show: {
         _options: {
           path: '/overview',
-          redirect: './serverstatus',
-          abilities: ['access overview']
+          abilities: ['access overview'],
         },
         serverstatus: {
           _options: {
             path: '/server-status',
-            abilities: ['access overview', 'read raft']
+            abilities: ['read servers'],
           },
         },
-        health: {
+        cataloghealth: {
           _options: {
-            path: '/health',
-            abilities: ['access overview']
+            path: '/catalog-health',
+            abilities: ['access overview'],
           },
         },
         license: {
           _options: {
             path: '/license',
-            abilities: ['access overview', 'read licence']
+            abilities: ['read license'],
           },
-        }
+        },
       },
       services: {
         _options: { path: '/services' },
@@ -47,7 +46,7 @@
               kind: 'kind',
               searchproperty: {
                 as: 'searchproperty',
-                empty: [['Name', 'Tags']],
+                empty: [['Partition', 'Name', 'Tags', 'PeerName']],
               },
               search: {
                 as: 'filter',
@@ -57,7 +56,9 @@
           },
         },
         show: {
-          _options: { path: '/:name' },
+          _options: {
+            path: '/:name',
+          },
           instances: {
             _options: {
               path: '/instances',
@@ -417,6 +418,7 @@
     },
     index: {
       _options: { path: '/' },
+      // root index redirects are currently dealt with in application.hbs
     },
     settings: {
       _options: {

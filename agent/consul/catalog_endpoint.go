@@ -8,12 +8,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -133,7 +135,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	_, ns, err := state.NodeServices(nil, args.Node, entMeta)
+	_, ns, err := state.NodeServices(nil, args.Node, entMeta, args.PeerName)
 	if err != nil {
 		return fmt.Errorf("Node lookup failed: %v", err)
 	}
@@ -159,7 +161,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz ACLResolveResult, authzCtxFill func(*acl.AuthorizerContext)) error {
+func servicePreApply(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -229,7 +231,7 @@ func checkPreApply(check *structs.HealthCheck) {
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
 func vetRegisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.RegisterRequest,
 	ns *structs.NodeServices,
 ) error {
@@ -367,7 +369,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var ns *structs.NodeService
 	if args.ServiceID != "" {
-		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
+		_, ns, err = state.NodeService(nil, args.Node, args.ServiceID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Service lookup failed: %v", err)
 		}
@@ -375,7 +377,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	var nc *structs.HealthCheck
 	if args.CheckID != "" {
-		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
+		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta, args.PeerName)
 		if err != nil {
 			return fmt.Errorf("Check lookup failed: %v", err)
 		}
@@ -395,7 +397,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
 func vetDeregisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.DeregisterRequest,
 	ns *structs.NodeService,
 	nc *structs.HealthCheck,
@@ -486,9 +488,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -546,9 +548,9 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
 			}
 			if err != nil {
 				return err
@@ -584,7 +586,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta)
+			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -611,13 +613,13 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	switch {
 	case args.Connect:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
-			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 
 	default:
 		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
 			if args.ServiceAddress != "" {
-				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta)
+				return s.ServiceAddressNodes(ws, args.ServiceAddress, &args.EnterpriseMeta, args.PeerName)
 			}
 
 			if args.TagFilter {
@@ -630,10 +632,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					tags = []string{args.ServiceTag}
 				}
 
-				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta)
+				return s.ServiceTagNodes(ws, args.ServiceName, tags, &args.EnterpriseMeta, args.PeerName)
 			}
 
-			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+			return s.ServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta, args.PeerName)
 		}
 	}
 
@@ -663,6 +665,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	err = c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -672,10 +679,53 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 
-			reply.Index, reply.ServiceNodes = index, services
+			mergedServices := services
+
+			if args.MergeCentralConfig {
+				var mergedServiceNodes structs.ServiceNodes
+				for _, sn := range services {
+					mergedsn := sn
+					ns := sn.ToNodeService()
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						cfgIndex, mergedns, err := mergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+						mergedsn = mergedns.ToServiceNode(sn.Node)
+					}
+					mergedServiceNodes = append(mergedServiceNodes, mergedsn)
+				}
+				if len(mergedServiceNodes) > 0 {
+					mergedServices = mergedServiceNodes
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
+			reply.Index, reply.ServiceNodes = index, mergedServices
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
-				for _, service := range services {
+				for _, service := range mergedServices {
 					if structs.SatisfiesMetaFilters(service.NodeMeta, args.NodeMetaFilters) {
 						filtered = append(filtered, service)
 					}
@@ -768,7 +818,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServices(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
@@ -820,19 +870,69 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta)
+			index, services, err := state.NodeServiceList(ws, args.Node, &args.EnterpriseMeta, args.PeerName)
 			if err != nil {
 				return err
 			}
 
+			mergedServices := services
+			var cfgIndex uint64
+			if services != nil && args.MergeCentralConfig {
+				var mergedNodeServices []*structs.NodeService
+				for _, ns := range services.Services {
+					mergedns := ns
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = mergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+					}
+					mergedNodeServices = append(mergedNodeServices, mergedns)
+				}
+				if len(mergedNodeServices) > 0 {
+					mergedServices.Services = mergedNodeServices
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
 			reply.Index = index
 
-			if services != nil {
-				reply.NodeServices = *services
+			if mergedServices != nil {
+				reply.NodeServices = *mergedServices
 
 				raw, err := filter.Execute(reply.NodeServices.Services)
 				if err != nil {
@@ -936,6 +1036,7 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	}
 
 	state := c.srv.fsm.State()
-	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
+	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+	*reply, err = state.VirtualIPForService(psn)
 	return err
 }

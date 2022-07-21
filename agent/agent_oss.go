@@ -6,8 +6,10 @@ package agent
 import (
 	"context"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -16,10 +18,10 @@ import (
 type enterpriseAgent struct{}
 
 // fillAgentServiceEnterpriseMeta is a noop stub for the func defined agent_ent.go
-func fillAgentServiceEnterpriseMeta(_ *api.AgentService, _ *structs.EnterpriseMeta) {}
+func fillAgentServiceEnterpriseMeta(_ *api.AgentService, _ *acl.EnterpriseMeta) {}
 
 // fillHealthCheckEnterpriseMeta is a noop stub for the func defined agent_ent.go
-func fillHealthCheckEnterpriseMeta(_ *api.HealthCheck, _ *structs.EnterpriseMeta) {}
+func fillHealthCheckEnterpriseMeta(_ *api.HealthCheck, _ *acl.EnterpriseMeta) {}
 
 // initEnterprise is a noop stub for the func defined agent_ent.go
 func (a *Agent) initEnterprise(consulCfg *consul.Config) error {
@@ -52,8 +54,10 @@ func (a *Agent) enterpriseStats() map[string]map[string]string {
 	return nil
 }
 
-func (a *Agent) AgentEnterpriseMeta() *structs.EnterpriseMeta {
+func (a *Agent) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 	return structs.NodeEnterpriseMetaInDefaultPartition()
 }
 
 func (a *Agent) registerEntCache() {}
+
+func (*Agent) fillEnterpriseProxyDataSources(*proxycfg.DataSources) {}

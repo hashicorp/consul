@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
+	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -18,7 +18,7 @@ type subscribeBackend struct {
 // the endpoints.
 func (s subscribeBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	entMeta *structs.EnterpriseMeta,
+	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
 	return s.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
@@ -31,5 +31,5 @@ func (s subscribeBackend) Forward(info structs.RPCInfo, f func(*grpc.ClientConn)
 }
 
 func (s subscribeBackend) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return s.srv.fsm.State().EventPublisher().Subscribe(req)
+	return s.srv.publisher.Subscribe(req)
 }

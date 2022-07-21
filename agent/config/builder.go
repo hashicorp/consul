@@ -32,10 +32,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
@@ -106,7 +108,8 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
-	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+	watcherFiles := stringslice.CloneStringSlice(opts.ConfigFiles)
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings, WatchedFiles: watcherFiles}, nil
 }
 
 // LoadResult is the result returned from Load. The caller is responsible for
@@ -114,6 +117,7 @@ func Load(opts LoadOpts) (LoadResult, error) {
 type LoadResult struct {
 	RuntimeConfig *RuntimeConfig
 	Warnings      []string
+	WatchedFiles  []string
 }
 
 // builder constructs and validates a runtime configuration from multiple
@@ -640,21 +644,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	// Parse the metric filters
-	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
-	for _, rule := range c.Telemetry.PrefixFilter {
-		if rule == "" {
-			b.warn("Cannot have empty filter rule in prefix_filter")
-			continue
-		}
-		switch rule[0] {
-		case '+':
-			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
-		case '-':
-			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
-		default:
-			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
-		}
-	}
+	telemetryAllowedPrefixes, telemetryBlockedPrefixes := b.parsePrefixFilter(&c.Telemetry)
 
 	// raft performance scaling
 	performanceRaftMultiplier := intVal(c.Performance.RaftMultiplier)
@@ -707,16 +697,18 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
-			"address":               "Address",
-			"token":                 "Token",
-			"root_pki_path":         "RootPKIPath",
-			"intermediate_pki_path": "IntermediatePKIPath",
-			"ca_file":               "CAFile",
-			"ca_path":               "CAPath",
-			"cert_file":             "CertFile",
-			"key_file":              "KeyFile",
-			"tls_server_name":       "TLSServerName",
-			"tls_skip_verify":       "TLSSkipVerify",
+			"address":                    "Address",
+			"token":                      "Token",
+			"root_pki_path":              "RootPKIPath",
+			"root_pki_namespace":         "RootPKINamespace",
+			"intermediate_pki_path":      "IntermediatePKIPath",
+			"intermediate_pki_namespace": "IntermediatePKINamespace",
+			"ca_file":                    "CAFile",
+			"ca_path":                    "CAPath",
+			"cert_file":                  "CertFile",
+			"key_file":                   "KeyFile",
+			"tls_server_name":            "TLSServerName",
+			"tls_skip_verify":            "TLSSkipVerify",
 
 			// AWS CA config
 			"existing_arn":   "ExistingARN",
@@ -811,6 +803,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
+		VersionMetadata:            stringVal(c.VersionMetadata),
+		// What is a sensible default for BuildDate?
+		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
 		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
@@ -920,10 +915,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
-			DisableCompatOneNine:               boolVal(c.Telemetry.DisableCompatOneNine),
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
+			RetryFailedConfiguration:           boolVal(c.Telemetry.RetryFailedConfiguration),
 			FilterDefault:                      boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
@@ -951,6 +946,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
+		AutoReloadConfig:                       boolVal(c.AutoReloadConfig),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
@@ -991,8 +987,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                   grpcPort,
 		GRPCAddrs:                  grpcAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
@@ -1000,6 +994,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
+		StaticRuntimeConfig: StaticRuntimeConfig{
+			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
+			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
+		},
+
 		Logging: logging.Config{
 			LogLevel:          stringVal(c.LogLevel),
 			LogJSON:           boolVal(c.LogJSON),
@@ -1010,64 +1009,65 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			LogRotateBytes:    intVal(c.LogRotateBytes),
 			LogRotateMaxFiles: intVal(c.LogRotateMaxFiles),
 		},
-		MaxQueryTime:            b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                  types.NodeID(stringVal(c.NodeID)),
-		NodeMeta:                c.NodeMeta,
-		NodeName:                b.nodeName(c.NodeName),
-		ReadReplica:             boolVal(c.ReadReplica),
-		PidFile:                 stringVal(c.PidFile),
-		PrimaryDatacenter:       primaryDatacenter,
-		PrimaryGateways:         b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
-		PrimaryGatewaysInterval: b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
-		RPCAdvertiseAddr:        rpcAdvertiseAddr,
-		RPCBindAddr:             rpcBindAddr,
-		RPCHandshakeTimeout:     b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
-		RPCHoldTimeout:          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:             intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:    intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:             intVal(c.RPCProtocol),
-		RPCRateLimit:            rate.Limit(float64Val(c.Limits.RPCRate)),
-		RPCConfig:               consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
-		RaftProtocol:            intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:   intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:    b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:        intVal(c.RaftTrailingLogs),
-		ReconnectTimeoutLAN:     b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:     b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:        boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:    b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:    b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:            b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN: intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN: intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:            b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:             stringVal(c.SegmentName),
-		Segments:                segments,
-		SegmentLimit:            intVal(c.SegmentLimit),
-		SerfAdvertiseAddrLAN:    serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:    serfAdvertiseAddrWAN,
-		SerfAllowedCIDRsLAN:     serfAllowedCIDRSLAN,
-		SerfAllowedCIDRsWAN:     serfAllowedCIDRSWAN,
-		SerfBindAddrLAN:         serfBindAddrLAN,
-		SerfBindAddrWAN:         serfBindAddrWAN,
-		SerfPortLAN:             serfPortLAN,
-		SerfPortWAN:             serfPortWAN,
-		ServerMode:              serverMode,
-		ServerName:              stringVal(c.ServerName),
-		ServerPort:              serverPort,
-		Services:                services,
-		SessionTTLMin:           b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:          skipLeaveOnInt,
-		StartJoinAddrsLAN:       b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:       b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		TaggedAddresses:         c.TaggedAddresses,
-		TranslateWANAddrs:       boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:            uint64Val(c.Limits.TxnMaxReqLen),
-		UIConfig:                b.uiConfigVal(c.UIConfig),
-		UnixSocketGroup:         stringVal(c.UnixSocket.Group),
-		UnixSocketMode:          stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:          stringVal(c.UnixSocket.User),
-		Watches:                 c.Watches,
+		MaxQueryTime:                     b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                           types.NodeID(stringVal(c.NodeID)),
+		NodeMeta:                         c.NodeMeta,
+		NodeName:                         b.nodeName(c.NodeName),
+		ReadReplica:                      boolVal(c.ReadReplica),
+		PidFile:                          stringVal(c.PidFile),
+		PrimaryDatacenter:                primaryDatacenter,
+		PrimaryGateways:                  b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
+		PrimaryGatewaysInterval:          b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
+		RPCAdvertiseAddr:                 rpcAdvertiseAddr,
+		RPCBindAddr:                      rpcBindAddr,
+		RPCHandshakeTimeout:              b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
+		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                      intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:             intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                      intVal(c.RPCProtocol),
+		RPCRateLimit:                     rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCConfig:                        consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
+		RaftProtocol:                     intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:            intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:             b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:                 intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:              b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:              b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:                 boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:             b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:             b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                     b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:          intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:          intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                     b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                      stringVal(c.SegmentName),
+		Segments:                         segments,
+		SegmentLimit:                     intVal(c.SegmentLimit),
+		SerfAdvertiseAddrLAN:             serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:             serfAdvertiseAddrWAN,
+		SerfAllowedCIDRsLAN:              serfAllowedCIDRSLAN,
+		SerfAllowedCIDRsWAN:              serfAllowedCIDRSWAN,
+		SerfBindAddrLAN:                  serfBindAddrLAN,
+		SerfBindAddrWAN:                  serfBindAddrWAN,
+		SerfPortLAN:                      serfPortLAN,
+		SerfPortWAN:                      serfPortWAN,
+		ServerMode:                       serverMode,
+		ServerName:                       stringVal(c.ServerName),
+		ServerPort:                       serverPort,
+		Services:                         services,
+		SessionTTLMin:                    b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:                   skipLeaveOnInt,
+		StartJoinAddrsLAN:                b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		TaggedAddresses:                  c.TaggedAddresses,
+		TranslateWANAddrs:                boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                     uint64Val(c.Limits.TxnMaxReqLen),
+		UIConfig:                         b.uiConfigVal(c.UIConfig),
+		UnixSocketGroup:                  stringVal(c.UnixSocket.Group),
+		UnixSocketMode:                   stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:                   stringVal(c.UnixSocket.User),
+		Watches:                          c.Watches,
+		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
@@ -1552,6 +1552,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Header:                         v.Header,
 		Method:                         stringVal(v.Method),
 		Body:                           stringVal(v.Body),
+		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
@@ -1701,6 +1702,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
 			DestinationPartition: stringVal(u.DestinationPartition),
+			DestinationPeer:      stringVal(u.DestinationPeer),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
@@ -1831,6 +1833,7 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 		MetricsProviderOptionsJSON: stringVal(v.MetricsProviderOptionsJSON),
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
+		HCPEnabled:                 os.Getenv("CONSUL_HCP_ENABLED") == "true",
 	}
 }
 
@@ -1944,6 +1947,13 @@ func stringVal(v *string) string {
 	return *v
 }
 
+func timeValWithDefault(v *time.Time, defaultVal time.Time) time.Time {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
 func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
 		return defaultVal
@@ -1971,15 +1981,63 @@ func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	return
 }
 
-func (b *builder) tlsCipherSuites(name string, v *string) []uint16 {
+func (b *builder) tlsVersion(name string, v *string) types.TLSVersion {
+	// Handles unspecified config and empty string case.
+	//
+	// This check is not inside types.ValidateTLSVersionString because Envoy config
+	// distinguishes between an unset empty string which inherits parent config and
+	// an explicit TLS_AUTO which allows overriding parent config with the proxy
+	// defaults.
+	if v == nil || *v == "" {
+		return types.TLSVersionAuto
+	}
+
+	a := types.TLSVersion(*v)
+
+	err := types.ValidateTLSVersion(a)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS version: %s", name, err))
+		return types.TLSVersionInvalid
+	}
+	return a
+}
+
+// validateTLSVersionCipherSuitesCompat checks that the specified TLS version supports
+// specifying cipher suites
+func validateTLSVersionCipherSuitesCompat(tlsMinVersion types.TLSVersion) error {
+	if tlsMinVersion == types.TLSv1_3 {
+		return fmt.Errorf("TLS 1.3 cipher suites are not configurable")
+	}
+	return nil
+}
+
+// tlsCipherSuites parses cipher suites from a comma-separated string into a
+// recognized slice
+func (b *builder) tlsCipherSuites(name string, v *string, tlsMinVersion types.TLSVersion) []types.TLSCipherSuite {
 	if v == nil {
 		return nil
 	}
 
-	var a []uint16
-	a, err := tlsutil.ParseCiphers(*v)
+	if err := validateTLSVersionCipherSuitesCompat(tlsMinVersion); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: %s", name, err))
+		return nil
+	}
+
+	*v = strings.TrimSpace(*v)
+	if *v == "" {
+		return []types.TLSCipherSuite{}
+	}
+	ciphers := strings.Split(*v, ",")
+
+	a := make([]types.TLSCipherSuite, len(ciphers))
+	for i, cipher := range ciphers {
+		a[i] = types.TLSCipherSuite(cipher)
+	}
+
+	err := types.ValidateConsulAgentCipherSuites(a)
 	if err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid tls cipher suites: %s", name, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid TLS cipher suites: %s", name, err))
+		return []types.TLSCipherSuite{}
 	}
 	return a
 }
@@ -2473,18 +2531,18 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
 	// for historic and backwards-compatibility reasons.
-	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{}) {
+	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{} && t.GRPCModifiedByDeprecatedConfig == nil) {
 		b.warn("tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)")
 	}
 
-	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites)
+	defaultTLSMinVersion := b.tlsVersion("tls.defaults.tls_min_version", t.Defaults.TLSMinVersion)
+	defaultCipherSuites := b.tlsCipherSuites("tls.defaults.tls_cipher_suites", t.Defaults.TLSCipherSuites, defaultTLSMinVersion)
 
 	mapCommon := func(name string, src TLSProtocolConfig, dst *tlsutil.ProtocolConfig) {
 		dst.CAPath = stringValWithDefault(src.CAPath, stringVal(t.Defaults.CAPath))
 		dst.CAFile = stringValWithDefault(src.CAFile, stringVal(t.Defaults.CAFile))
 		dst.CertFile = stringValWithDefault(src.CertFile, stringVal(t.Defaults.CertFile))
 		dst.KeyFile = stringValWithDefault(src.KeyFile, stringVal(t.Defaults.KeyFile))
-		dst.TLSMinVersion = stringValWithDefault(src.TLSMinVersion, stringVal(t.Defaults.TLSMinVersion))
 		dst.VerifyIncoming = boolValWithDefault(src.VerifyIncoming, boolVal(t.Defaults.VerifyIncoming))
 
 		// We prevent this from being set explicity in the tls.grpc stanza above, but
@@ -2494,12 +2552,26 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 			dst.VerifyOutgoing = boolValWithDefault(src.VerifyOutgoing, boolVal(t.Defaults.VerifyOutgoing))
 		}
 
+		if src.TLSMinVersion == nil {
+			dst.TLSMinVersion = defaultTLSMinVersion
+		} else {
+			dst.TLSMinVersion = b.tlsVersion(
+				fmt.Sprintf("tls.%s.tls_min_version", name),
+				src.TLSMinVersion,
+			)
+		}
+
 		if src.TLSCipherSuites == nil {
-			dst.CipherSuites = defaultCipherSuites
+			// If cipher suite config incompatible with a specified TLS min version
+			// would be inherited, omit it but don't return an error in the builder.
+			if validateTLSVersionCipherSuitesCompat(dst.TLSMinVersion) == nil {
+				dst.CipherSuites = defaultCipherSuites
+			}
 		} else {
 			dst.CipherSuites = b.tlsCipherSuites(
 				fmt.Sprintf("tls.%s.tls_cipher_suites", name),
 				src.TLSCipherSuites,
+				dst.TLSMinVersion,
 			)
 		}
 	}
@@ -2525,4 +2597,39 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	c.AutoTLS = rt.AutoEncryptTLS || rt.AutoConfig.Enabled
 
 	return c, nil
+}
+
+func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
+	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
+
+	// TODO(FFMMM): Once one twelve style RPC metrics get out of Beta, don't remove them by default.
+	operatorPassedOneTwelveRPCMetric := false
+	oneTwelveRPCMetric := *telemetry.MetricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+
+	for _, rule := range telemetry.PrefixFilter {
+		if rule == "" {
+			b.warn("Cannot have empty filter rule in prefix_filter")
+			continue
+		}
+		switch rule[0] {
+		case '+':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, rule[1:])
+		case '-':
+			if rule[1:] == oneTwelveRPCMetric {
+				operatorPassedOneTwelveRPCMetric = true
+			}
+			telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, rule[1:])
+		default:
+			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
+		}
+	}
+
+	if !operatorPassedOneTwelveRPCMetric {
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, oneTwelveRPCMetric)
+	}
+
+	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
 }

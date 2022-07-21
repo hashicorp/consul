@@ -6,11 +6,12 @@ import (
 	"io"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/acl"
 	aclhelpers "github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {

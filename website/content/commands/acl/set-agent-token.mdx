@@ -12,12 +12,12 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/token/:type](/api-docs/agent
 This command updates the ACL tokens currently in use by the agent. It can be used to introduce
 ACL tokens to the agent for the first time, or to update tokens that were initially loaded from
 the agent's configuration. Tokens are not persisted unless
-[`acl.enable_token_persistence`](/docs/agent/options#acl_enable_token_persistence)
+[`acl.enable_token_persistence`](/docs/agent/config/config-files#acl_enable_token_persistence)
 is `true`, so tokens will need to be updated again if that option is `false` and
 the agent is restarted.
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api/features/blocking) and [agent caching](/api/features/caching)
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -40,7 +40,7 @@ Usage: `consul acl set-agent-token [options] TYPE TOKEN`
 
 - `recovery` - This sets the token that can be used to access the Agent APIs
   in the event that the ACL datacenter cannot be reached. In Consul versions
-  prior to 1.11, this token type was called `master`.
+  prior to 1.11, this token type was called `agent_master`.
 
 - `replication` - This is the token that the agent will use for replication
   operations. This token will need to be configured with read access to

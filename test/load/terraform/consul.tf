@@ -37,9 +37,9 @@ module "consul_servers" {
 
   vpc_id                  = module.vpc.vpc_id
   subnet_ids              = module.vpc.public_subnets
-  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+  allowed_ssh_cidr_blocks = [var.vpc_cidr]
 
-  allowed_inbound_cidr_blocks = ["0.0.0.0/0"]
+  allowed_inbound_cidr_blocks = [var.vpc_cidr]
   ssh_key_name                = module.keys.key_name
 
 }
@@ -57,9 +57,9 @@ module "consul_clients" {
 
   vpc_id                  = module.vpc.vpc_id
   subnet_ids              = module.vpc.public_subnets
-  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+  allowed_ssh_cidr_blocks = [var.vpc_cidr]
 
-  allowed_inbound_cidr_blocks = ["0.0.0.0/0"]
+  allowed_inbound_cidr_blocks = [var.vpc_cidr]
   ssh_key_name                = module.keys.key_name
 }
 

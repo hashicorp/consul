@@ -5,6 +5,7 @@ brand:
   nomad: Nomad
   vault: Vault
   aws: AWS
+  aws-iam: AWS IAM
   kubernetes: Kubernetes
   jwt: JWT
   oidc: OIDC
@@ -14,6 +15,7 @@ ui:
   name: Name
   creation: Creation
   maxttl: Max TTL
+  enterprisefeature: Enterprise feature
 consul:
   name: Name
   passing: Passing
@@ -41,6 +43,11 @@ consul:
   destinationname: Destination Name
   sourcename: Source Name
   displayname: Display Name
+  failuretolerance: Fault tolerance
+  readreplica: Read replica
+  redundancyzone: Redundancy zone
+  peername: Peer
+  partition: Admin Partitions
 search:
   search: Search
   searchproperty: Search Across
@@ -65,3 +72,12 @@ sort:
   status:
     asc: Unhealthy to Healthy
     desc: Healthy to Unhealthy
+validations:
+  dns-hostname:
+    help: |
+      Must be a valid DNS hostname. Must contain 1-64 characters (numbers, letters, and hyphens), and must begin with a letter.
+    test: "^[a-zA-Z0-9]([a-zA-Z0-9-]'{0,62}'[a-zA-Z0-9])?$"
+    error: "{name} must be a valid DNS hostname."
+  immutable:
+    help: Once created, this cannot be changed.
+

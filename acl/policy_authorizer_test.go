@@ -56,6 +56,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultPreparedQueryWrite", prefix: "foo", check: checkDefaultPreparedQueryWrite},
 				{name: "DefaultServiceRead", prefix: "foo", check: checkDefaultServiceRead},
 				{name: "DefaultServiceWrite", prefix: "foo", check: checkDefaultServiceWrite},
+				{name: "DefaultServiceWriteAny", prefix: "", check: checkDefaultServiceWriteAny},
 				{name: "DefaultSessionRead", prefix: "foo", check: checkDefaultSessionRead},
 				{name: "DefaultSessionWrite", prefix: "foo", check: checkDefaultSessionWrite},
 				{name: "DefaultSnapshot", prefix: "foo", check: checkDefaultSnapshot},
@@ -267,6 +268,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "ServiceWritePrefixDenied", prefix: "food", check: checkDenyServiceWrite},
 				{name: "ServiceReadDenied", prefix: "football", check: checkDenyServiceRead},
 				{name: "ServiceWriteDenied", prefix: "football", check: checkDenyServiceWrite},
+				{name: "ServiceWriteAnyAllowed", prefix: "", check: checkAllowServiceWriteAny},
 
 				{name: "NodeReadPrefixAllowed", prefix: "fo", check: checkAllowNodeRead},
 				{name: "NodeWritePrefixDenied", prefix: "fo", check: checkDenyNodeWrite},

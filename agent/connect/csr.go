@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
 	"net"
 	"net/url"
 )
@@ -100,3 +101,24 @@ func CreateCAExtension() (pkix.Extension, error) {
 		Value:    bitstr,
 	}, nil
 }
+
+// InvalidCSRError returns an error with the given fmt.Sprintf-formatted message
+// indicating certificate signing failed because the user supplied an invalid CSR.
+//
+// See: IsInvalidCSRError.
+func InvalidCSRError(format string, args ...interface{}) error {
+	return invalidCSRError{fmt.Sprintf(format, args...)}
+}
+
+// IsInvalidCSRError returns whether the given error indicates that certificate
+// signing failed because the user supplied an invalid CSR.
+func IsInvalidCSRError(err error) bool {
+	_, ok := err.(invalidCSRError)
+	return ok
+}
+
+type invalidCSRError struct {
+	s string
+}
+
+func (e invalidCSRError) Error() string { return e.s }

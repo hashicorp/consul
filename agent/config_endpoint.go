@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -32,10 +33,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
-	if err != nil {
-		return nil, err
-	}
+	kindAndName := strings.TrimPrefix(req.URL.Path, "/v1/config/")
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	switch len(pathArgs) {
@@ -55,7 +53,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 		setMeta(resp, &reply.QueryMeta)
 
 		if reply.Entry == nil {
-			return nil, NotFoundError{Reason: fmt.Sprintf("%s for %q / %q", ConfigEntryNotFoundErr, pathArgs[0], pathArgs[1])}
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("%s for %q / %q", ConfigEntryNotFoundErr, pathArgs[0], pathArgs[1])}
 		}
 
 		return reply.Entry, nil
@@ -74,7 +72,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 
 		return reply.Entries, nil
 	default:
-		return nil, NotFoundError{Reason: "Must provide either a kind or both kind and name"}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Must provide either a kind or both kind and name"}
 	}
 }
 
@@ -83,19 +81,16 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	kindAndName, err := getPathSuffixUnescaped(req.URL.Path, "/v1/config/")
-	if err != nil {
-		return nil, err
-	}
+	kindAndName := strings.TrimPrefix(req.URL.Path, "/v1/config/")
 	pathArgs := strings.SplitN(kindAndName, "/", 2)
 
 	if len(pathArgs) != 2 {
-		return nil, NotFoundError{Reason: "Must provide both a kind and name to delete"}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Must provide both a kind and name to delete"}
 	}
 
 	entry, err := structs.MakeConfigEntry(pathArgs[0], pathArgs[1])
 	if err != nil {
-		return nil, BadRequestError{Reason: err.Error()}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 	}
 	args.Entry = entry
 	// Parse enterprise meta.
@@ -138,17 +133,17 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 
 	var raw map[string]interface{}
 	if err := decodeBodyDeprecated(req, &raw, nil); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
 	if entry, err := structs.DecodeConfigEntry(raw); err == nil {
 		args.Entry = entry
 	} else {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
 	// Parse enterprise meta.
-	var meta structs.EnterpriseMeta
+	var meta acl.EnterpriseMeta
 	if err := s.parseEntMetaForConfigEntryKind(args.Entry.GetKind(), req, &meta); err != nil {
 		return nil, err
 	}
@@ -172,7 +167,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	return reply, nil
 }
 
-func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if kind == structs.ServiceIntentions {
 		return s.parseEntMeta(req, entMeta)
 	}

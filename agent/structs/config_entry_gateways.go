@@ -31,8 +31,8 @@ type IngressGatewayConfigEntry struct {
 	// what services to associated to those ports.
 	Listeners []IngressListener
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -90,8 +90,8 @@ type IngressService struct {
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 type GatewayTLSConfig struct {
@@ -240,37 +240,7 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 }
 
 func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
-	if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-		if err := types.ValidateTLSVersion(tlsCfg.TLSMinVersion); err != nil {
-			return err
-		}
-	}
-
-	if tlsCfg.TLSMaxVersion != types.TLSVersionUnspecified {
-		if err := types.ValidateTLSVersion(tlsCfg.TLSMaxVersion); err != nil {
-			return err
-		}
-
-		if tlsCfg.TLSMinVersion != types.TLSVersionUnspecified {
-			if err, maxLessThanMin := tlsCfg.TLSMaxVersion.LessThan(tlsCfg.TLSMinVersion); err == nil && maxLessThanMin {
-				return fmt.Errorf("configuring max version %s less than the configured min version %s is invalid", tlsCfg.TLSMaxVersion, tlsCfg.TLSMinVersion)
-			}
-		}
-	}
-
-	if len(tlsCfg.CipherSuites) != 0 {
-		if _, ok := types.TLSVersionsWithConfigurableCipherSuites[tlsCfg.TLSMinVersion]; !ok {
-			return fmt.Errorf("configuring CipherSuites is only applicable to conncetions negotiated with TLS 1.2 or earlier, TLSMinVersion is set to %s", tlsCfg.TLSMinVersion)
-		}
-
-		// NOTE: it would be nice to emit a warning but not return an error from
-		// here if TLSMaxVersion is unspecified, TLS_AUTO or TLSv1_3
-		if err := types.ValidateEnvoyCipherSuites(tlsCfg.CipherSuites); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
@@ -305,8 +275,8 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		// Validate that http features aren't being used with tcp or another non-supported protocol.
-		if listener.Protocol != "http" && len(listener.Services) > 1 {
-			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
+		if !IsProtocolHTTPLike(listener.Protocol) && len(listener.Services) > 1 {
+			return fmt.Errorf("Multiple services per listener are only supported for L7 protocols, 'http', 'grpc' and 'http2' (listener on port %d)",
 				listener.Port)
 		}
 
@@ -450,7 +420,7 @@ func (e *IngressGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *IngressGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -469,8 +439,8 @@ type TerminatingGatewayConfigEntry struct {
 	Name     string
 	Services []LinkedService
 
-	Meta           map[string]string `json:",omitempty"`
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	Meta               map[string]string `json:",omitempty"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -494,7 +464,7 @@ type LinkedService struct {
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
 
-	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (e *TerminatingGatewayConfigEntry) GetKind() string {
@@ -592,7 +562,7 @@ func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	if e == nil {
 		return nil
 	}
@@ -600,19 +570,44 @@ func (e *TerminatingGatewayConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
+func (e *TerminatingGatewayConfigEntry) Warnings() []string {
+	if e == nil {
+		return nil
+	}
+
+	warnings := make([]string, 0)
+	for _, svc := range e.Services {
+		if (svc.CAFile != "" || svc.CertFile != "" || svc.KeyFile != "") && svc.SNI == "" {
+			warning := fmt.Sprintf("TLS is configured but SNI is not set for service %q. Enabling SNI is strongly recommended when using TLS.", svc.Name)
+			warnings = append(warnings, warning)
+		}
+	}
+
+	return warnings
+}
+
+type GatewayServiceKind string
+
+const (
+	GatewayServiceKindUnknown     GatewayServiceKind = ""
+	GatewayServiceKindDestination GatewayServiceKind = "destination"
+	GatewayServiceKindService     GatewayServiceKind = "service"
+)
+
 // GatewayService is used to associate gateways with their linked services.
 type GatewayService struct {
 	Gateway      ServiceName
 	Service      ServiceName
 	GatewayKind  ServiceKind
-	Port         int      `json:",omitempty"`
-	Protocol     string   `json:",omitempty"`
-	Hosts        []string `json:",omitempty"`
-	CAFile       string   `json:",omitempty"`
-	CertFile     string   `json:",omitempty"`
-	KeyFile      string   `json:",omitempty"`
-	SNI          string   `json:",omitempty"`
-	FromWildcard bool     `json:",omitempty"`
+	Port         int                `json:",omitempty"`
+	Protocol     string             `json:",omitempty"`
+	Hosts        []string           `json:",omitempty"`
+	CAFile       string             `json:",omitempty"`
+	CertFile     string             `json:",omitempty"`
+	KeyFile      string             `json:",omitempty"`
+	SNI          string             `json:",omitempty"`
+	FromWildcard bool               `json:",omitempty"`
+	ServiceKind  GatewayServiceKind `json:",omitempty"`
 	RaftIndex
 }
 
@@ -649,6 +644,7 @@ func (g *GatewayService) IsSame(o *GatewayService) bool {
 		g.CertFile == o.CertFile &&
 		g.KeyFile == o.KeyFile &&
 		g.SNI == o.SNI &&
+		g.ServiceKind == o.ServiceKind &&
 		g.FromWildcard == o.FromWildcard
 }
 
@@ -667,5 +663,6 @@ func (g *GatewayService) Clone() *GatewayService {
 		SNI:          g.SNI,
 		FromWildcard: g.FromWildcard,
 		RaftIndex:    g.RaftIndex,
+		ServiceKind:  g.ServiceKind,
 	}
 }

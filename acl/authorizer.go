@@ -49,6 +49,7 @@ const (
 	ResourceQuery     Resource = "query"
 	ResourceService   Resource = "service"
 	ResourceSession   Resource = "session"
+	ResourcePeering   Resource = "peering"
 )
 
 // Authorizer is the interface for policy enforcement.
@@ -148,6 +149,9 @@ type Authorizer interface {
 	// ServiceWrite checks for permission to create or update a given
 	// service
 	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
+
+	// ServiceWriteAny checks for write permission on any service
+	ServiceWriteAny(*AuthorizerContext) EnforcementDecision
 
 	// SessionRead checks for permission to read sessions for a given node.
 	SessionRead(string, *AuthorizerContext) EnforcementDecision
@@ -411,6 +415,14 @@ func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext
 	return nil
 }
 
+// ServiceWriteAnyAllowed checks for write permission on any service
+func (a AllowAuthorizer) ServiceWriteAnyAllowed(ctx *AuthorizerContext) error {
+	if a.Authorizer.ServiceWriteAny(ctx) != Allow {
+		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, "any service")
+	}
+	return nil
+}
+
 // SessionReadAllowed checks for permission to read sessions for a given node.
 func (a AllowAuthorizer) SessionReadAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.SessionRead(name, ctx) != Allow {
@@ -528,6 +540,14 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.SessionRead(segment, ctx), nil
 		case "write":
 			return authz.SessionWrite(segment, ctx), nil
+		}
+	case ResourcePeering:
+		// TODO (peering) switch this over to using PeeringRead & PeeringWrite methods once implemented
+		switch lowerAccess {
+		case "read":
+			return authz.OperatorRead(ctx), nil
+		case "write":
+			return authz.OperatorWrite(ctx), nil
 		}
 	default:
 		if processed, decision, err := enforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {

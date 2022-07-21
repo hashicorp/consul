@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
 )
 
 func init() {

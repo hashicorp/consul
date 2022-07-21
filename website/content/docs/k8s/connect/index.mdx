@@ -1,26 +1,27 @@
 ---
 layout: docs
-page_title: Service Mesh - Kubernetes
+page_title: Consul Service Mesh on Kubernetes
 description: >-
-  Connect is a feature built into to Consul that enables automatic
+  Consul Service Mesh is a feature built into to Consul that enables automatic
   service-to-service authorization and connection encryption across your Consul
-  services. Connect can be used with Kubernetes to secure pod communication with
+  services. Consul Service Mesh can be used with Kubernetes to secure pod communication with
   other services.
 ---
 
-# Connect Service Mesh on Kubernetes
+# Consul Service Mesh on Kubernetes
 
-[Connect](/docs/connect) is a feature built into to Consul that enables
+[Consul Service Mesh](/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
-your Consul services. Connect can be used with Kubernetes to secure pod
-communication with other pods and external Kubernetes services.
+your Consul services. Consul Service Mesh can be used with Kubernetes to secure pod
+communication with other pods and external Kubernetes services. Consul Connect is used interchangeably with the name 
+Consul Service Mesh and is what will be used to refer to for Service Mesh functionality within Consul. 
 
 The Connect sidecar running Envoy can be automatically injected into pods in
 your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/k8s/installation/install).
+[Consul Helm chart](/docs/k8s/installation/install#helm-chart-installation).
 
 ## Usage
 
@@ -192,7 +193,7 @@ When ACLs are enabled with default `deny` policy,
 you must supply an [intention](/docs/connect/intentions) to tell Consul which upstream you need to talk to.
 
 When upstreams are specified explicitly with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams),
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
 the injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
 and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
 upstream. This is analogous to the standard Kubernetes service environment variables, but

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -229,7 +230,7 @@ func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
-func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *structs.EnterpriseMeta) {
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *acl.EnterpriseMeta) {
 	entry := &structs.DirEntry{
 		Key:   key,
 		Value: []byte(value),

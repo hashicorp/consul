@@ -32,7 +32,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
-	agent_grpc "github.com/hashicorp/consul/agent/grpc/private"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -817,7 +817,8 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.RPCMaxConnsPerClient = 2
+				// we have to set this to 3 because autopilot is going to keep a connection open
+				c.RPCMaxConnsPerClient = 3
 				if tc.tlsEnabled {
 					c.TLSConfig.InternalRPC.CAFile = "../../test/hostname/CertAuth.crt"
 					c.TLSConfig.InternalRPC.CertFile = "../../test/hostname/Alice.crt"
@@ -830,6 +831,8 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
+
+			waitForLeaderEstablishment(t, s1)
 
 			// Connect to the server with bare TCP
 			conn1 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn1")
@@ -847,7 +850,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			addr := conn1.RemoteAddr()
 			conn1.Close()
 			retry.Run(t, func(r *retry.R) {
-				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 2 {
+				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 3 {
 					r.Fatal("waiting for open conns to drop")
 				}
 			})
@@ -995,7 +998,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1128,7 +1131,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
-		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &acl.EnterpriseMeta{})
 		require.Nil(r, err)
 		require.NotNil(r, p)
 	})
@@ -1142,7 +1145,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	runStep(t, "Register a dummy node with a service", func(t *testing.T) {
+	testutil.RunStep(t, "Register a dummy node with a service", func(t *testing.T) {
 		req := &structs.RegisterRequest{
 			Node:       "node1",
 			Address:    "3.4.5.6",
@@ -1180,7 +1183,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	}
 
 	// Try to use it locally (it should work)
-	runStep(t, "token used locally should work", func(t *testing.T) {
+	testutil.RunStep(t, "token used locally should work", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
@@ -1195,10 +1198,14 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
 	})
 
-	runStep(t, "token used remotely should not work", func(t *testing.T) {
+	testutil.RunStep(t, "token used remotely should not work", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}
@@ -1213,7 +1220,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.True(t, event.Payload.(*pbsubscribe.Event_EndOfSnapshot).EndOfSnapshot)
 	})
 
-	runStep(t, "update anonymous token to read services", func(t *testing.T) {
+	testutil.RunStep(t, "update anonymous token to read services", func(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -1230,10 +1237,14 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.NotEmpty(t, token.SecretID)
 	})
 
-	runStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
+	testutil.RunStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}
@@ -1369,6 +1380,10 @@ func (r isReadRequest) IsRead() bool {
 
 func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
 	return false, nil
+}
+
+func (r isReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return time.Duration(-1)
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
@@ -1736,7 +1751,7 @@ func rpcBlockingQueryTestHarness(
 				return
 			case err := <-errCh:
 				if err != nil {
-					t.Errorf("[%d] unexpected error: %w", i, err)
+					t.Errorf("[%d] unexpected error: %v", i, err)
 					return
 				}
 			}

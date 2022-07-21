@@ -56,10 +56,6 @@ as |route|>
         @filter={{filters}}
         />
   {{/if}}
-      <p>
-        The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
-        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
-      </p>
       <DataCollection
         @type="service"
         @sort={{sort.value}}
@@ -68,6 +64,9 @@ as |route|>
         @items={{items}}
       as |collection|>
         <collection.Collection>
+          {{t "routes.dc.services.show.services.intro"
+            htmlSafe=true
+          }}
           <Consul::Service::List
             @nspace={{or route.params.nspace route.model.user.token.Namespace 'default'}}
             @partition={{or route.params.partition route.model.user.token.Partition 'default'}}
@@ -78,9 +77,10 @@ as |route|>
         <collection.Empty>
           <EmptyState>
             <BlockSlot @name="body">
-              <p>
-                There are no linked services{{#if (gt items.length 0)}} matching that search{{/if}}.
-              </p>
+              {{t "routes.dc.services.show.services.empty"
+                items=items.length
+                htmlSafe=true
+              }}
             </BlockSlot>
           </EmptyState>
         </collection.Empty>

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbutil"
 )
 
 // IsRead is always true for QueryOption
@@ -37,7 +36,7 @@ func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
 
 // SetMaxQueryTime is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
-	q.MaxQueryTime = *pbutil.DurationToProto(maxQueryTime)
+	q.MaxQueryTime = structs.DurationToProto(maxQueryTime)
 }
 
 // SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
@@ -57,12 +56,12 @@ func (q *QueryOptions) SetUseCache(useCache bool) {
 
 // SetMaxStaleDuration is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxStaleDuration(maxStaleDuration time.Duration) {
-	q.MaxStaleDuration = *pbutil.DurationToProto(maxStaleDuration)
+	q.MaxStaleDuration = structs.DurationToProto(maxStaleDuration)
 }
 
 // SetMaxAge is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxAge(maxAge time.Duration) {
-	q.MaxAge = *pbutil.DurationToProto(maxAge)
+	q.MaxAge = structs.DurationToProto(maxAge)
 }
 
 // SetMustRevalidate is needed to implement the structs.QueryOptionsCompat interface
@@ -72,20 +71,20 @@ func (q *QueryOptions) SetMustRevalidate(mustRevalidate bool) {
 
 // SetStaleIfError is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
-	q.StaleIfError = *pbutil.DurationToProto(staleIfError)
+	q.StaleIfError = structs.DurationToProto(staleIfError)
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	maxTime, err := pbutil.DurationFromProto(&q.MaxQueryTime)
-	if err != nil {
-		return false, err
-	}
+func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
 
+func (q *QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	maxTime := structs.DurationFromProto(q.MaxQueryTime)
 	o := structs.QueryOptions{
 		MaxQueryTime:  maxTime,
 		MinQueryIndex: q.MinQueryIndex,
 	}
-	return o.HasTimedOut(start, rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+	return o.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
@@ -93,172 +92,15 @@ func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
 }
 
-// GetMaxQueryTime is required to implement blockingQueryOptions
-func (q *QueryOptions) GetMaxQueryTime() (time.Duration, error) {
-	if q != nil {
-		return pbutil.DurationFromProto(&q.MaxQueryTime)
-	}
-	return 0, nil
-}
-
-// GetMinQueryIndex is required to implement blockingQueryOptions
-func (q *QueryOptions) GetMinQueryIndex() uint64 {
-	if q != nil {
-		return q.MinQueryIndex
-	}
-	return 0
-}
-
-// GetRequireConsistent is required to implement blockingQueryOptions
-func (q *QueryOptions) GetRequireConsistent() bool {
-	if q != nil {
-		return q.RequireConsistent
-	}
-	return false
-}
-
-// GetToken is required to implement blockingQueryOptions
-func (q *QueryOptions) GetToken() string {
-	if q != nil {
-		return q.Token
-	}
-	return ""
-}
-
-// GetAllowStale is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetAllowStale() bool {
-	if q != nil {
-		return q.AllowStale
-	}
-	return false
-}
-
-// GetFilter is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetFilter() string {
-	if q != nil {
-		return q.Filter
-	}
-	return ""
-}
-
-// GetMaxAge is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetMaxAge() (time.Duration, error) {
-	if q != nil {
-		return pbutil.DurationFromProto(&q.MaxAge)
-	}
-	return 0, nil
-}
-
-// GetMaxStaleDuration is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetMaxStaleDuration() (time.Duration, error) {
-	if q != nil {
-		return pbutil.DurationFromProto(&q.MaxStaleDuration)
-	}
-	return 0, nil
-}
-
-// GetMustRevalidate is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetMustRevalidate() bool {
-	if q != nil {
-		return q.MustRevalidate
-	}
-	return false
-}
-
-// GetStaleIfError is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetStaleIfError() (time.Duration, error) {
-	if q != nil {
-		return pbutil.DurationFromProto(&q.StaleIfError)
-	}
-	return 0, nil
-}
-
-// GetUseCache is required to implement structs.QueryOptionsCompat
-func (q *QueryOptions) GetUseCache() bool {
-	if q != nil {
-		return q.UseCache
-	}
-	return false
-}
-
-// SetLastContact is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
-	q.LastContact = *pbutil.DurationToProto(lastContact)
-}
-
-// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
-	q.KnownLeader = knownLeader
-}
-
-// SetIndex is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetIndex(index uint64) {
-	q.Index = index
-}
-
-// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
-	q.ConsistencyLevel = consistencyLevel
-}
-
-func (q *QueryMeta) GetBackend() structs.QueryBackend {
-	return structs.QueryBackend(0)
-}
-
-// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat interface
-func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
-	q.ResultsFilteredByACLs = v
-}
-
-// GetIndex is required to implement blockingQueryResponseMeta
-func (q *QueryMeta) GetIndex() uint64 {
-	if q != nil {
-		return q.Index
-	}
-	return 0
-}
-
-// GetConsistencyLevel is required to implement structs.QueryMetaCompat
-func (q *QueryMeta) GetConsistencyLevel() string {
-	if q != nil {
-		return q.ConsistencyLevel
-	}
-	return ""
-}
-
-// GetKnownLeader is required to implement structs.QueryMetaCompat
-func (q *QueryMeta) GetKnownLeader() bool {
-	if q != nil {
-		return q.KnownLeader
-	}
-	return false
-}
-
-// GetLastContact is required to implement structs.QueryMetaCompat
-func (q *QueryMeta) GetLastContact() (time.Duration, error) {
-	if q != nil {
-		return pbutil.DurationFromProto(&q.LastContact)
-	}
-	return 0, nil
-}
-
-// GetResultsFilteredByACLs is required to implement structs.QueryMetaCompat
-func (q *QueryMeta) GetResultsFilteredByACLs() bool {
-	if q != nil {
-		return q.ResultsFilteredByACLs
-	}
-	return false
-}
-
 // WriteRequest only applies to writes, always false
 //
 // IsRead implements structs.RPCInfo
-func (w WriteRequest) IsRead() bool {
+func (w *WriteRequest) IsRead() bool {
 	return false
 }
 
 // SetTokenSecret implements structs.RPCInfo
-func (w WriteRequest) TokenSecret() string {
+func (w *WriteRequest) TokenSecret() string {
 	return w.Token
 }
 
@@ -270,13 +112,18 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // AllowStaleRead returns whether a stale read should be allowed
 //
 // AllowStaleRead implements structs.RPCInfo
-func (w WriteRequest) AllowStaleRead() bool {
+func (w *WriteRequest) AllowStaleRead() bool {
 	return false
 }
 
 // HasTimedOut implements structs.RPCInfo
-func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+func (w *WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+// Timeout implements structs.RPCInfo
+func (w *WriteRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 // IsRead implements structs.RPCInfo
@@ -302,52 +149,44 @@ func (r *ReadRequest) SetTokenSecret(token string) {
 
 // HasTimedOut implements structs.RPCInfo
 func (r *ReadRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+	return time.Since(start) > r.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime), nil
+}
+
+// Timeout implements structs.RPCInfo
+func (r *ReadRequest) Timeout(rpcHoldTimeout, _, _ time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 // RequestDatacenter implements structs.RPCInfo
-func (td TargetDatacenter) RequestDatacenter() string {
+func (td *TargetDatacenter) RequestDatacenter() string {
 	return td.Datacenter
 }
 
-func QueryMetaToStructs(s *QueryMeta) (structs.QueryMeta, error) {
-	var t structs.QueryMeta
-	if s == nil {
-		return t, nil
-	}
-	t.Index = s.Index
-	lastContact, err := pbutil.DurationFromProto(&s.LastContact)
-	if err != nil {
-		return t, err
-	}
-	t.LastContact = lastContact
-	t.KnownLeader = s.KnownLeader
-	t.ConsistencyLevel = s.ConsistencyLevel
-	return t, nil
+// SetLastContact is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
+	q.LastContact = structs.DurationToProto(lastContact)
 }
 
-func NewQueryMetaFromStructs(s structs.QueryMeta) (*QueryMeta, error) {
-	var t QueryMeta
-	t.Index = s.Index
-	t.LastContact = *pbutil.DurationToProto(s.LastContact)
-	t.KnownLeader = s.KnownLeader
-	t.ConsistencyLevel = s.ConsistencyLevel
-	return &t, nil
+// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
+	q.KnownLeader = knownLeader
 }
 
-func RaftIndexToStructs(s *RaftIndex) structs.RaftIndex {
-	if s == nil {
-		return structs.RaftIndex{}
-	}
-	return structs.RaftIndex{
-		CreateIndex: s.CreateIndex,
-		ModifyIndex: s.ModifyIndex,
-	}
+// SetIndex is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetIndex(index uint64) {
+	q.Index = index
 }
 
-func NewRaftIndexFromStructs(s structs.RaftIndex) *RaftIndex {
-	return &RaftIndex{
-		CreateIndex: s.CreateIndex,
-		ModifyIndex: s.ModifyIndex,
-	}
+// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
+	q.ConsistencyLevel = consistencyLevel
+}
+
+func (q *QueryMeta) GetBackend() structs.QueryBackend {
+	return structs.QueryBackend(0)
+}
+
+// SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
+	q.ResultsFilteredByACLs = v
 }

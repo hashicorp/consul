@@ -3,7 +3,10 @@
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func testIndexerTableACLPolicies() map[string]indexerTestCase {
 	obj := &structs.ACLPolicy{
@@ -177,7 +180,7 @@ func testIndexerTableACLBindingRules() map[string]indexerTestCase {
 func testIndexerTableACLAuthMethods() map[string]indexerTestCase {
 	obj := &structs.ACLAuthMethod{
 		Name:           "ThEAuthMethod",
-		EnterpriseMeta: structs.EnterpriseMeta{},
+		EnterpriseMeta: acl.EnterpriseMeta{},
 	}
 	encodedName := []byte{0x74, 0x68, 0x65, 0x61, 0x75, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x0}
 	return map[string]indexerTestCase{
