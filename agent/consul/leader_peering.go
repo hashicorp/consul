@@ -91,7 +91,8 @@ func (s *Server) emitPeeringMetrics(ctx context.Context, logger hclog.Logger, ti
 				esc := status.GetExportedServicesCount()
 				part := peer.Partition
 				labels := []metrics.Label{
-					{Name: "peering", Value: peer.Name},
+					{Name: "peer_name", Value: peer.Name},
+					{Name: "peer_id", Value: peer.ID},
 				}
 				if part != "" {
 					labels = append(labels, metrics.Label{Name: "partition", Value: part})

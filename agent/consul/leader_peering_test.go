@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -978,8 +979,8 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 
 		p2 := &pbpeering.Peering{
 			ID:                  s2PeerID2,
-			Name:                "my-peer-s3", // doesn't much matter what these values are
-			PeerID:              token.PeerID,
+			Name:                "my-peer-s3",
+			PeerID:              token.PeerID, // doesn't much matter what these values are
 			PeerCAPems:          token.CA,
 			PeerServerName:      token.ServerName,
 			PeerServerAddresses: token.ServerAddresses,
@@ -1026,19 +1027,18 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		intervals := sink.Data()
 		require.Len(r, intervals, 1)
-
 		intv := intervals[0]
-		require.Len(r, intv.Gauges, 2)
 
-		metric1, ok := intv.Gauges["consul.peering.test.consul.peering.exported_services;peering=my-peer-s1"]
-		require.True(r, ok, "did not find the key"+
-			" \"consul.peering.test.consul.peering.exported_services;peering=my-peer-s1\"")
+		// the keys for a Gauge value look like: {serviceName}.{prefix}.{key_name};{label=value};...
+		keyMetric1 := fmt.Sprintf("consul.peering.test.consul.peering.exported_services;peer_name=my-peer-s1;peer_id=%s", s2PeerID1)
+		metric1, ok := intv.Gauges[keyMetric1]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric1))
 
 		require.Equal(r, float32(3), metric1.Value) // for a, b, c services
 
-		metric2, ok2 := intv.Gauges["consul.peering.test.consul.peering.exported_services;peering=my-peer-s3"]
-		require.True(r, ok2, "did not find the key"+
-			" \"consul.peering.test.consul.peering.exported_services;peering=my-peer-s3\"")
+		keyMetric2 := fmt.Sprintf("consul.peering.test.consul.peering.exported_services;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		metric2, ok := intv.Gauges[keyMetric2]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
 
 		require.Equal(r, float32(2), metric2.Value) // for d, e services
 	})
