@@ -108,6 +108,40 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	require.Equal(t, expect, peers[0])
 }
 
+func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
+	dir := testutil.TempDir(t, "consul")
+	signer, _, _ := tlsutil.GeneratePrivateKey()
+	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	cafile := path.Join(dir, "cacert.pem")
+	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
+
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(c *consul.Config) {
+		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
+		c.TLSConfig.GRPC.CAFile = cafile
+		c.DataDir = dir
+	})
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	externalAddress := "32.1.2.3:8502"
+	// happy path
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: []string{externalAddress}}
+	resp, err := client.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	token := &structs.PeeringToken{}
+	require.NoError(t, json.Unmarshal(tokenJSON, token))
+	require.Equal(t, "server.dc1.consul", token.ServerName)
+	require.Len(t, token.ServerAddresses, 1)
+	require.Equal(t, externalAddress, token.ServerAddresses[0])
+	require.Equal(t, []string{ca}, token.CA)
+}
+
 func TestPeeringService_Establish(t *testing.T) {
 	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
 	validTokenJSON, _ := json.Marshal(&validToken)
