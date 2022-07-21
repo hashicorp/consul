@@ -1676,7 +1676,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		t.Helper()
 		assert.Len(t, reply.Nodes, n)
-		assert.Equal(t, acceptingPeerName, reply.Datacenter)
+		assert.Equal(t, "", reply.Datacenter)
 		assert.Equal(t, acceptingPeerName, reply.PeerName)
 		assert.Equal(t, 2, reply.Failovers)
 		assert.Equal(t, query.Query.Service.Service, reply.Service)

@@ -573,7 +573,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	// Stamp the result with its this datacenter or peer.
 	if peerName := query.Service.PeerName; peerName != "" {
 		reply.PeerName = peerName
-		reply.Datacenter = peerName
+		reply.Datacenter = ""
 	} else {
 		reply.Datacenter = p.srv.config.Datacenter
 	}
