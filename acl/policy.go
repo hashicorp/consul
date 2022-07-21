@@ -314,7 +314,7 @@ func parseCurrent(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Poli
 	return p, nil
 }
 
-// TODO(ACL-Legacy-Compat): remove
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func parseLegacy(rules string, conf *Config) (*Policy, error) {
 	p := &Policy{}
 
