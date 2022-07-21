@@ -18,10 +18,10 @@ Gateway instances derive their configurations from the [`GatewayClass`](/docs/ap
 Specify the following parameters to declare a Gateway:
 
 |  Parameter  |                                                                         Description                                                                        | Required |
-|:-----------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------:|
-| `kind`        | Specifies the type of configuration object. The value should always be Gateway                                                                             | Required |
-| `description` | Human-readable string for describing the purpose of the Gateway.                                                                                           | Optional |
-| `version `    | Specifies the Kubernetes API version. The value should always be gateway.networking.k8s.io/v1alpha2                                                        | Required |
+| -----------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------:|
+| `kind`        | Specifies the type of configuration object. The value should always be `Gateway`.                                                                             | Required |
+| `description` | Human-readable string that describes the purpose of the `Gateway`.                                                                                           | Optional |
+| `version `    | Specifies the Kubernetes API version. The value should always be `gateway.networking.k8s.io/v1alpha2`                                                        | Required |
 | `scope`       | Specifies the effective scope of the Gateway. The value should always be namespaced.                                                                       | Required |
 | `fields`      | Specifies the configurations for the Gateway. The fields are listed in the Configuration model. Details for each field are described in the Specification. | Required |
 
