@@ -50,6 +50,7 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
 <Tabs>
+
 <Tab heading="Helm">
 
   ```shell-session
@@ -76,7 +77,10 @@ $ brew install hashicorp/tap/consul-k8s
 $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
 ```
 </Tab>
+
 </Tabs>
+
+
 <!--
     ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
     Only Reference style links should be added below this comment
