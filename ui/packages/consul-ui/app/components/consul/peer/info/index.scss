@@ -1,4 +1,4 @@
-.consul-service-peer-info {
+.consul-peer-info {
   background: rgb(var(--gray-100));
   color: rgb(var(--gray-600));
   padding: 0px 8px;
@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
 
-  .consul-service-peer-info__description {
+  .consul-peer-info__description {
     margin-left: 4px;
   }
 }
