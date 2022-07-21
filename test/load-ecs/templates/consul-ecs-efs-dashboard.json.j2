@@ -1,0 +1,293 @@
+{
+    "widgets": [
+        {
+            "height": 6,
+            "width": 8,
+            "y": 0,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "CPU Utilization",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ { "id": "expr1m0", "label": "${cluster_name}", "expression": "mm1m0 * 100 / mm0m0", "stat": "Average" } ],
+                    [ "ECS/ContainerInsights", "CpuReserved", "ClusterName", "${cluster_name}", { "id": "mm0m0", "visible": false, "stat": "Sum" } ],
+                    [ ".", "CpuUtilized", ".", ".", { "id": "mm1m0", "visible": false, "stat": "Sum" } ]
+                ],
+                "liveData": false,
+                "period": 60,
+                "yAxis": {
+                    "left": {
+                        "min": 0,
+                        "showUnits": false,
+                        "label": "Percent"
+                    }
+                }
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 0,
+            "x": 8,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "Memory Utilization",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ { "id": "expr1m0", "label": "${cluster_name}", "expression": "mm1m0 * 100 / mm0m0", "stat": "Average" } ],
+                    [ "ECS/ContainerInsights", "MemoryReserved", "ClusterName", "${cluster_name}", { "id": "mm0m0", "visible": false, "stat": "Sum" } ],
+                    [ ".", "MemoryUtilized", ".", ".", { "id": "mm1m0", "visible": false, "stat": "Sum" } ]
+                ],
+                "liveData": false,
+                "period": 60,
+                "yAxis": {
+                    "left": {
+                        "min": 0,
+                        "showUnits": false,
+                        "label": "Percent"
+                    }
+                }
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 0,
+            "x": 16,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "Network",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ { "id": "expr1m0", "label": "${cluster_name}", "expression": "mm0m0 + mm1m0", "stat": "Average" } ],
+                    [ "ECS/ContainerInsights", "NetworkRxBytes", "ClusterName", "${cluster_name}", { "id": "mm0m0", "visible": false, "stat": "Average" } ],
+                    [ ".", "NetworkTxBytes", ".", ".", { "id": "mm1m0", "visible": false, "stat": "Average" } ]
+                ],
+                "liveData": false,
+                "period": 60,
+                "yAxis": {
+                    "left": {
+                        "showUnits": false,
+                        "label": "Bytes/Second"
+                    }
+                }
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 6,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "Container Instance Count",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ "ECS/ContainerInsights", "ContainerInstanceCount", "ClusterName", "${cluster_name}", { "stat": "Average" } ]
+                ],
+                "liveData": false,
+                "period": 60
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 6,
+            "x": 16,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "Task Count",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ "ECS/ContainerInsights", "TaskCount", "ClusterName", "${cluster_name}", { "stat": "Average" } ]
+                ],
+                "liveData": false,
+                "period": 60
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 6,
+            "x": 8,
+            "type": "metric",
+            "properties": {
+                "region": "${aws_region}",
+                "title": "Service Count",
+                "legend": {
+                    "position": "bottom"
+                },
+                "timezone": "Local",
+                "metrics": [
+                    [ "ECS/ContainerInsights", "ServiceCount", "ClusterName", "${cluster_name}", { "stat": "Average" } ]
+                ],
+                "liveData": false,
+                "period": 60
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 12,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ { "expression": "(m1/1048576)/PERIOD(m1)", "label": "Expression1", "id": "e1", "visible": false } ],
+                    [ { "expression": "m2/1048576", "label": "Expression2", "id": "e2", "visible": false } ],
+                    [ { "expression": "e2-e1", "label": "Expression3", "id": "e3", "visible": false } ],
+                    [ { "expression": "((e1)*100)/(e2)", "label": "Throughput utilization (%)", "id": "e4" } ],
+                    [ "AWS/EFS", "MeteredIOBytes", "FileSystemId", "${efs_filesystem_id}", { "id": "m1", "period": 60, "visible": false } ],
+                    [ ".", "PermittedThroughput", ".", ".", { "id": "m2", "period": 60, "visible": false } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${aws_region}",
+                "stat": "Sum",
+                "period": 60,
+                "title": "Throughput utilization (%)",
+                "annotations": {
+                    "horizontal": [
+                        {
+                            "visible": true,
+                            "color": "#d13212",
+                            "label": "Utilization warning",
+                            "value": 75,
+                            "fill": "above",
+                            "yAxis": "left"
+                        }
+                    ]
+                },
+                "yAxis": {
+                    "left": {
+                        "max": 100
+                    }
+                }
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 12,
+            "x": 8,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ { "expression": "(m2*100)/m1", "label": "Data write", "id": "e2" } ],
+                    [ { "expression": "(m3*100)/m1", "label": "Data read", "id": "e3" } ],
+                    [ { "expression": "(m4*100)/m1", "label": "Metadata", "id": "e4" } ],
+                    [ "AWS/EFS", "TotalIOBytes", "FileSystemId", "${efs_filesystem_id}", { "id": "m1", "visible": false } ],
+                    [ ".", "DataWriteIOBytes", ".", ".", { "id": "m2", "visible": false } ],
+                    [ ".", "DataReadIOBytes", ".", ".", { "id": "m3", "visible": false } ],
+                    [ ".", "MetadataIOBytes", ".", ".", { "id": "m4", "visible": false } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${aws_region}",
+                "stat": "SampleCount",
+                "period": 60,
+                "title": "IOPS by type"
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 18,
+            "x": 16,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ { "expression": "(m2*100)/m1", "label": "Data write", "id": "e2" } ],
+                    [ { "expression": "(m3*100)/m1", "label": "Data read", "id": "e3" } ],
+                    [ { "expression": "(m4*100)/m1", "label": "Metadata", "id": "e4" } ],
+                    [ "AWS/EFS", "TotalIOBytes", "FileSystemId", "${efs_filesystem_id}", { "id": "m1", "visible": false } ],
+                    [ ".", "DataWriteIOBytes", ".", ".", { "id": "m2", "visible": false } ],
+                    [ ".", "DataReadIOBytes", ".", ".", { "id": "m3", "visible": false } ],
+                    [ ".", "MetadataIOBytes", ".", ".", { "id": "m4", "visible": false } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${aws_region}",
+                "stat": "Sum",
+                "period": 60,
+                "title": "Throughput by type"
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 18,
+            "x": 0,
+            "type": "metric",
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/EFS", "PercentIOLimit", "FileSystemId", "${efs_filesystem_id}", { "label": "${efs_filesystem_id}" } ]
+                ],
+                "region": "${aws_region}",
+                "title": "Percent IO limit"
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 12,
+            "x": 16,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ "AWS/EFS", "ClientConnections", "FileSystemId", "${efs_filesystem_id}", { "label": "${efs_filesystem_id}" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${aws_region}",
+                "stat": "Sum",
+                "period": 60,
+                "title": "Client connections"
+            }
+        },
+        {
+            "height": 6,
+            "width": 8,
+            "y": 18,
+            "x": 8,
+            "type": "metric",
+            "properties": {
+                "metrics": [
+                    [ "AWS/EFS", "StorageBytes", "StorageClass", "Total", "FileSystemId", "${efs_filesystem_id}", { "id": "mTotal", "visible": false } ],
+                    [ { "expression": "IF(mTotal > 1000, IF(mTotal > 1000000, IF(mTotal > 1000000000, IF(mTotal > 1000000000000, IF(mTotal > 1000000000000000, 1, mTotal*0.9094947), mTotal*0.9313226), mTotal*0.9536743), mTotal*0.9765625), mTotal)", "label": "Total" } ],
+                    [ "AWS/EFS", "StorageBytes", "StorageClass", "Standard", "FileSystemId", "${efs_filesystem_id}", { "id": "mStandard", "visible": false } ],
+                    [ { "expression": "IF(mStandard > 1000, IF(mStandard > 1000000, IF(mStandard > 1000000000, IF(mStandard > 1000000000000, IF(mStandard > 1000000000000000, 1, mStandard*0.9094947), mStandard*0.9313226), mStandard*0.9536743), mStandard*0.9765625), mStandard)", "label": "Standard" } ],
+                    [ "AWS/EFS", "StorageBytes", "StorageClass", "IA", "FileSystemId", "${efs_filesystem_id}", { "id": "mIA", "visible": false } ],
+                    [ { "expression": "IF(mIA > 1000, IF(mIA > 1000000, IF(mIA > 1000000000, IF(mIA > 1000000000000, IF(mIA > 1000000000000000, 1, mIA*0.9094947), mIA*0.9313226), mIA*0.9536743), mIA*0.9765625), mIA)", "label": "Standard-IA" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${aws_region}",
+                "title": "Storage bytes"
+            }
+        }
+    ]
+}
