@@ -47,11 +47,37 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 
 </CodeBlockConfig>
 
-1. Install Consul API Gateway using the standard Consul Helm chart and specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
+1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
+
+
+## Install {.tabset}
+
+### Helm
+
+  ```shell-session
+$ helm repo add hashicorp https://helm.releases.hashicorp.com
+```
 
 ```shell-session
 $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
  ```
+
+### Consul K8s CLI (Mac Only)
+
+Note: You can review the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to learn more about additional settings.
+
+```shell-session
+$ brew tap hashicorp/tap
+```
+
+```shell-session
+$ brew install hashicorp/tap/consul-k8s
+```
+
+```shell-session
+$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+```
+## {-}
 
 <!--
     ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
