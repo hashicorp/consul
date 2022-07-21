@@ -115,12 +115,11 @@ as |sort filters items|}}
                 </BlockSlot>
                 <BlockSlot @name="body">
                   {{#if (gt items.length 0)}}
-                    No peers where found matching that search, or you may not have access to view the peers you are searching for.
+                    <p>No peers where found matching that search, or you may not have access to view the peers you are searching for.</p>
                   {{else}}
-                    Peering allows an admin partition in one datacenter to communicate with a partition in a different
-                    datacenter. There don't seem to be any peers for this admin partition, or you may not have
-                    <code>peering:read</code> permissions to
-                    access this view.
+                    <p>
+                      Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {{if (can "use partitions") "admin partition" "datacenter"}}, or you may not have the <code>peering:read</code> permissions to access this view.
+                    </p>
                   {{/if}}
                 </BlockSlot>
                 <BlockSlot @name="actions">
