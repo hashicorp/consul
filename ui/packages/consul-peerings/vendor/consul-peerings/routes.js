@@ -12,7 +12,7 @@
             state: 'state',
             searchproperty: {
               as: 'searchproperty',
-              empty: [['Name']],
+              empty: [['Name', 'ID']],
             },
             search: {
               as: 'filter',
