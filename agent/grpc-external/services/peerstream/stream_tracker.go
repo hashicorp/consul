@@ -75,13 +75,23 @@ func (t *Tracker) connectedLocked(id string) (*MutableStatus, error) {
 	return status, nil
 }
 
-// Disconnected ensures that if a peer id's stream status is tracked, it is marked as disconnected.
-func (t *Tracker) Disconnected(id string) {
+// DisconnectedGracefully marks the peer id's stream status as disconnected gracefully.
+func (t *Tracker) DisconnectedGracefully(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if status, ok := t.streams[id]; ok {
-		status.TrackDisconnected()
+		status.TrackDisconnectedGracefully()
+	}
+}
+
+// DisconnectedDueToError marks the peer id's stream status as disconnected due to an error.
+func (t *Tracker) DisconnectedDueToError(id string, error string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if status, ok := t.streams[id]; ok {
+		status.TrackDisconnectedDueToError(error)
 	}
 }
 
@@ -135,6 +145,10 @@ type Status struct {
 	// Connected is true when there is an open stream for the peer.
 	Connected bool
 
+	// DisconnectErrorMessage tracks the error that caused the stream to disconnect non-gracefully.
+	// If the stream is connected or it disconnected gracefully it will be empty.
+	DisconnectErrorMessage string
+
 	// If the status is not connected, DisconnectTime tracks when the stream was closed. Else it's zero.
 	DisconnectTime time.Time
 
@@ -153,8 +167,11 @@ type Status struct {
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
-	// LastReceiveSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
-	LastReceiveSuccess time.Time
+	// LastReceiveHeartbeat tracks when we last received a heartbeat from our peer.
+	LastReceiveHeartbeat time.Time
+
+	// LastReceiveResourceSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
+	LastReceiveResourceSuccess time.Time
 
 	// LastReceiveError tracks either:
 	// - The time we failed to store a resource replicated FROM the peer.
@@ -208,9 +225,17 @@ func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Unlock()
 }
 
-func (s *MutableStatus) TrackReceiveSuccess() {
+// TrackReceiveResourceSuccess tracks receiving a replicated resource.
+func (s *MutableStatus) TrackReceiveResourceSuccess() {
 	s.mu.Lock()
-	s.LastReceiveSuccess = s.timeNow().UTC()
+	s.LastReceiveResourceSuccess = s.timeNow().UTC()
+	s.mu.Unlock()
+}
+
+// TrackReceiveHeartbeat tracks receiving a heartbeat from our peer.
+func (s *MutableStatus) TrackReceiveHeartbeat() {
+	s.mu.Lock()
+	s.LastReceiveHeartbeat = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
@@ -232,13 +257,27 @@ func (s *MutableStatus) TrackConnected() {
 	s.mu.Lock()
 	s.Connected = true
 	s.DisconnectTime = time.Time{}
+	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }
 
-func (s *MutableStatus) TrackDisconnected() {
+// TrackDisconnectedGracefully tracks when the stream was disconnected in a way we expected.
+// For example, we got a terminated message, or we terminated the stream ourselves.
+func (s *MutableStatus) TrackDisconnectedGracefully() {
 	s.mu.Lock()
 	s.Connected = false
 	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectErrorMessage = ""
+	s.mu.Unlock()
+}
+
+// TrackDisconnectedDueToError tracks when the stream was disconnected due to an error.
+// For example the heartbeat timed out, or we couldn't send into the stream.
+func (s *MutableStatus) TrackDisconnectedDueToError(error string) {
+	s.mu.Lock()
+	s.Connected = false
+	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectErrorMessage = error
 	s.mu.Unlock()
 }
 

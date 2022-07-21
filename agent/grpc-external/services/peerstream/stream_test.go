@@ -423,7 +423,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var lastRecvSuccess time.Time
+	var lastRecvResourceSuccess time.Time
 
 	testutil.RunStep(t, "response applied locally", func(t *testing.T) {
 		resp := &pbpeerstream.ReplicationMessage{
@@ -437,7 +437,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 				},
 			},
 		}
-		lastRecvSuccess = it.FutureNow(1)
+		lastRecvResourceSuccess = it.FutureNow(1)
 		err := client.Send(resp)
 		require.NoError(t, err)
 
@@ -475,11 +475,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:          true,
-			LastAck:            lastSendSuccess,
-			LastNack:           lastNack,
-			LastNackMessage:    lastNackMsg,
-			LastReceiveSuccess: lastRecvSuccess,
+			Connected:                  true,
+			LastAck:                    lastSendSuccess,
+			LastNack:                   lastNack,
+			LastNackMessage:            lastNackMsg,
+			LastReceiveResourceSuccess: lastRecvResourceSuccess,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -534,13 +534,46 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:               true,
-			LastAck:                 lastSendSuccess,
-			LastNack:                lastNack,
-			LastNackMessage:         lastNackMsg,
-			LastReceiveSuccess:      lastRecvSuccess,
-			LastReceiveError:        lastRecvError,
-			LastReceiveErrorMessage: lastRecvErrorMsg,
+			Connected:                  true,
+			LastAck:                    lastSendSuccess,
+			LastNack:                   lastNack,
+			LastNackMessage:            lastNackMsg,
+			LastReceiveResourceSuccess: lastRecvResourceSuccess,
+			LastReceiveError:           lastRecvError,
+			LastReceiveErrorMessage:    lastRecvErrorMsg,
+			ImportedServices: map[string]struct{}{
+				api.String(): {},
+			},
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			status, ok := srv.StreamStatus(peerID)
+			require.True(r, ok)
+			require.Equal(r, expect, status)
+		})
+	})
+
+	var lastReceiveHeartbeat time.Time
+	testutil.RunStep(t, "receives heartbeat", func(t *testing.T) {
+		resp := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
+				Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
+			},
+		}
+		lastReceiveHeartbeat = it.FutureNow(1)
+		err := client.Send(resp)
+		require.NoError(t, err)
+		api := structs.NewServiceName("api", nil)
+
+		expect := Status{
+			Connected:                  true,
+			LastAck:                    lastSendSuccess,
+			LastNack:                   lastNack,
+			LastNackMessage:            lastNackMsg,
+			LastReceiveResourceSuccess: lastRecvResourceSuccess,
+			LastReceiveError:           lastRecvError,
+			LastReceiveErrorMessage:    lastRecvErrorMsg,
+			LastReceiveHeartbeat:       lastReceiveHeartbeat,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -563,14 +596,16 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:               false,
-			LastAck:                 lastSendSuccess,
-			LastNack:                lastNack,
-			LastNackMessage:         lastNackMsg,
-			DisconnectTime:          disconnectTime,
-			LastReceiveSuccess:      lastRecvSuccess,
-			LastReceiveError:        lastRecvError,
-			LastReceiveErrorMessage: lastRecvErrorMsg,
+			Connected:                  false,
+			DisconnectErrorMessage:     "stream ended unexpectedly",
+			LastAck:                    lastSendSuccess,
+			LastNack:                   lastNack,
+			LastNackMessage:            lastNackMsg,
+			DisconnectTime:             disconnectTime,
+			LastReceiveResourceSuccess: lastRecvResourceSuccess,
+			LastReceiveError:           lastRecvError,
+			LastReceiveErrorMessage:    lastRecvErrorMsg,
+			LastReceiveHeartbeat:       lastReceiveHeartbeat,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -868,8 +903,8 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 	})
 }
 
-// Test that when the client doesn't send a heartbeat in time, the stream is terminated.
-func TestStreamResources_Server_TerminatesOnHeartbeatTimeout(t *testing.T) {
+// Test that when the client doesn't send a heartbeat in time, the stream is disconnected.
+func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
@@ -905,10 +940,13 @@ func TestStreamResources_Server_TerminatesOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
+		disconnectTime := it.FutureNow(1)
 		retry.Run(t, func(r *retry.R) {
 			status, ok := srv.StreamStatus(peerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
+			require.Equal(r, "heartbeat timeout", status.DisconnectErrorMessage)
+			require.Equal(r, disconnectTime, status.DisconnectTime)
 		})
 	})
 }
