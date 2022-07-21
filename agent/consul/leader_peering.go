@@ -51,20 +51,6 @@ func (s *Server) runPeeringMetrics(ctx context.Context) error {
 	logger := s.logger.Named(logging.PeeringMetrics)
 	defaultMetrics := metrics.Default
 
-	retryLoopBackoff(ctx, func() error {
-		if err := s.emitPeeringMetrics(ctx, logger, ticker, defaultMetrics()); err != nil {
-			return err
-		}
-		return nil
-
-	}, func(err error) {
-		s.logger.Error("error emitting peering stream metrics", "error", err)
-	})
-
-	return nil
-}
-
-func (s *Server) emitPeeringMetrics(ctx context.Context, logger hclog.Logger, ticker *time.Ticker, metricsImpl *metrics.Metrics) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -75,33 +61,42 @@ func (s *Server) emitPeeringMetrics(ctx context.Context, logger hclog.Logger, ti
 			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
 			return nil
 		case <-ticker.C:
-			_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
-			if err != nil {
-				return err
-			}
-
-			for _, peer := range peers {
-				logger.Info("emitting metrics", "peer", peer.Name)
-
-				status, found := s.peerStreamServer.StreamStatus(peer.ID)
-				if !found {
-					logger.Trace("did not find status for", "peer", peer.Name)
-				}
-
-				esc := status.GetExportedServicesCount()
-				part := peer.Partition
-				labels := []metrics.Label{
-					{Name: "peer_name", Value: peer.Name},
-					{Name: "peer_id", Value: peer.ID},
-				}
-				if part != "" {
-					labels = append(labels, metrics.Label{Name: "partition", Value: part})
-				}
-
-				metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
+				s.logger.Error("error emitting peering stream metrics", "error", err)
 			}
 		}
 	}
+}
+
+func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peers {
+		logger.Info("emitting metrics for", "peer_name", peer.Name)
+
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if !found {
+			logger.Trace("did not find status for", "peer_name", peer.Name)
+			continue
+		}
+
+		esc := status.GetExportedServicesCount()
+		part := peer.Partition
+		labels := []metrics.Label{
+			{Name: "peer_name", Value: peer.Name},
+			{Name: "peer_id", Value: peer.ID},
+		}
+		if part != "" {
+			labels = append(labels, metrics.Label{Name: "partition", Value: part})
+		}
+
+		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+	}
+
+	return nil
 }
 
 func (s *Server) runPeeringSync(ctx context.Context) error {

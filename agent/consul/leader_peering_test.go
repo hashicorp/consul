@@ -1007,10 +1007,6 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
 	}
 
-	// the actual testing below:
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
 	// set up a metrics sink
 	sink := metrics.NewInmemSink(testContextTimeout, testContextTimeout)
 	cfg := metrics.DefaultConfig("consul.peering.test")
@@ -1018,11 +1014,8 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 	met, err := metrics.New(cfg, sink)
 	require.NoError(t, err)
 
-	// start emitting the metrics
-	go func() {
-		errM := s2.emitPeeringMetrics(ctx, s2.logger, ticker, met)
-		require.NoError(t, errM)
-	}()
+	errM := s2.emitPeeringMetricsOnce(s2.logger, met)
+	require.NoError(t, errM)
 
 	retry.Run(t, func(r *retry.R) {
 		intervals := sink.Data()
