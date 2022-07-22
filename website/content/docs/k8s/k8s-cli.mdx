@@ -130,8 +130,7 @@ This command will list proxies alongside their `Type`. Types of proxies include
 #### Example Commands
 
 Display all pods in the current Kubernetes namespace which run proxies managed
-by Consul. Note that `Sidecar` pods are pods which are running the proxy in a
-sidecar pattern and are services running in the mesh.
+by Consul.
 
 ```shell-session
 $ consul-k8s proxy list
@@ -149,9 +148,7 @@ frontend-676564547c-v2mfq	Sidecar
 ```
 
 Display all pods in the `consul` Kubernetes namespace which run proxies managed
-by Consul. Note that these pods are labeled with the type `Ingress Gateway`.
-They run a proxy managed by Consul for controlling ingress into the Kubernetes
-cluster.
+by Consul.
 
 ```shell-session
 $ consul-k8s proxy list -n consul
@@ -185,6 +182,171 @@ default  	frontend-676564547c-v2mfq              	Sidecar
 ```
 
 ### `proxy read`
+
+The `proxy read` command allows you to inspect the configuration of any Envoy proxies running on a given Pod.
+
+```shell-session
+$ consul-k8s proxy read <PODNAME> <OPTIONS>
+```
+
+The command takes a required value, `<PODNAME>`. This should be the full name
+of a Kubernetes Pod.
+
+The following options are available.
+
+| Flag                                           | Description                                                                                                                    | Default                                                                                                                | Required |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------- |
+| `-namespace`, `-n` &nbsp; &nbsp; &nbsp; &nbsp; | `String` The namespace where the target Pod can be found.                                                                      | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. | Optional |
+| `-output`, `-o`                                | `String` Output the Envoy configuration as 'table', 'json', or 'raw'.                                                          | `'table'`                                                                                                              | Optional |
+| `-clusters`                                    | `Boolean` Filter output to only show clusters.                                                                                 | `false`                                                                                                                | Optional |
+| `-endpoints`                                   | `Boolean` Filter output to only show endpoints.                                                                                | `false`                                                                                                                | Optional |
+| `-listeners`                                   | `Boolean` Filter output to only show listeners.                                                                                | `false`                                                                                                                | Optional |
+| `-routes`                                      | `Boolean` Filter output to only show routes.                                                                                   | `false`                                                                                                                | Optional |
+| `-secrets`                                     | `Boolean` Filter output to only show secrets.                                                                                  | `false`                                                                                                                | Optional |
+| `-address`                                     | `String` Filter clusters, endpoints, and listeners output to only those with endpoint addresses which contain the given value. | `""`                                                                                                                   | Optional |
+| `-fqdn`                                        | `String` Filter cluster output to only clusters with a fully qualified domain name which contains the given value.             | `""`                                                                                                                   | Optional |
+| `-port`                                        | `Int` Filter endpoints output to only endpoints with the given port number.                                                    | `-1` which does not filter by port                                                                                     | Optional |
+
+#### Example commands
+
+Get the configuration summary for the Envoy proxy running on the Pod
+`backend-658b679b45-d5xlb`.
+
+```shell-session
+$ consul-k8s proxy read backend-658b679b45-d5xlb
+```
+
+```
+Envoy configuration for backend-658b679b45-d5xlb in namespace default:
+
+==> Clusters (5)
+Name                	FQDN                                                                     	Endpoints          	Type        	Last Updated
+local_agent         	local_agent                                                              	192.168.79.187:8502	STATIC      	2022-05-13T04:22:39.553Z
+client              	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	                   	EDS         	2022-07-21T12:12:27.335Z
+frontend            	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	                   	EDS         	2022-07-21T12:12:27.242Z
+local_app           	local_app                                                                	127.0.0.1:8080     	STATIC      	2022-05-13T04:22:39.655Z
+original-destination	original-destination                                                     	                   	ORIGINAL_DST	2022-05-13T04:22:39.743Z
+
+
+==> Endpoints (6)
+Address:Port        	Cluster    	Weight	Status
+192.168.79.187:8502 	local_agent	1.00  	HEALTHY
+192.168.18.110:20000	           	1.00  	HEALTHY
+192.168.52.101:20000	           	1.00  	HEALTHY
+192.168.65.131:20000	           	1.00  	HEALTHY
+192.168.63.120:20000	           	1.00  	HEALTHY
+127.0.0.1:8080      	local_app  	1.00  	HEALTHY
+
+
+==> Listeners (2)
+Name             	Address:Port        	Direction	Filter Chain Match             	Filters                                                                     	Last Updated
+public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* -> local_app/                                                             	2022-07-21T12:12:42.148Z
+outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	-> client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
+                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	-> frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
+                 	                    	         	Any                            	-> original-destination
+
+
+==> Routes (1)
+Name           	Destination Cluster	Last Updated
+public_listener	local_app/         	2022-07-21T12:12:42.147Z
+
+
+==> Secrets (0)
+Name	Type	Last Updated
+
+```
+
+Get the Envoy configuration summary for all clusters with a fully qualified
+domain name which includes `"default"`. Display only clusters and listeners.
+
+```shell-session
+$ consul-k8s proxy read backend-658b679b45-d5xlb -fqdn default -clusters -listeners
+```
+
+```
+Envoy configuration for backend-658b679b45-d5xlb in namespace default:
+
+==> Filters applied
+    Fully qualified domain names containing: default
+
+==> Clusters (2)
+Name    	FQDN                                                                     	Endpoints	Type	Last Updated
+client  	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	         	EDS 	2022-07-21T12:12:27.335Z
+frontend	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	         	EDS 	2022-07-21T12:12:27.242Z
+
+
+==> Listeners (2)
+Name             	Address:Port        	Direction	Filter Chain Match             	Filters                                                                     	Last Updated
+public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* -> local_app/                                                             	2022-07-21T12:12:42.148Z
+outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	-> client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
+                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	-> frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
+                 	                    	         	Any                            	-> original-destination
+
+```
+
+Get the raw Envoy configuration dump for the Envoy proxy running on the Pod
+`backend-658b679b45-d5xlb`. The raw configuration will be output for each
+service as a JSON map. The [JQ command line tool](https://stedolan.github.io/jq/)
+can be used to index into the configuration for the service you want to inspect.
+
+See the [Envoy config dump documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/config_dump.proto)
+for more information on the structure of the config dump.
+
+```shell-session
+$ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
+```
+
+```
+{
+  "backend-658b679b45-d5xlb": {
+    "configs": [
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump",
+        "bootstrap": {
+          // [-- snip 1201 lines --]
+        },
+        "last_updated": "2022-05-13T04:22:39.488Z"
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.ClustersConfigDump",
+        "static_clusters": [
+          // [-- snip 42 lines --]
+        ],
+        "dynamic_active_clusters": [
+          // [-- snip 144 lines --]
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump",
+        "static_endpoint_configs": [
+          // [-- snip 29 lines --]
+        ],
+        "dynamic_endpoint_configs": [
+          // [-- snip 120 lines --]
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.ListenersConfigDump",
+        "dynamic_listeners": [
+          // [-- snip 216 lines --]
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump"
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.RoutesConfigDump",
+        "static_route_configs": [
+          // [-- snip 25 lines --]
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump"
+      }
+    ]
+  }
+}
+```
 
 
 ### `status`
