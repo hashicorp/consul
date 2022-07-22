@@ -22,7 +22,7 @@ Feature: dc / services / navigation
       dc: dc-1
     ---
     When I click service on the services
-    Then the url should match /:billing/dc-1/services/service-0
+    Then the url should match /dc-1/services/peer:billing:service-0
     And I click "[data-test-back]"
     Then the url should be /dc-1/services
 
