@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"path"
 	"testing"
@@ -237,54 +236,6 @@ func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
 	require.Error(t, errE)
 	require.Contains(t, errE.Error(), "cannot create a peering within the same partition (ENT) or cluster (OSS)")
 	require.Nil(t, respE)
-}
-
-func Test_validatePeeringInPartition(t *testing.T) {
-	type testcase struct {
-		A         []string
-		B         []string
-		expectErr bool
-	}
-
-	tcs := map[string]testcase{
-		"nil intersection": {
-			A:         []string{"1:1", "2:2", "3:3"},
-			B:         []string{"4:4", "5:5", "6:6"},
-			expectErr: false,
-		},
-		"A intersection": {
-			A:         []string{"1:1", "2:2", "3:3", "4:4"},
-			B:         []string{"4:4", "5:5", "6:6"},
-			expectErr: true,
-		},
-		"B intersection": {
-			A:         []string{"1:1", "2:2", "3:3"},
-			B:         []string{"4:4", "5:5", "6:6", "3:3"},
-			expectErr: true,
-		},
-		"full intersection": {
-			A:         []string{"1:1", "2:2", "3:3"},
-			B:         []string{"1:1", "2:2", "3:3"},
-			expectErr: true,
-		},
-	}
-
-	for name, tc := range tcs {
-		t.Run(name, func(t *testing.T) {
-			// shuffle inputs for nondeterministic behavior
-			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(tc.A), func(i, j int) { tc.A[i], tc.A[j] = tc.A[j], tc.A[i] })
-			rand.Shuffle(len(tc.B), func(i, j int) { tc.B[i], tc.B[j] = tc.B[j], tc.B[i] })
-
-			err := peering.ValidatePeeringInPartitionFunc(tc.A, tc.B)
-			if tc.expectErr {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), "cannot create a peering within the same partition (ENT) or cluster (OSS)")
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }
 
 func TestPeeringService_Read(t *testing.T) {
