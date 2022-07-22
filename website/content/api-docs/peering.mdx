@@ -30,7 +30,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `none`           |
+| `NO`             | `none`            | `none`        | `peering:write`  |
 
 ### JSON Request Body Schema
 
@@ -100,7 +100,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `none`           |
+| `NO`             | `none`            | `none`        | `peering:write`  |
 
 ### JSON Request Body Schema
 
@@ -168,9 +168,9 @@ The table below shows this endpoint's support for
 [agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
-| ---------------- | ----------------- | ------------- | ------------ |
-| `NO`             | `consistent`      | `none`        | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `consistent`      | `none`        | `peering:read` |
 
 ### Path Parameters
 
@@ -224,9 +224,9 @@ The table below shows this endpoint's support for
 [agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
-| ---------------- | ----------------- | ------------- | ------------- |
-| `NO`             | `none`            | `none`        | `none`        |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `peering:write`  |
 
 ### Path Parameters
 
@@ -276,9 +276,9 @@ The table below shows this endpoint's support for
 [agent caching](/api-docs/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
-| ---------------- | ----------------- | ------------- | ------------- |
-| `NO`             | `consistent`      | `none`        | `none`        |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `consistent`      | `none`        | `peering:read` |
 
 ### Sample Request
 
