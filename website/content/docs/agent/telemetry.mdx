@@ -690,11 +690,11 @@ agent. The table below describes the additional metrics exported by the proxy.
 ** Requirements: **
 * Consul 1.13.0+
 
-Consul 1.13 introduced [cluster peering](/docs/connect/cluster-peering). These metrics are only emitted by cluster leaders as of now.
+Consul 1.13 introduced [cluster peering](/docs/connect/cluster-peering). These metrics are only emitted by the leader server.
 
 | Metric                                | Description                                                           | Unit   | Type    |
 | ------------------------------------- | ----------------------------------------------------------------------| ------ | ------- |
-| `consul.peering.exported_services`    | Counts the number of exported services per peering in the partition.  | count  | gauge   |
+| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.  | count  | gauge   |
 
 ### Labels
 
@@ -702,4 +702,4 @@ Consul 1.13 introduced [cluster peering](/docs/connect/cluster-peering). These m
 | ------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
 | `peer_name`                           | The name of the peering on the reporting cluster/ leader.              | Any defined peer name in the cluster.      |
 | `peer_id`                             | The id of the peering on the reporting cluster/ leader.                | Any UUID.                                  |
-| `partition`                           | Enterprise only: Name of the partition that the peering is created in. | Any defined partition name in the cluster. |
+| `partition`                           | <EnterpriseAlert inline /> Name of the partition that the peering is created in. | Any defined partition name in the cluster. |
