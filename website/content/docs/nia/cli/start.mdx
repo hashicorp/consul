@@ -60,3 +60,4 @@ The `start` command supports the following options:
 | `-inspect` | Optional | boolean | Run CTS in Inspect mode to print the proposed state changes for all tasks, and then exit. No changes are applied in this mode. | false |
 | `-inspect-task` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string | Run CTS in Inspect mode to print the proposed state changes for the task, and then exit. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode. | none |
 | `-once` | Optional | boolean | Render templates and run tasks once. Does not start the process in long-running mode and disables buffer periods. | false |
+| `-reset-store` | Optional | boolean | <EnterpriseAlert inline /> Use only when running CTS in High Availability (HA) mode. When enabled, this CTS instance overwrites the state storage with its own state whenever it is elected cluster leader. | false |
