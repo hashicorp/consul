@@ -531,6 +531,81 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
 }
 
+func TestPeeringService_validatePeer(t *testing.T) {
+	dir := testutil.TempDir(t, "consul")
+	signer, _, _ := tlsutil.GeneratePrivateKey()
+	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	cafile := path.Join(dir, "cacert.pem")
+	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
+
+	s := newTestServer(t, func(c *consul.Config) {
+		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
+		c.TLSConfig.GRPC.CAFile = cafile
+		c.DataDir = dir
+	})
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	testutil.RunStep(t, "generate a token", func(t *testing.T) {
+		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
+		resp, err := client.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+		require.NotEmpty(t, resp)
+	})
+
+	testutil.RunStep(t, "generate a token with the same name", func(t *testing.T) {
+		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
+		resp, err := client.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+		require.NotEmpty(t, resp)
+	})
+
+	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
+	validTokenJSON, _ := json.Marshal(&validToken)
+	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
+
+	testutil.RunStep(t, "send an establish request for a different peer name", func(t *testing.T) {
+		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
+			PeerName:     "peer1-usw1",
+			PeeringToken: validTokenB64,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, resp)
+	})
+
+	testutil.RunStep(t, "send an establish request for a different peer name again", func(t *testing.T) {
+		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
+			PeerName:     "peer1-usw1",
+			PeeringToken: validTokenB64,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, resp)
+	})
+
+	testutil.RunStep(t, "attempt to generate token with the same name used as dialer", func(t *testing.T) {
+		req := pbpeering.GenerateTokenRequest{PeerName: "peer1-usw1"}
+		resp, err := client.GenerateToken(ctx, &req)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(),
+			"cannot create peering with name: \"peer1-usw1\"; there is already an established peering")
+		require.Nil(t, resp)
+	})
+
+	testutil.RunStep(t, "attempt to establish the with the same name used as acceptor", func(t *testing.T) {
+		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
+			PeerName:     "peerB",
+			PeeringToken: validTokenB64,
+		})
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(),
+			"cannot create peering with name: \"peerB\"; there is an existing peering expecting to be dialed")
+		require.Nil(t, resp)
+	})
+}
+
 // Test RPC endpoint responses when peering is disabled. They should all return an error.
 func TestPeeringService_PeeringDisabled(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
