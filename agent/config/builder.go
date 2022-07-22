@@ -1014,6 +1014,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		NodeMeta:                         c.NodeMeta,
 		NodeName:                         b.nodeName(c.NodeName),
 		ReadReplica:                      boolVal(c.ReadReplica),
+		PeeringEnabled:                   boolVal(c.Peering.Enabled),
 		PidFile:                          stringVal(c.PidFile),
 		PrimaryDatacenter:                primaryDatacenter,
 		PrimaryGateways:                  b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
