@@ -14,7 +14,7 @@ In this file you will find which Dockerfiles are needed to run the Envoy integra
 
 ## Pre-requisites
 
-After building and running the images and containers, you need to have pre-built the base images used by these Dockerfiles. See [pre-built images required in Windows](../../../../build-support-windows/docker.windows.md)
+After building and running the images and containers, you need to have pre-built the base images used by these Dockerfiles. See [pre-built images required in Windows](../../../../build-support-windows/BUILD-IMAGES.md)
 
 ## Dockerfile-bats-windows
 
@@ -64,7 +64,7 @@ This is the same command used in run-tests.sh
 You can test the built file by running the following command:
 
 ```shell
-docker run --rm -p 9901:9901 --name envoyproxy consul-envoy
+docker run --rm -p 9901:9901 --name envoyproxy consul-dev-envoy
 ```
 
 If everything works properly you should openning the browser and check that the Envoy server running on: `http://localhost:9901`
