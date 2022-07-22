@@ -21,6 +21,7 @@ import (
 type Store interface {
 	watch.StateStore
 
+	ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error)
 	FederationStateList(ws memdb.WatchSet) (uint64, []*structs.FederationState, error)
 	GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.EnterpriseMeta) (uint64, structs.GatewayServices, error)
 	IntentionTopology(ws memdb.WatchSet, target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision, intentionTarget structs.IntentionTargetType) (uint64, structs.ServiceList, error)
@@ -101,12 +102,6 @@ func CachePrepraredQuery(c *cache.Cache) proxycfg.PreparedQuery {
 // interface by sourcing data from the agent cache.
 func CacheResolvedServiceConfig(c *cache.Cache) proxycfg.ResolvedServiceConfig {
 	return &cacheProxyDataSource[*structs.ServiceConfigRequest]{c, cachetype.ResolvedServiceConfigName}
-}
-
-// CacheExportedPeeredServices satisfies the proxycfg.ExportedPeeredServices
-// interface by sourcing data from the agent cache.
-func CacheExportedPeeredServices(c *cache.Cache) proxycfg.ExportedPeeredServices {
-	return &cacheProxyDataSource[*structs.DCSpecificRequest]{c, cachetype.ExportedPeeredServicesName}
 }
 
 // cacheProxyDataSource implements a generic wrapper around the agent cache to
