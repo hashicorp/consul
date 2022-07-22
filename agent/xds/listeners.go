@@ -293,12 +293,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		// TODO(peering): if we replicated service metadata separately from the
-		// instances we wouldn't have to flip/flop this cluster name like this.
-		clusterName := peerMeta.PrimarySNI()
-		if clusterName == "" {
-			clusterName = uid.EnvoyID()
+		tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		if !ok {
+			// this should never happen since we loop through upstreams with
+			// set trust bundles
+			return nil, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 		}
+
+		clusterName := generatePeeredClusterName(uid, tbs)
 
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {

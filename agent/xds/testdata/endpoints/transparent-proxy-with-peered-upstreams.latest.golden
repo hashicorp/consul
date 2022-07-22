@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "clusterName": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -25,7 +25,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "db.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "clusterName": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -47,7 +47,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "no-endpoints?peer=peer-a",
+      "clusterName": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "endpoints": [
         {
 
