@@ -1404,7 +1404,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.custom_hash":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.full_target":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
-				"consul.destination.partition":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.peer":           {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "cloudpeer"},
 				"consul.destination.routing_type":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "external"},
 				"consul.destination.service":        {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
@@ -1423,7 +1422,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.custom_hash":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.full_target":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648"},
 				"consul.destination.namespace":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
-				"consul.destination.partition":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.peer":           {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "cloudpeer"},
 				"consul.destination.routing_type":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "external"},
 				"consul.destination.service":        {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
@@ -1448,7 +1446,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"db.cloudpeer.", "cloudpeer"},
 				"consul.upstream.namespace": {"db.cloudpeer.", ""},
-				"consul.upstream.partition": {"db.cloudpeer.", ""},
 				"consul.upstream.service":   {"db.cloudpeer.", "db"},
 			},
 		},
@@ -1463,13 +1460,12 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp peered listener with namespace and partition",
-			stat: "tcp.upstream_peered.db.frontend.west.cloudpeer.downstream_cx_total",
+			name: "tcp peered listener with namespace",
+			stat: "tcp.upstream_peered.db.frontend.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
-				"consul.upstream.peer":      {"db.frontend.west.cloudpeer.", "cloudpeer"},
-				"consul.upstream.namespace": {"db.frontend.west.cloudpeer.", "frontend"},
-				"consul.upstream.partition": {"db.frontend.west.cloudpeer.", "west"},
-				"consul.upstream.service":   {"db.frontend.west.cloudpeer.", "db"},
+				"consul.upstream.peer":      {"db.frontend.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"db.frontend.cloudpeer.", "frontend"},
+				"consul.upstream.service":   {"db.frontend.cloudpeer.", "db"},
 			},
 		},
 		{
@@ -1488,7 +1484,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"web.cloudpeer.", "cloudpeer"},
 				"consul.upstream.namespace": {"web.cloudpeer.", ""},
-				"consul.upstream.partition": {"web.cloudpeer.", ""},
 				"consul.upstream.service":   {"web.cloudpeer.", "web"},
 			},
 		},
@@ -1503,13 +1498,12 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "http peered listener with namespace and partition",
-			stat: "http.upstream_peered.web.frontend.west.cloudpeer.downstream_cx_total",
+			name: "http peered listener with namespace",
+			stat: "http.upstream_peered.web.frontend.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
-				"consul.upstream.peer":      {"web.frontend.west.cloudpeer.", "cloudpeer"},
-				"consul.upstream.namespace": {"web.frontend.west.cloudpeer.", "frontend"},
-				"consul.upstream.partition": {"web.frontend.west.cloudpeer.", "west"},
-				"consul.upstream.service":   {"web.frontend.west.cloudpeer.", "web"},
+				"consul.upstream.peer":      {"web.frontend.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"web.frontend.cloudpeer.", "frontend"},
+				"consul.upstream.service":   {"web.frontend.cloudpeer.", "web"},
 			},
 		},
 	}

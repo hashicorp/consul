@@ -165,7 +165,7 @@
         "tag_name": "consul.destination.namespace"
       },
       {
-        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:([^.]+)\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:([^.]+)\\.)?[^.]+\\.internal[^.]*\\.[^.]+\\.consul\\.)",
         "tag_name": "consul.destination.partition"
       },
       {
@@ -173,7 +173,7 @@
         "tag_name": "consul.destination.datacenter"
       },
       {
-        "regex": "^cluster\\.((?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.external\\.[^.]+\\.consul\\.)",
+        "regex": "^cluster\\.([^.]+\\.(?:[^.]+\\.)?([^.]+)\\.external\\.[^.]+\\.consul\\.)",
         "tag_name": "consul.destination.peer"
       },
       {
@@ -201,7 +201,7 @@
         "tag_name": "consul.upstream.datacenter"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream_peered\\.([^.]+(?:\\.[^.]+)?(?:\\.[^.]+)?\\.([^.]+)\\.)",
+        "regex": "^(?:tcp|http)\\.upstream_peered\\.([^.]+(?:\\.[^.]+)?\\.([^.]+)\\.)",
         "tag_name": "consul.upstream.peer"
       },
       {
@@ -209,7 +209,7 @@
         "tag_name": "consul.upstream.namespace"
       },
       {
-        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
         "tag_name": "consul.upstream.partition"
       },
       {

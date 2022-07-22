@@ -304,10 +304,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				clusterName: clusterName,
-				filterName: fmt.Sprintf("%s.%s.%s.%s",
+				filterName: fmt.Sprintf("%s.%s.%s",
 					upstreamCfg.DestinationName,
 					upstreamCfg.DestinationNamespace,
-					upstreamCfg.DestinationPartition,
 					upstreamCfg.DestinationPeer),
 				routeName:  uid.EnvoyID(),
 				protocol:   cfg.Protocol,
@@ -335,10 +334,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			routeName:   uid.EnvoyID(),
 			clusterName: clusterName,
-			filterName: fmt.Sprintf("%s.%s.%s.%s",
+			filterName: fmt.Sprintf("%s.%s.%s",
 				uid.Name,
 				uid.NamespaceOrDefault(),
-				uid.PartitionOrDefault(),
 				uid.Peer),
 			protocol:   cfg.Protocol,
 			useRDS:     false,
