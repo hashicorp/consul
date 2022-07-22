@@ -128,7 +128,7 @@ as |item|}}
       <AppView>
           <BlockSlot @name="breadcrumbs">
               <ol>
-                  <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
+                  <li><a href={{href-to 'dc.services'}}>All Services</a></li>
                   <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
               </ol>
           </BlockSlot>
@@ -147,7 +147,7 @@ as |item|}}
           <BlockSlot @name="nav">
             <dl>
               <dt>Service Name</dt>
-              <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
+              <dd><a href="{{href-to 'dc.services.show' item.SlugWithPeer}}">{{item.Service.Service}}</a></dd>
             </dl>
             <dl>
               <dt>Node Name</dt>

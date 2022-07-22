@@ -6,6 +6,7 @@ import wildcard from 'consul-ui/utils/routing/wildcard';
 import { routes } from 'consul-ui/router';
 
 const isWildcard = wildcard(routes);
+const PEERINGS_IDENTIFIER_REGEX = /^peer:([a-zA-Z0-9-]*):(.*)/;
 
 class Outlets {
   constructor() {
@@ -65,7 +66,7 @@ export default class RoutletService extends Service {
   }
 
   exists(routeName) {
-    if(get(routes, routeName)) {
+    if (get(routes, routeName)) {
       return this.allowed(routeName);
     }
     return false;
@@ -120,6 +121,36 @@ export default class RoutletService extends Service {
     }
   }
 
+  /**
+   * `name`-parameter can contain a peering identifier - if they do we want to
+   * split the peering identifier out otherwise this is a noop
+   */
+  extractPeeringParamFromNameParam(params) {
+    const name = params['name'];
+
+    if (name) {
+      const peeringIdentifierMatch = name.match(PEERINGS_IDENTIFIER_REGEX);
+
+      if (peeringIdentifierMatch) {
+        const [_pid, peer, _name] = peeringIdentifierMatch;
+
+        return {
+          ...params,
+          peer,
+          name: _name,
+        };
+      }
+
+      return {
+        ...params,
+        peer: '',
+        name,
+      };
+    } else {
+      return params;
+    }
+  }
+
   paramsFor(name) {
     let outletParams = {};
     const outlet = outlets.get(name);
@@ -142,7 +173,10 @@ export default class RoutletService extends Service {
     // let queryParams = {};
     while ((parent = current.parent)) {
       routeParams = {
-        ...this.normalizeParamsFor(parent.name, parent.params),
+        ...this.normalizeParamsFor(
+          parent.name,
+          this.extractPeeringParamFromNameParam(parent.params)
+        ),
         ...routeParams,
       };
       // queryParams = {
@@ -158,7 +192,6 @@ export default class RoutletService extends Service {
       ...outletParams,
     };
   }
-
 
   // modelFor gets the model for Outlet specified by `name`, not the Route
   modelFor(name) {

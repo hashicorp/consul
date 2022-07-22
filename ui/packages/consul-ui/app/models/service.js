@@ -58,6 +58,17 @@ export default class Service extends Model {
 
   @attr() meta; // {}
 
+  @computed('Name', 'PeerName')
+  get SlugWithPeer() {
+    const { Name, PeerName } = this;
+
+    if (PeerName) {
+      return `peer:${PeerName}:${Name}`;
+    }
+
+    return Name;
+  }
+
   @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
   get ChecksTotal() {
     return this.ChecksPassing + this.ChecksWarning + this.ChecksCritical;

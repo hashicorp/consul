@@ -10,11 +10,11 @@ as |proxies|}}
 as |item index|>
   <BlockSlot @name="header">
     {{#if (eq @routeName "dc.services.show")}}
-      <a data-test-service-name href={{href-to @routeName item.Service.Service}}>
+      <a data-test-service-name href={{href-to @routeName item.ServiceSlugWithPeer}}>
         {{item.Service.ID}}
       </a>
     {{else}}
-      <a data-test-service-name href={{href-to @routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
+      <a data-test-service-name href={{href-to @routeName item.ServiceSlugWithPeer item.Node.Node (or item.Service.ID item.Service.Service)}}>
         {{item.Service.ID}}
       </a>
     {{/if}}

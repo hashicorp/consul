@@ -52,6 +52,17 @@ export default class ServiceInstance extends Model {
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
 
+  @computed('Service.{Service,PeerName}')
+  get ServiceSlugWithPeer() {
+    const { Service: Name, PeerName } = this.Service;
+
+    if (PeerName) {
+      return `peer:${PeerName}:${Name}`;
+    }
+
+    return Name;
+  }
+
   @computed('Service.Meta')
   get ExternalSources() {
     const sources = Object.entries(this.Service.Meta || {})

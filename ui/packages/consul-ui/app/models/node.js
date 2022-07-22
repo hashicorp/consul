@@ -2,6 +2,7 @@ import Model, { attr, hasMany } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { filter } from '@ember/object/computed';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
+import replace from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -11,7 +12,7 @@ export default class Node extends Model {
   @attr('string') ID;
 
   @attr('string') Datacenter;
-  @attr('string') PeerName;
+  @replace('', undefined) @attr('string') PeerName;
   @attr('string') Partition;
   @attr('string') Address;
   @attr('string') Node;
@@ -33,6 +34,17 @@ export default class Node extends Model {
   @filter('Services', item => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
   @filter('Checks', item => item.ServiceID === '') NodeChecks;
+
+  @computed('Node', 'PeerName')
+  get SlugWithPeer() {
+    const { Node, PeerName } = this;
+
+    if (PeerName) {
+      return `peer:${PeerName}:${Node}`;
+    }
+
+    return Node;
+  }
 
   @computed('ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {

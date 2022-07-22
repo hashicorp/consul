@@ -10,9 +10,7 @@
   class={{if (is-href 'dc.peers' @dc.Name) 'is-active'}}
 >
     <a
-      href={{href-to 'dc.peers' @dc.Name
-        params=(hash peer=undefined)
-      }}
+      href={{href-to 'dc.peers' @dc.Name}}
     >
       Peers
     </a>
