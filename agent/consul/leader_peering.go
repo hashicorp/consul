@@ -75,8 +75,6 @@ func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metric
 	}
 
 	for _, peer := range peers {
-		logger.Info("emitting metrics for", "peer_name", peer.Name)
-
 		status, found := s.peerStreamServer.StreamStatus(peer.ID)
 		if !found {
 			logger.Trace("did not find status for", "peer_name", peer.Name)

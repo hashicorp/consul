@@ -1009,7 +1009,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 
 	// set up a metrics sink
 	sink := metrics.NewInmemSink(testContextTimeout, testContextTimeout)
-	cfg := metrics.DefaultConfig("consul.peering.test")
+	cfg := metrics.DefaultConfig("us-west")
 	cfg.EnableHostname = false
 	met, err := metrics.New(cfg, sink)
 	require.NoError(t, err)
@@ -1023,13 +1023,13 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		intv := intervals[0]
 
 		// the keys for a Gauge value look like: {serviceName}.{prefix}.{key_name};{label=value};...
-		keyMetric1 := fmt.Sprintf("consul.peering.test.consul.peering.exported_services;peer_name=my-peer-s1;peer_id=%s", s2PeerID1)
+		keyMetric1 := fmt.Sprintf("us-west.consul.peering.exported_services;peer_name=my-peer-s1;peer_id=%s", s2PeerID1)
 		metric1, ok := intv.Gauges[keyMetric1]
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric1))
 
 		require.Equal(r, float32(3), metric1.Value) // for a, b, c services
 
-		keyMetric2 := fmt.Sprintf("consul.peering.test.consul.peering.exported_services;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		keyMetric2 := fmt.Sprintf("us-west.consul.peering.exported_services;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
 		metric2, ok := intv.Gauges[keyMetric2]
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
 
