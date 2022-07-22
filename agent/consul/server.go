@@ -794,6 +794,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		},
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
+		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
 

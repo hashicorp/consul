@@ -1036,3 +1036,89 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.Equal(r, float32(2), metric2.Value) // for d, e services
 	})
 }
+
+// Test that the leader doesn't start its peering deletion routing when
+// peering is disabled.
+func TestLeader_Peering_NoDeletionWhenPeeringDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.PeeringEnabled = false
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var (
+		peerID   = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+		peerName = "my-peer-s2"
+		lastIdx  = uint64(0)
+	)
+
+	// Simulate a peering initiation event by writing a peering to the state store.
+	lastIdx++
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName,
+	}))
+
+	// Mark the peering for deletion to trigger the termination sequence.
+	lastIdx++
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:        peerID,
+		Name:      peerName,
+		DeletedAt: structs.TimeToProto(time.Now()),
+	}))
+
+	// The leader routine shouldn't be running so the peering should never get deleted.
+	require.Never(t, func() bool {
+		_, peering, err := s1.fsm.State().PeeringRead(nil, state.Query{
+			Value: peerName,
+		})
+		if err != nil {
+			t.Logf("unexpected err: %s", err)
+			return true
+		}
+		if peering == nil {
+			return true
+		}
+		return false
+	}, 7*time.Second, 1*time.Second, "peering should not have been deleted")
+}
+
+// Test that the leader doesn't start its peering establishment routine
+// when peering is disabled.
+func TestLeader_Peering_NoEstablishmentWhenPeeringDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.PeeringEnabled = false
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var (
+		peerID   = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+		peerName = "my-peer-s2"
+		lastIdx  = uint64(0)
+	)
+
+	// Simulate a peering initiation event by writing a peering to the state store.
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  peerID,
+		Name:                peerName,
+		PeerServerAddresses: []string{"1.2.3.4"},
+	}))
+
+	require.Never(t, func() bool {
+		_, found := s1.peerStreamTracker.StreamStatus(peerID)
+		return found
+	}, 7*time.Second, 1*time.Second, "peering should not have been established")
+}

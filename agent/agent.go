@@ -1341,6 +1341,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// function does not drift.
 	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
 
+	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }

@@ -56,6 +56,7 @@ type Config struct {
 	ForwardRPC     func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
 	Datacenter     string
 	ConnectEnabled bool
+	PeeringEnabled bool
 }
 
 func NewServer(cfg Config) *Server {
@@ -139,6 +140,8 @@ type Store interface {
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 }
 
+var peeringNotEnabledErr = grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint")
+
 // GenerateToken implements the PeeringService RPC method to generate a
 // peering token which is the initial step in establishing a peering relationship
 // with other Consul clusters.
@@ -146,6 +149,10 @@ func (s *Server) GenerateToken(
 	ctx context.Context,
 	req *pbpeering.GenerateTokenRequest,
 ) (*pbpeering.GenerateTokenResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -251,6 +258,10 @@ func (s *Server) Establish(
 	ctx context.Context,
 	req *pbpeering.EstablishRequest,
 ) (*pbpeering.EstablishResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	// validate prior to forwarding to the leader, this saves a network hop
 	if err := dns.ValidateLabel(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
@@ -316,6 +327,10 @@ func (s *Server) Establish(
 }
 
 func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -350,6 +365,10 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 }
 
 func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -413,6 +432,10 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
 // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
 func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRequest) (*pbpeering.PeeringWriteResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Peering.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -449,6 +472,10 @@ func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRe
 }
 
 func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDeleteRequest) (*pbpeering.PeeringDeleteResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -505,6 +532,10 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 }
 
 func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
@@ -540,6 +571,10 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 // TODO(peering): rename rpc & request/response to drop the "service" part
 func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
+	if !s.Config.PeeringEnabled {
+		return nil, peeringNotEnabledErr
+	}
+
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
