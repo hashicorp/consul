@@ -127,6 +127,7 @@ const (
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
+	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
 )
 
 var (
