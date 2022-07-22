@@ -23,18 +23,18 @@ Consul K8s CLI uses the following syntax:
 $ consul-k8s <SUBCOMMAND> <OPTIONS>
 ```
 
-## Subcommands
+## Commands
 
-You can use the following subcommands with `consul-k8s`.
+You can use the following commands with `consul-k8s`.
 
   - [`install`](#install) installs Consul to your Kubernetes cluster.
   - [`proxy`](#proxy) allows you to interact with proxies managed by Consul on your Kubernetes cluster.
-      - [`proxy list`](#proxy-list)
-      - [`proxy read`](#proxy-read)
-  - [`status`](#status) displays the
-  - [`uninstall`](#uninstall)
-  - [`upgrade`](#upgrade)
-  - [`version`](#version)
+      - [`proxy list`](#proxy-list) displays all relevant proxies.
+      - [`proxy read`](#proxy-read) displays the configuration of proxies on a given Pod.
+  - [`status`](#status) displays the status of your Consul installation along with its configuration.
+  - [`uninstall`](#uninstall) uninstalls Consul from your Kubernetes cluster.
+  - [`upgrade`](#upgrade) modifies your Consul installation's configuration.
+  - [`version`](#version) displays the version of Consul on Kubernetes that is installed.
 
 ### `install`
 
