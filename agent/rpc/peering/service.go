@@ -187,23 +187,16 @@ func (s *Server) GenerateToken(
 	}
 
 	// validate that this peer name is not being used as a dialer already
-	if err = s.validatePeerRole(peeringOrNil, false); err != nil {
+	if err = validatePeer(peeringOrNil, false); err != nil {
 		return nil, err
-	}
-
-	var id string
-	if peeringOrNil != nil {
-		id = peeringOrNil.ID
-	} else {
-		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	canRetry := true
 RETRY_ONCE:
-
+	id, err := s.getExistingOrCreateNewPeerID(req.PeerName, req.Partition)
+	if err != nil {
+		return nil, err
+	}
 	writeReq := pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
 			ID:   id,
@@ -295,7 +288,7 @@ func (s *Server) Establish(
 	}
 
 	// validate that this peer name is not being used as an acceptor already
-	if err = s.validatePeerRole(peeringOrNil, true); err != nil {
+	if err = validatePeer(peeringOrNil, true); err != nil {
 		return nil, err
 	}
 
@@ -640,14 +633,18 @@ func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peer
 	return peering, nil
 }
 
-// validatePeerRole enforces the following rule for an existing peering:
+// validatePeer enforces the following rule for an existing peering:
 // - if a peering already exists, it can only be used as an acceptor or dialer
 //
 // We define a DIALER as a peering that has server addresses (or a peering that is created via the Establish endpoint)
 // Conversely, we define an ACCEPTOR as a peering that is created via the GenerateToken endpoint
-func (s *Server) validatePeerRole(peering *pbpeering.Peering, allowedToDial bool) error {
+func validatePeer(peering *pbpeering.Peering, allowedToDial bool) error {
 	if peering != nil && peering.ShouldDial() != allowedToDial {
-		return fmt.Errorf("cannot create peering with name: %q; there is already a peering with that name and different role", peering.Name)
+		if allowedToDial {
+			return fmt.Errorf("cannot create peering with name: %q; there is an existing peering expecting to be dialed", peering.Name)
+		} else {
+			return fmt.Errorf("cannot create peering with name: %q; there is already an established peering", peering.Name)
+		}
 	}
 
 	return nil

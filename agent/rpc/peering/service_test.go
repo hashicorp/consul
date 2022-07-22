@@ -495,7 +495,7 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	require.Equal(t, []string{"foo-root-1"}, resp.Bundles[1].RootPEMs)
 }
 
-func TestPeeringService_validatePeerRole(t *testing.T) {
+func TestPeeringService_validatePeer(t *testing.T) {
 	dir := testutil.TempDir(t, "consul")
 	signer, _, _ := tlsutil.GeneratePrivateKey()
 	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
@@ -553,8 +553,7 @@ func TestPeeringService_validatePeerRole(t *testing.T) {
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(),
-			"cannot create peering with name: \"peer1-usw1\"; "+
-				"there is already a peering with that name and different role")
+			"cannot create peering with name: \"peer1-usw1\"; there is already an established peering")
 		require.Nil(t, resp)
 	})
 
@@ -566,8 +565,7 @@ func TestPeeringService_validatePeerRole(t *testing.T) {
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(),
-			"cannot create peering with name: \"peerB\"; "+
-				"there is already a peering with that name and different role")
+			"cannot create peering with name: \"peerB\"; there is an existing peering expecting to be dialed")
 		require.Nil(t, resp)
 	})
 
