@@ -114,14 +114,10 @@ func (s *Server) runPeeringSync(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) stopPeeringMetrics() {
-	// will be a no-op when not started
-	s.leaderRoutineManager.Stop(peeringStreamsMetricsRoutineName)
-}
-
 func (s *Server) stopPeeringStreamSync() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(peeringStreamsRoutineName)
+	s.leaderRoutineManager.Stop(peeringStreamsMetricsRoutineName)
 }
 
 // syncPeeringsAndBlock is a long-running goroutine that is responsible for watching
