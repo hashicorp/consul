@@ -35,6 +35,15 @@ echo " "
 echo "Tag Windows Envoy image"
 docker tag "envoyproxy/envoy-windows:v${ENVOY_VERSION}" "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}"
 
+# Pull Kubernetes/pause image
+echo " "
+echo "Pull Kubernetes/pause image"
+docker mcr.microsoft.com/oss/kubernetes/pause:3.6
+# Tag Kubernetes/pause image
+echo " "
+echo "Tag Kubernetes/pause image"
+docker tag mcr.microsoft.com/oss/kubernetes/pause:3.6 "${HASHICORP_DOCKER_PROXY}/windows/kubernetes/pause"
+
 # Build Bats-Core-Windows Image
 echo " "
 echo "Build Bats-Core-Windows Image"
