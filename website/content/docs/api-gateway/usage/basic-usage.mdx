@@ -119,7 +119,7 @@ REPLACE THIS with the actions the user should take to try to correct the situati
 Error: INSTALLATION FAILED: unable to build kubernetes objects from release manifest: [unable to recognize "": no matches for kind "GatewayClass" in version "gateway.networking.k8s.io/v1alpha2", unable to recognize "": no matches for kind "GatewayClassConfig" in version "api-gateway.consul.hashicorp.com/v1alpha1"]
 ```
 **Conditions:**
-When this error occurs during the process of installing Consul API Gateway, it is usually caused by not having the required CRD files installed in Kubernetes prior to installing Consul API Gateway.
+Consul API Gateway generates this error when the required CRD files have not been installed in Kubernetes prior to installing Consul API Gateway. 
 
 **Impact:**
 The installation process typically fails after this error message is generated.
