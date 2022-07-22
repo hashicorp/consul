@@ -214,6 +214,29 @@ func TestPeeringService_Establish(t *testing.T) {
 	}
 }
 
+// We define a valid peering by a peering that does not occur over the same server addresses
+func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, nil)
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerOne"}
+	resp, err := client.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp)
+
+	establishReq := &pbpeering.EstablishRequest{
+		PeerName:     "peerTwo",
+		PeeringToken: resp.PeeringToken}
+
+	respE, errE := client.Establish(ctx, establishReq)
+	require.Error(t, errE)
+	require.Nil(t, respE)
+}
+
 func TestPeeringService_Read(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
