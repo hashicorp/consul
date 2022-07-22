@@ -197,6 +197,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
 	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
 	Performance                      Performance         `mapstructure:"performance"`
 	PidFile                          *string             `mapstructure:"pid_file"`
 	Ports                            Ports               `mapstructure:"ports"`
@@ -886,4 +887,8 @@ type TLS struct {
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
 	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+type Peering struct {
+	Enabled *bool `mapstructure:"enabled"`
 }

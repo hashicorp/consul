@@ -113,6 +113,39 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		// The PeerID in the token is randomly generated so we don't assert on its value.
 		require.NotEmpty(t, token.PeerID)
 	})
+
+	t.Run("Success with external address", func(t *testing.T) {
+		externalAddress := "32.1.2.3"
+		body := &pbpeering.GenerateTokenRequest{
+			PeerName:                "peering-a",
+			ServerExternalAddresses: []string{externalAddress},
+		}
+
+		bodyBytes, err := json.Marshal(body)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+		var r pbpeering.GenerateTokenResponse
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
+
+		tokenJSON, err := base64.StdEncoding.DecodeString(r.PeeringToken)
+		require.NoError(t, err)
+
+		var token structs.PeeringToken
+		require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+		require.Nil(t, token.CA)
+		require.Equal(t, []string{externalAddress}, token.ServerAddresses)
+		require.Equal(t, "server.dc1.consul", token.ServerName)
+
+		// The PeerID in the token is randomly generated so we don't assert on its value.
+		require.NotEmpty(t, token.PeerID)
+	})
 }
 
 func TestHTTP_Peering_Establish(t *testing.T) {

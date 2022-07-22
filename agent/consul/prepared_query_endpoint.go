@@ -187,9 +187,14 @@ func parseService(svc *structs.ServiceQuery) error {
 		return fmt.Errorf("Must provide a Service name to query")
 	}
 
+	failover := svc.Failover
 	// NearestN can be 0 which means "don't fail over by RTT".
-	if svc.Failover.NearestN < 0 {
+	if failover.NearestN < 0 {
 		return fmt.Errorf("Bad NearestN '%d', must be >= 0", svc.Failover.NearestN)
+	}
+
+	if (failover.NearestN != 0 || len(failover.Datacenters) != 0) && len(failover.Targets) != 0 {
+		return fmt.Errorf("Targets cannot be populated with NearestN or Datacenters")
 	}
 
 	// Make sure the metadata filters are valid
@@ -462,7 +467,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// and bail out. Otherwise, we fail over and try remote DCs, as allowed
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
-		wrapper := &queryServerWrapper{p.srv}
+		wrapper := &queryServerWrapper{srv: p.srv, executeRemote: p.ExecuteRemote}
 		if err := queryFailover(wrapper, query, args, reply); err != nil {
 			return err
 		}
@@ -565,8 +570,13 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply.Nodes = nodes
 	reply.DNS = query.DNS
 
-	// Stamp the result for this datacenter.
-	reply.Datacenter = p.srv.config.Datacenter
+	// Stamp the result with its this datacenter or peer.
+	if peerName := query.Service.PeerName; peerName != "" {
+		reply.PeerName = peerName
+		reply.Datacenter = ""
+	} else {
+		reply.Datacenter = p.srv.config.Datacenter
+	}
 
 	return nil
 }
@@ -651,12 +661,24 @@ func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNode
 type queryServer interface {
 	GetLogger() hclog.Logger
 	GetOtherDatacentersByDistance() ([]string, error)
-	ForwardDC(method, dc string, args interface{}, reply interface{}) error
+	GetLocalDC() string
+	ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error
 }
 
 // queryServerWrapper applies the queryServer interface to a Server.
 type queryServerWrapper struct {
-	srv *Server
+	srv           *Server
+	executeRemote func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error
+}
+
+// GetLocalDC returns the name of the local datacenter.
+func (q *queryServerWrapper) GetLocalDC() string {
+	return q.srv.config.Datacenter
+}
+
+// ExecuteRemote calls ExecuteRemote on PreparedQuery.
+func (q *queryServerWrapper) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+	return q.executeRemote(args, reply)
 }
 
 // GetLogger returns the server's logger.
@@ -683,11 +705,6 @@ func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
 	return result, nil
 }
 
-// ForwardDC calls into the server's RPC forwarder.
-func (q *queryServerWrapper) ForwardDC(method, dc string, args interface{}, reply interface{}) error {
-	return q.srv.forwardDC(method, dc, args, reply)
-}
-
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
 func queryFailover(q queryServer, query *structs.PreparedQuery,
@@ -709,7 +726,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 
 	// Build a candidate list of DCs to try, starting with the nearest N
 	// from RTTs.
-	var dcs []string
+	var targets []structs.QueryFailoverTarget
 	index := make(map[string]struct{})
 	if query.Service.Failover.NearestN > 0 {
 		for i, dc := range nearest {
@@ -717,30 +734,36 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 				break
 			}
 
-			dcs = append(dcs, dc)
+			targets = append(targets, structs.QueryFailoverTarget{Datacenter: dc})
 			index[dc] = struct{}{}
 		}
 	}
 
 	// Then add any DCs explicitly listed that weren't selected above.
-	for _, dc := range query.Service.Failover.Datacenters {
+	for _, target := range query.Service.Failover.AsTargets() {
 		// This will prevent a log of other log spammage if we do not
 		// attempt to talk to datacenters we don't know about.
-		if _, ok := known[dc]; !ok {
-			q.GetLogger().Debug("Skipping unknown datacenter in prepared query", "datacenter", dc)
-			continue
+		if dc := target.Datacenter; dc != "" {
+			if _, ok := known[dc]; !ok {
+				q.GetLogger().Debug("Skipping unknown datacenter in prepared query", "datacenter", dc)
+				continue
+			}
+
+			// This will make sure we don't re-try something that fails
+			// from the NearestN list.
+			if _, ok := index[dc]; !ok {
+				targets = append(targets, target)
+			}
 		}
 
-		// This will make sure we don't re-try something that fails
-		// from the NearestN list.
-		if _, ok := index[dc]; !ok {
-			dcs = append(dcs, dc)
+		if target.PeerName != "" {
+			targets = append(targets, target)
 		}
 	}
 
 	// Now try the selected DCs in priority order.
 	failovers := 0
-	for _, dc := range dcs {
+	for _, target := range targets {
 		// This keeps track of how many iterations we actually run.
 		failovers++
 
@@ -752,7 +775,15 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// through this slice across successive RPC calls.
 		reply.Nodes = nil
 
-		// Note that we pass along the limit since it can be applied
+		// Reset PeerName because it may have been set by a previous failover
+		// target.
+		query.Service.PeerName = target.PeerName
+		dc := target.Datacenter
+		if target.PeerName != "" {
+			dc = q.GetLocalDC()
+		}
+
+		// Note that we pass along the limit since may be applied
 		// remotely to save bandwidth. We also pass along the consistency
 		// mode information and token we were given, so that applies to
 		// the remote query as well.
@@ -763,9 +794,11 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 			QueryOptions: args.QueryOptions,
 			Connect:      args.Connect,
 		}
-		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
+
+		if err = q.ExecuteRemote(remote, reply); err != nil {
 			q.GetLogger().Warn("Failed querying for service in datacenter",
 				"service", query.Service.Service,
+				"peerName", query.Service.PeerName,
 				"datacenter", dc,
 				"error", err,
 			)

@@ -114,6 +114,14 @@ type Authorizer interface {
 	// functions can be used.
 	MeshWrite(*AuthorizerContext) EnforcementDecision
 
+	// PeeringRead determines if the read-only Consul peering functions
+	// can be used.
+	PeeringRead(*AuthorizerContext) EnforcementDecision
+
+	// PeeringWrite determines if the stage-changing Consul peering
+	// functions can be used.
+	PeeringWrite(*AuthorizerContext) EnforcementDecision
+
 	// NodeRead checks for permission to read (discover) a given node.
 	NodeRead(string, *AuthorizerContext) EnforcementDecision
 
@@ -542,12 +550,11 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.SessionWrite(segment, ctx), nil
 		}
 	case ResourcePeering:
-		// TODO (peering) switch this over to using PeeringRead & PeeringWrite methods once implemented
 		switch lowerAccess {
 		case "read":
-			return authz.OperatorRead(ctx), nil
+			return authz.PeeringRead(ctx), nil
 		case "write":
-			return authz.OperatorWrite(ctx), nil
+			return authz.PeeringWrite(ctx), nil
 		}
 	default:
 		if processed, decision, err := enforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {
@@ -561,6 +568,7 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 
 // NewAuthorizerFromRules is a convenience function to invoke NewPolicyFromSource followed by NewPolicyAuthorizer with
 // the parse policy.
+// TODO(ACL-Legacy-Compat): remove syntax arg after removing SyntaxLegacy
 func NewAuthorizerFromRules(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
 	policy, err := NewPolicyFromSource(rules, syntax, conf, meta)
 	if err != nil {

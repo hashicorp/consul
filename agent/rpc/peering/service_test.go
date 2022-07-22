@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
@@ -106,6 +108,40 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		Meta:      map[string]string{"foo": "bar"},
 	}
 	require.Equal(t, expect, peers[0])
+}
+
+func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
+	dir := testutil.TempDir(t, "consul")
+	signer, _, _ := tlsutil.GeneratePrivateKey()
+	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	cafile := path.Join(dir, "cacert.pem")
+	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
+
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(c *consul.Config) {
+		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
+		c.TLSConfig.GRPC.CAFile = cafile
+		c.DataDir = dir
+	})
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	externalAddress := "32.1.2.3:8502"
+	// happy path
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: []string{externalAddress}}
+	resp, err := client.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	token := &structs.PeeringToken{}
+	require.NoError(t, json.Unmarshal(tokenJSON, token))
+	require.Equal(t, "server.dc1.consul", token.ServerName)
+	require.Len(t, token.ServerAddresses, 1)
+	require.Equal(t, externalAddress, token.ServerAddresses[0])
+	require.Equal(t, []string{ca}, token.CA)
 }
 
 func TestPeeringService_Establish(t *testing.T) {
@@ -568,7 +604,67 @@ func TestPeeringService_validatePeer(t *testing.T) {
 			"cannot create peering with name: \"peerB\"; there is an existing peering expecting to be dialed")
 		require.Nil(t, resp)
 	})
+}
 
+// Test RPC endpoint responses when peering is disabled. They should all return an error.
+func TestPeeringService_PeeringDisabled(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(c *consul.Config) { c.PeeringEnabled = false })
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	// assertFailedResponse is a helper function that checks the error from a gRPC
+	// response is what we expect when peering is disabled.
+	assertFailedResponse := func(t *testing.T, err error) {
+		actErr, ok := grpcstatus.FromError(err)
+		require.True(t, ok)
+		require.Equal(t, codes.FailedPrecondition, actErr.Code())
+		require.Equal(t, "peering must be enabled to use this endpoint", actErr.Message())
+	}
+
+	// Test all the endpoints.
+
+	t.Run("PeeringWrite", func(t *testing.T) {
+		_, err := client.PeeringWrite(ctx, &pbpeering.PeeringWriteRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("PeeringRead", func(t *testing.T) {
+		_, err := client.PeeringRead(ctx, &pbpeering.PeeringReadRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("PeeringDelete", func(t *testing.T) {
+		_, err := client.PeeringDelete(ctx, &pbpeering.PeeringDeleteRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("PeeringList", func(t *testing.T) {
+		_, err := client.PeeringList(ctx, &pbpeering.PeeringListRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("Establish", func(t *testing.T) {
+		_, err := client.Establish(ctx, &pbpeering.EstablishRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("GenerateToken", func(t *testing.T) {
+		_, err := client.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("TrustBundleRead", func(t *testing.T) {
+		_, err := client.TrustBundleRead(ctx, &pbpeering.TrustBundleReadRequest{})
+		assertFailedResponse(t, err)
+	})
+
+	t.Run("TrustBundleListByService", func(t *testing.T) {
+		_, err := client.TrustBundleListByService(ctx, &pbpeering.TrustBundleListByServiceRequest{})
+		assertFailedResponse(t, err)
+	})
 }
 
 // newTestServer is copied from partition/service_test.go, with the addition of certs/cas.

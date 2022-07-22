@@ -235,6 +235,7 @@
     "NodeID": "",
     "NodeMeta": {},
     "NodeName": "",
+    "PeeringEnabled": false,
     "PidFile": "",
     "PrimaryDatacenter": "",
     "PrimaryGateways": [

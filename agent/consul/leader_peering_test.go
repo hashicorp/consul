@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -615,7 +617,7 @@ func insertTestPeeringData(t *testing.T, store *state.Store, peer string, lastId
 	return lastIdx
 }
 
-// TODO(peering): once we move away from leader only request for PeeringList, move this test to consul/server_test maybe
+// TODO(peering): once we move away from keeping state in stream tracker only on leaders, move this test to consul/server_test maybe
 func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -903,4 +905,220 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 			})
 		})
 	}
+}
+
+// TODO(peering): once we move away from keeping state in stream tracker only on leaders, move this test to consul/server_test maybe
+func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	var (
+		s2PeerID1          = generateUUID()
+		s2PeerID2          = generateUUID()
+		testContextTimeout = 60 * time.Second
+		lastIdx            = uint64(0)
+	)
+
+	// TODO(peering): Configure with TLS
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create a peering by generating a token
+	ctx, cancel := context.WithTimeout(context.Background(), testContextTimeout)
+	t.Cleanup(cancel)
+
+	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	peeringClient := pbpeering.NewPeeringServiceClient(conn)
+
+	req := pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-s2",
+	}
+	resp, err := peeringClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	var token structs.PeeringToken
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	// Bring up s2 and store s1's token so that it attempts to dial.
+	_, s2 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s2.dc2"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
+	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Simulate exporting services in the tracker
+	{
+		// Simulate a peering initiation event by writing a peering with data from a peering token.
+		// Eventually the leader in dc2 should dial and connect to the leader in dc1.
+		p := &pbpeering.Peering{
+			ID:                  s2PeerID1,
+			Name:                "my-peer-s1",
+			PeerID:              token.PeerID,
+			PeerCAPems:          token.CA,
+			PeerServerName:      token.ServerName,
+			PeerServerAddresses: token.ServerAddresses,
+		}
+		require.True(t, p.ShouldDial())
+		lastIdx++
+		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, p))
+
+		p2 := &pbpeering.Peering{
+			ID:                  s2PeerID2,
+			Name:                "my-peer-s3",
+			PeerID:              token.PeerID, // doesn't much matter what these values are
+			PeerCAPems:          token.CA,
+			PeerServerName:      token.ServerName,
+			PeerServerAddresses: token.ServerAddresses,
+		}
+		require.True(t, p2.ShouldDial())
+		lastIdx++
+		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, p2))
+
+		// connect the stream
+		mst1, err := s2.peeringServer.Tracker.Connected(s2PeerID1)
+		require.NoError(t, err)
+
+		// mimic tracking exported services
+		mst1.TrackExportedService(structs.ServiceName{Name: "a-service"})
+		mst1.TrackExportedService(structs.ServiceName{Name: "b-service"})
+		mst1.TrackExportedService(structs.ServiceName{Name: "c-service"})
+
+		// connect the stream
+		mst2, err := s2.peeringServer.Tracker.Connected(s2PeerID2)
+		require.NoError(t, err)
+
+		// mimic tracking exported services
+		mst2.TrackExportedService(structs.ServiceName{Name: "d-service"})
+		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
+	}
+
+	// set up a metrics sink
+	sink := metrics.NewInmemSink(testContextTimeout, testContextTimeout)
+	cfg := metrics.DefaultConfig("us-west")
+	cfg.EnableHostname = false
+	met, err := metrics.New(cfg, sink)
+	require.NoError(t, err)
+
+	errM := s2.emitPeeringMetricsOnce(s2.logger, met)
+	require.NoError(t, errM)
+
+	retry.Run(t, func(r *retry.R) {
+		intervals := sink.Data()
+		require.Len(r, intervals, 1)
+		intv := intervals[0]
+
+		// the keys for a Gauge value look like: {serviceName}.{prefix}.{key_name};{label=value};...
+		keyMetric1 := fmt.Sprintf("us-west.consul.peering.exported_services;peer_name=my-peer-s1;peer_id=%s", s2PeerID1)
+		metric1, ok := intv.Gauges[keyMetric1]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric1))
+
+		require.Equal(r, float32(3), metric1.Value) // for a, b, c services
+
+		keyMetric2 := fmt.Sprintf("us-west.consul.peering.exported_services;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		metric2, ok := intv.Gauges[keyMetric2]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
+
+		require.Equal(r, float32(2), metric2.Value) // for d, e services
+	})
+}
+
+// Test that the leader doesn't start its peering deletion routing when
+// peering is disabled.
+func TestLeader_Peering_NoDeletionWhenPeeringDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.PeeringEnabled = false
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var (
+		peerID   = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+		peerName = "my-peer-s2"
+		lastIdx  = uint64(0)
+	)
+
+	// Simulate a peering initiation event by writing a peering to the state store.
+	lastIdx++
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:   peerID,
+		Name: peerName,
+	}))
+
+	// Mark the peering for deletion to trigger the termination sequence.
+	lastIdx++
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:        peerID,
+		Name:      peerName,
+		DeletedAt: structs.TimeToProto(time.Now()),
+	}))
+
+	// The leader routine shouldn't be running so the peering should never get deleted.
+	require.Never(t, func() bool {
+		_, peering, err := s1.fsm.State().PeeringRead(nil, state.Query{
+			Value: peerName,
+		})
+		if err != nil {
+			t.Logf("unexpected err: %s", err)
+			return true
+		}
+		if peering == nil {
+			return true
+		}
+		return false
+	}, 7*time.Second, 1*time.Second, "peering should not have been deleted")
+}
+
+// Test that the leader doesn't start its peering establishment routine
+// when peering is disabled.
+func TestLeader_Peering_NoEstablishmentWhenPeeringDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "s1.dc1"
+		c.Datacenter = "dc1"
+		c.TLSConfig.Domain = "consul"
+		c.PeeringEnabled = false
+	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var (
+		peerID   = "cc56f0b8-3885-4e78-8d7b-614a0c45712d"
+		peerName = "my-peer-s2"
+		lastIdx  = uint64(0)
+	)
+
+	// Simulate a peering initiation event by writing a peering to the state store.
+	require.NoError(t, s1.fsm.State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  peerID,
+		Name:                peerName,
+		PeerServerAddresses: []string{"1.2.3.4"},
+	}))
+
+	require.Never(t, func() bool {
+		_, found := s1.peerStreamTracker.StreamStatus(peerID)
+		return found
+	}, 7*time.Second, 1*time.Second, "peering should not have been established")
 }

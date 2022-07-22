@@ -92,7 +92,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 					Session: "my-session",
 					Service: structs.ServiceQuery{
 						Service: "my-service",
-						Failover: structs.QueryDatacenterOptions{
+						Failover: structs.QueryFailoverOptions{
 							NearestN:    4,
 							Datacenters: []string{"dc1", "dc2"},
 						},
@@ -883,7 +883,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 					Session: "my-session",
 					Service: structs.ServiceQuery{
 						Service: "my-service",
-						Failover: structs.QueryDatacenterOptions{
+						Failover: structs.QueryFailoverOptions{
 							NearestN:    4,
 							Datacenters: []string{"dc1", "dc2"},
 						},

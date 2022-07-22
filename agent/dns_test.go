@@ -6075,7 +6075,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 				Name: "my-query",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Failover: structs.QueryDatacenterOptions{
+					Failover: structs.QueryFailoverOptions{
 						Datacenters: []string{"dc2"},
 					},
 				},

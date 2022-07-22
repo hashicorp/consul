@@ -539,8 +539,8 @@ func getTrustDomain(store StateStore, logger hclog.Logger) (string, error) {
 	return connect.SpiffeIDSigningForCluster(cfg.ClusterID).Host(), nil
 }
 
-func (s *Server) StreamStatus(peer string) (resp Status, found bool) {
-	return s.Tracker.StreamStatus(peer)
+func (s *Server) StreamStatus(peerID string) (resp Status, found bool) {
+	return s.Tracker.StreamStatus(peerID)
 }
 
 // ConnectedStreams returns a map of connected stream IDs to the corresponding channel for tearing them down.

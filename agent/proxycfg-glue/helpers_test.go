@@ -9,6 +9,14 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 )
 
+func indexGenerator() func() uint64 {
+	var idx uint64
+	return func() uint64 {
+		idx++
+		return idx
+	}
+}
+
 func getEventResult[ResultType any](t *testing.T, eventCh <-chan proxycfg.UpdateEvent) ResultType {
 	t.Helper()
 

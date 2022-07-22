@@ -88,7 +88,7 @@ const (
 
 const (
 	// LocalPeerKeyword is a reserved keyword used for indexing in the state store for objects in the local peer.
-	LocalPeerKeyword = "internal"
+	LocalPeerKeyword = "~"
 
 	// DefaultPeerKeyword is the PeerName to use to refer to the local
 	// cluster's own data, rather than replicated peered data.
