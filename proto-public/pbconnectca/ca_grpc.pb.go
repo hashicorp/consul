@@ -40,7 +40,7 @@ func NewConnectCAServiceClient(cc grpc.ClientConnInterface) ConnectCAServiceClie
 }
 
 func (c *connectCAServiceClient) WatchRoots(ctx context.Context, in *WatchRootsRequest, opts ...grpc.CallOption) (ConnectCAService_WatchRootsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ConnectCAService_ServiceDesc.Streams[0], "/connectca.ConnectCAService/WatchRoots", opts...)
+	stream, err := c.cc.NewStream(ctx, &ConnectCAService_ServiceDesc.Streams[0], "/hashicorp.consul.connectca.ConnectCAService/WatchRoots", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (x *connectCAServiceWatchRootsClient) Recv() (*WatchRootsResponse, error) {
 
 func (c *connectCAServiceClient) Sign(ctx context.Context, in *SignRequest, opts ...grpc.CallOption) (*SignResponse, error) {
 	out := new(SignResponse)
-	err := c.cc.Invoke(ctx, "/connectca.ConnectCAService/Sign", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.connectca.ConnectCAService/Sign", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func _ConnectCAService_Sign_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/connectca.ConnectCAService/Sign",
+		FullMethod: "/hashicorp.consul.connectca.ConnectCAService/Sign",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ConnectCAServiceServer).Sign(ctx, req.(*SignRequest))
@@ -158,7 +158,7 @@ func _ConnectCAService_Sign_Handler(srv interface{}, ctx context.Context, dec fu
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ConnectCAService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "connectca.ConnectCAService",
+	ServiceName: "hashicorp.consul.connectca.ConnectCAService",
 	HandlerType: (*ConnectCAServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

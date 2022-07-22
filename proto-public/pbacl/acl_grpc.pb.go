@@ -39,7 +39,7 @@ func NewACLServiceClient(cc grpc.ClientConnInterface) ACLServiceClient {
 
 func (c *aCLServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	out := new(LoginResponse)
-	err := c.cc.Invoke(ctx, "/acl.ACLService/Login", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.acl.ACLService/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *aCLServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...
 
 func (c *aCLServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
 	out := new(LogoutResponse)
-	err := c.cc.Invoke(ctx, "/acl.ACLService/Logout", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.acl.ACLService/Logout", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func _ACLService_Login_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/acl.ACLService/Login",
+		FullMethod: "/hashicorp.consul.acl.ACLService/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ACLServiceServer).Login(ctx, req.(*LoginRequest))
@@ -116,7 +116,7 @@ func _ACLService_Logout_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/acl.ACLService/Logout",
+		FullMethod: "/hashicorp.consul.acl.ACLService/Logout",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ACLServiceServer).Logout(ctx, req.(*LogoutRequest))
@@ -128,7 +128,7 @@ func _ACLService_Logout_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ACLService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "acl.ACLService",
+	ServiceName: "hashicorp.consul.acl.ACLService",
 	HandlerType: (*ACLServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
