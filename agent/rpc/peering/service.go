@@ -308,6 +308,14 @@ func (s *Server) Establish(
 		serverAddrs[i] = addr
 	}
 
+	localServerAddresses, err := s.Backend.GetServerAddresses()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get server addresses; cannot validate peering: %w", err)
+	}
+	if err := validatePeeringInPartition(localServerAddresses, serverAddrs); err != nil {
+		return nil, err
+	}
+
 	// as soon as a peering is written with a list of ServerAddresses that is
 	// non-empty, the leader routine will see the peering and attempt to
 	// establish a connection with the remote peer.
@@ -331,6 +339,26 @@ func (s *Server) Establish(
 	}
 	// resp.Status == 0
 	return resp, nil
+}
+
+var ValidatePeeringInPartitionFunc = validatePeeringInPartition
+
+// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We do so by checking
+// to see if the current server's server addresses slice has any intersection with the slice from the token.
+func validatePeeringInPartition(localServerAddresses, remoteServerAddresses []string) error {
+
+	seen := make(map[string]struct{})
+	for _, saft := range remoteServerAddresses {
+		seen[saft] = struct{}{}
+	}
+
+	for _, lsa := range localServerAddresses {
+		if _, ok := seen[lsa]; ok {
+			return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
+		}
+	}
+
+	return nil
 }
 
 func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
