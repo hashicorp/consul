@@ -232,11 +232,6 @@ func (s *Server) GenerateToken(
 		return nil, err
 	}
 
-	peeringOrNil, err := s.getExistingPeering(req.PeerName, req.Partition)
-	if err != nil {
-		return nil, err
-	}
-
 	// validate that this peer name is not being used as a dialer already
 	if err = validatePeer(peeringOrNil, false); err != nil {
 		return nil, err
