@@ -35,7 +35,7 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 		"UIConfig":          uiCfg,
 		"LocalDatacenter":   cfg.Datacenter,
 		"PrimaryDatacenter": cfg.PrimaryDatacenter,
-		"PeeringEnabled":    true,
+		"PeeringEnabled":    cfg.PeeringEnabled,
 	}
 
 	// Also inject additional provider scripts if needed, otherwise strip the
