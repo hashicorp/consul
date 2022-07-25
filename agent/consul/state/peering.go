@@ -214,7 +214,7 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 		}
 
 		if p.State == 0 {
-			return fmt.Errorf("missing peering state when updating existing peering")
+			p.State = existing.State
 		}
 		// TODO(peering): Confirm behavior when /peering/token is called more than once.
 		// We may need to avoid clobbering existing values.
