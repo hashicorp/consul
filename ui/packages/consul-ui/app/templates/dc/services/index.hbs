@@ -43,10 +43,10 @@ as |route|>
     searchproperty=(hash
       value=(if (not-eq searchproperty undefined)
         (split searchproperty ',')
-        searchProperties
+        this._searchProperties
       )
       change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      default=this._searchProperties
     )
 
   )
