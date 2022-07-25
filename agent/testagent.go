@@ -182,6 +182,12 @@ func (a *TestAgent) Start(t *testing.T) error {
 
 	portsConfig := randomPortsSource(t, a.UseTLS)
 
+	//a.Overrides = `
+	//	peering {
+	//			test_allow_peer_registrations = true
+	//		}
+	//`
+
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
 	loader := func(source config.Source) (config.LoadResult, error) {
@@ -474,6 +480,9 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
+
+	// allows registering objects with the PeerName
+	cfg.PeeringTestAllowPeerRegistrations = true
 
 	return cfg
 }

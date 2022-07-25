@@ -20,6 +20,25 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+func TestCatalogRegister_DenyPeeringRegistration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "peering = { test_allow_peer_registrations = false }")
+	defer a.Shutdown()
+
+	// Register request with peer
+	args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+	req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+	obj, err := a.srv.CatalogRegister(nil, req)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot register requests with PeerName in them")
+	require.Nil(t, obj)
+}
+
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

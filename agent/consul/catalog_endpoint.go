@@ -77,6 +77,11 @@ type Catalog struct {
 // Register a service and/or check(s) in a node, creating the node if it doesn't exist.
 // It is valid to pass no service or checks to simply create the node itself.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
+	// todo peering -- need to check for all peer names at service and check levels !
+	if !c.srv.config.PeeringTestAllowPeerRegistrations && args.PeerName != "" {
+		return fmt.Errorf("cannot register requests with PeerName in them")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Register", args, reply); done {
 		return err
 	}

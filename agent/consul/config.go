@@ -399,6 +399,8 @@ type Config struct {
 	// PeeringEnabled enables cluster peering.
 	PeeringEnabled bool
 
+	PeeringTestAllowPeerRegistrations bool
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -515,7 +517,8 @@ func DefaultConfig() *Config {
 		DefaultQueryTime:         300 * time.Second,
 		MaxQueryTime:             600 * time.Second,
 
-		PeeringEnabled: true,
+		PeeringEnabled:                    true,
+		PeeringTestAllowPeerRegistrations: false,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}

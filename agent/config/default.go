@@ -181,6 +181,11 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
+		
+		peering {
+			# We use peer registration for various testing
+			test_allow_peer_registrations = true
+		}
 	`,
 	}
 }
@@ -206,6 +211,11 @@ func NonUserSource() Source {
 			# 0s causes the value to be ignored and operate without capping
 			# the max time before leaf certs can be generated after a roots change.
 			test_ca_leaf_root_change_spread = "0s"
+		}
+
+		peering = {
+			# We use peer registration for various testing
+			test_allow_peer_registrations = false
 		}
 	`,
 	}
