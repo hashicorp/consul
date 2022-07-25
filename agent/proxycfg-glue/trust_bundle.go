@@ -19,7 +19,7 @@ import (
 // CacheTrustBundle satisfies the proxycfg.TrustBundle interface by sourcing
 // data from the agent cache.
 func CacheTrustBundle(c *cache.Cache) proxycfg.TrustBundle {
-	return &cacheProxyDataSource[*pbpeering.TrustBundleReadRequest]{c, cachetype.TrustBundleReadName}
+	return &cacheProxyDataSource[*cachetype.TrustBundleReadRequest]{c, cachetype.TrustBundleReadName}
 }
 
 // ServerTrustBundle satisfies the proxycfg.TrustBundle interface by sourcing
@@ -32,13 +32,13 @@ type serverTrustBundle struct {
 	deps ServerDataSourceDeps
 }
 
-func (s *serverTrustBundle) Notify(ctx context.Context, req *pbpeering.TrustBundleReadRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
+func (s *serverTrustBundle) Notify(ctx context.Context, req *cachetype.TrustBundleReadRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
 	// TODO(peering): ACL check.
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *pbpeering.TrustBundleReadResponse, error) {
 			index, bundle, err := store.PeeringTrustBundleRead(ws, state.Query{
-				Value:          req.Name,
-				EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
+				Value:          req.Request.Name,
+				EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Request.Partition),
 			})
 			if err != nil {
 				return 0, nil, err
@@ -55,7 +55,7 @@ func (s *serverTrustBundle) Notify(ctx context.Context, req *pbpeering.TrustBund
 // CacheTrustBundleList satisfies the proxycfg.TrustBundleList interface by sourcing
 // data from the agent cache.
 func CacheTrustBundleList(c *cache.Cache) proxycfg.TrustBundleList {
-	return &cacheProxyDataSource[*pbpeering.TrustBundleListByServiceRequest]{c, cachetype.TrustBundleListName}
+	return &cacheProxyDataSource[*cachetype.TrustBundleListRequest]{c, cachetype.TrustBundleListName}
 }
 
 // ServerTrustBundleList satisfies the proxycfg.TrustBundle interface by
@@ -68,8 +68,8 @@ type serverTrustBundleList struct {
 	deps ServerDataSourceDeps
 }
 
-func (s *serverTrustBundleList) Notify(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
-	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
+func (s *serverTrustBundleList) Notify(ctx context.Context, req *cachetype.TrustBundleListRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Request.Partition, req.Request.Namespace)
 
 	// TODO(peering): ACL check.
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
@@ -80,11 +80,11 @@ func (s *serverTrustBundleList) Notify(ctx context.Context, req *pbpeering.Trust
 				err     error
 			)
 			switch {
-			case req.ServiceName != "":
-				index, bundles, err = store.TrustBundleListByService(ws, req.ServiceName, s.deps.Datacenter, entMeta)
-			case req.Kind == string(structs.ServiceKindMeshGateway):
+			case req.Request.Kind == string(structs.ServiceKindMeshGateway):
 				index, bundles, err = store.PeeringTrustBundleList(ws, entMeta)
-			case req.Kind != "":
+			case req.Request.ServiceName != "":
+				index, bundles, err = store.TrustBundleListByService(ws, req.Request.ServiceName, s.deps.Datacenter, entMeta)
+			case req.Request.Kind != "":
 				err = errors.New("kind must be mesh-gateway if set")
 			default:
 				err = errors.New("one of service or kind is required")

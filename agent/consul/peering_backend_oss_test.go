@@ -42,8 +42,7 @@ func TestPeeringBackend_RejectsPartition(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		Datacenter: "dc1",
-		Partition:  "test",
+		Partition: "test",
 	}
 	_, err = peeringClient.GenerateToken(ctx, &req)
 	require.Error(t, err)
@@ -77,9 +76,8 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		Datacenter: "dc1",
-		PeerName:   "my-peer",
-		Partition:  "DeFaUlT",
+		PeerName:  "my-peer",
+		Partition: "DeFaUlT",
 	}
 	_, err = peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)

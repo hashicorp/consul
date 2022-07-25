@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
@@ -39,6 +40,13 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+)
+
+const (
+	testTokenPeeringReadSecret  = "9a83c138-a0c7-40f1-89fa-6acf9acd78f5"
+	testTokenPeeringWriteSecret = "91f90a41-0840-4afe-b615-68745f9e16c1"
+	testTokenServiceReadSecret  = "1ef8e3cf-6e95-49aa-9f73-a0d3ad1a77d4"
+	testTokenServiceWriteSecret = "4a3dc05d-d86c-4f20-be43-8f4f8f045fea"
 )
 
 func generateTooManyMetaKeys() map[string]string {
@@ -70,12 +78,12 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 
 	// TODO(peering): for more failure cases, consider using a table test
 	// check meta tags
-	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: generateTooManyMetaKeys()}
+	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: generateTooManyMetaKeys()}
 	_, errE := client.GenerateToken(ctx, &reqE)
 	require.EqualError(t, errE, "rpc error: code = Unknown desc = meta tags failed validation: Node metadata cannot contain more than 64 key/value pairs")
 
 	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}}
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -129,7 +137,7 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 
 	externalAddress := "32.1.2.3:8502"
 	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Datacenter: "dc1", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: []string{externalAddress}}
+	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: []string{externalAddress}}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -142,6 +150,62 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 	require.Len(t, token.ServerAddresses, 1)
 	require.Equal(t, externalAddress, token.ServerAddresses[0])
 	require.Equal(t, []string{ca}, token.CA)
+}
+
+func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.GenerateTokenRequest
+		token     string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		_, err := client.GenerateToken(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			req:       &pbpeering.GenerateTokenRequest{PeerName: "foo"},
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "read token lacks permissions",
+			req: &pbpeering.GenerateTokenRequest{
+				PeerName: "foo",
+			},
+			token:     testTokenPeeringReadSecret,
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "write token grants permission",
+			req: &pbpeering.GenerateTokenRequest{
+				PeerName: "foo",
+			},
+			token: testTokenPeeringWriteSecret,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestPeeringService_Establish(t *testing.T) {
@@ -250,6 +314,71 @@ func TestPeeringService_Establish(t *testing.T) {
 	}
 }
 
+func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
+	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
+	validTokenJSON, _ := json.Marshal(&validToken)
+	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
+
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.EstablishRequest
+		token     string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		_, err := client.Establish(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+	}
+	tcs := []testcase{
+		{
+			name: "anonymous token lacks permissions",
+			req: &pbpeering.EstablishRequest{
+				PeerName:     "foo",
+				PeeringToken: validTokenB64,
+			},
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "read token lacks permissions",
+			req: &pbpeering.EstablishRequest{
+				PeerName:     "foo",
+				PeeringToken: validTokenB64,
+			},
+			token:     testTokenPeeringReadSecret,
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "write token grants permission",
+			req: &pbpeering.EstablishRequest{
+				PeerName:     "foo",
+				PeeringToken: validTokenB64,
+			},
+			token: testTokenPeeringWriteSecret,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestPeeringService_Read(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
@@ -309,6 +438,72 @@ func TestPeeringService_Read(t *testing.T) {
 	}
 }
 
+func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	// insert peering directly to state store
+	p := &pbpeering.Peering{
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:           nil,
+		PeerServerName:       "test",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
+	}
+	err := s.Server.FSM().State().PeeringWrite(10, p)
+	require.NoError(t, err)
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.PeeringReadRequest
+		expect    *pbpeering.PeeringReadResponse
+		token     string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := client.PeeringRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, tc.expect, resp)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			req:       &pbpeering.PeeringReadRequest{Name: "foo"},
+			expect:    &pbpeering.PeeringReadResponse{Peering: p},
+			expectErr: "lacks permission 'peering:read'",
+		},
+		{
+			name: "read token grants permission",
+			req: &pbpeering.PeeringReadRequest{
+				Name: "foo",
+			},
+			expect: &pbpeering.PeeringReadResponse{Peering: p},
+			token:  testTokenPeeringReadSecret,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestPeeringService_Delete(t *testing.T) {
 	// TODO(peering): see note on newTestServer, refactor to not use this
 	s := newTestServer(t, nil)
@@ -342,6 +537,76 @@ func TestPeeringService_Delete(t *testing.T) {
 		// routine will clean it up.
 		require.Nil(r, resp)
 	})
+}
+
+func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	p := &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:          nil,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}
+	err := s.Server.FSM().State().PeeringWrite(10, p)
+	require.NoError(t, err)
+	require.Nil(t, p.DeletedAt)
+	require.True(t, p.IsActive())
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.PeeringDeleteRequest
+		token     string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		_, err = client.PeeringDelete(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			req:       &pbpeering.PeeringDeleteRequest{Name: "foo"},
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "read token lacks permissions",
+			req: &pbpeering.PeeringDeleteRequest{
+				Name: "foo",
+			},
+			token:     testTokenPeeringReadSecret,
+			expectErr: "lacks permission 'peering:write'",
+		},
+		{
+			name: "write token grants permission",
+			req: &pbpeering.PeeringDeleteRequest{
+				Name: "foo",
+			},
+			token: testTokenPeeringWriteSecret,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
 }
 
 func TestPeeringService_List(t *testing.T) {
@@ -388,6 +653,78 @@ func TestPeeringService_List(t *testing.T) {
 	prototest.AssertDeepEqual(t, expect, resp)
 }
 
+func TestPeeringService_List_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	// insert peering directly to state store
+	foo := &pbpeering.Peering{
+		ID:                   testUUID(t),
+		Name:                 "foo",
+		State:                pbpeering.PeeringState_ESTABLISHING,
+		PeerCAPems:           nil,
+		PeerServerName:       "fooservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
+	}
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
+	bar := &pbpeering.Peering{
+		ID:                   testUUID(t),
+		Name:                 "bar",
+		State:                pbpeering.PeeringState_ACTIVE,
+		PeerCAPems:           nil,
+		PeerServerName:       "barservername",
+		PeerServerAddresses:  []string{"addr1"},
+		ImportedServiceCount: 0,
+		ExportedServiceCount: 0,
+	}
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, bar))
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		token     string
+		expect    *pbpeering.PeeringListResponse
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := client.PeeringList(external.ContextWithToken(ctx, tc.token), &pbpeering.PeeringListRequest{})
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, tc.expect, resp)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			expectErr: "lacks permission 'peering:read'",
+		},
+		{
+			name:  "read token grants permission",
+			token: testTokenPeeringReadSecret,
+			expect: &pbpeering.PeeringListResponse{
+				Peerings: []*pbpeering.Peering{bar, foo},
+			},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestPeeringService_TrustBundleRead(t *testing.T) {
 	srv := newTestServer(t, nil)
 	store := srv.Server.FSM().State()
@@ -395,25 +732,6 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 
 	var lastIdx uint64 = 1
 	_ = setupTestPeering(t, store, "my-peering", lastIdx)
-
-	mysql := &structs.CheckServiceNode{
-		Node: &structs.Node{
-			Node:     "node1",
-			Address:  "10.0.0.1",
-			PeerName: "my-peering",
-		},
-		Service: &structs.NodeService{
-			ID:       "mysql-1",
-			Service:  "mysql",
-			Port:     5000,
-			PeerName: "my-peering",
-		},
-	}
-
-	lastIdx++
-	require.NoError(t, store.EnsureNode(lastIdx, mysql.Node))
-	lastIdx++
-	require.NoError(t, store.EnsureService(lastIdx, mysql.Node.Node, mysql.Service))
 
 	bundle := &pbpeering.PeeringTrustBundle{
 		TrustDomain: "peer1.com",
@@ -433,6 +751,76 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 	require.Equal(t, lastIdx, resp.Index)
 	require.NotNil(t, resp.Bundle)
 	prototest.AssertDeepEqual(t, bundle, resp.Bundle)
+}
+
+func TestPeeringService_TrustBundleRead_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	store := s.Server.FSM().State()
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	// Insert peering and trust bundle directly to state store.
+	_ = setupTestPeering(t, store, "my-peering", 10)
+
+	bundle := &pbpeering.PeeringTrustBundle{
+		TrustDomain: "peer1.com",
+		PeerName:    "my-peering",
+		RootPEMs:    []string{"peer1-root-1"},
+	}
+	require.NoError(t, store.PeeringTrustBundleWrite(11, bundle))
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.TrustBundleReadRequest
+		token     string
+		expect    *pbpeering.PeeringTrustBundle
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := client.TrustBundleRead(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, tc.expect, resp.Bundle)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			req:       &pbpeering.TrustBundleReadRequest{Name: "foo"},
+			expectErr: "lacks permission 'service:write'",
+		},
+		{
+			name: "service read token lacks permissions",
+			req: &pbpeering.TrustBundleReadRequest{
+				Name: "my-peering",
+			},
+			token:     testTokenServiceReadSecret,
+			expectErr: "lacks permission 'service:write'",
+		},
+		{
+			name: "with service write token",
+			req: &pbpeering.TrustBundleReadRequest{
+				Name: "my-peering",
+			},
+			token:  testTokenServiceWriteSecret,
+			expect: bundle,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 // Setup:
@@ -667,6 +1055,116 @@ func TestPeeringService_PeeringDisabled(t *testing.T) {
 	})
 }
 
+func TestPeeringService_TrustBundleListByService_ACLEnforcement(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s := newTestServer(t, func(conf *consul.Config) {
+		conf.ACLsEnabled = true
+		conf.ACLResolverSettings.ACLDefaultPolicy = acl.PolicyDeny
+	})
+	store := s.Server.FSM().State()
+	upsertTestACLs(t, s.Server.FSM().State())
+
+	var lastIdx uint64 = 10
+
+	lastIdx++
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
+		ID:                  testUUID(t),
+		Name:                "foo",
+		State:               pbpeering.PeeringState_ESTABLISHING,
+		PeerServerName:      "test",
+		PeerServerAddresses: []string{"addr1"},
+	}))
+
+	lastIdx++
+	require.NoError(t, store.PeeringTrustBundleWrite(lastIdx, &pbpeering.PeeringTrustBundle{
+		TrustDomain: "foo.com",
+		PeerName:    "foo",
+		RootPEMs:    []string{"foo-root-1"},
+	}))
+
+	lastIdx++
+	require.NoError(t, store.EnsureNode(lastIdx, &structs.Node{
+		Node: "my-node", Address: "127.0.0.1",
+	}))
+
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "my-node", &structs.NodeService{
+		ID:      "api",
+		Service: "api",
+		Port:    8000,
+	}))
+
+	entry := structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{
+						PeerName: "foo",
+					},
+				},
+			},
+		},
+	}
+	require.NoError(t, entry.Normalize())
+	require.NoError(t, entry.Validate())
+
+	lastIdx++
+	require.NoError(t, store.EnsureConfigEntry(lastIdx, &entry))
+
+	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+
+	type testcase struct {
+		name      string
+		req       *pbpeering.TrustBundleListByServiceRequest
+		token     string
+		expect    []string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		resp, err := client.TrustBundleListByService(external.ContextWithToken(ctx, tc.token), tc.req)
+		if tc.expectErr != "" {
+			require.Contains(t, err.Error(), tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+		require.Len(t, resp.Bundles, 1)
+		require.Equal(t, tc.expect, resp.Bundles[0].RootPEMs)
+	}
+	tcs := []testcase{
+		{
+			name:      "anonymous token lacks permissions",
+			req:       &pbpeering.TrustBundleListByServiceRequest{ServiceName: "api"},
+			expectErr: "lacks permission 'service:write'",
+		},
+		{
+			name: "service read token lacks permission",
+			req: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: "api",
+			},
+			token:     testTokenServiceReadSecret,
+			expectErr: "lacks permission 'service:write'",
+		},
+		{
+			name: "with service write token",
+			req: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: "api",
+			},
+			token:  testTokenServiceWriteSecret,
+			expect: []string{"foo-root-1"},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 // newTestServer is copied from partition/service_test.go, with the addition of certs/cas.
 // TODO(peering): these are endpoint tests and should live in the agent/consul
 // package. Instead, these can be written around a mock client (see testing.go)
@@ -829,6 +1327,87 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 	}
+}
+
+func upsertTestACLs(t *testing.T, store *state.Store) {
+	var (
+		testPolicyPeeringReadID  = "43fed171-ad1d-4d3b-9df3-c99c1c835c37"
+		testPolicyPeeringWriteID = "cddb0821-e720-4411-bbdd-cc62ce417eac"
+
+		testPolicyServiceReadID  = "0e054136-f5d3-4627-a7e6-198f1df923d3"
+		testPolicyServiceWriteID = "b55e03f4-c9dd-4210-8d24-f7ea8e2a1918"
+	)
+	policies := structs.ACLPolicies{
+		{
+			ID:     testPolicyPeeringReadID,
+			Name:   "peering-read",
+			Rules:  `peering = "read"`,
+			Syntax: acl.SyntaxCurrent,
+		},
+		{
+			ID:     testPolicyPeeringWriteID,
+			Name:   "peering-write",
+			Rules:  `peering = "write"`,
+			Syntax: acl.SyntaxCurrent,
+		},
+		{
+			ID:     testPolicyServiceReadID,
+			Name:   "service-read",
+			Rules:  `service "api" { policy = "read" }`,
+			Syntax: acl.SyntaxCurrent,
+		},
+		{
+			ID:     testPolicyServiceWriteID,
+			Name:   "service-write",
+			Rules:  `service "api" { policy = "write" }`,
+			Syntax: acl.SyntaxCurrent,
+		},
+	}
+	require.NoError(t, store.ACLPolicyBatchSet(100, policies))
+
+	tokens := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  "22500c91-723c-4335-be8a-6697417dc35b",
+			SecretID:    testTokenPeeringReadSecret,
+			Description: "peering read",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: testPolicyPeeringReadID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID:  "de924f93-cfec-404c-9a7e-c1c9b96b8cae",
+			SecretID:    testTokenPeeringWriteSecret,
+			Description: "peering write",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: testPolicyPeeringWriteID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID:  "53c54f79-ffed-47d4-904e-e2e0e40c0a01",
+			SecretID:    testTokenServiceReadSecret,
+			Description: "service read",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: testPolicyServiceReadID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID:  "a100fa5f-db72-49f0-8f61-aa1f9f92f657",
+			SecretID:    testTokenServiceWriteSecret,
+			Description: "service write",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: testPolicyServiceWriteID,
+				},
+			},
+		},
+	}
+	require.NoError(t, store.ACLTokenBatchSet(101, tokens, state.ACLTokenSetOptions{}))
 }
 
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {

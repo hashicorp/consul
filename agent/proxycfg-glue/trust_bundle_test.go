@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -32,8 +33,10 @@ func TestServerTrustBundle(t *testing.T) {
 	})
 
 	eventCh := make(chan proxycfg.UpdateEvent)
-	err := dataSource.Notify(context.Background(), &pbpeering.TrustBundleReadRequest{
-		Name: peerName,
+	err := dataSource.Notify(context.Background(), &cachetype.TrustBundleReadRequest{
+		Request: &pbpeering.TrustBundleReadRequest{
+			Name: peerName,
+		},
 	}, "", eventCh)
 	require.NoError(t, err)
 
@@ -96,9 +99,11 @@ func TestServerTrustBundleList(t *testing.T) {
 		})
 
 		eventCh := make(chan proxycfg.UpdateEvent)
-		err := dataSource.Notify(context.Background(), &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: serviceName,
-			Partition:   us,
+		err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: serviceName,
+				Partition:   us,
+			},
 		}, "", eventCh)
 		require.NoError(t, err)
 
@@ -134,9 +139,11 @@ func TestServerTrustBundleList(t *testing.T) {
 		})
 
 		eventCh := make(chan proxycfg.UpdateEvent)
-		err := dataSource.Notify(context.Background(), &pbpeering.TrustBundleListByServiceRequest{
-			Kind:      string(structs.ServiceKindMeshGateway),
-			Partition: "default",
+		err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				Kind:      string(structs.ServiceKindMeshGateway),
+				Partition: "default",
+			},
 		}, "", eventCh)
 		require.NoError(t, err)
 
