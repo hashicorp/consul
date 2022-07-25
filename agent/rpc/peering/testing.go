@@ -32,6 +32,7 @@ not valid
 `
 
 var validAddress = "1.2.3.4:80"
+var validHostnameAddress = "foo.bar.baz:80"
 
 var validServerName = "server.consul"
 
