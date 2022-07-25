@@ -354,6 +354,8 @@ func (s *Server) Establish(
 	if err = validatePeer(peeringOrNil, true); err != nil {
 		return nil, err
 	}
+
+	// we don't want to default req.Partition unlike because partitions are empty in OSS
 	if err := s.validatePeeringInPartition(tok.PeerID, req.Partition); err != nil {
 		return nil, err
 	}
