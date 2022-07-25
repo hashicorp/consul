@@ -408,7 +408,7 @@ func (s *Server) Establish(
 func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
 	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
 	if err != nil {
-		return fmt.Errorf("cannot validate peering in partition: %w", err)
+		return fmt.Errorf("cannot read peering by ID: %w", err)
 	}
 
 	if peering != nil && peering.Partition == partition {
