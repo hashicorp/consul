@@ -396,6 +396,9 @@ type Config struct {
 
 	RaftBoltDBConfig RaftBoltDBConfig
 
+	// PeeringEnabled enables cluster peering.
+	PeeringEnabled bool
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -511,6 +514,8 @@ func DefaultConfig() *Config {
 		AutopilotInterval:        10 * time.Second,
 		DefaultQueryTime:         300 * time.Second,
 		MaxQueryTime:             600 * time.Second,
+
+		PeeringEnabled: true,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}

@@ -315,7 +315,9 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startFederationStateAntiEntropy(ctx)
 
-	s.startPeeringStreamSync(ctx)
+	if s.config.PeeringEnabled {
+		s.startPeeringStreamSync(ctx)
+	}
 
 	s.startDeferredDeletion(ctx)
 
@@ -758,7 +760,9 @@ func (s *Server) stopACLReplication() {
 }
 
 func (s *Server) startDeferredDeletion(ctx context.Context) {
-	s.startPeeringDeferredDeletion(ctx)
+	if s.config.PeeringEnabled {
+		s.startPeeringDeferredDeletion(ctx)
+	}
 	s.startTenancyDeferredDeletion(ctx)
 }
 

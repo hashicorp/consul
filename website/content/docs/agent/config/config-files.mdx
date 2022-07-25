@@ -551,6 +551,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/docs/agent/config/cli-flags#_max_query_time).
 
+- `peering` This object allows setting options for cluster peering.
+
+  The following sub-keys are available:
+
+  - `enabled` ((#peering_enabled)) (Defaults to `true`) Controls whether cluster peering is enabled.
+    Has no effect on Consul clients, only on Consul servers. When disabled, all peering APIs will return
+    an error, any peerings stored in Consul already will be ignored (but they will not be deleted),
+    all peering connections from other clusters will be rejected. This was added in Consul 1.13.0.
+
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the

@@ -751,8 +751,8 @@ func testConfigSnapshotFixture(
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
 			ResolvedServiceConfig:           &noopDataSource[*structs.ServiceConfigRequest]{},
 			ServiceList:                     &noopDataSource[*structs.DCSpecificRequest]{},
-			TrustBundle:                     &noopDataSource[*pbpeering.TrustBundleReadRequest]{},
-			TrustBundleList:                 &noopDataSource[*pbpeering.TrustBundleListByServiceRequest]{},
+			TrustBundle:                     &noopDataSource[*cachetype.TrustBundleReadRequest]{},
+			TrustBundleList:                 &noopDataSource[*cachetype.TrustBundleListRequest]{},
 			ExportedPeeredServices:          &noopDataSource[*structs.DCSpecificRequest]{},
 		},
 		dnsConfig: DNSConfig{ // TODO: make configurable
@@ -954,8 +954,8 @@ func NewTestDataSources() *TestDataSources {
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
 		ServiceList:                     NewTestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList](),
-		TrustBundle:                     NewTestDataSource[*pbpeering.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse](),
-		TrustBundleList:                 NewTestDataSource[*pbpeering.TrustBundleListByServiceRequest, *pbpeering.TrustBundleListByServiceResponse](),
+		TrustBundle:                     NewTestDataSource[*cachetype.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse](),
+		TrustBundleList:                 NewTestDataSource[*cachetype.TrustBundleListRequest, *pbpeering.TrustBundleListByServiceResponse](),
 	}
 	srcs.buildEnterpriseSources()
 	return srcs
@@ -981,8 +981,8 @@ type TestDataSources struct {
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]
 	ResolvedServiceConfig           *TestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse]
 	ServiceList                     *TestDataSource[*structs.DCSpecificRequest, *structs.IndexedServiceList]
-	TrustBundle                     *TestDataSource[*pbpeering.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse]
-	TrustBundleList                 *TestDataSource[*pbpeering.TrustBundleListByServiceRequest, *pbpeering.TrustBundleListByServiceResponse]
+	TrustBundle                     *TestDataSource[*cachetype.TrustBundleReadRequest, *pbpeering.TrustBundleReadResponse]
+	TrustBundleList                 *TestDataSource[*cachetype.TrustBundleListRequest, *pbpeering.TrustBundleListByServiceResponse]
 
 	TestDataSourcesEnterprise
 }

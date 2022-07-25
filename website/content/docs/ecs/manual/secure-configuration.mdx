@@ -472,6 +472,45 @@ The following table describes the additional fields that must be included in the
 | [`acl.tokens.agent`](/docs/agent/config/config-files#acl_tokens_agent)          | string  | Consul client token which authorizes this agent with Consul servers.                    |
 | [`partition`](/docs/agent/config/config-files#partition-1)                      | string  | <EnterpriseAlert inline /> The Consul Enterprise admin partition this agent belongs to. |
 
+### Configure Audit Logging <EnterpriseAlert inline />
+[Audit logging](/docs/enterprise/audit-logging) is supported on clients running Consul Enterprise with ACLs enabled.
+To enable audit logging, update the startup script to add an `audit` stanza to the Consul client configuration file.
+
+The following example modifies the `consul-client` startup script to configure audit logs to be written to the `stdout` of the `consul-client` container.
+
+<CodeBlockConfig highlight="9-17">
+
+```shell
+...
+
+# Write the Consul agent configuration file.
+cat << EOF > /consul/agent-defaults.hcl
+...
+
+partition = "<partition>"
+
+audit {
+  enabled = true
+  sink "stdout" {
+    type   = "file"
+    format = "json"
+    path   = "/dev/stdout"
+    delivery_guarantee = "best-effort"
+  }
+}
+
+EOF
+```
+
+</CodeBlockConfig>
+
+The following table describes the fields that must be included to configure audit logging.
+
+| Field name                                                                      | Type    | Description                                                                             |
+| ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------    |
+| [`audit.enabled`](/docs/agent/config/config-files#enabled)                      | boolean | Enable audit logging for this agent.                                                    |
+| [`audit.sink`](/docs/agent/config/config-files#sink)                            | object  | The audit logging sink for this agent.                                                  |
+
 ## Configure `consul-ecs-mesh-init` and `consul-ecs-health-sync`
 
 The following *additional* options should be set in the [`CONSUL_ECS_CONFIG_JSON`](/docs/ecs/manual/install#consul_ecs_config_json) environment variable. When these options are specified, the `consul-ecs mesh-init` command will run the `consul login` command to obtain a service token from the Consul AWS IAM Auth method. The `consul-ecs health-sync` command is responsible for running a `consul logout` command for both the service and client tokens when the task shuts down.

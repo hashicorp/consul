@@ -1,6 +1,7 @@
 package peering
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -53,6 +54,7 @@ func TestPeering(peerName string, state pbpeering.PeeringState, meta map[string]
 		State:               state,
 		PeerID:              validPeerID,
 		Meta:                meta,
+		Partition:           acl.DefaultPartitionName,
 	}
 }
 

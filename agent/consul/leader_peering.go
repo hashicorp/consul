@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -27,8 +29,72 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
+var leaderExportedServicesCountKey = []string{"consul", "peering", "exported_services"}
+var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
+	{
+		Name: leaderExportedServicesCountKey,
+		Help: "A gauge that tracks how many services are exported for the peering. " +
+			"The labels are \"peering\" and, for enterprise, \"partition\". " +
+			"We emit this metric every 9 seconds",
+	},
+}
+
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
 	s.leaderRoutineManager.Start(ctx, peeringStreamsRoutineName, s.runPeeringSync)
+	s.leaderRoutineManager.Start(ctx, peeringStreamsMetricsRoutineName, s.runPeeringMetrics)
+}
+
+func (s *Server) runPeeringMetrics(ctx context.Context) error {
+	ticker := time.NewTicker(s.config.MetricsReportingInterval)
+	defer ticker.Stop()
+
+	logger := s.logger.Named(logging.PeeringMetrics)
+	defaultMetrics := metrics.Default
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("stopping peering metrics")
+
+			// "Zero-out" the metric on exit so that when prometheus scrapes this
+			// metric from a non-leader, it does not get a stale value.
+			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
+			return nil
+		case <-ticker.C:
+			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
+				s.logger.Error("error emitting peering stream metrics", "error", err)
+			}
+		}
+	}
+}
+
+func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peers {
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if !found {
+			logger.Trace("did not find status for", "peer_name", peer.Name)
+			continue
+		}
+
+		esc := status.GetExportedServicesCount()
+		part := peer.Partition
+		labels := []metrics.Label{
+			{Name: "peer_name", Value: peer.Name},
+			{Name: "peer_id", Value: peer.ID},
+		}
+		if part != "" {
+			labels = append(labels, metrics.Label{Name: "partition", Value: part})
+		}
+
+		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+	}
+
+	return nil
 }
 
 func (s *Server) runPeeringSync(ctx context.Context) error {
@@ -51,6 +117,7 @@ func (s *Server) runPeeringSync(ctx context.Context) error {
 func (s *Server) stopPeeringStreamSync() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(peeringStreamsRoutineName)
+	s.leaderRoutineManager.Stop(peeringStreamsMetricsRoutineName)
 }
 
 // syncPeeringsAndBlock is a long-running goroutine that is responsible for watching

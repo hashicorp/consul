@@ -1341,6 +1341,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// function does not drift.
 	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
 
+	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
@@ -4246,6 +4248,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		sources.ConfigEntry = proxycfgglue.ServerConfigEntry(deps)
 		sources.ConfigEntryList = proxycfgglue.ServerConfigEntryList(deps)
 		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
+		sources.ExportedPeeredServices = proxycfgglue.ServerExportedPeeredServices(deps)
 		sources.FederationStateListMeshGateways = proxycfgglue.ServerFederationStateListMeshGateways(deps)
 		sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
 		sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))

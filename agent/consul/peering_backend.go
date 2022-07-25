@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/rpc/peering"
@@ -159,4 +161,8 @@ func (b *PeeringBackend) CatalogRegister(req *structs.RegisterRequest) error {
 func (b *PeeringBackend) CatalogDeregister(req *structs.DeregisterRequest) error {
 	_, err := b.srv.leaderRaftApply("Catalog.Deregister", structs.DeregisterRequestType, req)
 	return err
+}
+
+func (b *PeeringBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
+	return b.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
 }

@@ -11,8 +11,6 @@ func EstablishRequestToAPI(s *EstablishRequest, t *api.PeeringEstablishRequest) 
 	t.PeerName = s.PeerName
 	t.PeeringToken = s.PeeringToken
 	t.Partition = s.Partition
-	t.Datacenter = s.Datacenter
-	t.Token = s.Token
 	t.Meta = s.Meta
 }
 func EstablishRequestFromAPI(t *api.PeeringEstablishRequest, s *EstablishRequest) {
@@ -22,8 +20,6 @@ func EstablishRequestFromAPI(t *api.PeeringEstablishRequest, s *EstablishRequest
 	s.PeerName = t.PeerName
 	s.PeeringToken = t.PeeringToken
 	s.Partition = t.Partition
-	s.Datacenter = t.Datacenter
-	s.Token = t.Token
 	s.Meta = t.Meta
 }
 func EstablishResponseToAPI(s *EstablishResponse, t *api.PeeringEstablishResponse) {
@@ -42,9 +38,8 @@ func GenerateTokenRequestToAPI(s *GenerateTokenRequest, t *api.PeeringGenerateTo
 	}
 	t.PeerName = s.PeerName
 	t.Partition = s.Partition
-	t.Datacenter = s.Datacenter
-	t.Token = s.Token
 	t.Meta = s.Meta
+	t.ServerExternalAddresses = s.ServerExternalAddresses
 }
 func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *GenerateTokenRequest) {
 	if s == nil {
@@ -52,9 +47,8 @@ func GenerateTokenRequestFromAPI(t *api.PeeringGenerateTokenRequest, s *Generate
 	}
 	s.PeerName = t.PeerName
 	s.Partition = t.Partition
-	s.Datacenter = t.Datacenter
-	s.Token = t.Token
 	s.Meta = t.Meta
+	s.ServerExternalAddresses = t.ServerExternalAddresses
 }
 func GenerateTokenResponseToAPI(s *GenerateTokenResponse, t *api.PeeringGenerateTokenResponse) {
 	if s == nil {

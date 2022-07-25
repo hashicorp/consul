@@ -127,6 +127,7 @@ const (
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
+	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
 )
 
 var (
@@ -793,6 +794,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		},
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
+		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
 
