@@ -764,18 +764,6 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 	return &pbpeering.TrustBundleListByServiceResponse{Index: idx, Bundles: bundles}, nil
 }
 
-func (s *Server) getExistingOrCreateNewPeerID(peeringOrNil *pbpeering.Peering) (string, error) {
-	if peeringOrNil != nil {
-		return peeringOrNil.ID, nil
-	}
-
-	id, err := lib.GenerateUUID(s.Backend.CheckPeeringUUID)
-	if err != nil {
-		return "", err
-	}
-	return id, nil
-}
-
 func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peering, error) {
 	q := state.Query{
 		Value:          strings.ToLower(peerName),
