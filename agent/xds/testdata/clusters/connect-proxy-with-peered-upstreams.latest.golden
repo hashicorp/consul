@@ -28,12 +28,11 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "altStatName": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "name": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
       "loadAssignment": {
-        "clusterName": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+        "clusterName": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
         "endpoints": [
           {
             "lbEndpoints": [
@@ -101,8 +100,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "altStatName": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "name": "refunds.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {

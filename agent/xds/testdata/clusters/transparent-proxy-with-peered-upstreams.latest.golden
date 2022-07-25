@@ -3,8 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "altStatName": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "name": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -61,8 +60,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "db.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "altStatName": "db.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "name": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -144,8 +142,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "no-endpoints?peer=peer-a",
-      "altStatName": "no-endpoints?peer=peer-a",
+      "name": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {

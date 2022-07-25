@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 const (
@@ -731,18 +732,19 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		// In the happy path don't return yet as we need to inject TLS config still.
 	}
 
-	// TODO(peering): if we replicated service metadata separately from the
-	// instances we wouldn't have to flip/flop this cluster name like this.
-	clusterName := peerMeta.PrimarySNI()
-	if clusterName == "" {
-		clusterName = uid.EnvoyID()
+	tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+	if !ok {
+		// this should never happen since we loop through upstreams with
+		// set trust bundles
+		return c, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 	}
+
+	clusterName := generatePeeredClusterName(uid, tbs)
 
 	s.Logger.Trace("generating cluster for", "cluster", clusterName)
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
 			Name:           clusterName,
-			AltStatName:    clusterName,
 			ConnectTimeout: durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
@@ -1597,4 +1599,16 @@ func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster)
 	}
 
 	return nil
+}
+
+// generatePeeredClusterName returns an SNI-like cluster name which mimics PeeredServiceSNI
+// but excludes partition information which could be ambiguous (local vs remote partition).
+func generatePeeredClusterName(uid proxycfg.UpstreamID, tb *pbpeering.PeeringTrustBundle) string {
+	return strings.Join([]string{
+		uid.Name,
+		uid.NamespaceOrDefault(),
+		uid.Peer,
+		"external",
+		tb.TrustDomain,
+	}, ".")
 }

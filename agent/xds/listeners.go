@@ -294,21 +294,27 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		// TODO(peering): if we replicated service metadata separately from the
-		// instances we wouldn't have to flip/flop this cluster name like this.
-		clusterName := peerMeta.PrimarySNI()
-		if clusterName == "" {
-			clusterName = uid.EnvoyID()
+		tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		if !ok {
+			// this should never happen since we loop through upstreams with
+			// set trust bundles
+			return nil, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 		}
+
+		clusterName := generatePeeredClusterName(uid, tbs)
 
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				clusterName: clusterName,
-				filterName:  uid.EnvoyID(),
-				routeName:   uid.EnvoyID(),
-				protocol:    cfg.Protocol,
-				useRDS:      false,
+				filterName: fmt.Sprintf("%s.%s.%s",
+					upstreamCfg.DestinationName,
+					upstreamCfg.DestinationNamespace,
+					upstreamCfg.DestinationPeer),
+				routeName:  uid.EnvoyID(),
+				protocol:   cfg.Protocol,
+				useRDS:     false,
+				statPrefix: "upstream_peered.",
 			})
 			if err != nil {
 				return nil, err
@@ -331,9 +337,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			routeName:   uid.EnvoyID(),
 			clusterName: clusterName,
-			filterName:  uid.EnvoyID(),
-			protocol:    cfg.Protocol,
-			useRDS:      false,
+			filterName: fmt.Sprintf("%s.%s.%s",
+				uid.Name,
+				uid.NamespaceOrDefault(),
+				uid.Peer),
+			protocol:   cfg.Protocol,
+			useRDS:     false,
+			statPrefix: "upstream_peered.",
 		})
 		if err != nil {
 			return nil, err

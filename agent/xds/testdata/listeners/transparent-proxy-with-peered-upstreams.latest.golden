@@ -17,8 +17,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.api-a?peer=peer-a",
-                "cluster": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                "statPrefix": "upstream_peered.api-a.default.peer-a",
+                "cluster": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
@@ -42,8 +42,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.no-endpoints?peer=peer-a",
-                "cluster": "no-endpoints?peer=peer-a"
+                "statPrefix": "upstream_peered.no-endpoints.default.peer-a",
+                "cluster": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
@@ -79,8 +79,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.db?peer=peer-a",
-                "cluster": "db.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                "statPrefix": "upstream_peered.db.default.peer-a",
+                "cluster": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
