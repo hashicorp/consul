@@ -138,6 +138,7 @@
         ]
       },
       "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
 
       }
@@ -167,6 +168,7 @@
         ]
       },
       "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
 
       },
@@ -218,6 +220,7 @@
         ]
       },
       "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
 
       }
@@ -247,6 +250,7 @@
         ]
       },
       "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
 
       }
