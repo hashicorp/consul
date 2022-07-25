@@ -1016,7 +1016,6 @@ func TestPeeringService_validatePeer(t *testing.T) {
 			"cannot create peering with name: \"peerB\"; there is an existing peering expecting to be dialed")
 		require.Nil(t, resp)
 	})
-
 }
 
 // Test RPC endpoint responses when peering is disabled. They should all return an error.

@@ -334,6 +334,17 @@ func (s *Server) Establish(
 
 	defer metrics.MeasureSince([]string{"peering", "establish"}, time.Now())
 
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
 	peeringOrNil, err := s.getExistingPeering(req.PeerName, req.Partition)
 	if err != nil {
 		return nil, err
@@ -362,18 +373,6 @@ func (s *Server) Establish(
 	for i, addr := range tok.ServerAddresses {
 		serverAddrs[i] = addr
 	}
-
-	var authzCtx acl.AuthorizerContext
-	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := authz.ToAllowAuthorizer().PeeringWriteAllowed(&authzCtx); err != nil {
-		return nil, err
-	}
-
 	// as soon as a peering is written with a list of ServerAddresses that is
 	// non-empty, the leader routine will see the peering and attempt to
 	// establish a connection with the remote peer.
@@ -402,8 +401,9 @@ func (s *Server) Establish(
 	return resp, nil
 }
 
-// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We do so by checking
-// to see if the current server's server addresses slice has any intersection with the slice from the token.
+// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We validate by looking at
+// the remotePeerID from the PeeringToken and looking up for a peering in the partition. If there is one and the
+// request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
 func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
 	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
 	if err != nil {
