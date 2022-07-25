@@ -62,7 +62,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "disconnect", func(t *testing.T) {
-		tracker.Disconnected(peerID)
+		tracker.DisconnectedGracefully(peerID)
 		sequence++
 
 		expect := Status{
@@ -147,7 +147,7 @@ func TestTracker_connectedStreams(t *testing.T) {
 				require.NoError(t, err)
 
 				// Mark foo as disconnected to avoid showing it as an active stream
-				status.TrackDisconnected()
+				status.TrackDisconnectedGracefully()
 
 				_, err = s.Connected("bar")
 				require.NoError(t, err)
@@ -161,4 +161,62 @@ func TestTracker_connectedStreams(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestMutableStatus_TrackConnected(t *testing.T) {
+	s := MutableStatus{
+		Status: Status{
+			Connected:              false,
+			DisconnectTime:         time.Now(),
+			DisconnectErrorMessage: "disconnected",
+		},
+	}
+	s.TrackConnected()
+
+	require.True(t, s.IsConnected())
+	require.True(t, s.Connected)
+	require.Equal(t, time.Time{}, s.DisconnectTime)
+	require.Empty(t, s.DisconnectErrorMessage)
+}
+
+func TestMutableStatus_TrackDisconnectedGracefully(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+	disconnectTime := it.FutureNow(1)
+
+	s := MutableStatus{
+		timeNow: it.Now,
+		Status: Status{
+			Connected: true,
+		},
+	}
+
+	s.TrackDisconnectedGracefully()
+
+	require.False(t, s.IsConnected())
+	require.False(t, s.Connected)
+	require.Equal(t, disconnectTime, s.DisconnectTime)
+	require.Empty(t, s.DisconnectErrorMessage)
+}
+
+func TestMutableStatus_TrackDisconnectedDueToError(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+	disconnectTime := it.FutureNow(1)
+
+	s := MutableStatus{
+		timeNow: it.Now,
+		Status: Status{
+			Connected: true,
+		},
+	}
+
+	s.TrackDisconnectedDueToError("disconnect err")
+
+	require.False(t, s.IsConnected())
+	require.False(t, s.Connected)
+	require.Equal(t, disconnectTime, s.DisconnectTime)
+	require.Equal(t, "disconnect err", s.DisconnectErrorMessage)
 }

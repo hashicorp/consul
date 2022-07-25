@@ -511,6 +511,8 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		// reconcile pbpeering.PeeringState_Active
 		if streamState.Connected {
 			cp.State = pbpeering.PeeringState_ACTIVE
+		} else if streamState.DisconnectErrorMessage != "" {
+			cp.State = pbpeering.PeeringState_FAILING
 		}
 
 		// add imported & exported services counts
