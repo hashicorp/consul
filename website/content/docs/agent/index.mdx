@@ -75,7 +75,7 @@ Refer to the following sections for information about host, port, memory, and ot
 
 The [Datacenter Deploy tutorial](https://learn.hashicorp.com/tutorials/consul/reference-architecture?in=consul/production-deploy#deployment-system-requirements) contains additional information, including licensing configuration, environment variables, and other details.
 
-## Maximum Latency
+### Maximum Latency Network requiremenmts
 
 Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol’s maximum latency threshold. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents.  Other network usages outside of Gossip are not bound by these latency requirements (client to server RPCs, HTTP API requests, xDS proxy configuration, DNS).
 
