@@ -213,7 +213,7 @@ func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
 			return fmt.Errorf("cannot write to peering that is marked for deletion")
 		}
 
-		if p.State == 0 {
+		if p.State == pbpeering.PeeringState_UNDEFINED {
 			p.State = existing.State
 		}
 		// TODO(peering): Confirm behavior when /peering/token is called more than once.
