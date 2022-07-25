@@ -341,7 +341,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	peering, err := s.getExistingPeering(req.PeerName, req.Partition)
+	peering, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
 	if err != nil {
 		return nil, err
 	}
