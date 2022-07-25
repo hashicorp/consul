@@ -215,7 +215,7 @@ func (s *Server) GenerateToken(
 
 	// This loop ensures at most one retry in the case of a race condition.
 	for canRetry := true; canRetry; canRetry = false {
-		peering, err = s.getExistingPeering(req.PeerName, req.Partition)
+		peering, err = s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
 		if err != nil {
 			return nil, err
 		}
