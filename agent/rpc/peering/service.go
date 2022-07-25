@@ -344,7 +344,7 @@ func (s *Server) validatePeeringInPartition(remotePeerID, partition string) erro
 		return fmt.Errorf("cannot validate peering in partition: %w", err)
 	}
 
-	if peering.Partition == partition {
+	if peering != nil && peering.Partition == partition {
 		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
 	}
 
