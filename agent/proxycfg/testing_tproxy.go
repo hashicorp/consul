@@ -530,11 +530,29 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 	var (
 		google    = structs.NewServiceName("google", nil)
 		googleUID = NewUpstreamIDFromServiceName(google)
-		googleCE  = structs.ServiceConfigEntry{Name: "google", Destination: &structs.DestinationConfig{Address: "www.google.com", Port: 443}}
+		googleCE  = structs.ServiceConfigEntry{
+			Name: "google",
+			Destination: &structs.DestinationConfig{
+				Addresses: []string{
+					"www.google.com",
+					"api.google.com",
+				},
+				Port: 443,
+			},
+		}
 
 		kafka    = structs.NewServiceName("kafka", nil)
 		kafkaUID = NewUpstreamIDFromServiceName(kafka)
-		kafkaCE  = structs.ServiceConfigEntry{Name: "kafka", Destination: &structs.DestinationConfig{Address: "192.168.2.1", Port: 9093}}
+		kafkaCE  = structs.ServiceConfigEntry{
+			Name: "kafka",
+			Destination: &structs.DestinationConfig{
+				Addresses: []string{
+					"192.168.2.1",
+					"192.168.2.2",
+				},
+				Port: 9093,
+			},
+		}
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {

@@ -37,7 +37,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "destination~google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -59,7 +59,51 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "destination~kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "destination.192-168-2-2.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.168.0.1",
+                    "portValue": 8443
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "destination.api-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.168.0.1",
+                    "portValue": 8443
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [

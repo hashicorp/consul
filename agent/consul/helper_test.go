@@ -1462,8 +1462,8 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 				Kind: structs.ServiceDefaults,
 				Name: "api.example.com",
 				Destination: &structs.DestinationConfig{
-					Address: "api.example.com",
-					Port:    443,
+					Addresses: []string{"api.example.com"},
+					Port:      443,
 				},
 			},
 			WriteRequest: structs.WriteRequest{Token: token},
@@ -1474,8 +1474,8 @@ func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token
 				Kind: structs.ServiceDefaults,
 				Name: "kafka.store.com",
 				Destination: &structs.DestinationConfig{
-					Address: "172.168.2.1",
-					Port:    9003,
+					Addresses: []string{"172.168.2.1"},
+					Port:      9003,
 				},
 			},
 			WriteRequest: structs.WriteRequest{Token: token},
