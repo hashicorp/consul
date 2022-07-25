@@ -167,21 +167,19 @@ type Status struct {
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
-	// LastReceiveHeartbeat tracks when we last received a heartbeat from our peer.
-	LastReceiveHeartbeat time.Time
+	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
+	LastRecvHeartbeat time.Time
 
-	// LastReceiveResourceSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
-	LastReceiveResourceSuccess time.Time
+	// LastRecvResourceSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
+	LastRecvResourceSuccess time.Time
 
-	// LastReceiveError tracks either:
+	// LastRecvError tracks either:
 	// - The time we failed to store a resource replicated FROM the peer.
 	// - The time of the last error when receiving from the stream.
-	LastReceiveError time.Time
+	LastRecvError time.Time
 
-	// LastReceiveError tracks either:
-	// - The error message when we failed to store a resource replicated FROM the peer.
-	// - The last error message when receiving from the stream.
-	LastReceiveErrorMessage string
+	// LastRecvErrorMessage tracks the last error message when receiving from the stream.
+	LastRecvErrorMessage string
 
 	// TODO(peering): consider keeping track of imported and exported services thru raft
 	// ImportedServices keeps track of which service names are imported for the peer
@@ -225,24 +223,24 @@ func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Unlock()
 }
 
-// TrackReceiveResourceSuccess tracks receiving a replicated resource.
-func (s *MutableStatus) TrackReceiveResourceSuccess() {
+// TrackRecvResourceSuccess tracks receiving a replicated resource.
+func (s *MutableStatus) TrackRecvResourceSuccess() {
 	s.mu.Lock()
-	s.LastReceiveResourceSuccess = s.timeNow().UTC()
+	s.LastRecvResourceSuccess = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
-// TrackReceiveHeartbeat tracks receiving a heartbeat from our peer.
-func (s *MutableStatus) TrackReceiveHeartbeat() {
+// TrackRecvHeartbeat tracks receiving a heartbeat from our peer.
+func (s *MutableStatus) TrackRecvHeartbeat() {
 	s.mu.Lock()
-	s.LastReceiveHeartbeat = s.timeNow().UTC()
+	s.LastRecvHeartbeat = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 
-func (s *MutableStatus) TrackReceiveError(error string) {
+func (s *MutableStatus) TrackRecvError(error string) {
 	s.mu.Lock()
-	s.LastReceiveError = s.timeNow().UTC()
-	s.LastReceiveErrorMessage = error
+	s.LastRecvError = s.timeNow().UTC()
+	s.LastRecvErrorMessage = error
 	s.mu.Unlock()
 }
 

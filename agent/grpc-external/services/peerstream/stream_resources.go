@@ -265,11 +265,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			if err == io.EOF {
 				logger.Info("stream ended by peer")
-				status.TrackReceiveError(err.Error())
+				status.TrackRecvError(err.Error())
 				return
 			}
 			logger.Error("failed to receive from stream", "error", err)
-			status.TrackReceiveError(err.Error())
+			status.TrackRecvError(err.Error())
 			return
 		}
 	}()
@@ -459,9 +459,9 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				reply, err := s.processResponse(streamReq.PeerName, streamReq.Partition, status, resp, logger)
 				if err != nil {
 					logger.Error("failed to persist resource", "resourceURL", resp.ResourceURL, "resourceID", resp.ResourceID)
-					status.TrackReceiveError(err.Error())
+					status.TrackRecvError(err.Error())
 				} else {
-					status.TrackReceiveResourceSuccess()
+					status.TrackRecvResourceSuccess()
 				}
 
 				if err := streamSend(reply); err != nil {
@@ -482,7 +482,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			}
 
 			if msg.GetHeartbeat() != nil {
-				status.TrackReceiveHeartbeat()
+				status.TrackRecvHeartbeat()
 
 				// Reset the heartbeat timeout by creating a new context.
 				// We first must cancel the old context so there's no leaks. This is safe to do because we're only

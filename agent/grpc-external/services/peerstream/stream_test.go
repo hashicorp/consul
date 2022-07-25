@@ -475,11 +475,11 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:                  true,
-			LastAck:                    lastSendSuccess,
-			LastNack:                   lastNack,
-			LastNackMessage:            lastNackMsg,
-			LastReceiveResourceSuccess: lastRecvResourceSuccess,
+			Connected:               true,
+			LastAck:                 lastSendSuccess,
+			LastNack:                lastNack,
+			LastNackMessage:         lastNackMsg,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -534,13 +534,13 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:                  true,
-			LastAck:                    lastSendSuccess,
-			LastNack:                   lastNack,
-			LastNackMessage:            lastNackMsg,
-			LastReceiveResourceSuccess: lastRecvResourceSuccess,
-			LastReceiveError:           lastRecvError,
-			LastReceiveErrorMessage:    lastRecvErrorMsg,
+			Connected:               true,
+			LastAck:                 lastSendSuccess,
+			LastNack:                lastNack,
+			LastNackMessage:         lastNackMsg,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
+			LastRecvErrorMessage:    lastRecvErrorMsg,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -553,27 +553,27 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		})
 	})
 
-	var lastReceiveHeartbeat time.Time
+	var lastRecvHeartbeat time.Time
 	testutil.RunStep(t, "receives heartbeat", func(t *testing.T) {
 		resp := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
 				Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
 			},
 		}
-		lastReceiveHeartbeat = it.FutureNow(1)
+		lastRecvHeartbeat = it.FutureNow(1)
 		err := client.Send(resp)
 		require.NoError(t, err)
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:                  true,
-			LastAck:                    lastSendSuccess,
-			LastNack:                   lastNack,
-			LastNackMessage:            lastNackMsg,
-			LastReceiveResourceSuccess: lastRecvResourceSuccess,
-			LastReceiveError:           lastRecvError,
-			LastReceiveErrorMessage:    lastRecvErrorMsg,
-			LastReceiveHeartbeat:       lastReceiveHeartbeat,
+			Connected:               true,
+			LastAck:                 lastSendSuccess,
+			LastNack:                lastNack,
+			LastNackMessage:         lastNackMsg,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
+			LastRecvErrorMessage:    lastRecvErrorMsg,
+			LastRecvHeartbeat:       lastRecvHeartbeat,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
@@ -596,16 +596,16 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		api := structs.NewServiceName("api", nil)
 
 		expect := Status{
-			Connected:                  false,
-			DisconnectErrorMessage:     "stream ended unexpectedly",
-			LastAck:                    lastSendSuccess,
-			LastNack:                   lastNack,
-			LastNackMessage:            lastNackMsg,
-			DisconnectTime:             disconnectTime,
-			LastReceiveResourceSuccess: lastRecvResourceSuccess,
-			LastReceiveError:           lastRecvError,
-			LastReceiveErrorMessage:    lastRecvErrorMsg,
-			LastReceiveHeartbeat:       lastReceiveHeartbeat,
+			Connected:               false,
+			DisconnectErrorMessage:  "stream ended unexpectedly",
+			LastAck:                 lastSendSuccess,
+			LastNack:                lastNack,
+			LastNackMessage:         lastNackMsg,
+			DisconnectTime:          disconnectTime,
+			LastRecvResourceSuccess: lastRecvResourceSuccess,
+			LastRecvError:           lastRecvError,
+			LastRecvErrorMessage:    lastRecvErrorMsg,
+			LastRecvHeartbeat:       lastRecvHeartbeat,
 			ImportedServices: map[string]struct{}{
 				api.String(): {},
 			},
