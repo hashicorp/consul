@@ -345,7 +345,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	peeringOrNil, err := s.getExistingPeering(req.PeerName, req.Partition)
+	peeringOrNil, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
 	if err != nil {
 		return nil, err
 	}
@@ -373,6 +373,7 @@ func (s *Server) Establish(
 	for i, addr := range tok.ServerAddresses {
 		serverAddrs[i] = addr
 	}
+
 	// as soon as a peering is written with a list of ServerAddresses that is
 	// non-empty, the leader routine will see the peering and attempt to
 	// establish a connection with the remote peer.
