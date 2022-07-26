@@ -33,9 +33,12 @@ The `GatewayClass` resource is a generic kubernetes gateway object. For configur
 This topic provides details about the configuration parameters.
 
 ### controllerName
-The name of the controller that is managing the gateways of this class. When using Consul API Gateway, this value should be equal to `'hashicorp.com/consul-api-gateway-controller'`
+The name of the controller that is managing the gateways of this class.
 * Type: string
 * Required: required
+
+You must specify the following value:
+* `'hashicorp.com/consul-api-gateway-controller'`
 
 ### parametersRef
 An object that defines additional configuration required by the gateway controller.
