@@ -16,6 +16,21 @@ through an Ingress gateway by modifying the gateway's configuration and adding
 an intention to allow traffic from the gateway to the service. See the
 [Ingress gateway documentation](/docs/connect/gateways/ingress-gateway) for more information
 about Ingress gateways.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` and `intentions:write`<sup>1</sup> on the [service](#service) |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/connect/ca/configuration](/api-docs/connect/ca#get-ca-configuration) |
+
+<p>
+  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
+  <code>service</code> rule. See{' '}
+  <a href="/docs/connect/intentions#intention-management-permissions">
+    Intention Management Permissions
+  </a>{' '}
+  for more details.
+</p>
 
 ```text
 Usage: consul connect expose [options]
@@ -23,6 +38,8 @@ Usage: consul connect expose [options]
   Exposes a Connect-enabled service through the given ingress gateway, using the
   given protocol and port.
 ```
+
+intentions:write
 
 #### API Options
 

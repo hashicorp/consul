@@ -5,6 +5,8 @@ sidebar_title: envoy
 description: The connect envoy subcommand is used to generate a bootstrap configuration for Envoy.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Connect Envoy
 
 Command: `consul connect envoy`
@@ -25,6 +27,27 @@ the same way and then printed to stdout. This allows it to be redirected to a
 file and used with `envoy --config-path bootstrap.json`. This works on all operating
 systems allowing configuration to be generated on a host that Envoy doesn't
 build on but then used in a virtualized environment that can run Envoy.
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | Varies<sup>1</sup> |
+| Corresponding HTTP API endpoint | N/A |
+
+[Service identity](/docs/security/acl#service-identities) for the [service this proxy represents](#service)
+
+<sup>1</sup> The actual ACL required depends on the whether the Envoy instance is acting
+[as a sidecar proxy](#sidecar-for) or
+[as a gateway](#gateway).
+
+| Envoy proxy type       | Required ACL       |
+| ---------------------- | ------------------ |
+| Sidecar proxy          | [Service identity](/docs/security/acl#service-identities) for the [service name this proxy represents](#service)    |
+| Ingress gateway        | Refer to [Ingress Gateway Configuration](/docs/connect/gateways/ingress-gateway#ingress-gateway-configuration) |
+| Terminating gateway    | Refer to [Terminating Gateway Configuration](/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) |
+| Mesh gateway           | Refer to [Mesh Gateway Configuration](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#configuration) |
+| API gateway (k8s only) | Handled automatically if [`managedSystemACLs: true`](/docs/k8s/helm#v-global-acls-managesystemacls) |
 
 ## Usage
 

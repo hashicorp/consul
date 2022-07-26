@@ -6,6 +6,8 @@ description: >
   Connect.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Connect Proxy
 
 Command: `consul connect proxy`
@@ -14,6 +16,12 @@ The connect proxy command is used to run Consul's built-in mTLS proxy for
 use with Connect. This can be used in production to enable a Connect-unaware
 application to accept and establish Connect-based connections. This proxy
 can also be used in development to connect to Connect-enabled services.
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | [Service identity](/docs/security/acl#service-identities) for the [service name this proxy represents](#service) |
+| Corresponding HTTP API endpoint | N/A |
 
 ## Usage
 

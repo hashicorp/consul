@@ -7,6 +7,8 @@ description: >
   when using Connect in Transparent Proxy mode.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Connect Redirect Traffic
 
 Command: `consul connect redirect-traffic`
@@ -25,6 +27,13 @@ TCP traffic to the Envoy's inbound and outbound ports accordingly.
 When `proxy-id` is specified, additional exclusion rules will be applied based on proxy's
 configuration stored in the local Consul agent. This includes redirecting to the proxy's
 inbound and outbound ports specified in the service registration.
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `service:read` |
+| Corresponding HTTP API endpoint | None |
 
 ## Usage
 

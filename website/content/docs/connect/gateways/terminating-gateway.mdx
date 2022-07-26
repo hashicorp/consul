@@ -89,7 +89,7 @@ Connect proxy service, to define opaque configuration parameters useful for the 
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
--> **Note:** If ACLs are enabled, terminating gateways must be registered with a token granting `node:read` on the nodes
+-> **If ACLs are enabled:** Terminating gateways must be registered with a token granting `node:read` on the nodes
 of all services in its configuration entry. The token must also grant `service:write` for the terminating gateway's service name **and**
 the names of all services in the terminating gateway's configuration entry. These privileges will authorize the gateway
 to terminate mTLS connections on behalf of the linked services and then route the traffic to its final destination.
