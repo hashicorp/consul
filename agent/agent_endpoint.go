@@ -1123,9 +1123,9 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}
 	}
 
-	// Run validation. This is the same validation that would happen on
-	// the catalog endpoint so it helps ensure the sync will work properly.
-	if err := ns.Validate(); err != nil {
+	// Run validation. This same validation would happen on the catalog endpoint,
+	// so it helps ensure the sync will work properly.
+	if err := ns.ValidateForAgent(); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
 	}
 
@@ -1164,7 +1164,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
-		if err := sidecar.Validate(); err != nil {
+		if err := sidecar.ValidateForAgent(); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed Validation: %v", err.Error())}
 		}
 		// Make sure we are allowed to register the sidecar using the token
