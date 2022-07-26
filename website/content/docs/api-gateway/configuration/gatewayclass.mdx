@@ -7,13 +7,62 @@ description:  >-
 
 # GatewayClass
 
+This topic provides full details about the `GatewayClass` resource
+
+## Introduction
+
 The `GatewayClass` resource is used as a template for creating `Gateway` resources.
 The specification includes the name of the controller (`controllerName`) and an API object containing controller-specific configuration resources within the cluster (`parametersRef`).
 The value of the `controllerName` field must be set to `hashicorp.com/consul-api-gateway-controller`.
 
 When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
 
-Add the `kind: GatewayClass` option to the the gateway values file to declare a gateway class.
+The `GatewayClass` resource is a generic kubernetes gateway object. For configuration specific to Consul API Gateway, see [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig).
+
+## Configuration model
+
+* (`controllerName`)[###controllerName]: string | required
+* (`parametersRef`)[###parametersRef]: object | optional
+  * (`group`)[###parametersRef.group]: Group | required is parametersRef is set
+  * (`kind`)[###parametersRef.kind]: Kind | required is parametersRef is set
+  * (`name`)[###parametersRef.name]: string | required is parametersRef is set
+* (`description`)[###description]: string | optional
+
+## Specification
+
+This topic provides details about the configuration parameters.
+
+### controllerName
+The name of the controller that is managing the gateways of this class. When using Consul API Gateway, this value should be equal to `'hashicorp.com/consul-api-gateway-controller'`
+* Type: string
+* Required: required
+
+### parametersRef
+An object that defines additional configuration required by the gateway controller.
+* Type: object
+* Required: required
+
+### parametersRef.group
+When using Consul API Gateway, this value should be equal to `api-gateway.consul.hashicorp.com`
+* Type: Group
+* Required: required
+
+### parametersRef.kind
+When using Consul API Gateway, this value should be equal to `GatewayClassConfig`
+* Type: object
+* Required: required
+
+### parametersRef.name
+The name of the `GatewayClass`
+* Type: object
+* Required: required
+
+### description
+Helps describe a gateway class with more details
+* Type: string
+* Required: optional
+
+## Complete Configuration
 The following example creates a gateway class called `test-gateway-class`:
 
 <CodeBlockConfig filename="gateway.yaml">
