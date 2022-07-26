@@ -7,6 +7,8 @@ description: >
   to fail after a restart.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Validate
 
 The `consul validate` command performs a thorough sanity test on Consul
@@ -23,6 +25,13 @@ configuration fragments since those won't pass the full agent validation.
 For more information on the format of Consul's configuration files, read the
 consul agent [Configuration Files](/docs/agent/config/config-files)
 section.
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | N/A |
+| Corresponding HTTP API endpoint | N/A |
 
 ## Usage
 

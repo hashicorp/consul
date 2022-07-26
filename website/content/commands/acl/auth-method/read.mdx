@@ -3,21 +3,19 @@ layout: commands
 page_title: 'Commands: ACL Auth Method Read'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul ACL Auth Method Read
 
 Command: `consul acl auth-method read`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#read-an-auth-method)
-
 The `acl auth-method read` command reads and displays an auth method's details.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required |
-| ------------ |
-| `acl:read`   |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `acl:read` |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#read-an-auth-method) |
 
 ## Usage
 

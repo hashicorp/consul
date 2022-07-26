@@ -3,21 +3,19 @@ layout: commands
 page_title: 'Commands: ACL Auth Method Delete'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul ACL Auth Method Delete
 
 Command: `consul acl auth-method delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#delete-an-auth-method)
-
 The `acl auth-method delete` command deletes an auth method.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required |
-| ------------ |
-| `acl:write`  |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `acl:write` |
+| Corresponding HTTP API endpoint | [\[DELETE\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#delete-an-auth-method) |
 
 ## Usage
 

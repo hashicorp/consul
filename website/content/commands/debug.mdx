@@ -3,6 +3,8 @@ layout: commands
 page_title: 'Commands: Debug'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Debug
 
 Command: `consul debug`
@@ -17,12 +19,16 @@ aims to shortcut that coordination and provide a simple workflow for accessing
 data about Consul agent, cluster membership, and environment to enable faster
 isolation and debugging of issues.
 
-This command requires an `operator:read` ACL token in order to retrieve the
-data from the target agent, if ACLs are enabled.
-
 If the command is interrupted, as it could be given a long duration but
 require less time than expected, it will attempt to archive the current
 captured data.
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:read` |
+| Corresponding HTTP API endpoint | None |
 
 ## Security and Privacy
 

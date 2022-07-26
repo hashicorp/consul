@@ -9,6 +9,8 @@ description: >-
   in Consul.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Watch
 
 Command: `consul watch`
@@ -20,6 +22,13 @@ the current values are dumped to STDOUT which can be a useful way to inspect
 data in Consul.
 
 There is more [documentation on watches here](/docs/dynamic-app-config/watches).
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | Varies: `service:read`, `node:read`, `key:read`, or `event:read` |
+| Corresponding HTTP API endpoint | None |
 
 ## Usage
 

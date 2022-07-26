@@ -3,23 +3,21 @@ layout: commands
 page_title: 'Commands: ACL Token Create'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul ACL Token Create
 
 Command: `consul acl token create`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/token](/api-docs/acl/tokens#create-a-token)
-
 This command creates new tokens. When creating a new token, policies may be linked using
 either the `-policy-id` or the `-policy-name` options. When specifying policies by IDs you
 may use a unique prefix of the UUID as a shortcut for specifying the entire UUID.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required |
-| ------------ |
-| `acl:write`  |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `acl:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/acl/token](/api-docs/acl/tokens#create-a-token) |
 
 ## Usage
 

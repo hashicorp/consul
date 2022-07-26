@@ -9,11 +9,11 @@ description: >-
   watch.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Event
 
 Command: `consul event`
-
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/event/fire/:name](/api-docs/event#fire-event)
 
 The `event` command provides a mechanism to fire a custom user event to an
 entire datacenter. These events are opaque to Consul, but they can be used
@@ -37,13 +37,12 @@ message. It is hard to give an exact number, as it depends on various
 parameters of the event, but the payload should be kept very small
 (< 100 bytes). Specifying too large of an event will return an error.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+This command has the following characteristics:
 
-| ACL Required  |
-| ------------- |
-| `event:write` |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `event:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/event/fire/:name](/api-docs/event#fire-event) |
 
 ## Usage
 

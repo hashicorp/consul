@@ -3,21 +3,19 @@ layout: commands
 page_title: 'Commands: ACL Binding Rule List'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul ACL Binding Rule List
 
 Command: `consul acl binding-rule list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/binding-rules](/api-docs/acl/binding-rules#list-binding-rules)
-
 The `acl binding-rule list` command lists all binding rules. By default it will not show metadata.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required |
-| ------------ |
-| `acl:read`   |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `acl:read` |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/acl/binding-rules](/api-docs/acl/binding-rules#list-binding-rules) |
 
 ## Usage
 

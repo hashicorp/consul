@@ -7,6 +7,8 @@ description: >-
   about different sub-systems will be returned.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Info
 
 Command: `consul info`
@@ -14,6 +16,12 @@ Command: `consul info`
 The `info` command provides various debugging information that can be
 useful to operators. Depending on if the agent is a client or server,
 information about different sub-systems will be returned.
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:read` |
+| Corresponding HTTP API endpoint | None |
 
 There are currently the top-level keys for:
 

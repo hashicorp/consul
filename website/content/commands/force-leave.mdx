@@ -7,11 +7,11 @@ description: >-
   the cluster. The true purpose of this method is to force remove failed nodes.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Force Leave
 
 Command: `consul force-leave`
-
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/force-leave/:node](/api-docs/agent#force-leave-and-shutdown)
 
 The `force-leave` command forces a member of a Consul cluster to enter the
 "left" state. The purpose of this method is to force-remove a node that has failed or
@@ -32,13 +32,12 @@ from the datacenter's member list nor from the raft configuration. Additionally,
 if the agent returns after transitioning to the "left" state, but before it is reaped
 from the member list, then it will rejoin the cluster.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+This command has the following characteristics:
 
-| ACL Required     |
-| ---------------- |
-| `operator:write` |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/agent/force-leave/:node](/api-docs/agent#force-leave-and-shutdown) |
 
 ## Usage
 

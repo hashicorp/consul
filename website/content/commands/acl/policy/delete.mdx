@@ -3,21 +3,19 @@ layout: commands
 page_title: 'Commands: ACL Policy Delete'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul ACL Policy Delete
 
 Command: `consul acl policy delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/policy/:id](/api-docs/acl/policies#delete-a-policy)
-
 The `acl policy delete` command deletes a policy. Policies may be deleted by their ID or by name.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required |
-| ------------ |
-| `acl:write`  |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `acl:write` |
+| Corresponding HTTP API endpoint | [\[DELETE\] /v1/acl/policy/:id](/api-docs/acl/policies#delete-a-policy) |
 
 ## Usage
 

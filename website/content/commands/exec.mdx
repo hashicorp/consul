@@ -7,6 +7,8 @@ description: >-
   `web` service.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Exec
 
 Command: `consul exec`
@@ -30,17 +32,14 @@ through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
-The table below shows the [required ACLs](/api#authentication) in order to
-execute this command.
+This command has the following characteristics:
 
-| ACL Required    | Scope             |
-| --------------- | ----------------- |
-| `agent:read`    | local agent       |
-| `session:write` | local agent       |
-| `key:write`     | `"_rexec"` prefix |
-| `event:write`   | `"_rexec"` prefix |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `agent:read` and `session:write` on the local agent;<br />`key:write` and `event:write` on the `"_rexec"` prefix;<br />additional privileges on the agent token<sup>1</sup> |
+| Corresponding HTTP API endpoint | None |
 
-In addition to the above, the policy associated with the [agent token](/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
+<sup>1</sup> In addition to the above, the policy associated with the [agent token](/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
 
 ## Usage
 

@@ -3,19 +3,21 @@ layout: commands
 page_title: 'Commands: Config Write'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Config Write
 
 Command: `consul config write`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/api-docs/config#apply-configuration)
-
 The `config write` command creates or updates a centralized config entry.
 See the [configuration entries docs](/docs/agent/config-entries) for more
 details about configuration entries.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | Varies<sup>1</sup>: `service:write`, `operator:write`, or `intentions:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/config](/api-docs/config#apply-configuration) |
 
 | ACL Required<sup>1</sup>                                      |
 | ------------------------------------------------------------- |

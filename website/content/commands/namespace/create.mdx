@@ -3,16 +3,21 @@ layout: commands
 page_title: 'Commands: Namespace Create'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Namespace Create
 
 Command: `consul namespace create`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace](/api-docs/namespaces#create-a-namespace)
-
 <EnterpriseAlert />
 
 This `namespace create` command creates a namespaces using the CLI parameters provided.
-This was added in Consul Enterprise 1.7.2.
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/namespace](/api-docs/namespaces#create-a-namespace) |
 
 The table below shows this command's [required ACLs](/api#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)

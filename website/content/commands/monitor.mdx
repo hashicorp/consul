@@ -7,6 +7,8 @@ description: >-
   the logs, not exiting until interrupted or until the remote agent quits.
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Monitor
 
 Command: `consul monitor`
@@ -18,6 +20,13 @@ the logs, not exiting until interrupted or until the remote agent quits.
 The power of the monitor command is that it allows you to log the agent
 at a relatively high log level (such as "warn"), but still access debug
 logs and watch the debug logs if necessary.
+
+This command has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `agent:read` |
+| Corresponding HTTP API endpoint | [\[GET\] /v1/agent/monitor](/api-docs/agent#stream-logs) |
 
 ## Usage
 

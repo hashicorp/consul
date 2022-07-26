@@ -3,11 +3,11 @@ layout: commands
 page_title: 'Commands: KV Put'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul KV Put
 
 Command: `consul kv put`
-
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/kv/:key](/api-docs/kv#create-update-key)
 
 The `kv put` command writes the data to the given path in the KV store.
 
@@ -16,13 +16,12 @@ The `kv put` command writes the data to the given path in the KV store.
 [transaction API](/api-docs/txn) provides support for performing up to
 64 KV operations atomically.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+This command has the following characteristics:
 
-| ACL Required |
-| ------------ |
-| `key:write`  |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `key:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/kv/:key](/api-docs/kv#create-update-key) |
 
 ## Usage
 

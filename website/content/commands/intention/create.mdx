@@ -3,6 +3,8 @@ layout: commands
 page_title: 'Commands: Intention Create'
 ---
 
+@include 'http_api_and_cli_characteristics_links.mdx'
+
 # Consul Intention Create
 
 -> **Deprecated** - This command is deprecated in Consul 1.9.0 in favor of
@@ -13,17 +15,13 @@ entry for the destination.
 
 Command: `consul intention create`
 
-Corresponding HTTP API Endpoint: [\[POST\] /v1/connect/intentions](/api-docs/connect/intentions#create-intention-with-id)
-
 The `intention create` command creates or updates an L4 intention.
+This command has the following characteristics:
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
-| ACL Required                   |
-| ------------------------------ |
-| `intentions:write`<sup>1</sup> |
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `intentions:write`<sup>1</sup> |
+| Corresponding HTTP API endpoint | [\[POST\] /v1/connect/intentions](/api-docs/connect/intentions#create-intention-with-id) |
 
 <p>
   <sup>1</sup> Intention ACL rules are specified as part of a{' '}
