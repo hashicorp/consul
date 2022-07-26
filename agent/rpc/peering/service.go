@@ -346,6 +346,11 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
+	// we don't want to default req.Partition unlike because partitions are empty in OSS
+	if err := s.validatePeeringInPartition(tok.PeerID, req.Partition); err != nil {
+		return nil, err
+	}
+
 	var id string
 	if peering == nil {
 		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
@@ -393,6 +398,22 @@ func (s *Server) Establish(
 	}
 	// TODO(peering): low prio: consider adding response details
 	return resp, nil
+}
+
+// validatePeeringInPartition makes sure that we don't create a peering in the same partition. We validate by looking at
+// the remotePeerID from the PeeringToken and looking up for a peering in the partition. If there is one and the
+// request partition is the same, then we are attempting to peer within the partition, which we shouldn't.
+func (s *Server) validatePeeringInPartition(remotePeerID, partition string) error {
+	_, peering, err := s.Backend.Store().PeeringReadByID(nil, remotePeerID)
+	if err != nil {
+		return fmt.Errorf("cannot read peering by ID: %w", err)
+	}
+
+	if peering != nil && peering.Partition == partition {
+		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
+	}
+
+	return nil
 }
 
 // OPTIMIZE: Handle blocking queries
