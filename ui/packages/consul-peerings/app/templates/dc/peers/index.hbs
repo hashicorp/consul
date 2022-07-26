@@ -1,4 +1,6 @@
-<Route @name={{routeName}} as |route|>
+<Route
+  @name={{routeName}}
+as |route|>
   <DataLoader
     @src={{
       uri '/${partition}/${nspace}/${dc}/peers'
@@ -45,10 +47,13 @@ as |sort filters items|}}
   <AppView>
     <BlockSlot @name="header">
       <h1>
-        <route.Title @title="Peers" />
+        <route.Title
+          @title="Peers"
+        />
       </h1>
     </BlockSlot>
     <BlockSlot @name="toolbar">
+
       {{#if (gt items.length 0)}}
         <Consul::Peer::SearchBar
           @search={{search}}
@@ -61,7 +66,54 @@ as |sort filters items|}}
       {{/if}}
 
     </BlockSlot>
+    <BlockSlot @name="actions">
+
+
+      <ModalDialog
+        @aria={{hash
+          label="Add peer connection"
+        }}
+      as |modal|>
+        <BlockSlot @name="header">
+          {{did-insert (set this 'create' modal)}}
+          <h2>
+            Add peer connection
+          </h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+
+          {{#if modal.opened}}
+            <Consul::Peer::Form
+              @params={{route.params}}
+            as |form|>
+              <form.Form
+                @onchange={{loader.invalidate}}
+                @onsubmit={{modal.close}}
+              as |form|>
+                {{did-insert (set this 'form' form)}}
+                <form.Fieldsets />
+              </form.Form>
+            </Consul::Peer::Form>
+          {{/if}}
+
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <this.form.Actions
+            @onclose={{this.create.close}}
+          />
+        </BlockSlot>
+      </ModalDialog>
+      <Action
+        data-test-create
+        class="type-create"
+        {{on "click" (optional this.create.open)}}
+      >
+        Add peer connection
+      </Action>
+
+    </BlockSlot>
     <BlockSlot @name="content">
+
       <DataWriter
         @sink={{uri '/${partition}/${dc}/${nspace}/peer/'
           (hash
@@ -72,8 +124,8 @@ as |sort filters items|}}
         }}
         @type="peer"
         @label="Peer"
-        @ondelete={{refresh-route}}
       as |writer|>
+
         <BlockSlot @name="removed" as |after|>
           <Consul::Peer::Notifications
             {{notification
@@ -83,61 +135,96 @@ as |sort filters items|}}
           />
         </BlockSlot>
         <BlockSlot @name="content">
-          <DataCollection
-            @type="peer"
-            @sort={{sort.value}}
-            @filters={{filters}}
-            @search={{search}}
-            @items={{items}}
-          as |collection|>
-            <collection.Collection>
+
+            <ModalDialog
+              @aria={{hash
+                label="Regenerate token"
+              }}
+              @onclose={{set this 'item' undefined}}
+            as |modal|>
+              <BlockSlot @name="header">
+                {{did-insert (set this 'regenerate' modal)}}
+                <h2>
+                  Regenerate token
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                {{#if this.item}}
+                  <Consul::Peer::Form::Generate
+                    @item={{this.item}}
+                    @onchange={{loader.invalidate}}
+                    @regenerate={{true}}
+                  as |form|>
+                    {{did-insert (set this 'regenerateForm' form)}}
+                    <form.Fieldsets />
+                  </Consul::Peer::Form::Generate>
+                {{/if}}
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <this.regenerateForm.Actions
+                  @onclose={{this.regenerate.close}}
+                />
+              </BlockSlot>
+            </ModalDialog>
+
+            <DataCollection
+              @type="peer"
+              @sort={{sort.value}}
+              @filters={{filters}}
+              @search={{search}}
+              @items={{items}}
+            as |collection|>
+              <collection.Collection>
 
                 <Consul::Peer::List
                   @items={{collection.items}}
-                  @onedit={{this.edit.open}}
+                  @onedit={{queue
+                    (set this 'item')
+                    this.regenerate.open
+                  }}
                   @ondelete={{writer.delete}}
                 />
 
               </collection.Collection>
               <collection.Empty>
-              {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
-              <EmptyState
-                @login={{route.model.app.login.open}}
-              >
-                <BlockSlot @name="header">
-                  <h2>
+                {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
+                <EmptyState
+                  @login={{route.model.app.login.open}}
+                >
+                  <BlockSlot @name="header">
+                    <h2>
+                      {{#if (gt items.length 0)}}
+                        No peers found
+                      {{else}}
+                        Welcome to Peers
+                      {{/if}}
+                    </h2>
+                  </BlockSlot>
+                  <BlockSlot @name="body">
                     {{#if (gt items.length 0)}}
-                      No peers found
+                      <p>No peers where found matching that search, or you may not have access to view the peers you are searching for.</p>
                     {{else}}
-                      Welcome to Peers
+                      <p>
+                        Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {{if (can "use partitions") "admin partition" "datacenter"}}, or you may not have the <code>peering:read</code> permissions to access this view.
+                      </p>
                     {{/if}}
-                  </h2>
-                </BlockSlot>
-                <BlockSlot @name="body">
-                  {{#if (gt items.length 0)}}
-                    <p>No peers where found matching that search, or you may not have access to view the peers you are searching for.</p>
-                  {{else}}
-                    <p>
-                      Cluster peering is the recommended way to connect services across or within Consul datacenters. Peering is a one-to-one relationship in which each peer is either a open-source Consul datacenter or a Consul enterprise admin partition. There don't seem to be any peers for this {{if (can "use partitions") "admin partition" "datacenter"}}, or you may not have the <code>peering:read</code> permissions to access this view.
-                    </p>
-                  {{/if}}
-                </BlockSlot>
-                <BlockSlot @name="actions">
-                  <li class="docs-link">
-                    {{!-- what's the docs for peering?--}}
-                    <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
-                      Documentation on Peers
-                    </a>
-                  </li>
-                  <li class="learn-link">
-                    <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
-                      Take the tutorial
-                    </a>
-                  </li>
-                </BlockSlot>
-              </EmptyState>
-            </collection.Empty>
-          </DataCollection>
+                  </BlockSlot>
+                  <BlockSlot @name="actions">
+                    <li class="docs-link">
+                      {{!-- what's the docs for peering?--}}
+                      <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
+                        Documentation on Peers
+                      </a>
+                    </li>
+                    <li class="learn-link">
+                      <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
+                        Take the tutorial
+                      </a>
+                    </li>
+                  </BlockSlot>
+                </EmptyState>
+              </collection.Empty>
+            </DataCollection>
         </BlockSlot>
       </DataWriter>
     </BlockSlot>
