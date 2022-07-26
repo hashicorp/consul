@@ -73,7 +73,6 @@ as |sort filters items|}}
         @aria={{hash
           label="Add peer connection"
         }}
-        @onclose={{optional this.form.reset}}
       as |modal|>
         <BlockSlot @name="header">
           {{did-insert (set this 'create' modal)}}
