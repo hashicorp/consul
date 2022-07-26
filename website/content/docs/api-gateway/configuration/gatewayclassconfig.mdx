@@ -15,30 +15,30 @@ The `GatewayClassConfig` object contains Consul API Gateway-related configuratio
 
 ## Configuration model
 
-* (`consul`)[###consul]: object | optional
-  * (`address`)[###consul.address] : string | optional
-  * (`authentication`)[###consul.authentication]: object | optional
-    * (`account`)[[###consul.authentication.account] : string | optional
-    * (`managed`)[###consul.authentication.managed] : bool  | optional
-    * (`method`)[###consul.authentication.method] : string | optional
-    * (`namespace`)[###consul.authentication.namespace] : string  | optional
-  * (`ports`)[###consul.ports] : object  | optional
-    * (`grpc`)[###consul.ports.grpc]  : integer | optional
-    * (`http`)[###consul.ports.http]  : integer | optional
-  * (`scheme`)[###consul.scheme]  : string  | optional
-* (`copyAnnotations`)[###copyAnnotations]  : object | optional
-  * (`service`)[###copyAnnotations.service] : array of strings | optional
-* (`deployment`)[###deployment] : object | optional
-  * (`defaultInstances`)[###deployment.defaultInstances] : integer | optional
-  * (`maxInstances`)[###deployment.maxInstances] : integer | optional
-  * (`minInstances`)[###deployment.minInstances] : integer | optional
-* (`image`)[###image] : object | optional
-  * (`consulAPIGateway`)[###image.consulAPIGateway] : string | optional
-  * (`envoy`)[###image.envoy] : string | optional
-* (`logLevel`)[###logLevel] : string | optional
-* (`nodeSelector`)[###nodeSelector] : string | optional
-* (`serviceType`)[###serviceType] : string | optional
-* (`useHostPorts`)[###useHostPorts] : boolean | optional
+* (`consul`)[#consul]: object | optional
+  * (`address`)[#consul-address] : string | optional
+  * (`authentication`)[#consul-authentication]: object | optional
+    * (`account`)[[#consul-authentication-account] : string | optional
+    * (`managed`)[#consul-authentication-managed] : bool  | optional
+    * (`method`)[#consul-authentication-method] : string | optional
+    * (`namespace`)[#consul-authentication-namespace] : string  | optional
+  * (`ports`)[#consul-ports] : object  | optional
+    * (`grpc`)[#consul-ports-grpc]  : integer | optional
+    * (`http`)[#consul-ports-http]  : integer | optional
+  * (`scheme`)[#consul-scheme]  : string  | optional
+* (`copyAnnotations`)[#copyAnnotations]  : object | optional
+  * (`service`)[#copyAnnotations-service] : array of strings | optional
+* (`deployment`)[#deployment] : object | optional
+  * (`defaultInstances`)[#deployment-defaultInstances] : integer | optional
+  * (`maxInstances`)[#deployment-maxInstances] : integer | optional
+  * (`minInstances`)[#deployment-minInstances] : integer | optional
+* (`image`)[#image] : object | optional
+  * (`consulAPIGateway`)[#image-consulAPIGateway] : string | optional
+  * (`envoy`)[#image-envoy] : string | optional
+* (`logLevel`)[#logLevel] : string | optional
+* (`nodeSelector`)[#nodeSelector] : string | optional
+* (`serviceType`)[#serviceType] : string | optional
+* (`useHostPorts`)[#useHostPorts] : boolean | optional
 
 ## Specification
 

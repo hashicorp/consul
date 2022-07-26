@@ -29,27 +29,27 @@ Specify the following parameters to declare a Gateway:
 
 ## Configuration model
 
-* (`gatewayClassName`)[###gatewayClassName]: string | required
-* (`listeners`)[###listeners]: array of objects | required
-  * (`allowedRoutes`)[###listeners.allowedRoutes]: object | required
-  * (`namespaces`}[###listeners.namespaces]: object | required
-    * (`from`)[###listeners.namespaces.from]: string | required
-    * (`selector`)[###listeners.namespaces.selector]: object | required if from is configured to selector
-      * (`matchExpressions`)[###listeners.namespaces.selector.matchExpressions]: array of objects | required if matchLabels is not configured
-        * (`key`)[###listeners.namespaces.selector.matchExpressions.key]: string | required if matchExpressions is declared
-        * (`operator`)[###listeners.namespaces.selector.operator]: string | required if matchExpressions is declared
-        * (`values`)[###listeners.namespaces.selector.values]: array of strings | required if matchExpressions is declared
-      * (`matchLabels`)[###listeners.namespaces.selector.matchLabels]: map of strings | required if matchExpressions is not configured
-  * (`hostname`)[###listeners.hostname]: string | required
-  * (`name`)[###listeners.name]: string | required
-  * (`port`)[###listeners.port]: integer | required
-  * (`protocol)[###listeners.protocol]`: string | required
-  * (`tls`)[###listeners.tls]: object | required if protocol is set to HTTPS
-      * (`certificateRefs`)[###listeners.tls.certificateRefs]: array or objects | required if tls is declared
-        * (`name`)[###listeners.tls.certificateRefs.name]: string | required if certificateRefs is declared
-        * (`namespace`)[###listeners.tls.certificateRefs.namespace]: string | required if certificateRefs is declared
-      * (`mode`)[###listeners.tls.mode]: string | required if certificateRefs is declared
-      * (`options`)[###listeners.tls.options]: map of strings | optional
+* (`gatewayClassName`)[#gatewayClassName]: string | required
+* (`listeners`)[#listeners]: array of objects | required
+  * (`allowedRoutes`)[#listeners-allowedRoutes]: object | required
+  * (`namespaces`}[#listeners-namespaces]: object | required
+    * (`from`)[#listeners-namespaces-from]: string | required
+    * (`selector`)[#listeners-namespaces-selector]: object | required if from is configured to selector
+      * (`matchExpressions`)[#listeners-namespaces-selector-matchExpressions]: array of objects | required if matchLabels is not configured
+        * (`key`)[#listeners-namespaces-selector-matchExpressions-key]: string | required if matchExpressions is declared
+        * (`operator`)[#listeners.namespaces-selector-operator]: string | required if matchExpressions is declared
+        * (`values`)[#listeners.namespaces-selector-values]: array of strings | required if matchExpressions is declared
+      * (`matchLabels`)[#listeners-namespaces-selector-matchLabels]: map of strings | required if matchExpressions is not configured
+  * (`hostname`)[#listeners-hostname]: string | required
+  * (`name`)[#listeners-name]: string | required
+  * (`port`)[#listeners-port]: integer | required
+  * (`protocol`)[#listeners-protocol]`: string | required
+  * (`tls`)[#listeners-tls]: object | required if protocol is set to HTTPS
+      * (`certificateRefs`)[#listeners-tls-certificateRefs]: array or objects | required if tls is declared
+        * (`name`)[#listeners-tls-certificateRefs-name]: string | required if certificateRefs is declared
+        * (`namespace`)[#listeners-tls-certificateRefs-namespace]: string | required if certificateRefs is declared
+      * (`mode`)[#listeners-tls-mode]: string | required if certificateRefs is declared
+      * (`options`)[#listeners-tls-options]: map of strings | optional
 
 ## Specification
 
