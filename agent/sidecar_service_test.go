@@ -339,7 +339,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			}
 
 			ns := tt.sd.NodeService()
-			err := ns.Validate()
+			err := ns.ValidateForAgent()
 			require.NoError(t, err, "Invalid test case - NodeService must validate")
 
 			gotNS, gotChecks, gotToken, err := a.sidecarServiceFromNodeService(ns, tt.token)
