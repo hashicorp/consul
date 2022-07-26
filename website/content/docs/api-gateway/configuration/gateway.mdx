@@ -56,13 +56,12 @@ Specify the following parameters to declare a Gateway:
 This topic provides details about the configuration parameters.
 
 ### gatewayClassName
-Specifies the name of the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource used for the `Gateway` instance.
+Specifies the name of the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource used for the `Gateway` instance. Unless a custom [GatewayClass](/docs/api-gateway/configuration/gatewayclass) is being used, value should be set to `consul-api-gateway`
 * Type: string
 * Required: required
 
 ### listeners
 Specifies the `listeners` associated with the `Gateway`. At least one `listener` must be specified. Each `listener` within a `Gateway` must have a unique combination of `hostname`, `port`, and `protocol`.
-
 * Type: array of objects
 * Required: required
 

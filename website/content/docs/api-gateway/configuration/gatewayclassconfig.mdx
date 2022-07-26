@@ -93,6 +93,10 @@ Specifies the scheme to use for connecting to Consul. The supported values are `
 * Required: optional
 * Default: `http`
 
+You can specify the following strings:
+* `http`
+* `https`
+
 ### copyAnnotations.service
 List of kubernetes (annotations)[https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/] to copy to the gateway service.
 * Type: Array of Strings
@@ -133,19 +137,33 @@ Most deployments will use the default value unless a specific version of Envoy i
 * Default: `"envoyproxy/envoy:RELEASE_VERSION"`
 
 ### logLevel
-Specifies the error reporting level for logs. You can specify the following values: `error`, `warning`, `info`, `debug`, `trace`.
+Specifies the error reporting level for logs.
 * Type: string
 * Required: optional
 * Default: `info`
+
+You can specify the following strings:
+* `error`
+* `warning`
+* `info`
+* `debug`
+* `trace`
 
 ### nodeSelector
 Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information.* Type: string
 * Required: optional
 
 ### serviceType
-Specifies the ingress methods for a service. The following values are supported: <br/>`ClusterIP` <br/>`NodePort` <br/>`LoadBalancer`.
+Specifies the ingress methods for a service.
 * Type: string
 * Required: optional
+
+You can specify the following strings:
+* `ClusterIP`: Gateway will only be accessible from inside the cluster
+* `NodePort`: Gateway will be exposed on each Kubernetes node at a static port
+* `LoadBalancer`: Gateway will be exposed to external traffic by a load balancer
+
+For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
 
 ### useHostPorts
 If set to `true`, then the Envoy container ports are mapped to host ports.

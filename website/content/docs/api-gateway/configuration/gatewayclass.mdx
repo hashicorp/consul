@@ -43,17 +43,23 @@ An object that defines additional configuration required by the gateway controll
 * Required: required
 
 ### parametersRef.group
-When using Consul API Gateway, this value should be equal to `api-gateway.consul.hashicorp.com`
+The Kubernetes group of the `parametersRef`. This value will always be the same across all deployments of Consul API Gateway.
 * Type: Group
 * Required: required
 
+You must specify the following value:
+* `api-gateway.consul.hashicorp.com`
+
 ### parametersRef.kind
-When using Consul API Gateway, this value should be equal to `GatewayClassConfig`
-* Type: object
+The Kubernetes kind of the `parametersRef`. This value will always be the same across all deployments of Consul API Gateway.
+* Type: Kind
 * Required: required
 
+You must specify the following value:
+* `GatewayClassConfig`
+
 ### parametersRef.name
-The name of the `GatewayClass`
+The name of the `GatewayClassConfig` object
 * Type: object
 * Required: required
 
