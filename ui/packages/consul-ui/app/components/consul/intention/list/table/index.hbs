@@ -71,7 +71,6 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
-{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}
@@ -155,9 +154,18 @@ as |item index|>
                 </InformedAction>
               </div>
             </li>
+          {{else}}
+            <li role="none">
+              <a
+                role="menuitem"
+                tabindex="-1"
+                href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
+              >
+                View
+              </a>
+            </li>
           {{/if}}
         </BlockSlot>
       </PopoverMenu>
     </BlockSlot>
-{{/if}}
 </TabularCollection>
