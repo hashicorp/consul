@@ -29,10 +29,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul login [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
 #### Command Options
 
 - `-bearer-token-file=<string>` - Path to a file containing a secret bearer
@@ -52,10 +48,14 @@ Usage: `consul login [options]`
 
 #### Enterprise Options
 
-@include 'http_api_namespace_options.mdx'
-
 - `-oidc-callback-listen-addr=<string>` - The address to bind a webserver on to
   handle the browser callback from the OIDC workflow. Added in Consul 1.8.0.
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ### Examples
 

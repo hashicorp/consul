@@ -23,12 +23,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul acl token delete [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `-id=<string>` - The ID of the token to delete. It may be specified as a
@@ -36,9 +30,15 @@ Usage: `consul acl token delete [options]`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 
