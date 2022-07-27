@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestServerExportedPeeredServices(t *testing.T) {
@@ -59,7 +60,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 	})
 	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{}, "", eventCh))
 
-	t.Run("initial state", func(t *testing.T) {
+	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := getEventResult[*structs.IndexedExportedServiceList](t, eventCh)
 		require.Equal(t,
 			map[string]structs.ServiceList{
@@ -69,7 +70,7 @@ func TestServerExportedPeeredServices(t *testing.T) {
 		)
 	})
 
-	t.Run("update exported services", func(t *testing.T) {
+	testutil.RunStep(t, "update exported services", func(t *testing.T) {
 		require.NoError(t, store.EnsureConfigEntry(nextIndex(), &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
