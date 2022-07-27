@@ -46,6 +46,32 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 	require.Equal(t, usage.Nodes, 1)
 }
 
+// Test that nodes added/deleted from peers are not counted.
+func TestStateStore_Usage_NodeUsagePeering(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register two nodes, one local, one from a remote peer.
+	testRegisterNodePeer(t, s, 0, "node1", "peer")
+	testRegisterNode(t, s, 1, "node2")
+
+	testutil.RunStep(t, "write node", func(t *testing.T) {
+		// Test that we're only tracking the local node.
+		idx, usage, err := s.NodeUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), idx)
+		require.Equal(t, 1, usage.Nodes)
+	})
+
+	testutil.RunStep(t, "delete node", func(t *testing.T) {
+		// Deregister the remote peered node. Count should remain the same.
+		require.NoError(t, s.DeleteNode(2, "node1", nil, "peer"))
+		idx, usage, err := s.NodeUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), idx)
+		require.Equal(t, 1, usage.Nodes)
+	})
+}
+
 func TestStateStore_Usage_PeeringUsage(t *testing.T) {
 	s := testStateStore(t)
 
