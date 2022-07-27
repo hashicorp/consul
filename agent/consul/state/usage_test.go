@@ -72,6 +72,42 @@ func TestStateStore_Usage_NodeUsagePeering(t *testing.T) {
 	})
 }
 
+func TestStateStore_Usage_PeeringUsage(t *testing.T) {
+	s := testStateStore(t)
+
+	// No nodes have been registered, and thus no usage entry exists
+	idx, usage, err := s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(0))
+	require.Equal(t, usage.Peerings, 0)
+
+	testRegisterPeering(t, s, 0, "test-peering1")
+	testRegisterPeering(t, s, 1, "test-peering2")
+
+	idx, usage, err = s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(1))
+	require.Equal(t, usage.Peerings, 2)
+}
+
+func TestStateStore_Usage_PeeringUsage_Delete(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterPeering(t, s, 0, "test-peering1")
+	peering2 := testRegisterPeering(t, s, 1, "test-peering2")
+
+	idx, usage, err := s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(1))
+	require.Equal(t, usage.Peerings, 2)
+
+	require.NoError(t, s.PeeringTerminateByID(2, peering2.ID))
+	idx, usage, err = s.PeeringUsage()
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, 2, usage.Peerings)
+}
+
 func TestStateStore_Usage_KVUsage(t *testing.T) {
 	s := testStateStore(t)
 
