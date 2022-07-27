@@ -57,17 +57,19 @@ func testStateStore(t *testing.T) *Store {
 	return s
 }
 
+// testRegisterNode registers a node into the state store.
 func testRegisterNode(t *testing.T, s *Store, idx uint64, nodeID string) {
 	testRegisterNodeOpts(t, s, idx, nodeID)
 }
 
-// testRegisterNodeWithChange registers a node and ensures it gets different from previous registration
+// testRegisterNodeWithChange registers a node and ensures it gets different from previous registration.
 func testRegisterNodeWithChange(t *testing.T, s *Store, idx uint64, nodeID string) {
 	testRegisterNodeOpts(t, s, idx, nodeID, regNodeWithMeta(map[string]string{
 		"version": fmt.Sprint(idx),
 	}))
 }
 
+// testRegisterNodeWithMeta registers a node into the state store wth meta.
 func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string, meta map[string]string) {
 	testRegisterNodeOpts(t, s, idx, nodeID, regNodeWithMeta(meta))
 }
@@ -81,6 +83,15 @@ func regNodeWithMeta(meta map[string]string) func(*structs.Node) error {
 	}
 }
 
+// testRegisterNodePeer registers a node into the state store that was imported from peer.
+func testRegisterNodePeer(t *testing.T, s *Store, idx uint64, nodeID string, peer string) {
+	testRegisterNodeOpts(t, s, idx, nodeID, func(node *structs.Node) error {
+		node.PeerName = peer
+		return nil
+	})
+}
+
+// testRegisterNodeOpts registers a node into the state store and runs opts to modify it prior to writing.
 func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opts ...regNodeOption) {
 	node := &structs.Node{Node: nodeID}
 	for _, opt := range opts {
@@ -93,11 +104,12 @@ func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opt
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.db.ReadTxn()
 	defer tx.Abort()
 	n, err := tx.First(tableNodes, indexID, Query{
 		Value:          nodeID,
 		EnterpriseMeta: *node.GetEnterpriseMeta(),
+		PeerName:       node.PeerName,
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -107,10 +119,28 @@ func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opt
 	}
 }
 
+// testRegisterServicePeer registers a service into the state store that was imported from peer.
+func testRegisterServicePeer(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, peer string) {
+	testRegisterServiceOpts(t, s, idx, nodeID, serviceID, func(service *structs.NodeService) {
+		service.PeerName = peer
+	})
+}
+
+// testRegisterServiceOpts registers a service into the state store and runs opts to modify it prior to writing.
+func testRegisterServiceOpts(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, opts ...func(service *structs.NodeService)) {
+	testRegisterServiceWithChangeOpts(t, s, idx, nodeID, serviceID, false, opts...)
+}
+
 // testRegisterServiceWithChange registers a service and allow ensuring the consul index is updated
 // even if service already exists if using `modifyAccordingIndex`.
 // This is done by setting the transaction ID in "version" meta so service will be updated if it already exists
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
+	testRegisterServiceWithChangeOpts(t, s, idx, nodeID, serviceID, modifyAccordingIndex)
+}
+
+// testRegisterServiceWithChangeOpts is the same as testRegisterServiceWithChange with the addition of opts that can
+// modify the service prior to writing.
+func testRegisterServiceWithChangeOpts(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool, opts ...func(service *structs.NodeService)) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
 		meta["version"] = fmt.Sprint(idx)
@@ -122,13 +152,17 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 		Port:    1111,
 		Meta:    meta,
 	}
+	for _, o := range opts {
+		o(svc)
+	}
+
 	if err := s.EnsureService(idx, nodeID, svc); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
+	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID, PeerName: svc.PeerName})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -205,6 +239,17 @@ func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
 }
 
 func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string) {
+	testRegisterSidecarProxyOpts(t, s, idx, nodeID, targetServiceID)
+}
+
+// testRegisterSidecarProxyPeer adds a sidecar proxy to the state store that was imported from peer.
+func testRegisterSidecarProxyPeer(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string, peer string) {
+	testRegisterSidecarProxyOpts(t, s, idx, nodeID, targetServiceID, func(service *structs.NodeService) {
+		service.PeerName = peer
+	})
+}
+
+func testRegisterSidecarProxyOpts(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string, opts ...func(service *structs.NodeService)) {
 	svc := &structs.NodeService{
 		ID:      targetServiceID + "-sidecar-proxy",
 		Service: targetServiceID + "-sidecar-proxy",
@@ -215,10 +260,24 @@ func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string,
 			DestinationServiceID:   targetServiceID,
 		},
 	}
+	for _, o := range opts {
+		o(svc)
+	}
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
 func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string) {
+	testRegisterConnectNativeServiceOpts(t, s, idx, nodeID, serviceID)
+}
+
+// testRegisterConnectNativeServicePeer adds a connect native service to the state store that was imported from peer.
+func testRegisterConnectNativeServicePeer(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string, peer string) {
+	testRegisterConnectNativeServiceOpts(t, s, idx, nodeID, serviceID, func(service *structs.NodeService) {
+		service.PeerName = peer
+	})
+}
+
+func testRegisterConnectNativeServiceOpts(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string, opts ...func(service *structs.NodeService)) {
 	svc := &structs.NodeService{
 		ID:      serviceID,
 		Service: serviceID,
@@ -226,6 +285,9 @@ func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID
 		Connect: structs.ServiceConnect{
 			Native: true,
 		},
+	}
+	for _, o := range opts {
+		o(svc)
 	}
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }

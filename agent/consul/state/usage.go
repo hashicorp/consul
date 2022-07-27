@@ -99,11 +99,20 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 
 		switch change.Table {
 		case tableNodes:
+			node := changeObject(change).(*structs.Node)
+			if node.PeerName != "" {
+				// TODO(peering) track peered nodes separately. For now not tracking to avoid double billing.
+				continue
+			}
 			usageDeltas[change.Table] += delta
 			addEnterpriseNodeUsage(usageDeltas, change)
 
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
+			if svc.PeerName != "" {
+				// TODO(peering) track peered services separately. For now not tracking to avoid double billing.
+				continue
+			}
 			usageDeltas[change.Table] += delta
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
 
