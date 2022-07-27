@@ -22,22 +22,22 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul kv import [options] [DATA]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### KV Import Options
+#### Command Options
 
 - `-prefix` - Key prefix for imported data. The default value is empty meaning
   root. Added in Consul 1.10.
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

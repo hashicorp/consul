@@ -26,12 +26,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul acl translate-rules [options] TRANSLATE`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `TRANSLATE` - The rules to translate. If `-` is used, then
@@ -46,6 +40,12 @@ Usage: `consul acl translate-rules [options] TRANSLATE`
 - `-token-accessor` - Specifies that what the `TRANSLATE` argument
   holds is not a rule set but rather the token accessor ID of a
   legacy ACL token that holds the rule set.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ### Examples
 
