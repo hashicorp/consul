@@ -353,7 +353,9 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl
 		}
 		m := list.ListAllDiscoveryChains()
 		if len(m) > 0 {
-			out[peering.Name] = maps.SliceOfKeys(m)
+			sns := maps.SliceOfKeys[structs.ServiceName, structs.ExportedDiscoveryChainInfo](m)
+			sort.Sort(structs.ServiceList(sns))
+			out[peering.Name] = sns
 		}
 	}
 
