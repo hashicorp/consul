@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -55,6 +57,16 @@ func testStateStore(t *testing.T) *Store {
 		t.Fatalf("missing state store")
 	}
 	return s
+}
+
+// testRegisterPeering registers a peering into the state store.
+func testRegisterPeering(t *testing.T, s *Store, idx uint64, name string) *pbpeering.Peering {
+	uuid, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+	peering := &pbpeering.Peering{Name: name, ID: uuid}
+	err = s.PeeringWrite(idx, peering)
+	require.NoError(t, err)
+	return peering
 }
 
 // testRegisterNode registers a node into the state store.
