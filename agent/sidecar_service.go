@@ -114,9 +114,32 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
+	port, err := a.sidecarPortFromServiceIDLocked(sidecar.Port, sidecar.CompoundServiceID())
+	if err != nil {
+		return nil, nil, "", err
+	}
+	sidecar.Port = port
+
+	// Setup checks
+	checks, err := ns.Connect.SidecarService.CheckTypes()
+	if err != nil {
+		return nil, nil, "", err
+	}
+	// Setup default check if none given
+	if len(checks) < 1 {
+		checks = sidecarDefaultChecks(ns.ID, sidecar.Proxy.LocalServiceAddress, sidecar.Port)
+	}
+
+	return sidecar, checks, token, nil
+}
+
+// sidecarPortFromServiceID is used to allocate a unique port for a sidecar proxy.
+// This is called immediately before registration to avoid value collisions. This function assumes the state lock is already held.
+func (a *Agent) sidecarPortFromServiceIDLocked(sidecarPort int, sidecarCompoundServiceID structs.ServiceID) (int, error) {
+
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := a.config.ConnectSidecarMaxPort - a.config.ConnectSidecarMinPort + 1
-	if sidecar.Port < 1 && a.config.ConnectSidecarMinPort > 0 && rangeLen > 0 {
+	if sidecarPort < 1 && a.config.ConnectSidecarMinPort > 0 && rangeLen > 0 {
 		// This did pick at random which was simpler but consul reload would assign
 		// new ports to all the sidecars since it unloads all state and
 		// re-populates. It also made this more difficult to test (have to pin the
@@ -130,11 +153,11 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 			// Check if other port is in auto-assign range
 			if otherNS.Port >= a.config.ConnectSidecarMinPort &&
 				otherNS.Port <= a.config.ConnectSidecarMaxPort {
-				if otherNS.CompoundServiceID() == sidecar.CompoundServiceID() {
+				if otherNS.CompoundServiceID() == sidecarCompoundServiceID {
 					// This sidecar is already registered with an auto-port and is just
 					// being updated so pick the same port as before rather than allocate
 					// a new one.
-					sidecar.Port = otherNS.Port
+					sidecarPort = otherNS.Port
 					break
 				}
 				usedPorts[otherNS.Port] = struct{}{}
@@ -147,54 +170,48 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 		// Check we still need to assign a port and didn't find we already had one
 		// allocated.
-		if sidecar.Port < 1 {
+		if sidecarPort < 1 {
 			// Iterate until we find lowest unused port
 			for p := a.config.ConnectSidecarMinPort; p <= a.config.ConnectSidecarMaxPort; p++ {
 				_, used := usedPorts[p]
 				if !used {
-					sidecar.Port = p
+					sidecarPort = p
 					break
 				}
 			}
 		}
 	}
 	// If no ports left (or auto ports disabled) fail
-	if sidecar.Port < 1 {
+	if sidecarPort < 1 {
 		// If ports are set to zero explicitly, config builder switches them to
 		// `-1`. In this case don't show the actual values since we don't know what
 		// was actually in config (zero or negative) and it might be confusing, we
 		// just know they explicitly disabled auto assignment.
 		if a.config.ConnectSidecarMinPort < 1 || a.config.ConnectSidecarMaxPort < 1 {
-			return nil, nil, "", fmt.Errorf("no port provided for sidecar_service " +
+			return 0, fmt.Errorf("no port provided for sidecar_service " +
 				"and auto-assignment disabled in config")
 		}
-		return nil, nil, "", fmt.Errorf("no port provided for sidecar_service and none "+
+		return 0, fmt.Errorf("no port provided for sidecar_service and none "+
 			"left in the configured range [%d, %d]", a.config.ConnectSidecarMinPort,
 			a.config.ConnectSidecarMaxPort)
 	}
 
-	// Setup checks
-	checks, err := ns.Connect.SidecarService.CheckTypes()
-	if err != nil {
-		return nil, nil, "", err
-	}
+	return sidecarPort, nil
+}
 
+func sidecarDefaultChecks(serviceID string, localServiceAddress string, port int) []*structs.CheckType {
 	// Setup default check if none given
-	if len(checks) < 1 {
-		checks = []*structs.CheckType{
-			{
-				Name: "Connect Sidecar Listening",
-				// Default to localhost rather than agent/service public IP. The checks
-				// can always be overridden if a non-loopback IP is needed.
-				TCP:      ipaddr.FormatAddressPort(sidecar.Proxy.LocalServiceAddress, sidecar.Port),
-				Interval: 10 * time.Second,
-			},
-			{
-				Name:         "Connect Sidecar Aliasing " + ns.ID,
-				AliasService: ns.ID,
-			},
-		}
+	return []*structs.CheckType{
+		{
+			Name: "Connect Sidecar Listening",
+			// Default to localhost rather than agent/service public IP. The checks
+			// can always be overridden if a non-loopback IP is needed.
+			TCP:      ipaddr.FormatAddressPort(localServiceAddress, port),
+			Interval: 10 * time.Second,
+		},
+		{
+			Name:         "Connect Sidecar Aliasing " + serviceID,
+			AliasService: serviceID,
+		},
 	}
-
-	return sidecar, checks, token, nil
 }
