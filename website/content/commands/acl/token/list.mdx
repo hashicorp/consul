@@ -23,12 +23,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul acl token list`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `-meta` - Indicates that token metadata such as the content hash and
@@ -38,9 +32,15 @@ Usage: `consul acl token list`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

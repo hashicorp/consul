@@ -43,10 +43,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator raft list-peers -stale=[true|false]`
 
-- `-stale` - Optional and defaults to "false" which means the leader provides
-  the result. If the cluster is in an outage state without a leader, you may need
-  to set this to "true" to get the configuration from a non-leader server.
-
 The output looks like this:
 
 ```text
@@ -69,6 +65,13 @@ Raft configuration.
 
 `Voter` is "true" or "false", indicating if the server has a vote in the Raft
 configuration.
+
+#### Command Options
+
+- `-stale` - Enables non-leader servers to provide cluster state information.
+  If the cluster is in an outage state without a leader,
+  we recommend setting this option to `true.
+  Default is `false`.
 
 ## remove-peer
 

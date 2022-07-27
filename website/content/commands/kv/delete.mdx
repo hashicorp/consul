@@ -24,28 +24,29 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul kv delete [options] KEY_OR_PREFIX`
 
+#### Command Options
+
+- `-cas` - Perform a Check-And-Set operation.
+  To use this option, the `-modify-index` flag must also be set.
+  The default value is `false`.
+
+- `-modify-index=<int>` - Specifies an unsigned integer that represents
+  the `ModifyIndex` of the key. Used in combination with the `-cas` flag.
+
+- `-recurse` - Recursively delete all keys with the path. The default value is
+  `false`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
 #### API Options
 
 @include 'http_api_options_client.mdx'
 
 @include 'http_api_options_server.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### KV Delete Options
-
-- `-cas` - Perform a Check-And-Set operation. Specifying this value also
-  requires the -modify-index flag to be set. The default value is false.
-
-- `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
-  key. This is used in combination with the -cas flag.
-
-- `-recurse` - Recursively delete all keys with the path. The default value is
-  false.
 
 ## Examples
 
