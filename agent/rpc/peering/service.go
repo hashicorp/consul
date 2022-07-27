@@ -346,7 +346,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrDefault()); err != nil {
+	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrEmpty()); err != nil {
 		return nil, err
 	}
 
@@ -408,15 +408,8 @@ func (s *Server) validatePeeringInPartition(remotePeerID, partition string) erro
 		return fmt.Errorf("cannot read peering by ID: %w", err)
 	}
 
-	if peering != nil {
-		stateStorePart := peering.Partition
-		if stateStorePart == "" {
-			stateStorePart = "default"
-		}
-
-		if stateStorePart == partition {
-			return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
-		}
+	if peering != nil && peering.GetPartition() == partition {
+		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
 	}
 
 	return nil
