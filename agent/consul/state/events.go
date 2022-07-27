@@ -43,6 +43,12 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,
 			}
+		case EventTopicServiceList:
+			// Events on this topic are published to SubjectNone, but rather than
+			// exposing this in (and further complicating) the streaming API we rely
+			// on consumers passing WildcardSubject instead, which is functionally the
+			// same for this purpose.
+			return nil, fmt.Errorf("topic %s can only be consumed using WildcardSubject", EventTopicServiceList)
 		default:
 			return nil, fmt.Errorf("cannot construct subject for topic %s", req.Topic)
 		}

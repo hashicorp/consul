@@ -6,7 +6,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -14,6 +17,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -25,8 +29,72 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
+var leaderExportedServicesCountKey = []string{"consul", "peering", "exported_services"}
+var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
+	{
+		Name: leaderExportedServicesCountKey,
+		Help: "A gauge that tracks how many services are exported for the peering. " +
+			"The labels are \"peering\" and, for enterprise, \"partition\". " +
+			"We emit this metric every 9 seconds",
+	},
+}
+
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
 	s.leaderRoutineManager.Start(ctx, peeringStreamsRoutineName, s.runPeeringSync)
+	s.leaderRoutineManager.Start(ctx, peeringStreamsMetricsRoutineName, s.runPeeringMetrics)
+}
+
+func (s *Server) runPeeringMetrics(ctx context.Context) error {
+	ticker := time.NewTicker(s.config.MetricsReportingInterval)
+	defer ticker.Stop()
+
+	logger := s.logger.Named(logging.PeeringMetrics)
+	defaultMetrics := metrics.Default
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("stopping peering metrics")
+
+			// "Zero-out" the metric on exit so that when prometheus scrapes this
+			// metric from a non-leader, it does not get a stale value.
+			metrics.SetGauge(leaderExportedServicesCountKey, float32(0))
+			return nil
+		case <-ticker.C:
+			if err := s.emitPeeringMetricsOnce(logger, defaultMetrics()); err != nil {
+				s.logger.Error("error emitting peering stream metrics", "error", err)
+			}
+		}
+	}
+}
+
+func (s *Server) emitPeeringMetricsOnce(logger hclog.Logger, metricsImpl *metrics.Metrics) error {
+	_, peers, err := s.fsm.State().PeeringList(nil, *structs.NodeEnterpriseMetaInPartition(structs.WildcardSpecifier))
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range peers {
+		status, found := s.peerStreamServer.StreamStatus(peer.ID)
+		if !found {
+			logger.Trace("did not find status for", "peer_name", peer.Name)
+			continue
+		}
+
+		esc := status.GetExportedServicesCount()
+		part := peer.Partition
+		labels := []metrics.Label{
+			{Name: "peer_name", Value: peer.Name},
+			{Name: "peer_id", Value: peer.ID},
+		}
+		if part != "" {
+			labels = append(labels, metrics.Label{Name: "partition", Value: part})
+		}
+
+		metricsImpl.SetGaugeWithLabels(leaderExportedServicesCountKey, float32(esc), labels)
+	}
+
+	return nil
 }
 
 func (s *Server) runPeeringSync(ctx context.Context) error {
@@ -49,6 +117,7 @@ func (s *Server) runPeeringSync(ctx context.Context) error {
 func (s *Server) stopPeeringStreamSync() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(peeringStreamsRoutineName)
+	s.leaderRoutineManager.Stop(peeringStreamsMetricsRoutineName)
 }
 
 // syncPeeringsAndBlock is a long-running goroutine that is responsible for watching
@@ -225,6 +294,11 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 	retryCtx, cancel := context.WithCancel(ctx)
 	cancelFns[peer.ID] = cancel
 
+	streamStatus, err := s.peerStreamTracker.Register(peer.ID)
+	if err != nil {
+		return fmt.Errorf("failed to register stream: %v", err)
+	}
+
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
 	go retryLoopBackoff(retryCtx, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
@@ -238,8 +312,15 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 
 		logger.Trace("dialing peer", "addr", addr)
 		conn, err := grpc.DialContext(retryCtx, addr,
-			grpc.WithBlock(),
+			// TODO(peering): use a grpc.WithStatsHandler here?)
 			tlsOption,
+			// For keep alive parameters there is a larger comment in ClientConnPool.dial about that.
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:    30 * time.Second,
+				Timeout: 10 * time.Second,
+				// send keepalive pings even if there is no active streams
+				PermitWithoutStream: true,
+			}),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to dial: %w", err)
@@ -277,8 +358,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 		return err
 
 	}, func(err error) {
-		// TODO(peering): These errors should be reported in the peer status, otherwise they're only in the logs.
-		//                Lockable status isn't available here though. Could report it via the peering.Service?
+		streamStatus.TrackSendError(err.Error())
 		logger.Error("error managing peering stream", "peer_id", peer.ID, "error", err)
 	})
 

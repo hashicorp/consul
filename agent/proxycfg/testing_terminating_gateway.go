@@ -328,8 +328,10 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 	roots, _ := TestCerts(t)
 
 	var (
-		externalIPTCP       = structs.NewServiceName("external-IP-TCP", nil)
-		externalHostnameTCP = structs.NewServiceName("external-hostname-TCP", nil)
+		externalIPTCP        = structs.NewServiceName("external-IP-TCP", nil)
+		externalHostnameTCP  = structs.NewServiceName("external-hostname-TCP", nil)
+		externalIPHTTP       = structs.NewServiceName("external-IP-HTTP", nil)
+		externalHostnameHTTP = structs.NewServiceName("external-hostname-HTTP", nil)
 	)
 
 	baseEvents := []UpdateEvent{
@@ -357,6 +359,14 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				Service:     externalHostnameTCP,
 				ServiceKind: structs.GatewayServiceKindDestination,
 			},
+			&structs.GatewayService{
+				Service:     externalIPHTTP,
+				ServiceKind: structs.GatewayServiceKindDestination,
+			},
+			&structs.GatewayService{
+				Service:     externalHostnameHTTP,
+				ServiceKind: structs.GatewayServiceKindDestination,
+			},
 		)
 
 		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
@@ -375,6 +385,14 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameTCP.String(),
 				Result:        structs.Intentions{},
 			},
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalIPHTTP.String(),
+				Result:        structs.Intentions{},
+			},
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalHostnameHTTP.String(),
+				Result:        structs.Intentions{},
+			},
 			// ========
 			{
 				CorrelationID: serviceLeafIDPrefix + externalIPTCP.String(),
@@ -390,6 +408,20 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 					PrivateKeyPEM: "placeholder.key",
 				},
 			},
+			{
+				CorrelationID: serviceLeafIDPrefix + externalIPHTTP.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
+			{
+				CorrelationID: serviceLeafIDPrefix + externalHostnameHTTP.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
 			// ========
 			{
 				CorrelationID: serviceConfigIDPrefix + externalIPTCP.String(),
@@ -397,8 +429,12 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 					Mode:        structs.ProxyModeTransparent,
 					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
 					Destination: structs.DestinationConfig{
-						Address: "192.168.0.1",
-						Port:    80,
+						Addresses: []string{
+							"192.168.0.1",
+							"192.168.0.2",
+							"192.168.0.3",
+						},
+						Port: 80,
 					},
 				},
 			},
@@ -408,8 +444,33 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 					Mode:        structs.ProxyModeTransparent,
 					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
 					Destination: structs.DestinationConfig{
-						Address: "*.hashicorp.com",
-						Port:    8089,
+						Addresses: []string{
+							"api.hashicorp.com",
+							"web.hashicorp.com",
+						},
+						Port: 8089,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceConfigIDPrefix + externalIPHTTP.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+					Destination: structs.DestinationConfig{
+						Addresses: []string{"192.168.0.2"},
+						Port:      80,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceConfigIDPrefix + externalHostnameHTTP.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+					Destination: structs.DestinationConfig{
+						Addresses: []string{"httpbin.org"},
+						Port:      80,
 					},
 				},
 			},

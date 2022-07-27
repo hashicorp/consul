@@ -810,6 +810,14 @@ type RuntimeConfig struct {
 	// flag: -non-voting-server
 	ReadReplica bool
 
+	// PeeringEnabled enables cluster peering. This setting only applies for servers.
+	// When disabled, all peering RPC endpoints will return errors,
+	// peering requests from other clusters will receive errors, and any peerings already stored in this server's
+	// state will be ignored.
+	//
+	// hcl: peering { enabled = (true|false) }
+	PeeringEnabled bool
+
 	// PidFile is the file to store our PID in.
 	//
 	// hcl: pid_file = string

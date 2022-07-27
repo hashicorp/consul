@@ -453,6 +453,56 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
+// ServiceGateways returns all the nodes for services associated with a gateway along with their gateway config
+func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceGateways", args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide gateway name")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// We need read access to the service we're trying to find gateways for, so check that first.
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
+	}
+
+	err = m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var maxIdx uint64
+			idx, gateways, err := state.ServiceGateways(ws, args.ServiceName, args.ServiceKind, args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			reply.Index, reply.Nodes = maxIdx, gateways
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		})
+
+	return err
+}
+
 // GatewayIntentions Match returns the set of intentions that match the given source/destination.
 func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
 	// Forward if necessary

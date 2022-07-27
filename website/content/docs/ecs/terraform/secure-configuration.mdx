@@ -136,8 +136,7 @@ resource "aws_secretsmanager_secret_version" "gossip_key" {
 
 ### Enable secure deployment
 
-Add the following configurations to enable secure deployment. The `acl_secret_name_prefix`
-should be the same as the `name_prefix` you provide to the ACL controller module.
+To enable secure deployment, add the following configuration to the task module. 
 
 ```hcl
 module "my_task" {
@@ -153,6 +152,7 @@ module "my_task" {
   acls                      = true
   consul_http_addr          = "https://consul-server.example.com:8501"
   consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
+  audit_logging             = true
 }
 ```
 
@@ -166,6 +166,7 @@ The following table explains the `mesh-task` input variables relevant to a secur
 | `acls`                      | boolean  | If true, ACLs are enabled.                                                                                                                                                                                                                 |
 | `consul_http_addr`          | string   | The Consul server address. Required when `acls = true` in order to log in to Consul's AWS IAM auth method to obtain ACL tokens.                                                                                                            |
 | `consul_https_ca_cert_arn`  | string   | (optional) The Secrets Manager secret containing the CA cert for HTTPS communication with Consul servers. Required if the server's certificate is self-signed or signed by an internal CA. This is not required for Consul servers in HCP. |
+| `audit_logging`             | boolean  | <EnterpriseAlert inline /> (optional) If true, ACL audit logging is enabled. Consul client is configured to print audit logs to `stdout`.                                                                                                  |
 
 Complete the following steps described in the Installation with Terraform chapter to deploy and connect your services:
 

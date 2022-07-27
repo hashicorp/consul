@@ -684,3 +684,22 @@ agent. The table below describes the additional metrics exported by the proxy.
 | `consul.proxy.web.upstream.conns`   | Shows the current number of connections open from a proxy instance to an upstream. Where supported a `src` label is added indicating the service name the proxy represents, and a `dst` label is added indicating the service name the upstream is connecting to. | connections | gauge   |
 | `consul.proxy.web.inbound.rx_bytes` | Increments by the number of bytes received from an upstream connection. Where supported a `src` label is added indicating the service name the proxy represents, and a `dst` label is added indicating the service name the upstream is connecting to.       | bytes       | counter |
 | `consul.proxy.web.inbound.tx_bytes` | Increments by the number of bytes transferred to an upstream connection. Where supported a `src` label is added indicating the service name the proxy represents, and a `dst` label is added indicating the service name the upstream is connecting to.      | bytes       | counter |
+
+## Peering metrics
+
+**Requirements:**
+- Consul 1.13.0+
+
+[Cluster peering](/docs/connect/cluster-peering) refers to enabling communication between Consul clusters through a peer connection, as opposed to a federated connection. Consul collects metrics that describe the number of services exported to a peered cluster. Peering metrics are only emitted by the leader server.  
+
+| Metric                                | Description                                                           | Unit   | Type    |
+| ------------------------------------- | ----------------------------------------------------------------------| ------ | ------- |
+| `consul.peering.exported_services`    | Counts the number of services exported to a peer cluster.  | count  | gauge   |
+
+### Labels
+Consul attaches the following labels to metric values. 
+| Label Name                            | Description                                                            | Possible values                            |
+| ------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+| `peer_name`                           | The name of the peering on the reporting cluster or leader.              | Any defined peer name in the cluster      |
+| `peer_id`                             | The ID of a peer connected to the reporting cluster or leader.                | Any UUID                                  |
+| `partition`                           | <EnterpriseAlert inline /> Name of the partition that the peering is created in. | Any defined partition name in the cluster |

@@ -8,7 +8,11 @@ import (
 // healthSnapshot represents a normalized view of a set of CheckServiceNodes
 // meant for easy comparison to aid in differential synchronization
 type healthSnapshot struct {
-	Nodes map[types.NodeID]*nodeSnapshot
+	// Nodes is a map of a node name to a nodeSnapshot. Ideally we would be able to use
+	// the types.NodeID and assume they are UUIDs for the map key but Consul doesn't
+	// require a NodeID. Therefore we must key off of the only bit of ID material
+	// that is required which is the node name.
+	Nodes map[string]*nodeSnapshot
 }
 
 type nodeSnapshot struct {
@@ -40,20 +44,20 @@ func newHealthSnapshot(all []structs.CheckServiceNode, partition, peerName strin
 	}
 
 	snap := &healthSnapshot{
-		Nodes: make(map[types.NodeID]*nodeSnapshot),
+		Nodes: make(map[string]*nodeSnapshot),
 	}
 
 	for _, instance := range all {
-		if instance.Node.ID == "" {
-			panic("TODO(peering): data should always have a node ID")
+		if instance.Node.Node == "" {
+			panic("TODO(peering): data should always have a node name")
 		}
-		nodeSnap, ok := snap.Nodes[instance.Node.ID]
+		nodeSnap, ok := snap.Nodes[instance.Node.Node]
 		if !ok {
 			nodeSnap = &nodeSnapshot{
 				Node:     instance.Node,
 				Services: make(map[structs.ServiceID]*serviceSnapshot),
 			}
-			snap.Nodes[instance.Node.ID] = nodeSnap
+			snap.Nodes[instance.Node.Node] = nodeSnap
 		}
 
 		if instance.Service.ID == "" {

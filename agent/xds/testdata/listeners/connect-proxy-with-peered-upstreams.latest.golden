@@ -17,8 +17,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.payments?peer=cloud",
-                "cluster": "payments.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                "statPrefix": "upstream_peered.payments.default.cloud",
+                "cluster": "payments.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
@@ -104,8 +104,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.refunds?peer=cloud",
-                "cluster": "refunds.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
+                "statPrefix": "upstream_peered.refunds.default.cloud",
+                "cluster": "refunds.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]

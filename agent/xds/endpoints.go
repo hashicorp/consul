@@ -95,14 +95,14 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
-
-		// TODO(peering): if we replicated service metadata separately from the
-		// instances we wouldn't have to flip/flop this cluster name like this.
-		clusterName := peerMeta.PrimarySNI()
-		if clusterName == "" {
-			clusterName = uid.EnvoyID()
+		tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		if !ok {
+			// this should never happen since we loop through upstreams with
+			// set trust bundles
+			return nil, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 		}
+
+		clusterName := generatePeeredClusterName(uid, tbs)
 
 		// Also skip peer instances with a hostname as their address. EDS
 		// cannot resolve hostnames, so we provide them through CDS instead.
@@ -148,6 +148,32 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			resources = append(resources, la)
 		}
 	}
+
+	// Loop over potential destinations in the mesh, then grab the gateway nodes associated with each
+	cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid proxycfg.UpstreamID) bool {
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig.Destination == nil {
+			return true
+		}
+
+		for _, address := range svcConfig.Destination.Addresses {
+			name := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+
+			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
+			if ok {
+				la := makeLoadAssignment(
+					name,
+					[]loadAssignmentEndpointGroup{
+						{Endpoints: endpoints},
+					},
+					proxycfg.GatewayKey{ /*empty so it never matches*/ },
+				)
+				resources = append(resources, la)
+			}
+		}
+
+		return true
+	})
 
 	return resources, nil
 }

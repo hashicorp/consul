@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -32,12 +33,16 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
+	// Only configure a tracker for catalog events.
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLExportedService)
+
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
 	}, connect.TestTrustDomain, backend, func() StateStore {
 		return backend.store
-	})
+	}, tracker)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	var (
@@ -442,12 +447,16 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
+	// Only configure a tracker for catalog events.
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLExportedService)
+
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
 	}, connect.TestTrustDomain, backend, func() StateStore {
 		return backend.store
-	})
+	}, tracker)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	// Register two services that are not yet exported
@@ -571,21 +580,21 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
+	// Only configure a tracker for CA roots events.
+	tracker := newResourceSubscriptionTracker()
+	tracker.Subscribe(pbpeerstream.TypeURLPeeringTrustBundle)
+
 	mgr := newSubscriptionManager(ctx, testutil.Logger(t), Config{
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
 	}, connect.TestTrustDomain, backend, func() StateStore {
 		return backend.store
-	})
+	}, tracker)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
 
 	testutil.RunStep(t, "initial events contain trust bundle", func(t *testing.T) {
 		// events are ordered so we can expect a deterministic list
 		expectEvents(t, subCh,
-			func(t *testing.T, got cache.UpdateEvent) {
-				// mesh-gateway assertions are done in other tests
-				require.Equal(t, subMeshGateway+partition, got.CorrelationID)
-			},
 			func(t *testing.T, got cache.UpdateEvent) {
 				require.Equal(t, subCARoot, got.CorrelationID)
 				roots, ok := got.Result.(*pbpeering.PeeringTrustBundle)

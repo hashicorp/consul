@@ -178,6 +178,15 @@ event "promote-dev-docker" {
   }
 }
 
+event "fossa-scan" {
+  depends = ["promote-dev-docker"]
+  action "fossa-scan" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "fossa-scan"
+  }
+}
+
 ## These are promotion and post-publish events
 ## they should be added to the end of the file after the verify event stanza.
 

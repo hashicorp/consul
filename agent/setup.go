@@ -231,7 +231,8 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 	if isServer {
 		gauges = append(gauges,
 			consul.AutopilotGauges,
-			consul.LeaderCertExpirationGauges)
+			consul.LeaderCertExpirationGauges,
+			consul.LeaderPeeringMetrics)
 	}
 
 	// Flatten definitions

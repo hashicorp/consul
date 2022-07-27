@@ -1,6 +1,8 @@
 package peerstream
 
 import (
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"google.golang.org/grpc"
@@ -17,6 +19,11 @@ import (
 // TODO(peering): fix up these interfaces to be more testable now that they are
 // extracted from private peering
 
+const (
+	defaultOutgoingHeartbeatInterval = 15 * time.Second
+	defaultIncomingHeartbeatTimeout  = 2 * time.Minute
+)
+
 type Server struct {
 	Config
 }
@@ -30,6 +37,12 @@ type Config struct {
 	// Datacenter of the Consul server this gRPC server is hosted on
 	Datacenter     string
 	ConnectEnabled bool
+
+	// outgoingHeartbeatInterval is how often we send a heartbeat.
+	outgoingHeartbeatInterval time.Duration
+
+	// incomingHeartbeatTimeout is how long we'll wait between receiving heartbeats before we close the connection.
+	incomingHeartbeatTimeout time.Duration
 }
 
 //go:generate mockery --name ACLResolver --inpackage
@@ -45,6 +58,12 @@ func NewServer(cfg Config) *Server {
 	// requireNotNil(cfg.ACLResolver, "ACLResolver") // TODO(peering): reenable check when ACLs are required
 	if cfg.Datacenter == "" {
 		panic("Datacenter is required")
+	}
+	if cfg.outgoingHeartbeatInterval == 0 {
+		cfg.outgoingHeartbeatInterval = defaultOutgoingHeartbeatInterval
+	}
+	if cfg.incomingHeartbeatTimeout == 0 {
+		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
 		Config: cfg,

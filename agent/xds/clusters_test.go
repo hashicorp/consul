@@ -610,22 +610,12 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
 		},
 		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
-		},
-		{
 			name:   "transparent-proxy-catalog-destinations-only",
 			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
 		{
 			name:   "transparent-proxy-dial-instances-directly",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
-		},
-		{
-			name: "transparent-proxy-terminating-gateway-destinations-only",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
-			},
 		},
 	}
 

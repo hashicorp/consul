@@ -3,6 +3,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.peerstream;
 
 import "google/protobuf/any.proto";
+import "proto/pbservice/node.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
 
@@ -24,6 +25,7 @@ message ReplicationMessage {
     Request request = 1;
     Response response = 2;
     Terminated terminated = 3;
+    Heartbeat heartbeat = 4;
   }
 
   // A Request requests to subscribe to a resource of a given type.
@@ -68,6 +70,9 @@ message ReplicationMessage {
   // Terminated is sent when a peering is deleted locally.
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
+
+  // Heartbeat is sent to verify that the connection is still active.
+  message Heartbeat {}
 }
 
 // Operation enumerates supported operations for replicated resources.
@@ -88,4 +93,9 @@ enum Operation {
 message LeaderAddress {
   // address is an ip:port best effort hint at what could be the cluster leader's address
   string address = 1;
+}
+
+// ExportedService is one of the types of data returned via peer stream replication.
+message ExportedService {
+  repeated hashicorp.consul.internal.service.CheckServiceNode Nodes = 1;
 }

@@ -551,6 +551,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/docs/agent/config/cli-flags#_max_query_time).
 
+- `peering` This object allows setting options for cluster peering.
+
+  The following sub-keys are available:
+
+  - `enabled` ((#peering_enabled)) (Defaults to `true`) Controls whether cluster peering is enabled.
+    When disabled, the UI won't show peering, all peering APIs will return
+    an error, any peerings stored in Consul already will be ignored (but they will not be deleted),
+    and all peering connections from other clusters will be rejected. This was added in Consul 1.13.0.
+
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
@@ -869,11 +878,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `master` ((#acl_tokens_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.initial_management`](#acl_tokens_initial_management).**
 
-    - `default` ((#acl_tokens_default)) - When provided, the agent will
-      use this token when making requests to the Consul servers. Clients can override
-      this token on a per-request basis by providing the "?token" query parameter.
-      When not provided, the empty token, which maps to the 'anonymous' ACL token,
-      is used.
+    - `default` ((#acl_tokens_default)) - When provided, this agent will
+      use this token by default when making requests to the Consul servers
+      instead of the [anonymous token](/docs/security/acl/acl-tokens#anonymous-token).
+      Consul HTTP API requests can provide an alternate token in their authorization header
+      to override the `default` or anonymous token on a per-request basis,
+      as described in [HTTP API Authentication](/api-docs#authentication).
 
     - `agent` ((#acl_tokens_agent)) - Used for clients and servers to perform
       internal operations. If this isn't specified, then the
@@ -993,11 +1003,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
-  the [`acl.tokens.default`](#acl_tokens_default) field instead.** When provided,
-  the agent will use this token when making requests to the Consul servers. Clients
-  can override this token on a per-request basis by providing the "?token" query
-  parameter. When not provided, the empty token, which maps to the 'anonymous' ACL
-  policy, is used.
+  the [`acl.tokens.default`](#acl_tokens_default) field instead.**
 
 - `acl_ttl` ((#acl_ttl_legacy)) - **Deprecated in Consul 1.4.0. See the
   [`acl.token_ttl`](#acl_token_ttl) field instead.**Used to control Time-To-Live
@@ -1998,8 +2004,6 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc`](#grpc_port).
-    To enable TLS on the gRPC interface you also must define an HTTPS port via
-    [`ports.https`](#https_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 

@@ -1990,7 +1990,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 				}
 			}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
-			if err := freeServiceVirtualIP(tx, psn, nil); err != nil {
+			if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
 			}
 			if err := cleanupKindServiceName(tx, idx, svc.CompoundServiceName(), svc.ServiceKind); err != nil {
@@ -2008,6 +2008,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 // is removed.
 func freeServiceVirtualIP(
 	tx WriteTxn,
+	idx uint64,
 	psn structs.PeeredServiceName,
 	excludeGateway *structs.ServiceName,
 ) error {
@@ -2057,6 +2058,10 @@ func freeServiceVirtualIP(
 	newEntry := FreeVirtualIP{IP: serviceVIP.(ServiceVirtualIP).IP}
 	if err := tx.Insert(tableFreeVirtualIPs, newEntry); err != nil {
 		return fmt.Errorf("failed updating freed virtual IP table: %v", err)
+	}
+
+	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
+		return err
 	}
 
 	return nil
@@ -2907,6 +2912,25 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *acl.
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
+// TODO: Find a way to consolidate this with CheckIngressServiceNodes
+// ServiceGateways is used to query all gateways associated with a service
+func (s *Store) ServiceGateways(ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// tableGatewayServices is not peer-aware, and the existence of TG/IG gateways is scrubbed during peer replication.
+	maxIdx, nodes, err := serviceGatewayNodes(tx, ws, service, kind, &entMeta, structs.DefaultPeerKeyword)
+
+	// Watch for index changes to the gateway nodes
+	idx, chans := maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
+	for _, ch := range chans {
+		ws.Add(ch)
+	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
+
+	return parseCheckServiceNodes(tx, ws, maxIdx, nodes, &entMeta, structs.DefaultPeerKeyword, err)
+}
+
 func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -3478,7 +3502,7 @@ func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.T
 		}
 		if len(nodes) == 0 {
 			psn := structs.PeeredServiceName{Peer: structs.DefaultPeerKeyword, ServiceName: sn}
-			if err := freeServiceVirtualIP(tx, psn, &gatewayName); err != nil {
+			if err := freeServiceVirtualIP(tx, idx, psn, &gatewayName); err != nil {
 				return err
 			}
 		}
@@ -3862,7 +3886,7 @@ func (s *Store) collectGatewayServices(tx ReadTxn, ws memdb.WatchSet, iter memdb
 	return maxIdx, results, nil
 }
 
-// TODO(ingress): How to handle index rolling back when a config entry is
+// TODO: How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
 func serviceGatewayNodes(tx ReadTxn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {

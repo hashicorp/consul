@@ -2,21 +2,11 @@
   class="consul-peer-list"
   ...attributes
   @items={{@items}}
-  @linkable="linkable peer"
 as |item index|>
   <BlockSlot @name="header">
-{{#if (can 'delete peer' item=item)}}
-      <a
-        data-test-peer={{item.Name}}
-        href={{href-to 'dc.peers.edit' item.Name}}
-      >
-        {{item.Name}}
-      </a>
-{{else}}
-      <p>
-        {{item.Name}}
-      </p>
-{{/if}}
+    <p>
+      {{item.Name}}
+    </p>
   </BlockSlot>
   <BlockSlot @name="details">
     <div class="peers__list__peer-detail">
@@ -60,6 +50,16 @@ as |item index|>
           View
         </BlockSlot>
       </Action>
+{{#if (can "write peer" item=item)}}
+        <Action
+          data-test-edit-action
+          {{on 'click' (fn @onedit item)}}
+        >
+          <BlockSlot @name="label">
+            Regenerate token
+          </BlockSlot>
+        </Action>
+{{/if}}
       <Action
         data-test-delete-action
         @onclick={{fn @ondelete item}}

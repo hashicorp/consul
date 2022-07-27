@@ -24,9 +24,10 @@ references:
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
   envoy-versions: &supported_envoy_versions
-    - &default_envoy_version "1.19.5"
-    - "1.20.4"
-    - "1.21.3"
+    - &default_envoy_version "1.20.6"
+    - "1.21.4"
+    - "1.22.2"
+    - "1.23.0"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -875,8 +876,13 @@ jobs:
     environment:
       ENVOY_VERSION: << parameters.envoy-version >>
       XDS_TARGET: << parameters.xds-target >>
+      AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_LAMBDA
+          secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
+          role-arn: ROLE_ARN_LAMBDA
       # Get go binary from workspace
       - attach_workspace:
           at: .

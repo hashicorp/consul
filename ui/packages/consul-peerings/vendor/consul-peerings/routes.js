@@ -12,22 +12,12 @@
             state: 'state',
             searchproperty: {
               as: 'searchproperty',
-              empty: [['Name']],
+              empty: [['Name', 'ID']],
             },
             search: {
               as: 'filter',
               replace: true,
             },
-          },
-        },
-      },
-      edit: {
-        _options: {
-          path: '/:name'
-        },
-        addresses: {
-          _options: {
-            path: '/addresses',
           },
         },
       },

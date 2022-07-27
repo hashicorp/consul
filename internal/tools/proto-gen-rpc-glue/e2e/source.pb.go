@@ -43,6 +43,11 @@ type ExampleReadTODO struct {
 	Value string
 }
 
+// @consul-rpc-glue: LeaderReadTODO
+type ExampleLeaderReadTODO struct {
+	Value string
+}
+
 // @consul-rpc-glue: WriteTODO
 type ExampleWriteTODO struct {
 	Value string

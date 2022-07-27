@@ -87,12 +87,12 @@
 
   <:main-nav>
     <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
+        <Consul::Datacenter::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @dcs={{@dcs}}
+        />
       <Consul::Partition::Selector
         @dc={{@dc}}
         @partition={{@partition}}

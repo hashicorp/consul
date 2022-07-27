@@ -436,7 +436,17 @@ type discoveryChainWatchOpts struct {
 }
 
 func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *ConfigSnapshot, opts discoveryChainWatchOpts) error {
-	if _, ok := snap.ConnectProxy.WatchedDiscoveryChains[opts.id]; ok {
+	var watchedDiscoveryChains map[UpstreamID]context.CancelFunc
+	switch s.kind {
+	case structs.ServiceKindIngressGateway:
+		watchedDiscoveryChains = snap.IngressGateway.WatchedDiscoveryChains
+	case structs.ServiceKindConnectProxy:
+		watchedDiscoveryChains = snap.ConnectProxy.WatchedDiscoveryChains
+	default:
+		return fmt.Errorf("unsupported kind %s", s.kind)
+	}
+
+	if _, ok := watchedDiscoveryChains[opts.id]; ok {
 		return nil
 	}
 
@@ -457,16 +467,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 		return err
 	}
 
-	switch s.kind {
-	case structs.ServiceKindIngressGateway:
-		snap.IngressGateway.WatchedDiscoveryChains[opts.id] = cancel
-	case structs.ServiceKindConnectProxy:
-		snap.ConnectProxy.WatchedDiscoveryChains[opts.id] = cancel
-	default:
-		cancel()
-		return fmt.Errorf("unsupported kind %s", s.kind)
-	}
-
+	watchedDiscoveryChains[opts.id] = cancel
 	return nil
 }
 

@@ -176,7 +176,7 @@ func servicePreApply(service *structs.NodeService, authz resolver.Result, authzC
 
 	// Verify ServiceName provided if ID.
 	if service.ID != "" && service.Service == "" {
-		return fmt.Errorf("Must provide service name with ID")
+		return fmt.Errorf("Must provide service name (Service.Service) when service ID is provided")
 	}
 
 	// Check the service address here and in the agent endpoint

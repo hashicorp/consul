@@ -105,9 +105,11 @@ message Peering {
   uint64 ExportedServiceCount = 14;
 
   // CreateIndex is the Raft index at which the Peering was created.
+  // @gotags: bexpr:"-"
   uint64 CreateIndex = 11;
 
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
+  // @gotags: bexpr:"-"
   uint64 ModifyIndex = 12;
 }
 
@@ -130,79 +132,56 @@ message PeeringTrustBundle {
   string ExportedPartition = 5;
 
   // CreateIndex is the Raft index at which the trust domain was created.
+  // @gotags: bexpr:"-"
   uint64 CreateIndex = 6;
 
   // ModifyIndex is the latest Raft index at which the trust bundle was modified.
+  // @gotags: bexpr:"-"
   uint64 ModifyIndex = 7;
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: LeaderReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
-
-  string Datacenter = 3;
-
-//TODO(peering) query metadata
 }
 
 message PeeringReadResponse {
   Peering Peering = 1;
-
-//TODO(peering) query metadata
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: LeaderReadTODO
 message PeeringListRequest {
   string Partition = 1;
-
-  string Datacenter = 2;
-
-//TODO(peering) query metadata
 }
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
-
-//TODO(peering) query metadata
 }
 
-// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringWriteRequest {
   Peering Peering = 1;
 
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 2;
-
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 3;
+  map<string, string> Meta = 2;
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
 message PeeringWriteResponse {}
 
-// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringDeleteRequest {
   string Name = 1;
 
   string Partition = 2;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 3;
 }
 
 message PeeringDeleteResponse {}
 
-// @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleListByServiceRequest {
   string ServiceName = 1;
   string Namespace = 2;
   string Partition = 3;
   string Kind = 4;
-
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 5;
 }
 
 message TrustBundleListByServiceResponse {
@@ -210,14 +189,9 @@ message TrustBundleListByServiceResponse {
   repeated PeeringTrustBundle Bundles = 2;
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleReadRequest {
   string Name = 1;
   string Partition = 2;
-
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 3;
 }
 
 message TrustBundleReadResponse {
@@ -225,30 +199,23 @@ message TrustBundleReadResponse {
   PeeringTrustBundle Bundle = 2;
 }
 
+// This is a purely internal type and does not require query metadata.
 message PeeringTerminateByIDRequest {
   string ID = 1;
 }
 
 message PeeringTerminateByIDResponse {}
 
-// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleWriteRequest {
   PeeringTrustBundle PeeringTrustBundle = 1;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 2;
 }
 
 message PeeringTrustBundleWriteResponse {}
 
-// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleDeleteRequest {
   string Name = 1;
 
   string Partition = 2;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 3;
 }
 
 message PeeringTrustBundleDeleteResponse {}
@@ -265,13 +232,13 @@ message GenerateTokenRequest {
   // Partition is the local partition being peered.
   string Partition = 2;
 
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 3;
-  string Token = 4;
-
   // Meta is a mapping of some string value to any other string value
   map<string, string> Meta = 5;
+
+  // ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
+  // load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
+  // addresses obtained from the "consul" service.
+  repeated string ServerExternalAddresses = 6;
 }
 
 // mog annotation:
@@ -285,8 +252,6 @@ message GenerateTokenResponse {
   string PeeringToken = 1;
 }
 
-// @consul-rpc-glue: Datacenter
-//
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/api.PeeringEstablishRequest
@@ -302,16 +267,10 @@ message EstablishRequest {
   // Partition is the local partition being peered.
   string Partition = 3;
 
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 4;
-  string Token = 5;
-
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 6;
+  map<string, string> Meta = 4;
 }
 
-//
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/api.PeeringEstablishResponse

@@ -127,6 +127,7 @@ const (
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
+	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
 )
 
 var (
@@ -367,8 +368,9 @@ type Server struct {
 	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
-	// peerStreamServer is a server used to handle peering streams
-	peerStreamServer  *peerstream.Server
+	// peerStreamServer is a server used to handle peering streams from external clusters.
+	peerStreamServer *peerstream.Server
+	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer     *peering.Server
 	peerStreamTracker *peerstream.Tracker
 
@@ -792,6 +794,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		},
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
+		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
 

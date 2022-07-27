@@ -8,6 +8,9 @@ html[data-route^='dc.acls.index'] .filter-bar {
 html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
+html[data-route^='dc.acls.tokens.edit'] header .actions button {
+  @extend %secondary-button;
+}
 
 @media #{$--lt-wide-form} {
   html[data-route^='dc.acls.create'] main header .actions,
