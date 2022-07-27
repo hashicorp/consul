@@ -408,7 +408,7 @@ func (s *Server) validatePeeringInPartition(remotePeerID, partition string) erro
 		return fmt.Errorf("cannot read peering by ID: %w", err)
 	}
 
-	if peering != nil && peering.GetPartition() == partition {
+	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
 		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
 	}
 
