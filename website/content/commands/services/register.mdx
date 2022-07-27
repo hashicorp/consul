@@ -57,17 +57,7 @@ restarts.
 services in the local state directory. If this state directory is deleted
 or lost, services registered with this command will need to be reregistered.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### Service Registration Flags
+#### Command Options
 
 The flags below should only be set if _no arguments_ are given. If no
 arguments are given, the flags below can be used to register a single
@@ -93,6 +83,16 @@ Please refer to that documentation for full details.
 
 - `-tag value` - Associate a tag with the service instance. This flag can
   be specified multiples times.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

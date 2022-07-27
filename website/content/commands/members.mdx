@@ -33,14 +33,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul members [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_partition_options.mdx'
-
 #### Command Options
 
 - `-detailed` - If provided, output shows more detailed information
@@ -55,3 +47,11 @@ Usage: `consul members [options]`
 - `-wan` - For agents in Server mode, this will return the list of nodes
   in the WAN gossip pool. These are generally all the server nodes in
   each datacenter.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

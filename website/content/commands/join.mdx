@@ -38,12 +38,12 @@ You may call `join` with multiple addresses if you want attempt to join the clus
 through multiple nodes. Consul will attempt to join all addresses. The join
 command will fail only if Consul was unable to join any of the specified addresses.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
 #### Command Options
 
 - `-wan` - For agents running in server mode, the agent will attempt to join
   other servers gossiping in a WAN cluster. This is used to form a bridge between
   multiple datacenters.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

@@ -29,20 +29,20 @@ The `<namespace definition>` must either be a file path or `-` to indicate that
 the definition should be read from stdin. The definition can be in either JSON
 or HCL format. See [here](/docs/enterprise/namespaces#namespace-definition) for a description of the namespace definition.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-@include 'http_api_partition_options.mdx'
-
 #### Command Options
 
 - `-format=<string>` - How to output the results. The choices are: pretty or json
 
 - `-meta` - Indicates that namespace metadata such as the raft indices should be
   shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 
