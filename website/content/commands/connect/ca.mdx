@@ -89,11 +89,13 @@ Usage: `consul connect ca set-config [options]`
 
 Corresponding HTTP API Endpoint: [\[PUT\] /v1/connect/ca/configuration](/api-docs/connect/ca#update-ca-configuration)
 
-#### API Options
+The output looks like this:
 
-@include 'http_api_options_client.mdx'
+```
+Configuration updated!
+```
 
-@include 'http_api_options_server.mdx'
+The return code will indicate success or failure.
 
 #### Command Options
 
@@ -108,10 +110,8 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/connect/ca/configuration](/api-doc
   Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
   for more detail.
 
-The output looks like this:
+#### API Options
 
-```
-Configuration updated!
-```
+@include 'http_api_options_client.mdx'
 
-The return code will indicate success or failure.
+@include 'http_api_options_server.mdx'

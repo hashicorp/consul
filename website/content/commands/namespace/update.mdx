@@ -30,14 +30,6 @@ Request a namespace to be update. Construction of the namespace definition is ha
 from the CLI arguments. Some parts of the Namespace such as ACL configurations and meta can be merged
 with the existing namespace definition.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-@include 'http_api_partition_options.mdx'
-
 #### Command Options
 
 - `-default-policy-id=<value>` - ID of a policy from the default namespace to inject for all tokens
@@ -71,6 +63,14 @@ with the existing namespace definition.
 
 - `-show-meta` - Indicates that namespace metadata such as the raft indices should
   be shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

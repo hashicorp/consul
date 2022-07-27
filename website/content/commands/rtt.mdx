@@ -37,9 +37,21 @@ At least one node name is required. If the second node name isn't given, it
 is set to the agent's node name. These are the node names as known to
 Consul as the `consul members` command would show, not IP addresses.
 
-#### API Options
+## Sample Output
 
-@include 'http_api_options_client.mdx'
+If coordinates are available, the command will print the estimated round trip
+time between the given nodes:
+
+```shell-session
+$ consul rtt n1 n2
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
+
+$ consul rtt n2 # Running from n1
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
+
+$ consul rtt -wan n1.dc1 n2.dc2
+Estimated n1.dc1 <-> n2.dc2 rtt: 1.275 ms (using WAN coordinates)
+```
 
 #### Command Options
 
@@ -55,18 +67,6 @@ The following environment variables control accessing the HTTP server via SSL:
 - `CONSUL_HTTP_SSL` Set this to enable SSL
 - `CONSUL_HTTP_SSL_VERIFY` Set this to disable certificate checking (not recommended)
 
-## Output
+#### API Options
 
-If coordinates are available, the command will print the estimated round trip
-time between the given nodes:
-
-```shell-session
-$ consul rtt n1 n2
-Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
-
-$ consul rtt n2 # Running from n1
-Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
-
-$ consul rtt -wan n1.dc1 n2.dc2
-Estimated n1.dc1 <-> n2.dc2 rtt: 1.275 ms (using WAN coordinates)
-```
+@include 'http_api_options_client.mdx'

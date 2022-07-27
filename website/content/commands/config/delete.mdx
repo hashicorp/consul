@@ -38,17 +38,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul config delete [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### Config Delete Options
+#### Command Options
 
 - `-kind` - Specifies the kind of the config entry to read.
 
@@ -63,6 +53,16 @@ Usage: `consul config delete [options]`
 
 - `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
   config entry. This is used in combination with the -cas flag.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

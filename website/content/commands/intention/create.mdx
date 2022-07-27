@@ -41,17 +41,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 `SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### Intention Create Options
+#### Command Options
 
 - `-allow` - Set the action to "allow" for intentions. This is the default.
 
@@ -66,6 +56,16 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 - `-replace` - Replace any matching intention. The replacement is done
   atomically per intention.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 
