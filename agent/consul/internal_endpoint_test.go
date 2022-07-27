@@ -2782,6 +2782,10 @@ func TestInternal_PeeredUpstreams(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	orig := virtualIPVersionCheckInterval
+	virtualIPVersionCheckInterval = 50 * time.Millisecond
+	t.Cleanup(func() { virtualIPVersionCheckInterval = orig })
+
 	t.Parallel()
 	_, s1 := testServerWithConfig(t)
 
