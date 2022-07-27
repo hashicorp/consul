@@ -28,19 +28,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul kv put [options] KEY [DATA]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### KV Put Options
+#### Command Options
 
 - `-acquire` - Obtain a lock on the key. If the key does not exist, this
   operation will create the key and obtain the lock. The session must already
@@ -66,6 +54,18 @@ Usage: `consul kv put [options] KEY [DATA]`
   This is commonly used with the -acquire and -release operations to build
   robust locking, but it can be set on any key. The default value is empty (no
   session).
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

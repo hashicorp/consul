@@ -30,11 +30,7 @@ inbound and outbound ports specified in the service registration.
 
 Usage: `consul connect redirect-traffic [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Options for Traffic Redirection Rules
+#### Command Options
 
 - `-consul-dns-ip` - The IP address of the Consul DNS resolver. If provided, DNS queries will be redirected to the provided IP address for name resolution.
 
@@ -60,9 +56,13 @@ Usage: `consul connect redirect-traffic [options]`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

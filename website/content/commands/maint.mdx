@@ -33,10 +33,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul maint [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
 #### Command Options
 
 - `-enable` - Enable node-wide maintenance mode flag. If combined with the
@@ -54,6 +50,10 @@ Usage: `consul maint [options]`
 - `-service` - An optional service ID to control maintenance mode for a given service. By
   providing this flag, the `-enable` and `-disable` flags functionality is
   modified to operate on the given service ID.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## List mode
 
