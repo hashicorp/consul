@@ -1213,10 +1213,12 @@ func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCode
 func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) {
 	t.Helper()
 
-	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
-	require.NoError(t, err)
-	require.NotNil(t, entry)
-	require.Equal(t, "true", entry.Value)
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
 
 	// Register a local connect-native service
 	require.NoError(t, state.EnsureRegistration(10, &structs.RegisterRequest{
