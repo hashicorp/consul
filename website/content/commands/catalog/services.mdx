@@ -53,19 +53,7 @@ redis
 
 Usage: `consul catalog services [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### Catalog List Nodes Options
+#### Command Options
 
 - `-node=<id or name>` - Node `id or name` for which to list services.
 
@@ -76,3 +64,15 @@ Usage: `consul catalog services [options]`
 
 - `-tags` - Display each service's tags as a comma-separated list beside each
   service entry.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

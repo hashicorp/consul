@@ -118,11 +118,7 @@ snapshot agent is deployed across more than one host.
 
 Usage: `consul snapshot agent [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Config File Options:
+#### Config File Options
 
 - `-config-dir` - Directory to look for JSON config files. Files will be read in
   alphabetical order and must end with the extension ".json". This won't
@@ -352,6 +348,10 @@ From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Googl
 This integration needs the following information:
 
 - `-gcs-bucket` supplies the bucket to use.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 
