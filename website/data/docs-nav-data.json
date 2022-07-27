@@ -19,51 +19,6 @@
             "path": "intro/usecases/what-is-a-service-mesh"
           }
         ]
-      },
-      {
-        "title": "Consul vs. Other Software",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "intro/vs"
-          },
-          {
-            "title": "Chef, Puppet, etc.",
-            "path": "intro/vs/chef-puppet"
-          },
-          {
-            "title": "Nagios",
-            "path": "intro/vs/nagios"
-          },
-          {
-            "title": "SkyDNS",
-            "path": "intro/vs/skydns"
-          },
-          {
-            "title": "SmartStack",
-            "path": "intro/vs/smartstack"
-          },
-          {
-            "title": "Serf",
-            "path": "intro/vs/serf"
-          },
-          {
-            "title": "Eureka",
-            "path": "intro/vs/eureka"
-          },
-          {
-            "title": "Istio",
-            "path": "intro/vs/istio"
-          },
-          {
-            "title": "Envoy and Other Proxies",
-            "path": "intro/vs/proxies"
-          },
-          {
-            "title": "Custom Solutions",
-            "path": "intro/vs/custom"
-          }
-        ]
       }
     ]
   },
