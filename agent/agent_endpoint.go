@@ -1125,7 +1125,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	// Run validation. This same validation would happen on the catalog endpoint,
 	// so it helps ensure the sync will work properly.
-	if err := ns.ValidateForAgent(); err != nil {
+	if err := ns.Validate(); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
 	}
 
