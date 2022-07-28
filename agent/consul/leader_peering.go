@@ -16,8 +16,10 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -300,7 +302,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 	}
 
 	// Establish a stream-specific retry so that retrying stream/conn errors isn't dependent on state store changes.
-	go retryLoopBackoff(retryCtx, func() error {
+	go retryLoopBackoffPeering(retryCtx, logger, func() error {
 		// Try a new address on each iteration by advancing the ring buffer on errors.
 		defer func() {
 			buffer = buffer.Next()
@@ -358,11 +360,45 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 		return err
 
 	}, func(err error) {
+		// TODO(peering): why are we using TrackSendError here? This could also be a receive error.
 		streamStatus.TrackSendError(err.Error())
-		logger.Error("error managing peering stream", "peer_id", peer.ID, "error", err)
-	})
+		if isFailedPreconditionErr(err) {
+			logger.Debug("stream disconnected due to 'failed precondition' error; reconnecting",
+				"error", err)
+			return
+		}
+		logger.Error("error managing peering stream", "error", err)
+	}, peeringRetryTimeout)
 
 	return nil
+}
+
+// peeringRetryTimeout returns the time that should be waited between re-establishing a peering
+// connection after an error. We follow the default backoff from retryLoopBackoff
+// unless the error is a "failed precondition" error in which case we retry much more quickly.
+// Retrying quickly is important in the case of a failed precondition error because we expect it to resolve
+// quickly. For example in the case of connecting with a follower through a load balancer, we just need to retry
+// until our request lands on a leader.
+func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
+	if loopErr != nil && isFailedPreconditionErr(loopErr) {
+		// Wait 8ms first five times.
+		if failedAttempts < 6 {
+			return 8 * time.Millisecond
+		}
+		// Then follow exponential backoff maxing out at 8192ms.
+		// The minus two here is so we start out the 6th retry at 16ms.
+		ms := 1 << (failedAttempts - 2)
+		if ms > 8192 {
+			return 8192 * time.Millisecond
+		}
+		return time.Duration(ms) * time.Millisecond
+	}
+
+	// Else we go with the default backoff from retryLoopBackoff.
+	if (1 << failedAttempts) < maxRetryBackoff {
+		return (1 << failedAttempts) * time.Second
+	}
+	return time.Duration(maxRetryBackoff) * time.Second
 }
 
 func (s *Server) startPeeringDeferredDeletion(ctx context.Context) {
@@ -516,4 +552,62 @@ func (s *Server) deleteTrustBundleFromPeer(ctx context.Context, limiter *rate.Li
 	}
 	_, err = s.raftApplyProtobuf(structs.PeeringTrustBundleDeleteType, req)
 	return err
+}
+
+// retryLoopBackoffPeering re-runs loopFn with a backoff on error. errFn is run whenever
+// loopFn returns an error. retryTimeFn is used to calculate the time between retries on error.
+// It is passed the number of errors in a row that loopFn has returned and the latest error
+// from loopFn.
+//
+// This function is modelled off of retryLoopBackoffHandleSuccess but is specific to peering
+// because peering needs to use different retry times depending on which error is returned.
+// This function doesn't use a rate limiter, unlike retryLoopBackoffHandleSuccess, because
+// the rate limiter is only needed when retrying when loopFn returns a nil error. In the streaming
+// case, when loopFn returns a nil error, the ctx has already been cancelled, and so we won't re-loop
+// but instead exit.
+func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn func() error, errFn func(error),
+	retryTimeFn func(failedAttempts uint, loopErr error) time.Duration) {
+	var failedAttempts uint
+	var err error
+	for {
+		if err = loopFn(); err != nil {
+			errFn(err)
+
+			failedAttempts++
+
+			retryTime := retryTimeFn(failedAttempts, err)
+			logger.Trace("in connection retry backoff", "delay", retryTime)
+			timer := time.NewTimer(retryTime)
+
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+			}
+			continue
+		}
+
+		failedAttempts = 0
+		select {
+		// NOTE: this is important to check here before re-entering the loop because our
+		// caller will cancel the context when the stream exits gracefully, and so we don't want to
+		// reconnect.
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+// isFailedPreconditionErr returns true if err is a gRPC error with code FailedPrecondition.
+func isFailedPreconditionErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	grpcErr, ok := grpcstatus.FromError(err)
+	if !ok {
+		return false
+	}
+	return grpcErr.Code() == codes.FailedPrecondition
 }
