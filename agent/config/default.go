@@ -184,7 +184,7 @@ func DevSource() Source {
 		
 		peering {
 			# We use peer registration for various testing
-			test_allow_peer_registrations = true
+			test_allow_peer_registrations = false
 		}
 	`,
 	}
