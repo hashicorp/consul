@@ -328,10 +328,11 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 	roots, _ := TestCerts(t)
 
 	var (
-		externalIPTCP        = structs.NewServiceName("external-IP-TCP", nil)
-		externalHostnameTCP  = structs.NewServiceName("external-hostname-TCP", nil)
-		externalIPHTTP       = structs.NewServiceName("external-IP-HTTP", nil)
-		externalHostnameHTTP = structs.NewServiceName("external-hostname-HTTP", nil)
+		externalIPTCP           = structs.NewServiceName("external-IP-TCP", nil)
+		externalHostnameTCP     = structs.NewServiceName("external-hostname-TCP", nil)
+		externalIPHTTP          = structs.NewServiceName("external-IP-HTTP", nil)
+		externalHostnameHTTP    = structs.NewServiceName("external-hostname-HTTP", nil)
+		externalHostnameWithSNI = structs.NewServiceName("external-hostname-with-SNI", nil)
 	)
 
 	baseEvents := []UpdateEvent{
@@ -367,6 +368,12 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				Service:     externalHostnameHTTP,
 				ServiceKind: structs.GatewayServiceKindDestination,
 			},
+			&structs.GatewayService{
+				Service:     externalHostnameWithSNI,
+				ServiceKind: structs.GatewayServiceKindDestination,
+				CAFile:      "cert.pem",
+				SNI:         "api.test.com",
+			},
 		)
 
 		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
@@ -393,6 +400,10 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameHTTP.String(),
 				Result:        structs.Intentions{},
 			},
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalHostnameWithSNI.String(),
+				Result:        structs.Intentions{},
+			},
 			// ========
 			{
 				CorrelationID: serviceLeafIDPrefix + externalIPTCP.String(),
@@ -417,6 +428,13 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 			},
 			{
 				CorrelationID: serviceLeafIDPrefix + externalHostnameHTTP.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
+			{
+				CorrelationID: serviceLeafIDPrefix + externalHostnameWithSNI.String(),
 				Result: &structs.IssuedCert{
 					CertPEM:       "placeholder.crt",
 					PrivateKeyPEM: "placeholder.key",
@@ -470,6 +488,17 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 					ProxyConfig: map[string]interface{}{"protocol": "http"},
 					Destination: structs.DestinationConfig{
 						Addresses: []string{"httpbin.org"},
+						Port:      80,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceConfigIDPrefix + externalHostnameWithSNI.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+					Destination: structs.DestinationConfig{
+						Addresses: []string{"api.test.com"},
 						Port:      80,
 					},
 				},
