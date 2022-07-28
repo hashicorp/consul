@@ -3,14 +3,15 @@ package proxycfgglue
 import (
 	"context"
 
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/structs/aclfilter"
 )
 
 // CacheExportedPeeredServices satisfies the proxycfg.ExportedPeeredServices
@@ -33,8 +34,8 @@ type serverExportedPeeredServices struct {
 func (s *serverExportedPeeredServices) Notify(ctx context.Context, req *structs.DCSpecificRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *structs.IndexedExportedServiceList, error) {
-			// TODO(peering): acls: mesh gateway needs appropriate wildcard service:read
-			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &req.EnterpriseMeta, nil)
+			var authzCtx acl.AuthorizerContext
+			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &req.EnterpriseMeta, &authzCtx)
 			if err != nil {
 				return 0, nil, err
 			}

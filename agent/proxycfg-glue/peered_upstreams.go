@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/watch"
@@ -29,9 +30,17 @@ type serverPeeredUpstreams struct {
 }
 
 func (s *serverPeeredUpstreams) Notify(ctx context.Context, req *structs.PartitionSpecificRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
-	// TODO(peering): ACL filtering.
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *structs.IndexedPeeredServiceList, error) {
+			var authzCtx acl.AuthorizerContext
+			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &req.EnterpriseMeta, &authzCtx)
+			if err != nil {
+				return 0, nil, err
+			}
+			if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+				return 0, nil, err
+			}
+
 			index, vips, err := store.VirtualIPsForAllImportedServices(ws, req.EnterpriseMeta)
 			if err != nil {
 				return 0, nil, err
