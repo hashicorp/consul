@@ -454,7 +454,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					":" + outboundListener.FilterChains[i].FilterChainMatch.DestinationPort.String()
 			}
 			if len(outboundListener.FilterChains[i].FilterChainMatch.ServerNames) > 0 {
-				si += outboundListener.FilterChains[i].FilterChainMatch.ServerNames[0]
+				si += outboundListener.FilterChains[i].FilterChainMatch.ServerNames[0] +
+					":" + outboundListener.FilterChains[i].FilterChainMatch.DestinationPort.String()
+			} else {
+				si += outboundListener.FilterChains[i].FilterChainMatch.DestinationPort.String()
 			}
 
 			if len(outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges) > 0 {
@@ -463,7 +466,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					":" + outboundListener.FilterChains[j].FilterChainMatch.DestinationPort.String()
 			}
 			if len(outboundListener.FilterChains[j].FilterChainMatch.ServerNames) > 0 {
-				sj += outboundListener.FilterChains[j].FilterChainMatch.ServerNames[0]
+				sj += outboundListener.FilterChains[j].FilterChainMatch.ServerNames[0] +
+					":" + outboundListener.FilterChains[j].FilterChainMatch.DestinationPort.String()
+			} else {
+				sj += outboundListener.FilterChains[j].FilterChainMatch.DestinationPort.String()
 			}
 
 			return si < sj
