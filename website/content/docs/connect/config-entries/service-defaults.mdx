@@ -236,6 +236,47 @@ spec:
 </Tab>
 </Tabs>
 
+### Terminating-gateway Destination
+
+Create a destination to be assigned as a service to a terminating gateway
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+  ```hcl
+  kind = "service-defaults"
+  name = "test-destination"
+  protocol = "tcp"
+  Destination {
+    Addresses = ["test.com","test.org"]
+    Port = 443
+  }
+  ```
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceDefaults
+  metadata:
+  name: test-destination
+  spec:
+    destination:
+      Addresses: ["test.com","test.org"]
+      Port: 443
+  ```
+
+  ```json
+  {
+    "Kind": "service-defaults",
+    "Name": "test-destination",
+    "Protocol": "http",
+    "Destination": {
+      "Addresses": ["test.com","test.org"],
+      "Port": 443
+    }
+  }
+  ```
+
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
