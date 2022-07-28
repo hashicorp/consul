@@ -84,6 +84,11 @@ func (c *cmd) Run(args []string) int {
 			Value: value,
 		}
 
+		// if the key is a directory, we need to append /
+		if len(entry.Key) > 0 && entry.Key[len(entry.Key)-1] == '/' {
+			pair.Key += "/"
+		}
+
 		w := api.WriteOptions{Namespace: entry.Namespace}
 		if _, err := client.KV().Put(pair, &w); err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
