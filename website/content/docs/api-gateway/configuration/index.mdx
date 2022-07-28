@@ -14,10 +14,10 @@ This topic provides an overview of the configuration items that enable Consul AP
 - [GatewayClass](/docs/api-gateway/configuration/gatewayclass): Defines a class of gateway resources that you can use as a template for creating gateways.
 - [Routes](/docs/api-gateway/configuration/routes): Specifies the path from the gateway to the backend service(s)client to the listener.
 
-A basic Gateway object can simply use the default [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) `consul-api-gateway`. For additional configruation options follow the following steps.
+You can implement the default [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) (`consul-api-gateway`) to create a basic Gateway object. You can also complete the following steps to create custom Gateways suitable for your environment:
 
-1. Define a [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig) containing your desired configurations.
-1. Define a [GatewayClass](/docs/api-gateway/configuration/gatewayclass) with [`parametersRef.name`](/docs/api-gateway/configuration/gatewayclass#parametersref-name) set to the name of the newly defined [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig)
-1. Define a [Gateway](/docs/api-gateway/configuration/gateway) with [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) set to the name of the newly defined [GatewayClass](/docs/api-gateway/configuration/gatewayclass)
+1. Define a [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig) that contains your custom configurations.
+1. Define a [GatewayClass](/docs/api-gateway/configuration/gatewayclass) and configure the [`parametersRef.name`](/docs/api-gateway/configuration/gatewayclass#parametersref-name) to reference the name of your [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig).
+1. Define a [Gateway](/docs/api-gateway/configuration/gateway) and configure the [`gatewayClassName`](/docs/api-gateway/configuration/gateway#gatewayclassname) to reference the name of your [GatewayClass](/docs/api-gateway/configuration/gatewayclass).
 
 <!--TODO add diagram -->
