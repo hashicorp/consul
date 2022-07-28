@@ -129,9 +129,9 @@ The default value is suitable for most deployments, but you may require a specif
 * Default: `"hashicorp/consul-api-gateway:RELEASE_VERSION"`
 
 ### image.envoy
-The image to use for consul-api-gateway. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
+Specifies the Docker image to use for the Envoy proxy container. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
 
-Most deployments will use the default value unless a specific version of Envoy is desired.
+The default value is suitable for most deployments, but you may require a specific version of Envoy depending on your environment.
 * Type: string
 * Required: optional
 * Default: `"envoyproxy/envoy:RELEASE_VERSION"`
