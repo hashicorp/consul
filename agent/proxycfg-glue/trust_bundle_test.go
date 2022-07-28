@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/stretchr/testify/require"
 
@@ -29,7 +30,8 @@ func TestServerTrustBundle(t *testing.T) {
 	}))
 
 	dataSource := ServerTrustBundle(ServerDataSourceDeps{
-		GetStore: func() Store { return store },
+		GetStore:    func() Store { return store },
+		ACLResolver: newStaticResolver(acl.ManageAll()),
 	})
 
 	eventCh := make(chan proxycfg.UpdateEvent)
@@ -53,6 +55,59 @@ func TestServerTrustBundle(t *testing.T) {
 
 		result := getEventResult[*pbpeering.TrustBundleReadResponse](t, eventCh)
 		require.Equal(t, "after.com", result.Bundle.TrustDomain)
+	})
+}
+
+func TestServerTrustBundle_ACLEnforcement(t *testing.T) {
+	const (
+		index    uint64 = 123
+		peerName        = "peer1"
+	)
+
+	store := state.NewStateStore(nil)
+
+	require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
+		PeerName:    peerName,
+		TrustDomain: "before.com",
+	}))
+
+	testutil.RunStep(t, "can read", func(t *testing.T) {
+		authz := policyAuthorizer(t, `
+		service "web" { policy = "write" }`)
+		dataSource := ServerTrustBundle(ServerDataSourceDeps{
+			GetStore:    func() Store { return store },
+			ACLResolver: newStaticResolver(authz),
+		})
+
+		eventCh := make(chan proxycfg.UpdateEvent)
+		err := dataSource.Notify(context.Background(), &cachetype.TrustBundleReadRequest{
+			Request: &pbpeering.TrustBundleReadRequest{
+				Name: peerName,
+			},
+		}, "", eventCh)
+		require.NoError(t, err)
+
+		result := getEventResult[*pbpeering.TrustBundleReadResponse](t, eventCh)
+		require.Equal(t, "before.com", result.Bundle.TrustDomain)
+	})
+
+	testutil.RunStep(t, "can't read", func(t *testing.T) {
+		authz := policyAuthorizer(t, ``)
+		dataSource := ServerTrustBundle(ServerDataSourceDeps{
+			GetStore:    func() Store { return store },
+			ACLResolver: newStaticResolver(authz),
+		})
+
+		eventCh := make(chan proxycfg.UpdateEvent)
+		err := dataSource.Notify(context.Background(), &cachetype.TrustBundleReadRequest{
+			Request: &pbpeering.TrustBundleReadRequest{
+				Name: peerName,
+			},
+		}, "", eventCh)
+		require.NoError(t, err)
+
+		err = getEventError(t, eventCh)
+		require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"any service\"")
 	})
 }
 
@@ -94,8 +149,9 @@ func TestServerTrustBundleList(t *testing.T) {
 		})
 
 		dataSource := ServerTrustBundleList(ServerDataSourceDeps{
-			Datacenter: "dc1",
-			GetStore:   func() Store { return store },
+			Datacenter:  "dc1",
+			GetStore:    func() Store { return store },
+			ACLResolver: newStaticResolver(acl.ManageAll()),
 		})
 
 		eventCh := make(chan proxycfg.UpdateEvent)
@@ -135,7 +191,8 @@ func TestServerTrustBundleList(t *testing.T) {
 		}))
 
 		dataSource := ServerTrustBundleList(ServerDataSourceDeps{
-			GetStore: func() Store { return store },
+			GetStore:    func() Store { return store },
+			ACLResolver: newStaticResolver(acl.ManageAll()),
 		})
 
 		eventCh := make(chan proxycfg.UpdateEvent)
@@ -149,6 +206,142 @@ func TestServerTrustBundleList(t *testing.T) {
 
 		result := getEventResult[*pbpeering.TrustBundleListByServiceResponse](t, eventCh)
 		require.Len(t, result.Bundles, 2)
+	})
+}
+
+func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
+	const index uint64 = 123
+	var (
+		authzWriteWeb = policyAuthorizer(t, `service "web" { policy = "write" }`)
+		authzWriteAll = policyAuthorizer(t, `service "" { policy = "write" }`)
+		authzNothing  = policyAuthorizer(t, ``)
+	)
+
+	t.Run("ACL enforcement: list by service", func(t *testing.T) {
+		const (
+			serviceName = "web"
+			us          = "default"
+			them        = "peer2"
+		)
+
+		store := state.NewStateStore(nil)
+		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
+
+		testutil.RunStep(t, "export service to peer", func(t *testing.T) {
+			require.NoError(t, store.PeeringWrite(index, &pbpeering.Peering{
+				ID:    testUUID(t),
+				Name:  them,
+				State: pbpeering.PeeringState_ACTIVE,
+			}))
+
+			require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
+				PeerName: them,
+			}))
+
+			require.NoError(t, store.EnsureConfigEntry(index, &structs.ExportedServicesConfigEntry{
+				Name: us,
+				Services: []structs.ExportedService{
+					{
+						Name: serviceName,
+						Consumers: []structs.ServiceConsumer{
+							{PeerName: them},
+						},
+					},
+				},
+			}))
+		})
+
+		testutil.RunStep(t, "can read", func(t *testing.T) {
+			dataSource := ServerTrustBundleList(ServerDataSourceDeps{
+				Datacenter:  "dc1",
+				GetStore:    func() Store { return store },
+				ACLResolver: newStaticResolver(authzWriteWeb),
+			})
+
+			eventCh := make(chan proxycfg.UpdateEvent)
+			err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+				Request: &pbpeering.TrustBundleListByServiceRequest{
+					ServiceName: serviceName,
+					Partition:   us,
+				},
+			}, "", eventCh)
+			require.NoError(t, err)
+
+			result := getEventResult[*pbpeering.TrustBundleListByServiceResponse](t, eventCh)
+			require.Len(t, result.Bundles, 1)
+		})
+
+		testutil.RunStep(t, "can't read", func(t *testing.T) {
+			dataSource := ServerTrustBundleList(ServerDataSourceDeps{
+				Datacenter:  "dc1",
+				GetStore:    func() Store { return store },
+				ACLResolver: newStaticResolver(authzNothing),
+			})
+
+			eventCh := make(chan proxycfg.UpdateEvent)
+			err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+				Request: &pbpeering.TrustBundleListByServiceRequest{
+					ServiceName: serviceName,
+					Partition:   us,
+				},
+			}, "", eventCh)
+			require.NoError(t, err)
+
+			err = getEventError(t, eventCh)
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"web\"")
+		})
+	})
+
+	t.Run("ACL Enforcement: list for mesh gateway", func(t *testing.T) {
+		store := state.NewStateStore(nil)
+		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
+
+		require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
+			PeerName: "peer1",
+		}))
+		require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
+			PeerName: "peer2",
+		}))
+
+		testutil.RunStep(t, "can read", func(t *testing.T) {
+			dataSource := ServerTrustBundleList(ServerDataSourceDeps{
+				Datacenter:  "dc1",
+				GetStore:    func() Store { return store },
+				ACLResolver: newStaticResolver(authzWriteAll),
+			})
+
+			eventCh := make(chan proxycfg.UpdateEvent)
+			err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+				Request: &pbpeering.TrustBundleListByServiceRequest{
+					Kind:      string(structs.ServiceKindMeshGateway),
+					Partition: "default",
+				},
+			}, "", eventCh)
+			require.NoError(t, err)
+
+			result := getEventResult[*pbpeering.TrustBundleListByServiceResponse](t, eventCh)
+			require.Len(t, result.Bundles, 2)
+		})
+
+		testutil.RunStep(t, "can't read", func(t *testing.T) {
+			dataSource := ServerTrustBundleList(ServerDataSourceDeps{
+				Datacenter:  "dc1",
+				GetStore:    func() Store { return store },
+				ACLResolver: newStaticResolver(authzNothing),
+			})
+
+			eventCh := make(chan proxycfg.UpdateEvent)
+			err := dataSource.Notify(context.Background(), &cachetype.TrustBundleListRequest{
+				Request: &pbpeering.TrustBundleListByServiceRequest{
+					Kind:      string(structs.ServiceKindMeshGateway),
+					Partition: "default",
+				},
+			}, "", eventCh)
+			require.NoError(t, err)
+
+			err = getEventError(t, eventCh)
+			require.Contains(t, err.Error(), "provided token lacks permission 'service:write'")
+		})
 	})
 }
 
