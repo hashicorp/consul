@@ -595,16 +595,14 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
 	if err != nil {
 		return err
 	}
-
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-
-	// TODO(peering): acls: mesh gateway needs appropriate wildcard service:read
 
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
@@ -632,11 +630,14 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		return err
 	}
 
-	// TODO(peering): ACL for filtering
-	// authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
-	// if err != nil {
-	// 	return err
-	// }
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+		return err
+	}
 
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
@@ -657,9 +658,6 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 			}
 
 			reply.Index, reply.Services = index, result
-
-			// TODO(peering): low priority: consider ACL filtering
-			// m.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
