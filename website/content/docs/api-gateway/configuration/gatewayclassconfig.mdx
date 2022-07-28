@@ -159,11 +159,11 @@ Specifies the ingress methods for a service.
 * Required: optional
 
 You can specify the following strings:
-* `ClusterIP`: Gateway will only be accessible from inside the cluster
-* `NodePort`: Gateway will be exposed on each Kubernetes node at a static port
-* `LoadBalancer`: Gateway will be exposed to external traffic by a load balancer
+* `ClusterIP`: The gateway is only accessible from inside the cluster.
+* `NodePort`: The gateway is exposed on each Kubernetes node at a static port.
+* `LoadBalancer`: The gateway is exposed to external traffic by a load balancer.
 
-For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)
+For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
 
 ### useHostPorts
 If set to `true`, then the Envoy container ports are mapped to host ports.
