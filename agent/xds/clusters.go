@@ -559,6 +559,9 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 			} else {
 				cluster = s.makeTerminatingHostnameCluster(cfgSnap, opts)
 			}
+			if err := s.injectGatewayDestinationAddons(cfgSnap, cluster, svcName); err != nil {
+				return nil, err
+			}
 			clusters = append(clusters, cluster)
 		}
 	}
@@ -596,6 +599,32 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 		}
 		if err := injectLBToCluster(lb, c); err != nil {
 			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
+		}
+
+	}
+	return nil
+}
+
+func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.ConfigSnapshot, c *envoy_cluster_v3.Cluster, svc structs.ServiceName) error {
+	switch cfgSnap.Kind {
+	case structs.ServiceKindTerminatingGateway:
+		// Context used for TLS origination to the cluster
+		if mapping, ok := cfgSnap.TerminatingGateway.DestinationServices[svc]; ok && mapping.CAFile != "" {
+			tlsContext := &envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+			}
+			if mapping.SNI != "" {
+				tlsContext.Sni = mapping.SNI
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
+					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
+				}
+			}
+
+			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
+			if err != nil {
+				return err
+			}
+			c.TransportSocket = transportSocket
 		}
 
 	}
