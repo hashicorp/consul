@@ -626,6 +626,25 @@ spec:
       ],
     },
     {
+      name: 'Destination',
+      type: 'DestinationConfig: <optional>',
+      description: `Controls configuration specific to proxies to destinations through terminating-gateway. Added in v1.13.0.`,
+      children: [
+        {
+          name: 'Addresses',
+          type: 'array<string>: []',
+          description: `List of addresses associated with the destination. Could be a hostname or an IP`,
+          yaml: false,
+        },
+        {
+          name: 'Port',
+          type: 'int: 0',
+          description: `Port number associated with the destination`,
+          yaml: false,
+        },
+      ]
+    },
+    {
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
