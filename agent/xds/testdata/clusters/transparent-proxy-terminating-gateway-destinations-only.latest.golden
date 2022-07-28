@@ -144,6 +144,57 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "destination.api-test-com.external-hostname-with-SNI.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "destination.api-test-com.external-hostname-with-SNI.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "api.test.com",
+                      "portValue": 80
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "dnsRefreshRate": "10s",
+      "outlierDetection": {
+
+      },
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsParams": {
+
+            },
+            "validationContext": {
+              "trustedCa": {
+                "filename": "cert.pem"
+              },
+              "matchSubjectAltNames": [
+                {
+                  "exact": "api.test.com"
+                }
+              ]
+            }
+          },
+          "sni": "api.test.com"
+        }
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
