@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -840,7 +841,17 @@ func (a *Agent) listenAndServeDNS() error {
 				errCh <- err
 			}
 		}(addr)
+
 	}
+	s, _ := NewDNSServer(a)
+
+	grpcDNS.NewServer(grpcDNS.Config{
+		Logger:       a.logger.Named("grpc-api.dns"),
+		DNSServeMux:  s.mux,
+		LocalAddress: &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: a.config.GRPCPort}, // todo: need a better way to do this
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)

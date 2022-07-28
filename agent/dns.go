@@ -11,10 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-
-	metrics "github.com/armon/go-metrics"
-	radix "github.com/armon/go-radix"
+	"github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
@@ -153,6 +152,21 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	}
 	srv.config.Store(cfg)
 
+	// todo: move this before server creation.
+	srv.mux = dns.NewServeMux()
+	srv.mux.HandleFunc("arpa.", srv.handlePtr)
+	srv.mux.HandleFunc(srv.domain, srv.handleQuery)
+	// this is not an empty string check because NewDNSServer will have
+	// converted the configured alt domain into an FQDN which will ensure that
+	// the value ends with a ".". Therefore "." is the empty string equivalent
+	// for originally having no alternate domain set. If there is a reason
+	// why consul should be configured to handle the root zone I have yet
+	// to think of it.
+	if srv.altDomain != "." {
+		srv.mux.HandleFunc(srv.altDomain, srv.handleQuery)
+	}
+	srv.toggleRecursorHandlerFromConfig(cfg)
+
 	return srv, nil
 }
 
@@ -227,22 +241,6 @@ func (cfg *dnsConfig) GetTTLForService(service string) (time.Duration, bool) {
 }
 
 func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
-	cfg := d.config.Load().(*dnsConfig)
-
-	d.mux = dns.NewServeMux()
-	d.mux.HandleFunc("arpa.", d.handlePtr)
-	d.mux.HandleFunc(d.domain, d.handleQuery)
-	// this is not an empty string check because NewDNSServer will have
-	// converted the configured alt domain into an FQDN which will ensure that
-	// the value ends with a ".". Therefore "." is the empty string equivalent
-	// for originally having no alternate domain set. If there is a reason
-	// why consul should be configured to handle the root zone I have yet
-	// to think of it.
-	if d.altDomain != "." {
-		d.mux.HandleFunc(d.altDomain, d.handleQuery)
-	}
-	d.toggleRecursorHandlerFromConfig(cfg)
-
 	d.Server = &dns.Server{
 		Addr:              addr,
 		Net:               network,
@@ -475,7 +473,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 // handleQuery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
-	q := req.Question[0]
+	q := req.Question[0] // moved
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
@@ -497,7 +495,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	cfg := d.config.Load().(*dnsConfig)
 
-	// Setup the message response
+	// Setup the message response //moved
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression

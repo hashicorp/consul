@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-version"
