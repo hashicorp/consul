@@ -346,8 +346,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	// we don't want to default req.Partition unlike because partitions are empty in OSS
-	if err := s.validatePeeringInPartition(tok.PeerID, req.Partition); err != nil {
+	if err := s.validatePeeringInPartition(tok.PeerID, entMeta.PartitionOrEmpty()); err != nil {
 		return nil, err
 	}
 
@@ -409,7 +408,7 @@ func (s *Server) validatePeeringInPartition(remotePeerID, partition string) erro
 		return fmt.Errorf("cannot read peering by ID: %w", err)
 	}
 
-	if peering != nil && peering.Partition == partition {
+	if peering != nil && acl.EqualPartitions(peering.GetPartition(), partition) {
 		return fmt.Errorf("cannot create a peering within the same partition (ENT) or cluster (OSS)")
 	}
 
