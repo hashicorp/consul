@@ -121,9 +121,9 @@ Specifies the minimum allowed number of gateway instances per gateway configurat
 * Default: `1`
 
 ### image.consulAPIGateway
-The image to use for consul-api-gateway. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
+Specifies the Docker image to use for the `consul-api-gateway` container. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
 
-Most deployments will use the default value unless a specific version of the Consul API Gateway is desired.
+The default value is suitable for most deployments, but you may require a specific version of the Consul API Gateway depending on your environment.
 * Type: string
 * Required: optional
 * Default: `"hashicorp/consul-api-gateway:RELEASE_VERSION"`
