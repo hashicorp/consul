@@ -54,7 +54,7 @@ func TestKVImportCommand_EmptyDir(t *testing.T) {
 
 	pair, _, err = client.KV().Get("foo/", nil)
 	require.NoError(t, err)
-	require.Equal(t, "foo/", string(pair.Key))
+	require.Equal(t, "foo/", pair.Key)
 }
 
 func TestKVImportCommand(t *testing.T) {
