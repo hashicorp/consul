@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -1182,5 +1183,71 @@ func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
 			err := errors.New("error")
 			require.Equal(t, c.expDuration, peeringRetryTimeout(c.failedAttempts, err))
 		})
+	}
+}
+
+// This test exercises all the functionality of retryLoopBackoffPeering.
+func TestLeader_Peering_retryLoopBackoffPeering(t *testing.T) {
+	// We'll cancel the ctx to ensure the loop exits.
+	ctx, cancel := context.WithCancel(context.Background())
+	logger := hclog.NewNullLogger()
+
+	// loopCount counts how many times we executed loopFn.
+	loopCount := 0
+	// loopTimes holds the times at which each loopFn was executed. We use this to test the timeout functionality.
+	var loopTimes []time.Time
+	// loopFn will run 5 times and do something different on each loop.
+	loopFn := func() error {
+		loopCount++
+		loopTimes = append(loopTimes, time.Now())
+		if loopCount == 1 {
+			return fmt.Errorf("error 1")
+		}
+		if loopCount == 2 {
+			return fmt.Errorf("error 2")
+		}
+		if loopCount == 3 {
+			return nil
+		}
+		if loopCount == 4 {
+			return fmt.Errorf("error 4")
+		}
+		// On the 5th loop stop.
+		cancel()
+		return nil
+	}
+	// allErrors collects all the errors passed into errFn.
+	var allErrors []error
+	errFn := func(e error) {
+		allErrors = append(allErrors, e)
+	}
+	retryTimeFn := func(_ uint, _ error) time.Duration {
+		return 1 * time.Millisecond
+	}
+
+	retryLoopBackoffPeering(ctx, logger, loopFn, errFn, retryTimeFn)
+
+	// Ensure loopFn ran the number of expected times.
+	require.Equal(t, 5, loopCount)
+	// Ensure errFn ran as expected.
+	require.Equal(t, []error{
+		fmt.Errorf("error 1"),
+		fmt.Errorf("error 2"),
+		fmt.Errorf("error 4"),
+	}, allErrors)
+
+	// Test retryTimeFn by comparing the difference between when each loopFn ran.
+	// Except for the success case, the difference between each loop time should be > 1ms.
+	for i := range loopTimes {
+		if i == 0 {
+			// Can't compare first time.
+			continue
+		}
+		if i == 3 {
+			// At i == 3, loopFn was successful which then gets retried immediately.
+			continue
+		}
+		require.True(t, loopTimes[i].Sub(loopTimes[i-1]) >= 1*time.Millisecond,
+			"time between indices %d and %d was > 1ms", i, i-1)
 	}
 }
