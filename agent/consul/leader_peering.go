@@ -373,34 +373,6 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 	return nil
 }
 
-// peeringRetryTimeout returns the time that should be waited between re-establishing a peering
-// connection after an error. We follow the default backoff from retryLoopBackoff
-// unless the error is a "failed precondition" error in which case we retry much more quickly.
-// Retrying quickly is important in the case of a failed precondition error because we expect it to resolve
-// quickly. For example in the case of connecting with a follower through a load balancer, we just need to retry
-// until our request lands on a leader.
-func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
-	if loopErr != nil && isFailedPreconditionErr(loopErr) {
-		// Wait 8ms first five times.
-		if failedAttempts < 6 {
-			return 8 * time.Millisecond
-		}
-		// Then follow exponential backoff maxing out at 8192ms.
-		// The minus two here is so we start out the 6th retry at 16ms.
-		ms := 1 << (failedAttempts - 2)
-		if ms > 8192 {
-			return 8192 * time.Millisecond
-		}
-		return time.Duration(ms) * time.Millisecond
-	}
-
-	// Else we go with the default backoff from retryLoopBackoff.
-	if (1 << failedAttempts) < maxRetryBackoff {
-		return (1 << failedAttempts) * time.Second
-	}
-	return time.Duration(maxRetryBackoff) * time.Second
-}
-
 func (s *Server) startPeeringDeferredDeletion(ctx context.Context) {
 	s.leaderRoutineManager.Start(ctx, peeringDeletionRoutineName, s.runPeeringDeletions)
 }
@@ -598,6 +570,34 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 		default:
 		}
 	}
+}
+
+// peeringRetryTimeout returns the time that should be waited between re-establishing a peering
+// connection after an error. We follow the default backoff from retryLoopBackoff
+// unless the error is a "failed precondition" error in which case we retry much more quickly.
+// Retrying quickly is important in the case of a failed precondition error because we expect it to resolve
+// quickly. For example in the case of connecting with a follower through a load balancer, we just need to retry
+// until our request lands on a leader.
+func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
+	if loopErr != nil && isFailedPreconditionErr(loopErr) {
+		// Wait 8ms first five times.
+		if failedAttempts < 6 {
+			return 8 * time.Millisecond
+		}
+		// Then follow exponential backoff maxing out at 8192ms.
+		// The minus two here is so we start out the 6th retry at 16ms.
+		ms := 1 << (failedAttempts - 2)
+		if ms > 8192 {
+			return 8192 * time.Millisecond
+		}
+		return time.Duration(ms) * time.Millisecond
+	}
+
+	// Else we go with the default backoff from retryLoopBackoff.
+	if (1 << failedAttempts) < maxRetryBackoff {
+		return (1 << failedAttempts) * time.Second
+	}
+	return time.Duration(maxRetryBackoff) * time.Second
 }
 
 // isFailedPreconditionErr returns true if err is a gRPC error with code FailedPrecondition.
