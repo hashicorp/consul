@@ -37,9 +37,8 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	// handling code in HandleStream()
 
 	if !s.Backend.IsLeader() {
-		// we are not the leader so we will hang up on the dialer
-
-		logger.Error("cannot establish a peering stream on a follower node")
+		// We are not the leader so we will hang up on the dialer.
+		logger.Debug("cannot establish a peering stream on a follower node")
 
 		st, err := grpcstatus.New(codes.FailedPrecondition,
 			"cannot establish a peering stream on a follower node").WithDetails(
@@ -180,6 +179,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		With("dialed", streamReq.WasDialed())
 	logger.Trace("handling stream for peer")
 
+	// handleStreamCtx is local to this function.
+	handleStreamCtx, cancel := context.WithCancel(streamReq.Stream.Context())
+	defer cancel()
+
 	status, err := s.Tracker.Connected(streamReq.LocalID)
 	if err != nil {
 		return fmt.Errorf("failed to register stream: %v", err)
@@ -242,58 +245,53 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			PeerID:      streamReq.RemoteID,
 		})
 		if err := streamSend(sub); err != nil {
-			if err == io.EOF {
-				logger.Info("stream ended by peer")
-				return nil
-			}
 			// TODO(peering) Test error handling in calls to Send/Recv
 			return fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
 		}
 	}
 
-	// TODO(peering): Should this be buffered?
-	recvChan := make(chan *pbpeerstream.ReplicationMessage)
+	// recvCh sends messages from the gRPC stream.
+	recvCh := make(chan *pbpeerstream.ReplicationMessage)
+	// recvErrCh sends errors received from the gRPC stream.
+	recvErrCh := make(chan error)
+
+	// Start a goroutine to read from the stream and pass to recvCh and recvErrCh.
+	// Using a separate goroutine allows us to process sends and receives all in the main for{} loop.
 	go func() {
-		defer close(recvChan)
 		for {
 			msg, err := streamReq.Stream.Recv()
-			if err == nil {
-				logTraceRecv(logger, msg)
-				recvChan <- msg
-				continue
-			}
-
-			if err == io.EOF {
-				logger.Info("stream ended by peer")
-				status.TrackRecvError(err.Error())
+			if err != nil {
+				recvErrCh <- err
 				return
 			}
-			logger.Error("failed to receive from stream", "error", err)
-			status.TrackRecvError(err.Error())
-			return
+			logTraceRecv(logger, msg)
+			select {
+			case recvCh <- msg:
+			case <-handleStreamCtx.Done():
+				return
+			}
 		}
 	}()
 
-	// Heartbeat sender.
+	// Start a goroutine to send heartbeats at a regular interval.
 	go func() {
 		tick := time.NewTicker(s.outgoingHeartbeatInterval)
 		defer tick.Stop()
 
 		for {
 			select {
-			case <-streamReq.Stream.Context().Done():
+			case <-handleStreamCtx.Done():
 				return
 
 			case <-tick.C:
-			}
-
-			heartbeat := &pbpeerstream.ReplicationMessage{
-				Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
-					Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
-				},
-			}
-			if err := streamSend(heartbeat); err != nil {
-				logger.Warn("error sending heartbeat", "err", err)
+				heartbeat := &pbpeerstream.ReplicationMessage{
+					Payload: &pbpeerstream.ReplicationMessage_Heartbeat_{
+						Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
+					},
+				}
+				if err := streamSend(heartbeat); err != nil {
+					logger.Warn("error sending heartbeat", "err", err)
+				}
 			}
 		}
 	}()
@@ -308,6 +306,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		incomingHeartbeatCtxCancel()
 	}()
 
+	// The main loop that processes sends and receives.
 	for {
 		select {
 		// When the doneCh is closed that means that the peering was deleted locally.
@@ -331,28 +330,30 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			return nil
 
+		// Handle errors received from the stream by shutting down our handler.
+		case err := <-recvErrCh:
+			if err == io.EOF {
+				// NOTE: We don't expect to receive an io.EOF error here when the stream is disconnected gracefully.
+				// When the peering is deleted locally, status.Done() returns which is handled elsewhere and this method
+				// exits. When we receive a Terminated message, that's also handled elsewhere and this method
+				// exits. After the method exits this code here won't receive any recv errors and those will be handled
+				// by DrainStream().
+				err = fmt.Errorf("stream ended unexpectedly")
+			}
+			status.TrackRecvError(err.Error())
+			return err
+
 		// We haven't received a heartbeat within the expected interval. Kill the stream.
 		case <-incomingHeartbeatCtx.Done():
-			logger.Error("ending stream due to heartbeat timeout")
 			return fmt.Errorf("heartbeat timeout")
 
-		case msg, open := <-recvChan:
-			if !open {
-				// The only time we expect the stream to end is when we've received a "Terminated" message.
-				// We handle the case of receiving the Terminated message below and then this function exits.
-				// So if the channel is closed while this function is still running then we haven't received a Terminated
-				// message which means we want to try and reestablish the stream.
-				// It's the responsibility of the caller of this function to reestablish the stream on error and so that's
-				// why we return an error here.
-				return fmt.Errorf("stream ended unexpectedly")
-			}
-
+		case msg := <-recvCh:
 			// NOTE: this code should have similar error handling to the
 			// initial handling code in StreamResources()
 
 			if !s.Backend.IsLeader() {
-				// we are not the leader anymore so we will hang up on the dialer
-				logger.Error("node is not a leader anymore; cannot continue streaming")
+				// We are not the leader anymore, so we will hang up on the dialer.
+				logger.Info("node is not a leader anymore; cannot continue streaming")
 
 				st, err := grpcstatus.New(codes.FailedPrecondition,
 					"node is not a leader anymore; cannot continue streaming").WithDetails(

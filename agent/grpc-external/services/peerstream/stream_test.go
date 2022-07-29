@@ -589,7 +589,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	testutil.RunStep(t, "client disconnect marks stream as disconnected", func(t *testing.T) {
 		lastRecvError = it.FutureNow(1)
 		disconnectTime := it.FutureNow(2)
-		lastRecvErrorMsg = io.EOF.Error()
+		lastRecvErrorMsg = "stream ended unexpectedly"
 
 		client.Close()
 
@@ -597,7 +597,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 		expect := Status{
 			Connected:               false,
-			DisconnectErrorMessage:  "stream ended unexpectedly",
+			DisconnectErrorMessage:  lastRecvErrorMsg,
 			LastAck:                 lastSendSuccess,
 			LastNack:                lastNack,
 			LastNackMessage:         lastNackMsg,
