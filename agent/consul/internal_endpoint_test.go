@@ -31,7 +31,9 @@ func TestInternal_NodeInfo(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -112,7 +114,9 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -220,7 +224,9 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -1755,7 +1761,9 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")

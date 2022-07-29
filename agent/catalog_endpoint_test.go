@@ -27,7 +27,6 @@ func TestCatalogRegister_DenyPeeringRegistration(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "peering = { test_allow_peer_registrations = false }")
-	defer a.Shutdown()
 
 	// Register request with peer
 	args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
