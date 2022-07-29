@@ -667,6 +667,10 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 		kafka    = structs.NewServiceName("kafka", nil)
 		kafkaUID = NewUpstreamIDFromServiceName(kafka)
 		kafkaCE  = structs.ServiceConfigEntry{Name: "kafka", Destination: &structs.DestinationConfig{Addresses: []string{"192.168.2.1"}, Port: 9093}, Protocol: "http"}
+
+		kafka2    = structs.NewServiceName("kafka2", nil)
+		kafka2UID = NewUpstreamIDFromServiceName(kafka2)
+		kafka2CE  = structs.ServiceConfigEntry{Name: "kafka2", Destination: &structs.DestinationConfig{Addresses: []string{"192.168.2.2", "192.168.2.3"}, Port: 9093}, Protocol: "http"}
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -688,6 +692,7 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 				Services: structs.ServiceList{
 					google,
 					kafka,
+					kafka2,
 				},
 			},
 		},
@@ -701,6 +706,12 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 			CorrelationID: DestinationConfigEntryID + kafkaUID.String(),
 			Result: &structs.ConfigEntryResponse{
 				Entry: &kafkaCE,
+			},
+		},
+		{
+			CorrelationID: DestinationConfigEntryID + kafka2UID.String(),
+			Result: &structs.ConfigEntryResponse{
+				Entry: &kafka2CE,
 			},
 		},
 		{
@@ -737,6 +748,38 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 		},
 		{
 			CorrelationID: DestinationGatewayID + kafkaUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: structs.CheckServiceNodes{
+					{
+						Node: &structs.Node{
+							Node:       "node1",
+							Address:    "172.168.0.1",
+							Datacenter: "dc1",
+						},
+						Service: &structs.NodeService{
+							ID:      "tgtw1",
+							Address: "172.168.0.1",
+							Port:    8443,
+							Kind:    structs.ServiceKindTerminatingGateway,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLANIPv4:   {Address: "172.168.0.1", Port: 8443},
+								structs.TaggedAddressVirtualIP: {Address: "240.0.0.1"},
+							},
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:        "node1",
+								ServiceName: "tgtw",
+								Name:        "force",
+								Status:      api.HealthPassing,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			CorrelationID: DestinationGatewayID + kafka2UID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: structs.CheckServiceNodes{
 					{

@@ -230,20 +230,23 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	requiresTLSInspector := false
 	requiresHTTPInspector := false
 
+	configuredPorts := make(map[int]interface{})
 	err = cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
 		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
 		if !ok || svcConfig == nil {
 			return nil
 		}
-		configuredPorts := make(map[int]interface{})
+
 		if structs.IsProtocolHTTPLike(svcConfig.Protocol) {
 			if _, ok := configuredPorts[svcConfig.Destination.Port]; ok {
 				return nil
 			}
-			clusterName := clusterNameForDestination(cfgSnap, uid.Name, fmt.Sprintf("%d", svcConfig.Destination.Port), uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+			configuredPorts[svcConfig.Destination.Port] = struct{}{}
+			const name = "~http" //name used for the shared route name
+			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				routeName:  clusterName,
-				filterName: clusterName,
+				routeName:  routeName,
+				filterName: routeName,
 				protocol:   svcConfig.Protocol,
 				useRDS:     true,
 			})
@@ -252,7 +255,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 			filterChain.FilterChainMatch = makeFilterChainMatchFromAddressWithPort("", svcConfig.Destination.Port)
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
-			requiresHTTPInspector = len(filterChain.FilterChainMatch.ServerNames) != 0 || requiresHTTPInspector
+			requiresHTTPInspector = true
 		} else {
 			for _, address := range svcConfig.Destination.Addresses {
 				clusterName := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())

@@ -45,7 +45,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "upstream.destination.443.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "rds": {
                   "configSource": {
                     "ads": {
@@ -53,7 +53,7 @@
                     },
                     "resourceApiVersion": "V3"
                   },
-                  "routeConfigName": "destination.443.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                  "routeConfigName": "destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                 },
                 "httpFilters": [
                   {
@@ -81,7 +81,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "upstream.destination.9093.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "rds": {
                   "configSource": {
                     "ads": {
@@ -89,7 +89,7 @@
                     },
                     "resourceApiVersion": "V3"
                   },
-                  "routeConfigName": "destination.9093.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                  "routeConfigName": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                 },
                 "httpFilters": [
                   {
@@ -114,6 +114,12 @@
           "name": "envoy.filters.listener.original_dst",
           "typedConfig": {
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+          }
+        },
+        {
+          "name": "envoy.filters.listener.http_inspector",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector"
           }
         }
       ],
