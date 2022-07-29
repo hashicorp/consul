@@ -182,12 +182,6 @@ func (a *TestAgent) Start(t *testing.T) error {
 
 	portsConfig := randomPortsSource(t, a.UseTLS)
 
-	//a.Overrides = `
-	//	peering {
-	//			test_allow_peer_registrations = true
-	//		}
-	//`
-
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
 	loader := func(source config.Source) (config.LoadResult, error) {
