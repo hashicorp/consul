@@ -71,6 +71,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 		resources = append(resources, route)
 	}
+	addressesMap := make(map[string]map[string]string)
 	err := cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKeyE(func(uid proxycfg.UpstreamID) error {
 		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
 		if !ok || svcConfig == nil {
@@ -80,17 +81,16 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			// Routes can only be defined for HTTP services
 			return nil
 		}
-		addressesMap := make(map[string]string)
+
 		for _, address := range svcConfig.Destination.Addresses {
+
+			routeName := clusterNameForDestination(cfgSnap, "~http", fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
+			if _, ok := addressesMap[routeName]; !ok {
+				addressesMap[routeName] = make(map[string]string)
+			}
+			// cluster name is unique per address/port so we should not be doing any override here
 			clusterName := clusterNameForDestination(cfgSnap, svcConfig.Name, address, svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
-			addressesMap[clusterName] = address
-		}
-		routes, err := s.makeRoutesForAddresses(clusterNameForDestination(cfgSnap, "~http", fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault()), addressesMap, false)
-		if err != nil {
-			return err
-		}
-		if routes != nil {
-			resources = append(resources, routes...)
+			addressesMap[routeName][clusterName] = address
 		}
 		return nil
 	})
@@ -98,7 +98,32 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	if err != nil {
 		return nil, err
 	}
+
+	for routeName, clusters := range addressesMap {
+		routes, err := s.makeRoutesForAddresses(routeName, clusters)
+		if err != nil {
+			return nil, err
+		}
+		if routes != nil {
+			resources = append(resources, routes...)
+		}
+	}
+
 	// TODO(rb): make sure we don't generate an empty result
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makeRoutesForAddresses(routeName string, addresses map[string]string) ([]proto.Message, error) {
+
+	var resources []proto.Message
+
+	route, err := makeNamedAddressesRoute(routeName, addresses)
+	if err != nil {
+		s.Logger.Error("failed to make route", "cluster", "error", err)
+		return nil, err
+	}
+	resources = append(resources, route)
+
 	return resources, nil
 }
 
@@ -204,21 +229,6 @@ func (s *ResourceGenerator) makeRoutes(
 	return resources, nil
 }
 
-func (s *ResourceGenerator) makeRoutesForAddresses(name string, addresses map[string]string, autoHostRewrite bool) ([]proto.Message, error) {
-
-	var resources []proto.Message
-	var lb *structs.LoadBalancer
-
-	route, err := makeNamedAddressesRoute(name, addresses, lb, autoHostRewrite)
-	if err != nil {
-		s.Logger.Error("failed to make route", "cluster", "error", err)
-		return nil, err
-	}
-	resources = append(resources, route)
-
-	return resources, nil
-}
-
 func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
@@ -297,9 +307,9 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 	}, nil
 }
 
-func makeNamedAddressesRoute(name string, addresses map[string]string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*envoy_route_v3.RouteConfiguration, error) {
 	route := &envoy_route_v3.RouteConfiguration{
-		Name: name,
+		Name: routeName,
 		// ValidateClusters defaults to true when defined statically and false
 		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
@@ -307,18 +317,6 @@ func makeNamedAddressesRoute(name string, addresses map[string]string, lb *struc
 	}
 	for clusterName, address := range addresses {
 		action := makeRouteActionFromName(clusterName)
-
-		if err := injectLBToRouteAction(lb, action.Route); err != nil {
-			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-		}
-
-		// Configure Envoy to rewrite Host header
-		if autoHostRewrite {
-			action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
-				AutoHostRewrite: makeBoolValue(true),
-			}
-		}
-
 		virtualHost := &envoy_route_v3.VirtualHost{
 			Name:    clusterName,
 			Domains: []string{address},
