@@ -361,10 +361,7 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 		if err == nil {
 			stream.CloseSend()
 			s.peerStreamServer.DrainStream(streamReq)
-
-			// This will cancel the retry-er context, letting us break out of this loop when we want to shut down the stream.
 			cancel()
-
 			logger.Info("closed outbound stream")
 		}
 		return err
@@ -544,9 +541,8 @@ func (s *Server) deleteTrustBundleFromPeer(ctx context.Context, limiter *rate.Li
 // This function is modelled off of retryLoopBackoffHandleSuccess but is specific to peering
 // because peering needs to use different retry times depending on which error is returned.
 // This function doesn't use a rate limiter, unlike retryLoopBackoffHandleSuccess, because
-// the rate limiter is only needed when retrying when loopFn returns a nil error. In the streaming
-// case, when loopFn returns a nil error, the ctx has already been cancelled, and so we won't re-loop
-// but instead exit.
+// the rate limiter is only needed in the success case when loopFn returns nil and we want to
+// loop again. In the peering case, we exit on a successful loop so we don't need the limter.
 func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn func() error, errFn func(error),
 	retryTimeFn func(failedAttempts uint, loopErr error) time.Duration) {
 	var failedAttempts uint
@@ -571,16 +567,7 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 			}
 			continue
 		}
-
-		failedAttempts = 0
-		select {
-		// NOTE: this is important to check here before re-entering the loop because our
-		// caller will cancel the context when the stream exits gracefully, and so we don't want to
-		// reconnect.
-		case <-ctx.Done():
-			return
-		default:
-		}
+		return
 	}
 }
 

@@ -1188,8 +1188,7 @@ func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
 
 // This test exercises all the functionality of retryLoopBackoffPeering.
 func TestLeader_Peering_retryLoopBackoffPeering(t *testing.T) {
-	// We'll cancel the ctx to ensure the loop exits.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	logger := hclog.NewNullLogger()
 
 	// loopCount counts how many times we executed loopFn.
@@ -1207,13 +1206,9 @@ func TestLeader_Peering_retryLoopBackoffPeering(t *testing.T) {
 			return fmt.Errorf("error 2")
 		}
 		if loopCount == 3 {
+			// On the 3rd loop, return success which ends the loop.
 			return nil
 		}
-		if loopCount == 4 {
-			return fmt.Errorf("error 4")
-		}
-		// On the 5th loop stop.
-		cancel()
 		return nil
 	}
 	// allErrors collects all the errors passed into errFn.
@@ -1228,26 +1223,53 @@ func TestLeader_Peering_retryLoopBackoffPeering(t *testing.T) {
 	retryLoopBackoffPeering(ctx, logger, loopFn, errFn, retryTimeFn)
 
 	// Ensure loopFn ran the number of expected times.
-	require.Equal(t, 5, loopCount)
+	require.Equal(t, 3, loopCount)
 	// Ensure errFn ran as expected.
 	require.Equal(t, []error{
 		fmt.Errorf("error 1"),
 		fmt.Errorf("error 2"),
-		fmt.Errorf("error 4"),
 	}, allErrors)
 
 	// Test retryTimeFn by comparing the difference between when each loopFn ran.
-	// Except for the success case, the difference between each loop time should be > 1ms.
 	for i := range loopTimes {
 		if i == 0 {
 			// Can't compare first time.
 			continue
 		}
-		if i == 3 {
-			// At i == 3, loopFn was successful which then gets retried immediately.
-			continue
-		}
 		require.True(t, loopTimes[i].Sub(loopTimes[i-1]) >= 1*time.Millisecond,
 			"time between indices %d and %d was > 1ms", i, i-1)
 	}
+}
+
+// Test that if the context is cancelled the loop exits.
+func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	logger := hclog.NewNullLogger()
+
+	// loopCount counts how many times we executed loopFn.
+	loopCount := 0
+	loopFn := func() error {
+		loopCount++
+		return fmt.Errorf("error %d", loopCount)
+	}
+	// allErrors collects all the errors passed into errFn.
+	var allErrors []error
+	errFn := func(e error) {
+		allErrors = append(allErrors, e)
+	}
+	// Set the retry time to a huge number.
+	retryTimeFn := func(_ uint, _ error) time.Duration {
+		return 1 * time.Millisecond
+	}
+
+	// Cancel the context before the loop runs. It should run once and then exit.
+	cancel()
+	retryLoopBackoffPeering(ctx, logger, loopFn, errFn, retryTimeFn)
+
+	// Ensure loopFn ran the number of expected times.
+	require.Equal(t, 1, loopCount)
+	// Ensure errFn ran as expected.
+	require.Equal(t, []error{
+		fmt.Errorf("error 1"),
+	}, allErrors)
 }
