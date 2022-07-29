@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -40,6 +41,15 @@ var LeaderPeeringMetrics = []prometheus.GaugeDefinition{
 			"We emit this metric every 9 seconds",
 	},
 }
+var (
+	// fastConnRetryTimeout is how long we wait between retrying connections following the "fast" path
+	// which is triggered on specific connection errors.
+	fastConnRetryTimeout = 8 * time.Millisecond
+	// maxFastConnRetries is the maximum number of fast connection retries before we follow exponential backoff.
+	maxFastConnRetries = uint(5)
+	// maxFastRetryBackoff is the maximum amount of time we'll wait between retries following the fast path.
+	maxFastRetryBackoff = 8192 * time.Millisecond
+)
 
 func (s *Server) startPeeringStreamSync(ctx context.Context) {
 	s.leaderRoutineManager.Start(ctx, peeringStreamsRoutineName, s.runPeeringSync)
@@ -545,7 +555,9 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 		if err = loopFn(); err != nil {
 			errFn(err)
 
-			failedAttempts++
+			if failedAttempts < math.MaxUint {
+				failedAttempts++
+			}
 
 			retryTime := retryTimeFn(failedAttempts, err)
 			logger.Trace("in connection retry backoff", "delay", retryTime)
@@ -580,17 +592,20 @@ func retryLoopBackoffPeering(ctx context.Context, logger hclog.Logger, loopFn fu
 // until our request lands on a leader.
 func peeringRetryTimeout(failedAttempts uint, loopErr error) time.Duration {
 	if loopErr != nil && isFailedPreconditionErr(loopErr) {
-		// Wait 8ms first five times.
-		if failedAttempts < 6 {
-			return 8 * time.Millisecond
+		// Wait a constant time for the first number of retries.
+		if failedAttempts <= maxFastConnRetries {
+			return fastConnRetryTimeout
 		}
-		// Then follow exponential backoff maxing out at 8192ms.
-		// The minus two here is so we start out the 6th retry at 16ms.
-		ms := 1 << (failedAttempts - 2)
-		if ms > 8192 {
-			return 8192 * time.Millisecond
+		// From here, follow an exponential backoff maxing out at maxFastRetryBackoff.
+		// The below equation multiples the constantRetryTimeout by 2^n where n is the number of failed attempts
+		// we're on, starting at 1 now that we're past our maxFastConnRetries.
+		// For example if fastConnRetryTimeout == 8ms and maxFastConnRetries == 5, then at 6 failed retries
+		// we'll do 8ms * 2^1 = 16ms, then 8ms * 2^2 = 32ms, etc.
+		ms := fastConnRetryTimeout * (1 << (failedAttempts - maxFastConnRetries))
+		if ms > maxFastRetryBackoff {
+			return maxFastRetryBackoff
 		}
-		return time.Duration(ms) * time.Millisecond
+		return ms
 	}
 
 	// Else we go with the default backoff from retryLoopBackoff.
