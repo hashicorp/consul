@@ -97,7 +97,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
         ```
-    - [Prepared queries](/docs/connect/proxies#dynamic-upstreams-require-native-integration): Prepend the annotation
+    - [Prepared queries](/api-docs/query): Prepend the annotation
       with `prepared_query` and place the name of the query at the beginning of the string.
       ```yaml
       annotations:
