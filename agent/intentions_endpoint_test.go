@@ -357,6 +357,8 @@ func TestIntentionGetExact_PeerIntentions(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	testutil.RunStep(t, "create a peer intentions", func(t *testing.T) {
@@ -414,7 +416,9 @@ func TestIntentionGetExact(t *testing.T) {
 	`
 
 	a1 := NewTestAgent(t, hcl)
+	defer a1.Shutdown()
 	a2 := NewTestAgent(t, hcl)
+	defer a2.Shutdown()
 
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),

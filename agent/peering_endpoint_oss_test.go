@@ -25,6 +25,8 @@ func TestHTTP_Peering_GenerateToken_OSS_Failure(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	t.Run("Doesn't allow partitions in OSS HTTP requests", func(t *testing.T) {
@@ -52,6 +54,8 @@ func TestHTTP_PeeringEndpoint_OSS_Failure(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	t.Run("Doesn't allow partitions on PeeringEndpoint in OSS HTTP requests", func(t *testing.T) {

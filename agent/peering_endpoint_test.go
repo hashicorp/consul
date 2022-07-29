@@ -48,6 +48,7 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -158,6 +159,8 @@ func TestHTTP_Peering_GenerateToken_EdgeCases(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	body := &pbpeering.GenerateTokenRequest{
@@ -221,6 +224,7 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -304,6 +308,7 @@ func TestHTTP_Peering_MethodNotAllowed(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -339,6 +344,7 @@ func TestHTTP_Peering_Read(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -407,6 +413,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -474,6 +481,7 @@ func TestHTTP_Peering_List(t *testing.T) {
 
 	t.Parallel()
 	a := NewTestAgent(t, "")
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
