@@ -207,6 +207,11 @@ func NonUserSource() Source {
 			# the max time before leaf certs can be generated after a roots change.
 			test_ca_leaf_root_change_spread = "0s"
 		}
+
+		peering = {
+			# We use peer registration for various testing
+			test_allow_peer_registrations = false
+		}
 	`,
 	}
 }

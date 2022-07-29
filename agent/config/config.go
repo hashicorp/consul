@@ -891,4 +891,8 @@ type TLS struct {
 
 type Peering struct {
 	Enabled *bool `mapstructure:"enabled"`
+
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
+	// This always gets overridden in NonUserSource()
+	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
 }
