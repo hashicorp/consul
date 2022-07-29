@@ -555,7 +555,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   The following sub-keys are available:
 
-  - `enabled` ((#peering_enabled)) (Defaults to `true`) Controls whether cluster peering is enabled.
+  - `enabled` ((#peering_enabled)) (Defaults to `false`) Controls whether cluster peering is enabled.
     When disabled, the UI won't show peering, all peering APIs will return
     an error, any peerings stored in Consul already will be ignored (but they will not be deleted),
     and all peering connections from other clusters will be rejected. This was added in Consul 1.13.0.

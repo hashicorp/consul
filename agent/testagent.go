@@ -138,6 +138,9 @@ func TestConfigHCL(nodeID string) string {
 		}
 		performance {
 			raft_multiplier = 1
+		}
+		peering {
+			enabled = true
 		}`, nodeID, connect.TestClusterID,
 	)
 }
