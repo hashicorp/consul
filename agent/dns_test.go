@@ -1767,7 +1767,7 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 	t.Parallel()
 
 	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
-	t.Cleanup(func() { a.Shutdown() })
+	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

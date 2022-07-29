@@ -609,7 +609,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 	t.Parallel()
 	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
-	t.Cleanup(func() { a.Shutdown() })
+	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -820,7 +820,7 @@ use_streaming_backend = true
 			}, sink)
 
 			a := StartTestAgent(t, TestAgent{HCL: tc.hcl, Overrides: `peering = { test_allow_peer_registrations = true }`})
-			t.Cleanup(func() { a.Shutdown() })
+			defer a.Shutdown()
 
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1017,7 +1017,7 @@ use_streaming_backend = true
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			a := StartTestAgent(t, TestAgent{HCL: tc.hcl, Overrides: `peering = { test_allow_peer_registrations = true }`})
-			t.Cleanup(func() { a.Shutdown() })
+			defer a.Shutdown()
 
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

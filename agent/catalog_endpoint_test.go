@@ -29,6 +29,7 @@ func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 
 	t.Run("deny peer registrations by default", func(t *testing.T) {
 		a := NewTestAgent(t, "")
+		defer a.Shutdown()
 
 		// Register request with peer
 		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
@@ -43,6 +44,7 @@ func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 	t.Run("cannot hcl set the peer registrations config", func(t *testing.T) {
 		// this will have no effect, as the value is overriden in non user source
 		a := NewTestAgent(t, "peering = { test_allow_peer_registrations = true }")
+		defer a.Shutdown()
 
 		// Register request with peer
 		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
@@ -57,7 +59,7 @@ func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 	t.Run("allow peer registrations with test overrides", func(t *testing.T) {
 		// the only way to set the config in the agent is via the overrides
 		a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
-		t.Cleanup(func() { a.Shutdown() })
+		defer a.Shutdown()
 
 		// Register request with peer
 		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
