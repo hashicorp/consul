@@ -150,7 +150,9 @@ You can specify the following strings:
 * `trace`
 
 ### nodeSelector
-Specifies a set of parameters that constrain the nodes on which the pod can run. Defining nodes with the `nodeSelector` enables the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information.* Type: string
+Pods normally run on multiple nodes. You can specify a set of parameters in the `nodeSelector` that constrain the nodes on which the pod can run, enabling the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information.
+
+* Type: string
 * Required: optional
 
 ### serviceType
