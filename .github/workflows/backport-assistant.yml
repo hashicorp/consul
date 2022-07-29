@@ -10,7 +10,7 @@ on:
       - labeled
     branches:
       - main
-      - 'release/*.*.x'
+      - "release/*.*.x"
 
 jobs:
   backport:
@@ -50,4 +50,11 @@ jobs:
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
+          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      - name: Run Backport Assistant for Path Release Branches
+        run: |
+          backport-assistant backport -merge-method=squash -automerge
+        env:
+          BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+.\\d+)"
+          BACKPORT_TARGET_TEMPLATE: "release/{{.target}}"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
