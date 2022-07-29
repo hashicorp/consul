@@ -85,7 +85,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			clusterName := clusterNameForDestination(cfgSnap, svcConfig.Name, address, svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			addressesMap[clusterName] = address
 		}
-		routes, err := s.makeRoutesForAddresses(clusterNameForDestination(cfgSnap, svcConfig.Name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault()), addressesMap, false)
+		routes, err := s.makeRoutesForAddresses(clusterNameForDestination(cfgSnap, "~http", fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault()), addressesMap, false)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func (s *ResourceGenerator) makeRoutesForAddresses(name string, addresses map[st
 	var resources []proto.Message
 	var lb *structs.LoadBalancer
 
-	route, err := makeNamedAddressesRouteWithLB(name, addresses, lb, autoHostRewrite)
+	route, err := makeNamedAddressesRoute(name, addresses, lb, autoHostRewrite)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", "error", err)
 		return nil, err
@@ -297,7 +297,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 	}, nil
 }
 
-func makeNamedAddressesRouteWithLB(name string, addresses map[string]string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedAddressesRoute(name string, addresses map[string]string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
 	route := &envoy_route_v3.RouteConfiguration{
 		Name: name,
 		// ValidateClusters defaults to true when defined statically and false

@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "destination.443.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
           "name": "destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
@@ -26,7 +26,46 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "destination.9093.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "name": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "virtualHosts": [
+        {
+          "name": "destination.192-168-2-2.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "domains": [
+            "192.168.2.2"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-2-2.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "name": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "domains": [
+            "192.168.2.3"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
           "name": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
