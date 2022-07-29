@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -1121,4 +1125,151 @@ func TestLeader_Peering_NoEstablishmentWhenPeeringDisabled(t *testing.T) {
 		_, found := s1.peerStreamTracker.StreamStatus(peerID)
 		return found
 	}, 7*time.Second, 1*time.Second, "peering should not have been established")
+}
+
+// Test peeringRetryTimeout when the errors are FailedPrecondition errors because these
+// errors have a different backoff.
+func TestLeader_Peering_peeringRetryTimeout_failedPreconditionErrors(t *testing.T) {
+	cases := []struct {
+		failedAttempts uint
+		expDuration    time.Duration
+	}{
+		// Constant time backoff.
+		{0, 8 * time.Millisecond},
+		{1, 8 * time.Millisecond},
+		{2, 8 * time.Millisecond},
+		{3, 8 * time.Millisecond},
+		{4, 8 * time.Millisecond},
+		{5, 8 * time.Millisecond},
+		// Then exponential.
+		{6, 16 * time.Millisecond},
+		{7, 32 * time.Millisecond},
+		{13, 2048 * time.Millisecond},
+		{14, 4096 * time.Millisecond},
+		{15, 8192 * time.Millisecond},
+		// Max.
+		{16, 8192 * time.Millisecond},
+		{17, 8192 * time.Millisecond},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("failed attempts %d", c.failedAttempts), func(t *testing.T) {
+			err := grpcstatus.Error(codes.FailedPrecondition, "msg")
+			require.Equal(t, c.expDuration, peeringRetryTimeout(c.failedAttempts, err))
+		})
+	}
+}
+
+// Test peeringRetryTimeout with non-FailedPrecondition errors because these errors have a different
+// backoff from FailedPrecondition errors.
+func TestLeader_Peering_peeringRetryTimeout_regularErrors(t *testing.T) {
+	cases := []struct {
+		failedAttempts uint
+		expDuration    time.Duration
+	}{
+		// Exponential.
+		{0, 1 * time.Second},
+		{1, 2 * time.Second},
+		{2, 4 * time.Second},
+		{3, 8 * time.Second},
+		// Until max.
+		{8, 256 * time.Second},
+		{9, 256 * time.Second},
+		{10, 256 * time.Second},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("failed attempts %d", c.failedAttempts), func(t *testing.T) {
+			err := errors.New("error")
+			require.Equal(t, c.expDuration, peeringRetryTimeout(c.failedAttempts, err))
+		})
+	}
+}
+
+// This test exercises all the functionality of retryLoopBackoffPeering.
+func TestLeader_Peering_retryLoopBackoffPeering(t *testing.T) {
+	ctx := context.Background()
+	logger := hclog.NewNullLogger()
+
+	// loopCount counts how many times we executed loopFn.
+	loopCount := 0
+	// loopTimes holds the times at which each loopFn was executed. We use this to test the timeout functionality.
+	var loopTimes []time.Time
+	// loopFn will run 5 times and do something different on each loop.
+	loopFn := func() error {
+		loopCount++
+		loopTimes = append(loopTimes, time.Now())
+		if loopCount == 1 {
+			return fmt.Errorf("error 1")
+		}
+		if loopCount == 2 {
+			return fmt.Errorf("error 2")
+		}
+		if loopCount == 3 {
+			// On the 3rd loop, return success which ends the loop.
+			return nil
+		}
+		return nil
+	}
+	// allErrors collects all the errors passed into errFn.
+	var allErrors []error
+	errFn := func(e error) {
+		allErrors = append(allErrors, e)
+	}
+	retryTimeFn := func(_ uint, _ error) time.Duration {
+		return 1 * time.Millisecond
+	}
+
+	retryLoopBackoffPeering(ctx, logger, loopFn, errFn, retryTimeFn)
+
+	// Ensure loopFn ran the number of expected times.
+	require.Equal(t, 3, loopCount)
+	// Ensure errFn ran as expected.
+	require.Equal(t, []error{
+		fmt.Errorf("error 1"),
+		fmt.Errorf("error 2"),
+	}, allErrors)
+
+	// Test retryTimeFn by comparing the difference between when each loopFn ran.
+	for i := range loopTimes {
+		if i == 0 {
+			// Can't compare first time.
+			continue
+		}
+		require.True(t, loopTimes[i].Sub(loopTimes[i-1]) >= 1*time.Millisecond,
+			"time between indices %d and %d was > 1ms", i, i-1)
+	}
+}
+
+// Test that if the context is cancelled the loop exits.
+func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	logger := hclog.NewNullLogger()
+
+	// loopCount counts how many times we executed loopFn.
+	loopCount := 0
+	loopFn := func() error {
+		loopCount++
+		return fmt.Errorf("error %d", loopCount)
+	}
+	// allErrors collects all the errors passed into errFn.
+	var allErrors []error
+	errFn := func(e error) {
+		allErrors = append(allErrors, e)
+	}
+	// Set the retry time to a huge number.
+	retryTimeFn := func(_ uint, _ error) time.Duration {
+		return 1 * time.Millisecond
+	}
+
+	// Cancel the context before the loop runs. It should run once and then exit.
+	cancel()
+	retryLoopBackoffPeering(ctx, logger, loopFn, errFn, retryTimeFn)
+
+	// Ensure loopFn ran the number of expected times.
+	require.Equal(t, 1, loopCount)
+	// Ensure errFn ran as expected.
+	require.Equal(t, []error{
+		fmt.Errorf("error 1"),
+	}, allErrors)
 }
