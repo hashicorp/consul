@@ -181,11 +181,6 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
-		
-		peering {
-			# We use peer registration for various testing
-			test_allow_peer_registrations = false
-		}
 	`,
 	}
 }

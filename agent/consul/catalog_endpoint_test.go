@@ -2803,11 +2803,6 @@ func TestCatalog_Register_DenyPeeringRegistration(t *testing.T) {
 		reqCopyFn func(arg *structs.RegisterRequest) structs.RegisterRequest
 	}
 
-	/*
-		NOTE that there is enforcement for one and only PeerName to be present in the state store.
-		This test is not the at the state store layer, so we can get away with testing individual
-		components of the structs.RegisterRequest
-	*/
 	testCases := []testcase{
 		{
 			name: "peer name on top level",
