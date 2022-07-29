@@ -568,7 +568,6 @@ function docker_consul {
 function docker_consul_for_proxy_bootstrap {
   local DC=$1
   shift 1
-
   docker.exe run -i --rm --network envoy-tests windows/consul-dev "$@"
 }
 
@@ -581,7 +580,7 @@ function docker_wget {
 function docker_curl {
   local DC=$1
   shift 1
-  docker.exe run --rm --network envoy-tests --entrypoint curl windows/consul-dev "$@"
+  docker.exe run --rm --network envoy-tests --entrypoint curl.exe windows/consul-dev "$@"
 }
 
 function docker_exec {
@@ -649,7 +648,10 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -v -f -d hello $1
+  SERVER_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' envoy_consul-primary_1)
+
+  # run curl --no-keepalive -s -v -f -d hello $1
+  run curl --no-keepalive -s -v -f -d hello $SERVER_IP:5000
 
   echo "OUTPUT $output"
 
@@ -658,6 +660,8 @@ function must_fail_tcp_connection {
 
   # Verbose output should enclude empty reply
   echo "$output" | grep 'Empty reply from server'
+
+
 }
 
 function must_pass_tcp_connection {
@@ -757,6 +761,8 @@ function gen_envoy_bootstrap {
   DC=${3:-primary}
   IS_GW=${4:-0}
   EXTRA_ENVOY_BS_ARGS="${5-}"
+  
+  SERVER_IP=$(getIP)
 
   PROXY_ID="$SERVICE"
   if ! is_set "$IS_GW"
@@ -767,8 +773,11 @@ function gen_envoy_bootstrap {
   if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
-    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
-
+    -http-addr $SERVER_IP:8500 \
+    -grpc-addr $SERVER_IP:8502 \
+    -admin-access-log-path C:/envoy \
+    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS}); then
+    
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
@@ -785,7 +794,7 @@ function read_config_entry {
   local NAME=$2
   local DC=${3:-primary}
 
-  docker_consul "$DC" config read -kind $KIND -name $NAME
+  docker_consul "$DC" config read -kind $KIND -name $NAME -http-addr="consul-$DC:8500"
 }
 
 function wait_for_namespace {
@@ -806,7 +815,15 @@ function delete_config_entry {
 
 function register_services {
   local DC=${1:-primary}
-  docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
+  docker_consul_exec ${DC} bash -c "consul services register workdir/${DC}/register/service_*.hcl"
+}
+
+function getIP {
+    docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' envoy_consul-primary_1
+}
+
+function getIP_container {
+    docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
 }
 
 function setup_upsert_l4_intention {
@@ -814,8 +831,9 @@ function setup_upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
-      -d"{\"Action\": \"${ACTION}\"}" >/dev/null
+  SERVER_IP=$(getIP)
+
+  retry_default docker_curl primary -sL -X PUT -d"{\"Action\": \"${ACTION}\"}" "http://${SERVER_IP}:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}"
 }
 
 function upsert_l4_intention {
