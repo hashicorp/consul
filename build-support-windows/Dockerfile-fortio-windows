@@ -9,4 +9,10 @@ RUN tar -xf fortio.zip -C fortio
 
 ENV PATH C:\\fortio;%PATH%
 
+EXPOSE 8078/tcp
+EXPOSE 8079/tcp
+EXPOSE 8080/tcp
+EXPOSE 8081/tcp
+
+ENTRYPOINT ["fortio.exe"]
 CMD [ "fortio.exe", "server" ]

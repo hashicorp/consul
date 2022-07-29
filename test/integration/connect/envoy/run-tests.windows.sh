@@ -61,7 +61,7 @@ function init_workdir {
   mkdir -p workdir/${CLUSTER}/{consul,consul-server,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
-  cp consul-base-cfg/*.hcl workdir/${CLUSTER}/consul/
+  cp consul-windows-base-cfg/*.hcl workdir/${CLUSTER}/consul/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${CLUSTER}/consul \;
@@ -213,12 +213,12 @@ function start_consul {
       -e "CONSUL_LICENSE=$license" \
       windows/consul-dev \
       agent -dev -datacenter "${DC}" \
-      -config-dir "/workdir/${DC}/consul" \
-      -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port $server_grpc_port \
+      -config-dir "C:\\workdir\\${DC}\\consul" \
+      -config-dir "C:\\workdir\\${DC}\\consul-server" \
+      -grpc-port -1 \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
-
+    
     docker.exe run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -228,7 +228,7 @@ function start_consul {
       ${ports[@]} \
       windows/consul-dev \
       agent -datacenter "${DC}" \
-      -config-dir "/workdir/${DC}/consul" \
+      -config-dir "C:\\workdir\\${DC}\\consul" \
       -data-dir "/tmp/consul" \
       -client "0.0.0.0" \
       -grpc-port 8502 \
@@ -247,8 +247,8 @@ function start_consul {
       ${ports[@]} \
       windows/consul-dev \
       agent -dev -datacenter "${DC}" \
-      -config-dir "/workdir/${DC}/consul" \
-      -config-dir "/workdir/${DC}/consul-server" \
+      -config-dir "C:\\workdir\\${DC}\\consul" \
+      -config-dir "C:\\workdir\\${DC}\\consul-server" \
       -client "0.0.0.0" >/dev/null
   fi
 }
@@ -284,13 +284,12 @@ function start_partitioned_client {
     -retry-join "consul-primary-server" \
     -grpc-port 8502 \
     -data-dir "/tmp/consul" \
-    -config-dir "/workdir/${PARTITION}/consul" \
+    -config-dir "C:\\workdir\\${PARTITION}/consul" \
     -client "0.0.0.0" >/dev/null
 }
 
 function pre_service_setup {
   local CLUSTER=${1:-primary}
-
   # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
   if [ -f "${CASE_DIR}/${CLUSTER}/setup.sh" ]
   then
@@ -301,9 +300,10 @@ function pre_service_setup {
 }
 
 function start_services {
-  # Push the state to the shared docker volume (note this is because CircleCI
+  # Push the state to the shared docker.exe volume (note this is because CircleCI
   # can't use shared volumes)
   # docker.exe cp workdir/. envoy_workdir_1:/workdir
+
 
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
@@ -337,7 +337,7 @@ function verify {
     --pid=host \
     $(network_snippet $CLUSTER) \
     bats-verify \
-    --pretty /workdir/${CLUSTER}/bats ; then
+    --pretty ${CLUSTER}/bats ; then
     echogreen "✓ PASS"
   else
     echored "⨯ FAIL"
@@ -430,7 +430,7 @@ function wipe_volumes {
 # Windows containers does not allow cp command while running.
 function stop_and_copy_files {
     # Create CMD file to execute within the container
-    echo "XCOPY C:\workdir_bak C:\workdir /E /H /C /I" > copy.cmd
+    echo "XCOPY C:\workdir_bak C:\workdir /e /h /c /i /y" > copy.cmd
     # Stop dummy container to copy local workdir to container's workdir_bak    
     docker.exe stop envoy_workdir_1
     docker.exe cp workdir/. envoy_workdir_1:/workdir_bak
@@ -510,6 +510,8 @@ function run_tests {
     pre_service_setup alpha
   fi
 
+  stop_and_copy_files
+
   echo "Starting services"
   start_services
 
@@ -541,8 +543,7 @@ function workdir_cleanup {
 
 function suite_setup {
     # Cleanup from any previous unclean runs.
-    suite_teardown 
-
+    suite_teardown
     docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
     
     # Start the volume container
@@ -558,7 +559,8 @@ function suite_setup {
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    docker build -t bats-verify -f Dockerfile-bats-windows .
+    
+    docker.exe build -t bats-verify -f Dockerfile-bats-windows .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
     # the machine image to the latest version using this listing:
@@ -568,10 +570,10 @@ function suite_setup {
     docker.exe run --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
-    echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
-        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
-        -f Dockerfile-consul-envoy-windows .
+    echo "Rebuilding 'consul-dev-envoy:v${ENVOY_VERSION}' image..."
+    docker.exe build -t consul-dev-envoy:v${ENVOY_VERSION} \
+         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+         -f Dockerfile-consul-envoy-windows .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
@@ -690,6 +692,7 @@ function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
 
+
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
@@ -699,7 +702,7 @@ function common_run_container_sidecar_proxy {
     $(network_snippet $CLUSTER) \
     "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
     envoy \
-    -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
+    -c C:\\workdir\\${CLUSTER}\\envoy\\${service}-bootstrap.json \
     -l trace \
     --disable-hot-restart \
     --drain-time-s 1 >/dev/null
@@ -857,7 +860,7 @@ function debug_dump_volumes {
     -v ./:/cwd \
     --net=none \
     "${HASHICORP_DOCKER_PROXY}/windows/nanoserver" \
-    xcopy "\workdir" "\cwd\workdir" /E /H /C /I
+    xcopy "\workdir" "\cwd\workdir" /E /H /C /I /Y
 }
 
 function run_container_tcpdump-primary {
