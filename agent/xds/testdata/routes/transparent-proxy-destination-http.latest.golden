@@ -29,9 +29,9 @@
       "name": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
-          "name": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "name": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
           "domains": [
-            "192.168.2.1"
+            "192.168.2.3"
           ],
           "routes": [
             {
@@ -39,7 +39,7 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -61,9 +61,9 @@
           ]
         },
         {
-          "name": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "name": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
           "domains": [
-            "192.168.2.3"
+            "192.168.2.1"
           ],
           "routes": [
             {
@@ -71,7 +71,7 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -329,6 +330,11 @@ func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*en
 		}
 		route.VirtualHosts = append(route.VirtualHosts, virtualHost)
 	}
+
+	// sort virtual hosts to have a stable order
+	sort.SliceStable(route.VirtualHosts, func(i, j int) bool {
+		return route.VirtualHosts[i].Name > route.VirtualHosts[j].Name
+	})
 	return route, nil
 }
 
