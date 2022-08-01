@@ -190,21 +190,27 @@ whether you want to filter results based on a service tag:
 
 - No filtering on service tag
 
-   ```text
+  ```text
   _<service>._tcp[.service][.<datacenter>].<domain>
   ```
 
-- Filtering on service tag specified in the RFC 2782 protocol field
+- Filtering on service tag specified *in* the RFC 2782 protocol field
 
-   ```text
+  ```text
   _<service>._<tag>[.service][.<datacenter>].<domain>
+  ```
+
+- Filtering on service tag specified *after* the RFC 2782 protocol field
+
+  ```text
+  _<service>._<protocol>.<tag>.service[.<datacenter>].<domain>
   ```
 
 Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries must
 prepend an underscore (`_`) to the `service` and `protocol` values in a query to
 prevent DNS collisions.
 To perform no tag-based filtering, specify `tcp` in the RFC 2782 protocol field.
-To filter results on a service tag, specify the tag in the RFC 2782 protocol field.
+To filter results on a service tag, specify the tag according to the previous examples.
 
 Other than the query format and default `tcp` protocol/tag value, the behavior
 of the RFC style lookup is the same as the standard style of lookup.
