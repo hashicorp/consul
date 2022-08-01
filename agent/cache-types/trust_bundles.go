@@ -8,6 +8,8 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -87,6 +89,13 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 	// Fetch
 	reply, err := t.Client.TrustBundleListByService(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
 	if err != nil {
+		// Return an empty result if the error is due to peering being disabled.
+		// This allows mesh gateways to receive an update and confirm that the watch is set.
+		if e, ok := status.FromError(err); ok && e.Code() == codes.FailedPrecondition {
+			result.Index = 1
+			result.Value = &pbpeering.TrustBundleListByServiceResponse{Index: 1}
+			return result, nil
+		}
 		return result, err
 	}
 

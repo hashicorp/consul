@@ -179,6 +179,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
+	config.PeeringEnabled = true
 	return dir, config
 }
 
