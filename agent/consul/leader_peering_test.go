@@ -41,8 +41,8 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "bob"
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
 		if enableTLS {
@@ -51,25 +51,25 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
 		}
 	})
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 
 	// Create a peering by generating a token
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),
-		grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
 		grpc.WithInsecure(),
 		grpc.WithBlock())
 	require.NoError(t, err)
 	defer conn.Close()
 
-	s1Client := pbpeering.NewPeeringServiceClient(conn)
+	acceptorClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-s2",
+		PeerName: "my-peer-dialer",
 	}
-	resp, err := s1Client.GenerateToken(ctx, &req)
+	resp, err := acceptorClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
 	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
@@ -78,14 +78,14 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 	var token structs.PeeringToken
 	require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-	// S1 should not have a stream tracked for dc2 because s1 generated a token for baz, and therefore needs to wait to be dialed.
+	// S1 should not have a stream tracked for dc2 because acceptor generated a token for baz, and therefore needs to wait to be dialed.
 	time.Sleep(1 * time.Second)
-	_, found := s1.peerStreamServer.StreamStatus(token.PeerID)
+	_, found := acceptor.peerStreamServer.StreamStatus(token.PeerID)
 	require.False(t, found)
 
-	// Bring up s2 and establish a peering with s1's token so that it attempts to dial.
-	_, s2 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "betty"
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		if enableTLS {
@@ -94,33 +94,39 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
 		}
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
-	// Create a peering at s2 by establishing a peering with s1's token
+	// Create a peering at dialer by establishing a peering with acceptor's token
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	conn, err = grpc.DialContext(ctx, s2.config.RPCAddr.String(),
-		grpc.WithContextDialer(newServerDialer(s2.config.RPCAddr.String())),
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
 		grpc.WithInsecure(),
 		grpc.WithBlock())
 	require.NoError(t, err)
 	defer conn.Close()
 
-	s2Client := pbpeering.NewPeeringServiceClient(conn)
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-s1",
+		PeerName:     "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
-	_, err = s2Client.Establish(ctx, &establishReq)
+	_, err = dialerClient.Establish(ctx, &establishReq)
 	require.NoError(t, err)
 
-	p, err := s2Client.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
 	require.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		status, found := s2.peerStreamServer.StreamStatus(p.Peering.ID)
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := acceptor.peerStreamServer.StreamStatus(p.Peering.PeerID)
 		require.True(r, found)
 		require.True(r, status.Connected)
 	})
@@ -128,21 +134,21 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 	// Delete the peering to trigger the termination sequence.
 	deleted := &pbpeering.Peering{
 		ID:        p.Peering.ID,
-		Name:      "my-peer-s1",
+		Name:      "my-peer-acceptor",
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}
-	require.NoError(t, s2.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
-	s2.logger.Trace("deleted peering for my-peer-s1")
+	require.NoError(t, dialer.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
+	dialer.logger.Trace("deleted peering for my-peer-acceptor")
 
 	retry.Run(t, func(r *retry.R) {
-		_, found := s2.peerStreamServer.StreamStatus(p.Peering.ID)
+		_, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
 		require.False(r, found)
 	})
 
-	// s1 should have also marked the peering as terminated.
+	// acceptor should have also marked the peering as terminated.
 	retry.Run(t, func(r *retry.R) {
-		_, peering, err := s1.fsm.State().PeeringRead(nil, state.Query{
-			Value: "my-peer-s2",
+		_, peering, err := acceptor.fsm.State().PeeringRead(nil, state.Query{
+			Value: "my-peer-dialer",
 		})
 		require.NoError(r, err)
 		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
@@ -151,20 +157,20 @@ func testLeader_PeeringSync_Lifecycle_ClientDeletion(t *testing.T, enableTLS boo
 
 func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 	t.Run("without-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ServerDeletion(t, false)
+		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, false)
 	})
 	t.Run("with-tls", func(t *testing.T) {
-		testLeader_PeeringSync_Lifecycle_ServerDeletion(t, true)
+		testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t, true)
 	})
 }
 
-func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS bool) {
+func testLeader_PeeringSync_Lifecycle_AcceptorDeletion(t *testing.T, enableTLS bool) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "bob"
+	_, acceptor := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "acceptor"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
 		if enableTLS {
@@ -173,14 +179,14 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Bob.key"
 		}
 	})
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, acceptor.RPC, "dc1")
 
-	// Define a peering by generating a token for s2
+	// Define a peering by generating a token for dialer
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	conn, err := grpc.DialContext(ctx, s1.config.RPCAddr.String(),
-		grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+	conn, err := grpc.DialContext(ctx, acceptor.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(acceptor.config.RPCAddr.String())),
 		grpc.WithInsecure(),
 		grpc.WithBlock())
 	require.NoError(t, err)
@@ -189,7 +195,7 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 	peeringClient := pbpeering.NewPeeringServiceClient(conn)
 
 	req := pbpeering.GenerateTokenRequest{
-		PeerName: "my-peer-s2",
+		PeerName: "my-peer-dialer",
 	}
 	resp, err := peeringClient.GenerateToken(ctx, &req)
 	require.NoError(t, err)
@@ -200,9 +206,9 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 	var token structs.PeeringToken
 	require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-	// Bring up s2 and establish a peering with s1's token so that it attempts to dial.
-	_, s2 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "betty"
+	// Bring up dialer and establish a peering with acceptor's token so that it attempts to dial.
+	_, dialer := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = "dialer"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		if enableTLS {
@@ -211,33 +217,39 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 			c.TLSConfig.GRPC.KeyFile = "../../test/hostname/Betty.key"
 		}
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForLeader(t, dialer.RPC, "dc2")
 
-	// Create a peering at s2 by establishing a peering with s1's token
+	// Create a peering at dialer by establishing a peering with acceptor's token
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	conn, err = grpc.DialContext(ctx, s2.config.RPCAddr.String(),
-		grpc.WithContextDialer(newServerDialer(s2.config.RPCAddr.String())),
+	conn, err = grpc.DialContext(ctx, dialer.config.RPCAddr.String(),
+		grpc.WithContextDialer(newServerDialer(dialer.config.RPCAddr.String())),
 		grpc.WithInsecure(),
 		grpc.WithBlock())
 	require.NoError(t, err)
 	defer conn.Close()
 
-	s2Client := pbpeering.NewPeeringServiceClient(conn)
+	dialerClient := pbpeering.NewPeeringServiceClient(conn)
 
 	establishReq := pbpeering.EstablishRequest{
-		PeerName:     "my-peer-s1",
+		PeerName:     "my-peer-acceptor",
 		PeeringToken: resp.PeeringToken,
 	}
-	_, err = s2Client.Establish(ctx, &establishReq)
+	_, err = dialerClient.Establish(ctx, &establishReq)
 	require.NoError(t, err)
 
-	p, err := s2Client.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
+	p, err := dialerClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-acceptor"})
 	require.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		status, found := s2.peerStreamServer.StreamStatus(p.Peering.ID)
+		status, found := dialer.peerStreamServer.StreamStatus(p.Peering.ID)
+		require.True(r, found)
+		require.True(r, status.Connected)
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		status, found := acceptor.peerStreamServer.StreamStatus(p.Peering.PeerID)
 		require.True(r, found)
 		require.True(r, status.Connected)
 	})
@@ -245,21 +257,22 @@ func testLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T, enableTLS boo
 	// Delete the peering from the server peer to trigger the termination sequence.
 	deleted := &pbpeering.Peering{
 		ID:        p.Peering.PeerID,
-		Name:      "my-peer-s2",
+		Name:      "my-peer-dialer",
 		DeletedAt: structs.TimeToProto(time.Now()),
 	}
-	require.NoError(t, s1.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
-	s2.logger.Trace("deleted peering for my-peer-s2")
+
+	require.NoError(t, acceptor.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{Peering: deleted}))
+	acceptor.logger.Trace("deleted peering for my-peer-dialer")
 
 	retry.Run(t, func(r *retry.R) {
-		_, found := s1.peerStreamServer.StreamStatus(p.Peering.PeerID)
+		_, found := acceptor.peerStreamServer.StreamStatus(p.Peering.PeerID)
 		require.False(r, found)
 	})
 
-	// s2 should have received the termination message and updated the peering state.
+	// dialer should have received the termination message and updated the peering state.
 	retry.Run(t, func(r *retry.R) {
-		_, peering, err := s2.fsm.State().PeeringRead(nil, state.Query{
-			Value: "my-peer-s1",
+		_, peering, err := dialer.fsm.State().PeeringRead(nil, state.Query{
+			Value: "my-peer-acceptor",
 		})
 		require.NoError(r, err)
 		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)

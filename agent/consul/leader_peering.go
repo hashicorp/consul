@@ -237,7 +237,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 		}
 	}
 
-	logger.Trace("checking connected streams", "streams", s.peerStreamServer.ConnectedStreams(), "sequence_id", seq)
+	logger.Trace("checking connected streams", "streams", connectedStreams, "sequence_id", seq)
 
 	// Clean up active streams of peerings that were deleted from the state store.
 	// TODO(peering): This is going to trigger shutting down peerings we generated a token for. Is that OK?

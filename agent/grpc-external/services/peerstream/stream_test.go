@@ -1,6 +1,7 @@
 package peerstream
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,13 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
+	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -26,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
@@ -1657,7 +1660,7 @@ func writeInitialRootsAndCA(t *testing.T, store *state.Store) (string, *structs.
 	return clusterID, rootA
 }
 
-func makeAnyPB(t *testing.T, pb proto.Message) *anypb.Any {
+func makeAnyPB(t *testing.T, pb newproto.Message) *anypb.Any {
 	any, err := anypb.New(pb)
 	require.NoError(t, err)
 	return any
@@ -2588,6 +2591,51 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
+		})
+	}
+}
+
+// TestLogTraceProto tests that all PB trace log helpers redact the
+// long-lived SecretStreamID.
+// We ensure it gets redacted when logging a ReplicationMessage_Open or a ReplicationMessage.
+// In the stream handler we only log the ReplicationMessage_Open, but testing both guards against
+// a change in that behavior.
+func TestLogTraceProto(t *testing.T) {
+	type testCase struct {
+		input proto.Message
+	}
+
+	tt := map[string]testCase{
+		"replication message": {
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						StreamSecretID: testPendingStreamSecretID,
+					},
+				},
+			},
+		},
+		"open message": {
+			input: &pbpeerstream.ReplicationMessage_Open{
+				StreamSecretID: testPendingStreamSecretID,
+			},
+		},
+	}
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			var b bytes.Buffer
+			logger, err := logging.Setup(logging.Config{
+				LogLevel: "TRACE",
+			}, &b)
+			require.NoError(t, err)
+
+			logTraceRecv(logger, tc.input)
+			logTraceSend(logger, tc.input)
+			logTraceProto(logger, tc.input, false)
+
+			body, err := io.ReadAll(&b)
+			require.NoError(t, err)
+			require.NotContains(t, string(body), testPendingStreamSecretID)
 		})
 	}
 }
