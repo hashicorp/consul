@@ -7,7 +7,7 @@ description: >-
 
 # What is Cluster Peering?
 
-~> **Cluster peering is currently in technical preview**: Functionality associated with cluster peering is subject to change. You should never use the technical preview release in secure environments or production scenarios. Features in technical preview may have performance issues, scaling issues, and limited support.
+~> **Cluster peering is currently in beta**: Functionality associated with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support.
 
 You can create peering connections between two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
 
@@ -39,7 +39,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 Not all features and functionality are available in the technical preview release. In particular, consider the following technical constraints:
 
 - Consul ACLs must be disabled or the ACL `default_policy` must be set to `allow`.
-- Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available. 
+- Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available.
 - Services exported to peered clusters must be configured to use the TCP protcol (not HTTP, HTTP 2 and gRPC).
 - Support for dynamic routing such as splits, custom routes, or redirects is not available.
 - The `consul intention CLI` command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
