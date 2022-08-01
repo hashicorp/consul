@@ -447,6 +447,8 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// exits. After the method exits this code here won't receive any recv errors and those will be handled
 				// by DrainStream().
 				err = fmt.Errorf("stream ended unexpectedly")
+			} else {
+				err = fmt.Errorf("unexpected error receiving from the stream: %w", err)
 			}
 			status.TrackRecvError(err.Error())
 			return err
@@ -684,10 +686,20 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		dir = "received"
 	}
 
+	// Redact the long-lived stream secret to avoid leaking it in trace logs.
+	pbToLog := pb
+	if open, ok := pb.(*pbpeerstream.ReplicationMessage_Open); ok {
+		clone := &pbpeerstream.ReplicationMessage_Open{}
+		proto.Merge(clone, open)
+
+		clone.StreamSecretID = "hidden"
+		pbToLog = clone
+	}
+
 	m := jsonpb.Marshaler{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pb)
+	out, err := m.MarshalToString(pbToLog)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
 	}
