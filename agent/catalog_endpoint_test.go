@@ -20,6 +20,60 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+func TestCatalogRegister_PeeringRegistration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	t.Run("deny peer registrations by default", func(t *testing.T) {
+		a := NewTestAgent(t, "")
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot register requests with PeerName in them")
+		require.Nil(t, obj)
+	})
+
+	t.Run("cannot hcl set the peer registrations config", func(t *testing.T) {
+		// this will have no effect, as the value is overriden in non user source
+		a := NewTestAgent(t, "peering = { test_allow_peer_registrations = true }")
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot register requests with PeerName in them")
+		require.Nil(t, obj)
+	})
+
+	t.Run("allow peer registrations with test overrides", func(t *testing.T) {
+		// the only way to set the config in the agent is via the overrides
+		a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
+		defer a.Shutdown()
+
+		// Register request with peer
+		args := &structs.RegisterRequest{Node: "foo", PeerName: "foo", Address: "127.0.0.1"}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+
+		obj, err := a.srv.CatalogRegister(nil, req)
+		require.NoError(t, err)
+		applied, ok := obj.(bool)
+		require.True(t, ok)
+		require.True(t, applied)
+	})
+
+}
+
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

@@ -137,6 +137,15 @@ func (b *PeeringBackend) CheckPeeringUUID(id string) (bool, error) {
 	return true, nil
 }
 
+func (b *PeeringBackend) ValidateProposedPeeringSecret(id string) (bool, error) {
+	return b.srv.fsm.State().ValidateProposedPeeringSecretUUID(id)
+}
+
+func (b *PeeringBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+	_, err := b.srv.raftApplyProtobuf(structs.PeeringSecretsWriteType, req)
+	return err
+}
+
 func (b *PeeringBackend) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	_, err := b.srv.raftApplyProtobuf(structs.PeeringWriteType, req)
 	return err

@@ -1342,6 +1342,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
 
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
+	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil

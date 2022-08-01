@@ -33,6 +33,7 @@ type Config struct {
 	Tracker     *Tracker
 	GetStore    func() StateStore
 	Logger      hclog.Logger
+	ForwardRPC  func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
 	ACLResolver ACLResolver
 	// Datacenter of the Consul server this gRPC server is hosted on
 	Datacenter     string
@@ -97,6 +98,8 @@ type Backend interface {
 	// leader.
 	GetLeaderAddress() string
 
+	ValidateProposedPeeringSecret(id string) (bool, error)
+	PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
@@ -110,6 +113,7 @@ type StateStore interface {
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
 	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	PeeringSecretsRead(ws memdb.WatchSet, peerID string) (*pbpeering.PeeringSecrets, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID, dc string) (uint64, *structs.ExportedServiceList, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)

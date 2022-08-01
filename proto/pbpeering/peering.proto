@@ -23,7 +23,7 @@ service PeeringService {
   rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse);
 }
 
-// PeeringState enumerates all the states a peering can be in
+// PeeringState enumerates all the states a peering can be in.
 enum PeeringState {
   // Undefined represents an unset value for PeeringState during
   // writes.
@@ -51,6 +51,38 @@ enum PeeringState {
 
   // Terminated means the peering relationship has been removed.
   TERMINATED = 6;
+}
+
+// PeeringSecrets defines a secret used for authenticating/authorizing peer clusters.
+message PeeringSecrets {
+  // PeerID is the local UUID of the peering this secret was generated for.
+  string PeerID = 1;
+
+  message Establishment {
+    // SecretID is the one-time-use peering establishment secret.
+    string SecretID = 1;
+  }
+
+  message Stream {
+    // ActiveSecretID is the active UUID-v4 secret being used for authorization at
+    // the peering stream.
+    string ActiveSecretID = 1;
+
+    // PendingSecretID is a UUID-v4 secret introduced during secret rotation.
+    // When a peering is established or re-established, both the active secret and
+    // pending secret are considered valid. However, once the dialing peer uses
+    // the pending secret then it transitions to active and the previously active
+    // secret is discarded.
+    //
+    // Pending secret IDs are only valid for long-lived stream secrets.
+    // Only one establishment secret can exist for a peer at a time since they
+    // are designed for one-time use.
+    string PendingSecretID = 2;
+  }
+
+  Establishment establishment = 2;
+
+  Stream stream = 3;
 }
 
 // Peering defines a peering relationship between two disparate Consul clusters
@@ -160,10 +192,15 @@ message PeeringListResponse {
 }
 
 message PeeringWriteRequest {
+  // Peering is the peering to write with the request.
   Peering Peering = 1;
 
-  // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 2;
+  // PeeringSecrets contains the optional peering secrets to persist
+  // with the peering. Peering secrets are not embedded in the peering
+  // object to avoid leaking them.
+  PeeringSecrets Secret = 2;
+
+  map<string, string> Meta = 3;
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around

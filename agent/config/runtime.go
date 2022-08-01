@@ -818,6 +818,10 @@ type RuntimeConfig struct {
 	// hcl: peering { enabled = (true|false) }
 	PeeringEnabled bool
 
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow
+	// registrations for objects with `PeerName`
+	PeeringTestAllowPeerRegistrations bool
+
 	// PidFile is the file to store our PID in.
 	//
 	// hcl: pid_file = string
