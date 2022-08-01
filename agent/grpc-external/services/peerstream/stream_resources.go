@@ -2,20 +2,25 @@ package peerstream
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
@@ -24,6 +29,81 @@ type BidirectionalStream interface {
 	Send(*pbpeerstream.ReplicationMessage) error
 	Recv() (*pbpeerstream.ReplicationMessage, error)
 	Context() context.Context
+}
+
+// ExchangeSecret exchanges the one-time secret embedded in a peering token for a
+// long-lived secret for use with the peering stream handler. This secret exchange
+// prevents peering tokens from being reused.
+//
+// Note that if the peering secret exchange fails, a peering token may need to be
+// re-generated, since the one-time initiation secret may have been invalidated.
+func (s *Server) ExchangeSecret(ctx context.Context, req *pbpeerstream.ExchangeSecretRequest) (*pbpeerstream.ExchangeSecretResponse, error) {
+	// For private/internal gRPC handlers, protoc-gen-rpc-glue generates the
+	// requisite methods to satisfy the structs.RPCInfo interface using fields
+	// from the pbcommon package. This service is public, so we can't use those
+	// fields in our proto definition. Instead, we construct our RPCInfo manually.
+	//
+	// Embedding WriteRequest ensures RPCs are forwarded to the leader, embedding
+	// DCSpecificRequest adds the RequestDatacenter method (but as we're not
+	// setting Datacenter it has the effect of *not* doing DC forwarding).
+	var rpcInfo struct {
+		structs.WriteRequest
+		structs.DCSpecificRequest
+	}
+
+	var resp *pbpeerstream.ExchangeSecretResponse
+	handled, err := s.ForwardRPC(&rpcInfo, func(conn *grpc.ClientConn) error {
+		var err error
+		resp, err = pbpeerstream.NewPeerStreamServiceClient(conn).ExchangeSecret(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
+	}
+
+	defer metrics.MeasureSince([]string{"peering", "exchange_secret"}, time.Now())
+
+	// Validate the given establishment secret against the one stored on the server.
+	existing, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
+	if err != nil {
+		return nil, grpcstatus.Errorf(codes.Internal, "failed to read peering secret: %v", err)
+	}
+	if existing == nil || subtle.ConstantTimeCompare([]byte(existing.GetEstablishment().GetSecretID()), []byte(req.EstablishmentSecret)) == 0 {
+		return nil, grpcstatus.Error(codes.PermissionDenied, "invalid peering establishment secret")
+	}
+
+	id, err := s.generateNewStreamSecret()
+	if err != nil {
+		return nil, grpcstatus.Errorf(codes.Internal, "failed to generate peering stream secret: %v", err)
+	}
+
+	secrets := &pbpeering.PeeringSecrets{
+		PeerID: req.PeerID,
+		Stream: &pbpeering.PeeringSecrets_Stream{
+			// Overwriting any existing un-utilized pending stream secret.
+			PendingSecretID: id,
+
+			// If there is an active stream secret ID it is NOT invalidated here.
+			// It remains active until the pending secret ID is used and promoted to active.
+			// This allows dialing clusters with the active stream secret to continue to dial successfully until they
+			// receive the new secret.
+			ActiveSecretID: existing.GetStream().GetActiveSecretID(),
+		},
+	}
+	err = s.Backend.PeeringSecretsWrite(secrets)
+	if err != nil {
+		return nil, grpcstatus.Errorf(codes.Internal, "failed to persist peering secret: %v", err)
+	}
+
+	return &pbpeerstream.ExchangeSecretResponse{StreamSecret: id}, nil
+}
+
+func (s *Server) generateNewStreamSecret() (string, error) {
+	id, err := lib.GenerateUUID(s.Backend.ValidateProposedPeeringSecret)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 // StreamResources handles incoming streaming connections.
@@ -61,24 +141,15 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	// TODO(peering) Make request contain a list of resources, so that roots and services can be
 	//  			 subscribed to with a single request. See:
 	//               https://github.com/envoyproxy/data-plane-api/blob/main/envoy/service/discovery/v3/discovery.proto#L46
-	req := first.GetRequest()
+	req := first.GetOpen()
 	if req == nil {
-		return grpcstatus.Error(codes.InvalidArgument, "first message when initiating a peering must be a subscription request")
+		return grpcstatus.Error(codes.InvalidArgument, "first message when initiating a peering must be: Open")
 	}
 	logger.Trace("received initial replication request from peer")
 	logTraceRecv(logger, req)
 
 	if req.PeerID == "" {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must specify a PeerID")
-	}
-	if req.ResponseNonce != "" {
-		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce")
-	}
-	if req.Error != nil {
-		return grpcstatus.Error(codes.InvalidArgument, "initial subscription request must not contain an error")
-	}
-	if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
-		return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
 	}
 
 	_, p, err := s.GetStore().PeeringReadByID(nil, req.PeerID)
@@ -91,7 +162,54 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	}
 
 	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
-	// TODO(peering): Store subscription request so that an event publisher can separately handle pushing messages for it
+
+	secrets, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
+	if err != nil {
+		logger.Error("failed to look up secrets for peering", "peer_id", req.PeerID, "error", err)
+		return grpcstatus.Error(codes.Internal, "failed to find peering secrets for PeerID: "+req.PeerID)
+	}
+	if secrets == nil {
+		logger.Error("no known secrets for peering", "peer_id", req.PeerID, "error", err)
+		return grpcstatus.Error(codes.Internal, "unable to authorize connection, peering must be re-established")
+	}
+
+	// Check the given secret ID against the active stream secret.
+	var authorized bool
+	if active := secrets.GetStream().GetActiveSecretID(); active != "" {
+		if subtle.ConstantTimeCompare([]byte(active), []byte(req.StreamSecretID)) == 1 {
+			authorized = true
+		}
+	}
+
+	// Next check the given stream secret against the locally stored pending stream secret.
+	// A pending stream secret is one that has not been seen by this handler.
+	if pending := secrets.GetStream().GetPendingSecretID(); pending != "" && !authorized {
+		// If the given secret is the currently pending secret, it gets promoted to be the active secret.
+		// This is the case where a server recently exchanged for a stream secret.
+		if subtle.ConstantTimeCompare([]byte(pending), []byte(req.StreamSecretID)) == 0 {
+			return grpcstatus.Error(codes.PermissionDenied, "invalid peering stream secret")
+		}
+		authorized = true
+
+		promoted := &pbpeering.PeeringSecrets{
+			PeerID: req.PeerID,
+			Stream: &pbpeering.PeeringSecrets_Stream{
+				ActiveSecretID: pending,
+
+				// The PendingSecretID is intentionally zeroed out since we want to avoid re-triggering this
+				// promotion process with the same pending secret.
+				PendingSecretID: "",
+			},
+		}
+		err = s.Backend.PeeringSecretsWrite(promoted)
+		if err != nil {
+			return grpcstatus.Errorf(codes.Internal, "failed to persist peering secret: %v", err)
+		}
+	}
+	if !authorized {
+		return grpcstatus.Error(codes.PermissionDenied, "invalid peering stream secret")
+	}
+
 	logger.Info("accepted initial replication request from peer", "peer_id", p.ID)
 
 	if p.PeerID != "" {
@@ -99,12 +217,11 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	}
 
 	streamReq := HandleStreamRequest{
-		LocalID:            p.ID,
-		RemoteID:           "",
-		PeerName:           p.Name,
-		Partition:          p.Partition,
-		InitialResourceURL: req.ResourceURL,
-		Stream:             stream,
+		LocalID:   p.ID,
+		RemoteID:  "",
+		PeerName:  p.Name,
+		Partition: p.Partition,
+		Stream:    stream,
 	}
 	err = s.HandleStream(streamReq)
 	// A nil error indicates that the peering was deleted and the stream needs to be gracefully shutdown.
@@ -129,9 +246,6 @@ type HandleStreamRequest struct {
 
 	// Partition is the local partition associated with the peer.
 	Partition string
-
-	// InitialResourceURL is the ResourceURL from the initial Request.
-	InitialResourceURL string
 
 	// Stream is the open stream to the peer cluster.
 	Stream BidirectionalStream
@@ -199,12 +313,6 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	}
 
 	remoteSubTracker := newResourceSubscriptionTracker()
-	if streamReq.InitialResourceURL != "" {
-		if remoteSubTracker.Subscribe(streamReq.InitialResourceURL) {
-			logger.Info("subscribing to resource type", "resourceURL", streamReq.InitialResourceURL)
-		}
-	}
-
 	mgr := newSubscriptionManager(
 		streamReq.Stream.Context(),
 		logger,
@@ -377,7 +485,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				//    FROM the establishing peer. This is handled specially in
 				//    (*Server).StreamResources BEFORE calling
 				//    (*Server).HandleStream. This takes care of determining what
-				//    the PeerID is for the stream. This is ALSO treated as (2) below.
+				//    the PeerID is for the stream.
 				//
 				// 2. Subscription Request: This is the first request for a
 				//    given ResourceURL within a stream. The Initial Request (1)
