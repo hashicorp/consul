@@ -14,9 +14,10 @@ You can create peering connections between two or more independent clusters so t
 ## Overview
 
 Cluster peering allows Consul clusters in different datacenters to communicate with each other. The cluster peering process consists of the following steps:
-1. Create a peering token to share with other clusters
-1. Establish a connection between clusters
-1. Make services available to other clusters
+1. Create a peering token in one cluster.
+1. Use the peering token to establish peering with a second cluster.
+1. Export services between clusters.
+1. Create intentions to set up service mesh between clusters.
 
 For detailed instructions on setting up cluster peering with the Consul CLI, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
 
@@ -35,7 +36,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Shares key/value stores                          |    &#9989;     |    &#10060;     |
 | Uses gossip protocol                             |    &#9989;     |    &#10060;     |
 
-## Beta release constraints
+## Beta release features and constraints
 Not all features and functionality are available in the beta release. In particular, consider the following technical constraints:
 
 - Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available.

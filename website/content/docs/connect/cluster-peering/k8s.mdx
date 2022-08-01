@@ -21,10 +21,10 @@ The following Custom Resource Definitions (CRDs) are used to create and manage a
 ## Prerequisites
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
-- Consul 1.13 Alpha 2 or later
+- Consul v1.13 or later
 - At least two Kubernetes clusters
 - The Kubernetes clusters must be running in a flat network
-- The network must be running on Consul on Kubernetes v.0.45 or later
+- The network must be running on Consul on Kubernetes v0.45 or later
 
 ### Helm chart configuration
 
@@ -34,7 +34,7 @@ To establish cluster peering through Kubernetes, deploy clusters with the follow
 
   ```yaml
   global:
-    image: "hashicorp/consul:1.13.0-alpha2"
+    image: "hashicorp/consul:1.13.0"
     peering:
       enabled: true
   connectInject:
@@ -58,7 +58,7 @@ $ export HELM_RELEASE_NAME=cluster-name
 $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --version "0.45.0" --values values.yaml
 ```
 
-## Create a peering connection
+## Create a peering token
 
 To peer Kubernetes clusters running Consul, you need to create a peering token and share it with the other cluster.
 
@@ -93,6 +93,8 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl get secret peering-token --output yaml > peering-token.yml
     ```
 
+## Establish a peering connection between clusters
+
 1. Apply the peering token to the second cluster.
 
     ```shell-session
@@ -124,7 +126,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
     $ kubectl apply --filename dialer.yml
     ```
 
-## Deploy and export cluster services
+## Export services between clusters
 
 1. For the service in "cluster-02" that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods. This service is referred to as "backend-service" in the following steps.
 
@@ -158,6 +160,14 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
     </CodeBlockConfig>
 
+1. Apply the service file and the `ExportedServices` resource for the second cluster.
+
+    ```shell-session
+    $ kubectl apply --filename backend-service.yml --filename exportedsvc.yml
+    ```
+
+## Authorize services for peers
+
 1. Create service intentions for the second cluster.
 
     <CodeBlockConfig filename="intention.yml">
@@ -179,16 +189,10 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
     </CodeBlockConfig>
 
-1. Apply the service file, the `ExportedServices` resource, and the intentions to the second cluster.
+1. Apply the intentions to the second cluster.
 
     ```shell-session
-    $ kubectl apply --filename backend-service.yml --filename exportedsvc.yml --filename intention.yml
-    ```
-
-1. To confirm that you peered your clusters, in `cluster-01`, query the `/health` HTTP endpoint.
-
-    ```shell-session
-    $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+    $ kubectl apply --filename intention.yml
     ```
 
 1. For the services in `cluster-01` that you want to access the "backend-service," add the following annotations to the service file.
