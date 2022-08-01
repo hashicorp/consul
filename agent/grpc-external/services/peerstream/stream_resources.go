@@ -688,9 +688,16 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 
 	// Redact the long-lived stream secret to avoid leaking it in trace logs.
 	pbToLog := pb
-	if open, ok := pb.(*pbpeerstream.ReplicationMessage_Open); ok {
+	switch msg := pb.(type) {
+	case *pbpeerstream.ReplicationMessage:
+		clone := &pbpeerstream.ReplicationMessage{}
+		proto.Merge(clone, msg)
+
+		clone.GetOpen().StreamSecretID = "hidden"
+		pbToLog = clone
+	case *pbpeerstream.ReplicationMessage_Open:
 		clone := &pbpeerstream.ReplicationMessage_Open{}
-		proto.Merge(clone, open)
+		proto.Merge(clone, msg)
 
 		clone.StreamSecretID = "hidden"
 		pbToLog = clone
