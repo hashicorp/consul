@@ -7,6 +7,7 @@ on:
       # Push events on the main branch
       - main
       - release/**
+      - eculver/**
 
 env:
   PKG_NAME: consul
