@@ -693,8 +693,10 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		clone := &pbpeerstream.ReplicationMessage{}
 		proto.Merge(clone, msg)
 
-		clone.GetOpen().StreamSecretID = "hidden"
-		pbToLog = clone
+		if clone.GetOpen() != nil {
+			clone.GetOpen().StreamSecretID = "hidden"
+			pbToLog = clone
+		}
 	case *pbpeerstream.ReplicationMessage_Open:
 		clone := &pbpeerstream.ReplicationMessage_Open{}
 		proto.Merge(clone, msg)
