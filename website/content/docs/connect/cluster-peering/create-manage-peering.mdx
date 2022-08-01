@@ -17,7 +17,7 @@ To peer clusters, you must complete the following steps in order:
 
 1. Create a peering token
 1. Establish a connection between clusters
-1. Export services
+1. Export services between clusters
 1. Authorize services for peers
 
 ### Create a peering token
@@ -28,7 +28,7 @@ To begin the cluster peering process, generate a peering token in one of your cl
 
 <Tabs>
 <Tab heading="Consul API">
-In `cluster-01`, issue a request for a peering token using the [HTTP API](/api-docs/peering).
+In `cluster-01`, issue a request for a peering token.
 
 ```shell-session
 $ curl --request POST --data '{"PeerName":"cluster-02"}' --url http://localhost:8500/v1/peering/token
@@ -74,7 +74,8 @@ When you connect server agents through cluster peering, they peer their default 
 
 </Tab>
 </Tabs>
-### Export services
+
+### Export services between clusters
 
 After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
@@ -160,9 +161,11 @@ $ consul config write peering-intentions.hcl
 
 ## Manage peering connections
 
+After you establish a peering connection, you can get a list of all active peering connections, read a specific peering connection's info, check peering connection health, and delete peering connections.
+
 ### List all peering connections
 
-After you establish a peering connection, you can get a list of all active peering connections.
+You can list all active peering connections in a cluster.
 
 <Tabs>
 <Tab heading="Consul API">
@@ -265,7 +268,7 @@ After you create a peering connection between clusters in different datacenters,
 
 <Tabs>
 <Tab heading="Consul API">
-In "cluster-01," request the deletion via the HTTP API.
+In "cluster-01," request the deletion through the [`/peering/` endpoint](api-docs/peering#delete-a-peering-connection).
 
 ```shell-session
 $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
