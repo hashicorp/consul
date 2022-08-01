@@ -235,6 +235,8 @@
     "NodeID": "",
     "NodeMeta": {},
     "NodeName": "",
+    "PeeringEnabled": false,
+    "PeeringTestAllowPeerRegistrations": false,
     "PidFile": "",
     "PrimaryDatacenter": "",
     "PrimaryGateways": [
@@ -417,7 +419,6 @@
         "CirconusSubmissionInterval": "",
         "CirconusSubmissionURL": "",
         "Disable": false,
-        "DisableCompatOneNine": false,
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],

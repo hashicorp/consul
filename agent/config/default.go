@@ -104,6 +104,9 @@ func DefaultSource() Source {
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 			txn_max_req_len = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
+		peering = {
+			enabled = true
+		}
 		performance = {
 			leave_drain_time = "5s"
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
@@ -203,6 +206,11 @@ func NonUserSource() Source {
 			# 0s causes the value to be ignored and operate without capping
 			# the max time before leaf certs can be generated after a roots change.
 			test_ca_leaf_root_change_spread = "0s"
+		}
+
+		peering = {
+			# We use peer registration for various testing
+			test_allow_peer_registrations = false
 		}
 	`,
 	}

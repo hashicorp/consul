@@ -52,6 +52,29 @@ func prefixIndexFromQueryWithPeer(arg any) ([]byte, error) {
 	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
 }
 
+// prefixIndexFromQueryWithPeerWildcardable allows for a wildcard "*" peerName
+// to query for all peers _excluding_ structs.LocalPeerKeyword.
+// Assumes that non-local peers are prefixed with "peer:".
+func prefixIndexFromQueryWithPeerWildcardable(v Query) ([]byte, error) {
+	var b indexBuilder
+
+	peername := v.PeerOrEmpty()
+	if peername == "" {
+		b.String(strings.ToLower(structs.LocalPeerKeyword))
+	} else if peername == "*" {
+		// use b.Raw so we don't add null terminator to prefix
+		b.Raw([]byte("peer:"))
+		return b.Bytes(), nil
+	} else {
+		b.String(strings.ToLower("peer:" + peername))
+	}
+
+	if v.Value != "" {
+		b.String(strings.ToLower(v.Value))
+	}
+	return b.Bytes(), nil
+}
+
 func prefixIndexFromQueryNoNamespace(arg interface{}) ([]byte, error) {
 	return prefixIndexFromQuery(arg)
 }

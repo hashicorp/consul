@@ -84,8 +84,9 @@ func TestUINodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	args := []*structs.RegisterRequest{
@@ -116,7 +117,7 @@ func TestUINodes(t *testing.T) {
 		peerOne := &pbpeering.PeeringWriteRequest{
 			Peering: &pbpeering.Peering{
 				Name:                "peer1",
-				State:               pbpeering.PeeringState_INITIAL,
+				State:               pbpeering.PeeringState_ESTABLISHING,
 				PeerCAPems:          nil,
 				PeerServerName:      "fooservername",
 				PeerServerAddresses: []string{"addr1"},
@@ -263,8 +264,9 @@ func TestUIServices(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	requests := []*structs.RegisterRequest{
@@ -281,7 +283,7 @@ func TestUIServices(t *testing.T) {
 				},
 			},
 		},
-		//register api service on node foo
+		// register api service on node foo
 		{
 			Datacenter:     "dc1",
 			Node:           "foo",
@@ -400,7 +402,7 @@ func TestUIServices(t *testing.T) {
 		peerOne := &pbpeering.PeeringWriteRequest{
 			Peering: &pbpeering.Peering{
 				Name:                "peer1",
-				State:               pbpeering.PeeringState_INITIAL,
+				State:               pbpeering.PeeringState_ESTABLISHING,
 				PeerCAPems:          nil,
 				PeerServerName:      "fooservername",
 				PeerServerAddresses: []string{"addr1"},

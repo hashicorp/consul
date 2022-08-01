@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package autoconf;
+package hashicorp.consul.internal.autoconf;
 
 import "proto/pbconfig/config.proto";
 import "proto/pbconnect/connect.proto";

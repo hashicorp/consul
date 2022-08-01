@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
 
+	"github.com/hashicorp/consul-awsauth/iamauthtest"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/internal/iamauth/iamauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )

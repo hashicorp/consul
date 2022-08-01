@@ -24,13 +24,7 @@ Usage: consul connect expose [options]
   given protocol and port.
 ```
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Expose Options
+#### Command Options
 
 - `-ingress-gateway` - (Required) The name of the ingress gateway service to use.
   A partition and namespace can optionally be specified as a prefix via the
@@ -49,6 +43,12 @@ Usage: consul connect expose [options]
 
 - `-host` - Additional DNS hostname to use for routing to this service. Can be
   specified multiple times.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

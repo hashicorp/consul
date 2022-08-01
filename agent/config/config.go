@@ -197,6 +197,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
 	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
 	Performance                      Performance         `mapstructure:"performance"`
 	PidFile                          *string             `mapstructure:"pid_file"`
 	Ports                            Ports               `mapstructure:"ports"`
@@ -673,7 +674,6 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags"`
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url"`
-	DisableCompatOneNine               *bool    `mapstructure:"disable_compat_1.9"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
@@ -887,4 +887,12 @@ type TLS struct {
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
 	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+type Peering struct {
+	Enabled *bool `mapstructure:"enabled"`
+
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
+	// This always gets overridden in NonUserSource()
+	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
 }

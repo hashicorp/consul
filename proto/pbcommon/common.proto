@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package common;
+package hashicorp.consul.internal.common;
 
 import "google/protobuf/duration.proto";
 

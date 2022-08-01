@@ -15,19 +15,24 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
 ## Installation
 
--> **Version reference convention:** Replace `VERSION` in command and configuration examples with the Consul API Gateway version you are installing, such as `0.3.0`. In some instances, `VERSION` is prepended with a lowercase _v_. This indicates that you must include the `v` as is part of the version, for example `v0.3.0`.
+1. Set the version of Consul API Gateway you are installing as an environment variable. The following steps use this environment variable in commands and configurations.
+
+   ```shell-session
+   $ export VERSION=0.3.0
+   ```
 
 1. Issue the following command to install the CRDs:
 
    ```shell-session
-   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=vVERSION"
+   $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v$VERSION"
    ```
 
-1. Create a `values.yaml` file for your Consul API Gateway deployment. Copy the content below into the `values.yaml` file. The `values.yaml` will be used by the Consul Helm chart. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). See [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway) for more available options on how to configure your Consul API Gateway deployment via the Helm chart.
+1. Create a `values.yaml` file for your Consul API Gateway deployment by copying the following content and running it in the environment where you set the `VERSION` environment variable. The Consul Helm chart uses this `values.yaml` file to deploy the API Gateway. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). For more options to configure your Consul API Gateway deployment through the Helm chart, refer to [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway).
 
-   <CodeBlockConfig hideClipboard filename="values.yaml">
+   <CodeBlockConfig filename="values.yaml">
 
-   ```yaml
+   ```shell
+   cat <<EOF > values.yaml
    global:
      name: consul
    connectInject:
@@ -36,7 +41,8 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
      enabled: true
    apiGateway:
      enabled: true
-     image: hashicorp/consul-api-gateway:VERSION
+     image: hashicorp/consul-api-gateway:$VERSION
+   EOF
    ```
 
    </CodeBlockConfig>

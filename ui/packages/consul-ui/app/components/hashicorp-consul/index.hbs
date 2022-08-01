@@ -87,12 +87,12 @@
 
   <:main-nav>
     <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
+        <Consul::Datacenter::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @dcs={{@dcs}}
+        />
       <Consul::Partition::Selector
         @dc={{@dc}}
         @partition={{@partition}}
@@ -146,14 +146,11 @@
           @partition={{@partition}}
           @nspace={{@nspace}}
         />
-        {{#if (feature-flag "peering")}}
-          <li role="separator">
-            Organization
-          </li>
-          <li data-test-main-nav-peers class={{if (is-href 'dc.peers' @dc.Name) 'is-active' }}>
-            <a href={{href-to 'dc.peers' @dc.Name params=(hash peer=undefined)}}>Peers</a>
-          </li>
-      {{/if}}
+        <Consul::Peer::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+        />
     </ul>
   </:main-nav>
 

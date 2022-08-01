@@ -607,6 +607,8 @@ func (q NodeCheckQuery) PartitionOrDefault() string {
 type ServiceVirtualIP struct {
 	Service structs.PeeredServiceName
 	IP      net.IP
+
+	structs.RaftIndex
 }
 
 // FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
@@ -631,9 +633,11 @@ func serviceVirtualIPTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle[structs.PeeredServiceName, ServiceVirtualIP]{
+				Indexer: indexerSingleWithPrefix[structs.PeeredServiceName, ServiceVirtualIP, Query]{
 					readIndex:  indexFromPeeredServiceName,
 					writeIndex: indexFromServiceVirtualIP,
+					// Read all peers in a cluster / partition
+					prefixIndex: prefixIndexFromQueryWithPeerWildcardable,
 				},
 			},
 		},

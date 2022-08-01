@@ -10,3 +10,14 @@ func SliceOfKeys[K comparable, V any](m map[K]V) []K {
 	}
 	return res
 }
+
+func SliceOfValues[K comparable, V any](m map[K]V) []V {
+	if len(m) == 0 {
+		return nil
+	}
+	res := make([]V, 0, len(m))
+	for _, v := range m {
+		res = append(res, v)
+	}
+	return res
+}

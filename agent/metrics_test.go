@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	// "github.com/hashicorp/consul/agent/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/stretchr/testify/require"
 )
 
 func skipIfShortTesting(t *testing.T) {
@@ -301,67 +301,6 @@ func TestHTTPHandlers_AgentMetrics_ConsulAutopilot_Prometheus(t *testing.T) {
 
 		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_healthy", "1")
 		assertMetricExistsWithValue(t, respRec, "agent_2_autopilot_failure_tolerance", "0")
-	})
-}
-
-// TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange adds testing around the 1.9 style metrics
-// https://www.consul.io/docs/agent/options#telemetry-disable_compat_1.9
-func TestHTTPHandlers_AgentMetrics_Disable1Dot9MetricsChange(t *testing.T) {
-	skipIfShortTesting(t)
-	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
-
-	// 1.9 style http metrics looked like this:
-	// agent_http_2_http_GET_v1_agent_members{quantile="0.5"} 0.1329520046710968
-	t.Run("check that no consul.http metrics are emitted by default", func(t *testing.T) {
-		hcl := `
-		telemetry = {
-			prometheus_retention_time = "5s"
-			disable_hostname = true
-			metrics_prefix = "agent_http"
-		}
-	`
-
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
-		defer a.Shutdown()
-
-		// we have to use the `a.srv.handler()` to actually trigger the wrapped function
-		uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), "/v1/agent/members")
-		req, err := http.NewRequest("GET", uri, nil)
-		require.NoError(t, err)
-		resp := httptest.NewRecorder()
-		handler := a.srv.handler(true)
-		handler.ServeHTTP(resp, req)
-
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
-
-		assertMetricNotExists(t, respRec, "agent_http_http_GET_v1_agent_members")
-	})
-
-	t.Run("check that we can still turn on consul.http metrics", func(t *testing.T) {
-		hcl := `
-		telemetry = {
-			prometheus_retention_time = "5s",
-			disable_compat_1.9 = false
-			metrics_prefix = "agent_http_2"
-		}
-		`
-
-		a := StartTestAgent(t, TestAgent{HCL: hcl})
-		defer a.Shutdown()
-
-		uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), "/v1/agent/members")
-		req, err := http.NewRequest("GET", uri, nil)
-		require.NoError(t, err)
-		resp := httptest.NewRecorder()
-
-		handler := a.srv.handler(true)
-		handler.ServeHTTP(resp, req)
-
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
-
-		assertMetricExists(t, respRec, "agent_http_2_http_GET_v1_agent_members")
 	})
 }
 

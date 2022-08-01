@@ -5,6 +5,7 @@ import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
   @service('env') env;
+  @service() abilities;
 
   // =attributes
   @tracked centerDimensions;
@@ -87,8 +88,12 @@ export default class TopologyMetrics extends Component {
         Namespace: '',
       });
     } else if (downstreams.length === 0) {
+      const canUsePeers = this.abilities.can('use peers');
+
       items.push({
-        Name: 'No downstreams.',
+        Name: canUsePeers
+          ? 'No downstreams, or the downstreams are imported services.'
+          : 'No downstreams.',
         Datacenter: '',
         Namespace: '',
       });

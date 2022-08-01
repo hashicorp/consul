@@ -56,7 +56,7 @@ If client support is required for any of the features, then you must use a Consu
 | Network Segments                  | No            | Currently there is no capability to configure the network segment Consul clients on ECS run in.                                                                                              |
 | Namespaces                        | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` namespace. Registration into a non-default namespace requires a Consul Enterprise client.       |
 | Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` admin partition. Registration into a non-default partition requires a Consul Enterprise client. |
-| Audit Logging                     | No*           | Audit logging can be enabled on Consul servers that run outside of ECS but is not currently supported on the Consul clients that run inside ECS.                                             |
+| Audit Logging                     | Yes           | This feature requires Consul Enterprise clients.                                                                                                                                             |
 
 ### Admin Partitions and Namespaces
 
@@ -84,7 +84,7 @@ is not provided when `consul_partitions_enabled = true`, will default to the `de
 
 ```hcl
 module "acl_controller" {
-  source = "hashicorp/consul/aws//modules/acl-controller"
+  source = "hashicorp/consul-ecs/aws//modules/acl-controller"
 
   ...
 
@@ -109,7 +109,7 @@ The following example demonstrates how to create a `mesh-task` assigned to the a
 
 ```hcl
 module "my_task" {
-  source = "hashicorp/consul/aws//modules/mesh-task"
+  source = "hashicorp/consul-ecs/aws//modules/mesh-task"
   family = "my_task"
 
   ...
@@ -117,6 +117,32 @@ module "my_task" {
   consul_image     = "hashicorp/consul-enterprise:<version>-ent"
   consul_partition = "my-partition"
   consul_namespace = "my-namespace"
+}
+```
+
+</CodeBlockConfig>
+
+### Audit Logging
+Consul on ECS supports [audit logging](/docs/enterprise/audit-logging) when using Consul Enterprise clients.
+This feature has the following requirements:
+
+- ACLs must be enabled.
+- `mesh-task` must use a Consul Enterprise image.
+- `gateway-task` must use a Consul Enterprise image.
+
+To enable audit logging, set `audit_logging = true` when configuring the client.
+
+<CodeBlockConfig highlight="7-8">
+
+```hcl
+module "my_task" {
+  source = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  family = "my_task"
+
+  ...
+
+  consul_image  = "hashicorp/consul-enterprise:<version>-ent"
+  audit_logging = true
 }
 ```
 

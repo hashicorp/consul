@@ -2944,13 +2944,6 @@ ansi-styles@~1.0.0:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-1.0.0.tgz#cb102df1c56f5123eab8b67cd7b98027a0279178"
   integrity sha1-yxAt8cVvUSPquLZ817mAJ6AnkXg=
 
-ansi-to-html@^0.6.15:
-  version "0.6.15"
-  resolved "https://registry.yarnpkg.com/ansi-to-html/-/ansi-to-html-0.6.15.tgz#ac6ad4798a00f6aa045535d7f6a9cb9294eebea7"
-  integrity sha512-28ijx2aHJGdzbs+O5SNQF65r6rrKYnkuwTYm8lZlChuoJ9P1vVzIpWO20sQTqTPDXYp6NFwk326vApTtLVFXpQ==
-  dependencies:
-    entities "^2.0.0"
-
 ansi-to-html@^0.6.6:
   version "0.6.14"
   resolved "https://registry.yarnpkg.com/ansi-to-html/-/ansi-to-html-0.6.14.tgz#65fe6d08bba5dd9db33f44a20aec331e0010dad8"
@@ -4664,7 +4657,7 @@ broccoli-plugin@^4.0.0, broccoli-plugin@^4.0.1, broccoli-plugin@^4.0.2, broccoli
     rimraf "^3.0.2"
     symlink-or-copy "^1.3.1"
 
-broccoli-plugin@^4.0.7:
+broccoli-plugin@^4.0.5, broccoli-plugin@^4.0.7:
   version "4.0.7"
   resolved "https://registry.yarnpkg.com/broccoli-plugin/-/broccoli-plugin-4.0.7.tgz#dd176a85efe915ed557d913744b181abe05047db"
   integrity sha512-a4zUsWtA1uns1K7p9rExYVYG99rdKeGRymW0qOCNkvDPHQxVi3yVyJHhQbM3EZwdt2E0mnhr5e0c/bPpJ7p3Wg==
@@ -6556,6 +6549,16 @@ ember-cli-dependency-checker@^3.2.0:
     resolve "^1.5.0"
     semver "^5.3.0"
 
+ember-cli-deprecation-workflow@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/ember-cli-deprecation-workflow/-/ember-cli-deprecation-workflow-2.1.0.tgz#f0d38ece7ac0ab7b3f83790a3a092e3472f58cff"
+  integrity sha512-Ay9P9iKMJdY4Gq5XPowh3HqqeAzLfwBRj1oB1ZKkDW1fryZQWBN4pZuRnjnB+3VWZjBnZif5e7Pacc7YNW9hWg==
+  dependencies:
+    broccoli-funnel "^3.0.3"
+    broccoli-merge-trees "^4.2.0"
+    broccoli-plugin "^4.0.5"
+    ember-cli-htmlbars "^5.3.2"
+
 ember-cli-flash@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/ember-cli-flash/-/ember-cli-flash-2.1.1.tgz#a1547676d20a8d6f5d0f523228d3e7c8a76486ee"
@@ -6633,17 +6636,18 @@ ember-cli-htmlbars@^5.0.0, ember-cli-htmlbars@^5.1.0, ember-cli-htmlbars@^5.1.2,
     strip-bom "^4.0.0"
     walk-sync "^2.2.0"
 
-ember-cli-htmlbars@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-6.0.0.tgz#9d0b67c0f107467b6c8ecdc47d64e877489841bf"
-  integrity sha512-7h9Lb1kfvLecMUOX8wCbwjzCsgXdNDs8qpOsDuKV6YaGS9jDZHu4P5xTYLX78YepEUnwOw1atCYWzBUsJHWrzA==
+ember-cli-htmlbars@^5.3.2:
+  version "5.7.2"
+  resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-5.7.2.tgz#e0cd2fb3c20d85fe4c3e228e6f0590ee1c645ba8"
+  integrity sha512-Uj6R+3TtBV5RZoJY14oZn/sNPnc+UgmC8nb5rI4P3fR/gYoyTFIZSXiIM7zl++IpMoIrocxOrgt+mhonKphgGg==
   dependencies:
     "@ember/edition-utils" "^1.2.0"
-    babel-plugin-ember-template-compilation "^1.0.0"
-    babel-plugin-htmlbars-inline-precompile "^5.3.0"
+    babel-plugin-htmlbars-inline-precompile "^5.0.0"
     broccoli-debug "^0.6.5"
     broccoli-persistent-filter "^3.1.2"
     broccoli-plugin "^4.0.3"
+    common-tags "^1.8.0"
+    ember-cli-babel-plugin-helpers "^1.1.1"
     ember-cli-version-checker "^5.1.2"
     fs-tree-diff "^2.0.1"
     hash-for-dep "^1.5.1"
@@ -6654,10 +6658,10 @@ ember-cli-htmlbars@^6.0.0:
     strip-bom "^4.0.0"
     walk-sync "^2.2.0"
 
-ember-cli-htmlbars@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-6.0.1.tgz#5487831d477e61682bc867fd138808269e5d2152"
-  integrity sha512-IDsl9uty+MXtMfp/BUTEc/Q36EmlHYj8ZdPekcoRa8hmdsigHnK4iokfaB7dJFktlf6luruei+imv7JrJrBQPQ==
+ember-cli-htmlbars@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-6.0.0.tgz#9d0b67c0f107467b6c8ecdc47d64e877489841bf"
+  integrity sha512-7h9Lb1kfvLecMUOX8wCbwjzCsgXdNDs8qpOsDuKV6YaGS9jDZHu4P5xTYLX78YepEUnwOw1atCYWzBUsJHWrzA==
   dependencies:
     "@ember/edition-utils" "^1.2.0"
     babel-plugin-ember-template-compilation "^1.0.0"
@@ -6863,22 +6867,6 @@ ember-cli-typescript@^4.0.0, ember-cli-typescript@^4.1.0:
   integrity sha512-zSuKG8IQuYE3vS+c7V0mHJqwrN/4Wo9Wr50+0NUjnZH3P99ChynczQHu/P7WSifkO6pF6jaxwzf09XzWvG8sVw==
   dependencies:
     ansi-to-html "^0.6.6"
-    broccoli-stew "^3.0.0"
-    debug "^4.0.0"
-    execa "^4.0.0"
-    fs-extra "^9.0.1"
-    resolve "^1.5.0"
-    rsvp "^4.8.1"
-    semver "^7.3.2"
-    stagehand "^1.0.0"
-    walk-sync "^2.2.0"
-
-ember-cli-typescript@^5.0.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-5.1.0.tgz#460eb848564e29d64f2b36b2a75bbe98172b72a4"
-  integrity sha512-wEZfJPkjqFEZAxOYkiXsDrJ1HY75e/6FoGhQFg8oNFJeGYpIS/3W0tgyl1aRkSEEN1NRlWocDubJ4aZikT+RTA==
-  dependencies:
-    ansi-to-html "^0.6.15"
     broccoli-stew "^3.0.0"
     debug "^4.0.0"
     execa "^4.0.0"
@@ -7291,16 +7279,6 @@ ember-intl@^5.5.1:
     mkdirp "^1.0.4"
     silent-error "^1.1.1"
 
-ember-keyboard@^7.0.1:
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/ember-keyboard/-/ember-keyboard-7.0.1.tgz#6cf336efd4ea6cb69ec93d20fb0b819bd7241a9d"
-  integrity sha512-MKK9/3yzn30ekmFAQO7z+okCQa7Z5wCSI5m7lR3EL2dMIeRd/9eeLhbQNCU00Slx+GjwsGyCEWPqIQmekFJxpQ==
-  dependencies:
-    ember-cli-babel "^7.26.6"
-    ember-cli-htmlbars "^6.0.1"
-    ember-modifier "^2.1.2 || ^3.0.0"
-    ember-modifier-manager-polyfill "^1.2.0"
-
 ember-load-initializers@^2.1.1:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ember-load-initializers/-/ember-load-initializers-2.1.2.tgz#8a47a656c1f64f9b10cecdb4e22a9d52ad9c7efa"
@@ -7358,17 +7336,6 @@ ember-modifier@^2.1.0, ember-modifier@^2.1.1:
     ember-cli-typescript "^3.1.3"
     ember-destroyable-polyfill "^2.0.2"
     ember-modifier-manager-polyfill "^1.2.0"
-
-"ember-modifier@^2.1.2 || ^3.0.0":
-  version "3.2.7"
-  resolved "https://registry.yarnpkg.com/ember-modifier/-/ember-modifier-3.2.7.tgz#f2d35b7c867cbfc549e1acd8d8903c5ecd02ea4b"
-  integrity sha512-ezcPQhH8jUfcJQbbHji4/ZG/h0yyj1jRDknfYue/ypQS8fM8LrGcCMo0rjDZLzL1Vd11InjNs3BD7BdxFlzGoA==
-  dependencies:
-    ember-cli-babel "^7.26.6"
-    ember-cli-normalize-entity-name "^1.0.0"
-    ember-cli-string-utils "^1.1.0"
-    ember-cli-typescript "^5.0.0"
-    ember-compatibility-helpers "^1.2.5"
 
 ember-named-blocks-polyfill@^0.2.3:
   version "0.2.4"

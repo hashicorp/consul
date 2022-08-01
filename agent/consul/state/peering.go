@@ -3,12 +3,14 @@ package state
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -17,6 +19,8 @@ import (
 const (
 	tablePeering             = "peering"
 	tablePeeringTrustBundles = "peering-trust-bundles"
+	tablePeeringSecrets      = "peering-secrets"
+	tablePeeringSecretUUIDs  = "peering-secret-uuids"
 )
 
 func peeringTableSchema() *memdb.TableSchema {
@@ -73,6 +77,54 @@ func peeringTrustBundlesTableSchema() *memdb.TableSchema {
 	}
 }
 
+func peeringSecretsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tablePeeringSecrets,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: indexerSingle[string, *pbpeering.PeeringSecrets]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexIDFromPeeringSecret,
+				},
+			},
+		},
+	}
+}
+
+func peeringSecretUUIDsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tablePeeringSecretUUIDs,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: indexerSingle[string, string]{
+					readIndex:  indexFromUUIDString,
+					writeIndex: indexFromUUIDString,
+				},
+			},
+		},
+	}
+}
+
+func indexIDFromPeeringSecret(p *pbpeering.PeeringSecrets) ([]byte, error) {
+	if p.PeerID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	uuid, err := uuidStringToBytes(p.PeerID)
+	if err != nil {
+		return nil, err
+	}
+	var b indexBuilder
+	b.Raw(uuid)
+	return b.Bytes(), nil
+}
+
 func indexIDFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	if p.ID == "" {
 		return nil, errMissingValueForIndex
@@ -91,6 +143,233 @@ func indexDeletedFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	var b indexBuilder
 	b.Bool(!p.IsActive())
 	return b.Bytes(), nil
+}
+
+func (s *Store) PeeringSecretsRead(ws memdb.WatchSet, peerID string) (*pbpeering.PeeringSecrets, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	secret, err := peeringSecretsReadByPeerIDTxn(tx, ws, peerID)
+	if err != nil {
+		return nil, err
+	}
+	if secret == nil {
+		// TODO (peering) Return the tables index so caller can watch it for changes if the secret doesn't exist.
+		return nil, nil
+	}
+
+	return secret, nil
+}
+
+func peeringSecretsReadByPeerIDTxn(tx ReadTxn, ws memdb.WatchSet, id string) (*pbpeering.PeeringSecrets, error) {
+	watchCh, secretRaw, err := tx.FirstWatch(tablePeeringSecrets, indexID, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed peering secret lookup: %w", err)
+	}
+	ws.Add(watchCh)
+
+	secret, ok := secretRaw.(*pbpeering.PeeringSecrets)
+	if secretRaw != nil && !ok {
+		return nil, fmt.Errorf("invalid type %T", secret)
+	}
+	return secret, nil
+}
+
+func (s *Store) PeeringSecretsWrite(idx uint64, secret *pbpeering.PeeringSecrets) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	if err := s.peeringSecretsWriteTxn(tx, secret); err != nil {
+		return fmt.Errorf("failed to write peering secret: %w", err)
+	}
+	return tx.Commit()
+}
+
+func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, secret *pbpeering.PeeringSecrets) error {
+	if secret == nil {
+		return nil
+	}
+	if err := secret.Validate(); err != nil {
+		return err
+	}
+
+	peering, err := peeringReadByIDTxn(tx, nil, secret.PeerID)
+	if err != nil {
+		return fmt.Errorf("failed to read peering by id: %w", err)
+	}
+	if peering == nil {
+		return fmt.Errorf("unknown peering %q for secret", secret.PeerID)
+	}
+
+	// If the peering came from a peering token no validation is done for the given secrets.
+	// Dialing peers do not need to validate uniqueness because the secrets were generated elsewhere.
+	if peering.ShouldDial() {
+		if err := tx.Insert(tablePeeringSecrets, secret); err != nil {
+			return fmt.Errorf("failed inserting peering: %w", err)
+		}
+		return nil
+	}
+
+	// If the peering token was generated locally, validate that the newly introduced UUID is still unique.
+	// RPC handlers validate that generated IDs are available, but availability cannot be guaranteed until the state store operation.
+	var newSecretID string
+	switch {
+	// Establishment secrets are written when generating peering tokens, and no other secret IDs are included.
+	case secret.GetEstablishment() != nil:
+		newSecretID = secret.GetEstablishment().SecretID
+	// Stream secrets can be written as:
+	// - A new PendingSecretID from the ExchangeSecret RPC
+	// - An ActiveSecretID when promoting a pending secret on first use
+	case secret.GetStream() != nil:
+		if pending := secret.GetStream().GetPendingSecretID(); pending != "" {
+			newSecretID = pending
+		}
+
+		// We do not need to check the long-lived Stream.ActiveSecretID for uniqueness because:
+		// - In the cluster that generated it the secret is always introduced as a PendingSecretID, then promoted to ActiveSecretID.
+		//   This means that the promoted secret is already known to be unique.
+	}
+
+	if newSecretID != "" {
+		valid, err := validateProposedPeeringSecretUUIDTxn(tx, newSecretID)
+		if err != nil {
+			return fmt.Errorf("failed to check peering secret ID: %w", err)
+		}
+		if !valid {
+			return fmt.Errorf("peering secret is already in use, retry the operation")
+		}
+		err = tx.Insert(tablePeeringSecretUUIDs, newSecretID)
+		if err != nil {
+			return fmt.Errorf("failed to write secret UUID: %w", err)
+		}
+	}
+
+	existing, err := peeringSecretsReadByPeerIDTxn(tx, nil, secret.PeerID)
+	if err != nil {
+		return err
+	}
+
+	var toDelete []string
+	if existing != nil {
+		// Merge in existing stream secrets when persisting a new establishment secret.
+		// This is to avoid invalidating stream secrets when a new peering token
+		// is generated.
+		//
+		// We purposely DO NOT do the reverse of inheriting an existing establishment secret.
+		// When exchanging establishment secrets for stream secrets, we invalidate the
+		// establishment secret by deleting it.
+		if secret.GetEstablishment() != nil && secret.GetStream() == nil && existing.GetStream() != nil {
+			secret.Stream = existing.Stream
+		}
+
+		// Collect any overwritten UUIDs for deletion.
+		//
+		// Old establishment secret ID are always cleaned up when they don't match.
+		// They will either be replaced by a new one or deleted in the secret exchange RPC.
+		existingEstablishment := existing.GetEstablishment().GetSecretID()
+		if existingEstablishment != "" && existingEstablishment != secret.GetEstablishment().GetSecretID() {
+			toDelete = append(toDelete, existingEstablishment)
+		}
+
+		// Old active secret IDs are always cleaned up when they don't match.
+		// They are only ever replaced when promoting a pending secret ID.
+		existingActive := existing.GetStream().GetActiveSecretID()
+		if existingActive != "" && existingActive != secret.GetStream().GetActiveSecretID() {
+			toDelete = append(toDelete, existingActive)
+		}
+
+		// Pending secrets can change in three ways:
+		// - Generating a new pending secret: Nothing to delete here since there's no old pending secret being replaced.
+		// - Re-establishing a peering, and re-generating a pending secret: should delete the old one if both are non-empty.
+		// - Promoting a pending secret: Nothing to delete here since the pending secret is now active and still in use.
+		existingPending := existing.GetStream().GetPendingSecretID()
+		newPending := secret.GetStream().GetPendingSecretID()
+		if existingPending != "" &&
+			// The value of newPending indicates whether a peering is being generated/re-established (not empty)
+			// or whether a pending secret is being promoted (empty).
+			newPending != "" &&
+			newPending != existingPending {
+			toDelete = append(toDelete, existingPending)
+		}
+	}
+	for _, id := range toDelete {
+		if err := tx.Delete(tablePeeringSecretUUIDs, id); err != nil {
+			return fmt.Errorf("failed to free UUID: %w", err)
+		}
+	}
+
+	if err := tx.Insert(tablePeeringSecrets, secret); err != nil {
+		return fmt.Errorf("failed inserting peering: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) PeeringSecretsDelete(idx uint64, peerID string) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	if err := peeringSecretsDeleteTxn(tx, peerID); err != nil {
+		return fmt.Errorf("failed to write peering secret: %w", err)
+	}
+	return tx.Commit()
+}
+
+func peeringSecretsDeleteTxn(tx WriteTxn, peerID string) error {
+	secretRaw, err := tx.First(tablePeeringSecrets, indexID, peerID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch secret for peering: %w", err)
+	}
+	if secretRaw == nil {
+		return nil
+	}
+	if err := tx.Delete(tablePeeringSecrets, secretRaw); err != nil {
+		return fmt.Errorf("failed to delete secret for peering: %w", err)
+	}
+
+	secrets, ok := secretRaw.(*pbpeering.PeeringSecrets)
+	if !ok {
+		return fmt.Errorf("invalid type %T", secretRaw)
+	}
+
+	// Also clean up the UUID tracking table.
+	var toDelete []string
+	if establishment := secrets.GetEstablishment().GetSecretID(); establishment != "" {
+		toDelete = append(toDelete, establishment)
+	}
+	if pending := secrets.GetStream().GetPendingSecretID(); pending != "" {
+		toDelete = append(toDelete, pending)
+	}
+	if active := secrets.GetStream().GetActiveSecretID(); active != "" {
+		toDelete = append(toDelete, active)
+	}
+	for _, id := range toDelete {
+		if err := tx.Delete(tablePeeringSecretUUIDs, id); err != nil {
+			return fmt.Errorf("failed to free UUID: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *Store) ValidateProposedPeeringSecretUUID(id string) (bool, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	return validateProposedPeeringSecretUUIDTxn(tx, id)
+}
+
+// validateProposedPeeringSecretUUIDTxn is used to test whether a candidate secretID can be used as a peering secret.
+// Returns true if the given secret is not in use.
+func validateProposedPeeringSecretUUIDTxn(tx ReadTxn, secretID string) (bool, error) {
+	secretRaw, err := tx.First(tablePeeringSecretUUIDs, indexID, secretID)
+	if err != nil {
+		return false, fmt.Errorf("failed peering secret lookup: %w", err)
+	}
+
+	secret, ok := secretRaw.(string)
+	if secretRaw != nil && !ok {
+		return false, fmt.Errorf("invalid type %T", secret)
+	}
+	return secret == "", nil
 }
 
 func (s *Store) PeeringReadByID(ws memdb.WatchSet, id string) (uint64, *pbpeering.Peering, error) {
@@ -153,10 +432,10 @@ func peeringReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, *pbpeering.
 func (s *Store) PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
-	return s.peeringListTxn(ws, tx, entMeta)
+	return peeringListTxn(ws, tx, entMeta)
 }
 
-func (s *Store) peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
+func peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error) {
 	var (
 		iter memdb.ResultIterator
 		err  error
@@ -181,62 +460,84 @@ func (s *Store) peeringListTxn(ws memdb.WatchSet, tx ReadTxn, entMeta acl.Enterp
 	return idx, result, nil
 }
 
-func (s *Store) PeeringWrite(idx uint64, p *pbpeering.Peering) error {
+func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check that the ID and Name are set.
-	if p.ID == "" {
+	if req.Peering.ID == "" {
 		return errors.New("Missing Peering ID")
 	}
-	if p.Name == "" {
+	if req.Peering.Name == "" {
 		return errors.New("Missing Peering Name")
 	}
 
-	// ensure the name is unique (cannot conflict with another peering with a different ID)
+	// Ensure the name is unique (cannot conflict with another peering with a different ID).
 	_, existing, err := peeringReadTxn(tx, nil, Query{
-		Value:          p.Name,
-		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(p.Partition),
+		Value:          req.Peering.Name,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Peering.Partition),
 	})
 	if err != nil {
 		return err
 	}
 
 	if existing != nil {
-		if p.ID != existing.ID {
-			return fmt.Errorf("A peering already exists with the name %q and a different ID %q", p.Name, existing.ID)
+		if req.Peering.ID != existing.ID {
+			return fmt.Errorf("A peering already exists with the name %q and a different ID %q", req.Peering.Name, existing.ID)
 		}
-		// Prevent modifications to Peering marked for deletion
+		// Prevent modifications to Peering marked for deletion.
 		if !existing.IsActive() {
 			return fmt.Errorf("cannot write to peering that is marked for deletion")
 		}
 
-		p.CreateIndex = existing.CreateIndex
-		p.ModifyIndex = idx
+		if req.Peering.State == pbpeering.PeeringState_UNDEFINED {
+			req.Peering.State = existing.State
+		}
+		// TODO(peering): Confirm behavior when /peering/token is called more than once.
+		// We may need to avoid clobbering existing values.
+		req.Peering.ImportedServiceCount = existing.ImportedServiceCount
+		req.Peering.ExportedServiceCount = existing.ExportedServiceCount
+		req.Peering.CreateIndex = existing.CreateIndex
+		req.Peering.ModifyIndex = idx
 	} else {
-		idMatch, err := peeringReadByIDTxn(tx, nil, p.ID)
+		idMatch, err := peeringReadByIDTxn(tx, nil, req.Peering.ID)
 		if err != nil {
 			return err
 		}
 		if idMatch != nil {
-			return fmt.Errorf("A peering already exists with the ID %q and a different name %q", p.Name, existing.ID)
+			return fmt.Errorf("A peering already exists with the ID %q and a different name %q", req.Peering.Name, existing.ID)
 		}
 
-		if !p.IsActive() {
+		if !req.Peering.IsActive() {
 			return fmt.Errorf("cannot create a new peering marked for deletion")
 		}
-
-		// TODO(peering): consider keeping PeeringState enum elsewhere?
-		p.State = pbpeering.PeeringState_INITIAL
-		p.CreateIndex = idx
-		p.ModifyIndex = idx
+		if req.Peering.State == 0 {
+			req.Peering.State = pbpeering.PeeringState_PENDING
+		}
+		req.Peering.CreateIndex = idx
+		req.Peering.ModifyIndex = idx
 	}
 
-	if err := tx.Insert(tablePeering, p); err != nil {
+	// Ensure associated secrets are cleaned up when a peering is marked for deletion.
+	if req.Peering.State == pbpeering.PeeringState_DELETING {
+		if err := peeringSecretsDeleteTxn(tx, req.Peering.ID); err != nil {
+			return fmt.Errorf("failed to delete peering secrets: %w", err)
+		}
+	}
+
+	// Peerings are inserted before the associated StreamSecret because writing secrets
+	// depends on the peering existing.
+	if err := tx.Insert(tablePeering, req.Peering); err != nil {
 		return fmt.Errorf("failed inserting peering: %w", err)
 	}
 
-	if err := updatePeeringTableIndexes(tx, idx, p.PartitionOrDefault()); err != nil {
+	// Write any secrets generated with the peering.
+	err = s.peeringSecretsWriteTxn(tx, req.GetSecret())
+	if err != nil {
+		return fmt.Errorf("failed to write peering establishment secret: %w", err)
+	}
+
+	if err := updatePeeringTableIndexes(tx, idx, req.Peering.PartitionOrDefault()); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -309,7 +610,7 @@ func (s *Store) PeeringTerminateByID(idx uint64, id string) error {
 // gateway's config entry, which we wouldn't want to replicate. How would
 // client peers know to route through terminating gateways when they're not
 // dialing through a remote mesh gateway?
-func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint64, *structs.ExportedServiceList, error) {
+func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string, dc string) (uint64, *structs.ExportedServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -321,21 +622,21 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string) (uint6
 		return 0, &structs.ExportedServiceList{}, nil
 	}
 
-	return s.exportedServicesForPeerTxn(ws, tx, peering)
+	return exportedServicesForPeerTxn(ws, tx, peering, dc)
 }
 
 func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	maxIdx, peerings, err := s.peeringListTxn(ws, tx, entMeta)
+	maxIdx, peerings, err := peeringListTxn(ws, tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to list peerings: %w", err)
 	}
 
 	out := make(map[string]structs.ServiceList)
 	for _, peering := range peerings {
-		idx, list, err := s.exportedServicesForPeerTxn(ws, tx, peering)
+		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, "")
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
 		}
@@ -344,31 +645,37 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, entMeta acl
 		}
 		m := list.ListAllDiscoveryChains()
 		if len(m) > 0 {
-			out[peering.Name] = maps.SliceOfKeys(m)
+			sns := maps.SliceOfKeys(m)
+			sort.Sort(structs.ServiceList(sns))
+			out[peering.Name] = sns
 		}
 	}
 
 	return maxIdx, out, nil
 }
 
-func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peering *pbpeering.Peering) (uint64, *structs.ExportedServiceList, error) {
+// exportedServicesForPeerTxn will find all services that are exported to a
+// specific peering, and optionally include information about discovery chain
+// reachable targets for these exported services if the "dc" parameter is
+// specified.
+func exportedServicesForPeerTxn(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	peering *pbpeering.Peering,
+	dc string,
+) (uint64, *structs.ExportedServiceList, error) {
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
-	idx, raw, err := configEntryTxn(tx, ws, structs.ExportedServices, entMeta.PartitionOrDefault(), entMeta)
+	idx, conf, err := getExportedServicesConfigEntryTxn(tx, ws, nil, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch exported-services config entry: %w", err)
 	}
 	if idx > maxIdx {
 		maxIdx = idx
 	}
-	if raw == nil {
+	if conf == nil {
 		return maxIdx, &structs.ExportedServiceList{}, nil
-	}
-
-	conf, ok := raw.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("expected type *structs.ExportedServicesConfigEntry, got %T", raw)
 	}
 
 	var (
@@ -376,9 +683,6 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 		discoSet  = make(map[structs.ServiceName]struct{})
 	)
 
-	// TODO(peering): filter the disco chain portion of the results to only be
-	// things reachable over the mesh to avoid replicating some clutter.
-	//
 	// At least one of the following should be true for a name for it to
 	// replicate:
 	//
@@ -421,7 +725,7 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 			}
 
 			// list all config entries of kind service-resolver, service-router, service-splitter?
-			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, svcMeta)
+			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, nil, svcMeta)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
 			}
@@ -437,45 +741,146 @@ func (s *Store) exportedServicesForPeerTxn(ws memdb.WatchSet, tx ReadTxn, peerin
 	normal := maps.SliceOfKeys(normalSet)
 	disco := maps.SliceOfKeys(discoSet)
 
-	structs.ServiceList(normal).Sort()
-	structs.ServiceList(disco).Sort()
-
-	serviceProtocols := make(map[structs.ServiceName]string)
-	populateProtocol := func(svc structs.ServiceName) error {
-		if _, ok := serviceProtocols[svc]; ok {
+	chainInfo := make(map[structs.ServiceName]structs.ExportedDiscoveryChainInfo)
+	populateChainInfo := func(svc structs.ServiceName) error {
+		if _, ok := chainInfo[svc]; ok {
 			return nil // already processed
 		}
 
+		var info structs.ExportedDiscoveryChainInfo
+
 		idx, protocol, err := protocolForService(tx, ws, svc)
 		if err != nil {
-			return fmt.Errorf("failed to get protocol for service: %w", err)
+			return fmt.Errorf("failed to get protocol for service %q: %w", svc, err)
 		}
 
 		if idx > maxIdx {
 			maxIdx = idx
 		}
+		info.Protocol = protocol
 
-		serviceProtocols[svc] = protocol
+		if dc != "" && !structs.IsProtocolHTTPLike(protocol) {
+			// We only need to populate the targets for replication purposes for L4 protocols, which
+			// do not ultimately get intercepted by the mesh gateways.
+			idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
+			}
+
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			sort.Slice(targets, func(i, j int) bool {
+				return targets[i].ID < targets[j].ID
+			})
+
+			info.TCPTargets = targets
+		}
+
+		chainInfo[svc] = info
 		return nil
 	}
+
 	for _, svc := range normal {
-		if err := populateProtocol(svc); err != nil {
+		if err := populateChainInfo(svc); err != nil {
 			return 0, nil, err
 		}
 	}
 	for _, svc := range disco {
-		if err := populateProtocol(svc); err != nil {
+		if err := populateChainInfo(svc); err != nil {
 			return 0, nil, err
 		}
 	}
 
+	structs.ServiceList(normal).Sort()
+
 	list := &structs.ExportedServiceList{
-		Services:        normal,
-		DiscoChains:     disco,
-		ConnectProtocol: serviceProtocols,
+		Services:    normal,
+		DiscoChains: chainInfo,
 	}
 
 	return maxIdx, list, nil
+}
+
+func listAllExportedServices(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+	entMeta acl.EnterpriseMeta,
+) (uint64, map[structs.ServiceName]struct{}, error) {
+	idx, export, err := getExportedServicesConfigEntryTxn(tx, ws, overrides, &entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	found := make(map[structs.ServiceName]struct{})
+	if export == nil {
+		return idx, found, nil
+	}
+
+	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
+	if err != nil {
+		return 0, nil, err
+	}
+	for _, svc := range services {
+		found[svc] = struct{}{}
+	}
+
+	return idx, found, nil
+}
+
+func listServicesExportedToAnyPeerByConfigEntry(
+	ws memdb.WatchSet,
+	tx ReadTxn,
+	conf *structs.ExportedServicesConfigEntry,
+	overrides map[configentry.KindName]structs.ConfigEntry,
+) (uint64, []structs.ServiceName, error) {
+	var (
+		entMeta = conf.GetEnterpriseMeta()
+		found   = make(map[structs.ServiceName]struct{})
+		maxIdx  uint64
+	)
+
+	for _, svc := range conf.Services {
+		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+
+		sawPeer := false
+		for _, consumer := range svc.Consumers {
+			if consumer.PeerName == "" {
+				continue
+			}
+			sawPeer = true
+
+			sn := structs.NewServiceName(svc.Name, &svcMeta)
+			if _, ok := found[sn]; ok {
+				continue
+			}
+
+			if svc.Name != structs.WildcardSpecifier {
+				found[sn] = struct{}{}
+			}
+		}
+
+		if sawPeer && svc.Name == structs.WildcardSpecifier {
+			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, overrides, svcMeta)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			for _, sn := range discoChains {
+				found[sn] = struct{}{}
+			}
+		}
+	}
+
+	foundKeys := maps.SliceOfKeys(found)
+
+	structs.ServiceList(foundKeys).Sort()
+
+	return maxIdx, foundKeys, nil
 }
 
 // PeeringsForService returns the list of peerings that are associated with the service name provided in the query.
@@ -521,25 +926,44 @@ func peeringsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, en
 	return maxIdx, peerings, nil
 }
 
-// TrustBundleListByService returns the trust bundles for all peers that the given service is exported to.
-func (s *Store) TrustBundleListByService(ws memdb.WatchSet, service string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error) {
+// TrustBundleListByService returns the trust bundles for all peers that the
+// given service is exported to, via a discovery chain target.
+func (s *Store) TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	maxIdx, peers, err := peeringsForServiceTxn(tx, ws, service, entMeta)
+	realSvc := structs.NewServiceName(service, &entMeta)
+
+	maxIdx, chainNames, err := s.discoveryChainSourcesTxn(tx, ws, dc, realSvc)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get peers for service %s: %v", service, err)
+		return 0, nil, fmt.Errorf("failed to list all discovery chains referring to %q: %w", realSvc, err)
 	}
 
+	peerNames := make(map[string]struct{})
+	for _, chainSvc := range chainNames {
+		idx, peers, err := peeringsForServiceTxn(tx, ws, chainSvc.Name, chainSvc.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get peers for service %s: %v", chainSvc, err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, peer := range peers {
+			peerNames[peer.Name] = struct{}{}
+		}
+	}
+	peerNamesSlice := maps.SliceOfKeys(peerNames)
+	sort.Strings(peerNamesSlice)
+
 	var resp []*pbpeering.PeeringTrustBundle
-	for _, peer := range peers {
+	for _, peerName := range peerNamesSlice {
 		pq := Query{
-			Value:          strings.ToLower(peer.Name),
+			Value:          strings.ToLower(peerName),
 			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(entMeta.PartitionOrDefault()),
 		}
 		idx, trustBundle, err := peeringTrustBundleReadTxn(tx, ws, pq)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peer.Name, err)
+			return 0, nil, fmt.Errorf("failed to read trust bundle for peer %s: %v", peerName, err)
 		}
 		if idx > maxIdx {
 			maxIdx = idx
@@ -548,6 +972,7 @@ func (s *Store) TrustBundleListByService(ws memdb.WatchSet, service string, entM
 			resp = append(resp, trustBundle)
 		}
 	}
+
 	return maxIdx, resp, nil
 }
 

@@ -29,14 +29,6 @@ Usage: `consul namespace create -name <namespace name> [options]`
 Request a namespace to be created. Construction of the namespace definition is handled by this command
 from the CLI arguments.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-@include 'http_api_partition_options.mdx'
-
 #### Command Options
 
 - `-default-policy-id=<value>` - ID of a policy from the default namespace to inject for all tokens
@@ -64,6 +56,14 @@ from the CLI arguments.
 
 - `-show-meta` - Indicates that namespace metadata such as the raft indices should
   be shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

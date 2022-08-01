@@ -130,6 +130,9 @@ type Config struct {
 	// RPCSrcAddr is the source address for outgoing RPC connections.
 	RPCSrcAddr *net.TCPAddr
 
+	// GRPCPort is the port the public gRPC server listens on.
+	GRPCPort int
+
 	// (Enterprise-only) The network segment this agent is part of.
 	Segment string
 
@@ -393,6 +396,11 @@ type Config struct {
 
 	RaftBoltDBConfig RaftBoltDBConfig
 
+	// PeeringEnabled enables cluster peering.
+	PeeringEnabled bool
+
+	PeeringTestAllowPeerRegistrations bool
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -508,6 +516,9 @@ func DefaultConfig() *Config {
 		AutopilotInterval:        10 * time.Second,
 		DefaultQueryTime:         300 * time.Second,
 		MaxQueryTime:             600 * time.Second,
+
+		PeeringEnabled:                    true,
+		PeeringTestAllowPeerRegistrations: false,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}

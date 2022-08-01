@@ -11,7 +11,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	bexpr "github.com/hashicorp/go-bexpr"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -48,53 +47,62 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// TODO: this estimate is wrong
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+
-			len(cfgSnap.ConnectProxy.PeerUpstreamEndpoints)+
+			cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Len()+
 			len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
+		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
-		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		explicit := upstream.HasLocalPortOrSocket()
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
-		es := s.endpointsFromDiscoveryChain(
+		var upstreamConfigMap map[string]interface{}
+		if upstream != nil {
+			upstreamConfigMap = upstream.Config
+		}
+
+		es, err := s.endpointsFromDiscoveryChain(
 			uid,
 			chain,
 			cfgSnap.Locality,
-			upstreamCfg,
+			upstreamConfigMap,
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[uid],
+			false,
 		)
+		if err != nil {
+			return nil, err
+		}
 		resources = append(resources, es...)
 	}
 
 	// NOTE: Any time we skip an upstream below we MUST also skip that same
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
-	//
-	// TODO(peering): make this work for tproxy
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[uid]
 
 		explicit := upstreamCfg.HasLocalPortOrSocket()
-		if _, implicit := cfgSnap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
+		if !implicit && !explicit {
 			// Not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
 
-		peerMeta := cfgSnap.ConnectProxy.UpstreamPeerMeta(uid)
-
-		// TODO(peering): if we replicated service metadata separately from the
-		// instances we wouldn't have to flip/flop this cluster name like this.
-		clusterName := peerMeta.PrimarySNI()
-		if clusterName == "" {
-			clusterName = uid.EnvoyID()
+		tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		if !ok {
+			// this should never happen since we loop through upstreams with
+			// set trust bundles
+			return nil, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 		}
+
+		clusterName := generatePeeredClusterName(uid, tbs)
 
 		// Also skip peer instances with a hostname as their address. EDS
 		// cannot resolve hostnames, so we provide them through CDS instead.
@@ -102,7 +110,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints[uid]
+		endpoints, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
 		if ok {
 			la := makeLoadAssignment(
 				clusterName,
@@ -140,6 +148,32 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			resources = append(resources, la)
 		}
 	}
+
+	// Loop over potential destinations in the mesh, then grab the gateway nodes associated with each
+	cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid proxycfg.UpstreamID) bool {
+		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		if !ok || svcConfig.Destination == nil {
+			return true
+		}
+
+		for _, address := range svcConfig.Destination.Addresses {
+			name := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
+
+			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
+			if ok {
+				la := makeLoadAssignment(
+					name,
+					[]loadAssignmentEndpointGroup{
+						{Endpoints: endpoints},
+					},
+					proxycfg.GatewayKey{ /*empty so it never matches*/ },
+				)
+				resources = append(resources, la)
+			}
+		}
+
+		return true
+	})
 
 	return resources, nil
 }
@@ -179,53 +213,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			continue
 		}
 
-		// Mesh gateways in remote DCs are discovered in two ways:
-		//
-		//	1. Via an Internal.ServiceDump RPC in the remote DC (GatewayGroups).
-		//	2. In the federation state that is replicated from the primary DC (FedStateGateways).
-		//
-		// We determine which set to use based on whichever contains the highest
-		// raft ModifyIndex (and is therefore most up-to-date).
-		//
-		// Previously, GatewayGroups was always given presedence over FedStateGateways
-		// but this was problematic when using mesh gateways for WAN federation.
-		//
-		// Consider the following example:
-		//
-		//	- Primary and Secondary DCs are WAN Federated via local mesh gateways.
-		//
-		//	- Secondary DC's mesh gateway is running on an ephemeral compute instance
-		//	  and is abruptly terminated and rescheduled with a *new IP address*.
-		//
-		//	- Primary DC's mesh gateway is no longer able to connect to the Secondary
-		//	  DC as its proxy is configured with the old IP address. Therefore any RPC
-		//	  from the Primary to the Secondary DC will fail (including the one to
-		//	  discover the gateway's new IP address).
-		//
-		//	- Secondary DC performs its regular anti-entropy of federation state data
-		//	  to the Primary DC (this succeeds as there is still connectivity in this
-		//	  direction).
-		//
-		//	- At this point the Primary DC's mesh gateway should observe the new IP
-		//	  address and reconfigure its proxy, however as we always prioritised
-		//	  GatewayGroups this didn't happen and the connection remained severed.
-		maxModifyIndex := func(vals structs.CheckServiceNodes) uint64 {
-			var max uint64
-			for _, v := range vals {
-				if i := v.Service.RaftIndex.ModifyIndex; i > max {
-					max = i
-				}
-			}
-			return max
-		}
-
-		endpoints := cfgSnap.MeshGateway.GatewayGroups[key.String()]
-		fedStateEndpoints := cfgSnap.MeshGateway.FedStateGateways[key.String()]
-
-		if maxModifyIndex(fedStateEndpoints) > maxModifyIndex(endpoints) {
-			endpoints = fedStateEndpoints
-		}
-
+		endpoints := cfgSnap.GetMeshGatewayEndpoints(key)
 		if len(endpoints) == 0 {
 			s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
 			continue
@@ -308,6 +296,13 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	}
 	resources = append(resources, e...)
 
+	// Generate the endpoints for exported discovery chain targets.
+	e, err = s.makeExportedUpstreamEndpointsForMeshGateway(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, e...)
+
 	return resources, nil
 }
 
@@ -377,14 +372,18 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 				continue
 			}
 
-			es := s.endpointsFromDiscoveryChain(
+			es, err := s.endpointsFromDiscoveryChain(
 				uid,
 				cfgSnap.IngressGateway.DiscoveryChain[uid],
 				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
-				&u,
+				u.Config,
 				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[uid],
 				cfgSnap.IngressGateway.WatchedGatewayEndpoints[uid],
+				false,
 			)
+			if err != nil {
+				return nil, err
+			}
 			resources = append(resources, es...)
 			createdClusters[uid] = true
 		}
@@ -417,41 +416,47 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	uid proxycfg.UpstreamID,
 	chain *structs.CompiledDiscoveryChain,
 	gatewayKey proxycfg.GatewayKey,
-	upstream *structs.Upstream,
+	upstreamConfigMap map[string]interface{},
 	upstreamEndpoints map[string]structs.CheckServiceNodes,
 	gatewayEndpoints map[string]structs.CheckServiceNodes,
-) []proto.Message {
+	forMeshGateway bool,
+) ([]proto.Message, error) {
+	if chain == nil {
+		if forMeshGateway {
+			return nil, fmt.Errorf("missing discovery chain for %s", uid)
+		}
+		return nil, nil
+	}
+
+	if upstreamConfigMap == nil {
+		upstreamConfigMap = make(map[string]interface{}) // TODO:needed?
+	}
+
 	var resources []proto.Message
 
-	if chain == nil {
-		return resources
-	}
-
-	configMap := make(map[string]interface{})
-	if upstream != nil {
-		configMap = upstream.Config
-	}
-	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse", "upstream", uid,
-			"error", err)
-	}
-
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
-	if cfg.EnvoyClusterJSON != "" {
-		if chain.Default {
-			// If you haven't done anything to setup the discovery chain, then
-			// you can use the envoy_cluster_json escape hatch.
-			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
-			if err != nil {
-				return resources
+	if !forMeshGateway {
+		cfg, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn("failed to parse", "upstream", uid,
+				"error", err)
+		}
+
+		if cfg.EnvoyClusterJSON != "" {
+			if chain.Default {
+				// If you haven't done anything to setup the discovery chain, then
+				// you can use the envoy_cluster_json escape hatch.
+				escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
+				if err != nil {
+					return resources, nil
+				}
+			} else {
+				s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+					"discovery chain", chain.ServiceName, "upstream", uid,
+					"envoy_cluster_json", chain.ServiceName)
 			}
-		} else {
-			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
-				"discovery chain", chain.ServiceName, "upstream", uid,
-				"envoy_cluster_json", chain.ServiceName)
 		}
 	}
 
@@ -469,10 +474,13 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		if escapeHatchCluster != nil {
 			clusterName = escapeHatchCluster.Name
 		}
+		if forMeshGateway {
+			clusterName = meshGatewayExportedClusterNamePrefix + clusterName
+		}
 		s.Logger.Debug("generating endpoints for", "cluster", clusterName)
 
 		// Determine if we have to generate the entire cluster differently.
-		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
+		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node) && !forMeshGateway
 
 		if failoverThroughMeshGateway {
 			actualTargetID := firstHealthyTarget(
@@ -494,18 +502,21 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			gatewayEndpoints,
 			targetID,
 			gatewayKey,
+			forMeshGateway,
 		)
 		if !valid {
 			continue // skip the cluster if we're still populating the snapshot
 		}
 
-		var endpointGroups []loadAssignmentEndpointGroup
+		var numFailoverTargets int
+		if failover != nil {
+			numFailoverTargets = len(failover.Targets)
+		}
+
+		endpointGroups := make([]loadAssignmentEndpointGroup, 0, numFailoverTargets+1)
+		endpointGroups = append(endpointGroups, primaryGroup)
 
 		if failover != nil && len(failover.Targets) > 0 {
-			endpointGroups = make([]loadAssignmentEndpointGroup, 0, len(failover.Targets)+1)
-
-			endpointGroups = append(endpointGroups, primaryGroup)
-
 			for _, failTargetID := range failover.Targets {
 				failoverGroup, valid := makeLoadAssignmentEndpointGroup(
 					chain.Targets,
@@ -513,14 +524,13 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 					gatewayEndpoints,
 					failTargetID,
 					gatewayKey,
+					forMeshGateway,
 				)
 				if !valid {
 					continue // skip the failover target if we're still populating the snapshot
 				}
 				endpointGroups = append(endpointGroups, failoverGroup)
 			}
-		} else {
-			endpointGroups = append(endpointGroups, primaryGroup)
 		}
 
 		la := makeLoadAssignment(
@@ -531,7 +541,75 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		resources = append(resources, la)
 	}
 
-	return resources
+	return resources, nil
+}
+
+func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var resources []proto.Message
+
+	populatedExportedClusters := make(map[string]struct{}) // key=clusterName
+	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
+		chain := cfgSnap.MeshGateway.DiscoveryChain[svc]
+
+		chainEndpoints := make(map[string]structs.CheckServiceNodes)
+		for _, target := range chain.Targets {
+			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
+				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+					"target", target,
+					"gatewayLocality", cfgSnap.Locality,
+				)
+				continue
+			}
+
+			targetSvc := target.ServiceName()
+
+			endpoints, ok := cfgSnap.MeshGateway.ServiceGroups[targetSvc]
+			if !ok {
+				continue // ignore; not ready
+			}
+
+			if target.ServiceSubset == "" {
+				chainEndpoints[target.ID] = endpoints
+			} else {
+				resolver, ok := cfgSnap.MeshGateway.ServiceResolvers[targetSvc]
+				if !ok {
+					continue // ignore; not ready
+				}
+				subset, ok := resolver.Subsets[target.ServiceSubset]
+				if !ok {
+					continue // ignore; not ready
+				}
+
+				subsetEndpoints, err := s.filterSubsetEndpoints(&subset, endpoints)
+				if err != nil {
+					return nil, err
+				}
+				chainEndpoints[target.ID] = subsetEndpoints
+			}
+		}
+
+		clusterEndpoints, err := s.endpointsFromDiscoveryChain(
+			proxycfg.NewUpstreamIDFromServiceName(svc),
+			chain,
+			cfgSnap.Locality,
+			nil,
+			chainEndpoints,
+			nil,
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+		for _, endpoints := range clusterEndpoints {
+			clusterName := getResourceName(endpoints)
+			if _, ok := populatedExportedClusters[clusterName]; ok {
+				continue
+			}
+			populatedExportedClusters[clusterName] = struct{}{}
+			resources = append(resources, endpoints)
+		}
+	}
+	return resources, nil
 }
 
 type loadAssignmentEndpointGroup struct {
@@ -593,6 +671,7 @@ func makeLoadAssignmentEndpointGroup(
 	gatewayHealth map[string]structs.CheckServiceNodes,
 	targetID string,
 	localKey proxycfg.GatewayKey,
+	forMeshGateway bool,
 ) (loadAssignmentEndpointGroup, bool) {
 	realEndpoints, ok := targetHealth[targetID]
 	if !ok {
@@ -607,12 +686,11 @@ func makeLoadAssignmentEndpointGroup(
 	case structs.MeshGatewayModeRemote:
 		gatewayKey.Datacenter = target.Datacenter
 		gatewayKey.Partition = target.Partition
-
 	case structs.MeshGatewayModeLocal:
 		gatewayKey = localKey
 	}
 
-	if gatewayKey.IsEmpty() || (acl.EqualPartitions(localKey.Partition, target.Partition) && localKey.Datacenter == target.Datacenter) {
+	if forMeshGateway || gatewayKey.IsEmpty() || localKey.Matches(target.Datacenter, target.Partition) {
 		// Gateways are not needed if the request isn't for a remote DC or partition.
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,

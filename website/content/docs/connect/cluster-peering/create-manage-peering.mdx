@@ -47,23 +47,21 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 ## Establish a connection between clusters
 
-Next, use the peering token to establish a secure connection between the clusters. In the client agents of “cluster-02,” establish the peering connection using the HTTP API. This endpoint does not generate an output unless there is an error.
+Next, use `peering_token.json` to establish a secure connection between the clusters. In the client agents of "cluster-02," establish the peering connection using the HTTP API. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
 ```
 
-In the peer parameter, specify a name for the first cluster. The `PeeringToken` parameter should include the entire peering token created in the first cluster.
-
-When you connect server agents through cluster peering, they will peer their default partitions. To establish peering connections for other partitions through server agents, you must specify the partitions you want to peer using the `Partition` field of the request body.
+When you connect server agents through cluster peering, they peer their default partitions. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
 
 ## Export service endpoints
 
 After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
-First, create a configuration entry and specify the `Kind` as `“exported-services”`.
+First, create a configuration entry and specify the `Kind` as `"exported-services"`.
 
-<CodeBlockConfig filename="peering-config.hcl" highlight="1" hideClipboard>
+<CodeBlockConfig filename="peering-config.hcl" hideClipboard>
 
 ```hcl
 Kind = "exported-services"
@@ -98,9 +96,9 @@ Before you proceed, wait for the clusters to sync and make services available to
 
 Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
 
-First, create a configuration entry and specify the `Kind` as `“service-intentions”`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+First, create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
 
-<CodeBlockConfig filename="peering-intentions.hcl" highlight="1" hideClipboard>
+<CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
 
 ```hcl
 Kind      = "service-intentions"
@@ -131,7 +129,7 @@ To confirm that you peered your clusters, you can [query the `/health/service` e
 
 ```shell-session
 $ curl \
-    "http://127.0.0.1:8500/v1/health/service/service-name?peer=cluster-01"
+    "http://127.0.0.1:8500/v1/health/service/<service-name>?peer=cluster-01"
 ```
 
 A successful query will include service information in the output.
@@ -140,7 +138,7 @@ A successful query will include service information in the output.
 
 After you create a peering connection between clusters in different datacenters, you can disconnect the peered clusters. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
 
-In “cluster-01,” request the deletion via the HTTP API.
+In "cluster-01," request the deletion via the HTTP API.
 
 ```shell-session
 $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02

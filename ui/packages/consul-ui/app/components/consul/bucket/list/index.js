@@ -5,84 +5,105 @@ export default class ConsulBucketList extends Component {
   @service abilities;
 
   get itemsToDisplay() {
-    const { item, partition, nspace } = this.args;
-    const { abilities } = this;
+    const { peerOrPartitionPart, namespacePart, servicePart } = this;
 
-    let items = [];
+    return [...peerOrPartitionPart, ...namespacePart, ...servicePart];
+  }
+
+  get peerOrPartitionPart() {
+    const { peerPart, partitionPart } = this;
+
+    if (peerPart.length) {
+      return peerPart;
+    } else {
+      return partitionPart;
+    }
+  }
+
+  get partitionPart() {
+    const { item, partition } = this.args;
+
+    const { abilities } = this;
 
     if (partition && abilities.can('use partitions')) {
       if (item.Partition !== partition) {
-        this._addPeer(items);
-        this._addPartition(items);
-        this._addNamespace(items);
-        this._addService(items);
-      } else {
-        this._addPeerInfo(items);
+        return [
+          {
+            type: 'partition',
+            label: 'Admin Partition',
+            item: item.Partition,
+          },
+        ];
       }
-    } else if (nspace && abilities.can('use nspace')) {
-      if (item.Namespace !== nspace) {
-        this._addPeerInfo(items);
-        this._addService(items);
-      } else {
-        this._addPeerInfo(items);
-      }
-    } else {
-      this._addPeerInfo(items);
     }
 
-    return items;
+    return [];
   }
 
-  _addPeerInfo(items) {
+  get peerPart() {
     const { item } = this.args;
 
     if (item.PeerName) {
-      this._addPeer(items);
-      this._addNamespace(items);
+      return [
+        {
+          type: 'peer',
+          label: 'Peer',
+          item: item.PeerName,
+        },
+      ];
     }
+
+    return [];
   }
 
-  _addPartition(items) {
-    const { item } = this.args;
+  get namespacePart() {
+    const { item, nspace } = this.args;
+    const { abilities, partitionPart } = this;
 
-    items.push({
-      type: 'partition',
-      label: 'Admin Partition',
-      item: item.Partition,
-    });
-  }
-
-  _addNamespace(items) {
-    const { item } = this.args;
-
-    items.push({
+    const nspaceItem = {
       type: 'nspace',
       label: 'Namespace',
       item: item.Namespace,
-    });
+    };
+
+    // when we surface a partition - show a namespace with it
+    if (partitionPart.length) {
+      return [nspaceItem];
+    }
+
+    if (nspace && abilities.can('use nspaces')) {
+      if (item.Namespace !== nspace) {
+        return [
+          {
+            type: 'nspace',
+            label: 'Namespace',
+            item: item.Namespace,
+          },
+        ];
+      }
+    }
+
+    return [];
   }
 
-  _addService(items) {
-    const { service, item } = this.args;
+  get servicePart() {
+    const { item, service } = this.args;
 
-    if (service && item.Service) {
-      items.push({
-        type: 'service',
-        label: 'Service',
-        item: item.Service,
-      });
+    const { partitionPart, namespacePart } = this;
+
+    // when we show partitionPart or namespacePart -> consider service part
+    if (partitionPart.length || namespacePart.length) {
+      if (item.Service && service) {
+        return [
+          {
+            type: 'service',
+            label: 'Service',
+            item: item.Service,
+          },
+        ];
+      }
     }
-  }
 
-  _addPeer(items) {
-    const { item } = this.args;
-
-    if (item?.PeerName) {
-      items.push({
-        type: 'peer',
-        label: 'Peer',
-        item: item.PeerName,
-      });
-    }
+    return [];
   }
 }

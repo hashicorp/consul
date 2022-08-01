@@ -475,6 +475,9 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
 
+	// allows registering objects with the PeerName
+	cfg.PeeringTestAllowPeerRegistrations = true
+
 	return cfg
 }
 

@@ -1,0 +1,27 @@
+{
+  "ID": "${fake.random.uuid()}",
+  "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+  "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+  "Name": "${location.pathname.get(2)}",
+  "State": "${fake.helpers.randomize([
+    'ACTIVE',
+    'PENDING',
+    'ESTABLISHING',
+    'FAILING',
+    'DELETING',
+    'TERMINATED',
+    'UNDEFINED'
+  ])}",
+  "PeerID": "${fake.random.uuid()}",
+  "PeerServerName": "${fake.internet.domainName()}",
+  "PeerServerAddresses": [
+${
+  range(
+    env('CONSUL_PEER_ADDRESS_COUNT', Math.floor((Math.random() * 10) + 1))
+  ).map(i => `
+      "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}"
+`)}
+  ],
+  "CreateIndex": 89,
+  "ModifyIndex": 89
+}

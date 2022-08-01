@@ -8,6 +8,36 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *PeeringSecrets) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *PeeringSecrets) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *PeeringSecrets_Establishment) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *PeeringSecrets_Establishment) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *PeeringSecrets_Stream) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *PeeringSecrets_Stream) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *Peering) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -244,55 +274,5 @@ func (msg *EstablishResponse) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *EstablishResponse) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ReplicationMessage) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ReplicationMessage) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ReplicationMessage_Request) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ReplicationMessage_Request) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ReplicationMessage_Response) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ReplicationMessage_Response) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ReplicationMessage_Terminated) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ReplicationMessage_Terminated) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *LeaderAddress) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *LeaderAddress) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

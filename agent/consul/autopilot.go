@@ -86,7 +86,7 @@ func (s *Server) initAutopilot(config *Config) {
 	)
 
 	// registers a snapshot handler for the event publisher to send as the first event for a new stream
-	s.publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, apDelegate.readyServersPublisher.HandleSnapshot)
+	s.publisher.RegisterHandler(autopilotevents.EventTopicReadyServers, apDelegate.readyServersPublisher.HandleSnapshot, false)
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {

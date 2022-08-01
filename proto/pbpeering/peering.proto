@@ -1,11 +1,8 @@
 syntax = "proto3";
 
-package peering;
+package hashicorp.consul.internal.peering;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
-// TODO(peering): Handle this some other way
-import "proto/pbstatus/status.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -24,34 +21,68 @@ service PeeringService {
   rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse);
 
   rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse);
-
-  // StreamResources opens an event stream for resources to share between peers, such as services.
-  // Events are streamed as they happen.
-  // buf:lint:ignore RPC_REQUEST_STANDARD_NAME
-  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
-  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-  rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
 }
 
-// PeeringState enumerates all the states a peering can be in
+// PeeringState enumerates all the states a peering can be in.
 enum PeeringState {
   // Undefined represents an unset value for PeeringState during
   // writes.
   UNDEFINED = 0;
 
-  // Initial means a Peering has been initialized and is awaiting
-  // acknowledgement from a remote peer.
-  INITIAL = 1;
+  // Pending means the peering was created by generating a peering token.
+  // Peerings stay in a pending state until the peer uses the token to dial
+  // the local cluster.
+  PENDING = 1;
+
+  // Establishing means the peering is being established from a peering token.
+  // This is the initial state for dialing peers.
+  ESTABLISHING = 2;
 
   // Active means that the peering connection is active and healthy.
-  ACTIVE = 2;
+  ACTIVE = 3;
 
   // Failing means the peering connection has been interrupted but has not yet
   // been terminated.
-  FAILING = 3;
+  FAILING = 4;
+
+  // Deleting means a peering was marked for deletion and is in the process
+  // of being deleted.
+  DELETING = 5;
 
   // Terminated means the peering relationship has been removed.
-  TERMINATED = 4;
+  TERMINATED = 6;
+}
+
+// PeeringSecrets defines a secret used for authenticating/authorizing peer clusters.
+message PeeringSecrets {
+  // PeerID is the local UUID of the peering this secret was generated for.
+  string PeerID = 1;
+
+  message Establishment {
+    // SecretID is the one-time-use peering establishment secret.
+    string SecretID = 1;
+  }
+
+  message Stream {
+    // ActiveSecretID is the active UUID-v4 secret being used for authorization at
+    // the peering stream.
+    string ActiveSecretID = 1;
+
+    // PendingSecretID is a UUID-v4 secret introduced during secret rotation.
+    // When a peering is established or re-established, both the active secret and
+    // pending secret are considered valid. However, once the dialing peer uses
+    // the pending secret then it transitions to active and the previously active
+    // secret is discarded.
+    //
+    // Pending secret IDs are only valid for long-lived stream secrets.
+    // Only one establishment secret can exist for a peer at a time since they
+    // are designed for one-time use.
+    string PendingSecretID = 2;
+  }
+
+  Establishment establishment = 2;
+
+  Stream stream = 3;
 }
 
 // Peering defines a peering relationship between two disparate Consul clusters
@@ -99,10 +130,18 @@ message Peering {
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
   repeated string PeerServerAddresses = 10;
 
+  // ImportedServiceCount is the count of how many services are imported from this peering.
+  uint64 ImportedServiceCount = 13;
+
+  // ExportedServiceCount is the count of how many services are exported to this peering.
+  uint64 ExportedServiceCount = 14;
+
   // CreateIndex is the Raft index at which the Peering was created.
+  // @gotags: bexpr:"-"
   uint64 CreateIndex = 11;
 
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
+  // @gotags: bexpr:"-"
   uint64 ModifyIndex = 12;
 }
 
@@ -125,79 +164,61 @@ message PeeringTrustBundle {
   string ExportedPartition = 5;
 
   // CreateIndex is the Raft index at which the trust domain was created.
+  // @gotags: bexpr:"-"
   uint64 CreateIndex = 6;
 
   // ModifyIndex is the latest Raft index at which the trust bundle was modified.
+  // @gotags: bexpr:"-"
   uint64 ModifyIndex = 7;
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: LeaderReadTODO
 message PeeringReadRequest {
   string Name = 1;
   string Partition = 2;
-
-  string Datacenter = 3;
-
-//TODO(peering) query metadata
 }
 
 message PeeringReadResponse {
   Peering Peering = 1;
-
-//TODO(peering) query metadata
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
+// @consul-rpc-glue: LeaderReadTODO
 message PeeringListRequest {
   string Partition = 1;
-
-  string Datacenter = 2;
-
-//TODO(peering) query metadata
 }
 
 message PeeringListResponse {
   repeated Peering Peerings = 1;
-
-//TODO(peering) query metadata
 }
 
-// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringWriteRequest {
+  // Peering is the peering to write with the request.
   Peering Peering = 1;
 
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 2;
+  // PeeringSecrets contains the optional peering secrets to persist
+  // with the peering. Peering secrets are not embedded in the peering
+  // object to avoid leaking them.
+  PeeringSecrets Secret = 2;
 
-  // Meta is a mapping of some string value to any other string value
   map<string, string> Meta = 3;
 }
 
 // TODO(peering): Consider returning Peering if we keep this endpoint around
 message PeeringWriteResponse {}
 
-// @consul-rpc-glue: Datacenter,WriteTODO
 message PeeringDeleteRequest {
   string Name = 1;
 
   string Partition = 2;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 3;
 }
 
 message PeeringDeleteResponse {}
 
-// @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleListByServiceRequest {
   string ServiceName = 1;
   string Namespace = 2;
   string Partition = 3;
   string Kind = 4;
-
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 5;
 }
 
 message TrustBundleListByServiceResponse {
@@ -205,14 +226,9 @@ message TrustBundleListByServiceResponse {
   repeated PeeringTrustBundle Bundles = 2;
 }
 
-// @consul-rpc-glue: Datacenter,ReadTODO
 message TrustBundleReadRequest {
   string Name = 1;
   string Partition = 2;
-
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 3;
 }
 
 message TrustBundleReadResponse {
@@ -220,30 +236,23 @@ message TrustBundleReadResponse {
   PeeringTrustBundle Bundle = 2;
 }
 
+// This is a purely internal type and does not require query metadata.
 message PeeringTerminateByIDRequest {
   string ID = 1;
 }
 
 message PeeringTerminateByIDResponse {}
 
-// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleWriteRequest {
   PeeringTrustBundle PeeringTrustBundle = 1;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 2;
 }
 
 message PeeringTrustBundleWriteResponse {}
 
-// @consul-rpc-glue: Datacenter
 message PeeringTrustBundleDeleteRequest {
   string Name = 1;
 
   string Partition = 2;
-
-  //TODO(peering): what to do with embedded write request?
-  string Datacenter = 3;
 }
 
 message PeeringTrustBundleDeleteResponse {}
@@ -260,13 +269,13 @@ message GenerateTokenRequest {
   // Partition is the local partition being peered.
   string Partition = 2;
 
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 3;
-  string Token = 4;
-
   // Meta is a mapping of some string value to any other string value
   map<string, string> Meta = 5;
+
+  // ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
+  // load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
+  // addresses obtained from the "consul" service.
+  repeated string ServerExternalAddresses = 6;
 }
 
 // mog annotation:
@@ -280,8 +289,6 @@ message GenerateTokenResponse {
   string PeeringToken = 1;
 }
 
-// @consul-rpc-glue: Datacenter
-//
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/api.PeeringEstablishRequest
@@ -297,89 +304,13 @@ message EstablishRequest {
   // Partition is the local partition being peered.
   string Partition = 3;
 
-  // these are common fields required for implementing structs.RPCInfo methods
-  // that are used to forward requests
-  string Datacenter = 4;
-  string Token = 5;
-
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 6;
+  map<string, string> Meta = 4;
 }
 
-//
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/api.PeeringEstablishResponse
 // output=peering.gen.go
 // name=API
 message EstablishResponse {}
-
-message ReplicationMessage {
-  oneof Payload {
-    Request request = 1;
-    Response response = 2;
-    Terminated terminated = 3;
-  }
-
-  // A Request requests to subscribe to a resource of a given type.
-  message Request {
-    // An identifier for the peer making the request.
-    // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
-    string PeerID = 1;
-
-    // Nonce corresponding to that of the response being ACKed or NACKed.
-    // Initial subscription requests will have an empty nonce.
-    // The nonce is generated and incremented by the exporting peer.
-    string Nonce = 2;
-
-    // The type URL for the resource being requested or ACK/NACKed.
-    string ResourceURL = 3;
-
-    // The error if the previous response was not applied successfully.
-    // This field is empty in the first subscription request.
-    status.Status Error = 4;
-  }
-
-  // A Response contains resources corresponding to a subscription request.
-  message Response {
-    // Nonce identifying a response in a stream.
-    string Nonce = 1;
-
-    // The type URL of resource being returned.
-    string ResourceURL = 2;
-
-    // An identifier for the resource being returned.
-    // This could be the SPIFFE ID of the service.
-    string ResourceID = 3;
-
-    // The resource being returned.
-    google.protobuf.Any Resource = 4;
-
-    // Operation enumerates supported operations for replicated resources.
-    enum Operation {
-      Unknown = 0;
-
-      // UPSERT represents a create or update event.
-      UPSERT = 1;
-
-      // DELETE indicates the resource should be deleted.
-      // In DELETE operations no Resource will be returned.
-      // Deletion by an importing peer must be done with the type URL and ID.
-      DELETE = 2;
-    }
-
-    // REQUIRED. The operation to be performed in relation to the resource.
-    Operation operation = 5;
-  }
-
-  // Terminated is sent when a peering is deleted locally.
-  // This message signals to the peer that they should clean up their local state about the peering.
-  message Terminated {}
-}
-
-// LeaderAddress is sent when the peering service runs on a consul node
-// that is not a leader. The node either lost leadership, or never was a leader.
-message LeaderAddress {
-  // address is an ip:port best effort hint at what could be the cluster leader's address
-  string address = 1;
-}

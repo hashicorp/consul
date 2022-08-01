@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/iamauth"
 	"github.com/hashicorp/go-hclog"
 )
 

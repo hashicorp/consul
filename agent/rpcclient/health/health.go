@@ -136,14 +136,14 @@ func (r serviceRequest) Type() string {
 }
 
 func (r serviceRequest) NewMaterializer() (submatview.Materializer, error) {
-	view, err := newHealthView(r.ServiceSpecificRequest)
+	view, err := NewHealthView(r.ServiceSpecificRequest)
 	if err != nil {
 		return nil, err
 	}
 	deps := submatview.Deps{
 		View:    view,
 		Logger:  r.deps.Logger,
-		Request: newMaterializerRequest(r.ServiceSpecificRequest),
+		Request: NewMaterializerRequest(r.ServiceSpecificRequest),
 	}
 
 	return submatview.NewRPCMaterializer(pbsubscribe.NewStateChangeSubscriptionClient(r.deps.Conn), deps), nil

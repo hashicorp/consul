@@ -292,7 +292,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		})
 }
 
-// IntentionUpstreams returns the upstreams of a service. Upstreams are inferred from intentions.
+// IntentionUpstreams returns a service's upstreams which are inferred from intentions.
 // If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
 func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
@@ -309,9 +309,9 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 	return m.internalUpstreams(args, reply, structs.IntentionTargetService)
 }
 
-// IntentionUpstreamsDestination returns the upstreams of a service. Upstreams are inferred from intentions.
+// IntentionUpstreamsDestination returns a service's upstreams which are inferred from intentions.
 // If intentions allow a connection from the target to some candidate destination, the candidate destination is considered
-// an upstream of the target.this is performs the same logic as  IntentionUpstreams endpoint but for destination upstreams only.
+// an upstream of the target. This performs the same logic as IntentionUpstreams endpoint but for destination upstreams only.
 func (m *Internal) IntentionUpstreamsDestination(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
 	// Exit early if Connect hasn't been enabled.
 	if !m.srv.config.ConnectEnabled {
@@ -453,6 +453,56 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
+// ServiceGateways returns all the nodes for services associated with a gateway along with their gateway config
+func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceGateways", args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide gateway name")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// We need read access to the service we're trying to find gateways for, so check that first.
+	if err := authz.ToAllowAuthorizer().ServiceReadAllowed(args.ServiceName, &authzContext); err != nil {
+		return err
+	}
+
+	err = m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var maxIdx uint64
+			idx, gateways, err := state.ServiceGateways(ws, args.ServiceName, args.ServiceKind, args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			reply.Index, reply.Nodes = maxIdx, gateways
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		})
+
+	return err
+}
+
 // GatewayIntentions Match returns the set of intentions that match the given source/destination.
 func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
 	// Forward if necessary
@@ -545,16 +595,14 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
 	if err != nil {
 		return err
 	}
-
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-
-	// TODO(peering): acls: mesh gateway needs appropriate wildcard service:read
 
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
@@ -567,6 +615,49 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 
 			reply.Index, reply.Services = index, serviceMap
 			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
+// PeeredUpstreams returns all imported services as upstreams for any service in a given partition.
+// Cluster peering does not replicate intentions so all imported services are considered potential upstreams.
+func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply *structs.IndexedPeeredServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if done, err := m.srv.ForwardRPC("Internal.PeeredUpstreams", args, reply); done {
+		return err
+	}
+
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, vips, err := state.VirtualIPsForAllImportedServices(ws, args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			result := make([]structs.PeeredServiceName, 0, len(vips))
+			for _, vip := range vips {
+				result = append(result, vip.Service)
+			}
+
+			reply.Index, reply.Services = index, result
 			return nil
 		})
 }

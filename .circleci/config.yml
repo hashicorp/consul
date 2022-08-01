@@ -23,6 +23,11 @@ references:
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
+  envoy-versions: &supported_envoy_versions
+    - &default_envoy_version "1.20.6"
+    - "1.21.4"
+    - "1.22.2"
+    - "1.23.0"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -30,7 +35,7 @@ references:
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v8-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -237,7 +242,9 @@ jobs:
       - run:
           name: Install protobuf
           command: make proto-tools
-
+      - run:
+          name: "Protobuf Format"
+          command: make proto-format
       - run:
           command: make --always-make proto
       - run: |
@@ -245,7 +252,7 @@ jobs:
             echo "Generated code was not updated correctly"
             exit 1
           fi
-      - run: 
+      - run:
           name: "Protobuf Lint"
           command: make proto-lint
 
@@ -852,15 +859,30 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_5: &ENVOY_TESTS
+  envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
+    parameters:
+      envoy-version:
+        type: enum
+        enum: *supported_envoy_versions
+        default: *default_envoy_version
+      xds-target:
+        type: enum
+        enum: ["server", "client"]
+        default: "server"
     environment:
-      ENVOY_VERSION: "1.19.5"
+      ENVOY_VERSION: << parameters.envoy-version >>
+      XDS_TARGET: << parameters.xds-target >>
+      AWS_LAMBDA_REGION: us-west-2
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_LAMBDA
+          secret-key: AWS_SECRET_ACCESS_KEY_LAMBDA
+          role-arn: ROLE_ARN_LAMBDA
       # Get go binary from workspace
       - attach_workspace:
           at: .
@@ -890,21 +912,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  envoy-integration-test-1_20_4:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.20.4"
-
-  envoy-integration-test-1_21_3:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.21.3"
-
-  envoy-integration-test-1_22_2:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.22.2"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1116,18 +1123,13 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_5:
+      - envoy-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_4:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_21_3:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_22_2:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              envoy-version: *supported_envoy_versions
+              xds-target: ["server", "client"]
       - compatibility-integration-test:
           requires:
             - dev-build

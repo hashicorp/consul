@@ -376,12 +376,14 @@ If you need more complex behavior, please use the
 To find the unique virtual IP allocated for a service:
 
 ```text
-<service>.virtual.<domain>
+<service>.virtual[.peer].<domain>
 ```
 
 This will return the unique virtual IP for any [Connect-capable](/docs/connect)
 service. Each Connect service has a virtual IP assigned to it by Consul - this is used
 by sidecar proxies for the [Transparent Proxy](/docs/connect/transparent-proxy) feature.
+The peer name is an optional part of the FQDN, and it is used to query for the virtual IP
+of a service imported from that peer.
 
 The virtual IP is also added to the service's [Tagged Addresses](/docs/discovery/services#tagged-addresses)
 under the `consul-virtual` tag.

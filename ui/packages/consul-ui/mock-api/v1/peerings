@@ -1,65 +1,38 @@
 [
+  ${
+    range(
+      env('CONSUL_PEER_COUNT', Math.floor((Math.random() * 10) + 1))
+    ).map(i => {
+    const id = `${fake.random.uuid()}-${i}`;
+    return `
+
   {
-    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b94",
-    "Name": "web",
-    "State": "ACTIVE",
-    "ImportedServiceCount": 10,
-    "ExportedServiceCount": 3,
-    "CreateIndex": 18,
-    "ModifyIndex": 18
-  },
-  {
-    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca687",
-    "Name": "billing",
-    "State": "PENDING",
-    "ImportedServiceCount": 5,
-    "ExportedServiceCount": 2,
+    "ID": "${id}",
+    "Name": "${fake.hacker.noun()}-peer-${i}",
+    "State": "${fake.helpers.randomize([
+      'ACTIVE',
+      'PENDING',
+      'ESTABLISHING',
+      'FAILING',
+      'DELETING',
+      'TERMINATED',
+      'UNDEFINED'
+    ])}",
+    "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "PeerID": "${id}",
+    "PeerServerName": "${fake.internet.domainName()}",
+    "PeerServerAddresses": [
+${
+  range(
+    env('CONSUL_PEER_ADDRESS_COUNT', Math.floor((Math.random() * 10) + 1))
+  ).map(i => `
+      "${fake.internet.ip()}:${fake.random.number({min: 0, max: 65535})}"
+`)}
+    ],
     "CreateIndex": 16,
     "ModifyIndex": 16
-  },
-  {
-    "ID": "a25cdcc4-9e09-5276-bcd7-e2e4743ca688",
-    "Name": "peer-1",
-    "State": "ESTABLISHING",
-    "ImportedServiceCount": 2,
-    "ExportedServiceCount": 4,
-    "CreateIndex": 16,
-    "ModifyIndex": 16
-  },
-  {
-    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b95",
-    "Name": "db",
-    "State": "FAILING",
-    "ImportedServiceCount": 4,
-    "ExportedServiceCount": 3,
-    "CreateIndex": 19,
-    "ModifyIndex": 19
-  },
-  {
-    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b98",
-    "Name": "legacy deleted",
-    "State": "DELETING",
-    "ImportedServiceCount": 2,
-    "ExportedServiceCount": 4,
-    "CreateIndex": 20,
-    "ModifyIndex": 20
-  },
-  {
-    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b96",
-    "Name": "legacy",
-    "State": "TERMINATED",
-    "ImportedServiceCount": 0,
-    "ExportedServiceCount": 0,
-    "CreateIndex": 20,
-    "ModifyIndex": 20
-  },
-  {
-    "ID": "2ccc588f-efc4-0a7c-1a73-c25cfcf34b97",
-    "Name": "legacy undefined",
-    "ImportedServiceCount": 0,
-    "ExportedServiceCount": 0,
-    "State": "UNDEFINED",
-    "CreateIndex": 20,
-    "ModifyIndex": 20
   }
+
+`})}
 ]

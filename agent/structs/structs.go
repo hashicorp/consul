@@ -84,11 +84,12 @@ const (
 	PeeringTerminateByIDType                    = 37
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
+	PeeringSecretsWriteType                     = 40
 )
 
 const (
 	// LocalPeerKeyword is a reserved keyword used for indexing in the state store for objects in the local peer.
-	LocalPeerKeyword = "internal"
+	LocalPeerKeyword = "~"
 
 	// DefaultPeerKeyword is the PeerName to use to refer to the local
 	// cluster's own data, rather than replicated peered data.
@@ -149,6 +150,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringDeleteType:               "PeeringDelete",
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
+	PeeringSecretsWriteType:         "PeeringSecret",
 }
 
 const (
@@ -680,6 +682,30 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 
 func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
+}
+
+// PartitionSpecificRequest is used to query about a specific partition.
+type PartitionSpecificRequest struct {
+	Datacenter string
+
+	acl.EnterpriseMeta
+	QueryOptions
+}
+
+func (r *PartitionSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+	}
 }
 
 // ServiceSpecificRequest is used to query about a specific service
@@ -2208,6 +2234,11 @@ func (s ServiceList) Sort() { sort.Sort(s) }
 
 type IndexedServiceList struct {
 	Services ServiceList
+	QueryMeta
+}
+
+type IndexedPeeredServiceList struct {
+	Services []PeeredServiceName
 	QueryMeta
 }
 

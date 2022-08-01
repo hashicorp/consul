@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-memdb"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 	errNilNotify   = errors.New("cannot call ServerLocalNotify without a callback to send notifications")
 )
 
-//go:generate mockery --name StateStore --inpackage --testonly
+//go:generate mockery --name StateStore --inpackage --filename mock_StateStore_test.go
 type StateStore interface {
 	AbandonCh() <-chan struct{}
 }

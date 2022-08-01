@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/hcl"
@@ -24,11 +25,13 @@ const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 type consulContainerNode struct {
 	ctx       context.Context
 	client    *api.Client
+	pod       testcontainers.Container
 	container testcontainers.Container
 	ip        string
 	port      int
 	config    Config
-	req       testcontainers.ContainerRequest
+	podReq    testcontainers.ContainerRequest
+	consulReq testcontainers.ContainerRequest
 	dataDir   string
 }
 
@@ -36,15 +39,11 @@ func (c *consulContainerNode) GetConfig() Config {
 	return c.config
 }
 
-func newConsulContainerWithReq(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
-	if err != nil {
-		return nil, err
-	}
-	return container, nil
 }
 
 // NewConsulContainer starts a Consul node in a container with the given config.
@@ -74,33 +73,39 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 		return nil, err
 	}
 
-	req := newContainerRequest(config, name, configFile, tmpDirData, license)
-	container, err := newConsulContainerWithReq(ctx, req)
+	podReq, consulReq := newContainerRequest(config, name, configFile, tmpDirData, license)
+
+	podContainer, err := startContainer(ctx, podReq)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := container.StartLogProducer(ctx); err != nil {
+	localIP, err := podContainer.Host(ctx)
+	if err != nil {
 		return nil, err
 	}
-	container.FollowOutput(&NodeLogConsumer{
+
+	mappedPort, err := podContainer.MappedPort(ctx, "8500")
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := podContainer.ContainerIP(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	consulContainer, err := startContainer(ctx, consulReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := consulContainer.StartLogProducer(ctx); err != nil {
+		return nil, err
+	}
+	consulContainer.FollowOutput(&NodeLogConsumer{
 		Prefix: pc.NodeName,
 	})
-
-	localIP, err := container.Host(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	mappedPort, err := container.MappedPort(ctx, "8500")
-	if err != nil {
-		return nil, err
-	}
-
-	ip, err := container.ContainerIP(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
 	apiConfig := api.DefaultConfig()
@@ -112,25 +117,37 @@ func NewConsulContainer(ctx context.Context, config Config) (Node, error) {
 
 	return &consulContainerNode{
 		config:    config,
-		container: container,
+		pod:       podContainer,
+		container: consulContainer,
 		ip:        ip,
 		port:      mappedPort.Int(),
 		client:    apiClient,
 		ctx:       ctx,
-		req:       req,
+		podReq:    podReq,
+		consulReq: consulReq,
 		dataDir:   tmpDirData,
 	}, nil
 }
 
-func newContainerRequest(config Config, name, configFile, dataDir, license string) testcontainers.ContainerRequest {
+const pauseImage = "k8s.gcr.io/pause:3.3"
+
+func newContainerRequest(config Config, name, configFile, dataDir, license string) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
-	return testcontainers.ContainerRequest{
-		Image:        consulImage + ":" + config.Version,
-		ExposedPorts: []string{"8500/tcp"},
-		WaitingFor:   wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
+	pod := testcontainers.ContainerRequest{
+		Image:        pauseImage,
 		AutoRemove:   false,
-		Name:         name,
+		Name:         name + "-pod",
+		SkipReaper:   skipReaper,
+		ExposedPorts: []string{"8500/tcp"},
+	}
+
+	app := testcontainers.ContainerRequest{
+		NetworkMode: dockercontainer.NetworkMode("container:" + name + "-pod"),
+		Image:       consulImage + ":" + config.Version,
+		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(10 * time.Second),
+		AutoRemove:  false,
+		Name:        name,
 		Mounts: []testcontainers.ContainerMount{
 			{Source: testcontainers.DockerBindMountSource{HostPath: configFile}, Target: "/consul/config/config.hcl"},
 			{Source: testcontainers.DockerBindMountSource{HostPath: dataDir}, Target: "/consul/data"},
@@ -139,6 +156,8 @@ func newContainerRequest(config Config, name, configFile, dataDir, license strin
 		SkipReaper: skipReaper,
 		Env:        map[string]string{"CONSUL_LICENSE": license},
 	}
+
+	return pod, app
 }
 
 // GetClient returns an API client that can be used to communicate with the Node.
@@ -162,23 +181,24 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 
-	req2 := newContainerRequest(
+	// We'll keep the same pod.
+	_, consulReq2 := newContainerRequest(
 		config,
-		c.req.Name,
+		c.consulReq.Name,
 		file,
 		c.dataDir,
 		"",
 	)
-	req2.Env = c.req.Env // copy license
+	consulReq2.Env = c.consulReq.Env // copy license
 
 	_ = c.container.StopLogProducer()
 	if err := c.container.Terminate(ctx); err != nil {
 		return err
 	}
 
-	c.req = req2
+	c.consulReq = consulReq2
 
-	container, err := newConsulContainerWithReq(ctx, c.req)
+	container, err := startContainer(ctx, c.consulReq)
 	if err != nil {
 		return err
 	}
@@ -192,32 +212,6 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 
 	c.container = container
 
-	localIP, err := container.Host(ctx)
-	if err != nil {
-		return err
-	}
-
-	mappedPort, err := container.MappedPort(ctx, "8500")
-	if err != nil {
-		return err
-	}
-
-	ip, err := container.ContainerIP(ctx)
-	if err != nil {
-		return err
-	}
-	uri := fmt.Sprintf("http://%s:%s", localIP, mappedPort.Port())
-	c.ip = ip
-	c.port = mappedPort.Int()
-	apiConfig := api.DefaultConfig()
-	apiConfig.Address = uri
-	c.client, err = api.NewClient(apiConfig)
-	c.ctx = ctx
-	c.config = config
-
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

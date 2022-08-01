@@ -608,7 +608,9 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
+	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	testingPeerNames := []string{"", "my-peer"}
@@ -817,8 +819,9 @@ use_streaming_backend = true
 				AllowedPrefixes: []string{"testing.grpc."},
 			}, sink)
 
-			a := NewTestAgent(t, tc.hcl)
+			a := StartTestAgent(t, TestAgent{HCL: tc.hcl, Overrides: `peering = { test_allow_peer_registrations = true }`})
 			defer a.Shutdown()
+
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 			// Register some initial service instances
@@ -1013,8 +1016,9 @@ use_streaming_backend = true
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a := NewTestAgent(t, tc.hcl)
+			a := StartTestAgent(t, TestAgent{HCL: tc.hcl, Overrides: `peering = { test_allow_peer_registrations = true }`})
 			defer a.Shutdown()
+
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 			// Register one with a tag.

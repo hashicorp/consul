@@ -227,12 +227,16 @@ func (r *fakeRPCRequest) NewMaterializer() (Materializer, error) {
 		Logger: hclog.New(nil),
 		Request: func(index uint64) *pbsubscribe.SubscribeRequest {
 			req := &pbsubscribe.SubscribeRequest{
-				Topic:      pbsubscribe.Topic_ServiceHealth,
-				Key:        "key",
+				Topic: pbsubscribe.Topic_ServiceHealth,
+				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+					NamedSubject: &pbsubscribe.NamedSubject{
+						Key:       "key",
+						Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
+					},
+				},
 				Token:      "abcd",
 				Datacenter: "dc1",
 				Index:      index,
-				Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 			}
 			return req
 		},

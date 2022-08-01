@@ -14,9 +14,14 @@ const (
 	// writes.
 	PeeringStateUndefined PeeringState = "UNDEFINED"
 
-	// PeeringStateInitial means a Peering has been initialized and is awaiting
-	// acknowledgement from a remote peer.
-	PeeringStateInitial PeeringState = "INITIAL"
+	// PeeringStatePending means the peering was created by generating a peering token.
+	// Peerings stay in a pending state until the peer uses the token to dial
+	// the local cluster.
+	PeeringStatePending PeeringState = "PENDING"
+
+	// PeeringStateEstablishing means the peering is being established from a peering token.
+	// This is the initial state for dialing peers.
+	PeeringStateEstablishing PeeringState = "ESTABLISHING"
 
 	// PeeringStateActive means that the peering connection is active and
 	// healthy.
@@ -25,6 +30,10 @@ const (
 	// PeeringStateFailing means the peering connection has been interrupted
 	// but has not yet been terminated.
 	PeeringStateFailing PeeringState = "FAILING"
+
+	// PeeringStateDeleting means a peering was marked for deletion and is in the process
+	// of being deleted.
+	PeeringStateDeleting PeeringState = "DELETING"
 
 	// PeeringStateTerminated means the peering relationship has been removed.
 	PeeringStateTerminated PeeringState = "TERMINATED"
@@ -53,6 +62,10 @@ type Peering struct {
 	PeerServerName string `json:",omitempty"`
 	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `json:",omitempty"`
+	// ImportedServiceCount is the count of how many services are imported from this peering.
+	ImportedServiceCount uint64
+	// ExportedServiceCount is the count of how many services are exported to this peering.
+	ExportedServiceCount uint64
 	// CreateIndex is the Raft index at which the Peering was created.
 	CreateIndex uint64
 	// ModifyIndex is the latest Raft index at which the Peering. was modified.
@@ -67,11 +80,13 @@ type PeeringGenerateTokenRequest struct {
 	// PeerName is the name of the remote peer.
 	PeerName string
 	// Partition to be peered.
-	Partition  string `json:",omitempty"`
-	Datacenter string `json:",omitempty"`
-	Token      string `json:",omitempty"`
+	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
+	// ServerExternalAddresses is a list of addresses to put into the generated token. This could be used to specify
+	// load balancer(s) or external IPs to reach the servers from the dialing side, and will override any server
+	// addresses obtained from the "consul" service.
+	ServerExternalAddresses []string `json:",omitempty"`
 }
 
 type PeeringGenerateTokenResponse struct {
@@ -85,8 +100,8 @@ type PeeringEstablishRequest struct {
 	PeerName string
 	// The peering token returned from the peer's GenerateToken endpoint.
 	PeeringToken string `json:",omitempty"`
-	Datacenter   string `json:",omitempty"`
-	Token        string `json:",omitempty"`
+	// Partition to be peered.
+	Partition string `json:",omitempty"`
 	// Meta is a mapping of some string value to any other string value
 	Meta map[string]string `json:",omitempty"`
 }

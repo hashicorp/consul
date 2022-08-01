@@ -1,20 +1,20 @@
-import Component from '@ember/component';
-import { set } from '@ember/object';
+import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
+import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 
-export default Component.extend({
-  service: service('state'),
-  tagName: '',
-  didReceiveAttrs: function() {
-    if (typeof this.state === 'undefined') {
+export default class State extends Component {
+  @service('state') state;
+
+  @tracked render = false;
+
+  @action
+  attributeChanged([state, matches, notMatches]) {
+    if (typeof state === 'undefined') {
       return;
     }
-    let match = true;
-    if (typeof this.matches !== 'undefined') {
-      match = this.service.matches(this.state, this.matches);
-    } else if (typeof this.notMatches !== 'undefined') {
-      match = !this.service.matches(this.state, this.notMatches);
-    }
-    set(this, 'rendering', match);
-  },
-});
+    this.render = typeof matches !== 'undefined' ?
+      this.state.matches(state, matches) :
+      !this.state.matches(state, notMatches);
+  }
+}

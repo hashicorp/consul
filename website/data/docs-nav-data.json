@@ -19,51 +19,6 @@
             "path": "intro/usecases/what-is-a-service-mesh"
           }
         ]
-      },
-      {
-        "title": "Consul vs. Other Software",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "intro/vs"
-          },
-          {
-            "title": "Chef, Puppet, etc.",
-            "path": "intro/vs/chef-puppet"
-          },
-          {
-            "title": "Nagios",
-            "path": "intro/vs/nagios"
-          },
-          {
-            "title": "SkyDNS",
-            "path": "intro/vs/skydns"
-          },
-          {
-            "title": "SmartStack",
-            "path": "intro/vs/smartstack"
-          },
-          {
-            "title": "Serf",
-            "path": "intro/vs/serf"
-          },
-          {
-            "title": "Eureka",
-            "path": "intro/vs/eureka"
-          },
-          {
-            "title": "Istio",
-            "path": "intro/vs/istio"
-          },
-          {
-            "title": "Envoy and Other Proxies",
-            "path": "intro/vs/proxies"
-          },
-          {
-            "title": "Custom Solutions",
-            "path": "intro/vs/custom"
-          }
-        ]
       }
     ]
   },
@@ -761,6 +716,10 @@
       {
         "title": "Configuration Reference",
         "path": "ecs/configuration-reference"
+      },
+      {
+        "title": "Compatibility Matrix",
+        "path": "ecs/compatibility"
       }
     ]
   },
@@ -1210,19 +1169,19 @@
             "path": "upgrading/instructions/general-process"
           },
           {
-            "title": "Upgrading to 1.2.4",
+            "title": "Upgrading to Latest 1.2.x",
             "path": "upgrading/instructions/upgrade-to-1-2-x"
           },
           {
-            "title": "Upgrading to 1.6.9",
+            "title": "Upgrading to Latest 1.6.x",
             "path": "upgrading/instructions/upgrade-to-1-6-x"
           },
           {
-            "title": "Upgrading to 1.8.13",
+            "title": "Upgrading to Latest 1.8.x",
             "path": "upgrading/instructions/upgrade-to-1-8-x"
           },
           {
-            "title": "Upgrading to 1.10.0",
+            "title": "Upgrading to Latest 1.10.x",
             "path": "upgrading/instructions/upgrade-to-1-10-x"
           }
         ]

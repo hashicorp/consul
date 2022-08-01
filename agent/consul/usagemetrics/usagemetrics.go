@@ -21,6 +21,10 @@ var Gauges = []prometheus.GaugeDefinition{
 		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
+		Name: []string{"consul", "state", "peerings"},
+		Help: "Measures the current number of peerings registered with Consul. It is only emitted by Consul servers. Added in v1.13.0.",
+	},
+	{
 		Name: []string{"consul", "state", "services"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
@@ -166,6 +170,13 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitNodeUsage(nodeUsage)
+
+	_, peeringUsage, err := state.PeeringUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve peerings from state store", "error", err)
+	}
+
+	u.emitPeeringUsage(peeringUsage)
 
 	_, serviceUsage, err := state.ServiceUsage()
 	if err != nil {

@@ -159,6 +159,16 @@ const bootstrapTemplate = `{
       "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
   },
+  "layered_runtime": {
+    "layers": [
+      {
+        "name": "base",
+        "static_layer": {
+          "re2.max_program_size.error_level": 1048576
+        }
+      }
+    ]
+  },
   "static_resources": {
     "clusters": [
       {

@@ -676,15 +676,34 @@ func (e ecsNotGlobalError) Unwrap() error {
 	return e.error
 }
 
+type queryLocality struct {
+	// datacenter is the datacenter parsed from a label that has an explicit datacenter part.
+	// Example query: <service>.virtual.<namespace>.ns.<partition>.ap.<datacenter>.dc.consul
+	datacenter string
+
+	// peerOrDatacenter is parsed from DNS queries where the datacenter and peer name are specified in the same query part.
+	// Example query: <service>.virtual.<peerOrDatacenter>.consul
+	peerOrDatacenter string
+
+	acl.EnterpriseMeta
+}
+
+func (l queryLocality) effectiveDatacenter(defaultDC string) string {
+	// Prefer the value parsed from a query with explicit parts: <namespace>.ns.<partition>.ap.<datacenter>.dc
+	if l.datacenter != "" {
+		return l.datacenter
+	}
+	// Fall back to the ambiguously parsed DC or Peer.
+	if l.peerOrDatacenter != "" {
+		return l.peerOrDatacenter
+	}
+	// If all are empty, use a default value.
+	return defaultDC
+}
+
 // dispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
 func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
-	// By default the query is in the default datacenter
-	datacenter := d.agent.config.Datacenter
-
-	// have to deref to clone it so we don't modify (start from the agent's defaults)
-	var entMeta = d.defaultEnterpriseMeta
-
 	// Choose correct response domain
 	respDomain := d.getResponseDomain(req.Question[0].Name)
 
@@ -733,16 +752,17 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
 			return invalid()
 		}
 
 		lookup := serviceLookup{
-			Datacenter:        datacenter,
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
 			Connect:           false,
 			Ingress:           false,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    entMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
@@ -779,17 +799,18 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
 			return invalid()
 		}
 
 		lookup := serviceLookup{
-			Datacenter:        datacenter,
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
 			Service:           queryParts[len(queryParts)-1],
 			Connect:           true,
 			Ingress:           false,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    entMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// name.connect.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
@@ -799,14 +820,18 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
 			return invalid()
 		}
 
 		args := structs.ServiceSpecificRequest{
-			Datacenter:     datacenter,
+			// The datacenter of the request is not specified because cross-datacenter virtual IP
+			// queries are not supported. This guard rail is in place because virtual IPs are allocated
+			// within a DC, therefore their uniqueness is not guaranteed globally.
+			PeerName:       locality.peerOrDatacenter,
 			ServiceName:    queryParts[len(queryParts)-1],
-			EnterpriseMeta: entMeta,
+			EnterpriseMeta: locality.EnterpriseMeta,
 			QueryOptions: structs.QueryOptions{
 				Token: d.agent.tokens.UserToken(),
 			},
@@ -834,17 +859,18 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
 			return invalid()
 		}
 
 		lookup := serviceLookup{
-			Datacenter:        datacenter,
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
 			Service:           queryParts[len(queryParts)-1],
 			Connect:           false,
 			Ingress:           true,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    entMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 		// name.ingress.consul
 		return d.serviceLookup(cfg, lookup, req, resp)
@@ -854,13 +880,14 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
 			return invalid()
 		}
 
-		// Namespace should not be set for node queries
-		ns := entMeta.NamespaceOrEmpty()
-		if ns != "" && ns != acl.DefaultNamespaceName {
+		// Nodes are only registered in the default namespace so queries
+		// must not specify a non-default namespace.
+		if !locality.InDefaultNamespace() {
 			return invalid()
 		}
 
@@ -868,15 +895,17 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		node := strings.Join(queryParts, ".")
 
 		lookup := nodeLookup{
-			Datacenter:        datacenter,
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
 			Node:              node,
 			MaxRecursionLevel: maxRecursionLevel,
-			EnterpriseMeta:    entMeta,
+			EnterpriseMeta:    locality.EnterpriseMeta,
 		}
 
 		return d.nodeLookup(cfg, lookup, req, resp)
 
 	case "query":
+		datacenter := d.agent.config.Datacenter
+
 		// ensure we have a query name
 		if len(queryParts) < 1 {
 			return invalid()
@@ -905,7 +934,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			if err != nil {
 				return invalid()
 			}
-			//check if the query type is  A for IPv4 or ANY
+			// check if the query type is  A for IPv4 or ANY
 			aRecord := &dns.A{
 				Hdr: dns.RR_Header{
 					Name:   qName + respDomain,
@@ -926,7 +955,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			if err != nil {
 				return invalid()
 			}
-			//check if the query type is  AAAA for IPv6 or ANY
+			// check if the query type is  AAAA for IPv6 or ANY
 			aaaaRecord := &dns.AAAA{
 				Hdr: dns.RR_Header{
 					Name:   qName + respDomain,

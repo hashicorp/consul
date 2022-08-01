@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/grpc/public"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
@@ -253,7 +253,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Start watching config for that proxy
 			var err error
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, public.TokenFromContext(stream.Context()))
+			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}

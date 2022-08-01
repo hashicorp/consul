@@ -301,11 +301,11 @@ export default class FSMWithOptionalLocation {
 
     if (withOptional) {
       const temp = url.split('/');
-      if (Object.keys(optional || {}).length === 0) {
-        optional = undefined;
-      }
-      optional = Object.values(optional || this.optional || {});
-      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
+      optional = {
+        ...this.optional,
+        ...(optional || {})
+      };
+      optional = Object.values(optional).filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

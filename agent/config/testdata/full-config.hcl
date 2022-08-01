@@ -305,6 +305,9 @@ node_meta {
 node_name = "otlLxGaI"
 non_voting_server = true
 partition = ""
+peering {
+    enabled = true
+}
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -654,7 +657,6 @@ telemetry {
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
 tls {
     defaults {
