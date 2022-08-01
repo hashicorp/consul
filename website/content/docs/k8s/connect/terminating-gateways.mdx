@@ -80,114 +80,75 @@ $ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token --tem
 
 Registering the external services with Consul is a multi-step process:
 
-- Register external services with Consul
-- Update the terminating gateway ACL token if ACLs are enabled
+- Enable the TerminatingGatewayService Custom Resource Definition (CRD)
 - Create a [`TerminatingGateway`](/docs/connect/config-entries/terminating-gateway) resource to configure the terminating gateway
 - Create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to external service
 - Define upstream annotations for any services that need to talk to the external services
 
-### Register external services with Consul
+### Enable the TerminatingGatewayService Custom Resource Definition (CRD)
 
 -> **Note:** Normal Consul services are registered with the Consul client on the node that
 they're running on. Since this is an external service, there is no Consul node
 to register it onto. Instead, we will make up a node name and register the
 service to that node.
 
+The CRD will register the external service with Consul.
+If ACLs are enabled on Consul, the CRD will update the terminating gateway ACL role to have
+`service: write` permissions on all of the services being represented by the gateway.
+
+First, create a sample `kustomization.yaml` containing the `yaml` for each service to be registered.
+
 Create a sample external service and register it with Consul.
 
-<CodeBlockConfig filename="external.json">
+<CodeBlockConfig filename="kustomization.yaml">
 
-```json
-{
-  "Node": "example_com",
-  "Address": "example.com",
-  "NodeMeta": {
-    "external-node": "true",
-    "external-probe": "true"
-  },
-  "Service": {
-    "Address": "example.com",
-    "ID": "example-https",
-    "Service": "example-https",
-    "Port": 443
-  }
-}
+```yaml
+resources:
+  - example-service.yaml
+  - second-example-service.yaml
 ```
 
 </CodeBlockConfig>
 
-- `"Node": "example_com"` is our made up node name.
-- `"Address": "example.com"` is the address of our node. Services registered to that node will use this address if
+For each service, add the following basic information.
+Check the [Consul client catalog service registration](https://www.consul.io/api-docs/catalog#register-entity) for all possible fields.
+All fields are in lower `camelCase`.
+
+<CodeBlockConfig filename="example-service.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com
+kind: TerminatingGatewayService
+metadata:
+  name: "example.com"
+spec:
+  catalogRegistration:
+    node: "legacy_node"
+    address: "example_com"
+    nodeMeta:
+      external-node: "true"
+      external-probe: "true"
+    service:
+      address: "example_com"
+      ID: "example-https"
+      service: "example-https"
+      port: 443
+```
+
+</CodeBlockConfig>
+
+- `"node": "example_com"` is our made up node name.
+- `"address": "example.com"` is the address of our node. Services registered to that node will use this address if
   their own address isn't specified. If you're registering multiple external services, ensure you
-  use different node names with different addresses or set the `Service.Address` key.
-- `"Service": { "Address": "example.com" ... }` is the address of our service. In this example this doesn't need to be set
+  use different node names with different addresses or set the `service.address` key.
+- `"service": { "address": "example.com" ... }` is the address of our service. In this example this doesn't need to be set
   since the address of the node is the same, but if there were two services registered to that same node
   then this should be set.
 
-Register the external service with Consul:
+Apply the `kustomization.yaml` resource with `kubectl apply`:
 
 ```shell-session
-$ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
-true
-```
-
-If ACLs and TLS are enabled :
-
-```shell-session
-$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
-true
-```
-
-### Update terminating gateway ACL role if ACLs are enabled
-
-If ACLs are enabled, update the terminating gateway acl role to have `service: write` permissions on all of the services
-being represented by the gateway:
-
-- Create a new policy that includes these permissions
-- Update the existing role to include the new policy
-
-<CodeBlockConfig filename="write-policy.hcl">
-
-```hcl
-service "example-https" {
-  policy = "write"
-}
-```
-
-</CodeBlockConfig>
-
-```shell-session
-$ consul acl policy create -name "example-https-write-policy" -rules @write-policy.hcl
-ID:           xxxxxxxxxxxxxxx
-Name:         example-https-write-policy
-Description:
-Datacenters:
-Rules:
-service "example-https" {
-  policy = "write"
-}
-```
-
-Now fetch the ID of the terminating gateway token
-
-```shell-session
-consul acl role list | grep -B 6 -- "- RELEASE_NAME-terminating-gateway-policy" | grep ID
-
-ID:       <role id>
-```
-
-Update the terminating gateway acl token with the new policy
-
-```shell-session
-$ consul acl role update -id <role id> -policy-name example-https-write-policy
-AccessorID:       <role id>
-SecretID:         <secret id>
-Description:      RELEASE_NAME-terminating-gateway-acl-role
-Local:            true
-Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
-Policies:
-   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-policy
-   f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
+$ kubectl apply --filename kustomization.yaml
 ```
 
 ### Create the configuration entry for the terminating gateway
@@ -213,7 +174,7 @@ spec:
 If TLS is enabled, you must include the `caFile` parameter  that points to the system trust store of the terminating gateway container. By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
 
 Configure the `caFile` parameter to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
- * Consul Helm chart 0.43 or older 
+ * Consul Helm chart 0.43 or older
  * Or an Envoy image with an alpine base image
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
