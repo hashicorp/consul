@@ -5548,16 +5548,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			"tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)",
 		},
 	})
-	run(t, testCase{
-		desc: "peering.enabled defaults to true",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.PeeringEnabled = true
-		},
-	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
