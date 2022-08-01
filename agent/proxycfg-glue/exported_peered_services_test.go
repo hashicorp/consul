@@ -21,10 +21,12 @@ func TestServerExportedPeeredServices(t *testing.T) {
 	store := state.NewStateStore(nil)
 
 	for _, peer := range []string{"peer-1", "peer-2", "peer-3"} {
-		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.Peering{
-			ID:    testUUID(t),
-			Name:  peer,
-			State: pbpeering.PeeringState_ACTIVE,
+		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:    testUUID(t),
+				Name:  peer,
+				State: pbpeering.PeeringState_ACTIVE,
+			},
 		}))
 	}
 

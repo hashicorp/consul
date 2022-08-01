@@ -64,7 +64,7 @@ func testRegisterPeering(t *testing.T, s *Store, idx uint64, name string) *pbpee
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 	peering := &pbpeering.Peering{Name: name, ID: uuid}
-	err = s.PeeringWrite(idx, peering)
+	err = s.PeeringWrite(idx, &pbpeering.PeeringWriteRequest{Peering: peering})
 	require.NoError(t, err)
 	return peering
 }

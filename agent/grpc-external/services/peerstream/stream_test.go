@@ -1,7 +1,5 @@
 package peerstream
 
-// TODO: rename this file to replication_test.go
-
 import (
 	"context"
 	"fmt"
@@ -38,6 +36,13 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
+)
+
+const (
+	testPeerID                = "caf067a6-f112-4907-9101-d45857d2b149"
+	testActiveStreamSecretID  = "e778c518-f0db-473a-9224-24b357da971d"
+	testPendingStreamSecretID = "522c0daf-2ef2-4dab-bc78-5e04e3daf552"
+	testEstablishmentSecretID = "f6569d37-1c5b-4415-aae5-26f4594f7f60"
 )
 
 func TestStreamResources_Server_Follower(t *testing.T) {
@@ -99,7 +104,6 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
@@ -121,10 +125,10 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	// server is a leader and should work.
 	testutil.RunStep(t, "send subscription request to leader and consume its two requests", func(t *testing.T) {
 		sub := &pbpeerstream.ReplicationMessage{
-			Payload: &pbpeerstream.ReplicationMessage_Request_{
-				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:      peerID,
-					ResourceURL: pbpeerstream.TypeURLExportedService,
+			Payload: &pbpeerstream.ReplicationMessage_Open_{
+				Open: &pbpeerstream.ReplicationMessage_Open{
+					PeerID:         testPeerID,
+					StreamSecretID: testPendingStreamSecretID,
 				},
 			},
 		}
@@ -173,6 +177,183 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 	})
 }
 
+func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
+	type testCase struct {
+		name    string
+		seed    *pbpeering.PeeringWriteRequest
+		input   *pbpeerstream.ReplicationMessage
+		wantErr error
+	}
+
+	peeringWithoutSecrets := "35bf39d2-836c-4f66-945f-85f20b17c3db"
+
+	run := func(t *testing.T, tc testCase) {
+		srv, store := newTestServer(t, nil)
+
+		// Write a seed peering.
+		require.NoError(t, store.PeeringWrite(1, tc.seed))
+
+		// Set the initial roots and CA configuration.
+		_, _ = writeInitialRootsAndCA(t, store)
+
+		client := NewMockClient(context.Background())
+
+		errCh := make(chan error, 1)
+		client.ErrCh = errCh
+
+		go func() {
+			// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+			// This matches gRPC's behavior when an error is returned by a server.
+			err := srv.StreamResources(client.ReplicationStream)
+			if err != nil {
+				errCh <- err
+			}
+		}()
+
+		err := client.Send(tc.input)
+		require.NoError(t, err)
+
+		_, err = client.Recv()
+		if tc.wantErr != nil {
+			require.Error(t, err)
+			require.EqualError(t, err, tc.wantErr.Error())
+		} else {
+			require.NoError(t, err)
+		}
+	}
+	tt := []testCase{
+		{
+			name: "no secret for peering",
+			seed: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   peeringWithoutSecrets,
+				},
+			},
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						PeerID: peeringWithoutSecrets,
+					},
+				},
+			},
+			wantErr: status.Error(codes.Internal, "unable to authorize connection, peering must be re-established"),
+		},
+		{
+			name: "unknown secret",
+			seed: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testPeerID,
+				},
+				Secret: &pbpeering.PeeringSecrets{
+					PeerID: testPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testActiveStreamSecretID,
+					},
+				},
+			},
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						PeerID:         testPeerID,
+						StreamSecretID: "unknown-secret",
+					},
+				},
+			},
+			wantErr: status.Error(codes.PermissionDenied, "invalid peering stream secret"),
+		},
+		{
+			name: "known active secret",
+			seed: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testPeerID,
+				},
+				Secret: &pbpeering.PeeringSecrets{
+					PeerID: testPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testActiveStreamSecretID,
+					},
+				},
+			},
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						PeerID:         testPeerID,
+						StreamSecretID: testActiveStreamSecretID,
+					},
+				},
+			},
+		},
+		{
+			name: "known pending secret",
+			seed: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testPeerID,
+				},
+				Secret: &pbpeering.PeeringSecrets{
+					PeerID: testPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testPendingStreamSecretID,
+					},
+				},
+			},
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						PeerID:         testPeerID,
+						StreamSecretID: testPendingStreamSecretID,
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestStreamResources_Server_PendingSecretPromotion(t *testing.T) {
+	srv, store := newTestServer(t, nil)
+	_ = writePeeringToBeDialed(t, store, 1, "my-peer")
+
+	client := NewMockClient(context.Background())
+
+	errCh := make(chan error, 1)
+	client.ErrCh = errCh
+
+	go func() {
+		// Pass errors from server handler into ErrCh so that they can be seen by the client on Recv().
+		// This matches gRPC's behavior when an error is returned by a server.
+		err := srv.StreamResources(client.ReplicationStream)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	err := client.Send(&pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Open_{
+			Open: &pbpeerstream.ReplicationMessage_Open{
+				PeerID:         testPeerID,
+				StreamSecretID: testPendingStreamSecretID,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		// Upon presenting a known pending secret ID, it should be promoted to active.
+		secrets, err := store.PeeringSecretsRead(nil, testPeerID)
+		require.NoError(r, err)
+		require.Empty(r, secrets.GetStream().GetPendingSecretID())
+		require.Equal(r, testPendingStreamSecretID, secrets.GetStream().GetActiveSecretID())
+	})
+}
+
 func TestStreamResources_Server_FirstRequest(t *testing.T) {
 	type testCase struct {
 		name    string
@@ -218,55 +399,40 @@ func TestStreamResources_Server_FirstRequest(t *testing.T) {
 					},
 				},
 			},
-			wantErr: status.Error(codes.InvalidArgument, "first message when initiating a peering must be a subscription request"),
+			wantErr: status.Error(codes.InvalidArgument, "first message when initiating a peering must be: Open"),
+		},
+		{
+			name: "unexpected request",
+			input: &pbpeerstream.ReplicationMessage{
+				Payload: &pbpeerstream.ReplicationMessage_Request_{
+					Request: &pbpeerstream.ReplicationMessage_Request{
+						ResourceURL: pbpeerstream.TypeURLExportedService,
+					},
+				},
+			},
+			wantErr: status.Error(codes.InvalidArgument, "first message when initiating a peering must be: Open"),
 		},
 		{
 			name: "missing peer id",
 			input: &pbpeerstream.ReplicationMessage{
-				Payload: &pbpeerstream.ReplicationMessage_Request_{
-					Request: &pbpeerstream.ReplicationMessage_Request{},
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{},
 				},
 			},
 			wantErr: status.Error(codes.InvalidArgument, "initial subscription request must specify a PeerID"),
 		},
 		{
-			name: "unexpected nonce",
-			input: &pbpeerstream.ReplicationMessage{
-				Payload: &pbpeerstream.ReplicationMessage_Request_{
-					Request: &pbpeerstream.ReplicationMessage_Request{
-						PeerID:        "63b60245-c475-426b-b314-4588d210859d",
-						ResponseNonce: "1",
-					},
-				},
-			},
-			wantErr: status.Error(codes.InvalidArgument, "initial subscription request must not contain a nonce"),
-		},
-		{
-			name: "unknown resource",
-			input: &pbpeerstream.ReplicationMessage{
-				Payload: &pbpeerstream.ReplicationMessage_Request_{
-					Request: &pbpeerstream.ReplicationMessage_Request{
-						PeerID:      "63b60245-c475-426b-b314-4588d210859d",
-						ResourceURL: "nomad.Job",
-					},
-				},
-			},
-			wantErr: status.Error(codes.InvalidArgument, "subscription request to unknown resource URL: nomad.Job"),
-		},
-		{
 			name: "unknown peer",
 			input: &pbpeerstream.ReplicationMessage{
-				Payload: &pbpeerstream.ReplicationMessage_Request_{
-					Request: &pbpeerstream.ReplicationMessage_Request{
-						PeerID:      "63b60245-c475-426b-b314-4588d210859d",
-						ResourceURL: pbpeerstream.TypeURLExportedService,
+				Payload: &pbpeerstream.ReplicationMessage_Open_{
+					Open: &pbpeerstream.ReplicationMessage_Open{
+						PeerID: "63b60245-c475-426b-b314-4588d210859d",
 					},
 				},
 			},
 			wantErr: status.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: 63b60245-c475-426b-b314-4588d210859d"),
 		},
 	}
-
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
@@ -285,12 +451,11 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, peerID)
+	client := makeClient(t, srv, testPeerID)
 
 	// TODO(peering): test fails if we don't drain the stream with this call because the
 	// server gets blocked sending the termination message. Figure out a way to let
@@ -302,18 +467,18 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
 		})
 	})
 
 	testutil.RunStep(t, "terminate the stream", func(t *testing.T) {
-		done := srv.ConnectedStreams()[peerID]
+		done := srv.ConnectedStreams()[testPeerID]
 		close(done)
 
 		retry.Run(t, func(r *retry.R) {
-			_, ok := srv.StreamStatus(peerID)
+			_, ok := srv.StreamStatus(testPeerID)
 			require.False(r, ok)
 		})
 	})
@@ -342,13 +507,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
-	client := makeClient(t, srv, peerID)
+	client := makeClient(t, srv, testPeerID)
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
 		})
@@ -360,7 +524,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		ack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:        peerID,
+					PeerID:        testPeerID,
 					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "1",
 
@@ -379,7 +543,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -392,7 +556,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		nack := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					PeerID:        peerID,
+					PeerID:        testPeerID,
 					ResourceURL:   pbpeerstream.TypeURLExportedService,
 					ResponseNonce: "2",
 					Error: &pbstatus.Status{
@@ -417,7 +581,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -486,7 +650,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -547,7 +711,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -580,7 +744,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -612,7 +776,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
@@ -916,12 +1080,11 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, peerID)
+	client := makeClient(t, srv, testPeerID)
 
 	// TODO(peering): test fails if we don't drain the stream with this call because the
 	// server gets blocked sending the termination message. Figure out a way to let
@@ -933,7 +1096,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
 		})
@@ -942,7 +1105,7 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
 		disconnectTime := it.FutureNow(1)
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
 			require.Equal(r, "heartbeat timeout", status.DisconnectErrorMessage)
@@ -965,12 +1128,11 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, peerID)
+	client := makeClient(t, srv, testPeerID)
 
 	// TODO(peering): test fails if we don't drain the stream with this call because the
 	// server gets blocked sending the termination message. Figure out a way to let
@@ -982,7 +1144,7 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
 		})
@@ -1025,12 +1187,11 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
 	require.Empty(t, p.PeerID, "should be empty if being dialed")
-	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
 
-	client := makeClient(t, srv, peerID)
+	client := makeClient(t, srv, testPeerID)
 
 	// TODO(peering): test fails if we don't drain the stream with this call because the
 	// server gets blocked sending the termination message. Figure out a way to let
@@ -1042,7 +1203,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 
 	testutil.RunStep(t, "new stream gets tracked", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			status, ok := srv.StreamStatus(peerID)
+			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.True(r, status.Connected)
 		})
@@ -1082,7 +1243,7 @@ func TestStreamResources_Server_KeepsConnectionOpenWithHeartbeat(t *testing.T) {
 
 	// Assert that the stream remains connected for 5 heartbeat timeouts.
 	require.Never(t, func() bool {
-		status, ok := srv.StreamStatus(peerID)
+		status, ok := srv.StreamStatus(testPeerID)
 		if !ok {
 			return true
 		}
@@ -1115,6 +1276,22 @@ func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID s
 		}
 	}()
 
+	// Send the initial request
+	require.NoError(t, client.Send(&pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Open_{
+			Open: &pbpeerstream.ReplicationMessage_Open{
+				PeerID:         testPeerID,
+				StreamSecretID: testPendingStreamSecretID,
+			},
+		},
+	}))
+
+	// Receive a services and roots subscription request pair from server
+	receivedSub1, err := client.Recv()
+	require.NoError(t, err)
+	receivedSub2, err := client.Recv()
+	require.NoError(t, err)
+
 	// Issue a services and roots subscription pair to server
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
@@ -1130,12 +1307,6 @@ func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID s
 		}
 		require.NoError(t, client.Send(init))
 	}
-
-	// Receive a services and roots subscription request pair from server
-	receivedSub1, err := client.Recv()
-	require.NoError(t, err)
-	receivedSub2, err := client.Recv()
-	require.NoError(t, err)
 
 	expect := []*pbpeerstream.ReplicationMessage{
 		{
@@ -1165,7 +1336,7 @@ func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID s
 		receivedSub1,
 		receivedSub2,
 	}
-	prototest.AssertElementsMatch[*pbpeerstream.ReplicationMessage](t, expect, got)
+	prototest.AssertElementsMatch(t, expect, got)
 
 	return client
 }
@@ -1212,6 +1383,14 @@ func (b *testStreamBackend) PeeringTrustBundleWrite(req *pbpeering.PeeringTrustB
 	panic("not implemented")
 }
 
+func (b *testStreamBackend) ValidateProposedPeeringSecret(id string) (bool, error) {
+	return true, nil
+}
+
+func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+	return b.store.PeeringSecretsWrite(1, req)
+}
+
 // CatalogRegister mocks catalog registrations through Raft by copying the logic of FSM.applyRegister.
 func (b *testStreamBackend) CatalogRegister(req *structs.RegisterRequest) error {
 	return b.store.EnsureRegistration(1, req)
@@ -1240,10 +1419,12 @@ func Test_makeServiceResponse_ExportedServicesCount(t *testing.T) {
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 
 	srv, store := newTestServer(t, nil)
-	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
-		ID:   peerID,
-		Name: peerName},
-	))
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   peerID,
+			Name: peerName,
+		},
+	}))
 
 	// connect the stream
 	mst, err := srv.Tracker.Connected(peerID)
@@ -1294,10 +1475,12 @@ func Test_processResponse_Validation(t *testing.T) {
 	}
 
 	srv, store := newTestServer(t, nil)
-	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
-		ID:   peerID,
-		Name: peerName},
-	))
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   peerID,
+			Name: peerName,
+		},
+	}))
 
 	// connect the stream
 	mst, err := srv.Tracker.Connected(peerID)
@@ -1438,11 +1621,22 @@ func writePeeringToBeDialed(t *testing.T, store *state.Store, idx uint64, peerNa
 
 func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, remotePeerID string) *pbpeering.Peering {
 	peering := pbpeering.Peering{
-		ID:     testUUID(t),
+		ID:     testPeerID,
 		Name:   peerName,
 		PeerID: remotePeerID,
 	}
-	require.NoError(t, store.PeeringWrite(idx, &peering))
+	if remotePeerID != "" {
+		peering.PeerServerAddresses = []string{"127.0.0.1:5300"}
+	}
+	require.NoError(t, store.PeeringWrite(idx, &pbpeering.PeeringWriteRequest{
+		Peering: &peering,
+		Secret: &pbpeering.PeeringSecrets{
+			PeerID: testPeerID,
+			Stream: &pbpeering.PeeringSecrets_Stream{
+				PendingSecretID: testPendingStreamSecretID,
+			},
+		},
+	}))
 
 	_, p, err := store.PeeringRead(nil, state.Query{Value: peerName})
 	require.NoError(t, err)
@@ -1570,10 +1764,12 @@ func Test_processResponse_handleUpsert_handleDelete(t *testing.T) {
 	apiSN := structs.NewServiceName("api", &defaultMeta)
 
 	// create a peering in the state store
-	require.NoError(t, store.PeeringWrite(31, &pbpeering.Peering{
-		ID:   peerID,
-		Name: peerName},
-	))
+	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   peerID,
+			Name: peerName,
+		},
+	}))
 
 	// connect the stream
 	mst, err := srv.Tracker.Connected(peerID)
@@ -2441,9 +2637,9 @@ func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.
 		Tracker:        NewTracker(),
 		GetStore:       func() StateStore { return store },
 		Logger:         testutil.Logger(t),
-		ACLResolver:    nil, // TODO(peering): add something for acl testing
 		Datacenter:     "dc1",
 		ConnectEnabled: true,
+		ForwardRPC:     noopForwardRPC,
 	}
 	if configFn != nil {
 		configFn(&cfg)

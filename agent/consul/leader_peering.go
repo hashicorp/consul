@@ -3,8 +3,7 @@ package consul
 import (
 	"container/ring"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	grpcstatus "google.golang.org/grpc/status"
 
@@ -215,8 +213,6 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 		status, found := s.peerStreamServer.StreamStatus(peer.ID)
 
 		// TODO(peering): If there is new peering data and a connected stream, should we tear down the stream?
-		//                If the data in the updated token is bad, the user wouldn't know until the old servers/certs become invalid.
-		//                Alternatively we could do a basic Ping from the establish peering endpoint to avoid dealing with that here.
 		if found && status.Connected {
 			// Nothing to do when we already have an active stream to the peer.
 			continue
@@ -230,7 +226,7 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 			cancel()
 		}
 
-		if err := s.establishStream(ctx, logger, peer, cancelFns); err != nil {
+		if err := s.establishStream(ctx, logger, ws, peer, cancelFns); err != nil {
 			// TODO(peering): These errors should be reported in the peer status, otherwise they're only in the logs.
 			//                Lockable status isn't available here though. Could report it via the peering.Service?
 			logger.Error("error establishing peering stream", "peer_id", peer.ID, "error", err)
@@ -269,29 +265,16 @@ func (s *Server) syncPeeringsAndBlock(ctx context.Context, logger hclog.Logger, 
 	return merr.ErrorOrNil()
 }
 
-func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer *pbpeering.Peering, cancelFns map[string]context.CancelFunc) error {
+func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, ws memdb.WatchSet, peer *pbpeering.Peering, cancelFns map[string]context.CancelFunc) error {
 	logger = logger.With("peer_name", peer.Name, "peer_id", peer.ID)
 
-	tlsOption := grpc.WithInsecure()
-	if len(peer.PeerCAPems) > 0 {
-		var haveCerts bool
-		pool := x509.NewCertPool()
-		for _, pem := range peer.PeerCAPems {
-			if !pool.AppendCertsFromPEM([]byte(pem)) {
-				return fmt.Errorf("failed to parse PEM %s", pem)
-			}
-			if len(pem) > 0 {
-				haveCerts = true
-			}
-		}
-		if !haveCerts {
-			return fmt.Errorf("failed to build cert pool from peer CA pems")
-		}
-		cfg := tls.Config{
-			ServerName: peer.PeerServerName,
-			RootCAs:    pool,
-		}
-		tlsOption = grpc.WithTransportCredentials(credentials.NewTLS(&cfg))
+	if peer.PeerID == "" {
+		return fmt.Errorf("expected PeerID to be non empty; the wrong end of peering is being dialed")
+	}
+
+	tlsOption, err := peer.TLSDialOption()
+	if err != nil {
+		return fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
 	// Create a ring buffer to cycle through peer addresses in the retry loop below.
@@ -299,6 +282,14 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 	for _, addr := range peer.PeerServerAddresses {
 		buffer.Value = addr
 		buffer = buffer.Next()
+	}
+
+	secret, err := s.fsm.State().PeeringSecretsRead(ws, peer.ID)
+	if err != nil {
+		return fmt.Errorf("failed to read secret for peering: %w", err)
+	}
+	if secret.GetStream().GetActiveSecretID() == "" {
+		return errors.New("missing stream secret for peering stream authorization, peering must be re-established")
 	}
 
 	logger.Trace("establishing stream to peer")
@@ -345,8 +336,16 @@ func (s *Server) establishStream(ctx context.Context, logger hclog.Logger, peer 
 			return err
 		}
 
-		if peer.PeerID == "" {
-			return fmt.Errorf("expected PeerID to be non empty; the wrong end of peering is being dialed")
+		initialReq := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Open_{
+				Open: &pbpeerstream.ReplicationMessage_Open{
+					PeerID:         peer.PeerID,
+					StreamSecretID: secret.GetStream().GetActiveSecretID(),
+				},
+			},
+		}
+		if err := stream.Send(initialReq); err != nil {
+			return fmt.Errorf("failed to send initial stream request: %w", err)
 		}
 
 		streamReq := peerstream.HandleStreamRequest{

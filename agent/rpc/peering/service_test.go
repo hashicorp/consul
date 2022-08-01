@@ -82,40 +82,84 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	_, errE := client.GenerateToken(ctx, &reqE)
 	require.EqualError(t, errE, "rpc error: code = Unknown desc = meta tags failed validation: Node metadata cannot contain more than 64 key/value pairs")
 
-	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
-	resp, err := client.GenerateToken(ctx, &req)
-	require.NoError(t, err)
+	var (
+		peerID string
+		secret string
+	)
+	testutil.RunStep(t, "peering token is generated with data", func(t *testing.T) {
+		req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
+		resp, err := client.GenerateToken(ctx, &req)
+		require.NoError(t, err)
 
-	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-	require.NoError(t, err)
+		tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+		require.NoError(t, err)
 
-	token := &structs.PeeringToken{}
-	require.NoError(t, json.Unmarshal(tokenJSON, token))
-	require.Equal(t, "server.dc1.consul", token.ServerName)
-	require.Len(t, token.ServerAddresses, 1)
-	require.Equal(t, s.PublicGRPCAddr, token.ServerAddresses[0])
-	require.Equal(t, []string{ca}, token.CA)
+		token := &structs.PeeringToken{}
+		require.NoError(t, json.Unmarshal(tokenJSON, token))
+		require.Equal(t, "server.dc1.consul", token.ServerName)
+		require.Len(t, token.ServerAddresses, 1)
+		require.Equal(t, s.PublicGRPCAddr, token.ServerAddresses[0])
+		require.Equal(t, []string{ca}, token.CA)
 
-	require.NotEmpty(t, token.PeerID)
-	_, err = uuid.ParseUUID(token.PeerID)
-	require.NoError(t, err)
+		require.NotEmpty(t, token.EstablishmentSecret)
+		secret = token.EstablishmentSecret
 
-	_, peers, err := s.Server.FSM().State().PeeringList(nil, *structs.DefaultEnterpriseMetaInDefaultPartition())
-	require.NoError(t, err)
-	require.Len(t, peers, 1)
+		require.NotEmpty(t, token.PeerID)
+		peerID = token.PeerID
 
-	peers[0].ModifyIndex = 0
-	peers[0].CreateIndex = 0
+		_, err = uuid.ParseUUID(token.PeerID)
+		require.NoError(t, err)
+	})
 
-	expect := &pbpeering.Peering{
-		Name:      "peerB",
-		Partition: acl.DefaultPartitionName,
-		ID:        token.PeerID,
-		State:     pbpeering.PeeringState_PENDING,
-		Meta:      map[string]string{"foo": "bar"},
-	}
-	require.Equal(t, expect, peers[0])
+	testutil.RunStep(t, "peerings is created by generating a token", func(t *testing.T) {
+		_, peers, err := s.Server.FSM().State().PeeringList(nil, *structs.DefaultEnterpriseMetaInDefaultPartition())
+		require.NoError(t, err)
+		require.Len(t, peers, 1)
+
+		peers[0].ModifyIndex = 0
+		peers[0].CreateIndex = 0
+
+		expect := &pbpeering.Peering{
+			Name:      "peerB",
+			Partition: acl.DefaultPartitionName,
+			ID:        peerID,
+			State:     pbpeering.PeeringState_PENDING,
+			Meta:      map[string]string{"foo": "bar"},
+		}
+		require.Equal(t, expect, peers[0])
+	})
+
+	testutil.RunStep(t, "generating a token persists establishment secret", func(t *testing.T) {
+		s, err := s.Server.FSM().State().PeeringSecretsRead(nil, peerID)
+		require.NoError(t, err)
+		require.NotNil(t, s)
+
+		require.Equal(t, secret, s.GetEstablishment().GetSecretID())
+	})
+
+	testutil.RunStep(t, "re-generating a peering token re-generates the secret", func(t *testing.T) {
+		req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
+		resp, err := client.GenerateToken(ctx, &req)
+		require.NoError(t, err)
+
+		tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+		require.NoError(t, err)
+
+		token := &structs.PeeringToken{}
+		require.NoError(t, json.Unmarshal(tokenJSON, token))
+
+		// There should be a new establishment secret, different from the past one
+		require.NotEmpty(t, token.EstablishmentSecret)
+		require.NotEqual(t, secret, token.EstablishmentSecret)
+
+		s, err := s.Server.FSM().State().PeeringSecretsRead(nil, peerID)
+		require.NoError(t, err)
+		require.NotNil(t, s)
+
+		// The secret must be persisted on the server that generated it.
+		require.Equal(t, token.EstablishmentSecret, s.GetEstablishment().GetSecretID())
+	})
+
 }
 
 func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
@@ -208,7 +252,7 @@ func TestPeeringService_GenerateToken_ACLEnforcement(t *testing.T) {
 	}
 }
 
-func TestPeeringService_Establish(t *testing.T) {
+func TestPeeringService_Establish_Validation(t *testing.T) {
 	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
 	validTokenJSON, _ := json.Marshal(&validToken)
 	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
@@ -292,20 +336,6 @@ func TestPeeringService_Establish(t *testing.T) {
 			},
 			expectErr: "meta tags failed validation:",
 		},
-		{
-			name: "success",
-			req: &pbpeering.EstablishRequest{
-				PeerName:     "peer1-usw1",
-				PeeringToken: validTokenB64,
-				Meta:         map[string]string{"foo": "bar"},
-			},
-			expectResp: &pbpeering.EstablishResponse{},
-			expectPeering: peering.TestPeering(
-				"peer1-usw1",
-				pbpeering.PeeringState_ESTABLISHING,
-				map[string]string{"foo": "bar"},
-			),
-		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -338,6 +368,68 @@ func TestPeeringService_Establish_validPeeringInPartition(t *testing.T) {
 	require.Nil(t, respE)
 }
 
+func TestPeeringService_Establish(t *testing.T) {
+	// TODO(peering): see note on newTestServer, refactor to not use this
+	s1 := newTestServer(t, nil)
+	client1 := pbpeering.NewPeeringServiceClient(s1.ClientConn(t))
+
+	s2 := newTestServer(t, func(conf *consul.Config) {
+		conf.GRPCPort = 5301
+	})
+	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	// Generate a peering token for s2
+	tokenResp, err := client1.GenerateToken(ctx, &pbpeering.GenerateTokenRequest{PeerName: "my-peer-s2"})
+	require.NoError(t, err)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	var peerID string
+	testutil.RunStep(t, "peering can be established from token", func(t *testing.T) {
+		_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{PeerName: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
+		require.NoError(t, err)
+
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		// Read the expected peering at s2 to validate it
+		resp, err := client2.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
+		require.NoError(t, err)
+
+		peerID = resp.Peering.ID
+
+		// Check individual values, ignoring the create/modify indexes.
+		tokenJSON, err := base64.StdEncoding.DecodeString(tokenResp.PeeringToken)
+		require.NoError(t, err)
+
+		var token structs.PeeringToken
+		require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+		require.Equal(t, "my-peer-s1", resp.Peering.Name)
+		require.Equal(t, token.CA, resp.Peering.PeerCAPems)
+		require.Equal(t, token.ServerAddresses, resp.Peering.PeerServerAddresses)
+		require.Equal(t, token.ServerName, resp.Peering.PeerServerName)
+	})
+
+	testutil.RunStep(t, "stream secret is persisted", func(t *testing.T) {
+		secret, err := s2.Server.FSM().State().PeeringSecretsRead(nil, peerID)
+		require.NoError(t, err)
+		require.NotEmpty(t, secret.GetStream().GetActiveSecretID())
+	})
+
+	testutil.RunStep(t, "peering tokens cannot be reused after secret exchange", func(t *testing.T) {
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		t.Cleanup(cancel)
+
+		_, err = client2.Establish(ctx, &pbpeering.EstablishRequest{PeerName: "my-peer-s1", PeeringToken: tokenResp.PeeringToken})
+		require.Contains(t, err.Error(), "invalid peering establishment secret")
+	})
+}
+
 func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
 	validTokenJSON, _ := json.Marshal(&validToken)
@@ -367,7 +459,7 @@ func TestPeeringService_Establish_ACLEnforcement(t *testing.T) {
 			require.Contains(t, err.Error(), tc.expectErr)
 			return
 		}
-		require.NoError(t, err)
+		require.NotContains(t, err.Error(), "lacks permission")
 	}
 	tcs := []testcase{
 		{
@@ -418,7 +510,7 @@ func TestPeeringService_Read(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, p)
+	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
@@ -481,7 +573,7 @@ func TestPeeringService_Read_ACLEnforcement(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, p)
+	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
@@ -540,7 +632,7 @@ func TestPeeringService_Delete(t *testing.T) {
 		PeerServerName:      "test",
 		PeerServerAddresses: []string{"addr1"},
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, p)
+	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
 	require.Nil(t, p.DeletedAt)
 	require.True(t, p.IsActive())
@@ -579,7 +671,7 @@ func TestPeeringService_Delete_ACLEnforcement(t *testing.T) {
 		PeerServerName:      "test",
 		PeerServerAddresses: []string{"addr1"},
 	}
-	err := s.Server.FSM().State().PeeringWrite(10, p)
+	err := s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: p})
 	require.NoError(t, err)
 	require.Nil(t, p.DeletedAt)
 	require.True(t, p.IsActive())
@@ -650,7 +742,7 @@ func TestPeeringService_List(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: foo}))
 	bar := &pbpeering.Peering{
 		ID:                   testUUID(t),
 		Name:                 "bar",
@@ -661,7 +753,7 @@ func TestPeeringService_List(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, bar))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, &pbpeering.PeeringWriteRequest{Peering: bar}))
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
@@ -696,7 +788,7 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, foo))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(10, &pbpeering.PeeringWriteRequest{Peering: foo}))
 	bar := &pbpeering.Peering{
 		ID:                   testUUID(t),
 		Name:                 "bar",
@@ -707,7 +799,7 @@ func TestPeeringService_List_ACLEnforcement(t *testing.T) {
 		ImportedServiceCount: 0,
 		ExportedServiceCount: 0,
 	}
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, bar))
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(15, &pbpeering.PeeringWriteRequest{Peering: bar}))
 
 	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
 
@@ -858,21 +950,25 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 	var lastIdx uint64 = 10
 
 	lastIdx++
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_ESTABLISHING,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:                  testUUID(t),
+			Name:                "foo",
+			State:               pbpeering.PeeringState_ESTABLISHING,
+			PeerServerName:      "test",
+			PeerServerAddresses: []string{"addr1"},
+		},
 	}))
 
 	lastIdx++
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "bar",
-		State:               pbpeering.PeeringState_ESTABLISHING,
-		PeerServerName:      "test-bar",
-		PeerServerAddresses: []string{"addr2"},
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:                  testUUID(t),
+			Name:                "bar",
+			State:               pbpeering.PeeringState_ESTABLISHING,
+			PeerServerName:      "test-bar",
+			PeerServerAddresses: []string{"addr2"},
+		},
 	}))
 
 	lastIdx++
@@ -944,71 +1040,56 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 }
 
 func TestPeeringService_validatePeer(t *testing.T) {
-	dir := testutil.TempDir(t, "consul")
-	signer, _, _ := tlsutil.GeneratePrivateKey()
-	ca, _, _ := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
-	cafile := path.Join(dir, "cacert.pem")
-	require.NoError(t, ioutil.WriteFile(cafile, []byte(ca), 0600))
-
-	s := newTestServer(t, func(c *consul.Config) {
+	s1 := newTestServer(t, func(c *consul.Config) {
 		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.1"
-		c.TLSConfig.GRPC.CAFile = cafile
-		c.DataDir = dir
 	})
-	client := pbpeering.NewPeeringServiceClient(s.ClientConn(t))
+	client1 := pbpeering.NewPeeringServiceClient(s1.ClientConn(t))
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	testutil.RunStep(t, "generate a token", func(t *testing.T) {
 		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
-		resp, err := client.GenerateToken(ctx, &req)
+		resp, err := client1.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
 	})
 
-	testutil.RunStep(t, "generate a token with the same name", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
-		resp, err := client.GenerateToken(ctx, &req)
-		require.NoError(t, err)
-		require.NotEmpty(t, resp)
+	s2 := newTestServer(t, func(conf *consul.Config) {
+		conf.GRPCPort = 5301
 	})
+	client2 := pbpeering.NewPeeringServiceClient(s2.ClientConn(t))
 
-	validToken := peering.TestPeeringToken("83474a06-cca4-4ff4-99a4-4152929c8160")
-	validTokenJSON, _ := json.Marshal(&validToken)
-	validTokenB64 := base64.StdEncoding.EncodeToString(validTokenJSON)
+	req := pbpeering.GenerateTokenRequest{PeerName: "my-peer-s1"}
+	resp, err := client2.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp)
+
+	s2Token := resp.PeeringToken
 
 	testutil.RunStep(t, "send an establish request for a different peer name", func(t *testing.T) {
-		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peer1-usw1",
-			PeeringToken: validTokenB64,
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, resp)
-	})
-
-	testutil.RunStep(t, "send an establish request for a different peer name again", func(t *testing.T) {
-		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peer1-usw1",
-			PeeringToken: validTokenB64,
+		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
+			PeerName:     "peerC",
+			PeeringToken: s2Token,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
 	})
 
 	testutil.RunStep(t, "attempt to generate token with the same name used as dialer", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peer1-usw1"}
-		resp, err := client.GenerateToken(ctx, &req)
+		req := pbpeering.GenerateTokenRequest{PeerName: "peerC"}
+		resp, err := client1.GenerateToken(ctx, &req)
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(),
-			"cannot create peering with name: \"peer1-usw1\"; there is already an established peering")
+			"cannot create peering with name: \"peerC\"; there is already an established peering")
 		require.Nil(t, resp)
 	})
 
 	testutil.RunStep(t, "attempt to establish the with the same name used as acceptor", func(t *testing.T) {
-		resp, err := client.Establish(ctx, &pbpeering.EstablishRequest{
+		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
 			PeerName:     "peerB",
-			PeeringToken: validTokenB64,
+			PeeringToken: s2Token,
 		})
 
 		require.Error(t, err)
@@ -1091,12 +1172,14 @@ func TestPeeringService_TrustBundleListByService_ACLEnforcement(t *testing.T) {
 	var lastIdx uint64 = 10
 
 	lastIdx++
-	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.Peering{
-		ID:                  testUUID(t),
-		Name:                "foo",
-		State:               pbpeering.PeeringState_ESTABLISHING,
-		PeerServerName:      "test",
-		PeerServerAddresses: []string{"addr1"},
+	require.NoError(t, s.Server.FSM().State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:                  testUUID(t),
+			Name:                "foo",
+			State:               pbpeering.PeeringState_ESTABLISHING,
+			PeerServerName:      "test",
+			PeerServerAddresses: []string{"addr1"},
+		},
 	}))
 
 	lastIdx++
@@ -1436,9 +1519,11 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
 	t.Helper()
-	err := store.PeeringWrite(index, &pbpeering.Peering{
-		ID:   testUUID(t),
-		Name: name,
+	err := store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(t),
+			Name: name,
+		},
 	})
 	require.NoError(t, err)
 
@@ -1453,8 +1538,4 @@ func testUUID(t *testing.T) string {
 	v, err := lib.GenerateUUID(nil)
 	require.NoError(t, err)
 	return v
-}
-
-func noopForwardRPC(structs.RPCInfo, func(*gogrpc.ClientConn) error) (bool, error) {
-	return false, nil
 }

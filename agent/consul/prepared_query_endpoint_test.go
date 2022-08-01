@@ -3,8 +3,6 @@ package consul
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -23,6 +21,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -1500,6 +1499,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		t.Cleanup(cancel)
 
+		ctx = grpcexternal.ContextWithToken(ctx, "root")
+
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
 			grpc.WithInsecure(),
@@ -1513,25 +1514,30 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 		resp, err := peeringClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)
-		tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-		require.NoError(t, err)
-		var token structs.PeeringToken
-		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-		p := &pbpeering.Peering{
-			ID:                  "cc56f0b8-3885-4e78-8d7b-614a0c45712d",
-			Name:                acceptingPeerName,
-			PeerID:              token.PeerID,
-			PeerCAPems:          token.CA,
-			PeerServerName:      token.ServerName,
-			PeerServerAddresses: token.ServerAddresses,
+		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+			grpc.WithInsecure(),
+			grpc.WithBlock())
+		require.NoError(t, err)
+		defer conn.Close()
+
+		peeringClient = pbpeering.NewPeeringServiceClient(conn)
+		establishReq := pbpeering.EstablishRequest{
+			PeerName:     acceptingPeerName,
+			PeeringToken: resp.PeeringToken,
 		}
-		require.True(t, p.ShouldDial())
-		require.NoError(t, s1.fsm.State().PeeringWrite(1000, p))
+		establishResp, err := peeringClient.Establish(ctx, &establishReq)
+		require.NoError(t, err)
+		require.NotNil(t, establishResp)
+
+		readResp, err := peeringClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: acceptingPeerName})
+		require.NoError(t, err)
+		require.NotNil(t, readResp)
 
 		// Wait for the stream to be connected.
 		retry.Run(t, func(r *retry.R) {
-			status, found := s1.peerStreamServer.StreamStatus(p.ID)
+			status, found := s1.peerStreamServer.StreamStatus(readResp.GetPeering().GetID())
 			require.True(r, found)
 			require.True(r, status.Connected)
 		})
