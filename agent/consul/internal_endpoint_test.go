@@ -162,9 +162,11 @@ func TestInternal_NodeDump(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -270,9 +272,11 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -1785,9 +1789,11 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 
 	addPeerService(t, codec)
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -3302,13 +3308,17 @@ func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
 	_, s := testServerWithConfig(t, testServerACLConfig)
 	codec := rpcClient(t, s)
 
-	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   testUUID(),
-		Name: "peer-1",
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-1",
+		},
 	}))
-	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   testUUID(),
-		Name: "peer-2",
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-2",
+		},
 	}))
 	require.NoError(t, s.fsm.State().EnsureConfigEntry(1, &structs.ExportedServicesConfigEntry{
 		Name: "default",

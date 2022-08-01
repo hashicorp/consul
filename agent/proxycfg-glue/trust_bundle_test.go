@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -125,10 +126,12 @@ func TestServerTrustBundleList(t *testing.T) {
 		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
 
 		testutil.RunStep(t, "export service to peer", func(t *testing.T) {
-			require.NoError(t, store.PeeringWrite(index, &pbpeering.Peering{
-				ID:    testUUID(t),
-				Name:  them,
-				State: pbpeering.PeeringState_ACTIVE,
+			require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:    testUUID(t),
+					Name:  them,
+					State: pbpeering.PeeringState_ACTIVE,
+				},
 			}))
 
 			require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{
@@ -228,10 +231,12 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 		require.NoError(t, store.CASetConfig(index, &structs.CAConfiguration{ClusterID: "cluster-id"}))
 
 		testutil.RunStep(t, "export service to peer", func(t *testing.T) {
-			require.NoError(t, store.PeeringWrite(index, &pbpeering.Peering{
-				ID:    testUUID(t),
-				Name:  them,
-				State: pbpeering.PeeringState_ACTIVE,
+			require.NoError(t, store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:    testUUID(t),
+					Name:  them,
+					State: pbpeering.PeeringState_ACTIVE,
+				},
 			}))
 
 			require.NoError(t, store.PeeringTrustBundleWrite(index, &pbpeering.PeeringTrustBundle{

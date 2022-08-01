@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -146,7 +148,12 @@ type Backend interface {
 	// leader.
 	GetLeaderAddress() string
 
+	// CheckPeeringUUID returns true if the given UUID is not associated with
+	// an existing peering.
 	CheckPeeringUUID(id string) (bool, error)
+
+	ValidateProposedPeeringSecret(id string) (bool, error)
+
 	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 
 	Store() Store
@@ -211,7 +218,10 @@ func (s *Server) GenerateToken(
 		return nil, err
 	}
 
-	var peering *pbpeering.Peering
+	var (
+		peering  *pbpeering.Peering
+		secretID string
+	)
 
 	// This loop ensures at most one retry in the case of a race condition.
 	for canRetry := true; canRetry; canRetry = false {
@@ -239,10 +249,25 @@ func (s *Server) GenerateToken(
 				return nil, err
 			}
 		}
-		writeReq := pbpeering.PeeringWriteRequest{
-			Peering: peering,
+
+		// A new establishment secret is generated on every GenerateToken request.
+		// This allows for rotating secrets by generating a new token for a peering and then
+		// using the new token to re-establish the peering.
+		secretID, err = s.generateNewEstablishmentSecret()
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate secret for peering establishment: %w", err)
 		}
-		if err := s.Backend.PeeringWrite(&writeReq); err != nil {
+
+		writeReq := &pbpeering.PeeringWriteRequest{
+			Peering: peering,
+			Secret: &pbpeering.PeeringSecrets{
+				PeerID: peering.ID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: secretID,
+				},
+			},
+		}
+		if err := s.Backend.PeeringWrite(writeReq); err != nil {
 			// There's a possible race where two servers call Generate Token at the
 			// same time with the same peer name for the first time. They both
 			// generate an ID and try to insert and only one wins. This detects the
@@ -276,10 +301,11 @@ func (s *Server) GenerateToken(
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
-		PeerID:          peering.ID,
-		CA:              ca,
-		ServerAddresses: serverAddrs,
-		ServerName:      s.Backend.GetServerName(),
+		PeerID:              peering.ID,
+		CA:                  ca,
+		ServerAddresses:     serverAddrs,
+		ServerName:          s.Backend.GetServerName(),
+		EstablishmentSecret: secretID,
 	}
 
 	encoded, err := s.Backend.EncodeToken(&tok)
@@ -341,7 +367,7 @@ func (s *Server) Establish(
 		return nil, err
 	}
 
-	peering, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
+	existing, err := s.getExistingPeering(req.PeerName, entMeta.PartitionOrDefault())
 	if err != nil {
 		return nil, err
 	}
@@ -351,45 +377,73 @@ func (s *Server) Establish(
 	}
 
 	var id string
-	if peering == nil {
+	if existing == nil {
 		id, err = lib.GenerateUUID(s.Backend.CheckPeeringUUID)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		id = peering.ID
+		id = existing.ID
 	}
 
 	// validate that this peer name is not being used as an acceptor already
-	if err := validatePeer(peering, true); err != nil {
+	if err := validatePeer(existing, true); err != nil {
 		return nil, err
 	}
 
-	// convert ServiceAddress values to strings
-	serverAddrs := make([]string, len(tok.ServerAddresses))
-	for i, addr := range tok.ServerAddresses {
-		serverAddrs[i] = addr
+	peering := &pbpeering.Peering{
+		ID:                  id,
+		Name:                req.PeerName,
+		PeerCAPems:          tok.CA,
+		PeerServerAddresses: tok.ServerAddresses,
+		PeerServerName:      tok.ServerName,
+		PeerID:              tok.PeerID,
+		Meta:                req.Meta,
+		State:               pbpeering.PeeringState_ESTABLISHING,
+
+		// PartitionOrEmpty is used to avoid writing "default" in OSS.
+		Partition: entMeta.PartitionOrEmpty(),
 	}
 
-	// as soon as a peering is written with a list of ServerAddresses that is
+	tlsOption, err := peering.TLSDialOption()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build TLS dial option from peering: %w", err)
+	}
+
+	exchangeReq := pbpeerstream.ExchangeSecretRequest{
+		PeerID:              peering.PeerID,
+		EstablishmentSecret: tok.EstablishmentSecret,
+	}
+	var exchangeResp *pbpeerstream.ExchangeSecretResponse
+
+	// Loop through the token's addresses once, attempting to fetch the long-lived stream secret.
+	var dialErrors error
+	for _, addr := range peering.PeerServerAddresses {
+		exchangeResp, err = exchangeSecret(ctx, addr, tlsOption, &exchangeReq)
+		if err != nil {
+			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret with %q: %w", addr, err))
+		}
+		if exchangeResp != nil {
+			break
+		}
+	}
+	if exchangeResp == nil {
+		return nil, dialErrors
+	}
+
+	// As soon as a peering is written with a list of ServerAddresses that is
 	// non-empty, the leader routine will see the peering and attempt to
 	// establish a connection with the remote peer.
 	//
 	// This peer now has a record of both the LocalPeerID(ID) and
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			ID:                  id,
-			Name:                req.PeerName,
-			PeerCAPems:          tok.CA,
-			PeerServerAddresses: serverAddrs,
-			PeerServerName:      tok.ServerName,
-			PeerID:              tok.PeerID,
-			Meta:                req.Meta,
-			State:               pbpeering.PeeringState_ESTABLISHING,
-
-			// PartitionOrEmpty is used to avoid writing "default" in OSS.
-			Partition: entMeta.PartitionOrEmpty(),
+		Peering: peering,
+		Secret: &pbpeering.PeeringSecrets{
+			PeerID: peering.ID,
+			Stream: &pbpeering.PeeringSecrets_Stream{
+				ActiveSecretID: exchangeResp.StreamSecret,
+			},
 		},
 	}
 	if err := s.Backend.PeeringWrite(writeReq); err != nil {
@@ -413,6 +467,22 @@ func (s *Server) validatePeeringInPartition(remotePeerID, partition string) erro
 	}
 
 	return nil
+}
+
+func exchangeSecret(ctx context.Context, addr string, tlsOption grpc.DialOption, req *pbpeerstream.ExchangeSecretRequest) (*pbpeerstream.ExchangeSecretResponse, error) {
+	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(dialCtx, addr,
+		tlsOption,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial peer: %w", err)
+	}
+	defer conn.Close()
+
+	client := pbpeerstream.NewPeerStreamServiceClient(conn)
+	return client.ExchangeSecret(ctx, req)
 }
 
 // OPTIMIZE: Handle blocking queries
@@ -799,6 +869,14 @@ func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peer
 	return peering, nil
 }
 
+func (s *Server) generateNewEstablishmentSecret() (string, error) {
+	id, err := lib.GenerateUUID(s.Backend.ValidateProposedPeeringSecret)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
 // validatePeer enforces the following rule for an existing peering:
 // - if a peering already exists, it can only be used as an acceptor or dialer
 //
@@ -812,7 +890,6 @@ func validatePeer(peering *pbpeering.Peering, shouldDial bool) error {
 			return fmt.Errorf("cannot create peering with name: %q; there is already an established peering", peering.Name)
 		}
 	}
-
 	return nil
 }
 

@@ -724,9 +724,11 @@ func (b *testSubscriptionBackend) ensureCARoots(t *testing.T, roots ...*structs.
 }
 
 func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
-	err := store.PeeringWrite(index, &pbpeering.Peering{
-		ID:   testUUID(t),
-		Name: name,
+	err := store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(t),
+			Name: name,
+		},
 	})
 	require.NoError(t, err)
 
