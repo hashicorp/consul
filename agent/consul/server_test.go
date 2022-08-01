@@ -1211,7 +1211,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		t.Cleanup(func() { s1.Shutdown() })
+		defer s1.Shutdown()
 
 		var out struct{}
 		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -1249,10 +1249,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		t.Cleanup(func() { s2.Shutdown() })
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		defer s2.Shutdown()
 
 		var out struct{}
 		if err := s2.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -1284,11 +1281,10 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
 
-		t.Cleanup(func() {
-			if s1 != nil {
-				s1.Shutdown()
-			}
-		})
+		// if the test failed to error, let's still clean up the server resources
+		if s1 != nil {
+			s1.Shutdown()
+		}
 	})
 
 	t.Run("test nil RequestRecorder", func(t *testing.T) {
@@ -1303,11 +1299,10 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
 
-		t.Cleanup(func() {
-			if s2 != nil {
-				s2.Shutdown()
-			}
-		})
+		// if the test failed to error, let's still clean up the server resources
+		if s2 != nil {
+			s2.Shutdown()
+		}
 	})
 }
 
