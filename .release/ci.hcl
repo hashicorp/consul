@@ -12,7 +12,6 @@ project "consul" {
     release_branches = [
       "main",
       "release/**",
-      "eculver/**",
     ]
   }
 }
