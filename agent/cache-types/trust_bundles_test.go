@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -46,6 +48,29 @@ func TestTrustBundles(t *testing.T) {
 		Value: resp,
 		Index: 48,
 	}, result)
+}
+
+func TestTrustBundles_PeeringDisabled(t *testing.T) {
+	client := NewMockTrustBundleLister(t)
+	typ := &TrustBundles{Client: client}
+
+	var resp *pbpeering.TrustBundleListByServiceResponse
+
+	// Expect the proper call.
+	// This also returns the canned response above.
+	client.On("TrustBundleListByService", mock.Anything, mock.Anything).
+		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint"))
+
+	// Fetch and assert against the result.
+	result, err := typ.Fetch(cache.FetchOptions{}, &TrustBundleListRequest{
+		Request: &pbpeering.TrustBundleListByServiceRequest{
+			ServiceName: "foo",
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.EqualValues(t, 1, result.Index)
+	require.NotNil(t, result.Value)
 }
 
 func TestTrustBundles_badReqType(t *testing.T) {

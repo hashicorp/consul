@@ -8,6 +8,8 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -87,11 +89,18 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 	// Fetch
 	reply, err := t.Client.TrustBundleListByService(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
 	if err != nil {
-		return result, err
-	}
+		grpcErr, ok := grpcstatus.FromError(err)
+		if !ok || grpcErr.Code() != codes.FailedPrecondition {
+			return result, err
+		}
 
-	result.Value = reply
-	result.Index = reply.Index
+		// handle the FailedPrecondition error and synthesize a fake result
+		result.Value = &pbpeering.TrustBundleListByServiceResponse{}
+		result.Index = 1
+	} else {
+		result.Value = reply
+		result.Index = reply.Index
+	}
 
 	return result, nil
 }
