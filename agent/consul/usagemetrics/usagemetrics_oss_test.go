@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
@@ -603,13 +603,13 @@ func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
 			modfiyStateStore: func(t *testing.T, s *state.Store) {
 				id, err := uuid.GenerateUUID()
 				require.NoError(t, err)
-				require.NoError(t, s.PeeringWrite(1, &pbpeering.Peering{Name: "foo", ID: id}))
+				require.NoError(t, s.PeeringWrite(1, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "foo", ID: id}}))
 				id, err = uuid.GenerateUUID()
 				require.NoError(t, err)
-				require.NoError(t, s.PeeringWrite(2, &pbpeering.Peering{Name: "bar", ID: id}))
+				require.NoError(t, s.PeeringWrite(2, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "bar", ID: id}}))
 				id, err = uuid.GenerateUUID()
 				require.NoError(t, err)
-				require.NoError(t, s.PeeringWrite(3, &pbpeering.Peering{Name: "baz", ID: id}))
+				require.NoError(t, s.PeeringWrite(3, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{Name: "baz", ID: id}}))
 			},
 			getMembersFunc: func() []serf.Member {
 				return []serf.Member{

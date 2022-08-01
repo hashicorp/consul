@@ -734,6 +734,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		ACLResolver:    s.ACLResolver,
 		Datacenter:     s.config.Datacenter,
 		ConnectEnabled: s.config.ConnectEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 

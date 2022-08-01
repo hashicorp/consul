@@ -38,12 +38,26 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 }
 
 func TestAPI_Peering_ACLDeny(t *testing.T) {
-	c, s := makeACLClient(t)
-	defer s.Stop()
+	c1, s1 := makeClientWithConfig(t, nil, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.ACL.Tokens.InitialManagement = "root"
+		serverConfig.ACL.Enabled = true
+		serverConfig.ACL.DefaultPolicy = "deny"
+		serverConfig.Ports.GRPC = 5300
+	})
+	defer s1.Stop()
 
-	peerings := c.Peerings()
+	c2, s2 := makeClientWithConfig(t, nil, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.ACL.Tokens.InitialManagement = "root"
+		serverConfig.ACL.Enabled = true
+		serverConfig.ACL.DefaultPolicy = "deny"
+		serverConfig.Ports.GRPC = 5301
+	})
+	defer s2.Stop()
 
+	var peeringToken string
 	testutil.RunStep(t, "generate token", func(t *testing.T) {
+		peerings := c1.Peerings()
+
 		req := PeeringGenerateTokenRequest{PeerName: "peer1"}
 
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
@@ -57,16 +71,17 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, wm)
 			require.NotNil(t, resp)
+
+			peeringToken = resp.PeeringToken
 		})
 	})
 
 	testutil.RunStep(t, "establish peering", func(t *testing.T) {
-		tokenJSON := `{"ServerAddresses":["127.0.0.1:8502"],"ServerName":"foo","PeerID":"716af65f-b844-f3bb-8aef-cfd7949f6873"}`
-		tokenB64 := base64.StdEncoding.EncodeToString([]byte(tokenJSON))
+		peerings := c2.Peerings()
 
 		req := PeeringEstablishRequest{
 			PeerName:     "peer2",
-			PeeringToken: tokenB64,
+			PeeringToken: peeringToken,
 		}
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
 			_, _, err := peerings.Establish(context.Background(), req, &WriteOptions{Token: "anonymous"})
@@ -83,6 +98,8 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "read peering", func(t *testing.T) {
+		peerings := c1.Peerings()
+
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
 			_, _, err := peerings.Read(context.Background(), "peer1", &QueryOptions{Token: "anonymous"})
 			require.Error(t, err)
@@ -98,6 +115,8 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "list peerings", func(t *testing.T) {
+		peerings := c1.Peerings()
+
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
 			_, _, err := peerings.List(context.Background(), &QueryOptions{Token: "anonymous"})
 			require.Error(t, err)
@@ -109,11 +128,13 @@ func TestAPI_Peering_ACLDeny(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, qm)
 			require.NotNil(t, resp)
-			require.Len(t, resp, 2)
+			require.Len(t, resp, 1)
 		})
 	})
 
 	testutil.RunStep(t, "delete peering", func(t *testing.T) {
+		peerings := c1.Peerings()
+
 		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
 			_, err := peerings.Delete(context.Background(), "peer1", &WriteOptions{Token: "anonymous"})
 			require.Error(t, err)
