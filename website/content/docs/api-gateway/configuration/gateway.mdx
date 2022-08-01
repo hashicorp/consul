@@ -85,7 +85,7 @@ Determines which namespaces are allowed to attach a route to the `Gateway`. You 
 This parameter is required.
 
 ### listeners.allowedRoutes.namespaces.selector
-Specifies a method for selecting routes that are allowed to attach to the listener. The `Gateway` checks for namespaces in the network that match either a regular expression or a label. Routes from the matching namespace are allowed to attach to the listener. 
+Specifies a method for selecting routes that are allowed to attach to the listener. The `Gateway` checks for namespaces in the network that match either a regular expression or a label. Routes from the matching namespace are allowed to attach to the listener.
 
 You can configure one of the following objects:
 
@@ -103,7 +103,7 @@ Specifies an array of requirements for matching namespaces. If a match is found,
 |`operator` | Specifies the key's relation to a set of values. You can use the following keywords: <ul><li>`In`: Only routes in namespaces that contain the strings in the `values` field can attach to the `Gateway`. </li><li>`NotIn`: Routes in namespaces that do not contain the strings in the `values` field can attach to the `Gateway`. </li><li>`Exists`: Routes in namespaces that contain the `key` value are allowed to attach to the `Gateway`.</li><li>`DoesNotExist`: Routes in namespaces that do not contain the `key` value are allowed to attach to the `Gateway`.</li></ul> | string | required when `matchExpressions` is declared |
 |`values` | Specifies an array of string values. If `operator` is configured to `In` or `NotIn`, then the `values` array must contain values. If `operator` is configured to `Exists` or `DoesNotExist`, then the `values` array must be empty. This array is replaced during a strategic merge patch. | array of strings | required when `matchExpressions` is declared |
 
-In the following example, routes in namespaces that contain `foo` and `bar` are allowed to attach routes to the `Gateway`. 
+In the following example, routes in namespaces that contain `foo` and `bar` are allowed to attach routes to the `Gateway`.
 ```yaml
 namespaceSelector:
   matchExpressions:
@@ -155,22 +155,21 @@ Specifies the `tls` configurations for the `Gateway`. The `tls` object is requir
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
 | `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).</div>  | Object or array | Required if `tls` is set |
-| `mode` | Specifies the ? | string | Required if `certificateRefs` is set |
-| `options` | ??? | Map of strings | optional |
+| `mode` | Specifies the TLS Mode. Should always be set to `Terminate` for `HTTPRoutes` | string | Required if `certificateRefs` is set |
+| `options` | Specifies additional Consul API Gateway options. The following keys are available `api-gateway.consul.hashicorp.com/tls_min_version`, `api-gateway.consul.hashicorp.com/tls_max_version`, `api-gateway.consul.hashicorp.com/tls_cipher_suites`| Map of strings | optional |
 
-In the following example, `tls` settings are configured . . .
+In the following example, `tls` settings are configured to use a secret named `consul-server-cert` in the same namespace as the `Gateway` and the minimum tls version is set to `TLSv1_2`.
 
 ```yaml
 
 tls:
-  certificateRefs: 
-    name: ?
-    namespace: ?
-  mode: ?
-  options: 
-  - ?
-  - ? 
-  - ?
+  certificateRefs:
+    name: consul-server-cert
+    group: ""
+    kind: Secret
+  mode: Terminate
+  options:
+    "api-gateway.consul.hashicorp.com/tls_min_version": "TLSv1_2"
 
 ```
 
