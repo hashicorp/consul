@@ -93,6 +93,7 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 		// This allows mesh gateways to receive an update and confirm that the watch is set.
 		if e, ok := status.FromError(err); ok && e.Code() == codes.FailedPrecondition {
 			result.Index = 1
+			result.Value = &pbpeering.TrustBundleReadResponse{Index: 1}
 			return result, nil
 		}
 		return result, err
