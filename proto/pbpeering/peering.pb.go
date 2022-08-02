@@ -96,6 +96,115 @@ func (PeeringState) EnumDescriptor() ([]byte, []int) {
 	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0}
 }
 
+type PeeringSecretsWriteRequest_Operation int32
+
+const (
+	PeeringSecretsWriteRequest_OPERATION_UNSPECIFIED    PeeringSecretsWriteRequest_Operation = 0
+	PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN  PeeringSecretsWriteRequest_Operation = 1
+	PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET PeeringSecretsWriteRequest_Operation = 2
+	PeeringSecretsWriteRequest_OPERATION_PROMOTEPENDING PeeringSecretsWriteRequest_Operation = 3
+)
+
+// Enum value maps for PeeringSecretsWriteRequest_Operation.
+var (
+	PeeringSecretsWriteRequest_Operation_name = map[int32]string{
+		0: "OPERATION_UNSPECIFIED",
+		1: "OPERATION_GENERATETOKEN",
+		2: "OPERATION_EXCHANGESECRET",
+		3: "OPERATION_PROMOTEPENDING",
+	}
+	PeeringSecretsWriteRequest_Operation_value = map[string]int32{
+		"OPERATION_UNSPECIFIED":    0,
+		"OPERATION_GENERATETOKEN":  1,
+		"OPERATION_EXCHANGESECRET": 2,
+		"OPERATION_PROMOTEPENDING": 3,
+	}
+)
+
+func (x PeeringSecretsWriteRequest_Operation) Enum() *PeeringSecretsWriteRequest_Operation {
+	p := new(PeeringSecretsWriteRequest_Operation)
+	*p = x
+	return p
+}
+
+func (x PeeringSecretsWriteRequest_Operation) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PeeringSecretsWriteRequest_Operation) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_pbpeering_peering_proto_enumTypes[1].Descriptor()
+}
+
+func (PeeringSecretsWriteRequest_Operation) Type() protoreflect.EnumType {
+	return &file_proto_pbpeering_peering_proto_enumTypes[1]
+}
+
+func (x PeeringSecretsWriteRequest_Operation) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PeeringSecretsWriteRequest_Operation.Descriptor instead.
+func (PeeringSecretsWriteRequest_Operation) EnumDescriptor() ([]byte, []int) {
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0, 0}
+}
+
+type PeeringSecretsWriteRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Secret contains the peering secrets to write.
+	Secrets *PeeringSecrets `protobuf:"bytes,1,opt,name=secrets,proto3" json:"secrets,omitempty"`
+	// Operation defines which action triggered the secrets write.
+	Operation PeeringSecretsWriteRequest_Operation `protobuf:"varint,2,opt,name=operation,proto3,enum=hashicorp.consul.internal.peering.PeeringSecretsWriteRequest_Operation" json:"operation,omitempty"`
+}
+
+func (x *PeeringSecretsWriteRequest) Reset() {
+	*x = PeeringSecretsWriteRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PeeringSecretsWriteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeeringSecretsWriteRequest) ProtoMessage() {}
+
+func (x *PeeringSecretsWriteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeeringSecretsWriteRequest.ProtoReflect.Descriptor instead.
+func (*PeeringSecretsWriteRequest) Descriptor() ([]byte, []int) {
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PeeringSecretsWriteRequest) GetSecrets() *PeeringSecrets {
+	if x != nil {
+		return x.Secrets
+	}
+	return nil
+}
+
+func (x *PeeringSecretsWriteRequest) GetOperation() PeeringSecretsWriteRequest_Operation {
+	if x != nil {
+		return x.Operation
+	}
+	return PeeringSecretsWriteRequest_OPERATION_UNSPECIFIED
+}
+
 // PeeringSecrets defines a secret used for authenticating/authorizing peer clusters.
 type PeeringSecrets struct {
 	state         protoimpl.MessageState
@@ -111,7 +220,7 @@ type PeeringSecrets struct {
 func (x *PeeringSecrets) Reset() {
 	*x = PeeringSecrets{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[0]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -124,7 +233,7 @@ func (x *PeeringSecrets) String() string {
 func (*PeeringSecrets) ProtoMessage() {}
 
 func (x *PeeringSecrets) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[0]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -137,7 +246,7 @@ func (x *PeeringSecrets) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringSecrets.ProtoReflect.Descriptor instead.
 func (*PeeringSecrets) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PeeringSecrets) GetPeerID() string {
@@ -215,7 +324,7 @@ type Peering struct {
 func (x *Peering) Reset() {
 	*x = Peering{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[1]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -228,7 +337,7 @@ func (x *Peering) String() string {
 func (*Peering) ProtoMessage() {}
 
 func (x *Peering) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[1]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -241,7 +350,7 @@ func (x *Peering) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Peering.ProtoReflect.Descriptor instead.
 func (*Peering) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{1}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Peering) GetID() string {
@@ -370,7 +479,7 @@ type PeeringTrustBundle struct {
 func (x *PeeringTrustBundle) Reset() {
 	*x = PeeringTrustBundle{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[2]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -383,7 +492,7 @@ func (x *PeeringTrustBundle) String() string {
 func (*PeeringTrustBundle) ProtoMessage() {}
 
 func (x *PeeringTrustBundle) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[2]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +505,7 @@ func (x *PeeringTrustBundle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTrustBundle.ProtoReflect.Descriptor instead.
 func (*PeeringTrustBundle) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{2}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PeeringTrustBundle) GetTrustDomain() string {
@@ -461,7 +570,7 @@ type PeeringReadRequest struct {
 func (x *PeeringReadRequest) Reset() {
 	*x = PeeringReadRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[3]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -474,7 +583,7 @@ func (x *PeeringReadRequest) String() string {
 func (*PeeringReadRequest) ProtoMessage() {}
 
 func (x *PeeringReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[3]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +596,7 @@ func (x *PeeringReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringReadRequest.ProtoReflect.Descriptor instead.
 func (*PeeringReadRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{3}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PeeringReadRequest) GetName() string {
@@ -515,7 +624,7 @@ type PeeringReadResponse struct {
 func (x *PeeringReadResponse) Reset() {
 	*x = PeeringReadResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[4]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -528,7 +637,7 @@ func (x *PeeringReadResponse) String() string {
 func (*PeeringReadResponse) ProtoMessage() {}
 
 func (x *PeeringReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[4]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +650,7 @@ func (x *PeeringReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringReadResponse.ProtoReflect.Descriptor instead.
 func (*PeeringReadResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{4}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PeeringReadResponse) GetPeering() *Peering {
@@ -563,7 +672,7 @@ type PeeringListRequest struct {
 func (x *PeeringListRequest) Reset() {
 	*x = PeeringListRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[5]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -576,7 +685,7 @@ func (x *PeeringListRequest) String() string {
 func (*PeeringListRequest) ProtoMessage() {}
 
 func (x *PeeringListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[5]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +698,7 @@ func (x *PeeringListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringListRequest.ProtoReflect.Descriptor instead.
 func (*PeeringListRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{5}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PeeringListRequest) GetPartition() string {
@@ -610,7 +719,7 @@ type PeeringListResponse struct {
 func (x *PeeringListResponse) Reset() {
 	*x = PeeringListResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[6]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -623,7 +732,7 @@ func (x *PeeringListResponse) String() string {
 func (*PeeringListResponse) ProtoMessage() {}
 
 func (x *PeeringListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[6]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -636,7 +745,7 @@ func (x *PeeringListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringListResponse.ProtoReflect.Descriptor instead.
 func (*PeeringListResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{6}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PeeringListResponse) GetPeerings() []*Peering {
@@ -653,17 +762,17 @@ type PeeringWriteRequest struct {
 
 	// Peering is the peering to write with the request.
 	Peering *Peering `protobuf:"bytes,1,opt,name=Peering,proto3" json:"Peering,omitempty"`
-	// PeeringSecrets contains the optional peering secrets to persist
+	// Secret contains the optional peering secrets to persist
 	// with the peering. Peering secrets are not embedded in the peering
 	// object to avoid leaking them.
-	Secret *PeeringSecrets   `protobuf:"bytes,2,opt,name=Secret,proto3" json:"Secret,omitempty"`
-	Meta   map[string]string `protobuf:"bytes,3,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	SecretsRequest *PeeringSecretsWriteRequest `protobuf:"bytes,2,opt,name=SecretsRequest,proto3" json:"SecretsRequest,omitempty"`
+	Meta           map[string]string           `protobuf:"bytes,3,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *PeeringWriteRequest) Reset() {
 	*x = PeeringWriteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[7]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -676,7 +785,7 @@ func (x *PeeringWriteRequest) String() string {
 func (*PeeringWriteRequest) ProtoMessage() {}
 
 func (x *PeeringWriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[7]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +798,7 @@ func (x *PeeringWriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringWriteRequest.ProtoReflect.Descriptor instead.
 func (*PeeringWriteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{7}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PeeringWriteRequest) GetPeering() *Peering {
@@ -699,9 +808,9 @@ func (x *PeeringWriteRequest) GetPeering() *Peering {
 	return nil
 }
 
-func (x *PeeringWriteRequest) GetSecret() *PeeringSecrets {
+func (x *PeeringWriteRequest) GetSecretsRequest() *PeeringSecretsWriteRequest {
 	if x != nil {
-		return x.Secret
+		return x.SecretsRequest
 	}
 	return nil
 }
@@ -723,7 +832,7 @@ type PeeringWriteResponse struct {
 func (x *PeeringWriteResponse) Reset() {
 	*x = PeeringWriteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[8]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -736,7 +845,7 @@ func (x *PeeringWriteResponse) String() string {
 func (*PeeringWriteResponse) ProtoMessage() {}
 
 func (x *PeeringWriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[8]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -749,7 +858,7 @@ func (x *PeeringWriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringWriteResponse.ProtoReflect.Descriptor instead.
 func (*PeeringWriteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{8}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{9}
 }
 
 type PeeringDeleteRequest struct {
@@ -764,7 +873,7 @@ type PeeringDeleteRequest struct {
 func (x *PeeringDeleteRequest) Reset() {
 	*x = PeeringDeleteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[9]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -777,7 +886,7 @@ func (x *PeeringDeleteRequest) String() string {
 func (*PeeringDeleteRequest) ProtoMessage() {}
 
 func (x *PeeringDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[9]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +899,7 @@ func (x *PeeringDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringDeleteRequest.ProtoReflect.Descriptor instead.
 func (*PeeringDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{9}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PeeringDeleteRequest) GetName() string {
@@ -816,7 +925,7 @@ type PeeringDeleteResponse struct {
 func (x *PeeringDeleteResponse) Reset() {
 	*x = PeeringDeleteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[10]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -829,7 +938,7 @@ func (x *PeeringDeleteResponse) String() string {
 func (*PeeringDeleteResponse) ProtoMessage() {}
 
 func (x *PeeringDeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[10]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -842,7 +951,7 @@ func (x *PeeringDeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringDeleteResponse.ProtoReflect.Descriptor instead.
 func (*PeeringDeleteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{10}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{11}
 }
 
 type TrustBundleListByServiceRequest struct {
@@ -859,7 +968,7 @@ type TrustBundleListByServiceRequest struct {
 func (x *TrustBundleListByServiceRequest) Reset() {
 	*x = TrustBundleListByServiceRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[11]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -872,7 +981,7 @@ func (x *TrustBundleListByServiceRequest) String() string {
 func (*TrustBundleListByServiceRequest) ProtoMessage() {}
 
 func (x *TrustBundleListByServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[11]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -885,7 +994,7 @@ func (x *TrustBundleListByServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrustBundleListByServiceRequest.ProtoReflect.Descriptor instead.
 func (*TrustBundleListByServiceRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{11}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TrustBundleListByServiceRequest) GetServiceName() string {
@@ -928,7 +1037,7 @@ type TrustBundleListByServiceResponse struct {
 func (x *TrustBundleListByServiceResponse) Reset() {
 	*x = TrustBundleListByServiceResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[12]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -941,7 +1050,7 @@ func (x *TrustBundleListByServiceResponse) String() string {
 func (*TrustBundleListByServiceResponse) ProtoMessage() {}
 
 func (x *TrustBundleListByServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[12]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -954,7 +1063,7 @@ func (x *TrustBundleListByServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrustBundleListByServiceResponse.ProtoReflect.Descriptor instead.
 func (*TrustBundleListByServiceResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{12}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *TrustBundleListByServiceResponse) GetIndex() uint64 {
@@ -983,7 +1092,7 @@ type TrustBundleReadRequest struct {
 func (x *TrustBundleReadRequest) Reset() {
 	*x = TrustBundleReadRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[13]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -996,7 +1105,7 @@ func (x *TrustBundleReadRequest) String() string {
 func (*TrustBundleReadRequest) ProtoMessage() {}
 
 func (x *TrustBundleReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[13]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1009,7 +1118,7 @@ func (x *TrustBundleReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrustBundleReadRequest.ProtoReflect.Descriptor instead.
 func (*TrustBundleReadRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{13}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *TrustBundleReadRequest) GetName() string {
@@ -1038,7 +1147,7 @@ type TrustBundleReadResponse struct {
 func (x *TrustBundleReadResponse) Reset() {
 	*x = TrustBundleReadResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[14]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1051,7 +1160,7 @@ func (x *TrustBundleReadResponse) String() string {
 func (*TrustBundleReadResponse) ProtoMessage() {}
 
 func (x *TrustBundleReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[14]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1173,7 @@ func (x *TrustBundleReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrustBundleReadResponse.ProtoReflect.Descriptor instead.
 func (*TrustBundleReadResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{14}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *TrustBundleReadResponse) GetIndex() uint64 {
@@ -1093,7 +1202,7 @@ type PeeringTerminateByIDRequest struct {
 func (x *PeeringTerminateByIDRequest) Reset() {
 	*x = PeeringTerminateByIDRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[15]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1106,7 +1215,7 @@ func (x *PeeringTerminateByIDRequest) String() string {
 func (*PeeringTerminateByIDRequest) ProtoMessage() {}
 
 func (x *PeeringTerminateByIDRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[15]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1119,7 +1228,7 @@ func (x *PeeringTerminateByIDRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTerminateByIDRequest.ProtoReflect.Descriptor instead.
 func (*PeeringTerminateByIDRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{15}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *PeeringTerminateByIDRequest) GetID() string {
@@ -1138,7 +1247,7 @@ type PeeringTerminateByIDResponse struct {
 func (x *PeeringTerminateByIDResponse) Reset() {
 	*x = PeeringTerminateByIDResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[16]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1151,7 +1260,7 @@ func (x *PeeringTerminateByIDResponse) String() string {
 func (*PeeringTerminateByIDResponse) ProtoMessage() {}
 
 func (x *PeeringTerminateByIDResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[16]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1273,7 @@ func (x *PeeringTerminateByIDResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTerminateByIDResponse.ProtoReflect.Descriptor instead.
 func (*PeeringTerminateByIDResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{16}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{17}
 }
 
 type PeeringTrustBundleWriteRequest struct {
@@ -1178,7 +1287,7 @@ type PeeringTrustBundleWriteRequest struct {
 func (x *PeeringTrustBundleWriteRequest) Reset() {
 	*x = PeeringTrustBundleWriteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[17]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1191,7 +1300,7 @@ func (x *PeeringTrustBundleWriteRequest) String() string {
 func (*PeeringTrustBundleWriteRequest) ProtoMessage() {}
 
 func (x *PeeringTrustBundleWriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[17]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1204,7 +1313,7 @@ func (x *PeeringTrustBundleWriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTrustBundleWriteRequest.ProtoReflect.Descriptor instead.
 func (*PeeringTrustBundleWriteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{17}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PeeringTrustBundleWriteRequest) GetPeeringTrustBundle() *PeeringTrustBundle {
@@ -1223,7 +1332,7 @@ type PeeringTrustBundleWriteResponse struct {
 func (x *PeeringTrustBundleWriteResponse) Reset() {
 	*x = PeeringTrustBundleWriteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[18]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1236,7 +1345,7 @@ func (x *PeeringTrustBundleWriteResponse) String() string {
 func (*PeeringTrustBundleWriteResponse) ProtoMessage() {}
 
 func (x *PeeringTrustBundleWriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[18]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1249,7 +1358,7 @@ func (x *PeeringTrustBundleWriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTrustBundleWriteResponse.ProtoReflect.Descriptor instead.
 func (*PeeringTrustBundleWriteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{18}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{19}
 }
 
 type PeeringTrustBundleDeleteRequest struct {
@@ -1264,7 +1373,7 @@ type PeeringTrustBundleDeleteRequest struct {
 func (x *PeeringTrustBundleDeleteRequest) Reset() {
 	*x = PeeringTrustBundleDeleteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[19]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1277,7 +1386,7 @@ func (x *PeeringTrustBundleDeleteRequest) String() string {
 func (*PeeringTrustBundleDeleteRequest) ProtoMessage() {}
 
 func (x *PeeringTrustBundleDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[19]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1290,7 +1399,7 @@ func (x *PeeringTrustBundleDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTrustBundleDeleteRequest.ProtoReflect.Descriptor instead.
 func (*PeeringTrustBundleDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{19}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PeeringTrustBundleDeleteRequest) GetName() string {
@@ -1316,7 +1425,7 @@ type PeeringTrustBundleDeleteResponse struct {
 func (x *PeeringTrustBundleDeleteResponse) Reset() {
 	*x = PeeringTrustBundleDeleteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[20]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1329,7 +1438,7 @@ func (x *PeeringTrustBundleDeleteResponse) String() string {
 func (*PeeringTrustBundleDeleteResponse) ProtoMessage() {}
 
 func (x *PeeringTrustBundleDeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[20]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1342,7 +1451,7 @@ func (x *PeeringTrustBundleDeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringTrustBundleDeleteResponse.ProtoReflect.Descriptor instead.
 func (*PeeringTrustBundleDeleteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{20}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{21}
 }
 
 // mog annotation:
@@ -1370,7 +1479,7 @@ type GenerateTokenRequest struct {
 func (x *GenerateTokenRequest) Reset() {
 	*x = GenerateTokenRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[21]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1383,7 +1492,7 @@ func (x *GenerateTokenRequest) String() string {
 func (*GenerateTokenRequest) ProtoMessage() {}
 
 func (x *GenerateTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[21]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1396,7 +1505,7 @@ func (x *GenerateTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTokenRequest.ProtoReflect.Descriptor instead.
 func (*GenerateTokenRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{21}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GenerateTokenRequest) GetPeerName() string {
@@ -1445,7 +1554,7 @@ type GenerateTokenResponse struct {
 func (x *GenerateTokenResponse) Reset() {
 	*x = GenerateTokenResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[22]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1458,7 +1567,7 @@ func (x *GenerateTokenResponse) String() string {
 func (*GenerateTokenResponse) ProtoMessage() {}
 
 func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[22]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,7 +1580,7 @@ func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTokenResponse.ProtoReflect.Descriptor instead.
 func (*GenerateTokenResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{22}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GenerateTokenResponse) GetPeeringToken() string {
@@ -1504,7 +1613,7 @@ type EstablishRequest struct {
 func (x *EstablishRequest) Reset() {
 	*x = EstablishRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[23]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1517,7 +1626,7 @@ func (x *EstablishRequest) String() string {
 func (*EstablishRequest) ProtoMessage() {}
 
 func (x *EstablishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[23]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1530,7 +1639,7 @@ func (x *EstablishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstablishRequest.ProtoReflect.Descriptor instead.
 func (*EstablishRequest) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{23}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *EstablishRequest) GetPeerName() string {
@@ -1575,7 +1684,7 @@ type EstablishResponse struct {
 func (x *EstablishResponse) Reset() {
 	*x = EstablishResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[24]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1588,7 +1697,7 @@ func (x *EstablishResponse) String() string {
 func (*EstablishResponse) ProtoMessage() {}
 
 func (x *EstablishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[24]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1601,7 +1710,7 @@ func (x *EstablishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstablishResponse.ProtoReflect.Descriptor instead.
 func (*EstablishResponse) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{24}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{25}
 }
 
 type PeeringSecrets_Establishment struct {
@@ -1616,7 +1725,7 @@ type PeeringSecrets_Establishment struct {
 func (x *PeeringSecrets_Establishment) Reset() {
 	*x = PeeringSecrets_Establishment{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[25]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1629,7 +1738,7 @@ func (x *PeeringSecrets_Establishment) String() string {
 func (*PeeringSecrets_Establishment) ProtoMessage() {}
 
 func (x *PeeringSecrets_Establishment) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[25]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1642,7 +1751,7 @@ func (x *PeeringSecrets_Establishment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringSecrets_Establishment.ProtoReflect.Descriptor instead.
 func (*PeeringSecrets_Establishment) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0, 0}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *PeeringSecrets_Establishment) GetSecretID() string {
@@ -1675,7 +1784,7 @@ type PeeringSecrets_Stream struct {
 func (x *PeeringSecrets_Stream) Reset() {
 	*x = PeeringSecrets_Stream{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_pbpeering_peering_proto_msgTypes[26]
+		mi := &file_proto_pbpeering_peering_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1688,7 +1797,7 @@ func (x *PeeringSecrets_Stream) String() string {
 func (*PeeringSecrets_Stream) ProtoMessage() {}
 
 func (x *PeeringSecrets_Stream) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_pbpeering_peering_proto_msgTypes[26]
+	mi := &file_proto_pbpeering_peering_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1701,7 +1810,7 @@ func (x *PeeringSecrets_Stream) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeeringSecrets_Stream.ProtoReflect.Descriptor instead.
 func (*PeeringSecrets_Stream) Descriptor() ([]byte, []int) {
-	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{0, 1}
+	return file_proto_pbpeering_peering_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *PeeringSecrets_Stream) GetActiveSecretID() string {
@@ -1727,117 +1836,140 @@ var file_proto_pbpeering_peering_proto_rawDesc = []byte{
 	0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69,
 	0x6e, 0x67, 0x1a, 0x1f, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x62, 0x75, 0x66, 0x2f, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x22, 0xea, 0x02, 0x0a, 0x0e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53,
-	0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x12, 0x65,
-	0x0a, 0x0d, 0x65, 0x73, 0x74, 0x61, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
-	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
-	0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e,
-	0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x2e, 0x45, 0x73, 0x74, 0x61, 0x62, 0x6c, 0x69,
-	0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0d, 0x65, 0x73, 0x74, 0x61, 0x62, 0x6c, 0x69, 0x73,
-	0x68, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x50, 0x0a, 0x06, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x38, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
-	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
-	0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e,
-	0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52,
-	0x06, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x1a, 0x2b, 0x0a, 0x0d, 0x45, 0x73, 0x74, 0x61, 0x62,
-	0x6c, 0x69, 0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x53, 0x65, 0x63, 0x72,
-	0x65, 0x74, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x53, 0x65, 0x63, 0x72,
-	0x65, 0x74, 0x49, 0x44, 0x1a, 0x5a, 0x0a, 0x06, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x12, 0x26,
-	0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x53, 0x65,
-	0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x12, 0x28, 0x0a, 0x0f, 0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e,
-	0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x0f, 0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44,
-	0x22, 0x8d, 0x05, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x12, 0x0e, 0x0a, 0x02,
-	0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44, 0x12, 0x12, 0x0a, 0x04,
-	0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65,
-	0x12, 0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x38,
-	0x0a, 0x09, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x64, 0x41, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x09, 0x44,
-	0x65, 0x6c, 0x65, 0x74, 0x65, 0x64, 0x41, 0x74, 0x12, 0x48, 0x0a, 0x04, 0x4d, 0x65, 0x74, 0x61,
-	0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f,
-	0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
-	0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69,
-	0x6e, 0x67, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x04, 0x4d, 0x65,
-	0x74, 0x61, 0x12, 0x45, 0x0a, 0x05, 0x53, 0x74, 0x61, 0x74, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28,
-	0x0e, 0x32, 0x2f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f,
-	0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65,
-	0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53, 0x74, 0x61,
-	0x74, 0x65, 0x52, 0x05, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x50, 0x65, 0x65,
-	0x72, 0x49, 0x44, 0x18, 0x07, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x50, 0x65, 0x65, 0x72, 0x49,
-	0x44, 0x12, 0x1e, 0x0a, 0x0a, 0x50, 0x65, 0x65, 0x72, 0x43, 0x41, 0x50, 0x65, 0x6d, 0x73, 0x18,
-	0x08, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x50, 0x65, 0x65, 0x72, 0x43, 0x41, 0x50, 0x65, 0x6d,
-	0x73, 0x12, 0x26, 0x0a, 0x0e, 0x50, 0x65, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x4e,
-	0x61, 0x6d, 0x65, 0x18, 0x09, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x50, 0x65, 0x65, 0x72, 0x53,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x30, 0x0a, 0x13, 0x50, 0x65, 0x65,
-	0x72, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73,
-	0x18, 0x0a, 0x20, 0x03, 0x28, 0x09, 0x52, 0x13, 0x50, 0x65, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76,
-	0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x12, 0x32, 0x0a, 0x14, 0x49,
-	0x6d, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f,
-	0x75, 0x6e, 0x74, 0x18, 0x0d, 0x20, 0x01, 0x28, 0x04, 0x52, 0x14, 0x49, 0x6d, 0x70, 0x6f, 0x72,
-	0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12,
-	0x32, 0x0a, 0x14, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69,
-	0x63, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x0e, 0x20, 0x01, 0x28, 0x04, 0x52, 0x14, 0x45,
-	0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f,
-	0x75, 0x6e, 0x74, 0x12, 0x20, 0x0a, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x64,
-	0x65, 0x78, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x49, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x20, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79, 0x49,
-	0x6e, 0x64, 0x65, 0x78, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x4d, 0x6f, 0x64, 0x69,
-	0x66, 0x79, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x1a, 0x37, 0x0a, 0x09, 0x4d, 0x65, 0x74, 0x61, 0x45,
-	0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01,
-	0x22, 0xfe, 0x01, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x54, 0x72, 0x75, 0x73,
-	0x74, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x54, 0x72, 0x75, 0x73, 0x74,
-	0x44, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x54, 0x72,
-	0x75, 0x73, 0x74, 0x44, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x50, 0x65, 0x65,
-	0x72, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x50, 0x65, 0x65,
-	0x72, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69,
-	0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x52, 0x6f, 0x6f, 0x74, 0x50, 0x45, 0x4d, 0x73, 0x18,
-	0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x52, 0x6f, 0x6f, 0x74, 0x50, 0x45, 0x4d, 0x73, 0x12,
-	0x2c, 0x0a, 0x11, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x50, 0x61, 0x72, 0x74, 0x69,
-	0x74, 0x69, 0x6f, 0x6e, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x11, 0x45, 0x78, 0x70, 0x6f,
-	0x72, 0x74, 0x65, 0x64, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x20, 0x0a,
-	0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x06, 0x20, 0x01,
-	0x28, 0x04, 0x52, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x12,
-	0x20, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x07,
-	0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79, 0x49, 0x6e, 0x64, 0x65,
-	0x78, 0x22, 0x46, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x61, 0x64,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x50,
-	0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
-	0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5b, 0x0a, 0x13, 0x50, 0x65, 0x65,
-	0x72, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x44, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f,
-	0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65,
-	0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x07, 0x50,
-	0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x32, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e,
-	0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1c, 0x0a, 0x09,
-	0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5d, 0x0a, 0x13, 0x50, 0x65,
-	0x65, 0x72, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x46, 0x0a, 0x08, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x18, 0x01, 0x20,
-	0x03, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e,
+	0x6f, 0x74, 0x6f, 0x22, 0xd1, 0x02, 0x0a, 0x1a, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x12, 0x4b, 0x0a, 0x07, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e,
 	0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e,
-	0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x52,
-	0x08, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x22, 0xb5, 0x02, 0x0a, 0x13, 0x50, 0x65,
-	0x65, 0x72, 0x69, 0x6e, 0x67, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x12, 0x44, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
+	0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x52, 0x07, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x12,
+	0x65, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0e, 0x32, 0x47, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
 	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70,
-	0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x07,
-	0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x12, 0x49, 0x0a, 0x06, 0x53, 0x65, 0x63, 0x72, 0x65,
-	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63,
+	0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53, 0x65,
+	0x63, 0x72, 0x65, 0x74, 0x73, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x2e, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65,
+	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x7f, 0x0a, 0x09, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x12, 0x19, 0x0a, 0x15, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e,
+	0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x1b,
+	0x0a, 0x17, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x47, 0x45, 0x4e, 0x45,
+	0x52, 0x41, 0x54, 0x45, 0x54, 0x4f, 0x4b, 0x45, 0x4e, 0x10, 0x01, 0x12, 0x1c, 0x0a, 0x18, 0x4f,
+	0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x45, 0x58, 0x43, 0x48, 0x41, 0x4e, 0x47,
+	0x45, 0x53, 0x45, 0x43, 0x52, 0x45, 0x54, 0x10, 0x02, 0x12, 0x1c, 0x0a, 0x18, 0x4f, 0x50, 0x45,
+	0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50, 0x52, 0x4f, 0x4d, 0x4f, 0x54, 0x45, 0x50, 0x45,
+	0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x03, 0x22, 0xea, 0x02, 0x0a, 0x0e, 0x50, 0x65, 0x65, 0x72,
+	0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x50, 0x65,
+	0x65, 0x72, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x50, 0x65, 0x65, 0x72,
+	0x49, 0x44, 0x12, 0x65, 0x0a, 0x0d, 0x65, 0x73, 0x74, 0x61, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x6d,
+	0x65, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3f, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65,
+	0x65, 0x72, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x2e, 0x45, 0x73, 0x74,
+	0x61, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0d, 0x65, 0x73, 0x74, 0x61,
+	0x62, 0x6c, 0x69, 0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x50, 0x0a, 0x06, 0x73, 0x74, 0x72,
+	0x65, 0x61, 0x6d, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x38, 0x2e, 0x68, 0x61, 0x73, 0x68,
+	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65,
+	0x65, 0x72, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x2e, 0x53, 0x74, 0x72,
+	0x65, 0x61, 0x6d, 0x52, 0x06, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x1a, 0x2b, 0x0a, 0x0d, 0x45,
+	0x73, 0x74, 0x61, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x1a, 0x0a, 0x08,
+	0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08,
+	0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x1a, 0x5a, 0x0a, 0x06, 0x53, 0x74, 0x72, 0x65,
+	0x61, 0x6d, 0x12, 0x26, 0x0a, 0x0e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x53, 0x65, 0x63, 0x72,
+	0x65, 0x74, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x41, 0x63, 0x74, 0x69,
+	0x76, 0x65, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x12, 0x28, 0x0a, 0x0f, 0x50, 0x65,
+	0x6e, 0x64, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x49, 0x44, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0f, 0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72,
+	0x65, 0x74, 0x49, 0x44, 0x22, 0x8d, 0x05, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67,
+	0x12, 0x0e, 0x0a, 0x02, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44,
+	0x12, 0x12, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f,
+	0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69,
+	0x6f, 0x6e, 0x12, 0x38, 0x0a, 0x09, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x64, 0x41, 0x74, 0x18,
+	0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d,
+	0x70, 0x52, 0x09, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x64, 0x41, 0x74, 0x12, 0x48, 0x0a, 0x04,
+	0x4d, 0x65, 0x74, 0x61, 0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x68, 0x61, 0x73,
+	0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e,
+	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50,
+	0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x52, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x12, 0x45, 0x0a, 0x05, 0x53, 0x74, 0x61, 0x74, 0x65, 0x18,
+	0x06, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e,
+	0x67, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x05, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x16, 0x0a,
+	0x06, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x18, 0x07, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x50,
+	0x65, 0x65, 0x72, 0x49, 0x44, 0x12, 0x1e, 0x0a, 0x0a, 0x50, 0x65, 0x65, 0x72, 0x43, 0x41, 0x50,
+	0x65, 0x6d, 0x73, 0x18, 0x08, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x50, 0x65, 0x65, 0x72, 0x43,
+	0x41, 0x50, 0x65, 0x6d, 0x73, 0x12, 0x26, 0x0a, 0x0e, 0x50, 0x65, 0x65, 0x72, 0x53, 0x65, 0x72,
+	0x76, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x09, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e, 0x50,
+	0x65, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x30, 0x0a,
+	0x13, 0x50, 0x65, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65,
+	0x73, 0x73, 0x65, 0x73, 0x18, 0x0a, 0x20, 0x03, 0x28, 0x09, 0x52, 0x13, 0x50, 0x65, 0x65, 0x72,
+	0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x12,
+	0x32, 0x0a, 0x14, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x0d, 0x20, 0x01, 0x28, 0x04, 0x52, 0x14, 0x49,
+	0x6d, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f,
+	0x75, 0x6e, 0x74, 0x12, 0x32, 0x0a, 0x14, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53,
+	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x0e, 0x20, 0x01, 0x28,
+	0x04, 0x52, 0x14, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x63, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x20, 0x0a, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74,
+	0x65, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x20, 0x0a, 0x0b, 0x4d, 0x6f, 0x64,
+	0x69, 0x66, 0x79, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b,
+	0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x1a, 0x37, 0x0a, 0x09, 0x4d,
+	0x65, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x22, 0xfe, 0x01, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67,
+	0x54, 0x72, 0x75, 0x73, 0x74, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x54,
+	0x72, 0x75, 0x73, 0x74, 0x44, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0b, 0x54, 0x72, 0x75, 0x73, 0x74, 0x44, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x12, 0x1a, 0x0a,
+	0x08, 0x50, 0x65, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x50, 0x65, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72,
+	0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x50, 0x61,
+	0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x52, 0x6f, 0x6f, 0x74, 0x50,
+	0x45, 0x4d, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x52, 0x6f, 0x6f, 0x74, 0x50,
+	0x45, 0x4d, 0x73, 0x12, 0x2c, 0x0a, 0x11, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x50,
+	0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x11,
+	0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f,
+	0x6e, 0x12, 0x20, 0x0a, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x64, 0x65, 0x78,
+	0x18, 0x06, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x49, 0x6e,
+	0x64, 0x65, 0x78, 0x12, 0x20, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79, 0x49, 0x6e, 0x64,
+	0x65, 0x78, 0x18, 0x07, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x4d, 0x6f, 0x64, 0x69, 0x66, 0x79,
+	0x49, 0x6e, 0x64, 0x65, 0x78, 0x22, 0x46, 0x0a, 0x12, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67,
+	0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x4e,
+	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x12,
+	0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5b, 0x0a,
+	0x13, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x44, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e,
+	0x67, 0x52, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x32, 0x0a, 0x12, 0x50, 0x65,
+	0x65, 0x72, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x1c, 0x0a, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5d,
+	0x0a, 0x13, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x46, 0x0a, 0x08, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63,
 	0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72,
 	0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72,
-	0x69, 0x6e, 0x67, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x52, 0x06, 0x53, 0x65, 0x63, 0x72,
-	0x65, 0x74, 0x12, 0x54, 0x0a, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
+	0x69, 0x6e, 0x67, 0x52, 0x08, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x22, 0xd1, 0x02,
+	0x0a, 0x13, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x44, 0x0a, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f,
+	0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
+	0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69,
+	0x6e, 0x67, 0x52, 0x07, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x12, 0x65, 0x0a, 0x0e, 0x53,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x3d, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e,
+	0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e,
+	0x70, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x53,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x52, 0x0e, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x12, 0x54, 0x0a, 0x04, 0x4d, 0x65, 0x74, 0x61, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
 	0x32, 0x40, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
 	0x73, 0x75, 0x6c, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x70, 0x65, 0x65,
 	0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x69, 0x6e, 0x67, 0x57, 0x72, 0x69, 0x74,
@@ -2054,80 +2186,84 @@ func file_proto_pbpeering_peering_proto_rawDescGZIP() []byte {
 	return file_proto_pbpeering_peering_proto_rawDescData
 }
 
-var file_proto_pbpeering_peering_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_pbpeering_peering_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_proto_pbpeering_peering_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proto_pbpeering_peering_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_proto_pbpeering_peering_proto_goTypes = []interface{}{
-	(PeeringState)(0),                        // 0: hashicorp.consul.internal.peering.PeeringState
-	(*PeeringSecrets)(nil),                   // 1: hashicorp.consul.internal.peering.PeeringSecrets
-	(*Peering)(nil),                          // 2: hashicorp.consul.internal.peering.Peering
-	(*PeeringTrustBundle)(nil),               // 3: hashicorp.consul.internal.peering.PeeringTrustBundle
-	(*PeeringReadRequest)(nil),               // 4: hashicorp.consul.internal.peering.PeeringReadRequest
-	(*PeeringReadResponse)(nil),              // 5: hashicorp.consul.internal.peering.PeeringReadResponse
-	(*PeeringListRequest)(nil),               // 6: hashicorp.consul.internal.peering.PeeringListRequest
-	(*PeeringListResponse)(nil),              // 7: hashicorp.consul.internal.peering.PeeringListResponse
-	(*PeeringWriteRequest)(nil),              // 8: hashicorp.consul.internal.peering.PeeringWriteRequest
-	(*PeeringWriteResponse)(nil),             // 9: hashicorp.consul.internal.peering.PeeringWriteResponse
-	(*PeeringDeleteRequest)(nil),             // 10: hashicorp.consul.internal.peering.PeeringDeleteRequest
-	(*PeeringDeleteResponse)(nil),            // 11: hashicorp.consul.internal.peering.PeeringDeleteResponse
-	(*TrustBundleListByServiceRequest)(nil),  // 12: hashicorp.consul.internal.peering.TrustBundleListByServiceRequest
-	(*TrustBundleListByServiceResponse)(nil), // 13: hashicorp.consul.internal.peering.TrustBundleListByServiceResponse
-	(*TrustBundleReadRequest)(nil),           // 14: hashicorp.consul.internal.peering.TrustBundleReadRequest
-	(*TrustBundleReadResponse)(nil),          // 15: hashicorp.consul.internal.peering.TrustBundleReadResponse
-	(*PeeringTerminateByIDRequest)(nil),      // 16: hashicorp.consul.internal.peering.PeeringTerminateByIDRequest
-	(*PeeringTerminateByIDResponse)(nil),     // 17: hashicorp.consul.internal.peering.PeeringTerminateByIDResponse
-	(*PeeringTrustBundleWriteRequest)(nil),   // 18: hashicorp.consul.internal.peering.PeeringTrustBundleWriteRequest
-	(*PeeringTrustBundleWriteResponse)(nil),  // 19: hashicorp.consul.internal.peering.PeeringTrustBundleWriteResponse
-	(*PeeringTrustBundleDeleteRequest)(nil),  // 20: hashicorp.consul.internal.peering.PeeringTrustBundleDeleteRequest
-	(*PeeringTrustBundleDeleteResponse)(nil), // 21: hashicorp.consul.internal.peering.PeeringTrustBundleDeleteResponse
-	(*GenerateTokenRequest)(nil),             // 22: hashicorp.consul.internal.peering.GenerateTokenRequest
-	(*GenerateTokenResponse)(nil),            // 23: hashicorp.consul.internal.peering.GenerateTokenResponse
-	(*EstablishRequest)(nil),                 // 24: hashicorp.consul.internal.peering.EstablishRequest
-	(*EstablishResponse)(nil),                // 25: hashicorp.consul.internal.peering.EstablishResponse
-	(*PeeringSecrets_Establishment)(nil),     // 26: hashicorp.consul.internal.peering.PeeringSecrets.Establishment
-	(*PeeringSecrets_Stream)(nil),            // 27: hashicorp.consul.internal.peering.PeeringSecrets.Stream
-	nil,                                      // 28: hashicorp.consul.internal.peering.Peering.MetaEntry
-	nil,                                      // 29: hashicorp.consul.internal.peering.PeeringWriteRequest.MetaEntry
-	nil,                                      // 30: hashicorp.consul.internal.peering.GenerateTokenRequest.MetaEntry
-	nil,                                      // 31: hashicorp.consul.internal.peering.EstablishRequest.MetaEntry
-	(*timestamppb.Timestamp)(nil),            // 32: google.protobuf.Timestamp
+	(PeeringState)(0),                         // 0: hashicorp.consul.internal.peering.PeeringState
+	(PeeringSecretsWriteRequest_Operation)(0), // 1: hashicorp.consul.internal.peering.PeeringSecretsWriteRequest.Operation
+	(*PeeringSecretsWriteRequest)(nil),        // 2: hashicorp.consul.internal.peering.PeeringSecretsWriteRequest
+	(*PeeringSecrets)(nil),                    // 3: hashicorp.consul.internal.peering.PeeringSecrets
+	(*Peering)(nil),                           // 4: hashicorp.consul.internal.peering.Peering
+	(*PeeringTrustBundle)(nil),                // 5: hashicorp.consul.internal.peering.PeeringTrustBundle
+	(*PeeringReadRequest)(nil),                // 6: hashicorp.consul.internal.peering.PeeringReadRequest
+	(*PeeringReadResponse)(nil),               // 7: hashicorp.consul.internal.peering.PeeringReadResponse
+	(*PeeringListRequest)(nil),                // 8: hashicorp.consul.internal.peering.PeeringListRequest
+	(*PeeringListResponse)(nil),               // 9: hashicorp.consul.internal.peering.PeeringListResponse
+	(*PeeringWriteRequest)(nil),               // 10: hashicorp.consul.internal.peering.PeeringWriteRequest
+	(*PeeringWriteResponse)(nil),              // 11: hashicorp.consul.internal.peering.PeeringWriteResponse
+	(*PeeringDeleteRequest)(nil),              // 12: hashicorp.consul.internal.peering.PeeringDeleteRequest
+	(*PeeringDeleteResponse)(nil),             // 13: hashicorp.consul.internal.peering.PeeringDeleteResponse
+	(*TrustBundleListByServiceRequest)(nil),   // 14: hashicorp.consul.internal.peering.TrustBundleListByServiceRequest
+	(*TrustBundleListByServiceResponse)(nil),  // 15: hashicorp.consul.internal.peering.TrustBundleListByServiceResponse
+	(*TrustBundleReadRequest)(nil),            // 16: hashicorp.consul.internal.peering.TrustBundleReadRequest
+	(*TrustBundleReadResponse)(nil),           // 17: hashicorp.consul.internal.peering.TrustBundleReadResponse
+	(*PeeringTerminateByIDRequest)(nil),       // 18: hashicorp.consul.internal.peering.PeeringTerminateByIDRequest
+	(*PeeringTerminateByIDResponse)(nil),      // 19: hashicorp.consul.internal.peering.PeeringTerminateByIDResponse
+	(*PeeringTrustBundleWriteRequest)(nil),    // 20: hashicorp.consul.internal.peering.PeeringTrustBundleWriteRequest
+	(*PeeringTrustBundleWriteResponse)(nil),   // 21: hashicorp.consul.internal.peering.PeeringTrustBundleWriteResponse
+	(*PeeringTrustBundleDeleteRequest)(nil),   // 22: hashicorp.consul.internal.peering.PeeringTrustBundleDeleteRequest
+	(*PeeringTrustBundleDeleteResponse)(nil),  // 23: hashicorp.consul.internal.peering.PeeringTrustBundleDeleteResponse
+	(*GenerateTokenRequest)(nil),              // 24: hashicorp.consul.internal.peering.GenerateTokenRequest
+	(*GenerateTokenResponse)(nil),             // 25: hashicorp.consul.internal.peering.GenerateTokenResponse
+	(*EstablishRequest)(nil),                  // 26: hashicorp.consul.internal.peering.EstablishRequest
+	(*EstablishResponse)(nil),                 // 27: hashicorp.consul.internal.peering.EstablishResponse
+	(*PeeringSecrets_Establishment)(nil),      // 28: hashicorp.consul.internal.peering.PeeringSecrets.Establishment
+	(*PeeringSecrets_Stream)(nil),             // 29: hashicorp.consul.internal.peering.PeeringSecrets.Stream
+	nil,                                       // 30: hashicorp.consul.internal.peering.Peering.MetaEntry
+	nil,                                       // 31: hashicorp.consul.internal.peering.PeeringWriteRequest.MetaEntry
+	nil,                                       // 32: hashicorp.consul.internal.peering.GenerateTokenRequest.MetaEntry
+	nil,                                       // 33: hashicorp.consul.internal.peering.EstablishRequest.MetaEntry
+	(*timestamppb.Timestamp)(nil),             // 34: google.protobuf.Timestamp
 }
 var file_proto_pbpeering_peering_proto_depIdxs = []int32{
-	26, // 0: hashicorp.consul.internal.peering.PeeringSecrets.establishment:type_name -> hashicorp.consul.internal.peering.PeeringSecrets.Establishment
-	27, // 1: hashicorp.consul.internal.peering.PeeringSecrets.stream:type_name -> hashicorp.consul.internal.peering.PeeringSecrets.Stream
-	32, // 2: hashicorp.consul.internal.peering.Peering.DeletedAt:type_name -> google.protobuf.Timestamp
-	28, // 3: hashicorp.consul.internal.peering.Peering.Meta:type_name -> hashicorp.consul.internal.peering.Peering.MetaEntry
-	0,  // 4: hashicorp.consul.internal.peering.Peering.State:type_name -> hashicorp.consul.internal.peering.PeeringState
-	2,  // 5: hashicorp.consul.internal.peering.PeeringReadResponse.Peering:type_name -> hashicorp.consul.internal.peering.Peering
-	2,  // 6: hashicorp.consul.internal.peering.PeeringListResponse.Peerings:type_name -> hashicorp.consul.internal.peering.Peering
-	2,  // 7: hashicorp.consul.internal.peering.PeeringWriteRequest.Peering:type_name -> hashicorp.consul.internal.peering.Peering
-	1,  // 8: hashicorp.consul.internal.peering.PeeringWriteRequest.Secret:type_name -> hashicorp.consul.internal.peering.PeeringSecrets
-	29, // 9: hashicorp.consul.internal.peering.PeeringWriteRequest.Meta:type_name -> hashicorp.consul.internal.peering.PeeringWriteRequest.MetaEntry
-	3,  // 10: hashicorp.consul.internal.peering.TrustBundleListByServiceResponse.Bundles:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
-	3,  // 11: hashicorp.consul.internal.peering.TrustBundleReadResponse.Bundle:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
-	3,  // 12: hashicorp.consul.internal.peering.PeeringTrustBundleWriteRequest.PeeringTrustBundle:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
-	30, // 13: hashicorp.consul.internal.peering.GenerateTokenRequest.Meta:type_name -> hashicorp.consul.internal.peering.GenerateTokenRequest.MetaEntry
-	31, // 14: hashicorp.consul.internal.peering.EstablishRequest.Meta:type_name -> hashicorp.consul.internal.peering.EstablishRequest.MetaEntry
-	22, // 15: hashicorp.consul.internal.peering.PeeringService.GenerateToken:input_type -> hashicorp.consul.internal.peering.GenerateTokenRequest
-	24, // 16: hashicorp.consul.internal.peering.PeeringService.Establish:input_type -> hashicorp.consul.internal.peering.EstablishRequest
-	4,  // 17: hashicorp.consul.internal.peering.PeeringService.PeeringRead:input_type -> hashicorp.consul.internal.peering.PeeringReadRequest
-	6,  // 18: hashicorp.consul.internal.peering.PeeringService.PeeringList:input_type -> hashicorp.consul.internal.peering.PeeringListRequest
-	10, // 19: hashicorp.consul.internal.peering.PeeringService.PeeringDelete:input_type -> hashicorp.consul.internal.peering.PeeringDeleteRequest
-	8,  // 20: hashicorp.consul.internal.peering.PeeringService.PeeringWrite:input_type -> hashicorp.consul.internal.peering.PeeringWriteRequest
-	12, // 21: hashicorp.consul.internal.peering.PeeringService.TrustBundleListByService:input_type -> hashicorp.consul.internal.peering.TrustBundleListByServiceRequest
-	14, // 22: hashicorp.consul.internal.peering.PeeringService.TrustBundleRead:input_type -> hashicorp.consul.internal.peering.TrustBundleReadRequest
-	23, // 23: hashicorp.consul.internal.peering.PeeringService.GenerateToken:output_type -> hashicorp.consul.internal.peering.GenerateTokenResponse
-	25, // 24: hashicorp.consul.internal.peering.PeeringService.Establish:output_type -> hashicorp.consul.internal.peering.EstablishResponse
-	5,  // 25: hashicorp.consul.internal.peering.PeeringService.PeeringRead:output_type -> hashicorp.consul.internal.peering.PeeringReadResponse
-	7,  // 26: hashicorp.consul.internal.peering.PeeringService.PeeringList:output_type -> hashicorp.consul.internal.peering.PeeringListResponse
-	11, // 27: hashicorp.consul.internal.peering.PeeringService.PeeringDelete:output_type -> hashicorp.consul.internal.peering.PeeringDeleteResponse
-	9,  // 28: hashicorp.consul.internal.peering.PeeringService.PeeringWrite:output_type -> hashicorp.consul.internal.peering.PeeringWriteResponse
-	13, // 29: hashicorp.consul.internal.peering.PeeringService.TrustBundleListByService:output_type -> hashicorp.consul.internal.peering.TrustBundleListByServiceResponse
-	15, // 30: hashicorp.consul.internal.peering.PeeringService.TrustBundleRead:output_type -> hashicorp.consul.internal.peering.TrustBundleReadResponse
-	23, // [23:31] is the sub-list for method output_type
-	15, // [15:23] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	3,  // 0: hashicorp.consul.internal.peering.PeeringSecretsWriteRequest.secrets:type_name -> hashicorp.consul.internal.peering.PeeringSecrets
+	1,  // 1: hashicorp.consul.internal.peering.PeeringSecretsWriteRequest.operation:type_name -> hashicorp.consul.internal.peering.PeeringSecretsWriteRequest.Operation
+	28, // 2: hashicorp.consul.internal.peering.PeeringSecrets.establishment:type_name -> hashicorp.consul.internal.peering.PeeringSecrets.Establishment
+	29, // 3: hashicorp.consul.internal.peering.PeeringSecrets.stream:type_name -> hashicorp.consul.internal.peering.PeeringSecrets.Stream
+	34, // 4: hashicorp.consul.internal.peering.Peering.DeletedAt:type_name -> google.protobuf.Timestamp
+	30, // 5: hashicorp.consul.internal.peering.Peering.Meta:type_name -> hashicorp.consul.internal.peering.Peering.MetaEntry
+	0,  // 6: hashicorp.consul.internal.peering.Peering.State:type_name -> hashicorp.consul.internal.peering.PeeringState
+	4,  // 7: hashicorp.consul.internal.peering.PeeringReadResponse.Peering:type_name -> hashicorp.consul.internal.peering.Peering
+	4,  // 8: hashicorp.consul.internal.peering.PeeringListResponse.Peerings:type_name -> hashicorp.consul.internal.peering.Peering
+	4,  // 9: hashicorp.consul.internal.peering.PeeringWriteRequest.Peering:type_name -> hashicorp.consul.internal.peering.Peering
+	2,  // 10: hashicorp.consul.internal.peering.PeeringWriteRequest.SecretsRequest:type_name -> hashicorp.consul.internal.peering.PeeringSecretsWriteRequest
+	31, // 11: hashicorp.consul.internal.peering.PeeringWriteRequest.Meta:type_name -> hashicorp.consul.internal.peering.PeeringWriteRequest.MetaEntry
+	5,  // 12: hashicorp.consul.internal.peering.TrustBundleListByServiceResponse.Bundles:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
+	5,  // 13: hashicorp.consul.internal.peering.TrustBundleReadResponse.Bundle:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
+	5,  // 14: hashicorp.consul.internal.peering.PeeringTrustBundleWriteRequest.PeeringTrustBundle:type_name -> hashicorp.consul.internal.peering.PeeringTrustBundle
+	32, // 15: hashicorp.consul.internal.peering.GenerateTokenRequest.Meta:type_name -> hashicorp.consul.internal.peering.GenerateTokenRequest.MetaEntry
+	33, // 16: hashicorp.consul.internal.peering.EstablishRequest.Meta:type_name -> hashicorp.consul.internal.peering.EstablishRequest.MetaEntry
+	24, // 17: hashicorp.consul.internal.peering.PeeringService.GenerateToken:input_type -> hashicorp.consul.internal.peering.GenerateTokenRequest
+	26, // 18: hashicorp.consul.internal.peering.PeeringService.Establish:input_type -> hashicorp.consul.internal.peering.EstablishRequest
+	6,  // 19: hashicorp.consul.internal.peering.PeeringService.PeeringRead:input_type -> hashicorp.consul.internal.peering.PeeringReadRequest
+	8,  // 20: hashicorp.consul.internal.peering.PeeringService.PeeringList:input_type -> hashicorp.consul.internal.peering.PeeringListRequest
+	12, // 21: hashicorp.consul.internal.peering.PeeringService.PeeringDelete:input_type -> hashicorp.consul.internal.peering.PeeringDeleteRequest
+	10, // 22: hashicorp.consul.internal.peering.PeeringService.PeeringWrite:input_type -> hashicorp.consul.internal.peering.PeeringWriteRequest
+	14, // 23: hashicorp.consul.internal.peering.PeeringService.TrustBundleListByService:input_type -> hashicorp.consul.internal.peering.TrustBundleListByServiceRequest
+	16, // 24: hashicorp.consul.internal.peering.PeeringService.TrustBundleRead:input_type -> hashicorp.consul.internal.peering.TrustBundleReadRequest
+	25, // 25: hashicorp.consul.internal.peering.PeeringService.GenerateToken:output_type -> hashicorp.consul.internal.peering.GenerateTokenResponse
+	27, // 26: hashicorp.consul.internal.peering.PeeringService.Establish:output_type -> hashicorp.consul.internal.peering.EstablishResponse
+	7,  // 27: hashicorp.consul.internal.peering.PeeringService.PeeringRead:output_type -> hashicorp.consul.internal.peering.PeeringReadResponse
+	9,  // 28: hashicorp.consul.internal.peering.PeeringService.PeeringList:output_type -> hashicorp.consul.internal.peering.PeeringListResponse
+	13, // 29: hashicorp.consul.internal.peering.PeeringService.PeeringDelete:output_type -> hashicorp.consul.internal.peering.PeeringDeleteResponse
+	11, // 30: hashicorp.consul.internal.peering.PeeringService.PeeringWrite:output_type -> hashicorp.consul.internal.peering.PeeringWriteResponse
+	15, // 31: hashicorp.consul.internal.peering.PeeringService.TrustBundleListByService:output_type -> hashicorp.consul.internal.peering.TrustBundleListByServiceResponse
+	17, // 32: hashicorp.consul.internal.peering.PeeringService.TrustBundleRead:output_type -> hashicorp.consul.internal.peering.TrustBundleReadResponse
+	25, // [25:33] is the sub-list for method output_type
+	17, // [17:25] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_proto_pbpeering_peering_proto_init() }
@@ -2137,7 +2273,7 @@ func file_proto_pbpeering_peering_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_proto_pbpeering_peering_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringSecrets); i {
+			switch v := v.(*PeeringSecretsWriteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2149,7 +2285,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Peering); i {
+			switch v := v.(*PeeringSecrets); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2161,7 +2297,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTrustBundle); i {
+			switch v := v.(*Peering); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2173,7 +2309,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringReadRequest); i {
+			switch v := v.(*PeeringTrustBundle); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2185,7 +2321,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringReadResponse); i {
+			switch v := v.(*PeeringReadRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2197,7 +2333,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringListRequest); i {
+			switch v := v.(*PeeringReadResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2209,7 +2345,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringListResponse); i {
+			switch v := v.(*PeeringListRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2221,7 +2357,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringWriteRequest); i {
+			switch v := v.(*PeeringListResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2233,7 +2369,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringWriteResponse); i {
+			switch v := v.(*PeeringWriteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2245,7 +2381,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringDeleteRequest); i {
+			switch v := v.(*PeeringWriteResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2257,7 +2393,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringDeleteResponse); i {
+			switch v := v.(*PeeringDeleteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2269,7 +2405,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TrustBundleListByServiceRequest); i {
+			switch v := v.(*PeeringDeleteResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2281,7 +2417,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TrustBundleListByServiceResponse); i {
+			switch v := v.(*TrustBundleListByServiceRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2293,7 +2429,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TrustBundleReadRequest); i {
+			switch v := v.(*TrustBundleListByServiceResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2305,7 +2441,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TrustBundleReadResponse); i {
+			switch v := v.(*TrustBundleReadRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2317,7 +2453,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTerminateByIDRequest); i {
+			switch v := v.(*TrustBundleReadResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2329,7 +2465,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTerminateByIDResponse); i {
+			switch v := v.(*PeeringTerminateByIDRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2341,7 +2477,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTrustBundleWriteRequest); i {
+			switch v := v.(*PeeringTerminateByIDResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2353,7 +2489,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTrustBundleWriteResponse); i {
+			switch v := v.(*PeeringTrustBundleWriteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2365,7 +2501,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTrustBundleDeleteRequest); i {
+			switch v := v.(*PeeringTrustBundleWriteResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2377,7 +2513,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringTrustBundleDeleteResponse); i {
+			switch v := v.(*PeeringTrustBundleDeleteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2389,7 +2525,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GenerateTokenRequest); i {
+			switch v := v.(*PeeringTrustBundleDeleteResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2401,7 +2537,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GenerateTokenResponse); i {
+			switch v := v.(*GenerateTokenRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2413,7 +2549,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EstablishRequest); i {
+			switch v := v.(*GenerateTokenResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2425,7 +2561,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EstablishResponse); i {
+			switch v := v.(*EstablishRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2437,7 +2573,7 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PeeringSecrets_Establishment); i {
+			switch v := v.(*EstablishResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2449,6 +2585,18 @@ func file_proto_pbpeering_peering_proto_init() {
 			}
 		}
 		file_proto_pbpeering_peering_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PeeringSecrets_Establishment); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_pbpeering_peering_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PeeringSecrets_Stream); i {
 			case 0:
 				return &v.state
@@ -2466,8 +2614,8 @@ func file_proto_pbpeering_peering_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_pbpeering_peering_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   31,
+			NumEnums:      2,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -720,7 +720,7 @@ func (c *FSM) applyPeeringDelete(buf []byte, index uint64) interface{} {
 }
 
 func (c *FSM) applyPeeringSecretsWrite(buf []byte, index uint64) interface{} {
-	var req pbpeering.PeeringSecrets
+	var req pbpeering.PeeringSecretsWriteRequest
 	if err := structs.DecodeProto(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode peering write request: %v", err))
 	}

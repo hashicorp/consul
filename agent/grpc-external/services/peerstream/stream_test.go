@@ -249,11 +249,14 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+					Secrets: &pbpeering.PeeringSecrets{
+						PeerID: testPeerID,
+						Stream: &pbpeering.PeeringSecrets_Stream{
+							ActiveSecretID: testActiveStreamSecretID,
+						},
 					},
+					Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_PROMOTEPENDING,
 				},
 			},
 			input: &pbpeerstream.ReplicationMessage{
@@ -273,11 +276,14 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+					Secrets: &pbpeering.PeeringSecrets{
+						PeerID: testPeerID,
+						Stream: &pbpeering.PeeringSecrets_Stream{
+							ActiveSecretID: testActiveStreamSecretID,
+						},
 					},
+					Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_PROMOTEPENDING,
 				},
 			},
 			input: &pbpeerstream.ReplicationMessage{
@@ -296,11 +302,14 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						PendingSecretID: testPendingStreamSecretID,
+				SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+					Secrets: &pbpeering.PeeringSecrets{
+						PeerID: testPeerID,
+						Stream: &pbpeering.PeeringSecrets_Stream{
+							PendingSecretID: testPendingStreamSecretID,
+						},
 					},
+					Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET,
 				},
 			},
 			input: &pbpeerstream.ReplicationMessage{
@@ -1390,7 +1399,7 @@ func (b *testStreamBackend) ValidateProposedPeeringSecret(id string) (bool, erro
 	return true, nil
 }
 
-func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecretsWriteRequest) error {
 	return b.store.PeeringSecretsWrite(1, req)
 }
 
@@ -1633,11 +1642,14 @@ func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, re
 	}
 	require.NoError(t, store.PeeringWrite(idx, &pbpeering.PeeringWriteRequest{
 		Peering: &peering,
-		Secret: &pbpeering.PeeringSecrets{
-			PeerID: testPeerID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				PendingSecretID: testPendingStreamSecretID,
+		SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+			Secrets: &pbpeering.PeeringSecrets{
+				PeerID: testPeerID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: testPendingStreamSecretID,
+				},
 			},
+			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET,
 		},
 	}))
 

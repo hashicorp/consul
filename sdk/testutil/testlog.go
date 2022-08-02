@@ -21,7 +21,7 @@ func testLogLevel() hclog.Level {
 	if level != hclog.NoLevel {
 		return level
 	}
-	return hclog.Warn
+	return hclog.Trace
 }
 
 func Logger(t TestingTB) hclog.InterceptLogger {

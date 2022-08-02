@@ -260,11 +260,14 @@ func (s *Server) GenerateToken(
 
 		writeReq := &pbpeering.PeeringWriteRequest{
 			Peering: peering,
-			Secret: &pbpeering.PeeringSecrets{
-				PeerID: peering.ID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: secretID,
+			SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+				Secrets: &pbpeering.PeeringSecrets{
+					PeerID: peering.ID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: secretID,
+					},
 				},
+				Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
 			},
 		}
 		if err := s.Backend.PeeringWrite(writeReq); err != nil {
@@ -439,10 +442,12 @@ func (s *Server) Establish(
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: peering,
-		Secret: &pbpeering.PeeringSecrets{
-			PeerID: peering.ID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				ActiveSecretID: exchangeResp.StreamSecret,
+		SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+			Secrets: &pbpeering.PeeringSecrets{
+				PeerID: peering.ID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					ActiveSecretID: exchangeResp.StreamSecret,
+				},
 			},
 		},
 	}
