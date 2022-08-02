@@ -41,13 +41,15 @@ The value must always be `hashicorp.com/consul-api-gateway-controller`.
 ### parametersRef
 Defines an API object that references additional configurations required by the gateway controller. The following table describes the fields that you must include in the `parametersRef` configuration.
 
+* Type: object
+* Required: optional
+
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---      | --- |
 | `group` | Specifies the Kubernetes group that the `parametersRef` is a member of. <br/>The value must always be `api-gateway.consul.hashicorp.com`.<br/>The `parametersRef.group` is always the same across all deployments of Consul API Gateway. | String | Required |
 | `kind` | Specifies the type of Kubernetes object that the `parametersRef` configuration defines. <br/>The value must always be `GatewayClassConfig`. <br/> This `parametersRef.kind` is always the same across all deployments of Consul API Gateway. | String | Required |
 | `name` | Specfies a name for the `GatewayClassConfig` object. | String | Required |
 
-* Required: optional
 
 ### description
 Specifies a human-readable description of the gateway class. We recommend using the description field to describe the gateway class's purpose.
