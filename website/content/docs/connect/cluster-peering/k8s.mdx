@@ -11,9 +11,9 @@ description: >-
 with cluster peering is subject to change. You should never use the beta release in secure environments or production scenarios. Features in
 beta may have performance issues, scaling issues, and limited support.
 
-To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create custom resource definitions for each side of the peering.
+To establish a cluster peering connection on Kubernetes, you need to enable the feature in the Helm chart and create Custom Resource Definitions (CRDs) for each side of the peering.
 
-The following Custom Resource Definitions (CRDs) are used to create and manage a peering connection:
+The following CRDs are used to create and manage a peering connection:
 
 - `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
 - `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
@@ -21,10 +21,10 @@ The following Custom Resource Definitions (CRDs) are used to create and manage a
 ## Prerequisites
 
 You must implement the following requirements to create and use cluster peering connections with Kubernetes:
-- Consul v1.13.0 or later
+- Consul version 1.13.0 or later
 - At least two Kubernetes clusters
 - The Kubernetes clusters must be running in a flat network
-- The network must be running on Consul on Kubernetes v0.45 or later
+- The network must be running on Consul on Kubernetes version 0.45 or later
 
 ### Helm chart configuration
 
@@ -128,7 +128,7 @@ To peer Kubernetes clusters running Consul, you need to create a peering token a
 
 ## Export services between clusters
 
-1. For the service in "cluster-02" that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods. This service is referred to as "backend-service" in the following steps.
+1. For the service in "cluster-02" that you want to export, add the following [annotations](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) to your service's pods.
 
     <CodeBlockConfig filename="backend-service.yml">
 
