@@ -167,6 +167,9 @@ type Status struct {
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
+	// LastSendSuccess tracks the time of the last success response sent into the stream.
+	LastSendSuccess time.Time
+
 	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
 	LastRecvHeartbeat time.Time
 
@@ -197,7 +200,7 @@ func (s *Status) GetExportedServicesCount() uint64 {
 }
 
 // IsHealthy is a convenience func that returns true/ false for a peering status.
-// We define a peering as unhealthy is its status satisfies the following:
+// We define a peering as unhealthy if its status satisfies the following:
 // -  If heartbeat hasn't been received within the IncomingHeartbeatTimeout
 // -  If the last sent error is newer than last sent success
 // -  If the last received error is newer than last received success
@@ -213,7 +216,7 @@ func (s *Status) IsHealthy() bool {
 	}
 
 	// todo change to LastSentSuccess
-	if s.LastSendError.After(s.LastRecvResourceSuccess) {
+	if s.LastSendError.After(s.LastSendSuccess) {
 		// 2. If last sent error is newer than last sent success - report unhealthy
 		return false
 	}
@@ -250,6 +253,12 @@ func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
 	s.LastSendError = s.timeNow().UTC()
 	s.LastSendErrorMessage = error
+	s.mu.Unlock()
+}
+
+func (s *MutableStatus) TrackSendSuccess() {
+	s.mu.Lock()
+	s.LastSendSuccess = s.timeNow().UTC()
 	s.mu.Unlock()
 }
 

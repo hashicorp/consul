@@ -33,7 +33,7 @@ func TestStatus_IsHealthy(t *testing.T) {
 				// set heartbeat
 				status.LastRecvHeartbeat = time.Now()
 
-				//status.LastRecvResourceSuccess = time.Now() // todo -- change to LastSendSuccess
+				status.LastSendSuccess = time.Now()
 				status.LastSendError = time.Now()
 			},
 		},

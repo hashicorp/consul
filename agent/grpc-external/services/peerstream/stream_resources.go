@@ -642,6 +642,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 			if err := streamSend(replResp); err != nil {
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
+			status.TrackSendSuccess()
 		}
 	}
 }
