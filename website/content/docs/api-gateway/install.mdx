@@ -51,10 +51,13 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 
 <Tabs>
 <Tab heading="Helm">
+Add the HashiCorp Helm repository.
 
 ```shell-session
 $ helm repo add hashicorp https://helm.releases.hashicorp.com
 ```
+
+Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
 ```shell-session
 $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
