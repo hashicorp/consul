@@ -236,9 +236,9 @@ spec:
 </Tab>
 </Tabs>
 
-### Terminating-gateway Destination
+### Terminating gateway destination
 
-Create a destination to be assigned as a service to a terminating gateway
+Create a default destination that will be assigned to a terminating gateway.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -669,18 +669,18 @@ Create a destination to be assigned as a service to a terminating gateway
     {
       name: 'Destination',
       type: 'DestinationConfig: <optional>',
-      description: `Controls configuration specific to proxies to destinations through terminating-gateway. Added in v1.13.0.`,
+      description: `Controls configuration specific to destinations through terminating-gateway. Added in v1.13.0.`,
       children: [
         {
           name: 'Addresses',
           type: 'array<string>: []',
-          description: `List of addresses associated with the destination. Could be a hostname or an IP`,
+          description: `List of addresses associated with the destination. This can be a hostname or an IP address.`,
           yaml: false,
         },
         {
           name: 'Port',
           type: 'int: 0',
-          description: `Port number associated with the destination`,
+          description: `Port number associated with the destination.`,
           yaml: false,
         },
       ]
