@@ -135,7 +135,7 @@ By default, Consul generates a `connect-inject init` container as part of the Ku
 
 Instead, you can enable the Consul container network interface (CNI) plugin to perform traffic redirection. Because the plugin is executed by the Kubernetes kubelet, it already has the elevated privileges necessary to configure the network. Additionally, you do not need to specify annotations that automatically overwrite Kubernetes HTTP health probes when the plugin is enabled (see [Overwrite Kubernetes HTTP health probes](#overwrite-kubernetes-http-health-probes)).
 
-The Consul Helm chart installs the CNI plugin, but it is disabled by default. Refer to the Consul on Kubernetes installation instructions for information about enabling the Consul CNI plugin. 
+The Consul Helm chart installs the CNI plugin, but it is disabled by default. Refer to the [instructions for enabling the CNI plugin](/docs/k8s/installation/install#enable-the-consul-cni-plugin) in the Consul on Kubernetes installation documentation for additional information. 
 
 ### Traffic redirection
 
