@@ -25,13 +25,16 @@ func TestServer_ExchangeSecret(t *testing.T) {
 
 	var secret string
 	testutil.RunStep(t, "known establishment secret is accepted", func(t *testing.T) {
-		require.NoError(t, store.PeeringSecretsWrite(1, &pbpeering.PeeringSecrets{
-			PeerID:        testPeerID,
-			Establishment: &pbpeering.PeeringSecrets_Establishment{SecretID: testEstablishmentSecretID},
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				ActiveSecretID: testActiveStreamSecretID,
+		// First write the establishment secret so that it can be exchanged
+		require.NoError(t, store.PeeringSecretsWrite(1, &pbpeering.PeeringSecretsWriteRequest{
+			Secrets: &pbpeering.PeeringSecrets{
+				PeerID:        testPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{SecretID: testEstablishmentSecretID},
 			},
+			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
 		}))
+
+		// Exchange the now-valid establishment secret for a stream secret
 		resp, err := srv.ExchangeSecret(context.Background(), &pbpeerstream.ExchangeSecretRequest{
 			PeerID:              testPeerID,
 			EstablishmentSecret: testEstablishmentSecretID,
@@ -47,8 +50,5 @@ func TestServer_ExchangeSecret(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, secret, s.GetStream().GetPendingSecretID())
-
-		// Active stream secret persists until pending secret is promoted during peering establishment.
-		require.Equal(t, testActiveStreamSecretID, s.GetStream().GetActiveSecretID())
 	})
 }

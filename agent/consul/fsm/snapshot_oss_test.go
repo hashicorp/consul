@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -482,6 +483,19 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
 			Name: "baz",
 		},
+		SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
+			Secrets: &pbpeering.PeeringSecrets{
+				PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
+				},
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
+					ActiveSecretID:  "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+				},
+			},
+			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
+		},
 	}))
 
 	// Peering Trust Bundles
@@ -796,6 +810,30 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(31), idx)
 	require.NotNil(t, prngRestored)
 	require.Equal(t, "baz", prngRestored.Name)
+
+	// Verify peering secrets are restored
+	secretsRestored, err := fsm2.state.PeeringSecretsRead(nil, "1fabcd52-1d46-49b0-b1d8-71559aee47f5")
+	require.NoError(t, err)
+	expectSecrets := &pbpeering.PeeringSecrets{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Establishment: &pbpeering.PeeringSecrets_Establishment{
+			SecretID: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
+		},
+		Stream: &pbpeering.PeeringSecrets_Stream{
+			PendingSecretID: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
+			ActiveSecretID:  "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+		},
+	}
+	prototest.AssertDeepEqual(t, expectSecrets, secretsRestored)
+
+	uuids := []string{"389bbcdf-1c31-47d6-ae96-f2a3f4c45f84", "0b7812d4-32d9-4e54-b1b3-4d97084982a0", "baaeea83-8419-4aa8-ac89-14e7246a3d2f"}
+	for _, id := range uuids {
+		free, err := fsm2.state.ValidateProposedPeeringSecretUUID(id)
+		require.NoError(t, err)
+
+		// The UUIDs in the peering secret should be tracked as in use.
+		require.False(t, free)
+	}
 
 	// Verify peering trust bundle is restored
 	idx, ptbRestored, err := fsm2.state.PeeringTrustBundleRead(nil, state.Query{

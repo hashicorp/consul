@@ -141,7 +141,7 @@ func (b *PeeringBackend) ValidateProposedPeeringSecret(id string) (bool, error) 
 	return b.srv.fsm.State().ValidateProposedPeeringSecretUUID(id)
 }
 
-func (b *PeeringBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+func (b *PeeringBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecretsWriteRequest) error {
 	_, err := b.srv.raftApplyProtobuf(structs.PeeringSecretsWriteType, req)
 	return err
 }

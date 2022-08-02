@@ -465,8 +465,7 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 //
 // To test this, we start the two peer servers (accepting and dialing), set up peering, and then shut down
 // the accepting peer. This terminates the connection without sending a Terminated message.
-// We then restart the accepting peer (we actually spin up a new server with the same config and port) and then
-// assert that the dialing peer reestablishes the connection.
+// We then restart the accepting peer and assert that the dialing peer reestablishes the connection.
 func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -579,20 +578,17 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	// Have to manually shut down the gRPC server otherwise it stays bound to the port.
 	acceptingServer.externalGRPCServer.Stop()
 
-	// Mimic the server restarting by starting a new server with the same config.
+	// Restart the server by re-using the previous acceptor's data directory and node id.
 	_, acceptingServerRestart := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "acceptingServer.dc1"
 		c.Datacenter = "dc1"
 		c.TLSConfig.Domain = "consul"
 		c.GRPCPort = acceptingServerPort
+		c.DataDir = acceptingServer.config.DataDir
+		c.NodeID = acceptingServer.config.NodeID
 	})
-	testrpc.WaitForLeader(t, acceptingServerRestart.RPC, "dc1")
 
-	// Re-insert the peering state, mimicking a snapshot restore.
-	require.NoError(t, acceptingServerRestart.fsm.State().PeeringWrite(2000, &pbpeering.PeeringWriteRequest{
-		Peering: peering.Peering,
-		Secret:  secrets,
-	}))
+	testrpc.WaitForLeader(t, acceptingServerRestart.RPC, "dc1")
 
 	// The dialing peer should eventually reconnect.
 	retry.Run(t, func(r *retry.R) {

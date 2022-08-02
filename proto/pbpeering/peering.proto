@@ -53,6 +53,24 @@ enum PeeringState {
   TERMINATED = 6;
 }
 
+message PeeringSecretsWriteRequest {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+
+    OPERATION_GENERATETOKEN = 1;
+
+    OPERATION_EXCHANGESECRET = 2;
+
+    OPERATION_PROMOTEPENDING = 3;
+  }
+
+  // Secret contains the peering secrets to write.
+  PeeringSecrets secrets = 1;
+
+  // Operation defines which action triggered the secrets write.
+  Operation operation = 2;
+}
+
 // PeeringSecrets defines a secret used for authenticating/authorizing peer clusters.
 message PeeringSecrets {
   // PeerID is the local UUID of the peering this secret was generated for.
@@ -195,10 +213,10 @@ message PeeringWriteRequest {
   // Peering is the peering to write with the request.
   Peering Peering = 1;
 
-  // PeeringSecrets contains the optional peering secrets to persist
+  // Secret contains the optional peering secrets to persist
   // with the peering. Peering secrets are not embedded in the peering
   // object to avoid leaking them.
-  PeeringSecrets Secret = 2;
+  PeeringSecretsWriteRequest SecretsRequest = 2;
 
   map<string, string> Meta = 3;
 }
