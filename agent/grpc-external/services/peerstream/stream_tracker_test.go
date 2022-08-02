@@ -10,6 +10,71 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
+const (
+	aPeerID = "63b60245-c475-426b-b314-4588d210859d"
+)
+
+func TestStatus_IsHealthy(t *testing.T) {
+	type testcase struct {
+		name         string
+		modifierFunc func(status *MutableStatus)
+		expectedVal  bool
+	}
+
+	tcs := []testcase{
+		{
+			name:        "no heartbeat, unhealthy",
+			expectedVal: false,
+		},
+		{
+			name:        "send error before send success",
+			expectedVal: false,
+			modifierFunc: func(status *MutableStatus) {
+				// set heartbeat
+				status.LastRecvHeartbeat = time.Now()
+
+				//status.LastRecvResourceSuccess = time.Now() // todo -- change to LastSendSuccess
+				status.LastSendError = time.Now()
+			},
+		},
+		{
+			name:        "received error before received success",
+			expectedVal: false,
+			modifierFunc: func(status *MutableStatus) {
+				// set heartbeat
+				status.LastRecvHeartbeat = time.Now()
+
+				status.LastRecvResourceSuccess = time.Now()
+				status.LastRecvError = time.Now()
+			},
+		},
+		{
+			name:        "healthy",
+			expectedVal: true,
+			modifierFunc: func(status *MutableStatus) {
+				// set heartbeat
+				status.LastRecvHeartbeat = time.Now()
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			tracker := NewTracker()
+
+			st, err := tracker.Connected(aPeerID)
+			require.NoError(t, err)
+			require.True(t, st.Connected)
+
+			if tc.modifierFunc != nil {
+				tc.modifierFunc(st)
+			}
+
+			require.Equal(t, tc.expectedVal, st.IsHealthy())
+		})
+	}
+}
+
 func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 	tracker := NewTracker()
 	peerID := "63b60245-c475-426b-b314-4588d210859d"

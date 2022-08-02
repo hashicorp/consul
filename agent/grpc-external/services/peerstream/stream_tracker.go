@@ -196,6 +196,36 @@ func (s *Status) GetExportedServicesCount() uint64 {
 	return uint64(len(s.ExportedServices))
 }
 
+// IsHealthy is a convenience func that returns true/ false for a peering status.
+// We define a peering as unhealthy is its status satisfies the following:
+// -  If heartbeat hasn't been received within the IncomingHeartbeatTimeout
+// -  If the last sent error is newer than last sent success
+// -  If the last received error is newer than last received success
+// If none of these conditions apply, we call the peering healthy.
+// NOTE: This func assumes that s.Connected() is true; we don't want to convolve
+// the meaning of "healthy" with "healthy" and "connected". If the peering is not connected
+// we should not call this func.
+func (s *Status) IsHealthy() bool {
+	// todo choose a different default
+	if time.Now().Sub(s.LastRecvHeartbeat) > defaultIncomingHeartbeatTimeout {
+		// 1. If heartbeat hasn't been received for a while - report unheahtly
+		return false
+	}
+
+	// todo change to LastSentSuccess
+	if s.LastSendError.After(s.LastRecvResourceSuccess) {
+		// 2. If last sent error is newer than last sent success - report unhealthy
+		return false
+	}
+
+	if s.LastRecvError.After(s.LastRecvResourceSuccess) {
+		// 3. If last recv error is newer than last recv success - report unhealthy
+		return false
+	}
+
+	return true
+}
+
 func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
 	return &MutableStatus{
 		Status: Status{
