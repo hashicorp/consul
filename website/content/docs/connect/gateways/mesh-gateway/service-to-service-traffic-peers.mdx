@@ -36,11 +36,14 @@ Alternatively, you can also use the CLI to spin up and register a gateway in Con
 
 ### Sidecar registration
 
-- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details. The service `proxy.upstreams.destination_name` is always required. The `proxy.upstreams.destination_peer` must be configured to enable cross-cluster traffic. The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
+- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/docs/connect/registration/service-registration#upstream-configuration-reference) for details.
+- The service `proxy.upstreams.destination_name` is always required.
+- The `proxy.upstreams.destination_peer` must be configured to enable cross-cluster traffic.
+- The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
 
-### Service exporting
+### Service exports
 
-- Configure the `exported-services` configuration entry to enable Consul to export services contained in a cluster to one or more additional clusters. For additional information, refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services).
+- Include the `exported-services` configuration entry to enable Consul to export services contained in a cluster to one or more additional clusters. For additional information, refer to the [Exported Services documentation](/docs/connect/config-entries/exported-services).
 
 ### ACL configuration
 
@@ -48,4 +51,4 @@ Alternatively, you can also use the CLI to spin up and register a gateway in Con
 
 ### Modes
 
-In the current release, modes are not configurable for mesh gateways that connect peered clusters. All proxies connected to the gateway behave in [remote mode](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#remote). 
+In the current release, modes are not configurable for mesh gateways that connect peered clusters. By default, all proxies connected to the gateway behave in [remote mode](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters#remote).
