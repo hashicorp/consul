@@ -238,7 +238,8 @@ spec:
 
 ### Terminating gateway destination
 
-Create a default destination that will be assigned to a terminating gateway.
+Create a default destination that will be assigned to a terminating gateway. A destination
+represents a location outside the Consul cluster. They can be dialed directly when transparent proxy mode is enabled.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -259,7 +260,7 @@ Create a default destination that will be assigned to a terminating gateway.
     name: test-destination
   spec:
     destination:
-      addresses: 
+      addresses:
         - "test.com"
         - "test.org"
       port: 443
@@ -675,7 +676,8 @@ Create a default destination that will be assigned to a terminating gateway.
         {
           name: 'Addresses',
           type: 'array<string>: []',
-          description: `List of addresses associated with the destination. This can be a hostname or an IP address.`,
+          description: `List of addresses associated with the destination. This can be a hostname or an IP address.
+          Wildcards are not accepted.`,
           yaml: false,
         },
         {
