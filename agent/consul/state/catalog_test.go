@@ -6320,23 +6320,80 @@ func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
 	})
 
 	t.Run("do not associate connect-proxy services with gateway", func(t *testing.T) {
+		// Should only associate web (the destination service of the proxy), not the
+		// sidecar service name itself.
 		testRegisterSidecarProxy(t, s, 19, "node1", "web")
-		require.False(t, watchFired(ws))
+		expected := structs.GatewayServices{
+			{
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service1", nil),
+				GatewayKind:  structs.ServiceKindIngressGateway,
+				Port:         4444,
+				Protocol:     "http",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 12,
+					ModifyIndex: 12,
+				},
+			},
+			{
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service2", nil),
+				GatewayKind:  structs.ServiceKindIngressGateway,
+				Port:         4444,
+				Protocol:     "http",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 12,
+					ModifyIndex: 12,
+				},
+			},
+			{
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("service3", nil),
+				GatewayKind:  structs.ServiceKindIngressGateway,
+				Port:         4444,
+				Protocol:     "http",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 12,
+					ModifyIndex: 12,
+				},
+			},
+			{
+				Gateway:      structs.NewServiceName("wildcardIngress", nil),
+				Service:      structs.NewServiceName("web", nil),
+				ServiceKind:  structs.GatewayServiceKindService,
+				GatewayKind:  structs.ServiceKindIngressGateway,
+				Port:         4444,
+				Protocol:     "http",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 19,
+					ModifyIndex: 19,
+				},
+			},
+		}
+
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(t, err)
-		require.Equal(t, uint64(16), idx)
-		require.Len(t, results, 3)
+		require.Equal(t, uint64(19), idx)
+		require.ElementsMatch(t, results, expected)
 	})
 
 	t.Run("do not associate consul services with gateway", func(t *testing.T) {
+		ws := memdb.NewWatchSet()
+		_, _, err := s.GatewayServices(ws, "wildcardIngress", nil)
+		require.NoError(t, err)
+
 		require.Nil(t, s.EnsureService(20, "node1",
 			&structs.NodeService{ID: "consul", Service: "consul", Tags: nil},
 		))
 		require.False(t, watchFired(ws))
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(t, err)
-		require.Equal(t, uint64(16), idx)
-		require.Len(t, results, 3)
+		require.Equal(t, uint64(19), idx)
+		require.Len(t, results, 4)
 	})
 }
 
@@ -6525,7 +6582,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
-	// Register some connect and non-connect services against the nodes.
+	// Register some connect services against the nodes.
 	testRegisterIngressService(t, s, 3, "node1", "wildcardIngress")
 	testRegisterIngressService(t, s, 4, "node1", "ingress1")
 	testRegisterIngressService(t, s, 5, "node1", "ingress2")
@@ -6533,7 +6590,15 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	testRegisterIngressService(t, s, 7, "node1", "nothingIngress")
 	testRegisterConnectService(t, s, 8, "node1", "service1")
 	testRegisterConnectService(t, s, 9, "node2", "service2")
-	testRegisterConnectService(t, s, 10, "node2", "service3")
+	testRegisterService(t, s, 10, "node2", "service3")
+	testRegisterServiceWithChangeOpts(t, s, 11, "node2", "service3-proxy", false, func(service *structs.NodeService) {
+		service.Kind = structs.ServiceKindConnectProxy
+		service.Proxy = structs.ConnectProxyConfig{
+			DestinationServiceName: "service3",
+		}
+	})
+
+	// Register some non-connect services - these shouldn't be picked up by a wildcard.
 	testRegisterService(t, s, 17, "node1", "service4")
 	testRegisterService(t, s, 18, "node2", "service5")
 
