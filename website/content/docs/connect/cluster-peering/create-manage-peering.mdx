@@ -61,7 +61,7 @@ Next, use the peering token to establish a secure connection between the cluster
 
 <Tabs>
 <Tab heading="Consul API">
-In the client agents of "cluster-02," use `peering_token.json` to establish the peering connection. This endpoint does not generate an output unless there is an error.
+In one of the client agents in "cluster-02," use `peering_token.json` to establish the peering connection. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
@@ -243,7 +243,7 @@ $  curl http://127.0.0.1:8500/v1/peering/cluster-02
 
 ### Check peering connection health
 
-After you establish a peering connection, you can check the status of your peering connection to perform health checks.
+You can check the status of your peering connection to perform health checks.
 
 <Tabs>
 <Tab heading="Consul API">
@@ -264,7 +264,7 @@ A successful query includes service information in the output.
 
 ### Delete peering connections
 
-After you create a peering connection between clusters in different datacenters, you can disconnect the peered clusters. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
+You can disconnect the peered clusters by deleting their connection. Deleting a peering connection stops data replication to the peer and deletes imported data, including services and CA certificates.
 
 <Tabs>
 <Tab heading="Consul API">
