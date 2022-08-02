@@ -890,6 +890,15 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			return fmt.Errorf("failed updating upstream/downstream association")
 		}
 
+		service := svc.Service
+		if svc.Kind == structs.ServiceKindConnectProxy {
+			service = svc.Proxy.DestinationServiceName
+		}
+		sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
+		if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, svc, structs.GatewayServiceKindService); err != nil {
+			return fmt.Errorf("failed updating gateway mapping: %s", err)
+		}
+
 		supported, err := virtualIPsSupported(tx, nil)
 		if err != nil {
 			return err
@@ -897,12 +906,6 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 		// Update the virtual IP for the service
 		if supported {
-			service := svc.Service
-			if svc.Kind == structs.ServiceKindConnectProxy {
-				service = svc.Proxy.DestinationServiceName
-			}
-
-			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
 			vip, err := assignServiceVirtualIP(tx, idx, psn)
 			if err != nil {
@@ -3653,7 +3656,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 			continue
 		}
 
-		supportsIngress, supportsTerminating, err := serviceConnectInstances(tx, sn.ServiceName, entMeta)
+		supportsIngress, supportsTerminating, err := serviceHasConnectInstances(tx, sn.ServiceName, entMeta)
 		if err != nil {
 			return err
 		}
@@ -3730,15 +3733,15 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 	return nil
 }
 
-// serviceConnectInstances returns whether the service has at least one connect instance,
+// serviceHasConnectInstances returns whether the service has at least one connect instance,
 // and at least one non-connect instance.
-func serviceConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, bool, error) {
+func serviceHasConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, bool, error) {
 	hasConnectInstance := false
-	connectQuery := Query{
+	query := Query{
 		Value:          serviceName,
 		EnterpriseMeta: *entMeta,
 	}
-	svc, err := tx.First(tableServices, indexConnect, connectQuery)
+	svc, err := tx.First(tableServices, indexConnect, query)
 	if err != nil {
 		return false, false, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -3747,11 +3750,7 @@ func serviceConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.Enter
 	}
 
 	hasNonConnectInstance := false
-	nonConnectQuery := Query{
-		Value:          serviceName,
-		EnterpriseMeta: *entMeta,
-	}
-	iter, err := tx.Get(tableServices, indexService, nonConnectQuery)
+	iter, err := tx.Get(tableServices, indexService, query)
 	if err != nil {
 		return false, false, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -3810,22 +3809,26 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Name, err)
 	}
 
-	supportsIngress, supportsTerminating, err := serviceConnectInstances(tx, svc.Name, &svc.EnterpriseMeta)
+	hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, svc.Name, &svc.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
-	if ns != nil && ns.Connect.Native {
-		supportsIngress = true
-	} else {
-		supportsTerminating = true
+	// If we were passed a NodeService, this might be the first registered instance of the service
+	// so we need to count it as either a connect or non-connect instance.
+	if ns != nil {
+		if ns.Connect.Native || ns.Kind == structs.ServiceKindConnectProxy {
+			hasConnectInstance = true
+		} else {
+			hasNonConnectInstance = true
+		}
 	}
 
 	for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
 		if wildcardSvc, ok := service.(*structs.GatewayService); ok && wildcardSvc != nil {
-			if wildcardSvc.GatewayKind == structs.ServiceKindIngressGateway && !supportsIngress {
+			if wildcardSvc.GatewayKind == structs.ServiceKindIngressGateway && !hasConnectInstance {
 				continue
 			}
-			if wildcardSvc.GatewayKind == structs.ServiceKindTerminatingGateway && !supportsTerminating {
+			if wildcardSvc.GatewayKind == structs.ServiceKindTerminatingGateway && !hasNonConnectInstance && kind != structs.GatewayServiceKindDestination {
 				continue
 			}
 
@@ -3888,7 +3891,7 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 	// If there are no connect instances left, ingress gateways with a wildcard entry can remove
 	// their association with it (same with terminating gateways if there are no non-connect
 	// instances left).
-	hasConnectInstance, hasNonConnectInstance, err := serviceConnectInstances(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, svc.ServiceName, &svc.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
