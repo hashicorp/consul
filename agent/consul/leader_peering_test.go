@@ -1063,6 +1063,9 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		// mimic tracking exported services
 		mst2.TrackExportedService(structs.ServiceName{Name: "d-service"})
 		mst2.TrackExportedService(structs.ServiceName{Name: "e-service"})
+
+		// pretend that the hearbeat happened
+		mst2.TrackRecvHeartbeat()
 	}
 
 	// set up a metrics sink
@@ -1092,6 +1095,12 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyMetric2))
 
 		require.Equal(r, float32(2), metric2.Value) // for d, e services
+
+		keyHealthyMetric2 := fmt.Sprintf("us-west.consul.peering.healthy;peer_name=my-peer-s3;peer_id=%s", s2PeerID2)
+		healthyMetric2, ok := intv.Gauges[keyHealthyMetric2]
+		require.True(r, ok, fmt.Sprintf("did not find the key %q", keyHealthyMetric2))
+
+		require.Equal(r, float32(1), healthyMetric2.Value)
 	})
 }
 
