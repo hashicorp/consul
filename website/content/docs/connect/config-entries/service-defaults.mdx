@@ -243,9 +243,9 @@ Create a default destination that will be assigned to a terminating gateway.
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
   ```hcl
-  kind = "service-defaults"
-  name = "test-destination"
-  protocol = "tcp"
+  Kind = "service-defaults"
+  Name = "test-destination"
+  Protocol = "tcp"
   Destination {
     Addresses = ["test.com","test.org"]
     Port = 443
@@ -256,12 +256,13 @@ Create a default destination that will be assigned to a terminating gateway.
   apiVersion: consul.hashicorp.com/v1alpha1
   kind: ServiceDefaults
   metadata:
-  name: test-destination
+    name: test-destination
   spec:
     destination:
-      Addresses: ["test.com","test.org"]
-      Port: 443
-  ```
+      addresses: 
+        - "test.com"
+        - "test.org"
+      port: 443
 
   ```json
   {
