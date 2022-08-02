@@ -473,10 +473,10 @@ The following table describes the additional fields that must be included in the
 | [`partition`](/docs/agent/config/config-files#partition-1)                      | string  | <EnterpriseAlert inline /> The Consul Enterprise admin partition this agent belongs to. |
 
 ### Configure Audit Logging<EnterpriseAlert inline />
-[Audit logging](/docs/enterprise/audit-logging) is supported when ACLs are enabled and tasks are configured to use a Consul Enterprise client.
-To enable audit logging you must update the startup script to configure the Consul client config file with an `audit` stanza.
+[Audit logging](/docs/enterprise/audit-logging) is supported on clients running Consul Enterprise with ACLs enabled.
+To enable audit logging, update the startup script to add an `audit` stanza to the Consul client configuration file.
 
-The following example shows the additional content to include in the `consul-client` startup script to configure audit logs to be written to `stdout` of the `consul-client` container.
+The following example modifies the `consul-client` startup script to configure audit logs to be written to the `stdout` of the `consul-client` container.
 
 <CodeBlockConfig highlight="9-17">
 
