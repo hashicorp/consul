@@ -36,6 +36,7 @@ func (c cacheIntentions) Notify(ctx context.Context, req *structs.ServiceSpecifi
 				},
 			},
 		},
+		QueryOptions: structs.QueryOptions{Token: req.QueryOptions.Token},
 	}
 	return c.c.NotifyCallback(ctx, cachetype.IntentionMatchName, query, correlationID, func(ctx context.Context, event cache.UpdateEvent) {
 		e := proxycfg.UpdateEvent{
