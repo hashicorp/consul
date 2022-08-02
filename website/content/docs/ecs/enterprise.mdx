@@ -123,14 +123,14 @@ module "my_task" {
 </CodeBlockConfig>
 
 ### Audit Logging
-Consul on ECS supports [audit logging](/docs/enterprise/audit-logging) when Consul Enterprise clients are used.
+Consul on ECS supports [audit logging](/docs/enterprise/audit-logging) when using Consul Enterprise clients.
 This feature has the following requirements:
 
 - ACLs must be enabled.
-- `mesh-task` must use a Consul Enterprise client image.
-- `gateway-task` must use a Consul Enterprise client image.
+- `mesh-task` must use a Consul Enterprise image.
+- `gateway-task` must use a Consul Enterprise image.
 
-The following example demonstrates how to create a `mesh-task` with audit logging enabled.
+To enable audit logging, set `audit_logging = true` when configuring the client.
 
 <CodeBlockConfig highlight="7-8">
 
