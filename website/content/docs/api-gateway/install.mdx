@@ -29,57 +29,57 @@ $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?
 
 1. Create a `values.yaml` file for your Consul API Gateway deployment by copying the following content and running it in the environment where you set the `VERSION` environment variable. The Consul Helm chart uses this `values.yaml` file to deploy the API Gateway. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). For more options to configure your Consul API Gateway deployment through the Helm chart, refer to [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway).
 
-<CodeBlockConfig filename="values.yaml">
+  <CodeBlockConfig filename="values.yaml">
 
-  ```shell
-  cat <<EOF > values.yaml
-    global:
-      name: consul
-    connectInject:
-      enabled: true
-    controller:
-      enabled: true
-    apiGateway:
-      enabled: true
-      image: hashicorp/consul-api-gateway:$VERSION
-  EOF
-  ```
+    ```shell
+    cat <<EOF > values.yaml
+      global:
+        name: consul
+      connectInject:
+        enabled: true
+      controller:
+        enabled: true
+      apiGateway:
+        enabled: true
+        image: hashicorp/consul-api-gateway:$VERSION
+    EOF
+    ```
 
-</CodeBlockConfig>
+  </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
-<Tabs>
-<Tab heading="Helm">
-Add the HashiCorp Helm repository.
+  <Tabs>
+    <Tab heading="Consul K8s CLI (Mac Only)">
+      Note: You can review the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to learn more about additional settings.
 
-```shell-session
-$ helm repo add hashicorp https://helm.releases.hashicorp.com
-```
+      ```shell-session
+      $ brew tap hashicorp/tap
+      ```
 
-Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
+      ```shell-session
+      $ brew install hashicorp/tap/consul-k8s
+      ```
 
-```shell-session
-$ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
-```
-</Tab>
-<Tab heading="Consul K8s CLI (Mac Only)">
-Note: You can review the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to learn more about additional settings.
+      ```shell-session
+      $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+      ```
 
-```shell-session
-$ brew tap hashicorp/tap
-```
+    </Tab>
+    <Tab heading="Helm">
+      Add the HashiCorp Helm repository.
 
-```shell-session
-$ brew install hashicorp/tap/consul-k8s
-```
+      ```shell-session
+      $ helm repo add hashicorp https://helm.releases.hashicorp.com
+      ```
 
-```shell-session
-$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
-```
+      Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
-</Tab>
-</Tabs>
+      ```shell-session
+      $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
+  ```
+    </Tab>
+  </Tabs>
 
 <!--
 ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
