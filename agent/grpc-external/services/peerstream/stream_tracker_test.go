@@ -16,15 +16,25 @@ const (
 
 func TestStatus_IsHealthy(t *testing.T) {
 	type testcase struct {
-		name         string
-		modifierFunc func(status *MutableStatus)
-		expectedVal  bool
+		name            string
+		modifierFunc    func(status *MutableStatus)
+		expectedVal     bool
+		hearbeatTimeout time.Duration
 	}
 
 	tcs := []testcase{
 		{
 			name:        "no heartbeat, unhealthy",
 			expectedVal: false,
+		},
+		{
+			name:        "heartbeat is not received, unhealthy",
+			expectedVal: false,
+			modifierFunc: func(status *MutableStatus) {
+				// set heartbeat
+				status.LastRecvHeartbeat = time.Now().Add(-1 * time.Second)
+			},
+			hearbeatTimeout: 1 * time.Second,
 		},
 		{
 			name:        "send error before send success",
@@ -61,6 +71,9 @@ func TestStatus_IsHealthy(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			tracker := NewTracker()
+			if tc.hearbeatTimeout.Microseconds() != 0 {
+				tracker.SetHeartbeatTimeout(tc.hearbeatTimeout)
+			}
 
 			st, err := tracker.Connected(aPeerID)
 			require.NoError(t, err)

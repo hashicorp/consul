@@ -16,6 +16,8 @@ type Tracker struct {
 
 	// timeNow is a shim for testing.
 	timeNow func() time.Time
+
+	heartbeatTimeout time.Duration
 }
 
 func NewTracker() *Tracker {
@@ -33,6 +35,12 @@ func (t *Tracker) SetClock(clock func() time.Time) {
 	}
 }
 
+func (t *Tracker) SetHeartbeatTimeout(heartbeatTimeout time.Duration) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.heartbeatTimeout = heartbeatTimeout
+}
+
 // Register a stream for a given peer but do not mark it as connected.
 func (t *Tracker) Register(id string) (*MutableStatus, error) {
 	t.mu.Lock()
@@ -44,7 +52,7 @@ func (t *Tracker) Register(id string) (*MutableStatus, error) {
 func (t *Tracker) registerLocked(id string, initAsConnected bool) (*MutableStatus, bool, error) {
 	status, ok := t.streams[id]
 	if !ok {
-		status = newMutableStatus(t.timeNow, initAsConnected)
+		status = newMutableStatus(t.timeNow, t.heartbeatTimeout, initAsConnected)
 		t.streams[id] = status
 		return status, true, nil
 	}
@@ -142,6 +150,8 @@ type MutableStatus struct {
 // Status contains information about the replication stream to a peer cluster.
 // TODO(peering): There's a lot of fields here...
 type Status struct {
+	heartbeatTimeout time.Duration
+
 	// Connected is true when there is an open stream for the peer.
 	Connected bool
 
@@ -209,13 +219,11 @@ func (s *Status) GetExportedServicesCount() uint64 {
 // the meaning of "healthy" with "healthy" and "connected". If the peering is not connected
 // we should not call this func.
 func (s *Status) IsHealthy() bool {
-	// todo choose a different default
-	if time.Now().Sub(s.LastRecvHeartbeat) > defaultIncomingHeartbeatTimeout {
+	if time.Now().Sub(s.LastRecvHeartbeat) > s.heartbeatTimeout {
 		// 1. If heartbeat hasn't been received for a while - report unheahtly
 		return false
 	}
 
-	// todo change to LastSentSuccess
 	if s.LastSendError.After(s.LastSendSuccess) {
 		// 2. If last sent error is newer than last sent success - report unhealthy
 		return false
@@ -229,10 +237,14 @@ func (s *Status) IsHealthy() bool {
 	return true
 }
 
-func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
+func newMutableStatus(now func() time.Time, heartbeatTimeout time.Duration, connected bool) *MutableStatus {
+	if heartbeatTimeout.Microseconds() == 0 {
+		heartbeatTimeout = defaultIncomingHeartbeatTimeout
+	}
 	return &MutableStatus{
 		Status: Status{
-			Connected: connected,
+			Connected:        connected,
+			heartbeatTimeout: heartbeatTimeout,
 		},
 		timeNow: now,
 		doneCh:  make(chan struct{}),
