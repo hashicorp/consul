@@ -366,13 +366,8 @@
         "path": "api-gateway/upgrades"
       },
       {
-        "title": "Usage",
-        "routes": [
-          {
-            "title": "Basic Usage",
-            "path": "api-gateway/usage/basic-usage"
-          }
-        ]
+        "title": "Upgrades",
+        "path": "api-gateway/usage"
       },
       {
         "title": "Configuration",
