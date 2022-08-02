@@ -37,6 +37,13 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Uses gossip protocol                             |    &#9989;     |    &#10060;     |
 
 ## Beta release features and constraints
+
+The cluster peering beta adds the following features and functions:
+
+- You can generate peering tokens, establish, list, read, and delete peerings, and manage intentions for peering connections with both the API and the UI.
+- You can configure [transparent proxies](/docs/connect/transparent-proxy) for peered services.
+- You can use the [`peering` rule for ACL enforcement](/docs/security/acl/acl-rules#peering) of peering APIs.
+
 Not all features and functionality are available in the beta release. In particular, consider the following technical constraints:
 
 - Mesh gateways for _server to server traffic_ are not available. However, mesh gateways for _service to service traffic_ between clusters are available.
