@@ -58,7 +58,7 @@ func insertTestPeerings(t *testing.T, s *Store) {
 	require.NoError(t, tx.Commit())
 }
 
-func insertTestPeeringSecret(t *testing.T, s *Store, secret *pbpeering.PeeringSecrets) {
+func insertTestPeeringSecret(t *testing.T, s *Store, secret *pbpeering.PeeringSecrets, dialer bool) {
 	t.Helper()
 
 	tx := s.db.WriteTxn(0)
@@ -78,9 +78,12 @@ func insertTestPeeringSecret(t *testing.T, s *Store, secret *pbpeering.PeeringSe
 		uuids = append(uuids, active)
 	}
 
-	for _, id := range uuids {
-		err = tx.Insert(tablePeeringSecretUUIDs, id)
-		require.NoError(t, err)
+	// Dialing peers do not track secret UUIDs because they don't generate them.
+	if !dialer {
+		for _, id := range uuids {
+			err = tx.Insert(tablePeeringSecretUUIDs, id)
+			require.NoError(t, err)
+		}
 	}
 
 	require.NoError(t, tx.Commit())
@@ -182,7 +185,7 @@ func TestStateStore_PeeringSecretsRead(t *testing.T) {
 		Establishment: &pbpeering.PeeringSecrets_Establishment{
 			SecretID: testFooSecretID,
 		},
-	})
+	}, false)
 
 	type testcase struct {
 		name   string
@@ -499,40 +502,67 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 }
 
 func TestStore_PeeringSecretsDelete(t *testing.T) {
-	s := NewStateStore(nil)
-	insertTestPeerings(t, s)
-
 	const (
 		establishmentID = "b4b9cbae-4bbd-454b-b7ae-441a5c89c3b9"
 		pendingID       = "0ba06390-bd77-4c52-8397-f88c0867157d"
 		activeID        = "0b8a3817-aca0-4c06-94b6-b0763a5cd013"
 	)
 
-	insertTestPeeringSecret(t, s, &pbpeering.PeeringSecrets{
-		PeerID: testFooPeerID,
-		Establishment: &pbpeering.PeeringSecrets_Establishment{
-			SecretID: establishmentID,
-		},
-		Stream: &pbpeering.PeeringSecrets_Stream{
-			PendingSecretID: pendingID,
-			ActiveSecretID:  activeID,
-		},
-	})
+	type testCase struct {
+		dialer bool
+		secret *pbpeering.PeeringSecrets
+	}
 
-	require.NoError(t, s.PeeringSecretsDelete(12, testFooPeerID))
+	run := func(t *testing.T, tc testCase) {
+		s := NewStateStore(nil)
 
-	// The secrets should be gone
-	secrets, err := s.PeeringSecretsRead(nil, testFooPeerID)
-	require.NoError(t, err)
-	require.Nil(t, secrets)
+		insertTestPeerings(t, s)
+		insertTestPeeringSecret(t, s, tc.secret, tc.dialer)
 
-	// The UUIDs should be free
-	uuids := []string{establishmentID, pendingID, activeID}
+		require.NoError(t, s.PeeringSecretsDelete(12, testFooPeerID, tc.dialer))
 
-	for _, id := range uuids {
-		free, err := s.ValidateProposedPeeringSecretUUID(id)
+		// The secrets should be gone
+		secrets, err := s.PeeringSecretsRead(nil, testFooPeerID)
 		require.NoError(t, err)
-		require.True(t, free)
+		require.Nil(t, secrets)
+
+		uuids := []string{establishmentID, pendingID, activeID}
+		for _, id := range uuids {
+			free, err := s.ValidateProposedPeeringSecretUUID(id)
+			require.NoError(t, err)
+			require.True(t, free)
+		}
+	}
+
+	tt := map[string]testCase{
+		"acceptor": {
+			dialer: false,
+			secret: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: establishmentID,
+				},
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: pendingID,
+					ActiveSecretID:  activeID,
+				},
+			},
+		},
+		"dialer": {
+			dialer: true,
+			secret: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					ActiveSecretID: activeID,
+				},
+			},
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
 

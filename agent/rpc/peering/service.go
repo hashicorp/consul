@@ -729,10 +729,11 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:        existing.ID,
-			Name:      req.Name,
-			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now().UTC()),
+			ID:                  existing.ID,
+			Name:                req.Name,
+			State:               pbpeering.PeeringState_DELETING,
+			PeerServerAddresses: existing.PeerServerAddresses,
+			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),
