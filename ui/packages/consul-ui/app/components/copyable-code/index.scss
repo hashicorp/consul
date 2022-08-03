@@ -27,7 +27,14 @@
   .copy-button {
     position: absolute;
     top: 7px;
-    right: 12px;
+    right: 0;
+    z-index: 1;
+  }
+  .copy-button button {
+    width: 40px;
+  }
+  .copy-button button:empty::after {
+    left: 0;
   }
   button[aria-expanded] {
     margin-top: 1px;
