@@ -484,7 +484,8 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 					Secrets: &pbpeering.PeeringSecrets{
 						PeerID: testFooPeerID,
 						Stream: &pbpeering.PeeringSecrets_Stream{
-							PendingSecretID: testSecretOne,
+							ActiveSecretID:  testSecretOne,
+							PendingSecretID: testSecretTwo,
 						},
 					},
 				},
@@ -493,8 +494,8 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 				Secrets: &pbpeering.PeeringSecrets{
 					PeerID: testFooPeerID,
 					Stream: &pbpeering.PeeringSecrets_Stream{
-						// Two replaces One
-						PendingSecretID: testSecretTwo,
+						// Three replaces two
+						PendingSecretID: testSecretThree,
 					},
 				},
 				Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET,
@@ -502,10 +503,12 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 			expect: &pbpeering.PeeringSecrets{
 				PeerID: testFooPeerID,
 				Stream: &pbpeering.PeeringSecrets_Stream{
-					PendingSecretID: testSecretTwo,
+					// Active secret is not deleted until the new pending secret is promoted
+					ActiveSecretID:  testSecretOne,
+					PendingSecretID: testSecretThree,
 				},
 			},
-			expectUUIDs: []string{testSecretTwo},
+			expectUUIDs: []string{testSecretOne, testSecretThree},
 		},
 		{
 			name: "promote pending secret and delete active",
