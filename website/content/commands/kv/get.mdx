@@ -32,19 +32,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### KV Get Options
+#### Command Options
 
 - `-base64` - Base 64 encode the value. The default value is false.
 
@@ -63,6 +51,18 @@ Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 - `-separator=<string>` - String to use as a separator for recursive lookups. The
   default value is "/", and only used when paired with the `-keys` flag. This will
   limit the prefix of keys returned, only up to the given separator.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

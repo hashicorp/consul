@@ -65,6 +65,7 @@ func TestPolicySourceParse(t *testing.T) {
 				}
 				operator = "deny"
 				mesh = "deny"
+				peering = "deny"
 				service_prefix "" {
 					policy = "write"
 				}
@@ -147,6 +148,7 @@ func TestPolicySourceParse(t *testing.T) {
 				  },
 				  "operator": "deny",
 				  "mesh": "deny",
+				  "peering": "deny",
 				  "service_prefix": {
 					"": {
 					  "policy": "write"
@@ -253,6 +255,7 @@ func TestPolicySourceParse(t *testing.T) {
 				},
 				Operator: PolicyDeny,
 				Mesh:     PolicyDeny,
+				Peering:  PolicyDeny,
 				PreparedQueryPrefixes: []*PreparedQueryRule{
 					{
 						Prefix: "",
@@ -744,6 +747,13 @@ func TestPolicySourceParse(t *testing.T) {
 			Err:       "Invalid mesh policy",
 		},
 		{
+			Name:      "Bad Policy - Peering",
+			Syntax:    SyntaxCurrent,
+			Rules:     `peering = "nope"`,
+			RulesJSON: `{ "peering": "nope" }`,
+			Err:       "Invalid peering policy",
+		},
+		{
 			Name:      "Keyring Empty",
 			Syntax:    SyntaxCurrent,
 			Rules:     `keyring = ""`,
@@ -763,6 +773,13 @@ func TestPolicySourceParse(t *testing.T) {
 			Rules:     `mesh = ""`,
 			RulesJSON: `{ "mesh": "" }`,
 			Expected:  &Policy{PolicyRules: PolicyRules{Mesh: ""}},
+		},
+		{
+			Name:      "Peering Empty",
+			Syntax:    SyntaxCurrent,
+			Rules:     `peering = ""`,
+			RulesJSON: `{ "peering": "" }`,
+			Expected:  &Policy{PolicyRules: PolicyRules{Peering: ""}},
 		},
 	}
 
@@ -1453,66 +1470,90 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Write Precedence",
 			input: []*Policy{
-				{PolicyRules: PolicyRules{
-					ACL:      PolicyRead,
-					Keyring:  PolicyRead,
-					Operator: PolicyRead,
-					Mesh:     PolicyRead,
-				}},
-				{PolicyRules: PolicyRules{
+				{
+					PolicyRules: PolicyRules{
+						ACL:      PolicyRead,
+						Keyring:  PolicyRead,
+						Operator: PolicyRead,
+						Mesh:     PolicyRead,
+						Peering:  PolicyRead,
+					},
+				},
+				{
+					PolicyRules: PolicyRules{
+						ACL:      PolicyWrite,
+						Keyring:  PolicyWrite,
+						Operator: PolicyWrite,
+						Mesh:     PolicyWrite,
+						Peering:  PolicyWrite,
+					},
+				},
+			},
+			expected: &Policy{
+				PolicyRules: PolicyRules{
 					ACL:      PolicyWrite,
 					Keyring:  PolicyWrite,
 					Operator: PolicyWrite,
 					Mesh:     PolicyWrite,
-				}},
+					Peering:  PolicyWrite,
+				},
 			},
-			expected: &Policy{PolicyRules: PolicyRules{
-				ACL:      PolicyWrite,
-				Keyring:  PolicyWrite,
-				Operator: PolicyWrite,
-				Mesh:     PolicyWrite,
-			}},
 		},
 		{
 			name: "Deny Precedence",
 			input: []*Policy{
-				{PolicyRules: PolicyRules{
-					ACL:      PolicyWrite,
-					Keyring:  PolicyWrite,
-					Operator: PolicyWrite,
-					Mesh:     PolicyWrite,
-				}},
-				{PolicyRules: PolicyRules{
+				{
+					PolicyRules: PolicyRules{
+						ACL:      PolicyWrite,
+						Keyring:  PolicyWrite,
+						Operator: PolicyWrite,
+						Mesh:     PolicyWrite,
+						Peering:  PolicyWrite,
+					},
+				},
+				{
+					PolicyRules: PolicyRules{
+						ACL:      PolicyDeny,
+						Keyring:  PolicyDeny,
+						Operator: PolicyDeny,
+						Mesh:     PolicyDeny,
+						Peering:  PolicyDeny,
+					},
+				},
+			},
+			expected: &Policy{
+				PolicyRules: PolicyRules{
 					ACL:      PolicyDeny,
 					Keyring:  PolicyDeny,
 					Operator: PolicyDeny,
 					Mesh:     PolicyDeny,
-				}},
+					Peering:  PolicyDeny,
+				},
 			},
-			expected: &Policy{PolicyRules: PolicyRules{
-				ACL:      PolicyDeny,
-				Keyring:  PolicyDeny,
-				Operator: PolicyDeny,
-				Mesh:     PolicyDeny,
-			}},
 		},
 		{
 			name: "Read Precedence",
 			input: []*Policy{
-				{PolicyRules: PolicyRules{
+				{
+					PolicyRules: PolicyRules{
+						ACL:      PolicyRead,
+						Keyring:  PolicyRead,
+						Operator: PolicyRead,
+						Mesh:     PolicyRead,
+						Peering:  PolicyRead,
+					},
+				},
+				{},
+			},
+			expected: &Policy{
+				PolicyRules: PolicyRules{
 					ACL:      PolicyRead,
 					Keyring:  PolicyRead,
 					Operator: PolicyRead,
 					Mesh:     PolicyRead,
-				}},
-				{},
+					Peering:  PolicyRead,
+				},
 			},
-			expected: &Policy{PolicyRules: PolicyRules{
-				ACL:      PolicyRead,
-				Keyring:  PolicyRead,
-				Operator: PolicyRead,
-				Mesh:     PolicyRead,
-			}},
 		},
 	}
 
@@ -1524,6 +1565,7 @@ func TestMergePolicies(t *testing.T) {
 			require.Equal(t, exp.Keyring, act.Keyring)
 			require.Equal(t, exp.Operator, act.Operator)
 			require.Equal(t, exp.Mesh, act.Mesh)
+			require.Equal(t, exp.Peering, act.Peering)
 			require.ElementsMatch(t, exp.Agents, act.Agents)
 			require.ElementsMatch(t, exp.AgentPrefixes, act.AgentPrefixes)
 			require.ElementsMatch(t, exp.Events, act.Events)
@@ -1597,6 +1639,9 @@ operator = "write"
 
 # comment
 mesh = "write"
+
+# comment
+peering = "write"
 `
 
 	expected := `
@@ -1652,6 +1697,9 @@ operator = "write"
 
 # comment
 mesh = "write"
+
+# comment
+peering = "write"
 `
 
 	output, err := TranslateLegacyRules([]byte(input))

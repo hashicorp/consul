@@ -114,11 +114,13 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
-	port, err := a.sidecarPortFromServiceIDLocked(sidecar.Port, sidecar.CompoundServiceID())
-	if err != nil {
-		return nil, nil, "", err
+	if sidecar.Port < 1 {
+		port, err := a.sidecarPortFromServiceID(sidecar.CompoundServiceID())
+		if err != nil {
+			return nil, nil, "", err
+		}
+		sidecar.Port = port
 	}
-	sidecar.Port = port
 
 	// Setup checks
 	checks, err := ns.Connect.SidecarService.CheckTypes()
@@ -135,7 +137,8 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 // sidecarPortFromServiceID is used to allocate a unique port for a sidecar proxy.
 // This is called immediately before registration to avoid value collisions. This function assumes the state lock is already held.
-func (a *Agent) sidecarPortFromServiceIDLocked(sidecarPort int, sidecarCompoundServiceID structs.ServiceID) (int, error) {
+func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.ServiceID) (int, error) {
+	sidecarPort := 0
 
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := a.config.ConnectSidecarMaxPort - a.config.ConnectSidecarMinPort + 1

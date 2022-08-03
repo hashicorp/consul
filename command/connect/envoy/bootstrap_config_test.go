@@ -342,9 +342,7 @@ const (
 				}
 			  ],
 			  "validationContextSdsSecretConfig": {
-				"trustedCa": {
-				  "name": "prometheus_validation_context"
-				}
+				"name": "prometheus_validation_context"
 			  }
 			}
 		  }
@@ -1399,6 +1397,40 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
+			name: "cluster service peered",
+			stat: "cluster.pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors",
+			expect: map[string][]string{
+				"consul.custom_hash":                {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.destination.custom_hash":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.destination.full_target":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.destination.namespace":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.peer":           {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "cloudpeer"},
+				"consul.destination.routing_type":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "external"},
+				"consul.destination.service":        {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.destination.service_subset": {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.destination.target":         {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer"},
+				"consul.destination.trust_domain":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.full_target":                {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.namespace":                  {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.routing_type":               {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "external"},
+				"consul.service":                    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.service_subset":             {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.target":                     {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer"},
+				"consul.trust_domain":               {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+			},
+			expectNoDeprecated: map[string][]string{
+				"consul.destination.custom_hash":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.destination.full_target":    {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648"},
+				"consul.destination.namespace":      {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "default"},
+				"consul.destination.peer":           {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "cloudpeer"},
+				"consul.destination.routing_type":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "external"},
+				"consul.destination.service":        {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong"},
+				"consul.destination.service_subset": {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
+				"consul.destination.target":         {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "pong.default.cloudpeer"},
+				"consul.destination.trust_domain":   {"pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+			},
+		},
+		{
 			name: "tcp listener no namespace or partition (OSS)",
 			stat: "tcp.upstream.db.dc1.downstream_cx_total",
 			expect: map[string][]string{
@@ -1406,6 +1438,15 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.upstream.namespace":  {"db.dc1.", ""},
 				"consul.upstream.partition":  {"db.dc1.", ""},
 				"consul.upstream.service":    {"db.dc1.", "db"},
+			},
+		},
+		{
+			name: "tcp peered listener no namespace or partition (OSS)",
+			stat: "tcp.upstream_peered.db.cloudpeer.downstream_cx_total",
+			expect: map[string][]string{
+				"consul.upstream.peer":      {"db.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"db.cloudpeer.", ""},
+				"consul.upstream.service":   {"db.cloudpeer.", "db"},
 			},
 		},
 		{
@@ -1419,6 +1460,15 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
+			name: "tcp peered listener with namespace",
+			stat: "tcp.upstream_peered.db.frontend.cloudpeer.downstream_cx_total",
+			expect: map[string][]string{
+				"consul.upstream.peer":      {"db.frontend.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"db.frontend.cloudpeer.", "frontend"},
+				"consul.upstream.service":   {"db.frontend.cloudpeer.", "db"},
+			},
+		},
+		{
 			name: "http listener no namespace or partition (OSS)",
 			stat: "http.upstream.web.dc1.downstream_cx_total",
 			expect: map[string][]string{
@@ -1429,6 +1479,15 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
+			name: "http peered listener no namespace or partition (OSS)",
+			stat: "http.upstream_peered.web.cloudpeer.downstream_cx_total",
+			expect: map[string][]string{
+				"consul.upstream.peer":      {"web.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"web.cloudpeer.", ""},
+				"consul.upstream.service":   {"web.cloudpeer.", "web"},
+			},
+		},
+		{
 			name: "http listener with namespace and partition",
 			stat: "http.upstream.web.frontend.west.dc1.downstream_cx_total",
 			expect: map[string][]string{
@@ -1436,6 +1495,15 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.upstream.namespace":  {"web.frontend.west.dc1.", "frontend"},
 				"consul.upstream.partition":  {"web.frontend.west.dc1.", "west"},
 				"consul.upstream.service":    {"web.frontend.west.dc1.", "web"},
+			},
+		},
+		{
+			name: "http peered listener with namespace",
+			stat: "http.upstream_peered.web.frontend.cloudpeer.downstream_cx_total",
+			expect: map[string][]string{
+				"consul.upstream.peer":      {"web.frontend.cloudpeer.", "cloudpeer"},
+				"consul.upstream.namespace": {"web.frontend.cloudpeer.", "frontend"},
+				"consul.upstream.service":   {"web.frontend.cloudpeer.", "web"},
 			},
 		},
 	}

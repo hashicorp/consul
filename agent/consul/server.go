@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -30,6 +29,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -38,13 +39,13 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/services/subscribe"
-	aclgrpc "github.com/hashicorp/consul/agent/grpc/public/services/acl"
-	"github.com/hashicorp/consul/agent/grpc/public/services/connectca"
-	"github.com/hashicorp/consul/agent/grpc/public/services/dataplane"
-	"github.com/hashicorp/consul/agent/grpc/public/services/peerstream"
-	"github.com/hashicorp/consul/agent/grpc/public/services/serverdiscovery"
+	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
+	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
+	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
+	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -126,6 +127,7 @@ const (
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
+	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
 )
 
 var (
@@ -241,19 +243,19 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
-	// publicACLServer serves the ACL service exposed on the public gRPC port.
-	// It is also exposed on the private multiplexed "server" port to enable
+	// externalACLServer serves the ACL service exposed on the external gRPC port.
+	// It is also exposed on the internal multiplexed "server" port to enable
 	// RPC forwarding.
-	publicACLServer *aclgrpc.Server
+	externalACLServer *aclgrpc.Server
 
-	// publicConnectCAServer serves the Connect CA service exposed on the public
-	// gRPC port. It is also exposed on the private multiplexed "server" port to
+	// externalConnectCAServer serves the Connect CA service exposed on the external
+	// gRPC port. It is also exposed on the internal multiplexed "server" port to
 	// enable RPC forwarding.
-	publicConnectCAServer *connectca.Server
+	externalConnectCAServer *connectca.Server
 
-	// publicGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
-	publicGRPCServer *grpc.Server
+	externalGRPCServer *grpc.Server
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -363,11 +365,12 @@ type Server struct {
 	// this into the Deps struct and created it much earlier on.
 	publisher *stream.EventPublisher
 
-	// peeringBackend is shared between the public and private gRPC services for peering
+	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
-	// peerStreamServer is a server used to handle peering streams
-	peerStreamServer  *peerstream.Server
+	// peerStreamServer is a server used to handle peering streams from external clusters.
+	peerStreamServer *peerstream.Server
+	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer     *peering.Server
 	peerStreamTracker *peerstream.Tracker
 
@@ -383,7 +386,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -429,7 +432,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
 		tlsConfigurator:         flat.TLSConfigurator,
-		publicGRPCServer:        publicGRPCServer,
+		externalGRPCServer:      externalGRPCServer,
 		reassertLeaderCh:        make(chan chan error),
 		sessionTimers:           NewSessionTimers(),
 		tombstoneGC:             gc,
@@ -676,8 +679,8 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Initialize public gRPC server - register services on public gRPC server.
-	s.publicACLServer = aclgrpc.NewServer(aclgrpc.Config{
+	// Initialize external gRPC server - register services on external gRPC server.
+	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
@@ -693,9 +696,9 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		PrimaryDatacenter:         s.config.PrimaryDatacenter,
 		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
 	})
-	s.publicACLServer.Register(s.publicGRPCServer)
+	s.externalACLServer.Register(s.externalGRPCServer)
 
-	s.publicConnectCAServer = connectca.NewServer(connectca.Config{
+	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
 		Publisher:   s.publisher,
 		GetStore:    func() connectca.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.connect-ca"),
@@ -706,20 +709,20 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		},
 		ConnectEnabled: s.config.ConnectEnabled,
 	})
-	s.publicConnectCAServer.Register(s.publicGRPCServer)
+	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
 		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
-	}).Register(s.publicGRPCServer)
+	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
-	}).Register(s.publicGRPCServer)
+	}).Register(s.externalGRPCServer)
 
 	s.peerStreamTracker = peerstream.NewTracker()
 	s.peeringBackend = NewPeeringBackend(s)
@@ -731,12 +734,19 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		ACLResolver:    s.ACLResolver,
 		Datacenter:     s.config.Datacenter,
 		ConnectEnabled: s.config.ConnectEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
 	})
-	s.peerStreamServer.Register(s.publicGRPCServer)
+	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	// Initialize private gRPC server.
+	// Initialize internal gRPC server.
 	//
-	// Note: some "public" gRPC services are also exposed on the private gRPC server
+	// Note: some "external" gRPC services are also exposed on the internal gRPC server
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
@@ -791,6 +801,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		},
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
+		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
 
@@ -803,10 +814,10 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.peeringServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
-		// Note: these public gRPC services are also exposed on the private server to
+		// Note: these external gRPC services are also exposed on the internal server to
 		// enable RPC forwarding.
-		s.publicACLServer.Register(srv)
-		s.publicConnectCAServer.Register(srv)
+		s.externalACLServer.Register(srv)
+		s.externalConnectCAServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)

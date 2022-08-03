@@ -1,0 +1,41 @@
+<div
+  class={{class-map
+    'consul-peer-form-initiate'
+  }}
+  ...attributes
+>
+  <DataWriter
+    @sink={{uri
+      '/${partition}/${nspace}/${dc}/peer'
+      (hash
+        partition=(or @item.Partition '')
+        nspace=(or @item.Namespace '')
+        dc=(or @item.Datacenter '')
+      )
+    }}
+    @type={{'peer'}}
+    @label={{'peer'}}
+    @onchange={{fn (optional @onsubmit) @item}}
+    as |writer|>
+      <BlockSlot @name="content">
+{{#let
+  (unique-id)
+as |id|}}
+        <form
+          id={{id}}
+          {{on 'submit' (fn writer.persist @item)}}
+        >
+          {{yield (hash
+            Fieldsets=(component "consul/peer/form/initiate/fieldsets"
+             item=@item
+            )
+            Actions=(component "consul/peer/form/initiate/actions"
+             item=@item
+             id=id
+            )
+          )}}
+        </form>
+{{/let}}
+      </BlockSlot>
+  </DataWriter>
+</div>

@@ -53,7 +53,7 @@ ${typeof location.search.ns !== 'undefined' ? `
 ${typeof location.search.partition !== 'undefined' ? `
             "Partition": "${fake.helpers.randomize([env('CONSUL_PARTITION_EXPORTER', location.search.partition), location.search.partition])}",
 ` : ``}
-            ${location.search['with-peers'] ? peerNameString : ''}
+            ${env('CONSUL_PEERINGS_ENABLE') ? peerNameString : ''}
             "Tags": [
                 ${
                     range(

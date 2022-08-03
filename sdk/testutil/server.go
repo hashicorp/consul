@@ -105,6 +105,7 @@ type TestServerConfig struct {
 	Connect             map[string]interface{} `json:"connect,omitempty"`
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
+	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -137,6 +138,10 @@ type TestTokens struct {
 	// Note: this field is marshaled as agent_master for compatibility with
 	// versions of Consul prior to 1.11.
 	AgentRecovery string `json:"agent_master,omitempty"`
+}
+
+type TestPeeringConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -192,8 +197,9 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 		ReturnPorts: func() {
 			freeport.Return(ports)
 		},
-		Stdout: logBuffer,
-		Stderr: logBuffer,
+		Stdout:  logBuffer,
+		Stderr:  logBuffer,
+		Peering: &TestPeeringConfig{Enabled: true},
 	}
 }
 

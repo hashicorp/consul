@@ -7,6 +7,19 @@ export default class PeerService extends RepositoryService {
     return 'peer';
   }
 
+  @dataSource('/:partition/:ns/:dc/peering/token-for/:name')
+  async fetchToken({dc, ns, partition, name}, configuration, request) {
+    return (await request`
+      POST /v1/peering/token
+
+      ${{
+        PeerName: name,
+        Datacenter: dc,
+        Partition: partition || undefined,
+      }}
+    `)((headers, body, cache) => body)
+  }
+
   @dataSource('/:partition/:ns/:dc/peers')
   async fetchAll({ dc, ns, partition }, { uri }, request) {
     return (await request`
@@ -71,10 +84,41 @@ export default class PeerService extends RepositoryService {
     });
   }
 
+  async persist(item, request) {
+    // mark it as ESTABLISHING ourselves as the request is successful
+    // and we don't have blocking queries here to get immediate updates
+    return (await request`
+      POST /v1/peering/establish
+
+      ${{
+        PeerName: item.Name,
+        PeeringToken: item.PeeringToken,
+        Datacenter: item.Datacenter,
+        Partition: item.Partition || undefined,
+      }}
+    `)((headers, body, cache) => {
+        const partition = item.Partition;
+        const ns = item.Namespace;
+        const dc = item.Datacenter;
+        return {
+          meta: {
+            version: 2,
+          },
+          body: cache(
+            {
+              ...item,
+              State: 'ESTABLISHING'
+            },
+            uri => uri`peer:///${partition}/${ns}/${dc}/peer/${item.Name}`
+          )
+        };
+    });
+  }
+
   async remove(item, request) {
     // soft delete
     // we just return the item we want to delete
-    // but mark it as DELETING ourselves as the request is successfull
+    // but mark it as DELETING ourselves as the request is successful
     // and we don't have blocking queries here to get immediate updates
     return (await request`
       DELETE /v1/peering/${item.Name}

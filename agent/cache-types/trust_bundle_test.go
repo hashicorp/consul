@@ -33,8 +33,10 @@ func TestTrustBundle(t *testing.T) {
 		Return(resp, nil)
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{}, &pbpeering.TrustBundleReadRequest{
-		Name: "foo",
+	result, err := typ.Fetch(cache.FetchOptions{}, &TrustBundleReadRequest{
+		Request: &pbpeering.TrustBundleReadRequest{
+			Name: "foo",
+		},
 	})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
@@ -82,7 +84,9 @@ func TestTrustBundle_MultipleUpdates(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	err := c.Notify(ctx, TrustBundleReadName, &pbpeering.TrustBundleReadRequest{Name: "foo"}, "updates", ch)
+	err := c.Notify(ctx, TrustBundleReadName, &TrustBundleReadRequest{
+		Request: &pbpeering.TrustBundleReadRequest{Name: "foo"},
+	}, "updates", ch)
 	require.NoError(t, err)
 
 	i := uint64(1)

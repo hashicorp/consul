@@ -85,6 +85,7 @@ type PolicyRules struct {
 	Keyring               string               `hcl:"keyring"`
 	Operator              string               `hcl:"operator"`
 	Mesh                  string               `hcl:"mesh"`
+	Peering               string               `hcl:"peering"`
 }
 
 // Policy is used to represent the policy specified by an ACL configuration.
@@ -289,6 +290,10 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		return fmt.Errorf("Invalid mesh policy: %#v", pr.Mesh)
 	}
 
+	// Validate the peering policy - this one is allowed to be empty
+	if pr.Peering != "" && !isPolicyValid(pr.Peering, false) {
+		return fmt.Errorf("Invalid peering policy: %#v", pr.Peering)
+	}
 	return nil
 }
 
@@ -309,6 +314,7 @@ func parseCurrent(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Poli
 	return p, nil
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func parseLegacy(rules string, conf *Config) (*Policy, error) {
 	p := &Policy{}
 
@@ -436,6 +442,7 @@ func NewPolicyFromSource(rules string, syntax SyntaxVersion, conf *Config, meta 
 	var policy *Policy
 	var err error
 	switch syntax {
+	// TODO(ACL-Legacy-Compat): remove and remove as argument from function
 	case SyntaxLegacy:
 		policy, err = parseLegacy(rules, conf)
 	case SyntaxCurrent:

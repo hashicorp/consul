@@ -19,6 +19,14 @@ func (u *UsageMetricsReporter) emitNodeUsage(nodeUsage state.NodeUsage) {
 	)
 }
 
+func (u *UsageMetricsReporter) emitPeeringUsage(peeringUsage state.PeeringUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "state", "peerings"},
+		float32(peeringUsage.Peerings),
+		u.metricLabels,
+	)
+}
+
 func (u *UsageMetricsReporter) emitMemberUsage(members []serf.Member) {
 	var (
 		servers int

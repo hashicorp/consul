@@ -1,6 +1,7 @@
 package peering
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
@@ -31,6 +32,7 @@ not valid
 `
 
 var validAddress = "1.2.3.4:80"
+var validHostnameAddress = "foo.bar.baz:80"
 
 var validServerName = "server.consul"
 
@@ -53,6 +55,7 @@ func TestPeering(peerName string, state pbpeering.PeeringState, meta map[string]
 		State:               state,
 		PeerID:              validPeerID,
 		Meta:                meta,
+		Partition:           acl.DefaultPartitionName,
 	}
 }
 

@@ -757,10 +757,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_MixedNoTLS,
 		},
 		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
-		},
-		{
 			name:   "transparent-proxy-http-upstream",
 			create: proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream,
 		},
@@ -775,12 +771,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name:   "transparent-proxy-terminating-gateway",
 			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
-		},
-		{
-			name: "transparent-proxy-terminating-gateway-destinations-only",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
-			},
 		},
 	}
 

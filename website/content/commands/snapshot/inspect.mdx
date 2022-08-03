@@ -40,6 +40,23 @@ The following fields are displayed when inspecting a snapshot:
 
 Usage: `consul snapshot inspect [options] FILE`
 
+#### Command Options
+
+- `-kvdetails` - Provides information about space usage for KV data stored in Consul.
+
+- `-kvdepth` - Adjusts the grouping levels of keys.
+  Can only be used with `-kvdetails`.
+  Default is `2`.
+
+- `-kvfilter` - Only keys that match the specified key prefix
+  are included in the response.
+  Can only be used with `-kvdetails`.
+
+- `-format` - Specifies an output format for the response.
+  Specify `pretty` (default) to format the response in a human-readable form
+  as shown in the examples below,
+  or specify `JSON` to format the response as JSON.
+
 ## Examples
 
 To inspect a snapshot from the file "backup.snap":
@@ -137,10 +154,3 @@ $ consul snapshot inspect /opt/consul/raft/snapshots/9-4600669-1618935304715/sta
  ----                       ----         ----
  Total                                   4.3GB
 ```
-
-#### Command Options
-
-- `-kvdetails` - Optional, provides a space usage breakdown for any KV data stored in Consul.
-- `-kvdepth` - Can only be used with `-kvdetails`. Used to adjust the grouping level of keys. Defaults to 2.
-- `-kvfilter` - Can only be used with `-kvdetails`. Used to specify a key prefix that excludes keys that don't match.
-- `-format` - Optional, allows from changing the output to JSON. Parameters accepted are "pretty" and "JSON".

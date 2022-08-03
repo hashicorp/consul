@@ -1,3 +1,41 @@
+## 1.12.3 (July 13, 2022)
+
+IMPROVEMENTS:
+
+* Support Vault namespaces in Connect CA by adding RootPKINamespace and
+IntermediatePKINamespace fields to the config. [[GH-12904](https://github.com/hashicorp/consul/issues/12904)]
+* connect: Update Envoy support matrix to latest patch releases (1.22.2, 1.21.3, 1.20.4, 1.19.5) [[GH-13431](https://github.com/hashicorp/consul/issues/13431)]
+* dns: Added support for specifying admin partition in node lookups. [[GH-13421](https://github.com/hashicorp/consul/issues/13421)]
+* telemetry: Added a `consul.server.isLeader` metric to track if a server is a leader or not. [[GH-13304](https://github.com/hashicorp/consul/issues/13304)]
+
+BUG FIXES:
+
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13256](https://github.com/hashicorp/consul/issues/13256)]
+* deps: Update go-grpc/grpc, resolving connection memory leak [[GH-13051](https://github.com/hashicorp/consul/issues/13051)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+* ui: Fix incorrect text on certain page empty states [[GH-13409](https://github.com/hashicorp/consul/issues/13409)]
+* xds: Fix a bug that resulted in Lambda services not using the payload-passthrough option as expected. [[GH-13607](https://github.com/hashicorp/consul/issues/13607)]
+* xds: Fix a bug where terminating gateway upstream clusters weren't configured properly when the service protocol was `http2`. [[GH-13699](https://github.com/hashicorp/consul/issues/13699)]
+
+## 1.11.7 (July 13, 2022)
+
+IMPROVEMENTS:
+
+* connect: Update supported Envoy versions to 1.20.4, 1.19.5, 1.18.6, 1.17.4 [[GH-13434](https://github.com/hashicorp/consul/issues/13434)]
+
+BUG FIXES:
+
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13265](https://github.com/hashicorp/consul/issues/13265)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+* xds: Fix a bug where terminating gateway upstream clusters weren't configured properly when the service protocol was `http2`. [[GH-13699](https://github.com/hashicorp/consul/issues/13699)]
+
+## 1.10.12 (July 13, 2022)
+
+BUG FIXES:
+
+* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13264](https://github.com/hashicorp/consul/issues/13264)]
+* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
+
 ## 1.13.0-alpha2 (June 21, 2022)
 
 IMPROVEMENTS:

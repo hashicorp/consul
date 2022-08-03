@@ -1,0 +1,3 @@
+```release-note:feature
+streaming: Added topic that can be used to consume updates about the list of services in a datacenter
+```

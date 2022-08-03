@@ -27,6 +27,7 @@ func legacyPolicy(policy *Policy) *Policy {
 			Keyring:               policy.Keyring,
 			Operator:              policy.Operator,
 			Mesh:                  policy.Mesh,
+			Peering:               policy.Peering,
 		},
 	}
 }
@@ -115,6 +116,14 @@ func checkAllowMeshRead(t *testing.T, authz Authorizer, prefix string, entCtx *A
 
 func checkAllowMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.MeshWrite(entCtx))
+}
+
+func checkAllowPeeringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.PeeringRead(entCtx))
+}
+
+func checkAllowPeeringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.PeeringWrite(entCtx))
 }
 
 func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -241,6 +250,14 @@ func checkDenyMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx *A
 	require.Equal(t, Deny, authz.MeshWrite(entCtx))
 }
 
+func checkDenyPeeringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.PeeringRead(entCtx))
+}
+
+func checkDenyPeeringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.PeeringWrite(entCtx))
+}
+
 func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.OperatorRead(entCtx))
 }
@@ -365,6 +382,14 @@ func checkDefaultMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx
 	require.Equal(t, Default, authz.MeshWrite(entCtx))
 }
 
+func checkDefaultPeeringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.PeeringRead(entCtx))
+}
+
+func checkDefaultPeeringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.PeeringWrite(entCtx))
+}
+
 func checkDefaultOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.OperatorRead(entCtx))
 }
@@ -446,6 +471,8 @@ func TestACL(t *testing.T) {
 				{name: "DenyNodeWrite", check: checkDenyNodeWrite},
 				{name: "DenyMeshRead", check: checkDenyMeshRead},
 				{name: "DenyMeshWrite", check: checkDenyMeshWrite},
+				{name: "DenyPeeringRead", check: checkDenyPeeringRead},
+				{name: "DenyPeeringWrite", check: checkDenyPeeringWrite},
 				{name: "DenyOperatorRead", check: checkDenyOperatorRead},
 				{name: "DenyOperatorWrite", check: checkDenyOperatorWrite},
 				{name: "DenyPreparedQueryRead", check: checkDenyPreparedQueryRead},
@@ -480,6 +507,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
 				{name: "AllowMeshRead", check: checkAllowMeshRead},
 				{name: "AllowMeshWrite", check: checkAllowMeshWrite},
+				{name: "AllowPeeringRead", check: checkAllowPeeringRead},
+				{name: "AllowPeeringWrite", check: checkAllowPeeringWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
@@ -514,6 +543,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
 				{name: "AllowMeshRead", check: checkAllowMeshRead},
 				{name: "AllowMeshWrite", check: checkAllowMeshWrite},
+				{name: "AllowPeeringRead", check: checkAllowPeeringRead},
+				{name: "AllowPeeringWrite", check: checkAllowPeeringWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
@@ -1215,6 +1246,319 @@ func TestACL(t *testing.T) {
 			checks: []aclCheck{
 				{name: "ReadAllowed", check: checkAllowMeshRead},
 				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultAllowPolicyDeny",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultAllowPolicyRead",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultAllowPolicyWrite",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultAllowPolicyNone",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultDenyPolicyDeny",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultDenyPolicyRead",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultDenyPolicyWrite",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Peering: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			name:          "PeeringDefaultDenyPolicyNone",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:deny, p:deny = deny
+			name:          "PeeringOperatorDenyPolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Peering:  PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:read, p:deny = deny
+			name:          "PeeringOperatorReadPolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Peering:  PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:write, p:deny = deny
+			name:          "PeeringOperatorWritePolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Peering:  PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:deny, p:read = read
+			name:          "PeeringOperatorDenyPolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Peering:  PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:read, p:read = read
+			name:          "PeeringOperatorReadPolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Peering:  PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:write, p:read = read
+			name:          "PeeringOperatorWritePolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Peering:  PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:deny, p:write = write
+			name:          "PeeringOperatorDenyPolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Peering:  PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			// o:read, p:write = write
+			name:          "PeeringOperatorReadPolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Peering:  PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			// o:write, p:write = write
+			name:          "PeeringOperatorWritePolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Peering:  PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
+			},
+		},
+		{
+			// o:deny, p:<none> = deny
+			name:          "PeeringOperatorDenyPolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:read, p:<none> = read
+			name:          "PeeringOperatorReadPolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteDenied", check: checkDenyPeeringWrite},
+			},
+		},
+		{
+			// o:write, p:<none> = write
+			name:          "PeeringOperatorWritePolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowPeeringRead},
+				{name: "WriteAllowed", check: checkAllowPeeringWrite},
 			},
 		},
 		{

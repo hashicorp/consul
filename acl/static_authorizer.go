@@ -170,6 +170,20 @@ func (s *staticAuthorizer) MeshWrite(*AuthorizerContext) EnforcementDecision {
 	return Deny
 }
 
+func (s *staticAuthorizer) PeeringRead(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) PeeringWrite(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow

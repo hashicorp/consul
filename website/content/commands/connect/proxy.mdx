@@ -19,13 +19,7 @@ can also be used in development to connect to Connect-enabled services.
 
 Usage: `consul connect proxy [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Proxy Options
+#### Command Options
 
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
@@ -75,6 +69,12 @@ Usage: `consul connect proxy [options]`
   to use [`consul services register`](/commands/services/register) to
   register a fully configured proxy instance rather than specify config and
   registration via this command.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

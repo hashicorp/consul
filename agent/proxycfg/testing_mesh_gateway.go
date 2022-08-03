@@ -548,10 +548,19 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 			},
 			&structs.ServiceResolverConfigEntry{
 				Kind: structs.ServiceResolver,
-				Name: "api-dc2",
+				Name: "api",
+				Subsets: map[string]structs.ServiceResolverSubset{
+					"v2": {
+						Filter: "Service.Meta.version == v2",
+					},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "api-v2",
 				Redirect: &structs.ServiceResolverRedirect{
-					Service:    "api",
-					Datacenter: "dc2",
+					Service:       "api",
+					ServiceSubset: "v2",
 				},
 			},
 			&structs.ServiceSplitterConfigEntry{
@@ -576,7 +585,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
 							PathPrefix: "/api",
 						}),
-						Destination: toService("api-dc2"),
+						Destination: toService("api-v2"),
 					},
 				},
 			},
@@ -602,13 +611,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		extraUpdates = append(extraUpdates,
 			UpdateEvent{
 				CorrelationID: datacentersWatchID,
-				Result:        &[]string{"dc1", "dc2"},
-			},
-			UpdateEvent{
-				CorrelationID: "mesh-gateway:dc2",
-				Result: &structs.IndexedNodesWithGateways{
-					Nodes: TestGatewayNodesDC2(t),
-				},
+				Result:        &[]string{"dc1"},
 			},
 			UpdateEvent{
 				CorrelationID: exportedServiceListWatchID,

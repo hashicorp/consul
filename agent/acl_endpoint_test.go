@@ -2045,6 +2045,14 @@ func TestACL_Authorize(t *testing.T) {
 				Access:   "write",
 			},
 			{
+				Resource: "peering",
+				Access:   "read",
+			},
+			{
+				Resource: "peering",
+				Access:   "write",
+			},
+			{
 				Resource: "query",
 				Segment:  "foo",
 				Access:   "read",
@@ -2187,6 +2195,14 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
+			Resource: "peering",
+			Access:   "read",
+		},
+		{
+			Resource: "peering",
+			Access:   "write",
+		},
+		{
 			Resource: "query",
 			Segment:  "foo",
 			Access:   "read",
@@ -2238,6 +2254,8 @@ func TestACL_Authorize(t *testing.T) {
 		true,  // operator:write
 		true,  // mesh:read
 		true,  // mesh:write
+		true,  // peering:read
+		true,  // peering:write
 		false, // query:read
 		false, // query:write
 		true,  // service:read

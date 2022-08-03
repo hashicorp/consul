@@ -2,9 +2,10 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/acl"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
 
 	"github.com/stretchr/testify/require"
 
@@ -245,7 +246,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	}
 }
 
-func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
+func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -262,15 +263,9 @@ func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 		wantErr           string
 	}{
 		{
-			name:      "port pre-specified",
-			serviceID: "web1",
-			wantPort:  2222,
-		},
-		{
 			name:      "use auto ports",
 			serviceID: "web1",
-			port:      1111,
-			wantPort:  1111,
+			wantPort:  2222,
 		},
 		{
 			name: "re-registering same sidecar with no port should pick same one",
@@ -342,7 +337,8 @@ func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			gotPort, err := a.sidecarPortFromServiceIDLocked(tt.port, structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
+			gotPort, err := a.sidecarPortFromServiceID(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
+
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
