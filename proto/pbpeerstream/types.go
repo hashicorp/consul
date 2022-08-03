@@ -1,10 +1,16 @@
 package pbpeerstream
 
 const (
-	TypeURLService = "type.googleapis.com/consul.api.Service"
-	TypeURLRoots   = "type.googleapis.com/consul.api.CARoots"
+	apiTypePrefix = "type.googleapis.com/"
+
+	TypeURLExportedService    = apiTypePrefix + "hashicorp.consul.internal.peerstream.ExportedService"
+	TypeURLPeeringTrustBundle = apiTypePrefix + "hashicorp.consul.internal.peering.PeeringTrustBundle"
 )
 
 func KnownTypeURL(s string) bool {
-	return s == TypeURLService || s == TypeURLRoots
+	switch s {
+	case TypeURLExportedService, TypeURLPeeringTrustBundle:
+		return true
+	}
+	return false
 }

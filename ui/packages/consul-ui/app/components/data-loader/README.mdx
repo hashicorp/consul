@@ -48,12 +48,13 @@ as |loader|>
 | --- | --- | --- | --- |
 | `src` | `String` | | The source to subscribe to updates to, this should map to a string based URI |
 
-## Exports
+## Exported API
 
-| Name    |  Description |
-| ---     | --- |
-| `data`  | The loaded dataset once any data has been loaded successfully |
-| `error` | The error thrown if an error is encountered whilst loading data |
+| Name | Type | Description |
+| --- | --- | --- |
+| `data`  | `object` | The loaded dataset once any data has been loaded successfully |
+| `error` | `Error` |The error thrown if an error is encountered whilst loading data |
+| `invalidate` | `function` | Invalidate the data represented by the DataLoader, therefore forcing a re-request of data for the DataLoader |
 
 ## Slots
 

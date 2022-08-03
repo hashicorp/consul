@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -66,6 +66,13 @@ type NodeUsage struct {
 	EnterpriseNodeUsage
 }
 
+// PeeringUsage contains all of the usage data related to peerings.
+type PeeringUsage struct {
+	// Number of peerings.
+	Peerings int
+	EnterprisePeeringUsage
+}
+
 type KVUsage struct {
 	KVCount int
 	EnterpriseKVUsage
@@ -99,11 +106,24 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 
 		switch change.Table {
 		case tableNodes:
+			node := changeObject(change).(*structs.Node)
+			if node.PeerName != "" {
+				// TODO(peering) track peered nodes separately. For now not tracking to avoid double billing.
+				continue
+			}
 			usageDeltas[change.Table] += delta
 			addEnterpriseNodeUsage(usageDeltas, change)
 
+		case tablePeering:
+			usageDeltas[change.Table] += delta
+			addEnterprisePeeringUsage(usageDeltas, change)
+
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
+			if svc.PeerName != "" {
+				// TODO(peering) track peered services separately. For now not tracking to avoid double billing.
+				continue
+			}
 			usageDeltas[change.Table] += delta
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
 
@@ -319,6 +339,28 @@ func (s *Store) NodeUsage() (uint64, NodeUsage, error) {
 	}
 
 	return nodes.Index, results, nil
+}
+
+// PeeringUsage returns the latest seen Raft index, a compiled set of peering usage
+// data, and any errors.
+func (s *Store) PeeringUsage() (uint64, PeeringUsage, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	peerings, err := firstUsageEntry(tx, tablePeering)
+	if err != nil {
+		return 0, PeeringUsage{}, fmt.Errorf("failed peerings lookup: %s", err)
+	}
+
+	usage := PeeringUsage{
+		Peerings: peerings.Count,
+	}
+	results, err := compileEnterprisePeeringUsage(tx, usage)
+	if err != nil {
+		return 0, PeeringUsage{}, fmt.Errorf("failed peerings lookup: %s", err)
+	}
+
+	return peerings.Index, results, nil
 }
 
 // ServiceUsage returns the latest seen Raft index, a compiled set of service

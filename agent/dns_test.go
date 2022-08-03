@@ -1766,8 +1766,9 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 	t.Parallel()
 
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	server, ok := a.delegate.(*consul.Server)
@@ -6075,7 +6076,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 				Name: "my-query",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Failover: structs.QueryDatacenterOptions{
+					Failover: structs.QueryFailoverOptions{
 						Datacenters: []string{"dc2"},
 					},
 				},

@@ -3,7 +3,6 @@ package peering
 import (
 	"fmt"
 	"net"
-	"net/netip"
 	"strconv"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -25,7 +24,7 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		return errPeeringTokenEmptyServerAddresses
 	}
 	for _, addr := range tok.ServerAddresses {
-		host, portRaw, err := net.SplitHostPort(addr)
+		_, portRaw, err := net.SplitHostPort(addr)
 		if err != nil {
 			return &errPeeringInvalidServerAddress{addr}
 		}
@@ -35,9 +34,6 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 			return &errPeeringInvalidServerAddress{addr}
 		}
 		if port < 1 || port > 65535 {
-			return &errPeeringInvalidServerAddress{addr}
-		}
-		if _, err := netip.ParseAddr(host); err != nil {
 			return &errPeeringInvalidServerAddress{addr}
 		}
 	}

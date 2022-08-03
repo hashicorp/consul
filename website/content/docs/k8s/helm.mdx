@@ -62,6 +62,7 @@ Use these links to navigate to a particular top-level stanza.
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `peering` ((#v-global-peering)) - [Experimental] Configures the Cluster Peering feature. Requires Consul v1.13+ and Consul-K8s v0.45+.
+
     - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart enables Cluster Peering for the cluster. This option enables peering controllers and
       allows use of the PeeringAcceptor and PeeringDialer CRDs for establishing service mesh peerings.
 
@@ -486,7 +487,8 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.  This should only be set for datacenters
+      that are not the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
@@ -663,7 +665,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `resources` ((#v-server-resources)) (`map`) - The resource requests (CPU, memory, etc.)
     for each of the server agents. This should be a YAML map corresponding to a Kubernetes
-    ResourceRequirements (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core)
+    ResourceRequirements (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core)
     object. NOTE: The use of a YAML string is deprecated.
 
     Example:
@@ -1475,6 +1477,15 @@ Use these links to navigate to a particular top-level stanza.
       anotherLabelKey: another-label-value
     ```
 
+  - `annotations` ((#v-synccatalog-annotations)) (`string: null`) - This value defines additional annotations for
+    the catalog sync pods. This should be formatted as a multi-line string.
+
+    ```yaml
+    annotations: |
+      "sample/annotation1": "foo"
+      "sample/annotation2": "bar"
+    ```
+
 ### connectInject ((#h-connectinject))
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
@@ -1505,6 +1516,19 @@ Use these links to navigate to a particular top-level stanza.
       to talk to Envoy.
       This value is also overridable via the "consul.hashicorp.com/transparent-proxy-overwrite-probes" annotation.
       Note: This value has no effect if transparent proxy is disabled on the pod.
+
+  - `disruptionBudget` ((#v-connectinject-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
+    for the service mesh sidecar injector.
+
+    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the 
+      service mesh sidecar injector. If this is enabled, it will only register the budget so long as
+      the service mesh is enabled.
+
+    - `maxUnavailable` ((#v-connectinject-disruptionbudget-maxunavailable)) (`integer: null`) - The maximum number of unavailable pods. By default, this will be
+      automatically computed based on the `connectInject.replicas` value to be `(n/2)-1`.
+      If you need to set this to `0`, you will need to add a
+      --set 'connectInject.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
+      command because of a limitation in the Helm templating language.
 
   - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.
@@ -1548,6 +1572,15 @@ Use these links to navigate to a particular top-level stanza.
     e.g "--log-level debug --disable-hot-restart"
 
   - `priorityClassName` ((#v-connectinject-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+  - `annotations` ((#v-connectinject-annotations)) (`string: null`) - This value defines additional annotations for
+    connect inject pods. This should be formatted as a multi-line string.
+
+    ```yaml
+    annotations: |
+      "sample/annotation1": "foo"
+      "sample/annotation2": "bar"
+    ```
 
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: null`) - The Docker image for Consul to use when performing Connect injection.
     Defaults to global.image.

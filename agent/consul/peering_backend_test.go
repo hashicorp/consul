@@ -15,43 +15,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestPeeringBackend_DoesNotForwardToDifferentDC(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, s1 := testServerDC(t, "dc1")
-	_, s2 := testServerDC(t, "dc2")
-
-	joinWAN(t, s2, s1)
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
-	// make a grpc client to dial s2 directly
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	t.Cleanup(cancel)
-
-	conn, err := gogrpc.DialContext(ctx, s2.config.RPCAddr.String(),
-		gogrpc.WithContextDialer(newServerDialer(s2.config.RPCAddr.String())),
-		gogrpc.WithInsecure(),
-		gogrpc.WithBlock())
-	require.NoError(t, err)
-	t.Cleanup(func() { conn.Close() })
-
-	peeringClient := pbpeering.NewPeeringServiceClient(conn)
-
-	// GenerateToken request should fail against dc1, because we are dialing dc2. The GenerateToken request should never be forwarded across datacenters.
-	req := pbpeering.GenerateTokenRequest{
-		PeerName:   "peer1-usw1",
-		Datacenter: "dc1",
-	}
-	_, err = peeringClient.GenerateToken(ctx, &req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "requests to generate peering tokens cannot be forwarded to remote datacenters")
-}
-
 func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 	t.Parallel()
 
@@ -86,8 +49,7 @@ func TestPeeringBackend_ForwardToLeader(t *testing.T) {
 	testutil.RunStep(t, "forward a write", func(t *testing.T) {
 		// Do the grpc Write call to server2
 		req := pbpeering.GenerateTokenRequest{
-			Datacenter: "dc1",
-			PeerName:   "foo",
+			PeerName: "foo",
 		}
 		_, err := peeringClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)

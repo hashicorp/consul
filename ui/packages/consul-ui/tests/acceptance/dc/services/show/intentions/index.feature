@@ -21,13 +21,16 @@ Feature: dc / services / show / intentions / index: Intentions per service
       DestinationNS: default
       SourcePartition: default
       DestinationPartition: default
+      SourcePeer: ""
 
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
       Action: deny
       Meta: ~
+      SourcePeer: ""
     - ID: 0755b72bd-f5ab-4c92-90cc-bed0e7d8e9f2
       Action: deny
       Meta: ~
+      SourcePeer: ""
     ---
     When I visit the service page for yaml
     ---
@@ -41,7 +44,7 @@ Feature: dc / services / show / intentions / index: Intentions per service
   Scenario: I can see intentions
     And I see 3 intention models on the intentionList component
     And I click intention on the intentionList.intentions component
-    Then the url should be /dc1/services/service-0/intentions/peer:billing:default:name:default:default:destination
+    Then the url should be /dc1/services/service-0/intentions/default:default:name:default:default:destination
   Scenario: I can delete intentions
     And I click actions on the intentionList.intentions component
     And I click delete on the intentionList.intentions component

@@ -22,7 +22,7 @@ Feature: page-navigation
   Where:
     ---------------------------------------------------------------------------------------------------
     | Link       | URL               | Endpoint                                                       |
-    | nodes      | /dc1/nodes       | /v1/internal/ui/nodes?dc=dc1&with-peers=true&ns=@namespace      |
+    | nodes      | /dc1/nodes       | /v1/internal/ui/nodes?dc=dc1&ns=@namespace      |
   # FIXME
     # | kvs        | /dc1/kv          | /v1/kv/?keys&dc=dc1&separator=%2F&ns=@namespace               |
     | tokens       | /dc1/acls/tokens | /v1/acl/tokens?dc=dc1&ns=@namespace                           |

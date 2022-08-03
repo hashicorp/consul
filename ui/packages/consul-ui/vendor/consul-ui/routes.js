@@ -34,24 +34,6 @@
           },
         },
       },
-      peers: {
-        _options: { path: '/peers' },
-        index: {
-          _options: {
-            path: '/',
-          },
-        },
-        edit: {
-          _options: {
-            path: '/:name'
-          },
-          addresses: {
-            _options: {
-              path: '/addresses',
-            },
-          },
-        },
-      },
       services: {
         _options: { path: '/services' },
         index: {
@@ -233,7 +215,7 @@
               status: 'status',
               searchproperty: {
                 as: 'searchproperty',
-                empty: [['Node', 'Address', 'Meta']],
+                empty: [['Node', 'Address', 'Meta', 'PeerName']],
               },
               search: {
                 as: 'filter',

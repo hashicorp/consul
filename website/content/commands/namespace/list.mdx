@@ -31,20 +31,20 @@ the request has been granted any access in the namespace (read, list or write).
 
 Usage: `consul namespace list`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-@include 'http_api_partition_options.mdx'
-
 #### Command Options
 
 - `-format=<string>` - How to output the results. The choices are: pretty or json
 
 - `-meta` - Indicates that namespace metadata such as the raft indices should be
   shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

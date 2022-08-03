@@ -1141,8 +1141,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 					Name: "foo",
 					Mode: structs.ProxyModeTransparent,
 					Destination: &structs.DestinationConfig{
-						Address: "hello.world.com",
-						Port:    443,
+						Addresses: []string{"hello.world.com"},
+						Port:      443,
 					},
 				},
 			},
@@ -1153,8 +1153,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			expect: structs.ServiceConfigResponse{
 				Mode: structs.ProxyModeTransparent,
 				Destination: structs.DestinationConfig{
-					Address: "hello.world.com",
-					Port:    443,
+					Addresses: []string{"hello.world.com"},
+					Port:      443,
 				},
 			},
 		},
@@ -1803,8 +1803,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

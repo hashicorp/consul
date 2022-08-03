@@ -1,8 +1,9 @@
 syntax = "proto3";
 
-package peerstream;
+package hashicorp.consul.internal.peerstream;
 
 import "google/protobuf/any.proto";
+import "proto/pbservice/node.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
 
@@ -17,13 +18,29 @@ service PeerStreamService {
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage);
+
+  // ExchangeSecret is a unary RPC for exchanging the one-time establishment secret
+  // for a long-lived stream secret.
+  rpc ExchangeSecret(ExchangeSecretRequest) returns (ExchangeSecretResponse);
 }
 
 message ReplicationMessage {
   oneof Payload {
-    Request request = 1;
-    Response response = 2;
-    Terminated terminated = 3;
+    Open open = 1;
+    Request request = 2;
+    Response response = 3;
+    Terminated terminated = 4;
+    Heartbeat heartbeat = 5;
+  }
+
+  // Open is the initial message send by a dialing peer to establish the peering stream.
+  message Open {
+    // An identifier for the peer making the request.
+    // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
+    string PeerID = 1;
+
+    // StreamSecretID contains the long-lived secret from stream authn/authz.
+    string StreamSecretID = 2;
   }
 
   // A Request requests to subscribe to a resource of a given type.
@@ -32,18 +49,18 @@ message ReplicationMessage {
     // This identifier is provisioned by the serving peer prior to the request from the dialing peer.
     string PeerID = 1;
 
-    // Nonce corresponding to that of the response being ACKed or NACKed.
+    // ResponseNonce corresponding to that of the response being ACKed or NACKed.
     // Initial subscription requests will have an empty nonce.
     // The nonce is generated and incremented by the exporting peer.
     // TODO
-    string Nonce = 2;
+    string ResponseNonce = 2;
 
     // The type URL for the resource being requested or ACK/NACKed.
     string ResourceURL = 3;
 
     // The error if the previous response was not applied successfully.
     // This field is empty in the first subscription request.
-    status.Status Error = 4;
+    status.Status Error = 5;
   }
 
   // A Response contains resources corresponding to a subscription request.
@@ -68,6 +85,9 @@ message ReplicationMessage {
   // Terminated is sent when a peering is deleted locally.
   // This message signals to the peer that they should clean up their local state about the peering.
   message Terminated {}
+
+  // Heartbeat is sent to verify that the connection is still active.
+  message Heartbeat {}
 }
 
 // Operation enumerates supported operations for replicated resources.
@@ -88,4 +108,24 @@ enum Operation {
 message LeaderAddress {
   // address is an ip:port best effort hint at what could be the cluster leader's address
   string address = 1;
+}
+
+// ExportedService is one of the types of data returned via peer stream replication.
+message ExportedService {
+  repeated hashicorp.consul.internal.service.CheckServiceNode Nodes = 1;
+}
+
+message ExchangeSecretRequest {
+  // PeerID is the ID of the peering, as determined by the cluster that generated the
+  // peering token.
+  string PeerID = 1;
+
+  // EstablishmentSecret is the one-time-use secret encoded in the received peering token.
+  string EstablishmentSecret = 2;
+}
+
+message ExchangeSecretResponse {
+  // StreamSecret is the long-lived secret to be used for authentication with the
+  // peering stream handler.
+  string StreamSecret = 1;
 }

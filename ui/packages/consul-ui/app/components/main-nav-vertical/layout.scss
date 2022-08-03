@@ -36,7 +36,7 @@
   display: block;
   padding: 7px 25px;
 }
-%main-nav-vertical [role='separator'] {
+%main-nav-vertical > ul > [role='separator'] {
   margin-top: 0.7rem;
   padding-bottom: 0;
 }

@@ -15,6 +15,9 @@
     'component:consul/partition/selector': {
       class: '@glimmer/component',
     },
+    'component:consul/peer/selector': {
+      class: '@glimmer/component',
+    },
   }))(
   (
     json,

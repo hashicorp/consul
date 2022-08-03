@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -44,13 +45,9 @@ type ConfigSnapshotUpstreams struct {
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedUpstreamPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
-	// watches for peer trust bundles any time the list of upstream peers changes.
-	WatchedUpstreamPeerTrustBundles map[string]context.CancelFunc
-
 	// UpstreamPeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
 	// It is used to store trust bundles for upstream TLS transport sockets.
-	UpstreamPeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
+	UpstreamPeerTrustBundles watch.Map[PeerName, *pbpeering.PeeringTrustBundle]
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -80,10 +77,16 @@ type ConfigSnapshotUpstreams struct {
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
 
+	// PeeredUpstreams is a set of all upstream targets in a local partition.
+	//
+	// This list only applies to proxies registered in 'transparent' mode.
+	PeeredUpstreams map[UpstreamID]struct{}
+
 	// PeerUpstreamEndpoints is a map of UpstreamID -> (set of IP addresses)
 	// and used to determine the backing endpoints of an upstream in another
 	// peer.
-	PeerUpstreamEndpoints             map[UpstreamID]structs.CheckServiceNodes
+	PeerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes]
+
 	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
 }
 
@@ -139,6 +142,9 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
+
+	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
+	DestinationGateways  watch.Map[UpstreamID, structs.CheckServiceNodes]
 }
 
 // isEmpty is a test helper
@@ -152,8 +158,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
-		len(c.WatchedUpstreamPeerTrustBundles) == 0 &&
-		len(c.UpstreamPeerTrustBundles) == 0 &&
+		c.UpstreamPeerTrustBundles.Len() == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
@@ -161,10 +166,19 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
+		c.DestinationGateways.Len() == 0 &&
+		c.DestinationsUpstream.Len() == 0 &&
+		len(c.PeeredUpstreams) == 0 &&
 		!c.InboundPeerTrustBundlesSet &&
 		!c.MeshConfigSet &&
-		len(c.PeerUpstreamEndpoints) == 0 &&
+		c.PeerUpstreamEndpoints.Len() == 0 &&
 		len(c.PeerUpstreamEndpointsUseHostnames) == 0
+}
+
+func (c *configSnapshotConnectProxy) IsImplicitUpstream(uid UpstreamID) bool {
+	_, intentionImplicit := c.IntentionUpstreams[uid]
+	_, peeringImplicit := c.PeeredUpstreams[uid]
+	return intentionImplicit || peeringImplicit
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -293,7 +307,7 @@ func (c *configSnapshotTerminatingGateway) ValidDestinations() []structs.Service
 
 		// Skip the service if we haven't gotten our service config yet to know
 		// the protocol.
-		if _, ok := c.ServiceConfigs[svc]; !ok || c.ServiceConfigs[svc].Destination.Address == "" {
+		if conf, ok := c.ServiceConfigs[svc]; !ok || len(conf.Destination.Addresses) == 0 {
 			continue
 		}
 
@@ -715,7 +729,6 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.ConnectProxy.WatchedUpstreams = nil
 		snap.ConnectProxy.WatchedGateways = nil
 		snap.ConnectProxy.WatchedDiscoveryChains = nil
-		snap.ConnectProxy.WatchedUpstreamPeerTrustBundles = nil
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = nil
 		snap.TerminatingGateway.WatchedIntentions = nil
@@ -730,7 +743,6 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.IngressGateway.WatchedUpstreams = nil
 		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
-		snap.IngressGateway.WatchedUpstreamPeerTrustBundles = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
@@ -803,7 +815,7 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
-	nodes := u.PeerUpstreamEndpoints[uid]
+	nodes, _ := u.PeerUpstreamEndpoints.Get(uid)
 	if len(nodes) == 0 {
 		return structs.PeeringServiceMeta{}
 	}
@@ -826,19 +838,23 @@ func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.Peeri
 	return *csn.Service.Connect.PeerMeta
 }
 
+// PeeredUpstreamIDs returns a slice of peered UpstreamIDs from explicit config entries
+// and implicit imported services.
+// Upstreams whose trust bundles have not been stored in the snapshot are ignored.
 func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
-	out := make([]UpstreamID, 0, len(u.UpstreamConfig))
-	for uid := range u.UpstreamConfig {
-		if uid.Peer == "" {
-			continue
+	out := make([]UpstreamID, 0, u.PeerUpstreamEndpoints.Len())
+	u.PeerUpstreamEndpoints.ForEachKey(func(uid UpstreamID) bool {
+		if _, ok := u.PeerUpstreamEndpoints.Get(uid); !ok {
+			// uid might exist in the map but if Set hasn't been called, skip for now.
+			return true
 		}
 
-		if _, ok := u.UpstreamPeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+		if _, ok := u.UpstreamPeerTrustBundles.Get(uid.Peer); !ok {
 			// The trust bundle for this upstream is not available yet, skip for now.
-			continue
+			return true
 		}
-
 		out = append(out, uid)
-	}
+		return true
+	})
 	return out
 }

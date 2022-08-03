@@ -6,6 +6,7 @@ on:
     branches:
       # Push events on the main branch
       - main
+      - release/**
 
 env:
   PKG_NAME: consul
@@ -254,8 +255,8 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
-  build-docker-redhat:
-    name: Docker Build UBI Image for RedHat
+  build-docker-ubi-redhat:
+    name: Docker Build UBI Image for RedHat Registry
     needs:
       - get-product-version
       - build
@@ -272,6 +273,39 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: scan.connect.redhat.com/ospid-60f9fdbec3a80eac643abedf/${{env.repo}}:${{env.version}}-ubi
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+
+  build-docker-ubi-dockerhub:
+    name: Docker Build UBI Image for DockerHub
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
+      # This naming convention will be used ONLY for per-commit dev images
+      - name: Set docker dev tag
+        run: |
+          version="${{ env.version }}"
+          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+
+      - uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: ubi
+          arch: amd64
+          tags: |
+            docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}-ubi
+          dev_tags: |
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   verify-linux:

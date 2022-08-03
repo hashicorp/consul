@@ -66,3 +66,13 @@ func (msg *ConfigEntryUpdate) MarshalBinary() ([]byte, error) {
 func (msg *ConfigEntryUpdate) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ServiceListUpdate) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ServiceListUpdate) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

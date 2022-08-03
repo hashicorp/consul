@@ -49,10 +49,6 @@ Usage: `consul keyring [options]`
 Only one actionable argument may be specified per run, including `-list`,
 `-install`, `-remove`, and `-use`.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
 #### Command Options
 
 - `-list` - List all keys currently in use within the cluster.
@@ -75,6 +71,10 @@ Only one actionable argument may be specified per run, including `-list`,
 - `-local-only` - Setting this to true will force a keyring list query to only hit
   local servers (no WAN traffic). Setting `local-only` is only allowed for list
   queries.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Output
 

@@ -1163,7 +1163,7 @@ func TestStructs_NodeService_ValidateConnectProxyWithAgentAutoAssign(t *testing.
 		ns.Port = 0
 
 		err := ns.ValidateForAgent()
-		assert.True(t, err == nil)
+		assert.NoError(t, err)
 	})
 }
 

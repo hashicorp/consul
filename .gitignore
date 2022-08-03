@@ -14,6 +14,7 @@ changelog.tmp
 exit-code
 Thumbs.db
 .idea
+.vscode
 
 # MacOS
 .DS_Store

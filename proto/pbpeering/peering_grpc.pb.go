@@ -45,7 +45,7 @@ func NewPeeringServiceClient(cc grpc.ClientConnInterface) PeeringServiceClient {
 
 func (c *peeringServiceClient) GenerateToken(ctx context.Context, in *GenerateTokenRequest, opts ...grpc.CallOption) (*GenerateTokenResponse, error) {
 	out := new(GenerateTokenResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/GenerateToken", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/GenerateToken", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (c *peeringServiceClient) GenerateToken(ctx context.Context, in *GenerateTo
 
 func (c *peeringServiceClient) Establish(ctx context.Context, in *EstablishRequest, opts ...grpc.CallOption) (*EstablishResponse, error) {
 	out := new(EstablishResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/Establish", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/Establish", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *peeringServiceClient) Establish(ctx context.Context, in *EstablishReque
 
 func (c *peeringServiceClient) PeeringRead(ctx context.Context, in *PeeringReadRequest, opts ...grpc.CallOption) (*PeeringReadResponse, error) {
 	out := new(PeeringReadResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/PeeringRead", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/PeeringRead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *peeringServiceClient) PeeringRead(ctx context.Context, in *PeeringReadR
 
 func (c *peeringServiceClient) PeeringList(ctx context.Context, in *PeeringListRequest, opts ...grpc.CallOption) (*PeeringListResponse, error) {
 	out := new(PeeringListResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/PeeringList", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/PeeringList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *peeringServiceClient) PeeringList(ctx context.Context, in *PeeringListR
 
 func (c *peeringServiceClient) PeeringDelete(ctx context.Context, in *PeeringDeleteRequest, opts ...grpc.CallOption) (*PeeringDeleteResponse, error) {
 	out := new(PeeringDeleteResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/PeeringDelete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/PeeringDelete", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *peeringServiceClient) PeeringDelete(ctx context.Context, in *PeeringDel
 
 func (c *peeringServiceClient) PeeringWrite(ctx context.Context, in *PeeringWriteRequest, opts ...grpc.CallOption) (*PeeringWriteResponse, error) {
 	out := new(PeeringWriteResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/PeeringWrite", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/PeeringWrite", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (c *peeringServiceClient) PeeringWrite(ctx context.Context, in *PeeringWrit
 
 func (c *peeringServiceClient) TrustBundleListByService(ctx context.Context, in *TrustBundleListByServiceRequest, opts ...grpc.CallOption) (*TrustBundleListByServiceResponse, error) {
 	out := new(TrustBundleListByServiceResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/TrustBundleListByService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/TrustBundleListByService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (c *peeringServiceClient) TrustBundleListByService(ctx context.Context, in 
 
 func (c *peeringServiceClient) TrustBundleRead(ctx context.Context, in *TrustBundleReadRequest, opts ...grpc.CallOption) (*TrustBundleReadResponse, error) {
 	out := new(TrustBundleReadResponse)
-	err := c.cc.Invoke(ctx, "/peering.PeeringService/TrustBundleRead", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peering.PeeringService/TrustBundleRead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func _PeeringService_GenerateToken_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/GenerateToken",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/GenerateToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).GenerateToken(ctx, req.(*GenerateTokenRequest))
@@ -200,7 +200,7 @@ func _PeeringService_Establish_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/Establish",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/Establish",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).Establish(ctx, req.(*EstablishRequest))
@@ -218,7 +218,7 @@ func _PeeringService_PeeringRead_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/PeeringRead",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/PeeringRead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).PeeringRead(ctx, req.(*PeeringReadRequest))
@@ -236,7 +236,7 @@ func _PeeringService_PeeringList_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/PeeringList",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/PeeringList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).PeeringList(ctx, req.(*PeeringListRequest))
@@ -254,7 +254,7 @@ func _PeeringService_PeeringDelete_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/PeeringDelete",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/PeeringDelete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).PeeringDelete(ctx, req.(*PeeringDeleteRequest))
@@ -272,7 +272,7 @@ func _PeeringService_PeeringWrite_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/PeeringWrite",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/PeeringWrite",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).PeeringWrite(ctx, req.(*PeeringWriteRequest))
@@ -290,7 +290,7 @@ func _PeeringService_TrustBundleListByService_Handler(srv interface{}, ctx conte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/TrustBundleListByService",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/TrustBundleListByService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).TrustBundleListByService(ctx, req.(*TrustBundleListByServiceRequest))
@@ -308,7 +308,7 @@ func _PeeringService_TrustBundleRead_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peering.PeeringService/TrustBundleRead",
+		FullMethod: "/hashicorp.consul.internal.peering.PeeringService/TrustBundleRead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PeeringServiceServer).TrustBundleRead(ctx, req.(*TrustBundleReadRequest))
@@ -320,7 +320,7 @@ func _PeeringService_TrustBundleRead_Handler(srv interface{}, ctx context.Contex
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PeeringService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "peering.PeeringService",
+	ServiceName: "hashicorp.consul.internal.peering.PeeringService",
 	HandlerType: (*PeeringServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

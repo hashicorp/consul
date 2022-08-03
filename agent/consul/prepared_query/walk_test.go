@@ -20,7 +20,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 
 	service := &structs.ServiceQuery{
 		Service: "the-service",
-		Failover: structs.QueryDatacenterOptions{
+		Failover: structs.QueryFailoverOptions{
 			Datacenters: []string{"dc1", "dc2"},
 		},
 		Near:           "_agent",

@@ -1,7 +1,7 @@
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
-import { nullValue } from 'consul-ui/decorators/replace';
+import replace, { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -13,7 +13,7 @@ export default class Intention extends Model {
   @attr('string') Datacenter;
   @attr('string') Description;
 
-  @attr('string') SourcePeer;
+  @replace('', undefined) @attr('string') SourcePeer;
   @attr('string', { defaultValue: () => '*' }) SourceName;
   @attr('string', { defaultValue: () => '*' }) DestinationName;
   @attr('string', { defaultValue: () => 'default' }) SourceNS;

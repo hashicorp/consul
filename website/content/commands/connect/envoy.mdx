@@ -30,26 +30,6 @@ build on but then used in a virtualized environment that can run Envoy.
 
 Usage: `consul connect envoy [options] [-- pass-through options]`
 
-#### API Options
-
-The standard API options are used to connect to the local agent to discover the
-proxy configuration needed.
-
-- `-grpc-addr=<addr>` - Address of the Consul agent with `grpc` port. This can
-  be an IP address or DNS address, but it must include the port. This can also
-  be specified via the CONSUL_GRPC_ADDR environment variable. In Consul 1.3 and
-  later, the default value is 127.0.0.1:8502, and https can optionally
-  be used instead. The scheme can also be set to HTTPS by setting the
-  environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
-  using `unix:///path/to/socket` if the [agent is configured to
-  listen](/docs/agent/config/config-files#addresses) that way.
-
-  -> **Note:** gRPC uses the same TLS
-  settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
-  as well.
-
-  @include 'http_api_options_client.mdx'
-
 #### Envoy Options for both Sidecars and Gateways
 
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
@@ -189,9 +169,29 @@ proxy configuration needed.
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+The standard API options are used to connect to the local agent to discover the
+proxy configuration needed.
+
+- `-grpc-addr=<addr>` - Address of the Consul agent with `grpc` port. This can
+  be an IP address or DNS address, but it must include the port. This can also
+  be specified via the CONSUL_GRPC_ADDR environment variable. In Consul 1.3 and
+  later, the default value is 127.0.0.1:8502, and https can optionally
+  be used instead. The scheme can also be set to HTTPS by setting the
+  environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
+  using `unix:///path/to/socket` if the [agent is configured to
+  listen](/docs/agent/config/config-files#addresses) that way.
+
+  -> **Note:** gRPC uses the same TLS
+  settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
+  as well.
+
+  @include 'http_api_options_client.mdx'
 
 ## Examples
 

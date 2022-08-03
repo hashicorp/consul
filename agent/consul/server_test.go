@@ -14,7 +14,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
@@ -23,7 +22,10 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/agent/connect"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -177,6 +179,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
+	config.PeeringEnabled = true
 	return dir, config
 }
 
@@ -241,14 +244,14 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	if srv.config.GRPCPort > 0 {
 		// Normally the gRPC server listener is created at the agent level and
 		// passed down into the Server creation.
-		publicGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
 
-		ln, err := net.Listen("tcp", publicGRPCAddr)
+		ln, err := net.Listen("tcp", externalGRPCAddr)
 		require.NoError(t, err)
 		go func() {
-			_ = srv.publicGRPCServer.Serve(ln)
+			_ = srv.externalGRPCServer.Serve(ln)
 		}()
-		t.Cleanup(srv.publicGRPCServer.Stop)
+		t.Cleanup(srv.externalGRPCServer.Stop)
 	}
 
 	return dir, srv
@@ -298,8 +301,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, grpc.NewServer())
-
+	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
 	if err != nil {
 		return nil, err
 	}

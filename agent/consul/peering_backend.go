@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/grpc/public/services/peerstream"
+	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -52,7 +54,7 @@ func (b *PeeringBackend) GetLeaderAddress() string {
 // GetAgentCACertificates gets the server's raw CA data from its TLS Configurator.
 func (b *PeeringBackend) GetAgentCACertificates() ([]string, error) {
 	// TODO(peering): handle empty CA pems
-	return b.srv.tlsConfigurator.ManualCAPems(), nil
+	return b.srv.tlsConfigurator.GRPCManualCAPems(), nil
 }
 
 // GetServerAddresses looks up server node addresses from the state store.
@@ -69,6 +71,9 @@ func (b *PeeringBackend) GetServerAddresses() ([]string, error) {
 			continue // skip server that isn't exporting public gRPC properly
 		}
 		addrs = append(addrs, node.Address+":"+grpcPortStr)
+	}
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("a grpc bind port must be specified in the configuration for all servers")
 	}
 	return addrs, nil
 }
@@ -132,6 +137,15 @@ func (b *PeeringBackend) CheckPeeringUUID(id string) (bool, error) {
 	return true, nil
 }
 
+func (b *PeeringBackend) ValidateProposedPeeringSecret(id string) (bool, error) {
+	return b.srv.fsm.State().ValidateProposedPeeringSecretUUID(id)
+}
+
+func (b *PeeringBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+	_, err := b.srv.raftApplyProtobuf(structs.PeeringSecretsWriteType, req)
+	return err
+}
+
 func (b *PeeringBackend) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
 	_, err := b.srv.raftApplyProtobuf(structs.PeeringWriteType, req)
 	return err
@@ -156,4 +170,8 @@ func (b *PeeringBackend) CatalogRegister(req *structs.RegisterRequest) error {
 func (b *PeeringBackend) CatalogDeregister(req *structs.DeregisterRequest) error {
 	_, err := b.srv.leaderRaftApply("Catalog.Deregister", structs.DeregisterRequestType, req)
 	return err
+}
+
+func (b *PeeringBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
+	return b.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
 }

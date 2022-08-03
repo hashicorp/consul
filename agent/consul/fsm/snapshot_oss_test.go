@@ -477,9 +477,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Peerings
-	require.NoError(t, fsm.state.PeeringWrite(31, &pbpeering.Peering{
-		ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
-		Name: "baz",
+	require.NoError(t, fsm.state.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+			Name: "baz",
+		},
 	}))
 
 	// Peering Trust Bundles

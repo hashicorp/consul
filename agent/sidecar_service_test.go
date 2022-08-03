@@ -343,6 +343,7 @@ func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 			}
 
 			gotPort, err := a.sidecarPortFromServiceIDLocked(tt.port, structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
+
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)

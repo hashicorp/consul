@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
@@ -143,23 +142,17 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 			},
 		},
 	}
-
 	require.Equal(t, expectCfg, cfg)
 
 	// Now keep watching and update the config.
-	go func() {
-		// Wait for watcher to be watching
-		time.Sleep(20 * time.Millisecond)
-		reg.Connect.SidecarService.Proxy.Upstreams = append(reg.Connect.SidecarService.Proxy.Upstreams,
-			api.Upstream{
-				DestinationName:  "cache",
-				LocalBindPort:    9292,
-				LocalBindAddress: "127.10.10.10",
-			})
-		reg.Connect.SidecarService.Proxy.Config["local_connect_timeout_ms"] = 444
-		err := agent.ServiceRegister(reg)
-		require.NoError(t, err)
-	}()
+	reg.Connect.SidecarService.Proxy.Upstreams = append(reg.Connect.SidecarService.Proxy.Upstreams,
+		api.Upstream{
+			DestinationName:  "cache",
+			LocalBindPort:    9292,
+			LocalBindAddress: "127.10.10.10",
+		})
+	reg.Connect.SidecarService.Proxy.Config["local_connect_timeout_ms"] = 444
+	require.NoError(t, agent.ServiceRegister(reg))
 
 	cfg = testGetConfigValTimeout(t, w, 2*time.Second)
 
@@ -173,7 +166,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	})
 	expectCfg.PublicListener.LocalConnectTimeoutMs = 444
 
-	assert.Equal(t, expectCfg, cfg)
+	require.Equal(t, expectCfg, cfg)
 }
 
 func testGetConfigValTimeout(t *testing.T, w ConfigWatcher,

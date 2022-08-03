@@ -36,7 +36,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 		keyBits int
 	}{
 		{connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits},
-		{"ec", 256},
+		// {"ec", 256}, skip since values are same as Defaults
 		{"ec", 384},
 		{"rsa", 2048},
 		{"rsa", 4096},
@@ -55,7 +55,7 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 				providerState := map[string]string{"foo": "dc1-value"}
 
 				// Initialize primary as the primary DC
-				dir1, srv := testServerWithConfig(t, func(c *Config) {
+				_, srv := testServerWithConfig(t, func(c *Config) {
 					c.Datacenter = "dc1"
 					c.PrimaryDatacenter = "dc1"
 					c.Build = "1.6.0"
@@ -63,12 +63,9 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
 					c.CAConfig.Config["test_state"] = providerState
 				})
-				defer os.RemoveAll(dir1)
-				defer srv.Shutdown()
 				codec := rpcClient(t, srv)
-				defer codec.Close()
 
-				testrpc.WaitForLeader(t, srv.RPC, "dc1")
+				waitForLeaderEstablishment(t, srv)
 				testrpc.WaitForActiveCARoot(t, srv.RPC, "dc1", nil)
 
 				var (
