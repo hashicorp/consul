@@ -52,7 +52,10 @@
             item=@item
             token=fsm.state.context.PeeringToken
             regenerate=@regenerate
-            onclick=(queue (set @item 'Name' ''))
+            onclick=(queue
+              (set @item 'Name' '')
+              (fn fsm.dispatch 'RESET')
+            )
           )
           Actions=(component "consul/peer/form/token/actions"
             token=fsm.state.context.PeeringToken
