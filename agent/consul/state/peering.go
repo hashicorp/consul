@@ -267,7 +267,7 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, secret *pbpeering.PeeringSec
 		// Old establishment secret ID are always cleaned up when they don't match.
 		// They will either be replaced by a new one or deleted in the secret exchange RPC.
 		existingEstablishment := existing.GetEstablishment().GetSecretID()
-		if existingEstablishment != "" && existingEstablishment != secret.GetEstablishment().GetSecretID() {
+		if existingEstablishment != "" && secret.GetEstablishment().GetSecretID() != "" && existingEstablishment != secret.GetEstablishment().GetSecretID() {
 			toDelete = append(toDelete, existingEstablishment)
 		}
 
@@ -304,17 +304,17 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, secret *pbpeering.PeeringSec
 	return nil
 }
 
-func (s *Store) PeeringSecretsDelete(idx uint64, peerID string) error {
+func (s *Store) PeeringSecretsDelete(idx uint64, peerID string, dialer bool) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := peeringSecretsDeleteTxn(tx, peerID); err != nil {
+	if err := peeringSecretsDeleteTxn(tx, peerID, dialer); err != nil {
 		return fmt.Errorf("failed to write peering secret: %w", err)
 	}
 	return tx.Commit()
 }
 
-func peeringSecretsDeleteTxn(tx WriteTxn, peerID string) error {
+func peeringSecretsDeleteTxn(tx WriteTxn, peerID string, dialer bool) error {
 	secretRaw, err := tx.First(tablePeeringSecrets, indexID, peerID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch secret for peering: %w", err)
@@ -324,6 +324,11 @@ func peeringSecretsDeleteTxn(tx WriteTxn, peerID string) error {
 	}
 	if err := tx.Delete(tablePeeringSecrets, secretRaw); err != nil {
 		return fmt.Errorf("failed to delete secret for peering: %w", err)
+	}
+
+	// Dialing peers do not track secrets in tablePeeringSecretUUIDs.
+	if dialer {
+		return nil
 	}
 
 	secrets, ok := secretRaw.(*pbpeering.PeeringSecrets)
@@ -520,7 +525,7 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 
 	// Ensure associated secrets are cleaned up when a peering is marked for deletion.
 	if req.Peering.State == pbpeering.PeeringState_DELETING {
-		if err := peeringSecretsDeleteTxn(tx, req.Peering.ID); err != nil {
+		if err := peeringSecretsDeleteTxn(tx, req.Peering.ID, req.Peering.ShouldDial()); err != nil {
 			return fmt.Errorf("failed to delete peering secrets: %w", err)
 		}
 	}
