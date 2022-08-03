@@ -104,7 +104,8 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		require.Contains(t, resp.Config.Fields, proxyConfigKey)
 		require.Equal(t, structpb.NewStringValue(proxyConfigValue), resp.Config.Fields[proxyConfigKey])
 		require.Equal(t, convertToResponseServiceKind(tc.registerReq.Service.Kind), resp.ServiceKind)
-
+		require.Equal(t, tc.registerReq.Node, resp.NodeName)
+		require.Equal(t, string(tc.registerReq.ID), resp.NodeId)
 	}
 
 	testCases := []testCase{

@@ -59,6 +59,8 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		Namespace:   svc.EnterpriseMeta.NamespaceOrDefault(),
 		Datacenter:  s.Datacenter,
 		ServiceKind: convertToResponseServiceKind(svc.ServiceKind),
+		NodeName:    svc.Node,
+		NodeId:      string(svc.ID),
 	}
 
 	bootstrapConfig, err := structpb.NewStruct(svc.ServiceProxy.Config)

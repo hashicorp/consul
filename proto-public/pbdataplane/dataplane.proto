@@ -74,6 +74,8 @@ message GetEnvoyBootstrapParamsResponse {
   string partition = 4;
   string datacenter = 5;
   google.protobuf.Struct config = 6;
+  string node_id = 7;
+  string node_name = 8;
 }
 
 service DataplaneService {
