@@ -265,6 +265,9 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.PeeringSecret
 			}
 
 		case pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET:
+			// Avoid invalidating existing active secrets when exchanging establishment secret for pending.
+			secret.Stream.ActiveSecretID = existing.GetStream().GetActiveSecretID()
+
 			// When exchanging an establishment secret we invalidate the existing establishment secret.
 			if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
 				toDelete = append(toDelete, existingEstablishment)
