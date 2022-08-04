@@ -120,6 +120,16 @@ type wrappedMux struct {
 
 // ServeHTTP implements the http.Handler interface.
 func (w *wrappedMux) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+
+	if strings.HasPrefix(req.URL.Path, "/v1/agent/service/deregister/") {
+		// Move the service id to url's query to handle the case where
+		// registerred service is an url (see TestAgent_DeregisterService)
+		serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
+		req.URL.Path = strings.TrimSuffix(req.URL.Path, serviceID)
+		query := req.URL.Query()
+		query.Add(serviceIDQueryKey, serviceID)
+		req.URL.RawQuery = query.Encode()
+	}
 	w.handler.ServeHTTP(resp, req)
 }
 

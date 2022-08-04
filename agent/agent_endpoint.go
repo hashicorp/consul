@@ -223,6 +223,11 @@ type metricsEncoder struct {
 	flusher http.Flusher
 }
 
+const (
+	// serviceIDQueryKey is used for deregistering service endpoint handler
+	serviceIDQueryKey = "service-id"
+)
+
 func (m metricsEncoder) Encode(summary interface{}) error {
 	if err := m.encoder.Encode(summary); err != nil {
 		m.logger.Error("failed to encode metrics summary", "error", err)
@@ -1218,7 +1223,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
+	serviceID := req.URL.Query().Get(serviceIDQueryKey)
 	sid := structs.NewServiceID(serviceID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.

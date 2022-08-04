@@ -5448,28 +5448,50 @@ func TestAgent_DeregisterService(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	serviceReq := AddServiceRequest{
-		Service: &structs.NodeService{
-			ID:      "test",
-			Service: "test",
-		},
-		chkTypes: nil,
-		persist:  false,
-		token:    "",
-		Source:   ConfigSourceLocal,
-	}
-	require.NoError(t, a.AddService(serviceReq))
-
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/deregister/test", nil)
-	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, req)
-	if http.StatusOK != resp.Code {
-		t.Fatalf("expected 200 but got %v", resp.Code)
+	tests := []struct {
+		sid     string
+		success bool
+	}{
+		{"test", true},
+		{"http://www.emample.com/checkpath", true},
+		// Encoded url id must fail because url passed from cli
+		// is always encoded (double encoded service id)
+		{"http%3A%2F%2Fwww.emample.com%2Fcheckpath", false},
 	}
 
-	// Ensure we have a check mapping
-	assert.Nil(t, a.State.Service(structs.NewServiceID("test", nil)), "have test service")
-	assert.Nil(t, a.State.Check(structs.NewCheckID("test", nil)), "have test check")
+	for _, tt := range tests {
+		t.Run("service ID: "+tt.sid, func(t *testing.T) {
+			serviceReq := AddServiceRequest{
+				Service: &structs.NodeService{
+					ID:      tt.sid,
+					Service: "test",
+				},
+				chkTypes: nil,
+				persist:  false,
+				token:    "",
+				Source:   ConfigSourceLocal,
+			}
+			require.NoError(t, a.AddService(serviceReq))
+
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/service/deregister/%s", tt.sid), nil)
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			if !tt.success {
+				if http.StatusOK == resp.Code {
+					t.Fatalf("expected error but got %v", resp.Code)
+				} else {
+					return
+				}
+			}
+			if http.StatusOK != resp.Code {
+				t.Fatalf("expected 200 but got %v", resp.Code)
+			}
+
+			// Ensure we have a check mapping
+			assert.Nil(t, a.State.Service(structs.NewServiceID("test", nil)), "have test service")
+			assert.Nil(t, a.State.Check(structs.NewCheckID("test", nil)), "have test check")
+		})
+	}
 }
 
 func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
