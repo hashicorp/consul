@@ -1,5 +1,43 @@
 #!/bin/bash
 
+# This function uses regex to change the localhost with the corresponding container name.
+function check_hostport {
+    local HOSTPORT=$1
+    if [[ $HOSTPORT == "localhost:8500" ]]
+    then        
+        echo "envoy_consul-primary_1:8500"
+    elif [[ $HOSTPORT == *"localhost:21000"* ]]
+    then
+        echo "${HOSTPORT/localhost:21000/"envoy_s1-sidecar-proxy_1:21000"}"
+    elif [[ $HOSTPORT == *"localhost:21001"* ]]
+    then
+        echo "${HOSTPORT/localhost:21000/"envoy_s2-sidecar-proxy_1:21000"}"
+    elif [[ $HOSTPORT == *"localhost:19000"* ]]
+    then
+        echo "${HOSTPORT/localhost:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+    elif [[ $HOSTPORT == *"localhost:19001"* ]]
+    then
+        echo "${HOSTPORT/localhost:19001/"envoy_s2-sidecar-proxy_1:19001"}"
+    elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
+    then
+        echo "${HOSTPORT/127.0.0.1:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+    elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
+    then
+        echo "${HOSTPORT/127.0.0.1:19001/"envoy_s2-sidecar-proxy_1:19001"}"    
+    elif [[ $HOSTPORT == *"localhost:1234"* ]]
+    then
+        echo "${HOSTPORT/localhost:1234/"envoy_s1-sidecar-proxy_1:1234"}"      
+    elif [[ $HOSTPORT == "localhost:2345" ]]
+    then
+       echo "${HOSTPORT/localhost:2345/"envoy_s2-sidecar-proxy_1:2345"}"
+     elif [[ $HOSTPORT == *"localhost:5000"* ]]
+    then
+       echo "${HOSTPORT/localhost:5000/"envoy_s1-sidecar-proxy_1:5000"}"                  
+    else
+        return 1        
+    fi
+}
+
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -15,6 +53,22 @@ function retry {
   then
     errtrace=1
     set +E
+  fi
+
+  # This if block, was added to check if curl is being executed directly on a test, 
+  # if so, we replace the url parameter with the correct one.
+  if [[ $1 == "curl" ]]
+  then
+    if check_hostport $4
+    then
+      set -- "${@:1:3}" $(check_hostport $4) "${@:5}"
+    elif check_hostport $6
+    then
+      set -- "${@:1:5}" $(check_hostport $6) "${@:7}"
+    elif check_hostport $7
+    then
+      set -- "${@:1:6}" $(check_hostport $7) "${@:8}"
+    fi 
   fi
 
   for ((i=1;i<=$max;i++))
