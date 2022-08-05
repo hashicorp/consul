@@ -7,6 +7,4 @@ RUN choco install jq -yf
 
 COPY --from=fortio C:\\fortio C:\\fortio
 
-ENV PATH C:\\fortio;%PATH%
-ENV PATH C:\\Windows\\System32;%PATH%
-ENV PATH C:\\ProgramData\\chocolatey\\lib\\jq\\tools;%PATH%
+ENV PATH C:\\Windows\\System32;C:\\fortio;C:\\ProgramData\\chocolatey\\lib\\jq\\tools;C:\\Program Files\\OpenSSL-Win64\\bin;%PATH%
