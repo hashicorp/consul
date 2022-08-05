@@ -101,7 +101,7 @@ Specifies an array of requirements for matching namespaces. If a match is found,
 |--- |--- |--- |--- |
 |`key` | Specifies the label that the `key` applies to. | string | required when `matchExpressions` is declared |
 |`operator` | Specifies the key's relation to a set of values. You can use the following keywords: <ul><li>`In`: Only routes in namespaces that contain the strings in the `values` field can attach to the `Gateway`. </li><li>`NotIn`: Routes in namespaces that do not contain the strings in the `values` field can attach to the `Gateway`. </li><li>`Exists`: Routes in namespaces that contain the `key` value are allowed to attach to the `Gateway`.</li><li>`DoesNotExist`: Routes in namespaces that do not contain the `key` value are allowed to attach to the `Gateway`.</li></ul> | string | required when `matchExpressions` is declared |
-|`values` | Specifies an array of string values. If `operator` is configured to `In` or `NotIn`, then the `values` array must contain values. If `operator` is configured to `Exists` or `DoesNotExist`, then the `values` array must be empty. This array is replaced during a strategic merge patch. | array of strings | required when `matchExpressions` is declared |
+|`values` | Specifies an array of string values. If `operator` is configured to `In` or `NotIn`, then the `values` array must contain values. If `operator` is configured to `Exists` or `DoesNotExist`, then the `values` array must be empty. | array of strings | required when `matchExpressions` is declared |
 
 In the following example, routes in namespaces that contain `foo` and `bar` are allowed to attach routes to the `Gateway`.
 ```yaml
@@ -113,6 +113,8 @@ namespaceSelector:
     - foo
     - bar
 ```
+
+Refer to [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) in the Kubernetes documentation for additional information about `matchExpressions`.
 
 ### listeners.allowedRoutes.namespaces.selector.matchLabels
 Specifies an array of labels and label values. If a match is found, then routes with the matching label(s) are allowed to attach to the `Gateway`. This selector can contain any arbitrary key/value pair.
