@@ -51,19 +51,20 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
   <Tabs>
     <Tab heading="Consul K8s CLI (Mac Only)">
-      Note: You can review the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to learn more about additional settings.
 
-      ```shell-session
-      $ brew tap hashicorp/tap
-      ```
+      ~> **Note:** Refer to the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to find additional settings.
 
-      ```shell-session
-      $ brew install hashicorp/tap/consul-k8s
-      ```
+    ```shell-session
+    $ brew tap hashicorp/tap
+    ```
 
-      ```shell-session
-      $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
-      ```
+    ```shell-session
+    $ brew install hashicorp/tap/consul-k8s
+    ```
+
+    ```shell-session
+    $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+    ```
 
     </Tab>
     <Tab heading="Helm">
