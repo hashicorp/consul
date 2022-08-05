@@ -1275,7 +1275,7 @@ module.exports = [
   },
   {
     source: '/docs/api-gateway/common-errors',
-    destination: '/docs/api-gateway/usage/basic-usage#Common_Error_Messages',
+    destination: '/docs/api-gateway/usage#error-messages',
     permanent: true,
   },
   {
