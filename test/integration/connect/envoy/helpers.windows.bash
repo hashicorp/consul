@@ -1,38 +1,41 @@
 #!/bin/bash
 
+CONTAINER_HOSTPORT=""
+
+# This function uses regex to change the localhost with the corresponding container name.
 # This function uses regex to change the localhost with the corresponding container name.
 function check_hostport {
     local HOSTPORT=$1
     if [[ $HOSTPORT == "localhost:8500" ]]
     then        
-        echo "envoy_consul-primary_1:8500"
+        CONTAINER_HOSTPORT="envoy_consul-primary_1:8500"
     elif [[ $HOSTPORT == *"localhost:21000"* ]]
     then
-        echo "${HOSTPORT/localhost:21000/"envoy_s1-sidecar-proxy_1:21000"}"
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s1-sidecar-proxy_1:21000"}"
     elif [[ $HOSTPORT == *"localhost:21001"* ]]
     then
-        echo "${HOSTPORT/localhost:21000/"envoy_s2-sidecar-proxy_1:21000"}"
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s2-sidecar-proxy_1:21000"}"
     elif [[ $HOSTPORT == *"localhost:19000"* ]]
     then
-        echo "${HOSTPORT/localhost:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"envoy_s1-sidecar-proxy_1:19000"}"
     elif [[ $HOSTPORT == *"localhost:19001"* ]]
     then
-        echo "${HOSTPORT/localhost:19001/"envoy_s2-sidecar-proxy_1:19001"}"
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"envoy_s2-sidecar-proxy_1:19001"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
     then
-        echo "${HOSTPORT/127.0.0.1:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"envoy_s1-sidecar-proxy_1:19000"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
     then
-        echo "${HOSTPORT/127.0.0.1:19001/"envoy_s2-sidecar-proxy_1:19001"}"    
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"envoy_s2-sidecar-proxy_1:19001"}"    
     elif [[ $HOSTPORT == *"localhost:1234"* ]]
     then
-        echo "${HOSTPORT/localhost:1234/"envoy_s1-sidecar-proxy_1:1234"}"      
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"envoy_s1-sidecar-proxy_1:1234"}"      
     elif [[ $HOSTPORT == "localhost:2345" ]]
     then
-       echo "${HOSTPORT/localhost:2345/"envoy_s2-sidecar-proxy_1:2345"}"
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"envoy_s2-sidecar-proxy_1:2345"}"
      elif [[ $HOSTPORT == *"localhost:5000"* ]]
     then
-       echo "${HOSTPORT/localhost:5000/"envoy_s1-sidecar-proxy_1:5000"}"                  
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"envoy_s2_1:5000"}"                  
     else
         return 1        
     fi
@@ -61,13 +64,13 @@ function retry {
   then
     if check_hostport $4
     then
-      set -- "${@:1:3}" $(check_hostport $4) "${@:5}"
+      set -- "${@:1:3}" $CONTAINER_HOSTPORT "${@:5}"
     elif check_hostport $6
     then
-      set -- "${@:1:5}" $(check_hostport $6) "${@:7}"
+      set -- "${@:1:5}" $CONTAINER_HOSTPORT "${@:7}"
     elif check_hostport $7
     then
-      set -- "${@:1:6}" $(check_hostport $7) "${@:8}"
+      set -- "${@:1:6}" $CONTAINER_HOSTPORT "${@:8}"
     fi 
   fi
 
@@ -94,9 +97,10 @@ function retry {
 }
 
 function retry_default {
+  local DEFAULT_TOTAL_RETRIES=5
   set +E
   ret=0
-  retry 5 1 "$@" || ret=1
+  retry $DEFAULT_TOTAL_RETRIES 1 "$@" || ret=1
   set -E
   return $ret
 }
@@ -153,7 +157,7 @@ function is_set {
 }
 
 function get_cert {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   local SERVER_NAME=$2
   local CA_FILE=$3
   local SNI_FLAG=""
@@ -217,7 +221,8 @@ function assert_cert_signed_by_ca {
 
 function assert_envoy_version {
   local ADMINPORT=$1
-  run retry_default curl -f -s localhost:$ADMINPORT/server_info
+  local HOSTPORT="localhost:$ADMINPORT"    
+  run retry_default curl -f -s $HOSTPORT/server_info
   [ "$status" -eq 0 ]
   # Envoy 1.8.0 returns a plain text line like
   # envoy 5d25f466c3410c0dfa735d7d4358beb76b2da507/1.8.0/Clean/DEBUG live 3 3 0
@@ -247,7 +252,7 @@ function assert_envoy_version {
 }
 
 function assert_envoy_expose_checks_listener_count {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   local EXPECT_PATH=$2
 
   # scrape this once
@@ -280,7 +285,7 @@ function get_envoy_expose_checks_listener_once {
 }
 
 function assert_envoy_http_rbac_policy_count {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_http_rbac_once $HOSTPORT | jq '.rules.policies | length')
@@ -289,7 +294,7 @@ function assert_envoy_http_rbac_policy_count {
 }
 
 function get_envoy_http_rbac_once {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
@@ -305,14 +310,14 @@ function assert_envoy_network_rbac_policy_count {
 }
 
 function get_envoy_network_rbac_once {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
 }
 
 function get_envoy_listener_filters {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
@@ -353,7 +358,7 @@ function assert_envoy_dynamic_cluster_exists {
 }
 
 function get_envoy_cluster_config {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   local CLUSTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
@@ -406,7 +411,7 @@ function get_envoy_metrics {
 }
 
 function get_upstream_endpoint_in_status_count {
-  local HOSTPORT=$1
+  local HOSTPORT=$(check_hostport $1)
   local CLUSTER_NAME=$2
   local HEALTH_STATUS=$3
   run curl -s -f "http://${HOSTPORT}/clusters?format=json"
@@ -702,10 +707,8 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  SERVER_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' envoy_consul-primary_1)
-
-  # run curl --no-keepalive -s -v -f -d hello $1
-  run curl --no-keepalive -s -v -f -d hello $SERVER_IP:5000
+  local HOSTPORT=$(check_hostport $1)
+  run curl --no-keepalive -s -v -f -d hello $HOSTPORT
 
   echo "OUTPUT $output"
 
@@ -714,8 +717,6 @@ function must_fail_tcp_connection {
 
   # Verbose output should enclude empty reply
   echo "$output" | grep 'Empty reply from server'
-
-
 }
 
 function must_pass_tcp_connection {
@@ -730,8 +731,9 @@ function must_pass_tcp_connection {
 # must_fail_http_connection see must_fail_tcp_connection but this expects Envoy
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
+  local HOSTPORT=$(check_hostport $1)
   # Attempt to curl through upstream
-  run curl --no-keepalive -s -i -d hello "$1"
+  run curl --no-keepalive -s -i -d hello "$HOSTPORT"
 
   echo "OUTPUT $output"
 
@@ -747,7 +749,7 @@ function must_fail_http_connection {
 # intentions.
 function must_pass_http_request {
   local METHOD=$1
-  local URL=$2
+  local URL=$(check_hostport $2)
   local DEBUG_HEADER_VALUE="${3:-""}"
 
   local extra_args
@@ -777,7 +779,7 @@ function must_pass_http_request {
 # intentions.
 function must_fail_http_request {
   local METHOD=$1
-  local URL=$2
+  local URL=$(check_hostport $2)
   local DEBUG_HEADER_VALUE="${3:-""}"
 
   local extra_args
@@ -963,7 +965,7 @@ function get_upstream_fortio_name {
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
-  local HOST=${2:-"localhost"}
+  local HOST=${2:-"localhost"} $(check_hostport $2)
   local PORT=${3:-5000}
   local URL_PREFIX=${4:-""}
   local DEBUG_HEADER_VALUE="${5:-""}"
