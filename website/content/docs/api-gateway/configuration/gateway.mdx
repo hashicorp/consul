@@ -74,6 +74,9 @@ Specifies a `namespace` object that defines the types of routes that may be atta
 
 ### listeners.allowedRoutes.namespaces
 Determines which routes are allowed to attach to the `listener`. Only routes in the same namespace as the `Gateway` may be attached by default.
+* Type: string
+* Required: optional
+* Default:  Same namespace as the parent Gateway
 
 ### listeners.allowedRoutes.namespaces.from
 Determines which namespaces are allowed to attach a route to the `Gateway`. You can specify one of the following strings:
