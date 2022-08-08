@@ -115,6 +115,7 @@ proxy = {
   mode = "transparent"
   transparent_proxy = {}
   upstreams = []
+}
 ```
 
 ```json
@@ -167,7 +168,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 |`destination_name` | String value that specifies the name of the service or prepared query to route the service mesh to. The prepared query should be the name or the ID of the prepared query. | Required | None |
 | `destination_namespace` | String value that specifies the namespace containing the upstream service. <EnterpriseAlert inline /> | Optional | `default` |
 | `destination_peer` | String value that specifies the name of the peer cluster containing the upstream service. | Optional | None |
-| `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. | Optional | `default` |
+| `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. If `destination_peer` is set, `destination_partition` refers to the local admin partition in which the peering was established. <EnterpriseAlert inline /> | Optional | `default` |
 | `local_bind_port` | Integer value that specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port. | Required | None |
 | `local_bind_address` | String value that specifies the address to bind a local listener to. The application will make outbound connections to the upstream service from the local bind address. | Optional | `127.0.0.1` |
 | `local_bind_socket_path` | String value that specifies the path at which to bind a Unix domain socket listener. The application will make outbound connections to the upstream from the local bind socket path. <br/>This parameter conflicts with the `local_bind_port` or `local_bind_address` parameters. <br/>Supported when using Envoy as a proxy. | Optional | None|
@@ -195,7 +196,7 @@ local_bind_socket_path = "/tmp/redis_5678.sock"
 local_bind_socket_mode = "0700"
 mesh_gateway = {
     mode = "local"
-  }
+}
 ```
 
 ```json
@@ -258,6 +259,29 @@ local_bind_port = 9090
 ```
 
 </CodeTabs>
+<CodeTabs heading="Example of dialing remote upstreams across peers">
+
+```hcl
+destination_peer = "cloud-services"
+destination_partition = "finance"
+destination_namespace = "default"
+destination_type = "service"
+destination_name = "api"
+local_bind_port = 9090
+```
+
+```json
+{
+  "destination_peer": "cloud-services",
+  "destination_partition": "finance",
+  "destination_namespace": "default",
+  "destination_type": "service",
+  "destination_name": "api",
+  "local_bind_port": 9090
+}
+```
+
+</CodeTabs>
 
 ## Proxy Modes
 
@@ -297,7 +321,7 @@ registrations](/docs/discovery/services#service-definition-parameter-case).
 - `dialed_directly` `(bool: false)` - Determines whether this proxy instance's IP address can be dialed
    directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual"
    tagged address, which load balances across instances. A database cluster with a leader is an example
-   where dialing individual instances can be helpful.
+   where dialing individual instances can be helpful. Cannot be used with upstreams which define a `destination_peer`.
 
   ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
      Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
@@ -521,7 +545,7 @@ services {
       "proxy": {
         "name": "service-2",
         "local_service_socket_path": "/tmp/socket_service_2"
-    ...
+        ...
       }
     }
   }
