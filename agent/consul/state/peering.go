@@ -291,13 +291,21 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteR
 		}
 
 		// When exchanging an establishment secret we invalidate the existing establishment secret.
-		if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
-			toDelete = append(toDelete, existingEstablishment)
-		} else {
+		existingEstablishment := existing.GetEstablishment().GetSecretID()
+		switch {
+		case existingEstablishment == "":
 			// When there is no existing establishment secret we must not proceed because another ExchangeSecret
 			// RPC already invalidated it. Otherwise, this operation would overwrite the pending secret
 			// from the previous ExchangeSecret.
 			return fmt.Errorf("invalid establishment secret: peering was already established")
+
+		case existingEstablishment != r.ExchangeSecret.GetEstablishmentSecret():
+			// If there is an existing establishment secret but it is not the one from the request then
+			// we must not proceed because a newer one was generated.
+			return fmt.Errorf("invalid establishment secret")
+
+		default:
+			toDelete = append(toDelete, existingEstablishment)
 		}
 
 		// When exchanging an establishment secret unused pending secrets are overwritten.
@@ -309,14 +317,11 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteR
 		if existing == nil {
 			return fmt.Errorf("cannot promote pending secret: no known secrets for peering")
 		}
-		if existing.GetStream().GetPendingSecretID() == "" {
+		if existing.GetStream().GetPendingSecretID() != r.PromotePending.GetActiveStreamSecret() {
 			// There is a potential race if multiple dialing clusters send an Open request with a valid
 			// pending secret. The secret could be validated for all concurrently at the RPC layer,
-			// but then the pending secret is promoted for one dialer before the others.
-			// In this scenario the end result of promoting the pending secret is the same,
-			// but we want to avoid initiating peering streams to all of these clusters.
-			// Therefore, we accept the first write but reject all others.
-			return fmt.Errorf("invalid pending stream secret: secret was already promoted")
+			// but then the pending secret is promoted or otherwise changes for one dialer before the others.
+			return fmt.Errorf("invalid pending stream secret")
 		}
 
 		// Store the newly-generated pending stream secret, overwriting any that existed.
@@ -325,7 +330,7 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteR
 			PendingSecretID: "",
 
 			// Store the newly-promoted pending secret as the active secret.
-			ActiveSecretID: r.PromotePending.ActiveStreamSecret,
+			ActiveSecretID: r.PromotePending.GetActiveStreamSecret(),
 		}
 
 		// Avoid invalidating existing establishment secrets when promoting pending secrets.

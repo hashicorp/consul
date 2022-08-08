@@ -302,6 +302,7 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 						PeerID: testPeerID,
 						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
 								PendingStreamSecret: testPendingStreamSecretID,
 							},
 						},
@@ -337,6 +338,7 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 						PeerID: testPeerID,
 						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
 								PendingStreamSecret: testPendingStreamSecretID,
 							},
 						},
@@ -1697,6 +1699,7 @@ func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, re
 		PeerID: testPeerID,
 		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				EstablishmentSecret: testEstablishmentSecretID,
 				PendingStreamSecret: testPendingStreamSecretID,
 			},
 		},
