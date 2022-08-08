@@ -13,28 +13,28 @@ without requiring `Helm`, the [Consul CLI](/commands/index), or `kubectl`.
 -> **Note**: For guidance on how to install `consul-k8s`, visit the
 [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli) documentation.
 
-This topic describes the subcommands and available options for using `consul-k8s`.
+This topic describes the commands and available options for using `consul-k8s`.
 
 ## Usage
 
-Consul K8s CLI uses the following syntax:
+The Consul on Kubernetes CLI uses the following syntax:
 
 ```shell-session
-$ consul-k8s <SUBCOMMAND> <OPTIONS>
+$ consul-k8s <COMMAND> <OPTIONS>
 ```
 
 ## Commands
 
 You can use the following commands with `consul-k8s`.
 
-  - [`install`](#install) installs Consul to your Kubernetes cluster.
-  - [`proxy`](#proxy) allows you to interact with proxies managed by Consul on your Kubernetes cluster.
-      - [`proxy list`](#proxy-list) displays all relevant proxies.
-      - [`proxy read`](#proxy-read) displays the configuration of proxies on a given Pod.
-  - [`status`](#status) displays the status of your Consul installation along with its configuration.
-  - [`uninstall`](#uninstall) uninstalls Consul from your Kubernetes cluster.
-  - [`upgrade`](#upgrade) modifies your Consul installation's configuration.
-  - [`version`](#version) displays the version of Consul on Kubernetes that is installed.
+  - [`install`](#install): Install Consul on Kubernetes.
+  - [`proxy`](#proxy): Inspect Envoy proxies managed by Consul.
+      - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
+      - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
+  - [`status`](#status): Check the status of a Consul installation on Kubernetes.
+  - [`uninstall`](#uninstall): Uninstall Consul deployment.
+  - [`upgrade`](#upgrade): Upgrade Consul on Kubernetes from an existing installation.
+  - [`version`](#version): Print the version of the Consul on Kubernetes CLI.
 
 ### `install`
 
