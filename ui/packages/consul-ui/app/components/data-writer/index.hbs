@@ -19,7 +19,7 @@
       @item={{data}}
       @data={{null}}
       @onchange={{action dispatch "SUCCESS"}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+      @onerror={{action "error"}}
     />
   </State>
 
@@ -28,7 +28,7 @@
       @sink={{sink}}
       @item={{data}}
       @onchange={{action dispatch "SUCCESS"}}
-      @onerror={{queue (action (mut error) value="error.errors.firstObject") (action dispatch "ERROR")}}
+      @onerror={{action "error"}}
     />
   </State>
 

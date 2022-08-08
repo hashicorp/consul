@@ -42,14 +42,6 @@ as |item index|>
 {{#if (can 'delete peer' item=item)}}
 
     <Actions as |Action|>
-      <Action
-        data-test-edit-action
-        @href={{href-to 'dc.peers.edit' item.Name}}
-      >
-        <BlockSlot @name="label">
-          View
-        </BlockSlot>
-      </Action>
 {{#if (can "write peer" item=item)}}
         <Action
           data-test-edit-action

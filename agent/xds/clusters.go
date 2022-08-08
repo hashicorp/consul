@@ -1494,7 +1494,7 @@ func (s *ResourceGenerator) makeTerminatingHostnameCluster(snap *proxycfg.Config
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection:     &envoy_cluster_v3.OutlierDetection{},
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS},
-		DnsLookupFamily:      envoy_cluster_v3.Cluster_AUTO,
+		DnsLookupFamily:      envoy_cluster_v3.Cluster_V4_ONLY,
 	}
 
 	rate := 10 * time.Second

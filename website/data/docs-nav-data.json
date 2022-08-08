@@ -355,19 +355,44 @@
       },
       {
         "title": "Installation",
-        "path": "api-gateway/consul-api-gateway-install"
+        "path": "api-gateway/install"
       },
       {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
       },
       {
-        "title": "Common Errors",
-        "path": "api-gateway/common-errors"
+        "title": "Upgrades",
+        "path": "api-gateway/upgrades"
       },
       {
-        "title": "Upgrades",
-        "path": "api-gateway/upgrade-specific-versions"
+        "title": "Usage",
+        "path": "api-gateway/usage"
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "api-gateway/configuration"
+          },
+          {
+            "title": "Gateway",
+            "path": "api-gateway/configuration/gateway"
+          },
+          {
+            "title": "GatewayClass",
+            "path": "api-gateway/configuration/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig",
+            "path": "api-gateway/configuration/gatewayclassconfig"
+          },
+          {
+            "title": "Routes",
+            "path": "api-gateway/configuration/routes"
+          }
+        ]
       }
     ]
   },

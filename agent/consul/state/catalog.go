@@ -11,6 +11,7 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -871,7 +872,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
 			sn := structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
-			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
+			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, svc, structs.GatewayServiceKindService); err != nil {
 				return fmt.Errorf("failed updating gateway mapping: %s", err)
 			}
 			if err = checkGatewayAndUpdate(tx, idx, &sn, structs.GatewayServiceKindService); err != nil {
@@ -890,6 +891,15 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			return fmt.Errorf("failed updating upstream/downstream association")
 		}
 
+		service := svc.Service
+		if svc.Kind == structs.ServiceKindConnectProxy {
+			service = svc.Proxy.DestinationServiceName
+		}
+		sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
+		if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, svc, structs.GatewayServiceKindService); err != nil {
+			return fmt.Errorf("failed updating gateway mapping: %s", err)
+		}
+
 		supported, err := virtualIPsSupported(tx, nil)
 		if err != nil {
 			return err
@@ -897,12 +907,6 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 		// Update the virtual IP for the service
 		if supported {
-			service := svc.Service
-			if svc.Kind == structs.ServiceKindConnectProxy {
-				service = svc.Proxy.DestinationServiceName
-			}
-
-			sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
 			vip, err := assignServiceVirtualIP(tx, idx, psn)
 			if err != nil {
@@ -1984,11 +1988,6 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta, svc.PeerName); err != nil {
 				return err
 			}
-			if svc.PeerName == "" {
-				if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
-					return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
-				}
-			}
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: name}
 			if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 				return fmt.Errorf("failed to clean up virtual IP for %q: %v", name.String(), err)
@@ -1999,6 +1998,13 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		}
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
+	}
+
+	if svc.PeerName == "" {
+		sn := structs.ServiceName{Name: svc.ServiceName, EnterpriseMeta: svc.EnterpriseMeta}
+		if err := cleanupGatewayWildcards(tx, idx, sn, false); err != nil {
+			return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
+		}
 	}
 
 	return nil
@@ -3652,6 +3658,18 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 			continue
 		}
 
+		hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, sn.ServiceName, entMeta)
+		if err != nil {
+			return err
+		}
+
+		if service.GatewayKind == structs.ServiceKindIngressGateway && !hasConnectInstance {
+			continue
+		}
+		if service.GatewayKind == structs.ServiceKindTerminatingGateway && !hasNonConnectInstance {
+			continue
+		}
+
 		existing, err := tx.First(tableGatewayServices, indexID, service.Gateway, sn.CompoundServiceName(), service.Port)
 		if err != nil {
 			return fmt.Errorf("gateway service lookup failed: %s", err)
@@ -3717,6 +3735,38 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 	return nil
 }
 
+// serviceHasConnectInstances returns whether the service has at least one connect instance,
+// and at least one non-connect instance.
+func serviceHasConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, bool, error) {
+	hasConnectInstance := false
+	query := Query{
+		Value:          serviceName,
+		EnterpriseMeta: *entMeta,
+	}
+	svc, err := tx.First(tableServices, indexConnect, query)
+	if err != nil {
+		return false, false, fmt.Errorf("failed service lookup: %s", err)
+	}
+	if svc != nil {
+		hasConnectInstance = true
+	}
+
+	hasNonConnectInstance := false
+	iter, err := tx.Get(tableServices, indexService, query)
+	if err != nil {
+		return false, false, fmt.Errorf("failed service lookup: %s", err)
+	}
+	for service := iter.Next(); service != nil; service = iter.Next() {
+		sn := service.(*structs.ServiceNode)
+		if !sn.ServiceConnect.Native {
+			hasNonConnectInstance = true
+			break
+		}
+	}
+
+	return hasConnectInstance, hasNonConnectInstance, nil
+}
+
 // updateGatewayService associates services with gateways after an eligible event
 // ie. Registering a service in a namespace targeted by a gateway
 func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayService) error {
@@ -3754,14 +3804,35 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, kind structs.GatewayServiceKind) error {
+func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, ns *structs.NodeService, kind structs.GatewayServiceKind) error {
 	sn := structs.ServiceName{Name: structs.WildcardSpecifier, EnterpriseMeta: svc.EnterpriseMeta}
 	svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Name, err)
 	}
+
+	hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, svc.Name, &svc.EnterpriseMeta)
+	if err != nil {
+		return err
+	}
+	// If we were passed a NodeService, this might be the first registered instance of the service
+	// so we need to count it as either a connect or non-connect instance.
+	if ns != nil {
+		if ns.Connect.Native || ns.Kind == structs.ServiceKindConnectProxy {
+			hasConnectInstance = true
+		} else {
+			hasNonConnectInstance = true
+		}
+	}
+
 	for service := svcGateways.Next(); service != nil; service = svcGateways.Next() {
 		if wildcardSvc, ok := service.(*structs.GatewayService); ok && wildcardSvc != nil {
+			if wildcardSvc.GatewayKind == structs.ServiceKindIngressGateway && !hasConnectInstance {
+				continue
+			}
+			if wildcardSvc.GatewayKind == structs.ServiceKindTerminatingGateway && !hasNonConnectInstance && kind != structs.GatewayServiceKindDestination {
+				continue
+			}
 
 			// Copy the wildcard mapping and modify it
 			gatewaySvc := wildcardSvc.Clone()
@@ -3803,12 +3874,11 @@ func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, ki
 	return nil
 }
 
-func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) error {
+func cleanupGatewayWildcards(tx WriteTxn, idx uint64, sn structs.ServiceName, cleaningUpDestination bool) error {
 	// Clean up association between service name and gateways if needed
-	sn := structs.ServiceName{Name: svc.ServiceName, EnterpriseMeta: svc.EnterpriseMeta}
 	gateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
-		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+		return fmt.Errorf("failed gateway lookup for %q: %s", sn.Name, err)
 	}
 
 	mappings := make([]*structs.GatewayService, 0)
@@ -3818,12 +3888,44 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		}
 	}
 
+	// Check whether there are any connect or non-connect instances remaining for this service.
+	// If there are no connect instances left, ingress gateways with a wildcard entry can remove
+	// their association with it (same with terminating gateways if there are no non-connect
+	// instances left).
+	hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return err
+	}
+
+	// If we're deleting a service instance but this service is defined as a destination via config entry,
+	// keep the mapping around.
+	hasDestination := false
+	if !cleaningUpDestination {
+		q := configentry.NewKindName(structs.ServiceDefaults, sn.Name, &sn.EnterpriseMeta)
+		existing, err := tx.First(tableConfigEntries, indexID, q)
+		if err != nil {
+			return fmt.Errorf("failed config entry lookup: %s", err)
+		}
+		if existing != nil {
+			if entry, ok := existing.(*structs.ServiceConfigEntry); ok && entry.Destination != nil {
+				hasDestination = true
+			}
+		}
+	}
+
 	// Do the updates in a separate loop so we don't trash the iterator.
 	for _, m := range mappings {
 		// Only delete if association was created by a wildcard specifier.
 		// Otherwise the service was specified in the config entry, and the association should be maintained
 		// for when the service is re-registered
 		if m.FromWildcard {
+			if m.GatewayKind == structs.ServiceKindIngressGateway && hasConnectInstance {
+				continue
+			}
+			if m.GatewayKind == structs.ServiceKindTerminatingGateway && (hasNonConnectInstance || hasDestination) {
+				continue
+			}
+
 			if err := tx.Delete(tableGatewayServices, m); err != nil {
 				return fmt.Errorf("failed to truncate gateway services table: %v", err)
 			}
@@ -3836,7 +3938,7 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		} else {
 			kind, err := GatewayServiceKind(tx, m.Service.Name, &m.Service.EnterpriseMeta)
 			if err != nil {
-				return fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.ServiceName, err)
+				return fmt.Errorf("failed to get gateway service kind for service %s: %v", sn.Name, err)
 			}
 			checkGatewayAndUpdate(tx, idx, &structs.ServiceName{Name: m.Service.Name, EnterpriseMeta: m.Service.EnterpriseMeta}, kind)
 		}

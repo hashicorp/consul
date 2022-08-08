@@ -4,12 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestUpstreamResolverFuncFromClient(t *testing.T) {
@@ -154,9 +156,9 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	reg.Connect.SidecarService.Proxy.Config["local_connect_timeout_ms"] = 444
 	require.NoError(t, agent.ServiceRegister(reg))
 
-	cfg = testGetConfigValTimeout(t, w, 2*time.Second)
-
-	expectCfg.Upstreams = append(expectCfg.Upstreams, UpstreamConfig{
+	updatedCfg := new(Config)
+	*updatedCfg = *expectCfg
+	updatedCfg.Upstreams = append(updatedCfg.Upstreams, UpstreamConfig{
 		DestinationName:      "cache",
 		DestinationNamespace: "default",
 		DestinationPartition: "default",
@@ -164,12 +166,25 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 		LocalBindPort:        9292,
 		LocalBindAddress:     "127.10.10.10",
 	})
-	expectCfg.PublicListener.LocalConnectTimeoutMs = 444
+	updatedCfg.PublicListener.LocalConnectTimeoutMs = 444
 
-	require.Equal(t, expectCfg, cfg)
+	retry.Run(t, func(r *retry.R) {
+		cfg := testGetConfigValTimeout(r, w, 500*time.Millisecond)
+		// TODO: These are debug logs to show the diffs against updatedCfg and expectCfg.
+		// Once we figure out what event makes this test flake, we should adjust this test to be deterministic.
+		if !assert.Equal(r, updatedCfg, cfg, "expected config from watcher to match updated") {
+			assert.Equal(r, expectCfg, cfg, "config does not match original or updated config; something else must have fired watch")
+			r.FailNow()
+		}
+	})
 }
 
-func testGetConfigValTimeout(t *testing.T, w ConfigWatcher,
+type testingT interface {
+	Helper()
+	Fatalf(format string, args ...interface{})
+}
+
+func testGetConfigValTimeout(t testingT, w ConfigWatcher,
 	timeout time.Duration) *Config {
 	t.Helper()
 	select {

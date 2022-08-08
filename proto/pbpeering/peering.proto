@@ -53,6 +53,59 @@ enum PeeringState {
   TERMINATED = 6;
 }
 
+// SecretsWriteRequest encodes a request to write a peering secret as the result
+// of some operation. Different operations, such as generating a peering token,
+// lead to modifying the known secrets associated with a peering.
+message SecretsWriteRequest {
+  // PeerID is the local UUID of the peering this request applies to.
+  string PeerID = 1;
+
+  oneof Request {
+    GenerateTokenRequest generate_token = 2;
+    ExchangeSecretRequest exchange_secret = 3;
+    PromotePendingRequest promote_pending = 4;
+    EstablishRequest establish = 5;
+  }
+
+  // GenerateTokenRequest encodes a request to persist a peering establishment
+  // secret. It is triggered by generating a new peering token for a peer cluster.
+  message GenerateTokenRequest {
+    // establishment_secret is the proposed secret ID to store as the establishment
+    // secret for this peering.
+    string establishment_secret = 1;
+  }
+
+  // ExchangeSecretRequest encodes a request to persist a pending stream secret
+  // secret. It is triggered by an acceptor peer generating a long-lived stream secret
+  // in exchange for an establishment secret.
+  message ExchangeSecretRequest {
+    // establishment_secret is the secret to exchange for the given pending stream secret.
+    string establishment_secret = 1;
+
+    // pending_stream_secret is the proposed secret ID to store as the pending stream
+    // secret for this peering.
+    string pending_stream_secret = 2;
+  }
+
+  // PromotePendingRequest encodes a request to promote a pending stream secret
+  // to be an active stream secret. It is triggered when the accepting stream handler
+  // validates an Open request from a peer with a pending stream secret.
+  message PromotePendingRequest {
+    // active_stream_secret is the proposed secret ID to store as the active stream
+    // secret for this peering.
+    string active_stream_secret = 1;
+  }
+
+  // EstablishRequest encodes a request to persist an active stream secret.
+  // It is triggered after a dialing peer exchanges their establishment secret
+  // for a long-lived active stream secret.
+  message EstablishRequest {
+    // active_stream_secret is the proposed secret ID to store as the active stream
+    // secret for this peering.
+    string active_stream_secret = 1;
+  }
+}
+
 // PeeringSecrets defines a secret used for authenticating/authorizing peer clusters.
 message PeeringSecrets {
   // PeerID is the local UUID of the peering this secret was generated for.
@@ -195,10 +248,10 @@ message PeeringWriteRequest {
   // Peering is the peering to write with the request.
   Peering Peering = 1;
 
-  // PeeringSecrets contains the optional peering secrets to persist
+  // SecretsWriteRequest contains the optional peering secrets to persist
   // with the peering. Peering secrets are not embedded in the peering
   // object to avoid leaking them.
-  PeeringSecrets Secret = 2;
+  SecretsWriteRequest SecretsRequest = 2;
 
   map<string, string> Meta = 3;
 }

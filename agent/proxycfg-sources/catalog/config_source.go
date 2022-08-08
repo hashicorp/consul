@@ -125,7 +125,7 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 		case ns == nil:
 			m.Manager.Deregister(proxyID, source)
 			logger.Trace("service does not exist in catalog, de-registering it with proxycfg manager")
-			return nil, err
+			return ws, nil
 		case !ns.Kind.IsProxy():
 			err := errors.New("service must be a sidecar proxy or gateway")
 			logger.Error(err.Error())

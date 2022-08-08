@@ -17,7 +17,20 @@
       id={{id}}
     >
 
-      <fsm.State @matches={{array 'idle'}}>
+      <fsm.State @matches={{array 'idle' 'error'}}>
+        <fsm.State @matches={{'error'}}>
+          <Notice
+            @type="error"
+            role="alert"
+          as |notice|>
+            <notice.Body>
+              <p>
+                <strong>Error</strong><br />
+                {{fsm.state.context.error.message}}
+              </p>
+            </notice.Body>
+          </Notice>
+        </fsm.State>
         {{yield (hash
           Fieldsets=(component "consul/peer/form/generate/fieldsets"
             item=@item
@@ -43,6 +56,9 @@
             @onchange
             (pick 'data' (fn fsm.dispatch 'SUCCESS'))
           }}
+          @onerror={{queue
+            (fn fsm.dispatch 'ERROR')
+          }}
         />
       </fsm.State>
 
@@ -52,7 +68,10 @@
             item=@item
             token=fsm.state.context.PeeringToken
             regenerate=@regenerate
-            onclick=(queue (set @item 'Name' ''))
+            onclick=(queue
+              (set @item 'Name' '')
+              (fn fsm.dispatch 'RESET')
+            )
           )
           Actions=(component "consul/peer/form/token/actions"
             token=fsm.state.context.PeeringToken

@@ -622,11 +622,12 @@ spec:
     {
       name: 'Services',
       type: 'array<LinkedService>: <optional>',
-      description: `A list of services to link
+      description: `A list of services or destinations to link
                       with the gateway. The gateway will proxy traffic to these services. These linked services
                       must be registered with Consul for the gateway to discover their addresses. They must also
-                      be registered in the same Consul datacenter as the terminating gateway. If Consul ACLs are
-                      enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
+                      be registered in the same Consul datacenter as the terminating gateway.
+                      Destinations are an exception to this requirement, and only need to be defined as a service-defaults configuration entry in the same datacenter.
+                      If Consul ACLs are enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
       children: [
         {
           name: 'Name',
