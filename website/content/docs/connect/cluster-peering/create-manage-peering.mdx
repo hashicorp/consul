@@ -22,15 +22,13 @@ Then, complete the following steps in order:
 1. Export services between clusters
 1. Authorize services for peers
 
-### Enable peering on all Consul servers
-
-Cluster peering is not enabled by default. To enable cluster peering,
-
 ### Create a peering token
 
-You can generate peering tokens and initiate connections on any available agent using either the Consul UI or the API. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
-
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
+
+Everytime you generate a peering token, a single-use establishment secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
+
+You can generate peering tokens and initiate connections on any available agent using either the Consul UI or the API. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
 
 <Tabs>
 <Tab heading="Consul API">
@@ -58,6 +56,16 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 <Tab heading="Consul UI">
 
+1. In the Consul UI associated with `cluster-01`, click **Peers**.
+1. Click **Add peer connection**.
+1. In the **Name of peer** field, enter `cluster-02`. Then, click **Generate token**.
+1. Copy the token. Be careful not to lose the token, as you cannot view the token again after leaving this screen.
+1. Switch to the UI associated with `cluster 02`. Then, click **Peers** and then **Add peer connection**.
+1. Click **Establish peering**.
+1. In the **Name of peer** field, enter `cluster-01`. Then paste the token in the **Token** field.
+1. Click **Add peer**.
+
+The
 </Tab>
 </Tabs>
 
