@@ -507,6 +507,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
 		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				EstablishmentSecret: "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
 				PendingStreamSecret: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
 			},
 		},
