@@ -167,9 +167,6 @@ Display all pods across all namespaces which run proxies managed by Consul.
 
 ```shell-session
 $ consul-k8s proxy list -A
-```
-
-```
 Namespace: All namespaces
 
 Namespace	Name                                   	Type
@@ -217,9 +214,6 @@ Get the configuration summary for the Envoy proxy running on the Pod
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb
-```
-
-```
 Envoy configuration for backend-658b679b45-d5xlb in namespace default:
 
 ==> Clusters (5)
@@ -262,9 +256,6 @@ domain name which includes `"default"`. Display only clusters and listeners.
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb -fqdn default -clusters -listeners
-```
-
-```
 ==> Filters applied
     Fully qualified domain names containing: default
 
@@ -291,9 +282,6 @@ same as what is displayed in the table output above, but in a JSON format.
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb -o json
-```
-
-```
 {
 	"backend-658b679b45-d5xlb": {
 		"clusters": [
@@ -442,15 +430,11 @@ be output for each service as a JSON map. The
 the configuration for the service you want to inspect.
 
 See the [Envoy config dump documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/config_dump.proto)
-for more information on the structure of the config dump.
+for more information on the structure of the config dump. The output is
+truncated here for brevity. It follows the format below:
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
-```
-
-The output is truncated here for brevity. It follows the format below:
-
-```
 {
   "backend-658b679b45-d5xlb": {
     "clusters": {
