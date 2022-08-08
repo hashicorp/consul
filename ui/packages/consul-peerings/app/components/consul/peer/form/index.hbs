@@ -27,7 +27,7 @@
     <fsm.State @matches={{array 'generate'}}>
 
       <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/peer/'
+        @src={{uri '/${partition}/${nspace}/${dc}/peer-generate/'
           @params
         }}
       as |source|>
@@ -44,7 +44,7 @@
     <fsm.State @matches="initiate">
 
       <DataSource
-        @src={{uri '/${partition}/${nspace}/${dc}/peer/'
+        @src={{uri '/${partition}/${nspace}/${dc}/peer-initiate/'
           @params
         }}
       as |source|>
