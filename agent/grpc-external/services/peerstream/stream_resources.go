@@ -77,21 +77,14 @@ func (s *Server) ExchangeSecret(ctx context.Context, req *pbpeerstream.ExchangeS
 		return nil, grpcstatus.Errorf(codes.Internal, "failed to generate peering stream secret: %v", err)
 	}
 
-	writeReq := &pbpeering.PeeringSecretsWriteRequest{
-		Secrets: &pbpeering.PeeringSecrets{
-			PeerID: req.PeerID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				// Overwriting any existing un-utilized pending stream secret.
-				PendingSecretID: id,
-
-				// If there is an active stream secret ID it is NOT invalidated here.
-				// It remains active until the pending secret ID is used and promoted to active.
-				// This allows dialing clusters with the active stream secret to continue to dial successfully until they
-				// receive the new secret.
-				ActiveSecretID: existing.GetStream().GetActiveSecretID(),
+	writeReq := &pbpeering.SecretsWriteRequest{
+		PeerID: req.PeerID,
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				// Overwrite any existing un-utilized pending stream secret.
+				PendingStreamSecret: id,
 			},
 		},
-		Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET,
 	}
 	err = s.Backend.PeeringSecretsWrite(writeReq)
 	if err != nil {
@@ -194,18 +187,14 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 		}
 		authorized = true
 
-		promoted := &pbpeering.PeeringSecretsWriteRequest{
-			Secrets: &pbpeering.PeeringSecrets{
-				PeerID: req.PeerID,
-				Stream: &pbpeering.PeeringSecrets_Stream{
-					ActiveSecretID: pending,
-
-					// The PendingSecretID is intentionally zeroed out since we want to avoid re-triggering this
-					// promotion process with the same pending secret.
-					PendingSecretID: "",
+		promoted := &pbpeering.SecretsWriteRequest{
+			PeerID: p.ID,
+			Request: &pbpeering.SecretsWriteRequest_PromotePending{
+				PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+					// Overwrite any existing un-utilized pending stream secret.
+					ActiveStreamSecret: pending,
 				},
 			},
-			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_PROMOTEPENDING,
 		}
 		err = s.Backend.PeeringSecretsWrite(promoted)
 		if err != nil {

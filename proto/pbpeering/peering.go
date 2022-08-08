@@ -155,17 +155,32 @@ func (p *Peering) IsActive() bool {
 }
 
 // Validate is a validation helper that checks whether a secret ID is embedded in the container type.
-func (p *PeeringSecrets) Validate() error {
-	if p.GetPeerID() == "" {
+func (s *SecretsWriteRequest) Validate() error {
+	if s.PeerID == "" {
 		return errors.New("missing peer ID")
 	}
-	if p.GetEstablishment().GetSecretID() != "" {
-		return nil
+	switch r := s.Request.(type) {
+	case *SecretsWriteRequest_GenerateToken:
+		if r != nil && r.GenerateToken.GetEstablishmentSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_Establish:
+		if r != nil && r.Establish.GetActiveStreamSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_ExchangeSecret:
+		if r != nil && r.ExchangeSecret.GetPendingStreamSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_PromotePending:
+		if r != nil && r.PromotePending.GetActiveStreamSecret() != "" {
+			return nil
+		}
+	default:
+		return fmt.Errorf("unexpected request type %T", s.Request)
 	}
-	if p.GetStream().GetPendingSecretID() != "" || p.GetStream().GetActiveSecretID() != "" {
-		return nil
-	}
-	return errors.New("no secret IDs were embedded")
+
+	return errors.New("missing secret ID")
 }
 
 // TLSDialOption returns the gRPC DialOption to secure the transport if CAPems

@@ -8,12 +8,52 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *PeeringSecretsWriteRequest) MarshalBinary() ([]byte, error) {
+func (msg *SecretsWriteRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *PeeringSecretsWriteRequest) UnmarshalBinary(b []byte) error {
+func (msg *SecretsWriteRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SecretsWriteRequest_GenerateTokenRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SecretsWriteRequest_GenerateTokenRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SecretsWriteRequest_ExchangeSecretRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SecretsWriteRequest_ExchangeSecretRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SecretsWriteRequest_PromotePendingRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SecretsWriteRequest_PromotePendingRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *SecretsWriteRequest_EstablishRequest) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *SecretsWriteRequest_EstablishRequest) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

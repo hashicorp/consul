@@ -483,18 +483,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			ID:   "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
 			Name: "baz",
 		},
-		SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
-			Secrets: &pbpeering.PeeringSecrets{
-				PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
-				},
-				Stream: &pbpeering.PeeringSecrets_Stream{
-					PendingSecretID: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
-					ActiveSecretID:  "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
+			PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+			Request: &pbpeering.SecretsWriteRequest_PromotePending{
+				PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+					ActiveStreamSecret: "baaeea83-8419-4aa8-ac89-14e7246a3d2f",
 				},
 			},
-			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
 		},
 	}))
 
@@ -503,6 +498,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		TrustDomain: "qux.com",
 		PeerName:    "qux",
 		RootPEMs:    []string{"qux certificate bundle"},
+	}))
+
+	// Issue two more secrets writes so that there are three secrets associated with the peering:
+	// - Establishment: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84"
+	// - Pending: "0b7812d4-32d9-4e54-b1b3-4d97084982a0"
+	// - Active: "baaeea83-8419-4aa8-ac89-14e7246a3d2f"
+	require.NoError(t, fsm.state.PeeringSecretsWrite(34, &pbpeering.SecretsWriteRequest{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				PendingStreamSecret: "0b7812d4-32d9-4e54-b1b3-4d97084982a0",
+			},
+		},
+	}))
+	require.NoError(t, fsm.state.PeeringSecretsWrite(33, &pbpeering.SecretsWriteRequest{
+		PeerID: "1fabcd52-1d46-49b0-b1d8-71559aee47f5",
+		Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+			GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+				EstablishmentSecret: "389bbcdf-1c31-47d6-ae96-f2a3f4c45f84",
+			},
+		},
 	}))
 
 	// Snapshot

@@ -99,7 +99,7 @@ type Backend interface {
 	GetLeaderAddress() string
 
 	ValidateProposedPeeringSecret(id string) (bool, error)
-	PeeringSecretsWrite(req *pbpeering.PeeringSecretsWriteRequest) error
+	PeeringSecretsWrite(req *pbpeering.SecretsWriteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error

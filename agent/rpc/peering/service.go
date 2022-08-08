@@ -260,14 +260,13 @@ func (s *Server) GenerateToken(
 
 		writeReq := &pbpeering.PeeringWriteRequest{
 			Peering: peering,
-			SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
-				Secrets: &pbpeering.PeeringSecrets{
-					PeerID: peering.ID,
-					Establishment: &pbpeering.PeeringSecrets_Establishment{
-						SecretID: secretID,
+			SecretsRequest: &pbpeering.SecretsWriteRequest{
+				PeerID: peering.ID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: secretID,
 					},
 				},
-				Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
 			},
 		}
 		if err := s.Backend.PeeringWrite(writeReq); err != nil {
@@ -434,19 +433,19 @@ func (s *Server) Establish(
 		return nil, dialErrors
 	}
 
-	// As soon as a peering is written with a list of ServerAddresses that is
-	// non-empty, the leader routine will see the peering and attempt to
-	// establish a connection with the remote peer.
+	// As soon as a peering is written with a non-empty list of ServerAddresses
+	// and an active stream secret, a leader routine will see the peering and
+	// attempt to establish a peering stream with the remote peer.
 	//
 	// This peer now has a record of both the LocalPeerID(ID) and
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: peering,
-		SecretsRequest: &pbpeering.PeeringSecretsWriteRequest{
-			Secrets: &pbpeering.PeeringSecrets{
-				PeerID: peering.ID,
-				Stream: &pbpeering.PeeringSecrets_Stream{
-					ActiveSecretID: exchangeResp.StreamSecret,
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
+			PeerID: peering.ID,
+			Request: &pbpeering.SecretsWriteRequest_Establish{
+				Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+					ActiveStreamSecret: exchangeResp.StreamSecret,
 				},
 			},
 		},
