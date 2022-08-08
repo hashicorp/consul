@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Consul API Gateway Routes
+description:  >-
+  Consul API Gateway Routes
+---
+
+# Route
+
+Routes are independent configuration objects that are associated with specific listeners.
+
+Declare a route with either `kind: HTTPRoute` or `kind: TCPRoute` and configure the route parameters in the `spec` block.
+Refer to the Kubernetes Gateway API documentation for each object type for details:
+
+- [HTTPRoute](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute)
+- [TCPRoute](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute)
+
+The following example creates a route named `example-route` associated with a listener defined in `example-gateway`.
+
+<CodeBlockConfig filename="routes.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: HTTPRoute
+  metadata:
+    name: example-route
+  spec:
+    parentRefs:
+    - name: example-gateway
+    rules:
+    - backendRefs:
+      - kind: Service
+        name: echo
+        port: 8080
+  ```
+
+</CodeBlockConfig>
+
+To create a route for a `backendRef` in a different namespace, you must also
+create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+
+The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
+
+<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+
+  ```yaml
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: HTTPRoute
+  metadata:
+    name: example-route
+    namespace: gateway-namespace
+  spec:
+    parentRefs:
+      - name: example-gateway
+    rules:
+      - backendRefs:
+        - kind: Service
+          name: echo
+          namespace: service-namespace
+          port: 8080
+  ---
+
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: ReferencePolicy
+  metadata:
+    name: reference-policy
+    namespace: service-namespace
+  spec:
+    from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gateway-namespace
+      to:
+        - group: ""
+          kind: Service
+          name: echo
+  ```
+
+</CodeBlockConfig>
+
+## MeshService
+
+The `MeshService` configuration holds a reference to an externally-managed Consul service mesh service and can be used as a `backendRef` for a [`Route`](#route).
+
+| Parameter                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type    | Default         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
+
+Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
