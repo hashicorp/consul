@@ -83,6 +83,10 @@ var (
 	// stopWg is used to keep track of background goroutines that are still
 	// alive. Only really exists for the safety of reset() during unit tests.
 	stopWg sync.WaitGroup
+
+	// portLastUser associates ports with a test name in order to debug
+	// which test may be leaking unclosed TCP connections.
+	portLastUser map[int]string
 )
 
 // initialize is used to initialize freeport.
@@ -127,6 +131,8 @@ func initialize() {
 
 	stopWg.Add(1)
 	stopCh = make(chan struct{})
+
+	portLastUser = make(map[int]string)
 	// Note: we pass this param explicitly to the goroutine so that we can
 	// freely recreate the underlying stop channel during reset() after closing
 	// the original.
@@ -166,6 +172,7 @@ func reset() {
 
 	freePorts = nil
 	pendingPorts = nil
+	portLastUser = nil
 	total = 0
 }
 
@@ -196,7 +203,7 @@ func checkFreedPortsOnce() {
 			freePorts.PushBack(port)
 			remove = append(remove, elem)
 		} else {
-			logf("WARN", "port %d still being used", port)
+			logf("WARN", "port %d still being used by %q", port, portLastUser[port])
 		}
 	}
 
@@ -416,6 +423,11 @@ func GetN(t TestingT, n int) []int {
 		t.Fatalf("failed to take %v ports: %w", n, err)
 	}
 	logf("DEBUG", "Test %q took ports %v", t.Name(), ports)
+	mu.Lock()
+	for _, p := range ports {
+		portLastUser[p] = t.Name()
+	}
+	mu.Unlock()
 	t.Cleanup(func() {
 		Return(ports)
 		logf("DEBUG", "Test %q returned ports %v", t.Name(), ports)
