@@ -195,6 +195,8 @@ func checkFreedPortsOnce() {
 		if used := isPortInUse(port); !used {
 			freePorts.PushBack(port)
 			remove = append(remove, elem)
+		} else {
+			logf("WARN", "port %d still being used", port)
 		}
 	}
 
@@ -314,7 +316,6 @@ func Take(n int) (ports []int, err error) {
 		ports = append(ports, port)
 	}
 
-	// logf("DEBUG", "free ports: %v", ports)
 	return ports, nil
 }
 
@@ -400,9 +401,10 @@ func logf(severity string, format string, a ...interface{}) {
 // In the future new methods may be added to this interface, but those methods
 // should always be implemented by *testing.T
 type TestingT interface {
+	Cleanup(func())
 	Helper()
 	Fatalf(format string, args ...interface{})
-	Cleanup(func())
+	Name() string
 }
 
 // GetN returns n free ports from the reserved port block, and returns the
@@ -413,8 +415,10 @@ func GetN(t TestingT, n int) []int {
 	if err != nil {
 		t.Fatalf("failed to take %v ports: %w", n, err)
 	}
+	logf("DEBUG", "Test %q took ports %v", t.Name(), ports)
 	t.Cleanup(func() {
 		Return(ports)
+		logf("DEBUG", "Test %q returned ports %v", t.Name(), ports)
 	})
 	return ports
 }
