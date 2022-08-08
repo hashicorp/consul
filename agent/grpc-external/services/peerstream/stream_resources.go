@@ -81,6 +81,11 @@ func (s *Server) ExchangeSecret(ctx context.Context, req *pbpeerstream.ExchangeS
 		PeerID: req.PeerID,
 		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				// Pass the given establishment secret to that it can be re-validated at the state store.
+				// Validating the establishment secret at the RPC is not enough because there can be
+				// concurrent callers with the same establishment secret.
+				EstablishmentSecret: req.EstablishmentSecret,
+
 				// Overwrite any existing un-utilized pending stream secret.
 				PendingStreamSecret: id,
 			},

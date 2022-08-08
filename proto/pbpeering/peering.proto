@@ -79,9 +79,12 @@ message SecretsWriteRequest {
   // secret. It is triggered by an acceptor peer generating a long-lived stream secret
   // in exchange for an establishment secret.
   message ExchangeSecretRequest {
+    // establishment_secret is the secret to exchange for the given pending stream secret.
+    string establishment_secret = 1;
+
     // pending_stream_secret is the proposed secret ID to store as the pending stream
     // secret for this peering.
-    string pending_stream_secret = 1;
+    string pending_stream_secret = 2;
   }
 
   // PromotePendingRequest encodes a request to promote a pending stream secret

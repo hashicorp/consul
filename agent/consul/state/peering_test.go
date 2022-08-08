@@ -559,6 +559,32 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 			expectErr: "peering was already established",
 		},
 		{
+			name: "cannot exchange secret without valid establishment secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						// Given secret Three does not match One
+						EstablishmentSecret: testSecretThree,
+						PendingStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expectErr: "invalid establishment secret",
+		},
+		{
 			name: "exchange secret to generate new pending secret",
 			seed: &testSeed{
 				peering: &pbpeering.Peering{
@@ -576,6 +602,7 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 				PeerID: testFooPeerID,
 				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						EstablishmentSecret: testSecretOne,
 						PendingStreamSecret: testSecretTwo,
 					},
 				},
@@ -611,6 +638,8 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 				PeerID: testFooPeerID,
 				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
 					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						EstablishmentSecret: testSecretFour,
+
 						// Three replaces two
 						PendingStreamSecret: testSecretThree,
 					},
@@ -669,7 +698,33 @@ func TestStore_PeeringSecretsWrite(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "secret was already promoted",
+			expectErr: "invalid pending stream secret",
+		},
+		{
+			name: "cannot promote pending without valid pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testSecretTwo,
+						ActiveSecretID:  testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						// Attempting to write secret Three, but pending secret is Two
+						ActiveStreamSecret: testSecretThree,
+					},
+				},
+			},
+			expectErr: "invalid pending stream secret",
 		},
 		{
 			name: "promote pending secret and delete active",
