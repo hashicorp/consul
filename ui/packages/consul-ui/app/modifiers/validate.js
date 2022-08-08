@@ -34,10 +34,10 @@ export default class ValidateModifier extends Modifier {
     }
     if(Object.keys(errors).length > 0) {
       state.context.errors = errors;
-      this.hash.chart.dispatch("ERROR");
+      this.hash.chart.dispatch("ERROR", state.context);
     } else {
       state.context.errors = null;
-      this.hash.chart.dispatch("RESET");
+      this.hash.chart.dispatch("RESET", state.context);
     }
   }
 
@@ -61,7 +61,7 @@ export default class ValidateModifier extends Modifier {
       });
       if(Object.keys(state.context.errors).length === 0) {
         state.context.errors = null;
-        this.hash.chart.dispatch("RESET");
+        this.hash.chart.dispatch("RESET", state.context);
       }
     }
   }
