@@ -18,7 +18,7 @@
     >
 
       <fsm.State @matches={{array 'idle' 'error'}}>
-        {{#if fsm.state.context.error}}
+        <fsm.State @matches={{'error'}}>
           <Notice
             @type="error"
             role="alert"
@@ -30,7 +30,7 @@
               </p>
             </notice.Body>
           </Notice>
-        {{/if}}
+        </fsm.State>
         {{yield (hash
           Fieldsets=(component "consul/peer/form/generate/fieldsets"
             item=@item
