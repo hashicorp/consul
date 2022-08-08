@@ -110,6 +110,12 @@ func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opt
 // even if service already exists if using `modifyAccordingIndex`.
 // This is done by setting the transaction ID in "version" meta so service will be updated if it already exists
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
+	testRegisterServiceWithChangeOpts(t, s, idx, nodeID, serviceID, modifyAccordingIndex)
+}
+
+// testRegisterServiceWithChangeOpts is the same as testRegisterServiceWithChange with the addition of opts that can
+// modify the service prior to writing.
+func testRegisterServiceWithChangeOpts(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool, opts ...func(service *structs.NodeService)) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
 		meta["version"] = fmt.Sprint(idx)
@@ -121,6 +127,10 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 		Port:    1111,
 		Meta:    meta,
 	}
+	for _, o := range opts {
+		o(svc)
+	}
+
 	if err := s.EnsureService(idx, nodeID, svc); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -144,6 +154,12 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 // ensures the transaction is updated by setting idx in Meta of Service
 func testRegisterService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
 	testRegisterServiceWithChange(t, s, idx, nodeID, serviceID, false)
+}
+
+func testRegisterConnectService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
+	testRegisterServiceWithChangeOpts(t, s, idx, nodeID, serviceID, true, func(service *structs.NodeService) {
+		service.Connect = structs.ServiceConnect{Native: true}
+	})
 }
 
 func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
