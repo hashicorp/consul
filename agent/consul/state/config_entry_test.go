@@ -372,7 +372,7 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].ServiceKind, structs.GatewayServiceKindUnknown)
+	require.Equal(t, structs.GatewayServiceKindUnknown, gatewayServices[0].ServiceKind)
 
 	_, kindServices, err = s.ServiceNamesOfKind(ws, structs.ServiceKindDestination)
 	require.NoError(t, err)
@@ -710,13 +710,141 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 
 	require.NoError(t, s.DeleteConfigEntry(6, structs.ServiceDefaults, destination.Name, &destination.EnterpriseMeta))
 
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
+	// Watch is fired because we deleted the destination - now the mapping should be gone.
 	require.True(t, watchFired(ws))
 
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
-	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].ServiceKind, structs.GatewayServiceKindUnknown)
+	require.Len(t, gatewayServices, 0)
+
+	t.Run("delete service instance before config entry", func(t *testing.T) {
+		// Set up a service with both a real instance and destination from a config entry.
+		require.NoError(t, s.EnsureNode(7, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+		require.NoError(t, s.EnsureService(8, "foo", &structs.NodeService{ID: "dest2", Service: "dest2", Tags: nil, Address: "", Port: 5000}))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		require.Equal(t, structs.GatewayServiceKindService, gatewayServices[0].ServiceKind)
+
+		// Register destination; shouldn't change the gateway mapping.
+		destination2 := &structs.ServiceConfigEntry{
+			Kind:        structs.ServiceDefaults,
+			Name:        "dest2",
+			Destination: &structs.DestinationConfig{},
+		}
+		require.NoError(t, s.EnsureConfigEntry(9, destination2))
+		require.False(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		expected := structs.GatewayServices{
+			{
+				Service:      structs.NewServiceName("dest2", nil),
+				Gateway:      structs.NewServiceName("Gtwy1", nil),
+				ServiceKind:  structs.GatewayServiceKindService,
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
+				},
+			},
+		}
+		require.Equal(t, expected, gatewayServices)
+
+		// Delete the service, mapping should still exist.
+		require.NoError(t, s.DeleteService(10, "foo", "dest2", nil, ""))
+		require.False(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		require.Equal(t, expected, gatewayServices)
+
+		// Delete the config entry, mapping should be gone.
+		require.NoError(t, s.DeleteConfigEntry(11, structs.ServiceDefaults, "dest2", &destination.EnterpriseMeta))
+		require.True(t, watchFired(ws))
+
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Empty(t, gatewayServices)
+	})
+
+	t.Run("delete config entry before service instance", func(t *testing.T) {
+		// Set up a service with both a real instance and destination from a config entry.
+		destination2 := &structs.ServiceConfigEntry{
+			Kind:        structs.ServiceDefaults,
+			Name:        "dest2",
+			Destination: &structs.DestinationConfig{},
+		}
+		require.NoError(t, s.EnsureConfigEntry(7, destination2))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		expected := structs.GatewayServices{
+			{
+				Service:      structs.NewServiceName("dest2", nil),
+				Gateway:      structs.NewServiceName("Gtwy1", nil),
+				ServiceKind:  structs.GatewayServiceKindDestination,
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 7,
+					ModifyIndex: 7,
+				},
+			},
+		}
+		require.Equal(t, expected, gatewayServices)
+
+		// Register service, only ServiceKind should have changed on the gateway mapping.
+		require.NoError(t, s.EnsureNode(8, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+		require.NoError(t, s.EnsureService(9, "foo", &structs.NodeService{ID: "dest2", Service: "dest2", Tags: nil, Address: "", Port: 5000}))
+		require.True(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		expected = structs.GatewayServices{
+			{
+				Service:      structs.NewServiceName("dest2", nil),
+				Gateway:      structs.NewServiceName("Gtwy1", nil),
+				ServiceKind:  structs.GatewayServiceKindService,
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 7,
+					ModifyIndex: 9,
+				},
+			},
+		}
+		require.Equal(t, expected, gatewayServices)
+
+		// Delete the config entry, mapping should still exist.
+		require.NoError(t, s.DeleteConfigEntry(10, structs.ServiceDefaults, "dest2", &destination.EnterpriseMeta))
+		require.False(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Len(t, gatewayServices, 1)
+		require.Equal(t, expected, gatewayServices)
+
+		// Delete the service, mapping should be gone.
+		require.NoError(t, s.DeleteService(11, "foo", "dest2", nil, ""))
+		require.True(t, watchFired(ws))
+
+		_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
+		require.NoError(t, err)
+		require.Empty(t, gatewayServices)
+	})
 }
 
 func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
@@ -772,74 +900,6 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
 	require.NoError(t, err)
 	require.Len(t, gatewayServices, 0)
-}
-
-func TestStore_Service_TerminatingGateway_Kind_Service_Destination_Wildcard(t *testing.T) {
-	s := testConfigStateStore(t)
-
-	Gtwy := &structs.TerminatingGatewayConfigEntry{
-		Kind: structs.TerminatingGateway,
-		Name: "Gtwy1",
-		Services: []structs.LinkedService{
-			{
-				Name: "*",
-			},
-		},
-	}
-
-	// Create
-	require.NoError(t, s.EnsureConfigEntry(0, Gtwy))
-
-	service := &structs.NodeService{
-		Kind:    structs.ServiceKindTypical,
-		Service: "web",
-	}
-	destination := &structs.ServiceConfigEntry{
-		Kind:        structs.ServiceDefaults,
-		Name:        "web",
-		Destination: &structs.DestinationConfig{},
-	}
-
-	_, gatewayServices, err := s.GatewayServices(nil, "Gtwy1", nil)
-	require.NoError(t, err)
-	require.Len(t, gatewayServices, 0)
-
-	ws := memdb.NewWatchSet()
-	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
-	require.NoError(t, err)
-
-	// Create
-	require.NoError(t, s.EnsureConfigEntry(0, destination))
-
-	_, gatewayServices, err = s.GatewayServices(nil, "Gtwy1", nil)
-	require.NoError(t, err)
-	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].ServiceKind, structs.GatewayServiceKindDestination)
-
-	require.NoError(t, s.EnsureNode(0, &structs.Node{Node: "node1"}))
-	require.NoError(t, s.EnsureService(0, "node1", service))
-
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
-	require.True(t, watchFired(ws))
-
-	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
-	require.NoError(t, err)
-	require.Len(t, gatewayServices, 1)
-	require.Equal(t, gatewayServices[0].ServiceKind, structs.GatewayServiceKindService)
-
-	ws = memdb.NewWatchSet()
-	_, _, err = s.GatewayServices(ws, "Gtwy1", nil)
-	require.NoError(t, err)
-
-	require.NoError(t, s.DeleteService(6, "node1", service.ID, &service.EnterpriseMeta, ""))
-
-	//Watch is fired because we transitioned to a destination, by default we assume it's not.
-	require.True(t, watchFired(ws))
-
-	_, gatewayServices, err = s.GatewayServices(ws, "Gtwy1", nil)
-	require.NoError(t, err)
-	require.Len(t, gatewayServices, 0)
-
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {

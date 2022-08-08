@@ -5338,13 +5338,70 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	}
 	assert.Equal(t, expect, out)
 
+	// Add a destination via config entry and make sure it's picked up by the wildcard.
+	configEntryDest := &structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "destination1",
+		Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
+	}
+	assert.NoError(t, s.EnsureConfigEntry(27, configEntryDest))
+
+	idx, out, err = s.GatewayServices(ws, "gateway2", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(27))
+	assert.Len(t, out, 3)
+
+	expectWildcardIncludesDest := structs.GatewayServices{
+		{
+			Service:      structs.NewServiceName("api", nil),
+			Gateway:      structs.NewServiceName("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 26,
+				ModifyIndex: 26,
+			},
+		},
+		{
+			Service:      structs.NewServiceName("db", nil),
+			Gateway:      structs.NewServiceName("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 26,
+				ModifyIndex: 26,
+			},
+		},
+		{
+			Service:      structs.NewServiceName("destination1", nil),
+			Gateway:      structs.NewServiceName("gateway2", nil),
+			GatewayKind:  structs.ServiceKindTerminatingGateway,
+			ServiceKind:  structs.GatewayServiceKindDestination,
+			FromWildcard: true,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 27,
+				ModifyIndex: 27,
+			},
+		},
+	}
+	assert.ElementsMatch(t, expectWildcardIncludesDest, out)
+
+	// Delete the destination.
+	assert.NoError(t, s.DeleteConfigEntry(28, structs.ServiceDefaults, "destination1", nil))
+
+	idx, out, err = s.GatewayServices(ws, "gateway2", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(28))
+	assert.Len(t, out, 2)
+	assert.Equal(t, expect, out)
+
 	// Deleting the config entry should remove existing mappings
-	assert.Nil(t, s.DeleteConfigEntry(27, "terminating-gateway", "gateway", nil))
+	assert.Nil(t, s.DeleteConfigEntry(29, "terminating-gateway", "gateway", nil))
 	assert.True(t, watchFired(ws))
 
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, idx, uint64(27))
+	assert.Equal(t, idx, uint64(29))
 	assert.Len(t, out, 0)
 }
 
