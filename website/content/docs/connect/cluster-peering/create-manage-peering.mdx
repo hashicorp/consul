@@ -13,12 +13,18 @@ A peering token enables cluster peering between different datacenters. Once you 
 
 ## Create a peering connection
 
-To peer clusters, you must complete the following steps in order:
+Cluster peering is not enabled by default on Consul servers. To peer clusters, you must first configure all Consul servers so that `peering` is `enabled`. For additional information, refer to [Configuration Files](/docs/agent/config/config-files).
+
+Then, complete the following steps in order:
 
 1. Create a peering token
 1. Establish a connection between clusters
 1. Export services between clusters
 1. Authorize services for peers
+
+### Enable peering on all Consul servers
+
+Cluster peering is not enabled by default. To enable cluster peering,
 
 ### Create a peering token
 
