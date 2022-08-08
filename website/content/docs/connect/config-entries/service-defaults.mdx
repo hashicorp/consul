@@ -677,20 +677,13 @@ represents a location outside the Consul cluster. They can be dialed directly wh
         {
           name: 'Addresses',
           type: 'array<string>: []',
-          description: {
-            hcl:  `List of addresses associated with the destination. This can be a hostname or an IP address.
+          description:`List of addresses associated with the destination. This can be a hostname or an IP address.
           Wildcards are not accepted.`,
-            yaml:  `List of addresses associated with the destination. This can be a hostname or an IP address.
-          Wildcards are not accepted.`,
-          },
         },
         {
           name: 'Port',
           type: 'int: 0',
-          description: {
-            hcl:  `Port number associated with the destination.`,
-            yaml:  `Port number associated with the destination.`,
-          },
+          description: `Port number associated with the destination.`,
         },
       ]
     },
