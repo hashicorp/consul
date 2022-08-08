@@ -97,8 +97,8 @@ The following example commands install Consul on Kubernetes using custom values,
 The `proxy` command exposes two subcommands for interacting proxies managed by
 Consul in your Kubernetes Cluster.
 
-- [`proxy list`](#proxy-list) List all Kubernetes pods running proxies managed by Consul.
-- [`proxy read`](#proxy-read) Inspect the Envoy configuration for a given Pod.
+- [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
+- [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
 
 ### `proxy list`
 
@@ -111,7 +111,7 @@ $ consul-k8s proxy list <OPTIONS>
 | <nobr>`-all-namespaces`, `-A`</nobr> | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
 
-See [Global Options](#global-options) for additional commands that you can use
+See [Global Options](#global-options) for additional options that you can use
 when installing Consul on Kubernetes.
 
 This command will list proxies alongside their `Type`. Types of proxies include
@@ -162,7 +162,7 @@ consul-ingress-gateway-6fb5544485-br6fl	Ingress Gateway
 consul-ingress-gateway-6fb5544485-m54sp	Ingress Gateway
 ```
 
-Display all pods across all
+Display all pods across all namespaces which run proxies managed by Consul.
 
 ```shell-session
 $ consul-k8s proxy list -A
@@ -183,14 +183,16 @@ default  	frontend-676564547c-v2mfq              	Sidecar
 
 ### `proxy read`
 
-The `proxy read` command allows you to inspect the configuration of any Envoy proxies running on a given Pod.
+The `proxy read` command allows you to inspect the configuration of Envoy proxies running on a given Pod.
 
 ```shell-session
 $ consul-k8s proxy read <PODNAME> <OPTIONS>
 ```
 
 The command takes a required value, `<PODNAME>`. This should be the full name
-of a Kubernetes Pod.
+of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
+Consul, as in the [Multiport configuration](https://www.consul.io/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+configuration for all proxies in the Pod will be displayed.
 
 The following options are available.
 
@@ -220,39 +222,37 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb
 Envoy configuration for backend-658b679b45-d5xlb in namespace default:
 
 ==> Clusters (5)
-Name                	FQDN                                                                     	Endpoints          	Type        	Last Updated
-local_agent         	local_agent                                                              	192.168.79.187:8502	STATIC      	2022-05-13T04:22:39.553Z
-client              	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	                   	EDS         	2022-07-21T12:12:27.335Z
-frontend            	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	                   	EDS         	2022-07-21T12:12:27.242Z
-local_app           	local_app                                                                	127.0.0.1:8080     	STATIC      	2022-05-13T04:22:39.655Z
-original-destination	original-destination                                                     	                   	ORIGINAL_DST	2022-05-13T04:22:39.743Z
+Name                	FQDN                                                                     	Endpoints                                                       	Type        	Last Updated
+local_agent         	local_agent                                                              	192.168.79.187:8502                                             	STATIC      	2022-05-13T04:22:39.553Z
+client              	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	192.168.18.110:20000, 192.168.52.101:20000, 192.168.65.131:20000	EDS         	2022-08-08T12:02:07.471Z
+frontend            	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	192.168.63.120:20000                                            	EDS         	2022-08-08T12:02:07.354Z
+local_app           	local_app                                                                	127.0.0.1:8080                                                  	STATIC      	2022-05-13T04:22:39.655Z
+original-destination	original-destination                                                     	                                                                	ORIGINAL_DST	2022-05-13T04:22:39.743Z
 
 
 ==> Endpoints (6)
-Address:Port        	Cluster    	Weight	Status
-192.168.79.187:8502 	local_agent	1.00  	HEALTHY
-192.168.18.110:20000	           	1.00  	HEALTHY
-192.168.52.101:20000	           	1.00  	HEALTHY
-192.168.65.131:20000	           	1.00  	HEALTHY
-192.168.63.120:20000	           	1.00  	HEALTHY
-127.0.0.1:8080      	local_app  	1.00  	HEALTHY
-
+Address:Port        	Cluster                                                                  	Weight	Status
+192.168.79.187:8502 	local_agent                                                              	1.00  	HEALTHY
+192.168.18.110:20000	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	1.00  	HEALTHY
+192.168.52.101:20000	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	1.00  	HEALTHY
+192.168.65.131:20000	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	1.00  	HEALTHY
+192.168.63.120:20000	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	1.00  	HEALTHY
+127.0.0.1:8080      	local_app                                                                	1.00  	HEALTHY
 
 ==> Listeners (2)
 Name             	Address:Port        	Direction	Filter Chain Match             	Filters                                                                     	Last Updated
-public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* -> local_app/                                                             	2022-07-21T12:12:42.148Z
-outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	-> client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
-                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	-> frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
-                 	                    	         	Any                            	-> original-destination
-
+public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* to local_app/                                                             	2022-08-08T12:02:22.261Z
+outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	to client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
+                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	to frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
+                 	                    	         	Any                            	to original-destination
 
 ==> Routes (1)
 Name           	Destination Cluster	Last Updated
-public_listener	local_app/         	2022-07-21T12:12:42.147Z
-
+public_listener	local_app/         	2022-08-08T12:02:22.260Z
 
 ==> Secrets (0)
 Name	Type	Last Updated
+
 
 ```
 
@@ -264,30 +264,181 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb -fqdn default -clusters -listen
 ```
 
 ```
-Envoy configuration for backend-658b679b45-d5xlb in namespace default:
-
 ==> Filters applied
     Fully qualified domain names containing: default
 
+Envoy configuration for backend-658b679b45-d5xlb in namespace default:
+
 ==> Clusters (2)
-Name    	FQDN                                                                     	Endpoints	Type	Last Updated
-client  	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	         	EDS 	2022-07-21T12:12:27.335Z
-frontend	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	         	EDS 	2022-07-21T12:12:27.242Z
+Name    	FQDN                                                                     	Endpoints                                                       	Type	Last Updated
+client  	client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	192.168.18.110:20000, 192.168.52.101:20000, 192.168.65.131:20000	EDS 	2022-08-08T12:02:07.471Z
+frontend	frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul	192.168.63.120:20000                                            	EDS 	2022-08-08T12:02:07.354Z
 
 
 ==> Listeners (2)
 Name             	Address:Port        	Direction	Filter Chain Match             	Filters                                                                     	Last Updated
-public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* -> local_app/                                                             	2022-07-21T12:12:42.148Z
-outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	-> client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
-                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	-> frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
-                 	                    	         	Any                            	-> original-destination
+public_listener  	192.168.69.179:20000	INBOUND  	Any                            	* to local_app/                                                             	2022-08-08T12:02:22.261Z
+outbound_listener	127.0.0.1:15001     	OUTBOUND 	10.100.134.173/32, 240.0.0.3/32	to client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul  	2022-07-18T15:31:03.246Z
+                 	                    	         	10.100.31.2/32, 240.0.0.5/32   	to frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul
+                 	                    	         	Any                            	to original-destination
 
 ```
 
-Get the raw Envoy configuration dump for the Envoy proxy running on the Pod
-`backend-658b679b45-d5xlb`. The raw configuration will be output for each
-service as a JSON map. The [JQ command line tool](https://stedolan.github.io/jq/)
-can be used to index into the configuration for the service you want to inspect.
+Get the Envoy configuration summary in a JSON format. Note that this is not the
+same as the raw configuration dump from the admin API. This information is the
+same as what is displayed in the table output above, but in a JSON format.
+
+```shell-session
+$ consul-k8s proxy read backend-658b679b45-d5xlb -o json
+```
+
+```
+{
+	"backend-658b679b45-d5xlb": {
+		"clusters": [
+			{
+				"Name": "local_agent",
+				"FullyQualifiedDomainName": "local_agent",
+				"Endpoints": [
+					"192.168.79.187:8502"
+				],
+				"Type": "STATIC",
+				"LastUpdated": "2022-05-13T04:22:39.553Z"
+			},
+			{
+				"Name": "client",
+				"FullyQualifiedDomainName": "client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Endpoints": [
+					"192.168.18.110:20000",
+					"192.168.52.101:20000",
+					"192.168.65.131:20000"
+				],
+				"Type": "EDS",
+				"LastUpdated": "2022-08-08T12:02:07.471Z"
+			},
+			{
+				"Name": "frontend",
+				"FullyQualifiedDomainName": "frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Endpoints": [
+					"192.168.63.120:20000"
+				],
+				"Type": "EDS",
+				"LastUpdated": "2022-08-08T12:02:07.354Z"
+			},
+			{
+				"Name": "local_app",
+				"FullyQualifiedDomainName": "local_app",
+				"Endpoints": [
+					"127.0.0.1:8080"
+				],
+				"Type": "STATIC",
+				"LastUpdated": "2022-05-13T04:22:39.655Z"
+			},
+			{
+				"Name": "original-destination",
+				"FullyQualifiedDomainName": "original-destination",
+				"Endpoints": [],
+				"Type": "ORIGINAL_DST",
+				"LastUpdated": "2022-05-13T04:22:39.743Z"
+			}
+		],
+		"endpoints": [
+			{
+				"Address": "192.168.79.187:8502",
+				"Cluster": "local_agent",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			},
+			{
+				"Address": "192.168.18.110:20000",
+				"Cluster": "client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			},
+			{
+				"Address": "192.168.52.101:20000",
+				"Cluster": "client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			},
+			{
+				"Address": "192.168.65.131:20000",
+				"Cluster": "client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			},
+			{
+				"Address": "192.168.63.120:20000",
+				"Cluster": "frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			},
+			{
+				"Address": "127.0.0.1:8080",
+				"Cluster": "local_app",
+				"Weight": 1,
+				"Status": "HEALTHY"
+			}
+		],
+		"listeners": [
+			{
+				"Name": "public_listener",
+				"Address": "192.168.69.179:20000",
+				"FilterChain": [
+					{
+						"Filters": [
+							"* to local_app/"
+						],
+						"FilterChainMatch": "Any"
+					}
+				],
+				"Direction": "INBOUND",
+				"LastUpdated": "2022-08-08T12:02:22.261Z"
+			},
+			{
+				"Name": "outbound_listener",
+				"Address": "127.0.0.1:15001",
+				"FilterChain": [
+					{
+						"Filters": [
+							"to client.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul"
+						],
+						"FilterChainMatch": "10.100.134.173/32, 240.0.0.3/32"
+					},
+					{
+						"Filters": [
+							"to frontend.default.dc1.internal.bc3815c2-1a0f-f3ff-a2e9-20d791f08d00.consul"
+						],
+						"FilterChainMatch": "10.100.31.2/32, 240.0.0.5/32"
+					},
+					{
+						"Filters": [
+							"to original-destination"
+						],
+						"FilterChainMatch": "Any"
+					}
+				],
+				"Direction": "OUTBOUND",
+				"LastUpdated": "2022-07-18T15:31:03.246Z"
+			}
+		],
+		"routes": [
+			{
+				"Name": "public_listener",
+				"DestinationCluster": "local_app/",
+				"LastUpdated": "2022-08-08T12:02:22.260Z"
+			}
+		],
+		"secrets": []
+	}
+}
+```
+
+Get the raw Envoy configuration dump and clusters information for the Envoy
+proxy running on the Pod `backend-658b679b45-d5xlb`. The raw configuration will
+be output for each service as a JSON map. The
+[JQ command line tool](https://stedolan.github.io/jq/) can be used to index into
+the configuration for the service you want to inspect.
 
 See the [Envoy config dump documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/config_dump.proto)
 for more information on the structure of the config dump.
@@ -296,58 +447,19 @@ for more information on the structure of the config dump.
 $ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
 ```
 
+The output is truncated here for brevity. It follows the format below:
+
 ```
 {
   "backend-658b679b45-d5xlb": {
-    "configs": [
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump",
-        "bootstrap": {
-          // [-- snip 1201 lines --]
-        },
-        "last_updated": "2022-05-13T04:22:39.488Z"
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.ClustersConfigDump",
-        "static_clusters": [
-          // [-- snip 42 lines --]
-        ],
-        "dynamic_active_clusters": [
-          // [-- snip 144 lines --]
-        ]
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump",
-        "static_endpoint_configs": [
-          // [-- snip 29 lines --]
-        ],
-        "dynamic_endpoint_configs": [
-          // [-- snip 120 lines --]
-        ]
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.ListenersConfigDump",
-        "dynamic_listeners": [
-          // [-- snip 216 lines --]
-        ]
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump"
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.RoutesConfigDump",
-        "static_route_configs": [
-          // [-- snip 25 lines --]
-        ]
-      },
-      {
-        "@type": "type.googleapis.com/envoy.admin.v3.SecretsConfigDump"
-      }
-    ]
-  }
+    "clusters": {
+      // [-- snip 372 lines --] output from the Envoy admin interface's /clusters endpoint.
+    },
+    "config_dump": {
+      // [-- snip 1816 lines --] output from the Envoy admin interface's /config_dump?include_eds endpoint.
+    }
 }
 ```
-
 
 ### `status`
 
