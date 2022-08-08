@@ -424,14 +424,15 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb -o json
 ```
 
 Get the raw Envoy configuration dump and clusters information for the Envoy
-proxy running on the Pod `backend-658b679b45-d5xlb`. This command will return 
-the raw configuration for each service as a JSON Map. You can use the 
+proxy running on the Pod `backend-658b679b45-d5xlb`. This command will return
+the raw configuration for each service as JSON. You can use the
 [JQ command line tool](https://stedolan.github.io/jq/) to index into
 the configuration for the service you want to inspect.
 
-See the [Envoy config dump documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/config_dump.proto)
-for more information on the structure of the config dump. The output is
-truncated here for brevity. It follows the format below:
+Refer to the [Envoy config dump documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/admin/v3/config_dump.proto)
+for more information on the structure of the config dump.
+
+The following output is truncated for brevity.
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
