@@ -69,7 +69,7 @@ message SecretsWriteRequest {
 
   // GenerateTokenRequest encodes a request to persist a peering establishment
   // secret. It is triggered by generating a new peering token for a peer cluster.
-  message GenerateTokenRequest{
+  message GenerateTokenRequest {
     // establishment_secret is the proposed secret ID to store as the establishment
     // secret for this peering.
     string establishment_secret = 1;
