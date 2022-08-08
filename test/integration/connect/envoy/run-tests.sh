@@ -555,7 +555,7 @@ function suite_setup {
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    docker build -t bats-verify -f Dockerfile-bats .
+    retry_default docker build -t bats-verify -f Dockerfile-bats .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
     # the machine image to the latest version using this listing:
@@ -566,13 +566,13 @@ function suite_setup {
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+    retry_default docker build -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
 }
 
 function suite_teardown {
@@ -877,7 +877,7 @@ function common_run_container_tcpdump {
 
     # we cant run this in circle but its only here to temporarily enable.
 
-    docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
+    retry_default docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
 
     docker run -d --name $(container_name_prev) \
         $(network_snippet $DC) \
