@@ -75,22 +75,22 @@ $ consul-k8s install -preset=secure -namespace=myNS
 The following example commands install Consul on Kubernetes using custom values, files, or strings that are set via flags. The underlying Consul-on-Kubernetes Helm chart uses the flags to customize the installation. The flags are comparable to the `helm install` [flags](https://helm.sh/docs/helm/helm_install/#helm-install).
 
 ```shell-session
- $ consul-k8s install -set key=value
+$ consul-k8s install -set key=value
 ```
 
 ```shell-session
- $ consul-k8s install -set key1=value1 -set key2=value2
+$ consul-k8s install -set key1=value1 -set key2=value2
 ```
 ```shell-session
- $ consul-k8s install -set-file config1=value1.conf
-```
-
-```shell-session
- $ consul-k8s install -set-file config1=value1.conf -set-file config2=value2.conf
+$ consul-k8s install -set-file config1=value1.conf
 ```
 
 ```shell-session
- $ consul-k8s install -set-string key=value-bool
+$ consul-k8s install -set-file config1=value1.conf -set-file config2=value2.conf
+```
+
+```shell-session
+$ consul-k8s install -set-string key=value-bool
 ```
 
 ### `proxy`
