@@ -212,12 +212,12 @@ as |sort filters items|}}
                   <BlockSlot @name="actions">
                     <li class="docs-link">
                       {{!-- what's the docs for peering?--}}
-                      <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
+                      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/cluster-peering" rel="noopener noreferrer" target="_blank">
                         Documentation on Peers
                       </a>
                     </li>
                     <li class="learn-link">
-                      <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
+                      <a href="{{env "CONSUL_DOCS_URL"}}/connect/cluster-peering/create-manage-peering" rel="noopener noreferrer" target="_blank">
                         Take the tutorial
                       </a>
                     </li>
