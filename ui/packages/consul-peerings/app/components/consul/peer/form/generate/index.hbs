@@ -17,7 +17,20 @@
       id={{id}}
     >
 
-      <fsm.State @matches={{array 'idle'}}>
+      <fsm.State @matches={{array 'idle' 'error'}}>
+        <fsm.State @matches={{'error'}}>
+          <Notice
+            @type="error"
+            role="alert"
+          as |notice|>
+            <notice.Body>
+              <p>
+                <strong>Error</strong><br />
+                {{fsm.state.context.error.message}}
+              </p>
+            </notice.Body>
+          </Notice>
+        </fsm.State>
         {{yield (hash
           Fieldsets=(component "consul/peer/form/generate/fieldsets"
             item=@item
@@ -42,6 +55,9 @@
           @onchange={{queue
             @onchange
             (pick 'data' (fn fsm.dispatch 'SUCCESS'))
+          }}
+          @onerror={{queue
+            (fn fsm.dispatch 'ERROR')
           }}
         />
       </fsm.State>
