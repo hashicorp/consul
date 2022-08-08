@@ -174,7 +174,7 @@ func peeringSecretsReadByPeerIDTxn(tx ReadTxn, ws memdb.WatchSet, id string) (*p
 	return secret, nil
 }
 
-func (s *Store) PeeringSecretsWrite(idx uint64, req *pbpeering.PeeringSecretsWriteRequest) error {
+func (s *Store) PeeringSecretsWrite(idx uint64, req *pbpeering.SecretsWriteRequest) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -184,50 +184,55 @@ func (s *Store) PeeringSecretsWrite(idx uint64, req *pbpeering.PeeringSecretsWri
 	return tx.Commit()
 }
 
-func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.PeeringSecretsWriteRequest) error {
-	if req == nil || req.Secrets == nil {
+func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteRequest) error {
+	if req == nil || req.Request == nil {
 		return nil
 	}
-
-	secret := req.GetSecrets()
-	if err := secret.Validate(); err != nil {
-		return err
+	if err := req.Validate(); err != nil {
+		return fmt.Errorf("invalid secret write request: %w", err)
 	}
 
-	peering, err := peeringReadByIDTxn(tx, nil, secret.PeerID)
+	peering, err := peeringReadByIDTxn(tx, nil, req.PeerID)
 	if err != nil {
 		return fmt.Errorf("failed to read peering by id: %w", err)
 	}
 	if peering == nil {
-		return fmt.Errorf("unknown peering %q for secret", secret.PeerID)
+		return fmt.Errorf("unknown peering %q for secret", req.PeerID)
 	}
 
 	// If the peering came from a peering token no validation is done for the given secrets.
 	// Dialing peers do not need to validate uniqueness because the secrets were generated elsewhere.
 	if peering.ShouldDial() {
-		if err := tx.Insert(tablePeeringSecrets, secret); err != nil {
+		r, ok := req.Request.(*pbpeering.SecretsWriteRequest_Establish)
+		if !ok {
+			return fmt.Errorf("invalid request type %T when persisting stream secret for dialing peer", req.Request)
+		}
+
+		secrets := pbpeering.PeeringSecrets{
+			PeerID: req.PeerID,
+			Stream: &pbpeering.PeeringSecrets_Stream{
+				ActiveSecretID: r.Establish.ActiveStreamSecret,
+			},
+		}
+		if err := tx.Insert(tablePeeringSecrets, &secrets); err != nil {
 			return fmt.Errorf("failed inserting peering: %w", err)
 		}
 		return nil
 	}
 
-	if req.Operation == pbpeering.PeeringSecretsWriteRequest_OPERATION_UNSPECIFIED {
-		return fmt.Errorf("the operation that triggered the secrets write was not specified")
-	}
-
 	// If the peering token was generated locally, validate that the newly introduced UUID is still unique.
 	// RPC handlers validate that generated IDs are available, but availability cannot be guaranteed until the state store operation.
 	var newSecretID string
-	switch req.Operation {
+	switch r := req.Request.(type) {
 
 	// Establishment secrets are written when generating peering tokens, and no other secret IDs are included.
-	case pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN:
-		newSecretID = secret.GetEstablishment().GetSecretID()
+	case *pbpeering.SecretsWriteRequest_GenerateToken:
+		newSecretID = r.GenerateToken.EstablishmentSecret
 
 	// When exchanging an establishment secret a new pending stream secret is generated.
 	// Active stream secrets doesn't need to be checked for uniqueness because it is only ever promoted from pending.
-	case pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET:
-		newSecretID = secret.GetStream().GetPendingSecretID()
+	case *pbpeering.SecretsWriteRequest_ExchangeSecret:
+		newSecretID = r.ExchangeSecret.PendingStreamSecret
 	}
 
 	if newSecretID != "" {
@@ -244,50 +249,101 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.PeeringSecret
 		}
 	}
 
-	existing, err := peeringSecretsReadByPeerIDTxn(tx, nil, secret.PeerID)
+	existing, err := peeringSecretsReadByPeerIDTxn(tx, nil, req.PeerID)
 	if err != nil {
 		return err
 	}
 
+	secrets := pbpeering.PeeringSecrets{
+		PeerID: req.PeerID,
+	}
+
 	var toDelete []string
-	if existing != nil {
-		// Collect any overwritten UUIDs for deletion.
-		switch req.Operation {
-		case pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN:
-			// Merge in existing stream secrets when persisting a new establishment secret.
-			// This is to avoid invalidating stream secrets when a new peering token
-			// is generated.
-			secret.Stream = existing.GetStream()
-
-			// When a new token is generated we replace any un-used establishment secrets.
-			if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
-				toDelete = append(toDelete, existingEstablishment)
-			}
-
-		case pbpeering.PeeringSecretsWriteRequest_OPERATION_EXCHANGESECRET:
-			// Avoid invalidating existing active secrets when exchanging establishment secret for pending.
-			secret.Stream.ActiveSecretID = existing.GetStream().GetActiveSecretID()
-
-			// When exchanging an establishment secret we invalidate the existing establishment secret.
-			if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
-				toDelete = append(toDelete, existingEstablishment)
-			}
-
-			// When exchanging an establishment secret unused pending secrets are overwritten.
-			if existingPending := existing.GetStream().GetPendingSecretID(); existingPending != "" {
-				toDelete = append(toDelete, existingPending)
-			}
-
-		case pbpeering.PeeringSecretsWriteRequest_OPERATION_PROMOTEPENDING:
-			// Avoid invalidating existing establishment secrets when promoting pending secrets.
-			secret.Establishment = existing.GetEstablishment()
-
-			// If there was previously an active stream secret it gets replaced in favor of the pending secret
-			// that is being promoted.
-			if existingActive := existing.GetStream().GetActiveSecretID(); existingActive != "" {
-				toDelete = append(toDelete, existingActive)
-			}
+	// Collect any overwritten UUIDs for deletion.
+	switch r := req.Request.(type) {
+	case *pbpeering.SecretsWriteRequest_GenerateToken:
+		// Store the newly-generated establishment secret, overwriting any that existed.
+		secrets.Establishment = &pbpeering.PeeringSecrets_Establishment{
+			SecretID: r.GenerateToken.GetEstablishmentSecret(),
 		}
+
+		// Merge in existing stream secrets when persisting a new establishment secret.
+		// This is to avoid invalidating stream secrets when a new peering token
+		// is generated.
+		secrets.Stream = existing.GetStream()
+
+		// When a new token is generated we replace any un-used establishment secrets.
+		if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
+			toDelete = append(toDelete, existingEstablishment)
+		}
+
+	case *pbpeering.SecretsWriteRequest_ExchangeSecret:
+		if existing == nil {
+			return fmt.Errorf("cannot exchange peering secret: no known secrets for peering")
+		}
+
+		// Store the newly-generated pending stream secret, overwriting any that existed.
+		secrets.Stream = &pbpeering.PeeringSecrets_Stream{
+			PendingSecretID: r.ExchangeSecret.GetPendingStreamSecret(),
+
+			// Avoid invalidating existing active secrets when exchanging establishment secret for pending.
+			ActiveSecretID: existing.GetStream().GetActiveSecretID(),
+		}
+
+		// When exchanging an establishment secret we invalidate the existing establishment secret.
+		if existingEstablishment := existing.GetEstablishment().GetSecretID(); existingEstablishment != "" {
+			toDelete = append(toDelete, existingEstablishment)
+		} else {
+			// When there is no existing establishment secret we must not proceed because another ExchangeSecret
+			// RPC already invalidated it. Otherwise, this operation would overwrite the pending secret
+			// from the previous ExchangeSecret.
+			return fmt.Errorf("invalid establishment secret: peering was already established")
+		}
+
+		// When exchanging an establishment secret unused pending secrets are overwritten.
+		if existingPending := existing.GetStream().GetPendingSecretID(); existingPending != "" {
+			toDelete = append(toDelete, existingPending)
+		}
+
+	case *pbpeering.SecretsWriteRequest_PromotePending:
+		if existing == nil {
+			return fmt.Errorf("cannot promote pending secret: no known secrets for peering")
+		}
+		if existing.GetStream().GetPendingSecretID() == "" {
+			// There is a potential race if multiple dialing clusters send an Open request with a valid
+			// pending secret. The secret could be validated for all concurrently at the RPC layer,
+			// but then the pending secret is promoted for one dialer before the others.
+			// In this scenario the end result of promoting the pending secret is the same,
+			// but we want to avoid initiating peering streams to all of these clusters.
+			// Therefore, we accept the first write but reject all others.
+			return fmt.Errorf("invalid pending stream secret: secret was already promoted")
+		}
+
+		// Store the newly-generated pending stream secret, overwriting any that existed.
+		secrets.Stream = &pbpeering.PeeringSecrets_Stream{
+			// Promoting a pending secret moves it to active.
+			PendingSecretID: "",
+
+			// Store the newly-promoted pending secret as the active secret.
+			ActiveSecretID: r.PromotePending.ActiveStreamSecret,
+		}
+
+		// Avoid invalidating existing establishment secrets when promoting pending secrets.
+		secrets.Establishment = existing.GetEstablishment()
+
+		// If there was previously an active stream secret it gets replaced in favor of the pending secret
+		// that is being promoted.
+		if existingActive := existing.GetStream().GetActiveSecretID(); existingActive != "" {
+			toDelete = append(toDelete, existingActive)
+		}
+
+	case *pbpeering.SecretsWriteRequest_Establish:
+		// This should never happen. Dialing peers are the only ones that can call Establish,
+		// and the peering secrets for dialing peers should have been inserted earlier in the function.
+		return fmt.Errorf("an accepting peer should not have called Establish RPC")
+
+	default:
+		return fmt.Errorf("got unexpected request type: %T", req.Request)
 	}
 	for _, id := range toDelete {
 		if err := tx.Delete(tablePeeringSecretUUIDs, id); err != nil {
@@ -295,7 +351,7 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.PeeringSecret
 		}
 	}
 
-	if err := tx.Insert(tablePeeringSecrets, secret); err != nil {
+	if err := tx.Insert(tablePeeringSecrets, &secrets); err != nil {
 		return fmt.Errorf("failed inserting peering: %w", err)
 	}
 	return nil

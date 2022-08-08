@@ -26,12 +26,13 @@ func TestServer_ExchangeSecret(t *testing.T) {
 	var secret string
 	testutil.RunStep(t, "known establishment secret is accepted", func(t *testing.T) {
 		// First write the establishment secret so that it can be exchanged
-		require.NoError(t, store.PeeringSecretsWrite(1, &pbpeering.PeeringSecretsWriteRequest{
-			Secrets: &pbpeering.PeeringSecrets{
-				PeerID:        testPeerID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{SecretID: testEstablishmentSecretID},
+		require.NoError(t, store.PeeringSecretsWrite(1, &pbpeering.SecretsWriteRequest{
+			PeerID: testPeerID,
+			Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+				GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+					EstablishmentSecret: testEstablishmentSecretID,
+				},
 			},
-			Operation: pbpeering.PeeringSecretsWriteRequest_OPERATION_GENERATETOKEN,
 		}))
 
 		// Exchange the now-valid establishment secret for a stream secret
