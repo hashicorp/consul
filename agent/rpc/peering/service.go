@@ -260,10 +260,12 @@ func (s *Server) GenerateToken(
 
 		writeReq := &pbpeering.PeeringWriteRequest{
 			Peering: peering,
-			Secret: &pbpeering.PeeringSecrets{
+			SecretsRequest: &pbpeering.SecretsWriteRequest{
 				PeerID: peering.ID,
-				Establishment: &pbpeering.PeeringSecrets_Establishment{
-					SecretID: secretID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: secretID,
+					},
 				},
 			},
 		}
@@ -431,18 +433,20 @@ func (s *Server) Establish(
 		return nil, dialErrors
 	}
 
-	// As soon as a peering is written with a list of ServerAddresses that is
-	// non-empty, the leader routine will see the peering and attempt to
-	// establish a connection with the remote peer.
+	// As soon as a peering is written with a non-empty list of ServerAddresses
+	// and an active stream secret, a leader routine will see the peering and
+	// attempt to establish a peering stream with the remote peer.
 	//
 	// This peer now has a record of both the LocalPeerID(ID) and
 	// RemotePeerID(PeerID) but at this point the other peer does not.
 	writeReq := &pbpeering.PeeringWriteRequest{
 		Peering: peering,
-		Secret: &pbpeering.PeeringSecrets{
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
 			PeerID: peering.ID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				ActiveSecretID: exchangeResp.StreamSecret,
+			Request: &pbpeering.SecretsWriteRequest_Establish{
+				Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+					ActiveStreamSecret: exchangeResp.StreamSecret,
+				},
 			},
 		},
 	}
@@ -729,10 +733,11 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:        existing.ID,
-			Name:      req.Name,
-			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now().UTC()),
+			ID:                  existing.ID,
+			Name:                req.Name,
+			State:               pbpeering.PeeringState_DELETING,
+			PeerServerAddresses: existing.PeerServerAddresses,
+			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

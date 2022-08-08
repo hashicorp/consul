@@ -181,9 +181,13 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 }
 
 func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
+	type testSeed struct {
+		peering *pbpeering.Peering
+		secrets []*pbpeering.SecretsWriteRequest
+	}
 	type testCase struct {
 		name    string
-		seed    *pbpeering.PeeringWriteRequest
+		seed    *testSeed
 		input   *pbpeerstream.ReplicationMessage
 		wantErr error
 	}
@@ -194,7 +198,13 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		srv, store := newTestServer(t, nil)
 
 		// Write a seed peering.
-		require.NoError(t, store.PeeringWrite(1, tc.seed))
+		if tc.seed != nil {
+			require.NoError(t, store.PeeringWrite(1, &pbpeering.PeeringWriteRequest{Peering: tc.seed.peering}))
+
+			for _, s := range tc.seed.secrets {
+				require.NoError(t, store.PeeringSecretsWrite(1, s))
+			}
+		}
 
 		// Set the initial roots and CA configuration.
 		_, _ = writeInitialRootsAndCA(t, store)
@@ -223,12 +233,14 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
+
+		client.Close()
 	}
 	tt := []testCase{
 		{
 			name: "no secret for peering",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   peeringWithoutSecrets,
 				},
@@ -244,15 +256,19 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 		},
 		{
 			name: "unknown secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -267,16 +283,29 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 			wantErr: status.Error(codes.PermissionDenied, "invalid peering stream secret"),
 		},
 		{
-			name: "known active secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			name: "known pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						ActiveSecretID: testActiveStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+								PendingStreamSecret: testPendingStreamSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -284,22 +313,44 @@ func TestStreamResources_Server_ActiveSecretValidation(t *testing.T) {
 				Payload: &pbpeerstream.ReplicationMessage_Open_{
 					Open: &pbpeerstream.ReplicationMessage_Open{
 						PeerID:         testPeerID,
-						StreamSecretID: testActiveStreamSecretID,
+						StreamSecretID: testPendingStreamSecretID,
 					},
 				},
 			},
 		},
 		{
-			name: "known pending secret",
-			seed: &pbpeering.PeeringWriteRequest{
-				Peering: &pbpeering.Peering{
+			name: "known active secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
 					Name: "foo",
 					ID:   testPeerID,
 				},
-				Secret: &pbpeering.PeeringSecrets{
-					PeerID: testPeerID,
-					Stream: &pbpeering.PeeringSecrets_Stream{
-						PendingSecretID: testPendingStreamSecretID,
+				secrets: []*pbpeering.SecretsWriteRequest{
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+							GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+							ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+								EstablishmentSecret: testEstablishmentSecretID,
+								PendingStreamSecret: testPendingStreamSecretID,
+							},
+						},
+					},
+					{
+						PeerID: testPeerID,
+						Request: &pbpeering.SecretsWriteRequest_PromotePending{
+							PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+								// Pending gets promoted to active.
+								ActiveStreamSecret: testPendingStreamSecretID,
+							},
+						},
 					},
 				},
 			},
@@ -1390,7 +1441,7 @@ func (b *testStreamBackend) ValidateProposedPeeringSecret(id string) (bool, erro
 	return true, nil
 }
 
-func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.PeeringSecrets) error {
+func (b *testStreamBackend) PeeringSecretsWrite(req *pbpeering.SecretsWriteRequest) error {
 	return b.store.PeeringSecretsWrite(1, req)
 }
 
@@ -1631,12 +1682,25 @@ func writeTestPeering(t *testing.T, store *state.Store, idx uint64, peerName, re
 	if remotePeerID != "" {
 		peering.PeerServerAddresses = []string{"127.0.0.1:5300"}
 	}
+
 	require.NoError(t, store.PeeringWrite(idx, &pbpeering.PeeringWriteRequest{
 		Peering: &peering,
-		Secret: &pbpeering.PeeringSecrets{
+		SecretsRequest: &pbpeering.SecretsWriteRequest{
 			PeerID: testPeerID,
-			Stream: &pbpeering.PeeringSecrets_Stream{
-				PendingSecretID: testPendingStreamSecretID,
+			// Simulate generating a stream secret by first generating a token then exchanging for a stream secret.
+			Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+				GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+					EstablishmentSecret: testEstablishmentSecretID,
+				},
+			},
+		},
+	}))
+	require.NoError(t, store.PeeringSecretsWrite(idx, &pbpeering.SecretsWriteRequest{
+		PeerID: testPeerID,
+		Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+			ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+				EstablishmentSecret: testEstablishmentSecretID,
+				PendingStreamSecret: testPendingStreamSecretID,
 			},
 		},
 	}))
