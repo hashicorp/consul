@@ -19,7 +19,7 @@
             "path": "intro/usecases/what-is-service-discovery"
           },
           {
-            "title": "What is a Service Mesh?",
+            "title": "Service Mesh",
             "path": "intro/usecases/what-is-a-service-mesh"
           }
         ]
