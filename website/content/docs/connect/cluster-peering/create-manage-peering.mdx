@@ -22,16 +22,19 @@ Then, complete the following steps in order:
 1. Export services between clusters
 1. Authorize services for peers
 
+You can generate peering tokens and initiate connections on any available agent using either the API or the Consul UI. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
+
+The UI does not currently support exporting services between clusters or authorizing services for peers.
+
 ### Create a peering token
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
 Everytime you generate a peering token, a single-use establishment secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
 
-You can generate peering tokens and initiate connections on any available agent using either the Consul UI or the API. If you use the API, we recommend performing these operations through a client agent in the partition you want to connect.
-
 <Tabs>
 <Tab heading="Consul API">
+
 In `cluster-01`, issue a request for a peering token.
 
 ```shell-session
@@ -56,16 +59,11 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 <Tab heading="Consul UI">
 
-1. In the Consul UI associated with `cluster-01`, click **Peers**.
+1. In the Consul UI for the datacenter associated with `cluster-01`, click **Peers**.
 1. Click **Add peer connection**.
-1. In the **Name of peer** field, enter `cluster-02`. Then, click **Generate token**.
-1. Copy the token. Be careful not to lose the token, as you cannot view the token again after leaving this screen.
-1. Switch to the UI associated with `cluster 02`. Then, click **Peers** and then **Add peer connection**.
-1. Click **Establish peering**.
-1. In the **Name of peer** field, enter `cluster-01`. Then paste the token in the **Token** field.
-1. Click **Add peer**.
-
-The
+1. In the **Generate token** tab, enter `cluster-02` in the **Name of peer** field.
+1. Click the **Generate token** button.
+1. Copy the token before you proceed. Be careful not to lose the token, as you cannot view the token again after leaving this screen. If you lose your token, you must generate a new one.
 </Tab>
 </Tabs>
 
@@ -75,6 +73,7 @@ Next, use the peering token to establish a secure connection between the cluster
 
 <Tabs>
 <Tab heading="Consul API">
+
 In one of the client agents in "cluster-02," use `peering_token.json` to establish the peering connection. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
@@ -86,6 +85,10 @@ When you connect server agents through cluster peering, they peer their default 
 
 <Tab heading="Consul UI">
 
+1. In the Consul UI for the datacenter associated with `cluster 02`, click **Peers** and then **Add peer connection**.
+1. Click **Establish peering**.
+1. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
+1. Click **Add peer**.
 </Tab>
 </Tabs>
 
@@ -93,8 +96,6 @@ When you connect server agents through cluster peering, they peer their default 
 
 After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
-<Tabs>
-<Tab heading="Consul API">
 First, create a configuration entry and specify the `Kind` as `"exported-services"`.
 
 <CodeBlockConfig filename="peering-config.hcl" hideClipboard>
@@ -127,19 +128,11 @@ $ consul config write peering-config.hcl
 ```
 
 Before you proceed, wait for the clusters to sync and make services available to their peers. You can issue an endpoint query to [check the peered cluster status](#check-peered-cluster-status).
-</Tab>
-
-<Tab heading="Consul UI">
-
-</Tab>
-</Tabs>
 
 ### Authorize services for peers
 
 Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
 
-<Tabs>
-<Tab heading="Consul API">
 First, create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
 
 <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
@@ -166,12 +159,6 @@ Then, add the configuration entry to your cluster.
 ```shell-session
 $ consul config write peering-intentions.hcl
 ```
-</Tab>
-
-<Tab heading="Consul UI">
-
-</Tab>
-</Tabs>
 
 ## Manage peering connections
 
@@ -220,6 +207,9 @@ $  curl http://127.0.0.1:8500/v1/peerings
 
 <Tab heading="Consul UI">
 
+In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in a datacenter.
+
+The name that appears in the list is the name of the cluster in a different datacenter with an established peering connection.
 </Tab>
 </Tabs>
 
@@ -252,6 +242,7 @@ $  curl http://127.0.0.1:8500/v1/peering/cluster-02
 
 <Tab heading="Consul UI">
 
+In the Consul UI, click **Peers**. The UI lists peering connections you created for clusters in a datacenter. Click the name of a peered cluster to view additional details about the peering connection.
 </Tab>
 </Tabs>
 
@@ -259,9 +250,7 @@ $  curl http://127.0.0.1:8500/v1/peering/cluster-02
 
 You can check the status of your peering connection to perform health checks.
 
-<Tabs>
-<Tab heading="Consul API">
-To confirm that the peering connection between your clusters remains healthy, [query the `/health/service` endpoint](/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` query parameter to the end of the URL.
+To confirm that the peering connection between your clusters remains healthy, query the [`health/service` endpoint](/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` query parameter to the end of the URL.
 
 ```shell-session
 $ curl \
@@ -269,12 +258,6 @@ $ curl \
 ```
 
 A successful query includes service information in the output.
-</Tab>
-
-<Tab heading="Consul UI">
-
-</Tab>
-</Tabs>
 
 ### Delete peering connections
 
@@ -282,7 +265,8 @@ You can disconnect the peered clusters by deleting their connection. Deleting a 
 
 <Tabs>
 <Tab heading="Consul API">
-In "cluster-01," request the deletion through the [`/peering/` endpoint](api-docs/peering#delete-a-peering-connection).
+
+In "cluster-01," request the deletion through the [`/peering/ endpoint`](/api-docs/peering#delete-a-peering-connection).
 
 ```shell-session
 $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
