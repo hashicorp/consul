@@ -31,21 +31,20 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
 
   <CodeBlockConfig filename="values.yaml">
 
-    ```shell
-    cat <<EOF > values.yaml
-      global:
-        name: consul
-      connectInject:
-        enabled: true
-      controller:
-        enabled: true
-      apiGateway:
-        enabled: true
-        image: hashicorp/consul-api-gateway:$VERSION
-    EOF
-    ```
-
-  </CodeBlockConfig>
+      ```shell
+        cat <<EOF > values.yaml
+          global:
+            name: consul
+          connectInject:
+            enabled: true
+          controller:
+            enabled: true
+          apiGateway:
+            enabled: true
+            image: hashicorp/consul-api-gateway:$VERSION
+        EOF
+      ```
+    </CodeBlockConfig>
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
 
@@ -55,15 +54,15 @@ Ensure that the environment you are deploying Consul API Gateway in meets the re
       ~> **Note:** Refer to the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to find additional settings.
 
       ```shell-session
-      $ brew tap hashicorp/tap
+        $ brew tap hashicorp/tap
       ```
 
       ```shell-session
-      $ brew install hashicorp/tap/consul-k8s
+        $ brew install hashicorp/tap/consul-k8s
       ```
 
       ```shell-session
-      $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+        $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
       ```
 
     </Tab>
