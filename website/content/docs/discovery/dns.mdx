@@ -488,18 +488,17 @@ fields must be present:
 * `partition`
 * `datacenter`
 
+For imported lookups, only the namespace and peer need to be specified as the partition can be inferred from the peering:
+
+```text
+<service>.virtual[.namespace][.peer].<domain>
+```
+
 For node lookups, only the partition and datacenter need to be specified as nodes cannot be
 namespaced.
 
 ```text
-[tag.]<service>.service.<partition>.ap.<datacenter>.dc.<domain>
-```
-
-For node lookups, only the partition and datacenter need to be specified (nodes cannot be
-namespaced):
-
-```text
-[tag.]<service>.service.<partition>.ap.<datacenter>.dc.<domain>
+[tag.]<node>.node.<partition>.ap.<datacenter>.dc.<domain>
 ```
 
 ## DNS with ACLs
