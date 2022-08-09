@@ -8,10 +8,10 @@ description: >-
 # Consul on Kubernetes CLI Reference
 
 The Consul on Kubernetes CLI, `consul-k8s`, is a tool for managing Consul
-without needing to directly interact with Helm, the [Consul CLI](/commands/index),
+that does not require direct interaction with Helm, the [Consul CLI](/commands/index),
 or `kubectl`.
 
--> **Tip:** For guidance on how to install `consul-k8s`, visit the
+For guidance on how to install `consul-k8s`, refer to the
 [Installing the Consul K8s CLI](/docs/k8s/installation/install-cli) documentation.
 
 This topic describes the commands and available options for using `consul-k8s`.
@@ -95,7 +95,7 @@ $ consul-k8s install -set-string key=value-bool
 
 ### `proxy`
 
-The `proxy` command exposes two subcommands for interacting proxies managed by
+The `proxy` command exposes two subcommands for interacting with proxies managed by
 Consul in your Kubernetes Cluster.
 
 - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
@@ -115,22 +115,22 @@ $ consul-k8s proxy list <OPTIONS>
 Refer to the [Global Options](#global-options) for additional options that you can use
 when installing Consul on Kubernetes.
 
-This command will list proxies alongside their `Type`. Types of proxies include:
+This command lists proxies and their `Type`. Types of proxies include:
 
-- `Sidecar`: these will be the majority of pods in the cluster. They run the
-  proxy in a sidecar pattern to network the pod as a service in the mesh.
-- `API Gateway`: these pods run a proxy to manage connections with networks
+- `Sidecar`: The majority of pods in the cluster are `Sidecar` types. They run the
+  proxy as a sidecar to connect the pod as a service in the mesh.
+- `API Gateway`: These pods run a proxy to manage connections with networks
   outside of the Consul cluster. Read more about [API gateways](/docs/api-gateway).
-- `Ingress Gateway`: these pods run a proxy to manage ingress into the
+- `Ingress Gateway`: These pods run a proxy to manage ingress into the
   Kubernetes cluster. Read more about [ingress gateways](/docs/k8s/connect/ingress-gateways).
-- `Terminating Gateway`: these pods run a proxy to control connections to
+- `Terminating Gateway`: These pods run a proxy to control connections to
   external services. Read more about [terminating gateways](/docs/k8s/connect/terminating-gateways).
-- `Mesh Gateway`: these pods run a proxy to manage connections between
+- `Mesh Gateway`: These pods run a proxy to manage connections between
   Consul clusters connected using mesh federation. Read more about [Consul Mesh Federation](/docs/k8s/installation/multi-cluster/kubernetes).
 
 #### Example Commands
 
-Display all pods in the current Kubernetes namespace which run proxies managed
+Display all pods in the current Kubernetes namespace that run proxies managed
 by Consul.
 
 ```shell-session
@@ -148,7 +148,7 @@ client-767ccfc8f9-ggrtx  	Sidecar
 frontend-676564547c-v2mfq	Sidecar
 ```
 
-Display all pods in the `consul` Kubernetes namespace which run proxies managed
+Display all pods in the `consul` Kubernetes namespace that run proxies managed
 by Consul.
 
 ```shell-session
@@ -163,7 +163,7 @@ consul-ingress-gateway-6fb5544485-br6fl	Ingress Gateway
 consul-ingress-gateway-6fb5544485-m54sp	Ingress Gateway
 ```
 
-Display all pods across all namespaces which run proxies managed by Consul.
+Display all Pods across all namespaces that run proxies managed by Consul.
 
 ```shell-session
 $ consul-k8s proxy list -A
@@ -252,7 +252,7 @@ Name	Type	Last Updated
 ```
 
 Get the Envoy configuration summary for all clusters with a fully qualified
-domain name which includes `"default"`. Display only clusters and listeners.
+domain name that includes `"default"`. Display only clusters and listeners.
 
 ```shell-session
 $ consul-k8s proxy read backend-658b679b45-d5xlb -fqdn default -clusters -listeners
@@ -424,7 +424,7 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb -o json
 ```
 
 Get the raw Envoy configuration dump and clusters information for the Envoy
-proxy running on the Pod `backend-658b679b45-d5xlb`. This command will return
+proxy running on the Pod `backend-658b679b45-d5xlb`. The example command returns
 the raw configuration for each service as JSON. You can use the
 [JQ command line tool](https://stedolan.github.io/jq/) to index into
 the configuration for the service you want to inspect.
@@ -449,7 +449,7 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
 
 ### `status`
 
-The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the config that was used to deploy Consul K8s and provides a quick glance at the health of both Consul servers and clients. This command does not take in any flags.
+The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the configuration that was used to deploy Consul K8s and information about the health of Consul servers and clients. This command does not take in any flags.
 
 ```shell-session
 $ consul-k8s status
