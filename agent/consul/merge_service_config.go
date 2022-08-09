@@ -158,6 +158,9 @@ func computeResolvedServiceConfig(
 		if serviceConf.Destination != nil {
 			thisReply.Destination = *serviceConf.Destination
 		}
+		if serviceConf.MaxInboundConnections > 0 {
+			thisReply.MaxInboundConnections = *&serviceConf.MaxInboundConnections
+		}
 
 		thisReply.Meta = serviceConf.Meta
 	}
@@ -322,6 +325,20 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	}
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
 		return nil, err
+	}
+
+	// defaults.MaxInboundConnections isn't a map[string]interface{} type, so we
+	// have to assign it explicitly
+	if defaults.MaxInboundConnections > 0 {
+		if len(ns.Proxy.Config) == 0 {
+			ns.Proxy.Config = map[string]interface{}{
+				"max_inbound_connections": defaults.MaxInboundConnections,
+			}
+		} else {
+			if _, ok := ns.Proxy.Config["max_inbound_connections"]; !ok {
+				ns.Proxy.Config["max_inbound_connections"] = defaults.MaxInboundConnections
+			}
+		}
 	}
 
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {

@@ -462,3 +462,153 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 		})
 	}
 }
+
+func Test_MergeServiceConfig_MaxInboundConnections(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "both has MaxInboundConnections; use service's value",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					MaxInboundConnections: 20,
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDefault,
+						TransparentProxy:       structs.TransparentProxyConfig{},
+						Config: map[string]interface{}{
+							"max_inbound_connections": 10,
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					Config: map[string]interface{}{
+						"max_inbound_connections": 10,
+					},
+				},
+			},
+		},
+		{
+			name: "Use default value",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					MaxInboundConnections: 20,
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDefault,
+						TransparentProxy:       structs.TransparentProxyConfig{},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					Config: map[string]interface{}{
+						"max_inbound_connections": 20,
+					},
+				},
+			},
+		},
+		{
+			name: "No default value",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDefault,
+						TransparentProxy:       structs.TransparentProxyConfig{},
+						Config: map[string]interface{}{
+							"max_inbound_connections": 20,
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
+					Config: map[string]interface{}{
+						"max_inbound_connections": 20,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
+			got, err := MergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
