@@ -12,7 +12,7 @@ description: >-
 
 Mesh gateways are required for you to route service mesh traffic between different Consul clusters. Clusters can reside in different clouds or runtime environments where general interconnectivity between all services in all clusters is not feasible.
 
-Unlike mesh gateways for datacenters and partitions, mesh gateways for cluster peering decrypts data to HTTP services within the mTLS session. Data must be decrypted in order to apply dynamic routing rules configured in the destination cluster.
+Unlike mesh gateways for datacenters and partitions, mesh gateways for cluster peering decrypt data to HTTP services within the mTLS session. Data must be decrypted in order to evaluate and apply dynamic routing rules at the destination cluster, which reduces coupling between peers.
 
 ## Prerequisites
 
@@ -21,6 +21,7 @@ To configure mesh gateways for cluster peering, make sure your Consul environmen
 - Consul version 1.13.0 or newer.
 - A local Consul agent is required to manage mesh gateway configuration.
 - [Enable Consul service mesh](/docs/agent/config/config-files#connect-parameters) in all clusters.
+- [Enable `peering`](/docs/agent/config/config-files) on all Consul servers.
 - Use [Envoy proxies](/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
 
 ## Configuration
