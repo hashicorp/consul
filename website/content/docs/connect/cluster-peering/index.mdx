@@ -27,14 +27,16 @@ WAN federation and cluster peering are different ways to connect clusters. The m
 
 Regardless of whether you connect your clusters through WAN federation or cluster peering, human and machine users can use either method to discover services in other clusters or dial them through the service mesh.
 
-|                                                  | WAN Federation | Cluster Peering |
-| :----------------------------------------------- | :------------: | :-------------: |
-| Connects clusters across datacenters             |    &#9989;     |    &#9989;      |
-| Shares support queries and service endpoints     |    &#9989;     |    &#9989;      |
-| Connects clusters owned by different operators   |    &#10060;    |    &#9989;      |
-| Functions without declaring primary datacenter   |    &#10060;    |    &#9989;      |
-| Shares key/value stores                          |    &#9989;     |    &#10060;     |
-| Uses gossip protocol                             |    &#9989;     |    &#10060;     |
+|                                                    | WAN Federation | Cluster Peering |
+| :------------------------------------------------- | :------------: | :-------------: |
+| Connects clusters across datacenters               |    &#9989;     |    &#9989;      |
+| Shares support queries and service endpoints       |    &#9989;     |    &#9989;      |
+| Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
+| Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
+| Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
+| Shares key/value stores                            |    &#9989;     |    &#10060;     |
+| Uses gossip protocol                               |    &#9989;     |    &#10060;     |
+| Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
 
 ## Beta release features and constraints
 
