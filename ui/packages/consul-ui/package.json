@@ -180,7 +180,7 @@
     "wayfarer": "^7.0.1"
   },
   "engines": {
-    "node": ">=10 <=14"
+    "node": ">=10"
   },
   "ember": {
     "edition": "octane"
