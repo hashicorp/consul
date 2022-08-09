@@ -15,7 +15,11 @@
             "hidden": true
           },
           {
-            "title": "What is a Service Mesh?",
+            "title": "Service Discovery",
+            "path": "intro/usecases/what-is-service-discovery"
+          },
+          {
+            "title": "Service Mesh",
             "path": "intro/usecases/what-is-a-service-mesh"
           }
         ]
