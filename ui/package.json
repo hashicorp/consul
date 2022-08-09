@@ -26,6 +26,6 @@
     "validated-changeset": "0.10.0"
   },
   "engines": {
-    "node": ">=10 <=14"
+    "node": ">=10"
   }
 }
