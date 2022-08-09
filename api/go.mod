@@ -2,13 +2,13 @@ module github.com/hashicorp/consul/api
 
 go 1.12
 
-replace github.com/hashicorp/consul/sdk => ../sdk
+// replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-cmp v0.5.7
-	github.com/hashicorp/consul/sdk v0.10.0
+	github.com/hashicorp/consul/sdk v0.11.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
