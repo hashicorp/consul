@@ -8,7 +8,7 @@ BREAKING CHANGES:
 
 FEATURES:
 
-* **Cluster Peering** This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information refer to the [cluster
+* **Cluster Peering (Beta)** This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information refer to the [cluster
  peering](https://www.consul.io/docs/connect/cluster-peering) documentation.
 * acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
 * agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
