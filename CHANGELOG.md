@@ -1,3 +1,63 @@
+## 1.13.0 (August 9, 2022)
+
+BREAKING CHANGES:
+
+* config-entry: Exporting a specific service name across all namespace is invalid.
+* connect: Removes support for Envoy 1.19 [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
+* telemetry: config flag `telemetry { disable_compat_1.9 = (true|false) }` has been removed. Before upgrading you should remove this flag from your config if the flag is being used. [[GH-13532](https://github.com/hashicorp/consul/issues/13532)]
+
+FEATURES:
+
+* **Cluster Peering (Beta)** This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information refer to the [cluster peering](https://www.consul.io/docs/connect/cluster-peering) documentation.
+* **Transparent proxying through terminating gateways** This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](https://www.consul.io/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information refer to the [terminating gateway](https://www.consul.io/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
+* acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
+* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
+to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
+* ca: Leaf certificates can now be obtained via the gRPC API: `Sign` [[GH-12787](https://github.com/hashicorp/consul/issues/12787)]
+* checks: add UDP health checks.. [[GH-12722](https://github.com/hashicorp/consul/issues/12722)]
+* cli: A new flag for config delete to delete a config entry in a
+valid config file, e.g., config delete -filename intention-allow.hcl [[GH-13677](https://github.com/hashicorp/consul/issues/13677)]
+* connect: Adds a new `destination` field to the `service-default` config entry that allows routing egress traffic
+through a terminating gateway in transparent proxy mode without modifying the catalog. [[GH-13613](https://github.com/hashicorp/consul/issues/13613)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-12825](https://github.com/hashicorp/consul/issues/12825)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-1717](https://github.com/hashicorp/consul/issues/1717)]
+* grpc: New gRPC service and endpoint to return the list of supported consul dataplane features [[GH-12695](https://github.com/hashicorp/consul/issues/12695)]
+* server: broadcast the public grpc port using lan serf and update the consul service in the catalog with the same data [[GH-13687](https://github.com/hashicorp/consul/issues/13687)]
+* streaming: Added topic that can be used to consume updates about the list of services in a datacenter [[GH-13722](https://github.com/hashicorp/consul/issues/13722)]
+* streaming: Added topics for `ingress-gateway`, `mesh`, `service-intentions` and `service-resolver` config entry events. [[GH-13658](https://github.com/hashicorp/consul/issues/13658)]
+
+IMPROVEMENTS:
+
+* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13450](https://github.com/hashicorp/consul/issues/13450)]
+* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-2046](https://github.com/hashicorp/consul/issues/2046)]
+* api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13001](https://github.com/hashicorp/consul/issues/13001)]
+* api: add the ability to specify a path prefix for when consul is behind a reverse proxy or API gateway [[GH-12914](https://github.com/hashicorp/consul/issues/12914)]
+* catalog: Add per-node indexes to reduce watchset firing for unrelated nodes and services. [[GH-12399](https://github.com/hashicorp/consul/issues/12399)]
+* connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
+This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration. [[GH-12881](https://github.com/hashicorp/consul/issues/12881)]
+* ui: Add new CopyableCode component and use it in certain pre-existing areas [[GH-13686](https://github.com/hashicorp/consul/issues/13686)]
+* acl: Clarify node/service identities must be lowercase [[GH-12807](https://github.com/hashicorp/consul/issues/12807)]
+* command: Add support for enabling TLS in the Envoy Prometheus endpoint via the `consul connect envoy` command.
+Adds the `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file` flags. [[GH-13481](https://github.com/hashicorp/consul/issues/13481)]
+* connect: Add Envoy 1.23.0 to support matrix [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
+* connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance. [[GH-13143](https://github.com/hashicorp/consul/issues/13143)]
+* grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed. [[GH-12819](https://github.com/hashicorp/consul/issues/12819)]
+* telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines [[GH-12865](https://github.com/hashicorp/consul/issues/12865)]
+* ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities [[GH-10996](https://github.com/hashicorp/consul/issues/10996)]
+* ui: upgrade ember-composable-helpers to v5.x [[GH-13394](https://github.com/hashicorp/consul/issues/13394)]
+
+BUG FIXES:
+
+* acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter. [[GH-12885](https://github.com/hashicorp/consul/issues/12885)]
+* cli: when `acl token read` is used with the `-self` and `-expanded` flags, return an error instead of panicking [[GH-13787](https://github.com/hashicorp/consul/issues/13787)]
+* connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway. [[GH-13847](https://github.com/hashicorp/consul/issues/13847)]
+* connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams. [[GH-13958](https://github.com/hashicorp/consul/issues/13958)]
+* proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering. [[GH-13012](https://github.com/hashicorp/consul/issues/13012)]
+* raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election. [[GH-12844](https://github.com/hashicorp/consul/issues/12844)]
+* serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed [[GH-13062](https://github.com/hashicorp/consul/issues/13062)]
+* ui: Fixes an issue where client side validation errors were not showing in certain areas [[GH-14021](https://github.com/hashicorp/consul/issues/14021)]
+
 ## 1.12.3 (July 13, 2022)
 
 IMPROVEMENTS:
@@ -35,61 +95,6 @@ BUG FIXES:
 
 * agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13264](https://github.com/hashicorp/consul/issues/13264)]
 * fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
-
-## 1.13.0-alpha2 (June 21, 2022)
-
-IMPROVEMENTS:
-
-* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13450](https://github.com/hashicorp/consul/issues/13450)]
-* connect: Update Envoy support matrix to latest patch releases (1.22.2, 1.21.3, 1.20.4, 1.19.5) [[GH-13431](https://github.com/hashicorp/consul/issues/13431)]
-
-BUG FIXES:
-
-* ui: Fix incorrect text on certain page empty states [[GH-13409](https://github.com/hashicorp/consul/issues/13409)]
-
-## 1.13.0-alpha1 (June 15, 2022)
-
-BREAKING CHANGES:
-
-* config-entry: Exporting a specific service name across all namespace is invalid.
-
-FEATURES:
-
-* acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
-* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
-to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
-* ca: Leaf certificates can now be obtained via the gRPC API: `Sign` [[GH-12787](https://github.com/hashicorp/consul/issues/12787)]
-* checks: add UDP health checks.. [[GH-12722](https://github.com/hashicorp/consul/issues/12722)]
-* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-12825](https://github.com/hashicorp/consul/issues/12825)]
-* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-1717](https://github.com/hashicorp/consul/issues/1717)]
-* grpc: New gRPC service and endpoint to return the list of supported consul dataplane features [[GH-12695](https://github.com/hashicorp/consul/issues/12695)]
-
-IMPROVEMENTS:
-
-* api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13001](https://github.com/hashicorp/consul/issues/13001)]
-* api: add the ability to specify a path prefix for when consul is behind a reverse proxy or API gateway [[GH-12914](https://github.com/hashicorp/consul/issues/12914)]
-* connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
-This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration. [[GH-12881](https://github.com/hashicorp/consul/issues/12881)]
-* Support Vault namespaces in Connect CA by adding RootPKINamespace and
-IntermediatePKINamespace fields to the config. [[GH-12904](https://github.com/hashicorp/consul/issues/12904)]
-* acl: Clarify node/service identities must be lowercase [[GH-12807](https://github.com/hashicorp/consul/issues/12807)]
-* connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance. [[GH-13143](https://github.com/hashicorp/consul/issues/13143)]
-* dns: Added support for specifying admin partition in node lookups. [[GH-13421](https://github.com/hashicorp/consul/issues/13421)]
-* grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed. [[GH-12819](https://github.com/hashicorp/consul/issues/12819)]
-* telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines [[GH-12865](https://github.com/hashicorp/consul/issues/12865)]
-* telemetry: Added a `consul.server.isLeader` metric to track if a server is a leader or not. [[GH-13304](https://github.com/hashicorp/consul/issues/13304)]
-* ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities [[GH-10996](https://github.com/hashicorp/consul/issues/10996)]
-* ui: upgrade ember-composable-helpers to v5.x [[GH-13394](https://github.com/hashicorp/consul/issues/13394)]
-
-BUG FIXES:
-
-* acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter. [[GH-12885](https://github.com/hashicorp/consul/issues/12885)]
-* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13256](https://github.com/hashicorp/consul/issues/13256)]
-* deps: Update go-grpc/grpc, resolving connection memory leak [[GH-13051](https://github.com/hashicorp/consul/issues/13051)]
-* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
-* proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering. [[GH-13012](https://github.com/hashicorp/consul/issues/13012)]
-* raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election. [[GH-12844](https://github.com/hashicorp/consul/issues/12844)]
-* serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed [[GH-13062](https://github.com/hashicorp/consul/issues/13062)]
 
 ## 1.12.2 (June 3, 2022)
 
