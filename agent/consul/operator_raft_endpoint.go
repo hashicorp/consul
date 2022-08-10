@@ -24,6 +24,9 @@ func (op *Operator) RaftLeaderTransfer(args *structs.DCSpecificRequest, reply *s
 	if err != nil {
 		return err
 	}
+	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
+		return err
+	}
 	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
