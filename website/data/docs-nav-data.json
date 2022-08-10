@@ -267,6 +267,10 @@
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Peered Clusters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-peers"
               }
             ]
           },
@@ -284,7 +288,7 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering",
+            "title": "What is Cluster Peering?",
             "path": "connect/cluster-peering"
           },
           {
