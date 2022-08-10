@@ -1279,6 +1279,10 @@
         "title": "Consul ECS",
         "routes": [
           {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-ecs/v0_5_x"
+          },
+          {
             "title": "v0.4.x",
             "path": "release-notes/consul-ecs/v0_4_x"
           },
