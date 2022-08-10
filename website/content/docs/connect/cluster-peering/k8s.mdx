@@ -237,3 +237,32 @@ To confirm that you deleted your peering connection, in `cluster-01`, query the 
 ```shell-session
 $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
 ```
+
+## Recreate or reset a peering connection
+
+To recreate or reset the peering connection, you need to generate a new peering token on the cluster where you created the `PeeringAcceptor` (in this example, `cluster-01`).
+
+1. You can do this by creating or updating the annotation `consul.hashicorp.com/peering-version` on the `PeeringAcceptor`. If the annotation already exists, update its value to a version that is higher.
+
+    <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringAcceptor
+    metadata:
+      name: cluster-02
+      annotations:
+        consul.hashicorp.com/peering-version: 1 ## The peering version you want to set.
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+    </CodeBlockConfig>
+
+1. Once you have done this, repeat the steps in the peering process. This includes saving your peering token so that you can export it to the other cluster. This will re-establish peering with the updated token.
+
+~> **Note:** A new peering token is only generated upon manually setting and updating the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token will cause the previous token to expire.
