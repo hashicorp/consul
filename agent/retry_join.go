@@ -226,7 +226,8 @@ func (r *retryJoiner) retryJoin() error {
 	for {
 		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.logger)
 		if len(addrs) > 0 {
-			n, err := r.join(addrs)
+			n := 0
+			n, err = r.join(addrs)
 			if err == nil {
 				if r.variant == retryJoinMeshGatewayVariant {
 					r.logger.Info("Refreshing mesh gateways completed")
