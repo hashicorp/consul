@@ -244,7 +244,7 @@ To recreate or reset the peering connection, you need to generate a new peering 
 
 1. You can do this by creating or updating the annotation `consul.hashicorp.com/peering-version` on the `PeeringAcceptor`. If the annotation already exists, update its value to a version that is higher.
 
-    <CodeBlockConfig filename="acceptor.yml">
+    <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
 
     ```yaml
     apiVersion: consul.hashicorp.com/v1alpha1
