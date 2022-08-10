@@ -12,6 +12,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -1331,4 +1332,14 @@ func TestLeader_Peering_retryLoopBackoffPeering_cancelContext(t *testing.T) {
 	require.Equal(t, []error{
 		fmt.Errorf("error 1"),
 	}, allErrors)
+}
+
+func Test_isFailedPreconditionErr(t *testing.T) {
+	st := grpcstatus.New(codes.FailedPrecondition, "cannot establish a peering stream on a follower node")
+	err := st.Err()
+	assert.True(t, isFailedPreconditionErr(err))
+
+	// test that wrapped errors are checked correctly
+	werr := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, isFailedPreconditionErr(werr))
 }
