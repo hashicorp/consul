@@ -1171,20 +1171,32 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-func (s *Server) attemptLeadershipTransfer() (success bool) {
+func (s *Server) attemptLeadershipTransfer(id raft.ServerID) (err error) {
 	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
 
 	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
 	if !ok {
-		return false
+		return fmt.Errorf("minimum version not supported, minimu required version %s", LeaderTransferMinVersion)
 	}
 
-	future := s.raft.LeadershipTransfer()
-	if err := future.Error(); err != nil {
-		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
-		return false
+	var addr raft.ServerAddress
+	if id != "" {
+		addr, err = s.serverLookup.ServerAddr(id)
+		if err != nil {
+			return err
+		}
+		future := s.raft.LeadershipTransferToServer(id, addr)
+		if err := future.Error(); err != nil {
+			return err
+		}
+	} else {
+		future := s.raft.LeadershipTransfer()
+		if err := future.Error(); err != nil {
+			return err
+		}
 	}
-	return true
+
+	return nil
 }
 
 // Leave is used to prepare for a graceful shutdown.
@@ -1206,7 +1218,7 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if s.attemptLeadershipTransfer() {
+		if err := s.attemptLeadershipTransfer(""); err == nil {
 			isLeader = false
 		} else {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)

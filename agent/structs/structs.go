@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/raft"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -2869,6 +2870,18 @@ type KeyringRequest struct {
 
 func (r *KeyringRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+// LeaderTransferRequest is used to query a raft leadership change
+type LeaderTransferRequest struct {
+	Datacenter         string
+	ID                 raft.ServerID
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	QueryOptions
+}
+
+func (l LeaderTransferRequest) RequestDatacenter() string {
+	return l.Datacenter
 }
 
 // KeyringResponse is a unified key response and can be used for install,

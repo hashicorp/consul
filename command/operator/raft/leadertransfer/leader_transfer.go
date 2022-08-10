@@ -20,11 +20,14 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
+	id    string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
+	c.flags.StringVar(&c.id, "id", "",
+		"The ID to remove from the Raft configuration.")
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	c.help = flags.Usage(help, c.flags)
