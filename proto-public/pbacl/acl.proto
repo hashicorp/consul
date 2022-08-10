@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package acl;
+package hashicorp.consul.acl;
 
 service ACLService {
   // Login exchanges the presented bearer token for a Consul ACL token using a

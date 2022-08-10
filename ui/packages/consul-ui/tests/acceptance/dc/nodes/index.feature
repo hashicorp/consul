@@ -45,6 +45,7 @@ Feature: dc / nodes / index
     ---
     Then the url should be /dc-1/nodes
     And the title should be "Nodes - Consul"
+    And a GET request was made to "/v1/internal/ui/nodes?dc=dc-1&ns=@namespace"
     Then I see 3 node models
   Scenario: Seeing the leader in node listing
     Given 3 node models from yaml

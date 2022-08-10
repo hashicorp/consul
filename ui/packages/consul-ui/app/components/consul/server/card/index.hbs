@@ -8,7 +8,7 @@
     ))
     (array 'voting-status-non-voter' (or
       @item.ReadReplica
-      (contains @item.Status (array 'non-voter' 'staging'))
+      (includes @item.Status (array 'non-voter' 'staging'))
     ))
   }}
   ...attributes
@@ -31,7 +31,7 @@
       Status
     </dt>
     <dd>
-      {{if (contains @item.Status (array 'leader' 'voter')) 'Active voter' 'Backup voter'}}
+      {{if (includes @item.Status (array 'leader' 'voter')) 'Active voter' 'Backup voter'}}
     </dd>
 
   </dl>

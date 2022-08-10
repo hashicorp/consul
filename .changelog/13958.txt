@@ -1,0 +1,4 @@
+```release-note:bug
+connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams.
+```

@@ -10,23 +10,13 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-func indexPeeringFromQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", raw)
-	}
-
+func indexPeeringFromQuery(q Query) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(q.Value))
 	return b.Bytes(), nil
 }
 
-func indexFromPeering(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*pbpeering.Peering)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Peering index", raw)
-	}
-
+func indexFromPeering(p *pbpeering.Peering) ([]byte, error) {
 	if p.Name == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -36,12 +26,7 @@ func indexFromPeering(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexFromPeeringTrustBundle(raw interface{}) ([]byte, error) {
-	ptb, ok := raw.(*pbpeering.PeeringTrustBundle)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for pbpeering.PeeringTrustBundle index", raw)
-	}
-
+func indexFromPeeringTrustBundle(ptb *pbpeering.PeeringTrustBundle) ([]byte, error) {
 	if ptb.PeerName == "" {
 		return nil, errMissingValueForIndex
 	}

@@ -35,6 +35,11 @@ type Intention struct {
 	SourcePartition      string `json:",omitempty"`
 	DestinationPartition string `json:",omitempty"`
 
+	// SourcePeer cannot be a wildcard "*" and is not compatible with legacy
+	// intentions. Cannot be used with SourcePartition, as both represent the
+	// same level of tenancy (partition is local to cluster, peer is remote).
+	SourcePeer string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 

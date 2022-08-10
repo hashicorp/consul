@@ -1,11 +1,9 @@
 package proxycfg
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 
@@ -13,8 +11,10 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -129,19 +129,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Service:    "web",
 	}
 
-	intentionReq := &structs.IntentionQueryRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "my-token"},
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: structs.IntentionDefaultNamespace,
-					Partition: structs.IntentionDefaultNamespace,
-					Name:      "web",
-				},
-			},
-		},
+	intentionReq := &structs.ServiceSpecificRequest{
+		Datacenter:     "dc1",
+		QueryOptions:   structs.QueryOptions{Token: "my-token"},
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		ServiceName:    "web",
 	}
 
 	meshConfigReq := &structs.ConfigEntryQuery{
@@ -223,8 +215,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
 							dbUID: dbDefaultChain(),
 						},
-						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
-						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {
 								"db.default.default.dc1": TestUpstreamNodes(t, db.Name),
@@ -239,14 +229,17 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:      map[string]indexedTarget{},
-						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
-						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
+						PassthroughUpstreams:              map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:                map[string]indexedTarget{},
+						UpstreamPeerTrustBundles:          watch.NewMap[PeerName, *pbpeering.PeeringTrustBundle](),
+						PeerUpstreamEndpoints:             watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
+						PeerUpstreamEndpointsUseHostnames: map[UpstreamID]struct{}{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
+					DestinationsUpstream:   watch.NewMap[UpstreamID, *structs.ServiceConfigEntry](),
+					DestinationGateways:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
-					Intentions:             TestIntentions().Matches[0],
+					Intentions:             TestIntentions(),
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
@@ -284,8 +277,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						DiscoveryChain: map[UpstreamID]*structs.CompiledDiscoveryChain{
 							dbUID: dbSplitChain(),
 						},
-						WatchedDiscoveryChains: map[UpstreamID]context.CancelFunc{},
-						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{
 							dbUID: {
 								"v1.db.default.default.dc1": TestUpstreamNodes(t, db.Name),
@@ -301,14 +292,17 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							NewUpstreamID(&upstreams[1]): &upstreams[1],
 							NewUpstreamID(&upstreams[2]): &upstreams[2],
 						},
-						PassthroughUpstreams:    map[UpstreamID]map[string]map[string]struct{}{},
-						PassthroughIndices:      map[string]indexedTarget{},
-						WatchedPeerTrustBundles: map[string]context.CancelFunc{},
-						PeerTrustBundles:        map[string]*pbpeering.PeeringTrustBundle{},
+						PassthroughUpstreams:              map[UpstreamID]map[string]map[string]struct{}{},
+						PassthroughIndices:                map[string]indexedTarget{},
+						UpstreamPeerTrustBundles:          watch.NewMap[PeerName, *pbpeering.PeeringTrustBundle](),
+						PeerUpstreamEndpoints:             watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
+						PeerUpstreamEndpointsUseHostnames: map[UpstreamID]struct{}{},
 					},
 					PreparedQueryEndpoints: map[UpstreamID]structs.CheckServiceNodes{},
+					DestinationsUpstream:   watch.NewMap[UpstreamID, *structs.ServiceConfigEntry](),
+					DestinationGateways:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
-					Intentions:             TestIntentions().Matches[0],
+					Intentions:             TestIntentions(),
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
@@ -330,7 +324,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			dataSources.ConfigEntry.Set(meshConfigReq, &structs.ConfigEntryResponse{Entry: nil})
 			tt.setup(t, dataSources)
 
-			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
+			expectSnapCopy, err := tt.expectSnap.Clone()
 			require.NoError(t, err)
 
 			webProxyCopy, err := copystructure.Copy(webProxy)
@@ -341,7 +335,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				rootsReq, leafReq,
 				roots,
 				webProxyCopy.(*structs.NodeService),
-				expectSnapCopy.(*ConfigSnapshot),
+				expectSnapCopy,
 			)
 		})
 	}
@@ -643,7 +637,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// update the intentions
 	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
-		Result:        &structs.IndexedIntentionMatches{},
+		Result:        structs.Intentions{},
 		Err:           nil,
 	}
 

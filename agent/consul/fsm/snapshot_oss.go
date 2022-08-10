@@ -38,6 +38,7 @@ func init() {
 	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
 	registerRestorer(structs.PeeringWriteType, restorePeering)
 	registerRestorer(structs.PeeringTrustBundleWriteType, restorePeeringTrustBundle)
+	registerRestorer(structs.PeeringSecretsWriteType, restorePeeringSecrets)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -93,6 +94,9 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 		return err
 	}
 	if err := s.persistPeeringTrustBundles(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistPeeringSecrets(sink, encoder); err != nil {
 		return err
 	}
 	return nil
@@ -582,6 +586,24 @@ func (s *snapshot) persistPeeringTrustBundles(sink raft.SnapshotSink, encoder *c
 	return nil
 }
 
+func (s *snapshot) persistPeeringSecrets(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	secrets, err := s.state.PeeringSecrets()
+	if err != nil {
+		return err
+	}
+
+	for entry := secrets.Next(); entry != nil; entry = secrets.Next() {
+		if _, err := sink.Write([]byte{byte(structs.PeeringSecretsWriteType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.(*pbpeering.PeeringSecrets)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -902,6 +924,17 @@ func restorePeeringTrustBundle(header *SnapshotHeader, restore *state.Restore, d
 		return err
 	}
 	if err := restore.PeeringTrustBundle(&req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restorePeeringSecrets(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req pbpeering.PeeringSecrets
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.PeeringSecrets(&req); err != nil {
 		return err
 	}
 	return nil

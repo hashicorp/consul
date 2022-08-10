@@ -77,6 +77,10 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 		return ErrConnectNotEnabled
 	}
 
+	if args.Intention != nil && args.Intention.SourcePeer != "" {
+		return fmt.Errorf("SourcePeer field is not supported on this endpoint. Use config entries instead")
+	}
+
 	// Ensure that all service-intentions config entry writes go to the primary
 	// datacenter. These will then be replicated to all the other datacenters.
 	args.Datacenter = s.srv.config.PrimaryDatacenter
@@ -432,7 +436,7 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 	}
 
 	if args.Exact != nil {
-		// // Finish defaulting the namespace fields.
+		// Finish defaulting the namespace fields.
 		if args.Exact.SourceNS == "" {
 			args.Exact.SourceNS = entMeta.NamespaceOrDefault()
 		}
@@ -764,7 +768,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		Partition: query.SourcePartition,
 		Name:      query.SourceName,
 	}
-	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource, structs.IntentionTargetService)
 	if err != nil {
 		return fmt.Errorf("failed to query intentions for %s/%s", query.SourceNS, query.SourceName)
 	}

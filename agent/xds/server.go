@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/grpc/public"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -85,12 +85,6 @@ const (
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
-// HTTPCheckFetcher is the interface the agent needs to expose
-// for the xDS server to fetch a service's HTTP check definitions
-type HTTPCheckFetcher interface {
-	ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType
-}
-
 // ConfigFetcher is the interface the agent needs to expose
 // for the xDS server to fetch agent config, currently only one field is fetched
 type ConfigFetcher interface {
@@ -113,7 +107,6 @@ type Server struct {
 	Logger       hclog.Logger
 	CfgSrc       ProxyConfigSource
 	ResolveToken ACLResolverFunc
-	CheckFetcher HTTPCheckFetcher
 	CfgFetcher   ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
@@ -165,7 +158,6 @@ func NewServer(
 	serverlessPluginEnabled bool,
 	cfgMgr ProxyConfigSource,
 	resolveToken ACLResolverFunc,
-	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
@@ -173,7 +165,6 @@ func NewServer(
 		Logger:                  logger,
 		CfgSrc:                  cfgMgr,
 		ResolveToken:            resolveToken,
-		CheckFetcher:            checkFetcher,
 		CfgFetcher:              cfgFetcher,
 		AuthCheckFrequency:      DefaultAuthCheckFrequency,
 		activeStreams:           &activeStreamCounters{},
@@ -210,7 +201,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	authz, err := s.ResolveToken(public.TokenFromContext(ctx))
+	authz, err := s.ResolveToken(external.TokenFromContext(ctx))
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

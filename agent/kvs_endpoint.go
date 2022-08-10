@@ -69,7 +69,7 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 
 	// Make the RPC
 	var out structs.IndexedDirEntries
-	if err := s.agent.RPC(method, &args, &out); err != nil {
+	if err := s.agent.RPC(method, args, &out); err != nil {
 		return nil, err
 	}
 	setMeta(resp, &out.QueryMeta)

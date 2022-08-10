@@ -60,6 +60,7 @@ node_prefix "" {
 }
 operator = "write"
 mesh = "write"
+peering = "write"
 query_prefix "" {
 	policy = "write"
 }

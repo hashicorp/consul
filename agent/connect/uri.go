@@ -24,6 +24,8 @@ var (
 		`^(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 	spiffeIDAgentRegexp = regexp.MustCompile(
 		`^(?:/ap/([^/]+))?/agent/client/dc/([^/]+)/id/([^/]+)$`)
+	spiffeIDMeshGatewayRegexp = regexp.MustCompile(
+		`^(?:/ap/([^/]+))?/gateway/mesh/dc/([^/]+)$`)
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
@@ -116,6 +118,31 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			Partition:  ap,
 			Datacenter: dc,
 			Agent:      agent,
+		}, nil
+	} else if v := spiffeIDMeshGatewayRegexp.FindStringSubmatch(path); v != nil {
+		// Determine the values. We assume they're reasonable to save cycles,
+		// but if the raw path is not empty that means that something is
+		// URL encoded so we go to the slow path.
+		ap := v[1]
+		dc := v[2]
+		if input.RawPath != "" {
+			var err error
+			if ap, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid admin partition: %s", err)
+			}
+			if dc, err = url.PathUnescape(v[2]); err != nil {
+				return nil, fmt.Errorf("Invalid datacenter: %s", err)
+			}
+		}
+
+		if ap == "" {
+			ap = "default"
+		}
+
+		return &SpiffeIDMeshGateway{
+			Host:       input.Host,
+			Partition:  ap,
+			Datacenter: dc,
 		}, nil
 	}
 

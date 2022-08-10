@@ -91,11 +91,18 @@ as |dc partition nspace item create|}}
             <dl>
               <dt>AccessorID</dt>
               <dd>
-                <CopyButton @value={{item.AccessorID}} @name="AccessorID" @position="top-start" /> {{item.AccessorID}}
+                <CopyableCode
+                  @value={{item.AccessorID}}
+                  @name="AccessorID"
+                />
               </dd>
               <dt>Token</dt>
               <dd>
-                <CopyButton @value={{item.SecretID}} @name="Token" @position="top-start" /> <SecretButton>{{item.SecretID}}</SecretButton>
+                <CopyableCode
+                  @obfuscated={{true}}
+                  @value={{item.SecretID}}
+                  @name="Token"
+                />
               </dd>
   {{#if (and (not (token/is-legacy item)) (not create))}}
               <dt>Scope</dt>

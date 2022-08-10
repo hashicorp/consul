@@ -1134,6 +1134,31 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			},
 		},
 		{
+			name: "from service-defaults with endpoint",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Mode: structs.ProxyModeTransparent,
+					Destination: &structs.DestinationConfig{
+						Addresses: []string{"hello.world.com"},
+						Port:      443,
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				Datacenter: "dc1",
+			},
+			expect: structs.ServiceConfigResponse{
+				Mode: structs.ProxyModeTransparent,
+				Destination: structs.DestinationConfig{
+					Addresses: []string{"hello.world.com"},
+					Port:      443,
+				},
+			},
+		},
+		{
 			name: "service-defaults overrides proxy-defaults",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
@@ -1207,11 +1232,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 
 	tt := []struct {
-		name     string
-		entries  []structs.ConfigEntry
-		request  structs.ServiceConfigRequest
-		proxyCfg structs.ConnectProxyConfig
-		expect   structs.ServiceConfigResponse
+		name    string
+		entries []structs.ConfigEntry
+		request structs.ServiceConfigRequest
+		expect  structs.ServiceConfigResponse
 	}{
 		{
 			name: "upstream config entries from Upstreams and service-defaults",
@@ -1779,8 +1803,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

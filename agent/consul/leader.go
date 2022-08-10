@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -47,6 +48,9 @@ var LeaderSummaries = []prometheus.SummaryDefinition{
 const (
 	newLeaderEvent      = "consul:new-leader"
 	barrierWriteTimeout = 2 * time.Minute
+
+	defaultDeletionRoundBurst int        = 5  // number replication round bursts
+	defaultDeletionApplyRate  rate.Limit = 10 // raft applies per second
 )
 
 var (
@@ -72,6 +76,12 @@ func (s *Server) monitorLeadership() {
 	var leaderLoop sync.WaitGroup
 	for {
 		select {
+		case <-time.After(s.config.MetricsReportingInterval):
+			if s.IsLeader() {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(1))
+			} else {
+				metrics.SetGauge([]string{"server", "isLeader"}, float32(0))
+			}
 		case isLeader := <-raftNotifyCh:
 			switch {
 			case isLeader:
@@ -305,7 +315,11 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startFederationStateAntiEntropy(ctx)
 
-	s.startPeeringStreamSync(ctx)
+	if s.config.PeeringEnabled {
+		s.startPeeringStreamSync(ctx)
+	}
+
+	s.startDeferredDeletion(ctx)
 
 	if err := s.startConnectLeader(ctx); err != nil {
 		return err
@@ -374,7 +388,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InPrimaryDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, aclfilter.RedactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -745,6 +759,18 @@ func (s *Server) stopACLReplication() {
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
 }
 
+func (s *Server) startDeferredDeletion(ctx context.Context) {
+	if s.config.PeeringEnabled {
+		s.startPeeringDeferredDeletion(ctx)
+	}
+	s.startTenancyDeferredDeletion(ctx)
+}
+
+func (s *Server) stopDeferredDeletion() {
+	s.leaderRoutineManager.Stop(peeringDeletionRoutineName)
+	s.stopTenancyDeferredDeletion()
+}
+
 func (s *Server) startConfigReplication(ctx context.Context) {
 	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
 		// replication shouldn't run in the primary DC
@@ -1045,6 +1071,11 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
 				"version":               parts.Build.String(),
 			},
+		}
+
+		grpcPortStr := member.Tags["grpc_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			service.Meta["grpc_port"] = grpcPortStr
 		}
 
 		// Attempt to join the consul server

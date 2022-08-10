@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
@@ -458,7 +459,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		},
 	})
 	defer server2.Shutdown()
-	//Mock the agent startup with the necessary configs
+	// Mock the agent startup with the necessary configs
 	agent := NewTestAgent(t,
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`"]
 		`)
@@ -496,7 +497,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
 	})
 	defer server3.Shutdown()
-	//Mock the agent startup with the necessary configs
+	// Mock the agent startup with the necessary configs
 	agent := NewTestAgent(t,
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
 		`)
@@ -507,7 +508,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	// Agent request
 	client := new(dns.Client)
 	in, _, _ := client.Exchange(m, agent.DNSAddr())
-	//Verify if we hit SERVFAIL from Consul
+	// Verify if we hit SERVFAIL from Consul
 	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 }
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
@@ -1756,14 +1757,43 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
+}
 
-	// Look up the virtual IP of the proxy.
-	questions = []string{
-		"db.virtual.consul.",
+func TestDNS_VirtualIPLookup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
 	}
-	for _, question := range questions {
+
+	t.Parallel()
+
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	server, ok := a.delegate.(*consul.Server)
+	require.True(t, ok)
+
+	// The proxy service will not receive a virtual IP if the server is not assigning virtual IPs yet.
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := server.FSM().State().SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+	})
+
+	type testCase struct {
+		name     string
+		reg      *structs.RegisterRequest
+		question string
+		expect   string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		var out struct{}
+		require.Nil(t, a.RPC("Catalog.Register", tc.reg, &out))
+
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeA)
+		m.SetQuestion(tc.question, dns.TypeA)
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
@@ -1772,7 +1802,54 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 		aRec, ok := in.Answer[0].(*dns.A)
 		require.True(t, ok)
-		require.Equal(t, "240.0.0.1", aRec.A.String())
+		require.Equal(t, tc.expect, aRec.A.String())
+	}
+
+	tt := []testCase{
+		{
+			name: "local query",
+			reg: &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.55",
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					Service: "web-proxy",
+					Port:    12345,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "db",
+					},
+				},
+			},
+			question: "db.virtual.consul.",
+			expect:   "240.0.0.1",
+		},
+		{
+			name: "query for imported service",
+			reg: &structs.RegisterRequest{
+				PeerName:   "frontend",
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.55",
+				Service: &structs.NodeService{
+					PeerName: "frontend",
+					Kind:     structs.ServiceKindConnectProxy,
+					Service:  "web-proxy",
+					Port:     12345,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "db",
+					},
+				},
+			},
+			question: "db.virtual.frontend.consul.",
+			expect:   "240.0.0.2",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }
 
@@ -5999,7 +6076,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 				Name: "my-query",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Failover: structs.QueryDatacenterOptions{
+					Failover: structs.QueryFailoverOptions{
 						Datacenters: []string{"dc2"},
 					},
 				},

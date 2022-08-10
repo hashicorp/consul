@@ -71,7 +71,8 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 		case structs.ServiceKindConnectProxy:
 			explicit := snap.ConnectProxy.UpstreamConfig[uid].HasLocalPortOrSocket()
-			if _, implicit := snap.ConnectProxy.IntentionUpstreams[uid]; !implicit && !explicit {
+			implicit := snap.ConnectProxy.IsImplicitUpstream(uid)
+			if !implicit && !explicit {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
 				// The associated watch was likely cancelled.
 				delete(upstreamsSnapshot.DiscoveryChain, uid)
@@ -86,6 +87,30 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
+		}
+
+	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		uidString := strings.TrimPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix)
+
+		uid := UpstreamIDFromString(uidString)
+
+		filteredNodes := hostnameEndpoints(
+			s.logger,
+			GatewayKey{ /*empty so it never matches*/ },
+			resp.Nodes,
+		)
+		if len(filteredNodes) > 0 {
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, filteredNodes); set {
+				upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+			}
+		} else {
+			if set := upstreamsSnapshot.PeerUpstreamEndpoints.Set(uid, resp.Nodes); set {
+				delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+			}
 		}
 
 	case strings.HasPrefix(u.CorrelationID, "upstream-target:"):
@@ -129,6 +154,10 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 			// Make sure to use an external address when crossing partition or DC boundaries.
 			isRemote := !snap.Locality.Matches(node.Node.Datacenter, node.Node.PartitionOrDefault())
+			// If node is peered it must be remote
+			if node.Node.PeerOrEmpty() != "" {
+				isRemote = true
+			}
 			csnIdx, addr, _ := node.BestAddress(isRemote)
 
 			existing := upstreamsSnapshot.PassthroughIndices[addr]
@@ -407,7 +436,17 @@ type discoveryChainWatchOpts struct {
 }
 
 func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *ConfigSnapshot, opts discoveryChainWatchOpts) error {
-	if _, ok := snap.ConnectProxy.WatchedDiscoveryChains[opts.id]; ok {
+	var watchedDiscoveryChains map[UpstreamID]context.CancelFunc
+	switch s.kind {
+	case structs.ServiceKindIngressGateway:
+		watchedDiscoveryChains = snap.IngressGateway.WatchedDiscoveryChains
+	case structs.ServiceKindConnectProxy:
+		watchedDiscoveryChains = snap.ConnectProxy.WatchedDiscoveryChains
+	default:
+		return fmt.Errorf("unsupported kind %s", s.kind)
+	}
+
+	if _, ok := watchedDiscoveryChains[opts.id]; ok {
 		return nil
 	}
 
@@ -428,16 +467,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 		return err
 	}
 
-	switch s.kind {
-	case structs.ServiceKindIngressGateway:
-		snap.IngressGateway.WatchedDiscoveryChains[opts.id] = cancel
-	case structs.ServiceKindConnectProxy:
-		snap.ConnectProxy.WatchedDiscoveryChains[opts.id] = cancel
-	default:
-		cancel()
-		return fmt.Errorf("unsupported kind %s", s.kind)
-	}
-
+	watchedDiscoveryChains[opts.id] = cancel
 	return nil
 }
 

@@ -13,12 +13,7 @@ import (
 
 const tableCoordinates = "coordinates"
 
-func indexFromCoordinate(raw interface{}) ([]byte, error) {
-	c, ok := raw.(*structs.Coordinate)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
-	}
-
+func indexFromCoordinate(c *structs.Coordinate) ([]byte, error) {
 	if c.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -29,12 +24,7 @@ func indexFromCoordinate(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexNodeFromCoordinate(raw interface{}) ([]byte, error) {
-	c, ok := raw.(*structs.Coordinate)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
-	}
-
+func indexNodeFromCoordinate(c *structs.Coordinate) ([]byte, error) {
 	if c.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -44,12 +34,7 @@ func indexNodeFromCoordinate(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexFromCoordinateQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(CoordinateQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for CoordinateQuery index", raw)
-	}
-
+func indexFromCoordinateQuery(q CoordinateQuery) ([]byte, error) {
 	if q.Node == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -80,7 +65,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
+				Indexer: indexerSingleWithPrefix[CoordinateQuery, *structs.Coordinate, any]{
 					readIndex:   indexFromCoordinateQuery,
 					writeIndex:  indexFromCoordinate,
 					prefixIndex: prefixIndexFromQueryNoNamespace,
@@ -90,7 +75,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
+				Indexer: indexerSingle[Query, *structs.Coordinate]{
 					readIndex:  indexFromQuery,
 					writeIndex: indexNodeFromCoordinate,
 				},

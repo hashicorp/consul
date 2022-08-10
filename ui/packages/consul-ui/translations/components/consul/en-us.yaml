@@ -1,3 +1,19 @@
+peer:
+  search-bar:
+    state:
+      name: Status
+      options:
+        pending: Pending
+        establishing: Establishing
+        active: Active
+        failing: Failing
+        terminated: Terminated
+        deleting: Deleting
+    sort:
+      state:
+        name: Status
+        asc: Pending to Deleting
+        desc: Deleting to Pending
 service:
   search-bar:
     kind: Service Type

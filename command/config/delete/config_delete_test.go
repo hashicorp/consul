@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -30,11 +31,7 @@ func TestConfigDelete(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
-		Kind:     api.ServiceDefaults,
-		Name:     "web",
-		Protocol: "tcp",
-	}, nil)
+	err := createEntry(client)
 	require.NoError(t, err)
 
 	args := []string{
@@ -54,6 +51,15 @@ func TestConfigDelete(t *testing.T) {
 	require.Nil(t, entry)
 }
 
+func createEntry(client *api.Client) error {
+	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
+		Kind:     api.ServiceDefaults,
+		Name:     "web",
+		Protocol: "tcp",
+	}, nil)
+	return err
+}
+
 func TestConfigDelete_CAS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -65,11 +71,7 @@ func TestConfigDelete_CAS(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
-		Kind:     api.ServiceDefaults,
-		Name:     "web",
-		Protocol: "tcp",
-	}, nil)
+	err := createEntry(client)
 	require.NoError(t, err)
 
 	entry, _, err := client.ConfigEntries().Get(api.ServiceDefaults, "web", nil)
@@ -111,8 +113,41 @@ func TestConfigDelete_CAS(t *testing.T) {
 		require.Contains(t, ui.OutputWriter.String(),
 			"Config entry deleted: service-defaults/web")
 		require.Empty(t, ui.ErrorWriter.String())
-
 		entry, _, err := client.ConfigEntries().Get(api.ServiceDefaults, "web", nil)
+		require.Error(t, err)
+		require.Nil(t, entry)
+	})
+
+	t.Run("delete from file with a valid modify index", func(t *testing.T) {
+		err := createEntry(client)
+		require.NoError(t, err)
+		entry, _, err := client.ConfigEntries().Get(api.ServiceDefaults, "web", nil)
+		require.NoError(t, err)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		f := testutil.TempFile(t, "config-write-svc-web.hcl")
+		_, err = f.WriteString(`
+	  Kind = "service-defaults"
+	  Name = "web"
+	  Protocol = "tcp"
+	  `)
+		require.NoError(t, err)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-filename=" + f.Name(),
+			"-cas",
+			"-modify-index=" + strconv.FormatUint(entry.GetModifyIndex(), 10),
+		}
+
+		code := c.Run(args)
+		require.Equal(t, 0, code)
+		require.Contains(t, ui.OutputWriter.String(),
+			"Config entry deleted: service-defaults/web")
+		require.Empty(t, ui.ErrorWriter.String())
+
+		entry, _, err = client.ConfigEntries().Get(api.ServiceDefaults, "web", nil)
 		require.Error(t, err)
 		require.Nil(t, entry)
 	})
@@ -125,8 +160,12 @@ func TestConfigDelete_InvalidArgs(t *testing.T) {
 		args []string
 		err  string
 	}{
-		"no kind": {
+		"no kind or filename": {
 			args: []string{},
+			err:  "Must specify the -kind or -filename parameter",
+		},
+		"no kind": {
+			args: []string{"-name", "web"},
 			err:  "Must specify the -kind parameter",
 		},
 		"no name": {
@@ -144,6 +183,18 @@ func TestConfigDelete_InvalidArgs(t *testing.T) {
 		"modify-index but no cas": {
 			args: []string{"-kind", api.ServiceDefaults, "-name", "web", "-modify-index", "1"},
 			err:  "Cannot specify -modify-index without -cas",
+		},
+		"kind and filename": {
+			args: []string{"-kind", api.ServiceDefaults, "-filename", "config-file.hcl"},
+			err:  "filename can't be used with kind or name",
+		},
+		"name and filename": {
+			args: []string{"-name", "db", "-filename", "config-file.hcl"},
+			err:  "filename can't be used with kind or name",
+		},
+		"kind, name, and filename": {
+			args: []string{"-kind", api.ServiceDefaults, "-name", "db", "-filename", "config-file.hcl"},
+			err:  "filename can't be used with kind or name",
 		},
 	}
 

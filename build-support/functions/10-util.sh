@@ -274,6 +274,42 @@ function git_branch {
    return ${ret}
 }
 
+
+function git_date {
+   # Arguments:
+   #   $1 - Path to the git repo (optional - assumes pwd is git repo otherwise)
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   #
+   # Notes:
+   #   Echos the date of the last git commit in
+
+   local gdir="$(pwd)"
+   if test -d "$1"
+   then
+      gdir="$1"
+   fi
+
+   pushd "${gdir}" > /dev/null
+
+   local ret=0
+
+   # it's tricky to do an RFC3339 format in a cross platform way, so we hardcode UTC
+   local date_format="%Y-%m-%dT%H:%M:%SZ"
+   # we're using this for build date because it's stable across platform builds
+   local date="$(TZ=UTC0 git show -s --format=%cd --date=format-local:"$date_format" HEAD)" || ret=1
+
+   ##local head="$(git status -b --porcelain=v2 | awk '{if ($1 == "#" && $2 =="branch.head") { print $3 }}')" || ret=1
+
+   popd > /dev/null
+
+   test ${ret} -eq 0 && echo "$date"
+   return ${ret}
+}
+
+
 function is_git_clean {
    # Arguments:
    #   $1 - Path to git repo
@@ -325,7 +361,8 @@ function update_git_env {
    export GIT_COMMIT=$(git rev-parse --short HEAD)
    export GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES")
    export GIT_IMPORT=github.com/hashicorp/consul/version
-   export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY}"
+   export GIT_DATE=$(git_date "$1")
+   export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${T}.BuildDate=${GIT_DATE}"
    return 0
 }
 

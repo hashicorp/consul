@@ -149,10 +149,10 @@ function install_unversioned_tool {
     local install="$2"
 
     if ! command -v "${command}" &>/dev/null ; then
-        status_stage "installing tool: ${install}"
+        echo "installing tool: ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
 
     return 0
@@ -183,13 +183,19 @@ function install_versioned_tool {
             err "dev version of '${command}' requested but not installed"
             return 1
         fi
-        status "skipping tool: ${installbase} (using development version)"
+        echo "skipping tool: ${installbase} (using development version)"
         return 0
     fi
 
     if command -v "${command}" &>/dev/null ; then
-        got="$(go version -m $(which "${command}") | grep '\bmod\b' | grep "${module}" |
-            awk '{print $2 "@" $3}')"
+        mod_line="$(go version -m "$(which "${command}")" | grep '\smod\s')"
+        act_mod=$(echo "${mod_line}" | awk '{print $2}')
+        if [[ "$module" != "$act_mod" ]]; then
+            err "${command} is already installed by module \"${act_mod}\" but should be installed by module \"${module}\". Delete it and re-run to re-install."
+            return 1
+        fi
+
+        got="$(echo "${mod_line}" | grep "${module}" | awk '{print $2 "@" $3}')"
         if [[ "$expect" != "$got" ]]; then
             should_install=1
             install_reason="upgrade"
@@ -210,10 +216,10 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        status_stage "installing tool (${install_reason}): ${install}"
+        echo "installing tool (${install_reason}): ${install}"
         go install "${install}"
     else
-        debug "skipping tool: ${install} (installed)"
+        echo "skipping tool: ${install} (installed)"
     fi
     return 0
 }
