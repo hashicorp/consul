@@ -30,8 +30,8 @@ func TestOperatorRaftTransferWithSingleNode(t *testing.T) {
 	// Test the list-peers subcommand directly
 	ui := cli.NewMockUi()
 	c := New(ui)
-	var args []string
 
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 	code := c.Run(args)
 	if code != 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
