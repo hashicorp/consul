@@ -2,7 +2,7 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/acl"
+
 	"net"
 
 	"github.com/hashicorp/consul/acl"
