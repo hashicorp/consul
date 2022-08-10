@@ -606,6 +606,15 @@ func isFailedPreconditionErr(err error) bool {
 	if err == nil {
 		return false
 	}
+
+	// Handle wrapped errors, since status.FromError does a naive assertion.
+	var statusErr interface {
+		GRPCStatus() *grpcstatus.Status
+	}
+	if errors.As(err, &statusErr) {
+		return statusErr.GRPCStatus().Code() == codes.FailedPrecondition
+	}
+
 	grpcErr, ok := grpcstatus.FromError(err)
 	if !ok {
 		return false
