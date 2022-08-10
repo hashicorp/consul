@@ -2106,6 +2106,20 @@ func (a *Agent) AddService(req AddServiceRequest) error {
 func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 	req.Service.EnterpriseMeta.Normalize()
 
+	// Must auto-assign the port and default checks (if needed) here to avoid race collisions.
+	if req.Service.LocallyRegisteredAsSidecar {
+		if req.Service.Port < 1 {
+			port, err := a.sidecarPortFromServiceIDLocked(req.Service.CompoundServiceID())
+			if err != nil {
+				return err
+			}
+			req.Service.Port = port
+		}
+		if len(req.chkTypes) < 1 {
+			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+		}
+	}
+
 	if err := a.validateService(req.Service, req.chkTypes); err != nil {
 		return err
 	}
@@ -3368,7 +3382,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		// Grab and validate sidecar if there is one too
-		sidecar, sidecarChecks, sidecarToken, err := a.sidecarServiceFromNodeService(ns, service.Token)
+		sidecar, sidecarChecks, sidecarToken, err := sidecarServiceFromNodeService(ns, service.Token)
 		if err != nil {
 			return fmt.Errorf("Failed to validate sidecar for service %q: %v", service.Name, err)
 		}

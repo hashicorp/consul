@@ -2786,7 +2786,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 	}
 
-	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	connectSrv, _, _, err := sidecarServiceFromNodeService(srv, "")
 	require.NoError(t, err)
 
 	// First persist the check

@@ -54,7 +54,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
-				Port:                       2222,
+				Port:                       0,
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
@@ -63,18 +63,8 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServicePort:       1111,
 				},
 			},
-			wantChecks: []*structs.CheckType{
-				{
-					Name:     "Connect Sidecar Listening",
-					TCP:      "127.0.0.1:2222",
-					Interval: 10 * time.Second,
-				},
-				{
-					Name:         "Connect Sidecar Aliasing web1",
-					AliasService: "web1",
-				},
-			},
-			wantToken: "foo",
+			wantChecks: nil,
+			wantToken:  "foo",
 		},
 		{
 			name: "all the allowed overrides",
@@ -157,7 +147,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
-				Port:                       2222,
+				Port:                       0,
 				Tags:                       []string{"foo"},
 				Meta:                       map[string]string{"foo": "bar"},
 				LocallyRegisteredAsSidecar: true,
@@ -168,17 +158,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServicePort:       1111,
 				},
 			},
-			wantChecks: []*structs.CheckType{
-				{
-					Name:     "Connect Sidecar Listening",
-					TCP:      "127.0.0.1:2222",
-					Interval: 10 * time.Second,
-				},
-				{
-					Name:         "Connect Sidecar Aliasing web1",
-					AliasService: "web1",
-				},
-			},
+			wantChecks: nil,
 		},
 		{
 			name: "invalid check type",
@@ -231,7 +211,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			err := ns.Validate()
 			require.NoError(t, err, "Invalid test case - NodeService must validate")
 
-			gotNS, gotChecks, gotToken, err := a.sidecarServiceFromNodeService(ns, tt.token)
+			gotNS, gotChecks, gotToken, err := sidecarServiceFromNodeService(ns, tt.token)
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
@@ -337,7 +317,7 @@ func TestAgent_SidecarPortFromServiceID(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			gotPort, err := a.sidecarPortFromServiceID(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
+			gotPort, err := a.sidecarPortFromServiceIDLocked(structs.ServiceID{ID: tt.serviceID, EnterpriseMeta: tt.enterpriseMeta})
 
 			if tt.wantErr != "" {
 				require.Error(t, err)

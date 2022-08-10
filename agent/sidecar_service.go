@@ -30,7 +30,7 @@ func sidecarServiceID(serviceID string) string {
 // registration. This will be the same as the token parameter passed unless the
 // SidecarService definition contains a distinct one.
 // TODO: return AddServiceRequest
-func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
+func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil
 	}
@@ -114,22 +114,10 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
-	if sidecar.Port < 1 {
-		port, err := a.sidecarPortFromServiceID(sidecar.CompoundServiceID())
-		if err != nil {
-			return nil, nil, "", err
-		}
-		sidecar.Port = port
-	}
-
 	// Setup checks
 	checks, err := ns.Connect.SidecarService.CheckTypes()
 	if err != nil {
 		return nil, nil, "", err
-	}
-	// Setup default check if none given
-	if len(checks) < 1 {
-		checks = sidecarDefaultChecks(ns.ID, sidecar.Proxy.LocalServiceAddress, sidecar.Port)
 	}
 
 	return sidecar, checks, token, nil
@@ -137,7 +125,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 // sidecarPortFromServiceID is used to allocate a unique port for a sidecar proxy.
 // This is called immediately before registration to avoid value collisions. This function assumes the state lock is already held.
-func (a *Agent) sidecarPortFromServiceID(sidecarCompoundServiceID structs.ServiceID) (int, error) {
+func (a *Agent) sidecarPortFromServiceIDLocked(sidecarCompoundServiceID structs.ServiceID) (int, error) {
 	sidecarPort := 0
 
 	// Allocate port if needed (min and max inclusive).
