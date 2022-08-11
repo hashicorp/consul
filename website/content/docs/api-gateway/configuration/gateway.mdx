@@ -1,0 +1,185 @@
+---
+layout: docs
+page_title: Consul API Gateway Gateway
+description:  >-
+  This topic descrbes how to configure the Consul API Gateway Gateway object
+---
+
+# Gateway
+
+This topic provides full details about the `Gateway` resource.
+
+## Introduction
+
+A `Gateway` is an instance of network infrastructure that determines how service traffic should be handled. A `Gateway` contains one or more [`listeners`](#listeners) that bind to a set of IP addresses. An `HTTPRoute` or `TCPRoute` can then attach to a gateway listener to direct traffic from the gateway to a service.
+
+Gateway instances derive their configurations from the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource, which acts as a template for individual `Gateway` deployments. Refer to [GatewayClass](/docs/api-gateway/configuration/gatewayclass) for additional information.
+
+Specify the following parameters to declare a `Gateway`:
+
+|  Parameter  |                                                                         Description                                                                          | Required |
+| :-----------  |:---------------------------------------------------------------------------------------------------------------------------------------------------------- |:-------- |
+| `kind`        | Specifies the type of configuration object. The value should always be `Gateway`.                                                                             | Required |
+| `description` | Human-readable string that describes the purpose of the `Gateway`.                                                                                           | Optional |
+| `version `    | Specifies the Kubernetes API version. The value should always be `gateway.networking.k8s.io/v1alpha2`                                                        | Required |
+| `scope`       | Specifies the effective scope of the Gateway. The value should always be `namespaced`.                                                                       | Required |
+| `fields`      | Specifies the configurations for the Gateway. The fields are listed in the [configuration model](#configuration-model). Details for each field are described in the [specification](#specification). | Required |
+
+
+
+## Configuration model
+
+The following outline shows how to format the configurations in the `Gateway` object. Click on a property name to view details about the configuration.
+
+* [`gatewayClassName`](#gatewayclassname): string | required
+* [`listeners`](#listeners): array of objects | required
+  * [`allowedRoutes`](#listeners-allowedroutes): object | required
+    * [`namespaces`](#listeners-allowedroutes-namespaces): object | required
+      * [`from`](#listeners-namespaces-from): string | required
+      * [`selector`](#listeners-allowedroutes-namespaces-selector): object | required if `from` is configured to `selector`
+        * [`matchExpressions`](#listeners-allowedroutes-namespaces-selector-matchexpressions): array of objects | required if `matchLabels` is not configured
+          * [`key`](#listeners-allowedroutes-namespaces-selector-matchexpressions): string | required if `matchExpressions` is declared
+          * [`operator`](#listeners-allowedroutes-namespaces-selector-matchexpressions): string | required if `matchExpressions` is declared
+          * [`values`](#listeners-allowedroutes-namespaces-selector-matchexpressions): array of strings | required if `matchExpressions` is declared
+        * [`matchLabels`](#listeners-allowedroutes-namespaces-selector-matchlabels): map of strings | required if `matchExpressions` is not configured
+  * [`hostname`](#listeners-hostname): string | required
+  * [`name`](#listeners-name): string | required
+  * [`port`](#listeners-port): integer | required
+  * [`protocol`](#listeners-protocol): string | required
+  * [`tls`](#listeners-tls): object | required if `protocol` is set to `HTTPS`
+      * [`certificateRefs`](#listeners-tls): array or objects | required if `tls` is declared
+        * [`name`](#listeners-tls): string | required if `certificateRefs` is declared
+        * [`namespace`](#listeners-tls): string | required if `certificateRefs` is declared
+      * [`mode`](#listeners-tls): string | required if `certificateRefs` is declared
+      * [`options`](#listeners-tls): map of strings | optional
+
+## Specification
+
+This topic provides details about the configuration parameters.
+
+### gatewayClassName
+Specifies the name of the [`GatewayClass`](/docs/api-gateway/configuration/gatewayclass) resource used for the `Gateway` instance. Unless you are using a custom [GatewayClass](/docs/api-gateway/configuration/gatewayclass), this value should be set to `consul-api-gateway`.
+* Type: string
+* Required: required
+
+### listeners
+Specifies the `listeners` associated with the `Gateway`. At least one `listener` must be specified. Each `listener` within a `Gateway` must have a unique combination of `hostname`, `port`, and `protocol`.
+* Type: array of objects
+* Required: required
+
+### listeners.allowedRoutes
+Specifies a `namespace` object that defines the types of routes that may be attached to a listener.
+* Type: object
+* Required: required
+
+### listeners.allowedRoutes.namespaces
+Determines which routes are allowed to attach to the `listener`. Only routes in the same namespace as the `Gateway` may be attached by default.
+* Type: string
+* Required: optional
+* Default:  Same namespace as the parent Gateway
+
+### listeners.allowedRoutes.namespaces.from
+Determines which namespaces are allowed to attach a route to the `Gateway`. You can specify one of the following strings:
+
+* `All`: Routes in all namespaces may be attached to the `Gateway`.
+* `Same` (default): Only routes in the same namespace as the `Gateway` may be attached.
+* `Selector`: Only routes in namespaces that match the [`selector`](#listeners-allowedroutes-namespaces-selector) may be attached.
+
+This parameter is required.
+
+### listeners.allowedRoutes.namespaces.selector
+Specifies a method for selecting routes that are allowed to attach to the listener. The `Gateway` checks for namespaces in the network that match either a regular expression or a label. Routes from the matching namespace are allowed to attach to the listener.
+
+You can configure one of the following objects:
+
+* [`matchExpressions`](#listeners-allowedroutes-namespaces-selector-matchexpressions)
+* [`matchLabels`](#listeners-allowedroutes-namespaces-selector-matchlabels)
+
+This field is required when [`from`](#listeners-allowedroutes-namespaces-from) is configured to `Selector`.
+
+### listeners.allowedRoutes.namespaces.selector.matchExpressions
+Specifies an array of requirements for matching namespaces. If a match is found, then routes from the matching namespace(s) are allowed to attach to the `Gateway`. The following table describes members of the `matchExpressions` array:
+
+| Requirement | Description | Type | Required |
+|--- |--- |--- |--- |
+|`key` | Specifies the label that the `key` applies to. | string | required when `matchExpressions` is declared |
+|`operator` | Specifies the key's relation to a set of values. You can use the following keywords: <ul><li>`In`: Only routes in namespaces that contain the strings in the `values` field can attach to the `Gateway`. </li><li>`NotIn`: Routes in namespaces that do not contain the strings in the `values` field can attach to the `Gateway`. </li><li>`Exists`: Routes in namespaces that contain the `key` value are allowed to attach to the `Gateway`.</li><li>`DoesNotExist`: Routes in namespaces that do not contain the `key` value are allowed to attach to the `Gateway`.</li></ul> | string | required when `matchExpressions` is declared |
+|`values` | Specifies an array of string values. If `operator` is configured to `In` or `NotIn`, then the `values` array must contain values. If `operator` is configured to `Exists` or `DoesNotExist`, then the `values` array must be empty. | array of strings | required when `matchExpressions` is declared |
+
+In the following example, routes in namespaces that contain `foo` and `bar` are allowed to attach routes to the `Gateway`.
+```yaml
+namespaceSelector:
+  matchExpressions:
+  - key: kubernetes.io/metadata.name
+    operator: In
+    values:
+    - foo
+    - bar
+```
+
+Refer to [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements) in the Kubernetes documentation for additional information about `matchExpressions`.
+
+### listeners.allowedRoutes.namespaces.selector.matchLabels
+Specifies an array of labels and label values. If a match is found, then routes with the matching label(s) are allowed to attach to the `Gateway`. This selector can contain any arbitrary key/value pair.
+
+In the following example, routes in namespaces that have a `bar` label are allowed to attach to the `Gateway`.
+
+```yaml
+namespaceSelector:
+    matchLabels:
+      foo: bar
+```
+
+Refer to [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) in the Kubernetes documentation for additional information about labels.
+
+### listeners.hostname
+Specifies the `listener`'s hostname.
+* Type: string
+* Required: required
+
+### listeners.name
+Specifies the `listener`'s name.
+* Type: string
+* Required: required
+
+### listeners.port
+Specifies the port number that the `listener` attaches to.
+* Type: integer
+* Required: required
+
+### listeners.protocol
+Specifies the protocol the `listener` communicates on.
+* Type: string
+* Required: required
+
+Allowed values are `TCP`, `HTTP`, or `HTTPS`
+
+### listeners.tls
+Specifies the `tls` configurations for the `Gateway`. The `tls` object is required if `protocol` is set to `HTTPS`. The object contains the following fields:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).</div>  | Object or array | Required if `tls` is set |
+| `mode` | Specifies the TLS Mode. Should always be set to `Terminate` for `HTTPRoutes` | string | Required if `certificateRefs` is set |
+| `options` | Specifies additional Consul API Gateway options. | Map of strings | optional |
+
+The following keys for `options` are available
+* `api-gateway.consul.hashicorp.com/tls_min_version`
+* `api-gateway.consul.hashicorp.com/tls_max_version`
+* `api-gateway.consul.hashicorp.com/tls_cipher_suites`
+
+In the following example, `tls` settings are configured to use a secret named `consul-server-cert` in the same namespace as the `Gateway` and the minimum tls version is set to `TLSv1_2`.
+
+```yaml
+
+tls:
+  certificateRefs:
+    name: consul-server-cert
+    group: ""
+    kind: Secret
+  mode: Terminate
+  options:
+    api-gateway.consul.hashicorp.com/tls_min_version: "TLSv1_2"
+
+```
+
