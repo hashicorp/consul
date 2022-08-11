@@ -155,6 +155,8 @@ func RegisteredCommands(fsm *FSM) map[structs.MessageType]command {
 	return commands
 }
 
+func registerEnterpriseCommands(registry map[structs.MessageType]command, fsm *FSM) {}
+
 func registerCommands(registry map[structs.MessageType]command, fsm *FSM, cmdEntries ...entry) {
 	for _, cmd := range cmdEntries {
 		if registry[cmd.msgType] != nil {
@@ -166,8 +168,6 @@ func registerCommands(registry map[structs.MessageType]command, fsm *FSM, cmdEnt
 		}
 	}
 }
-
-func registerEnterpriseCommands(registry map[structs.MessageType]command, fsm *FSM) {}
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"fsm", "register"}, time.Now())

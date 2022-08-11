@@ -159,6 +159,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
+	restorers := RegisteredRestorer()
 	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		switch {
 		case msg == structs.ChunkingStateType:

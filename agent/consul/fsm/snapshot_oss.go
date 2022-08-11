@@ -13,98 +13,70 @@ import (
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-func init() {
-	registerPersister(persistOSS)
-
-	registerRestorer(structs.RegisterRequestType, restoreRegistration)
-	registerRestorer(structs.KVSRequestType, restoreKV)
-	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
-	registerRestorer(structs.SessionRequestType, restoreSession)
-	registerRestorer(structs.DeprecatedACLRequestType, restoreACL) // TODO(ACL-Legacy-Compat) - remove in phase 2
-	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap)
-	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
-	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
-	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
-	registerRestorer(structs.IntentionRequestType, restoreLegacyIntention)
-	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
-	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
-	registerRestorer(structs.ConnectCAConfigType, restoreConnectCAConfig)
-	registerRestorer(structs.IndexRequestType, restoreIndex)
-	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
-	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
-	registerRestorer(structs.ConfigEntryRequestType, restoreConfigEntry)
-	registerRestorer(structs.ACLRoleSetRequestType, restoreRole)
-	registerRestorer(structs.ACLBindingRuleSetRequestType, restoreBindingRule)
-	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
-	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
-	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
-	registerRestorer(structs.ServiceVirtualIPRequestType, restoreServiceVirtualIP)
-	registerRestorer(structs.FreeVirtualIPRequestType, restoreFreeVirtualIP)
-	registerRestorer(structs.PeeringWriteType, restorePeering)
-	registerRestorer(structs.PeeringTrustBundleWriteType, restorePeeringTrustBundle)
-	registerRestorer(structs.PeeringSecretsWriteType, restorePeeringSecrets)
+func RegisteredRestorer() map[structs.MessageType]restorer {
+	registry := map[structs.MessageType]restorer{
+		structs.RegisterRequestType:          restoreRegistration,
+		structs.KVSRequestType:               restoreKV,
+		structs.TombstoneRequestType:         restoreTombstone,
+		structs.SessionRequestType:           restoreSession,
+		structs.DeprecatedACLRequestType:     restoreACL,
+		structs.ACLBootstrapRequestType:      restoreACLBootstrap,
+		structs.CoordinateBatchUpdateType:    restoreCoordinates,
+		structs.PreparedQueryRequestType:     restorePreparedQuery,
+		structs.AutopilotRequestType:         restoreAutopilot,
+		structs.IntentionRequestType:         restoreLegacyIntention,
+		structs.ConnectCARequestType:         restoreConnectCA,
+		structs.ConnectCAProviderStateType:   restoreConnectCAProviderState,
+		structs.ConnectCAConfigType:          restoreConnectCAConfig,
+		structs.IndexRequestType:             restoreIndex,
+		structs.ACLTokenSetRequestType:       restoreToken,
+		structs.ACLPolicySetRequestType:      restorePolicy,
+		structs.ConfigEntryRequestType:       restoreConfigEntry,
+		structs.ACLRoleSetRequestType:        restoreRole,
+		structs.ACLBindingRuleSetRequestType: restoreBindingRule,
+		structs.ACLAuthMethodSetRequestType:  restoreAuthMethod,
+		structs.FederationStateRequestType:   restoreFederationState,
+		structs.SystemMetadataRequestType:    restoreSystemMetadata,
+		structs.ServiceVirtualIPRequestType:  restoreServiceVirtualIP,
+		structs.FreeVirtualIPRequestType:     restoreFreeVirtualIP,
+		structs.PeeringWriteType:             restorePeering,
+		structs.PeeringTrustBundleWriteType:  restorePeeringTrustBundle,
+		structs.PeeringSecretsWriteType:      restorePeeringSecrets,
+	}
+	registerEnterpriseRestorers(registry)
+	return registry
 }
 
-func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
-	if err := s.persistVirtualIPs(sink, encoder); err != nil {
-		return err
+func registerEnterpriseRestorers(registry map[structs.MessageType]restorer) {}
+
+func RegisteredPersisters(s *snapshot) []persister {
+	registry := []persister{
+		s.persistVirtualIPs,
+		s.persistVirtualIPs,
+		s.persistNodes,
+		s.persistSessions,
+		s.persistACLs,
+		s.persistKVs,
+		s.persistTombstones,
+		s.persistPreparedQueries,
+		s.persistAutopilot,
+		s.persistLegacyIntentions,
+		s.persistConnectCA,
+		s.persistConnectCAProviderState,
+		s.persistConnectCAConfig,
+		s.persistConfigEntries,
+		s.persistFederationStates,
+		s.persistSystemMetadata,
+		s.persistIndex,
+		s.persistPeerings,
+		s.persistPeeringTrustBundles,
+		s.persistPeeringSecrets,
 	}
-	if err := s.persistNodes(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistSessions(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistACLs(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistKVs(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistTombstones(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistPreparedQueries(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistAutopilot(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistLegacyIntentions(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistConnectCA(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistConnectCAProviderState(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistConnectCAConfig(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistConfigEntries(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistFederationStates(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistSystemMetadata(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistIndex(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistPeerings(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistPeeringTrustBundles(sink, encoder); err != nil {
-		return err
-	}
-	if err := s.persistPeeringSecrets(sink, encoder); err != nil {
-		return err
-	}
-	return nil
+	registerEnterprisePersisters(registry, s)
+	return registry
 }
+
+func registerEnterprisePersisters(registry []persister, s *snapshot) {}
 
 func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
