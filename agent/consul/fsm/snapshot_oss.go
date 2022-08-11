@@ -1,8 +1,12 @@
 package fsm
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -886,11 +890,43 @@ func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decod
 }
 
 func restoreServiceVirtualIP(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req state.ServiceVirtualIP
+	// state.ServiceVirtualIP was changed in a breaking way in 1.13.0 (2e4cb6f77d2be36b02e9be0b289b24e5b0afb794).
+	// We attempt to reconcile the older type by decoding to a map then decoding that map into
+	// structs.PeeredServiceName first, and then structs.ServiceName.
+	var req struct {
+		Service map[string]interface{}
+		IP      net.IP
+
+		structs.RaftIndex
+	}
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.ServiceVirtualIP(req); err != nil {
+
+	vip := state.ServiceVirtualIP{
+		IP:        req.IP,
+		RaftIndex: req.RaftIndex,
+	}
+
+	// PeeredServiceName is the expected primary key type.
+	var psn structs.PeeredServiceName
+	if err := mapstructure.Decode(req.Service, &psn); err != nil {
+		return fmt.Errorf("cannot decode to structs.PeeredServiceName: %w", err)
+	}
+	vip.Service = psn
+
+	// If the expected primary key field is empty, it must be the older ServiceName type.
+	if vip.Service.ServiceName.Name == "" {
+		var sn structs.ServiceName
+		if err := mapstructure.Decode(req.Service, &sn); err != nil {
+			return fmt.Errorf("cannot decode to structs.ServiceName: %w", err)
+		}
+		vip.Service = structs.PeeredServiceName{
+			ServiceName: sn,
+		}
+	}
+
+	if err := restore.ServiceVirtualIP(vip); err != nil {
 		return err
 	}
 	return nil

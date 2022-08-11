@@ -2211,8 +2211,8 @@ type PeeredServiceName struct {
 }
 
 type ServiceName struct {
-	Name string
-	acl.EnterpriseMeta
+	Name               string
+	acl.EnterpriseMeta `mapstructure:",squash"`
 }
 
 func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
