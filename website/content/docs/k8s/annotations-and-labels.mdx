@@ -79,7 +79,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
-      - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in different a namespace. Place
+      - Namespace (requires Consul Enterprise 1.7+): Upstream services may be running in a different namespace. Place
       the upstream namespace after the service name. For additional details about configuring the injector, refer to 
       [Consul Enterprise Namespaces](#consul-enterprise-namespaces) .
         ```yaml
