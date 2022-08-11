@@ -25,21 +25,6 @@ type command func(buf []byte, index uint64) interface{}
 // instance.
 type unboundCommand func(c *FSM, buf []byte, index uint64) interface{}
 
-// commands is a map from message type to unbound command.
-var commands map[structs.MessageType]unboundCommand
-
-// registerCommand registers a new command with the FSM, which should be done
-// at package init() time.
-func registerCommand(msg structs.MessageType, fn unboundCommand) {
-	if commands == nil {
-		commands = make(map[structs.MessageType]unboundCommand)
-	}
-	if commands[msg] != nil {
-		panic(fmt.Errorf("Message %d is already registered", msg))
-	}
-	commands[msg] = fn
-}
-
 // FSM implements a finite state machine that is used
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
@@ -48,7 +33,7 @@ type FSM struct {
 	logger  hclog.Logger
 	chunker *raftchunking.ChunkingFSM
 
-	// apply is built off the commands global and is used to route apply
+	// apply is built off the registered commands and is used to route apply
 	// operations to their appropriate handlers.
 	apply map[structs.MessageType]command
 
@@ -99,12 +84,7 @@ func NewFromDeps(deps Deps) *FSM {
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
-	for msg, fn := range commands {
-		thisFn := fn
-		fsm.apply[msg] = func(buf []byte, index uint64) interface{} {
-			return thisFn(fsm, buf, index)
-		}
-	}
+	fsm.apply = RegisteredCommands(fsm)
 
 	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
 

@@ -107,42 +107,67 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 	// },
 }
 
-func init() {
-	registerCommand(structs.RegisterRequestType, (*FSM).applyRegister)
-	registerCommand(structs.DeregisterRequestType, (*FSM).applyDeregister)
-	registerCommand(structs.KVSRequestType, (*FSM).applyKVSOperation)
-	registerCommand(structs.SessionRequestType, (*FSM).applySessionOperation)
-	// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
-	registerCommand(structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation)
-	registerCommand(structs.TombstoneRequestType, (*FSM).applyTombstoneOperation)
-	registerCommand(structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate)
-	registerCommand(structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation)
-	registerCommand(structs.TxnRequestType, (*FSM).applyTxn)
-	registerCommand(structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate)
-	registerCommand(structs.IntentionRequestType, (*FSM).applyIntentionOperation)
-	registerCommand(structs.ConnectCARequestType, (*FSM).applyConnectCAOperation)
-	registerCommand(structs.ACLTokenSetRequestType, (*FSM).applyACLTokenSetOperation)
-	registerCommand(structs.ACLTokenDeleteRequestType, (*FSM).applyACLTokenDeleteOperation)
-	registerCommand(structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap)
-	registerCommand(structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation)
-	registerCommand(structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation)
-	registerCommand(structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation)
-	registerCommand(structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation)
-	registerCommand(structs.ACLRoleSetRequestType, (*FSM).applyACLRoleSetOperation)
-	registerCommand(structs.ACLRoleDeleteRequestType, (*FSM).applyACLRoleDeleteOperation)
-	registerCommand(structs.ACLBindingRuleSetRequestType, (*FSM).applyACLBindingRuleSetOperation)
-	registerCommand(structs.ACLBindingRuleDeleteRequestType, (*FSM).applyACLBindingRuleDeleteOperation)
-	registerCommand(structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation)
-	registerCommand(structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation)
-	registerCommand(structs.FederationStateRequestType, (*FSM).applyFederationStateOperation)
-	registerCommand(structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation)
-	registerCommand(structs.PeeringWriteType, (*FSM).applyPeeringWrite)
-	registerCommand(structs.PeeringDeleteType, (*FSM).applyPeeringDelete)
-	registerCommand(structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate)
-	registerCommand(structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite)
-	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
-	registerCommand(structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite)
+// entry represents a message type alongside the associated FSM command.
+type entry struct {
+	msgType structs.MessageType
+	cmd     unboundCommand
 }
+
+func RegisteredCommands(fsm *FSM) map[structs.MessageType]command {
+	commands := make(map[structs.MessageType]command)
+	registerCommands(commands, fsm,
+		entry{structs.RegisterRequestType, (*FSM).applyRegister},
+		entry{structs.DeregisterRequestType, (*FSM).applyDeregister},
+		entry{structs.KVSRequestType, (*FSM).applyKVSOperation},
+		entry{structs.SessionRequestType, (*FSM).applySessionOperation},
+		// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
+		entry{structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation},
+		entry{structs.TombstoneRequestType, (*FSM).applyTombstoneOperation},
+		entry{structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate},
+		entry{structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation},
+		entry{structs.TxnRequestType, (*FSM).applyTxn},
+		entry{structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate},
+		entry{structs.IntentionRequestType, (*FSM).applyIntentionOperation},
+		entry{structs.ConnectCARequestType, (*FSM).applyConnectCAOperation},
+		entry{structs.ACLTokenSetRequestType, (*FSM).applyACLTokenSetOperation},
+		entry{structs.ACLTokenDeleteRequestType, (*FSM).applyACLTokenDeleteOperation},
+		entry{structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap},
+		entry{structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation},
+		entry{structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation},
+		entry{structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation},
+		entry{structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation},
+		entry{structs.ACLRoleSetRequestType, (*FSM).applyACLRoleSetOperation},
+		entry{structs.ACLRoleDeleteRequestType, (*FSM).applyACLRoleDeleteOperation},
+		entry{structs.ACLBindingRuleSetRequestType, (*FSM).applyACLBindingRuleSetOperation},
+		entry{structs.ACLBindingRuleDeleteRequestType, (*FSM).applyACLBindingRuleDeleteOperation},
+		entry{structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation},
+		entry{structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation},
+		entry{structs.FederationStateRequestType, (*FSM).applyFederationStateOperation},
+		entry{structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation},
+		entry{structs.PeeringWriteType, (*FSM).applyPeeringWrite},
+		entry{structs.PeeringDeleteType, (*FSM).applyPeeringDelete},
+		entry{structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate},
+		entry{structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite},
+		entry{structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete},
+		entry{structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite},
+	)
+	registerEnterpriseCommands(commands, fsm)
+	return commands
+}
+
+func registerCommands(registry map[structs.MessageType]command, fsm *FSM, cmdEntries ...entry) {
+	for _, cmd := range cmdEntries {
+		if registry[cmd.msgType] != nil {
+			panic(fmt.Errorf("message %d is already registered", cmd.msgType))
+		}
+		thisFn := cmd.cmd
+		registry[cmd.msgType] = func(buf []byte, index uint64) interface{} {
+			return thisFn(fsm, buf, index)
+		}
+	}
+}
+
+func registerEnterpriseCommands(registry map[structs.MessageType]command, fsm *FSM) {}
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"fsm", "register"}, time.Now())
