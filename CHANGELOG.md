@@ -1,3 +1,10 @@
+## 1.13.1 (August 11, 2022)
+
+BUG FIXES:
+
+* agent: Fixed a compatibility issue when restoring snapshots from pre-1.13.0 versions of Consul [[GH-14107](https://github.com/hashicorp/consul/issues/14107)] [[GH-14149](https://github.com/hashicorp/consul/issues/14149)]
+* connect: Fixed some spurious issues during peering establishment when a follower is dialed [[GH-14119](https://github.com/hashicorp/consul/issues/14119)]
+
 ## 1.12.4 (August 11, 2022)
 
 BUG FIXES:
