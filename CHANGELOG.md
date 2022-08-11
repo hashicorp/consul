@@ -1,3 +1,11 @@
+## 1.11.8 (August 11, 2022)
+
+BUG FIXES:
+
+* connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway. [[GH-13847](https://github.com/hashicorp/consul/issues/13847)]
+* connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams. [[GH-13958](https://github.com/hashicorp/consul/issues/13958)]
+
 ## 1.11.7 (July 13, 2022)
 
 IMPROVEMENTS:
