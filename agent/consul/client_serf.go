@@ -62,6 +62,8 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		return nil, err
 	}
 
+	addSerfMetricsLabels(conf, false, "", "", "")
+
 	addEnterpriseSerfTags(conf.Tags, c.config.AgentEnterpriseMeta())
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(c.logger)
