@@ -42,6 +42,48 @@ The following example creates a route named `example-route` associated with a li
 
 The following outline shows how to format the configurations for the `Route` object. The top-level `spec` field is the root for all configurations. Click on a property name to view details about the configuration.
 
+* [`parentRefs`](#parentrefs): array of objects | optional
+  * [`name`](#parentrefs-name): string | required
+  * [`namespace`](#parentrefs-namespace): string | optional
+* [`rules`](#rules): list of objects | optional
+  * [`backendRefs`](#rules-backendrefs): list of objects | optional
+    * [`group`](#rules-backend-refs): string | optional
+    * [`kind`](#rules-backendrefs): string | optional
+    * [`name`](#rules-backendrefs): string | required
+    * [`namespace`](#rules-backendrefs): string | optional
+    * [`port`](#rules-backendrefs): integer | required
+    * [`weight`](#rules-backendrefs): integer | optional
+  * [`filters`](#rules-filters): list of objects | optional
+    * [`type`](#rules-filters-type): string | required
+    * [`requestHeaderModifier`](#rules-filters-requestheadermodifier): object | optional
+      * [`set`](#rules-filters-requestheadermodifier-set): array of objects | optional
+        * [`name`](#rules-filters-requestheadermodifier-set): string | required
+        * [`value`](#rules-filters-requestheadermodifier-set): string | required
+      * [`add`](#rules-filters-requestheadermodifier-add): array of objects | optional
+        * [`name`](#rules-filters-requestheadermodifier-add): string | required
+        * [`value`](#rules-filters-requestheadermodifier-add): string | required
+      * [`remove`](#rules-filters-requestheadermodifier-remove): array of objects | optional
+        * [`name`](#rules-filters-requestheadermodifier-remove): string | required
+        * [`value`](#rules-filters-requestheadermodifier-remove): string | required
+    * [`urlRewrite`](#rules-filters-urlrewrite): object | optional
+      * [`path`](#rules-filters-urlrewrite-path): object | required
+        * [`replacePrefixMatch`](#rules-filters-urlrewrite-path): string | required
+        * [`type`](#rules-filters-urlrewrite-path): string | required
+  * [`matches`](#rules-matches): array of objects | optional
+    * [`path`](#rules-matches-path): list of objects | optional
+      * [`type`](#rules-matches-path): string | required
+      * [`value`](#rules-matches-path): string | required
+    * [`headers`](#rules-matches-headers): list of objects | optional
+      * [`type`](#rules-matches-headers): string | required
+      * [`name`](#rules-matches-headers): string | required
+      * [`value`](#rules-matches-headers): string | required
+    * [`queryParams`](#rules-matches-queryparams): list of objects | optional
+      * [`type`](#rules-matches-queryparams): string | required
+      * [`name`](#rules-matches-queryparams): string | required
+      * [`value`](#rules-matches-queryparams): string | required
+    * [`method`](#rules-matches-method): string | optional
+ 
+
 ## Specification
 
 This topic provides details about the configuration parameters.
@@ -85,6 +127,7 @@ This field specifies backend services that the `Route` references. The following
 | `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
 | `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. To create a route for a `backendRef` in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
 | `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
+| `weight` | | Integer | Optional |
 
 #### Example cross-namespace backendRef
 
@@ -147,6 +190,15 @@ You can specify the following values:
 
 Contains a list of header configuration objects for `requestHeaderModifier` filters when `rules.filters.type` is configured to `RequestHeaderModifier`.
 
+### rules.filters.requestHeaderModifier.set
+
+
+### rules.filters.requestHeaderModifier.add
+
+
+### rules.filters.requestHeaderModifier.remove
+
+
 ### rules.filters.urlRewrite
 
 Contains a list of path configuration objects for `urlRewrite` filters when `rules.filters.type` is configured to `URLRewrite`. 
@@ -176,6 +228,37 @@ The following table describes the parameters for `path`:
 | ---       | ---         | ---  | ---      |
 | `type` |  | String | Required |
 | `value` |  | String | Required |
+
+### rules.matches.headers
+
+The following table describes the parameters for `headers`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `type` |  | String | Required |
+| `value` |  | String | Required |
+
+
+### rules.matches.queryParams
+
+The following table describes the parameters for `queryParams`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `type` |  | String | Required |
+| `name` | | String | Required |
+| `value` |  | String | Required |
+
+### rules.matches.method
+
+The following table describes the parameters for `method`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `type` |  | String | Required |
+| `name` | | String | Required |
+| `value` |  | String | Required |
+
 
 <!-- COMMENTING THIS OUT FOR NOW
 ## MeshService
