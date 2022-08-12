@@ -73,7 +73,9 @@ Use these links to navigate to a particular top-level stanza.
         - `source` ((#v-global-peering-tokengeneration-serveraddresses-source)) (`string: ""`) - Source can be set to "","consul" or "static".
 
           "" is the default source. If servers are enabled, it will check if `server.exposeService` is enabled, and read
-          the addresses from that service to use as the peering token server addresses.
+          the addresses from that service to use as the peering token server addresses. If using admin partitions and
+          only Consul client agents are enabled, the addresses in `externalServers.hosts` and `externalServers.grpcPort`
+          will be used.
 
           "consul" will use the Consul advertise addresses in the peering token.
 
