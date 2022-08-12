@@ -466,11 +466,49 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			continue
 		}
 		failover := node.Resolver.Failover
+
+		var numFailoverTargets int
+		if failover != nil {
+			numFailoverTargets = len(failover.Targets)
+		}
+		clusterNamePrefix := ""
+		if numFailoverTargets > 0 && !forMeshGateway {
+			clusterNamePrefix = failoverClusterNamePrefix
+			for _, failTargetID := range failover.Targets {
+				target := chain.Targets[failTargetID]
+				endpointGroup, valid := makeLoadAssignmentEndpointGroup(
+					chain.Targets,
+					upstreamEndpoints,
+					gatewayEndpoints,
+					failTargetID,
+					gatewayKey,
+					forMeshGateway,
+				)
+				if !valid {
+					continue // skip the failover target if we're still populating the snapshot
+				}
+
+				clusterName := CustomizeClusterName(target.Name, chain)
+				clusterName = failoverClusterNamePrefix + clusterName
+				if escapeHatchCluster != nil {
+					clusterName = escapeHatchCluster.Name
+				}
+
+				s.Logger.Debug("generating endpoints for", "cluster", clusterName)
+
+				la := makeLoadAssignment(
+					clusterName,
+					[]loadAssignmentEndpointGroup{endpointGroup},
+					gatewayKey,
+				)
+				resources = append(resources, la)
+			}
+		}
 		targetID := node.Resolver.Target
 
 		target := chain.Targets[targetID]
-
 		clusterName := CustomizeClusterName(target.Name, chain)
+		clusterName = clusterNamePrefix + clusterName
 		if escapeHatchCluster != nil {
 			clusterName = escapeHatchCluster.Name
 		}
@@ -478,25 +516,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			clusterName = meshGatewayExportedClusterNamePrefix + clusterName
 		}
 		s.Logger.Debug("generating endpoints for", "cluster", clusterName)
-
-		// Determine if we have to generate the entire cluster differently.
-		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node) && !forMeshGateway
-
-		if failoverThroughMeshGateway {
-			actualTargetID := firstHealthyTarget(
-				chain.Targets,
-				upstreamEndpoints,
-				targetID,
-				failover.Targets,
-			)
-			if actualTargetID != targetID {
-				targetID = actualTargetID
-			}
-
-			failover = nil
-		}
-
-		primaryGroup, valid := makeLoadAssignmentEndpointGroup(
+		endpointGroup, valid := makeLoadAssignmentEndpointGroup(
 			chain.Targets,
 			upstreamEndpoints,
 			gatewayEndpoints,
@@ -508,34 +528,9 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			continue // skip the cluster if we're still populating the snapshot
 		}
 
-		var numFailoverTargets int
-		if failover != nil {
-			numFailoverTargets = len(failover.Targets)
-		}
-
-		endpointGroups := make([]loadAssignmentEndpointGroup, 0, numFailoverTargets+1)
-		endpointGroups = append(endpointGroups, primaryGroup)
-
-		if failover != nil && len(failover.Targets) > 0 {
-			for _, failTargetID := range failover.Targets {
-				failoverGroup, valid := makeLoadAssignmentEndpointGroup(
-					chain.Targets,
-					upstreamEndpoints,
-					gatewayEndpoints,
-					failTargetID,
-					gatewayKey,
-					forMeshGateway,
-				)
-				if !valid {
-					continue // skip the failover target if we're still populating the snapshot
-				}
-				endpointGroups = append(endpointGroups, failoverGroup)
-			}
-		}
-
 		la := makeLoadAssignment(
 			clusterName,
-			endpointGroups,
+			[]loadAssignmentEndpointGroup{endpointGroup},
 			gatewayKey,
 		)
 		resources = append(resources, la)
