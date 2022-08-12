@@ -19,7 +19,7 @@ During the execution of the integration tests, several images are built based-on
 To run all the integration tests, you need to execute next command
 
 ```shell
-go test -v timeout=30s -tags integration ./test/integration/connect/envoy -run="TestEvoy" -win=true
+go test -v -timeout=30s -tags integration ./test/integration/connect/envoy -run="TestEnvoy" -win=true
 ```
 
 To run a single test case, the name should be specified. For instance, to run the `case-badauthz` test, you need to execute next command
