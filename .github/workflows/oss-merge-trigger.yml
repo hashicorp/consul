@@ -10,7 +10,7 @@ on:
 jobs:
   trigger-oss-merge:
     # run this only on merge events in OSS repo
-    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
+    if: ${{ github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Merge
@@ -20,6 +20,7 @@ jobs:
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
         run: |
+          echo ${GH_PAT}
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
             -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
