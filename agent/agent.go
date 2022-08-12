@@ -2114,9 +2114,11 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 				return err
 			}
 			req.Service.Port = port
+			a.logger.Trace("Auto-assigning port for sidecar,", "service", req.Service.ID)
 		}
 		if len(req.chkTypes) < 1 {
 			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+			a.logger.Trace("Adding default checks to sidecar,", "service", req.Service.ID, "address", req.Service.Address, "port", req.Service.Port)
 		}
 	}
 
