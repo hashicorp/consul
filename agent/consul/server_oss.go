@@ -158,3 +158,18 @@ func (s *Server) addEnterpriseStats(stats map[string]map[string]string) {
 func getSerfMemberEnterpriseMeta(member serf.Member) *structs.EnterpriseMeta {
 	return structs.NodeEnterpriseMetaInDefaultPartition()
 }
+
+func addSerfMetricsLabels(conf *serf.Config, wan bool, segment string, partition string, areaID string) {
+	conf.MetricLabels = []metrics.Label{}
+
+	networkMetric := metrics.Label{
+		Name: "network",
+	}
+	if wan {
+		networkMetric.Value = "wan"
+	} else {
+		networkMetric.Value = "lan"
+	}
+
+	conf.MetricLabels = append(conf.MetricLabels, networkMetric)
+}
