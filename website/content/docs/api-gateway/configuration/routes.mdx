@@ -7,7 +7,9 @@ description:  >-
 
 # Route
 
-Routes are independent configuration objects that are associated with specific listeners.
+This topic describes how to create and configure `Route` resources. Routes are independent configuration objects that are associated with specific listeners.
+
+## Create a `Route`
 
 Declare a route with either `kind: HTTPRoute` or `kind: TCPRoute` and configure the route parameters in the `spec` block.
 Refer to the Kubernetes Gateway API documentation for each object type for details:
@@ -36,8 +38,55 @@ The following example creates a route named `example-route` associated with a li
 
 </CodeBlockConfig>
 
-To create a route for a `backendRef` in a different namespace, you must also
-create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).
+## Configuration model
+
+The following outline shows how to format the configurations for the `Route` object. The top-level `spec` field is the root for all configurations. Click on a property name to view details about the configuration.
+
+## Specification
+
+This topic provides details about the configuration parameters.
+
+### parentRefs
+
+This field contains the list of `Gateways` that the route should attach to. If not set, the route will not attach to a `Gateway`.
+
+* Type: List of objects
+* Required: Required
+
+### parentRefs.name
+
+This field specifies the name of the `Gateway` the route is attached to.
+
+* Type: String
+* Required: Required
+
+### ParentRefs.namespace
+
+This field specifies the Kubernetes namespace containing the `Gateway` to attach to. It is optional if the `Gateway` is in the same Kubernetes namespace as the `Route`. If the `Gateway` is in a different namespace, then a value must be provided.
+
+* Type: String
+* Required: Optional
+
+### rules
+
+The `rules` field specifies how traffic passing through the route should behave. It contains several possible parameters to customize traffic behavior.
+
+* Type: List of objects
+* Required: Required
+
+### rules.backendRefs 
+
+This field specifies backend services that the `Route` references. The following table describes the parameters for `backendRefs`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `group` | Specifies the Kubernetes API Group of the referenced backend. You can specify the following values: <ul><li>`""`: Specifies the core Kubernetes API group. This value must be used when `kind` is set to `Service`. This is the default value if unspecified.</li><li>`api-gateway.consul.hashicorp.com`: This value must be used when `kind` is set to `MeshService`.</li></ul> | String | Optional |
+| `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service`: Indicates that the `backendRef` references a Service in the Kubernetes cluster. This is the default value if unspecified.</li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh.</li></ul> | String | Optional |
+| `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
+| `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. To create a route for a `backendRef` in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
+| `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
+
+#### Example cross-namespace backendRef
 
 The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
 
@@ -78,6 +127,57 @@ The following example creates a route named `example-route` in namespace `gatewa
 
 </CodeBlockConfig>
 
+### rules.filters
+
+The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Rerouting HTTP](/docs/api-gateway/usage#rerouting-http-requests) for additional information). 
+
+* Type: Array of objects
+* Required: Optional
+
+### rules.filters.type
+
+Specifies the type of filter you want to apply to the route. The parameter is optional and takes a string value. 
+
+You can specify the following values:
+
+* `RequestHeaderModifier`: The `RequestHeaderModifier` type modifies the HTTP headers on the incoming request.
+* `URLRewrite`: The `URLRewrite` type  modifies the URL path on the incoming request.
+
+### rules.filters.requestHeaderModifier
+
+Contains a list of header configuration objects for `requestHeaderModifier` filters when `rules.filters.type` is configured to `RequestHeaderModifier`.
+
+### rules.filters.urlRewrite
+
+Contains a list of path configuration objects for `urlRewrite` filters when `rules.filters.type` is configured to `URLRewrite`. 
+
+### rules.filters.urlRewrite.path
+
+Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Rerouting HTTP](/docs/api-gateway/usage#rerouting-http-requests) for additional information). 
+
+The following table describes the parameters for `path`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `replacePrefixMatch` | Specifies the path prefix to use as the replacement when rerouting requests. | String | Required |
+| `type` | Specifies the type of rewrite rule. You can specify the following values: <ul><li>`ReplacePrefixMatch`</li></ul> | String | Optional |
+
+### rules.matches
+
+Specifies rules for matching incoming requests. You can apply [`filters`](#rulesfilters) to requests that match the defined rules.
+
+### rules.matches.path
+
+Specifies a list of objects that define pattern-matching rules. Consul API Gateway processes matching requests according to the rules configured for the routes.
+
+The following table describes the parameters for `path`:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `type` |  | String | Required |
+| `value` |  | String | Required |
+
+<!-- COMMENTING THIS OUT FOR NOW
 ## MeshService
 
 The `MeshService` configuration holds a reference to an externally-managed Consul service mesh service and can be used as a `backendRef` for a [`Route`](#route).
@@ -87,3 +187,4 @@ The `MeshService` configuration holds a reference to an externally-managed Consu
 | `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
 
 Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
+-->
