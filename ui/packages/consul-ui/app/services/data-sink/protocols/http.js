@@ -2,11 +2,14 @@ import Service, { inject as service } from '@ember/service';
 import { setProperties } from '@ember/object';
 
 export default class HttpService extends Service {
+  @service('client/http') client;
+
   @service('settings') settings;
   @service('repository/intention') intention;
   @service('repository/kv') kv;
   @service('repository/nspace') nspace;
   @service('repository/partition') partition;
+  @service('repository/peer') peer;
   @service('repository/session') session;
 
   prepare(sink, data, instance) {
@@ -24,12 +27,16 @@ export default class HttpService extends Service {
   persist(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return repo.persist(instance);
+    return this.client.request(
+      request => repo.persist(instance, request)
+    );
   }
 
   remove(sink, instance) {
     const [, , , , model] = sink.split('/');
     const repo = this[model];
-    return repo.remove(instance);
+    return this.client.request(
+      request => repo.remove(instance, request)
+    );
   }
 }

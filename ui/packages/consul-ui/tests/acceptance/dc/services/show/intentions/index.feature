@@ -21,13 +21,16 @@ Feature: dc / services / show / intentions / index: Intentions per service
       DestinationNS: default
       SourcePartition: default
       DestinationPartition: default
+      SourcePeer: ""
 
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
       Action: deny
       Meta: ~
+      SourcePeer: ""
     - ID: 0755b72bd-f5ab-4c92-90cc-bed0e7d8e9f2
       Action: deny
       Meta: ~
+      SourcePeer: ""
     ---
     When I visit the service page for yaml
     ---

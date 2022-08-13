@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -32,7 +33,7 @@ type KVS struct {
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func kvsPreApply(logger hclog.Logger, srv *Server, authz ACLResolveResult, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")

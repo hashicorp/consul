@@ -169,4 +169,50 @@ module('Unit | Filter | Predicates | service', function() {
     );
     assert.deepEqual(actual, expected);
   });
+
+  test('it returns items without an External Source or items with a peer name when source `consul` is specified', function(assert) {
+    const items = [
+      {
+        _Name: 'external',
+        ExternalSources: ['aws'],
+      },
+      {
+        _Name: 'empty-array',
+        ExternalSources: [],
+      },
+      {
+        _Name: 'peered-external',
+        ExternalSources: ['terraform'],
+        PeerName: 'peer-1',
+      },
+      {
+        _Name: 'peered',
+        ExternalSources: [],
+        PeerName: 'peer-2',
+      },
+      {
+        _Name: 'undefined',
+        ExternalSources: undefined,
+      },
+      {
+        _Name: 'empty-string',
+        ExternalSources: [''],
+      },
+      {
+        _Name: 'empty-string-with-additional-source',
+        ExternalSources: ['', 'nomad'],
+      },
+    ];
+
+    const filteredItems = items.filter(
+      predicate({
+        source: ['consul'],
+      })
+    );
+
+    const actual = filteredItems.map(i => i._Name);
+
+    const expected = ['empty-array', 'peered-external', 'peered', 'undefined', 'empty-string'];
+    assert.deepEqual(actual, expected, 'filtering works with source `consul`');
+  });
 });

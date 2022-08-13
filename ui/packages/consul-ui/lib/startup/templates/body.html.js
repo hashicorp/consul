@@ -59,6 +59,10 @@ ${
 {{if .ACLsEnabled}}
   <script src="${rootURL}assets/consul-acls/routes.js"></script>
 {{end}}
+{{if .PeeringEnabled}}
+  <script src="${rootURL}assets/consul-peerings/services.js"></script>
+  <script src="${rootURL}assets/consul-peerings/routes.js"></script>
+{{end}}
 {{if .PartitionsEnabled}}
   <script src="${rootURL}assets/consul-partitions/services.js"></script>
   <script src="${rootURL}assets/consul-partitions/routes.js"></script>
@@ -87,6 +91,7 @@ ${
   key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
   {
     'CONSUL_ACLS_ENABLE': 'consul-acls',
+    'CONSUL_PEERINGS_ENABLE': 'consul-peerings',
     'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
     'CONSUL_NSPACES_ENABLE': 'consul-nspaces',
     'CONSUL_HCP_ENABLE': 'consul-hcp'

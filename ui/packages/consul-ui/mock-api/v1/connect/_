@@ -22,6 +22,7 @@ ${legacy ? `
             "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
 `:``}
             "Description": "${fake.lorem.sentence()}",
+            "SourcePeer": "${fake.helpers.randomize(['billing', ''])}",
             "SourceName": "${fake.hacker.noun()}-${i}",
             "DestinationName": "${fake.hacker.noun()}",
             "SourceNS": "default",

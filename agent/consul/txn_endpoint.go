@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -32,7 +33,7 @@ type Txn struct {
 
 // preCheck is used to verify the incoming operations before any further
 // processing takes place. This checks things like ACLs.
-func (t *Txn) preCheck(authorizer ACLResolveResult, ops structs.TxnOps) structs.TxnErrors {
+func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.TxnErrors {
 	var errors structs.TxnErrors
 
 	// Perform the pre-apply checks for any KV operations.
@@ -109,7 +110,7 @@ func (t *Txn) preCheck(authorizer ACLResolveResult, ops structs.TxnOps) structs.
 }
 
 // vetNodeTxnOp applies the given ACL policy to a node transaction operation.
-func vetNodeTxnOp(op *structs.TxnNodeOp, authz ACLResolveResult) error {
+func vetNodeTxnOp(op *structs.TxnNodeOp, authz resolver.Result) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
@@ -120,7 +121,7 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, authz ACLResolveResult) error {
 }
 
 // vetCheckTxnOp applies the given ACL policy to a check transaction operation.
-func vetCheckTxnOp(op *structs.TxnCheckOp, authz ACLResolveResult) error {
+func vetCheckTxnOp(op *structs.TxnCheckOp, authz resolver.Result) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 

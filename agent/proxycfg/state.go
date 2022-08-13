@@ -36,9 +36,13 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	peeredUpstreamsID                  = "peered-upstreams"
+	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
 	upstreamPeerWatchIDPrefix          = "upstream-peer:"
 	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	DestinationConfigEntryID           = "destination:"
+	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second

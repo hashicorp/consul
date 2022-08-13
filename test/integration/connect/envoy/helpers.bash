@@ -479,28 +479,31 @@ function get_healthy_service_count {
   local AP=$4
   local PEER_NAME=$5
 
-  run curl -s -f ${HEADERS} "consul-${DC}:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
+  run curl -s -f ${HEADERS} "consul-${DC}-client:8500/v1/health/connect/${SERVICE_NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER_NAME}"
 
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
 
 function assert_alive_wan_member_count {
-  local EXPECT_COUNT=$1
-  run retry_long assert_alive_wan_member_count_once $EXPECT_COUNT
+  local DC=$1
+  local EXPECT_COUNT=$2
+  run retry_long assert_alive_wan_member_count_once $DC $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
 function assert_alive_wan_member_count_once {
-  local EXPECT_COUNT=$1
+  local DC=$1
+  local EXPECT_COUNT=$2
 
-  GOT_COUNT=$(get_alive_wan_member_count)
+  GOT_COUNT=$(get_alive_wan_member_count $DC)
 
   [ "$GOT_COUNT" -eq "$EXPECT_COUNT" ]
 }
 
 function get_alive_wan_member_count {
-  run retry_default curl -sL -f "127.0.0.1:8500/v1/agent/members?wan=1"
+  local DC=$1
+  run retry_default curl -sL -f "consul-${DC}-server:8500/v1/agent/members?wan=1"
   [ "$status" -eq 0 ]
   # echo "$output" >&3
   echo "$output" | jq '.[] | select(.Status == 1) | .Name' | wc -l
@@ -951,7 +954,7 @@ function assert_expected_fortio_host_header {
 function create_peering {
   local GENERATE_PEER=$1
   local ESTABLISH_PEER=$2
-  run curl -sL -XPOST "http://consul-${GENERATE_PEER}:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
+  run curl -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 
@@ -959,8 +962,59 @@ function create_peering {
   token="$(echo "$output" | jq -r .PeeringToken)"
   [ -n "$token" ]
 
-  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
+  run curl -sLv -XPOST "http://consul-${ESTABLISH_PEER}-client:8500/v1/peering/establish" -d"{ \"PeerName\" : \"${ESTABLISH_PEER}-to-${GENERATE_PEER}\", \"PeeringToken\" : \"${token}\" }"
   # echo "$output" >&3
   [ "$status" == 0 ]
 }
 
+function get_lambda_envoy_http_filter {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  # get the full http filter object so the individual fields can be validated.
+  echo "$output" | jq --raw-output ".configs[2].dynamic_listeners[] | .active_state.listener.filter_chains[].filters[] | select(.name == \"envoy.filters.network.http_connection_manager\") | .typed_config.http_filters[] | select(.name == \"envoy.filters.http.aws_lambda\") | .typed_config"
+}
+
+function register_lambdas {
+  local DC=${1:-primary}
+  # register lambdas to the catalog
+  for f in $(find workdir/${DC}/register -type f -name 'lambda_*.json'); do
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/catalog/register" >/dev/null && \
+      echo "Registered Lambda: $(jq -r .Service.Service $f)"
+  done
+  # write service-defaults config entries for lambdas
+  for f in $(find workdir/${DC}/register -type f -name 'service_defaults_*.json'); do
+    varsub ${f} AWS_LAMBDA_REGION AWS_LAMBDA_ARN
+    retry_default curl -sL -XPUT -d @${f} "http://localhost:8500/v1/config" >/dev/null && \
+      echo "Wrote config: $(jq -r '.Kind + " / " + .Name' $f)"
+  done
+}
+
+function assert_lambda_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+
+  local BODY=$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)
+  [ -n "$BODY" ]
+
+  [ "$(echo $BODY | jq -r '.cluster.transport_socket.typed_config.sni')" == '*.amazonaws.com' ]
+}
+
+function assert_lambda_envoy_dynamic_http_filter_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local ARN=$3
+
+  local FILTER=$(get_lambda_envoy_http_filter $HOSTPORT $NAME_PREFIX)
+  [ -n "$FILTER" ]
+
+  [ "$(echo $FILTER | jq -r '.arn')" == "$ARN" ]
+}
+
+function varsub {
+  local file=$1 ; shift
+  for v in "$@"; do
+    sed -i "s/\${$v}/${!v}/g" $file
+  done
+}

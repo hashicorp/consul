@@ -91,6 +91,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Revision          string
 		Server            bool
 		Version           string
+		BuildDate         string
 	}{
 		Datacenter:        s.agent.config.Datacenter,
 		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
@@ -100,8 +101,10 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
 		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
-		Version: s.agent.config.VersionWithMetadata(),
+		Version:   s.agent.config.VersionWithMetadata(),
+		BuildDate: s.agent.config.BuildDate.Format(time.RFC3339),
 	}
+
 	return Self{
 		Config:      config,
 		DebugConfig: s.agent.config.Sanitized(),
@@ -1120,8 +1123,8 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}
 	}
 
-	// Run validation. This is the same validation that would happen on
-	// the catalog endpoint so it helps ensure the sync will work properly.
+	// Run validation. This same validation would happen on the catalog endpoint,
+	// so it helps ensure the sync will work properly.
 	if err := ns.Validate(); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Validation failed: %v", err.Error())}
 	}
@@ -1161,7 +1164,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
-		if err := sidecar.Validate(); err != nil {
+		if err := sidecar.ValidateForAgent(); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed Validation: %v", err.Error())}
 		}
 		// Make sure we are allowed to register the sidecar using the token
@@ -1523,6 +1526,8 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
+
+	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
 	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID

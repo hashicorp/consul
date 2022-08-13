@@ -6,49 +6,39 @@ description: Consul Enterprise License Overview.
 
 # Consul Enterprise License
 
-## Licensing
+## Licensing Overview
 
 All Consul Enterprise agents must be licensed when they are started. Where that license comes from will depend
-on which binary is in use, whether the agent is a server, client or snapshot agent and whether ACLs have been
+on which binary is in use, whether the agent is a server, client or snapshot agent, and whether ACLs have been
 enabled for the cluster.
 
--> ** Consul Enterprise 1.10.0 removed temporary licensing.** In previous versions Consul Enterprise
+-> ** Consul Enterprise 1.10.0 removed temporary licensing.** Prior to 1.10.0, Consul Enterprise
 agents could start without a license and then have a license applied to them later on via the CLI
 or API. That functionality has been removed and replaced with the ability to load licenses from the
-agent's configuration or environment. Also prior to 1.10.0 server agents would automatically propagate
-the license between themselves. This no longer occurs and the license must be present on each server
-when they are started.
+agent's configuration or environment. Also, prior to 1.10.0, server agents would automatically propagate
+the license between themselves. This no longer occurs and the license must be present on each server agent
+when it is started.
 
 -> Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 
-### Binaries with Built In Licenses
+### Applying a License
 
-If you are downloading Consul from Amazon S3, then the license is included
-in the binary and you do not need to take further action. This is the
-most common use case.
-
-In the S3 bucket you will find three Enterprise zip packages. The packages with `+pro` and
-`+prem` in the name, are the binaries that include the license. The package
-with `+ent` in the name does not include the license.
-
-When using these binaries no further action is necessary to configure the license.
-
-### Binaries Without Built In Licenses
-
-For Consul Enterprise 1.10.0 or greater, binaries that do not include built in licenses a license must be available at the time the agent starts.
+For Consul Enterprise 1.10.0 or greater, a license must be available at the time the agent starts.
 For server agents this means that they must either have the [`license_path`](/docs/agent/config/config-files#license_path)
 configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
 `CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
 environment variable point to a file containing the license whereas the `CONSUL_LICENSE` environment
-variable should contain the license as the value. If multiple of these are set the order of precedence is:
+variable should contain the license as the value. If multiple variables are set,
+the following order of precedence applies:
 
 1. `CONSUL_LICENSE` environment variable
 2. `CONSUL_LICENSE_PATH` environment variable
 3. `license_path` configuration item.
 
-Both client agents and the snapshot agent may also be licensed in the very same manner. However to prevent
-the need to configure the license on many client agents and snapshot agents those agents have the capability
-to retrieve the license automatically under specific circumstances.
+Client agents and [snapshot agents](/docs/enterprise/backups)
+may also be licensed in the very same manner.
+However, to avoid the need to configure the license on many client agents and snapshot agents,
+those agents have the capability to retrieve the license automatically under the conditions described below.
 
 #### Client Agent License Retrieval
 

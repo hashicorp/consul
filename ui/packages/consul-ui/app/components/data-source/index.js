@@ -1,3 +1,4 @@
+/* eslint no-console: ["error", { allow: ["debug"] }] */
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
@@ -179,6 +180,7 @@ export default class DataSource extends Component {
       }
     }
   }
+
   @action
   async invalidate() {
     this.source.readyState = 2;
@@ -186,7 +188,7 @@ export default class DataSource extends Component {
     schedule('afterRender', () => {
       // TODO: Support lazy data-sources by keeping a reference to $el
       runInDebug(_ =>
-        console.error(
+        console.debug(
           `Invalidation is only supported for non-lazy data sources. If you want to use this you should fixup support for lazy data sources`
         )
       );

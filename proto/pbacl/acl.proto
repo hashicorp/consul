@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package acl;
+package hashicorp.consul.internal.acl;
 
 message ACLLink {
   string ID = 1;

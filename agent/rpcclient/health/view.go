@@ -21,17 +21,21 @@ type MaterializerDeps struct {
 	Logger hclog.Logger
 }
 
-func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
+func NewMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
 	return func(index uint64) *pbsubscribe.SubscribeRequest {
 		req := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        srvReq.ServiceName,
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       srvReq.ServiceName,
+					Namespace: srvReq.EnterpriseMeta.NamespaceOrEmpty(),
+					Partition: srvReq.EnterpriseMeta.PartitionOrEmpty(),
+					PeerName:  srvReq.PeerName,
+				},
+			},
 			Token:      srvReq.Token,
 			Datacenter: srvReq.Datacenter,
 			Index:      index,
-			Namespace:  srvReq.EnterpriseMeta.NamespaceOrEmpty(),
-			Partition:  srvReq.EnterpriseMeta.PartitionOrEmpty(),
-			PeerName:   srvReq.PeerName,
 		}
 		if srvReq.Connect {
 			req.Topic = pbsubscribe.Topic_ServiceHealthConnect
@@ -40,29 +44,29 @@ func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index ui
 	}
 }
 
-func newHealthView(req structs.ServiceSpecificRequest) (*healthView, error) {
+func NewHealthView(req structs.ServiceSpecificRequest) (*HealthView, error) {
 	fe, err := newFilterEvaluator(req)
 	if err != nil {
 		return nil, err
 	}
-	return &healthView{
+	return &HealthView{
 		state:  make(map[string]structs.CheckServiceNode),
 		filter: fe,
 	}, nil
 }
 
-// healthView implements submatview.View for storing the view state
+// HealthView implements submatview.View for storing the view state
 // of a service health result. We store it as a map to make updates and
 // deletions a little easier but we could just store a result type
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
-type healthView struct {
+type HealthView struct {
 	state  map[string]structs.CheckServiceNode
 	filter filterEvaluator
 }
 
 // Update implements View
-func (s *healthView) Update(events []*pbsubscribe.Event) error {
+func (s *HealthView) Update(events []*pbsubscribe.Event) error {
 	for _, event := range events {
 		serviceHealth := event.GetServiceHealth()
 		if serviceHealth == nil {
@@ -177,7 +181,7 @@ func sortCheckServiceNodes(serviceNodes *structs.IndexedCheckServiceNodes) {
 }
 
 // Result returns the structs.IndexedCheckServiceNodes stored by this view.
-func (s *healthView) Result(index uint64) interface{} {
+func (s *HealthView) Result(index uint64) interface{} {
 	result := structs.IndexedCheckServiceNodes{
 		Nodes: make(structs.CheckServiceNodes, 0, len(s.state)),
 		QueryMeta: structs.QueryMeta{
@@ -193,7 +197,7 @@ func (s *healthView) Result(index uint64) interface{} {
 	return &result
 }
 
-func (s *healthView) Reset() {
+func (s *HealthView) Reset() {
 	s.state = make(map[string]structs.CheckServiceNode)
 }
 

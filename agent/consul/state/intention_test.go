@@ -1199,6 +1199,72 @@ func TestStore_IntentionsList(t *testing.T) {
 	})
 }
 
+// TestStore_IntentionExact_ConfigEntries test that we can get a local config entry intention
+// and a peered config entry intention with an IntentionGetExact call
+func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
+	s := testConfigStateStore(t)
+	inputs := []*structs.ServiceIntentionsConfigEntry{
+		{
+			Kind: structs.ServiceIntentions,
+			Name: "foo",
+			Sources: []*structs.SourceIntention{
+				{
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Peer:        "peer1",
+					Description: "peered service intention",
+				},
+				{
+					Action:      structs.IntentionActionAllow,
+					Name:        "bar",
+					Description: "local service intention",
+				},
+			},
+		},
+	}
+	idx := uint64(0)
+
+	for _, input := range inputs {
+		require.NoError(t, input.Normalize())
+		require.NoError(t, input.Validate())
+		idx++
+		require.NoError(t, s.EnsureConfigEntry(idx, input))
+	}
+
+	t.Run("assert that we can get the peered intention", func(t *testing.T) {
+		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
+			SourceNS:        "default",
+			SourceName:      "bar",
+			SourcePeer:      "peer1",
+			DestinationNS:   "default",
+			DestinationName: "foo",
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+		require.NotNil(t, ixn)
+		require.Equal(t, "peer1", ixn.SourcePeer)
+		require.Equal(t, "peered service intention", ixn.Description)
+		require.Equal(t, uint64(1), idx)
+	})
+
+	t.Run("assert that we can get the local intention", func(t *testing.T) {
+		idx, entry, ixn, err := s.IntentionGetExact(nil, &structs.IntentionQueryExact{
+			SourceNS:        "default",
+			SourceName:      "bar",
+			DestinationNS:   "default",
+			DestinationName: "foo",
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+		require.NotNil(t, ixn)
+		require.Empty(t, ixn.SourcePeer)
+		require.Equal(t, "local service intention", ixn.Description)
+		require.Equal(t, uint64(1), idx)
+	})
+}
+
 func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	type testcase struct {
 		name   string

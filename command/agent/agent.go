@@ -27,12 +27,19 @@ import (
 )
 
 func New(ui cli.Ui) *cmd {
+	buildDate, err := time.Parse(time.RFC3339, consulversion.BuildDate)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Fatal error with internal time set; check makefile for build date %v %v \n", buildDate, err))
+		return nil
+	}
+
 	c := &cmd{
 		ui:                ui,
 		revision:          consulversion.GitCommit,
 		version:           consulversion.Version,
 		versionPrerelease: consulversion.VersionPrerelease,
 		versionHuman:      consulversion.GetHumanVersion(),
+		buildDate:         buildDate,
 		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
 	config.AddFlags(c.flags, &c.configLoadOpts)
@@ -53,6 +60,7 @@ type cmd struct {
 	version           string
 	versionPrerelease string
 	versionHuman      string
+	buildDate         time.Time
 	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
 }
@@ -193,20 +201,29 @@ func (c *cmd) run(args []string) int {
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	ui.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("     Partition: '%s'", ap))
+	ui.Info(fmt.Sprintf("          Version: '%s'", c.versionHuman))
+	if strings.Contains(c.versionHuman, "dev") {
+		ui.Info(fmt.Sprintf("         Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("       Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("          Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("        Node name: '%s'", config.NodeName))
+	if ap := config.PartitionOrEmpty(); ap != "" {
+		ui.Info(fmt.Sprintf("        Partition: '%s'", ap))
+	}
+	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
-		config.EncryptKey != "", config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
+	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
+	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+	ui.Info(fmt.Sprintf(" Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
 	// Enable log streaming
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")

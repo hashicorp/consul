@@ -19,12 +19,7 @@ const (
 	indexNodeCheck = "node_check"
 )
 
-func indexFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*structs.Session)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
-
+func indexFromSession(e *structs.Session) ([]byte, error) {
 	v := strings.ToLower(e.ID)
 	if v == "" {
 		return nil, errMissingValueForIndex
@@ -86,12 +81,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 }
 
 // indexNodeFromSession creates an index key from *structs.Session
-func indexNodeFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*structs.Session)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
-
+func indexNodeFromSession(e *structs.Session) ([]byte, error) {
 	v := strings.ToLower(e.Node)
 	if v == "" {
 		return nil, errMissingValueForIndex
@@ -103,12 +93,7 @@ func indexNodeFromSession(raw interface{}) ([]byte, error) {
 }
 
 // indexFromNodeCheckIDSession creates an index key from  sessionCheck
-func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*sessionCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement sessionCheck", raw)
-	}
-
+func indexFromNodeCheckIDSession(e *sessionCheck) ([]byte, error) {
 	var b indexBuilder
 	v := strings.ToLower(e.Node)
 	if v == "" {
@@ -132,12 +117,7 @@ func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 }
 
 // indexSessionCheckFromSession creates an index key from  sessionCheck
-func indexSessionCheckFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*sessionCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *sessionCheck", raw)
-	}
-
+func indexSessionCheckFromSession(e *sessionCheck) ([]byte, error) {
 	var b indexBuilder
 	v := strings.ToLower(e.Session)
 	if v == "" {

@@ -37,13 +37,13 @@ resource "aws_security_group" "test-servers" {
     from_port   = 22
     to_port     = 22
     protocol    = "6"
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = [var.vpc_allwed_ssh_cidr]
   }
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -54,6 +54,9 @@ resource "aws_instance" "test-server" {
   vpc_security_group_ids      = toset([aws_security_group.test-servers.id])
   associate_public_ip_address = var.test_public_ip
   subnet_id                   = (module.vpc.public_subnets)[0]
+  tags = {
+    Name = "consul-load-generator-server-${local.random_name}"
+  }
   provisioner "remote-exec" {
     inline = [
       "export LB_ENDPOINT=${module.alb.this_lb_dns_name}",

@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
-	"github.com/hashicorp/consul/agent/grpc/public"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/proto-public/pbacl"
@@ -26,7 +26,7 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 	// correctly wiring everything up in the server by:
 	//
 	//	* Starting a cluster with multiple servers.
-	//	* Making a request to a follower's public gRPC port.
+	//	* Making a request to a follower's external gRPC port.
 	//	* Ensuring that the request is correctly forwarded to the leader.
 	//	* Ensuring we get a valid certificate back (so it went through the CAManager).
 	server1, conn1, _ := testGRPCIntegrationServer(t, func(c *Config) {
@@ -59,7 +59,7 @@ func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	ctx = public.ContextWithToken(ctx, TestDefaultInitialManagementToken)
+	ctx = external.ContextWithToken(ctx, TestDefaultInitialManagementToken)
 
 	// This would fail if it wasn't forwarded to the leader.
 	rsp, err := client.Sign(ctx, &pbconnectca.SignRequest{
@@ -96,7 +96,7 @@ func TestGRPCIntegration_ServerDiscovery_WatchServers(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	ctx = public.ContextWithToken(ctx, TestDefaultInitialManagementToken)
+	ctx = external.ContextWithToken(ctx, TestDefaultInitialManagementToken)
 
 	serverStream, err := client.WatchServers(ctx, &pbserverdiscovery.WatchServersRequest{Wan: false})
 	require.NoError(t, err)

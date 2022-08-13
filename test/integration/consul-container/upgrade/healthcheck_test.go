@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+
 	libcluster "github.com/hashicorp/consul/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/integration/consul-container/libs/node"
 	"github.com/hashicorp/consul/integration/consul-container/libs/utils"
@@ -74,7 +75,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: *utils.TargetImage,
@@ -84,7 +85,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
@@ -151,7 +152,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		configs = append(configs,
 			node.Config{
 				HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
@@ -162,7 +163,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 	configs = append(configs,
 		node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},
 			Version: *utils.LatestImage,
@@ -227,7 +228,7 @@ func clientsCreate(t *testing.T, numClients int, version string, serfKey string)
 			node.Config{
 				HCL: fmt.Sprintf(`
 				node_name = %q
-				log_level = "TRACE"
+				log_level = "DEBUG"
 				encrypt = %q`, utils.RandName("consul-client"), serfKey),
 				Cmd:     []string{"agent", "-client=0.0.0.0"},
 				Version: version,
@@ -255,7 +256,7 @@ func serversCluster(t *testing.T, numServers int, version string) *libcluster.Cl
 	for i := 0; i < numServers; i++ {
 		configs = append(configs, node.Config{
 			HCL: `node_name="` + utils.RandName("consul-server") + `"
-					log_level="TRACE"
+					log_level="DEBUG"
 					bootstrap_expect=3
 					server=true`,
 			Cmd:     []string{"agent", "-client=0.0.0.0"},

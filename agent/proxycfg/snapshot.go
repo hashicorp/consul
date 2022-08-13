@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -44,13 +45,9 @@ type ConfigSnapshotUpstreams struct {
 	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
-	// WatchedPeerTrustBundles is a map of (PeerName -> CancelFunc) in order to cancel
-	// watches for peer trust bundles any time the list of upstream peers changes.
-	WatchedPeerTrustBundles map[string]context.CancelFunc
-
-	// PeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
+	// UpstreamPeerTrustBundles is a map of (PeerName -> PeeringTrustBundle).
 	// It is used to store trust bundles for upstream TLS transport sockets.
-	PeerTrustBundles map[string]*pbpeering.PeeringTrustBundle
+	UpstreamPeerTrustBundles watch.Map[PeerName, *pbpeering.PeeringTrustBundle]
 
 	// WatchedGateways is a map of UpstreamID -> (map of GatewayKey.String() ->
 	// CancelFunc) in order to cancel watches for mesh gateways
@@ -80,10 +77,16 @@ type ConfigSnapshotUpstreams struct {
 	// This list only applies to proxies registered in 'transparent' mode.
 	IntentionUpstreams map[UpstreamID]struct{}
 
+	// PeeredUpstreams is a set of all upstream targets in a local partition.
+	//
+	// This list only applies to proxies registered in 'transparent' mode.
+	PeeredUpstreams map[UpstreamID]struct{}
+
 	// PeerUpstreamEndpoints is a map of UpstreamID -> (set of IP addresses)
 	// and used to determine the backing endpoints of an upstream in another
 	// peer.
-	PeerUpstreamEndpoints             map[UpstreamID]structs.CheckServiceNodes
+	PeerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes]
+
 	PeerUpstreamEndpointsUseHostnames map[UpstreamID]struct{}
 }
 
@@ -128,8 +131,8 @@ func gatewayKeyFromString(s string) GatewayKey {
 type configSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
-	PeeringTrustBundlesSet bool
-	PeeringTrustBundles    []*pbpeering.PeeringTrustBundle
+	InboundPeerTrustBundlesSet bool
+	InboundPeerTrustBundles    []*pbpeering.PeeringTrustBundle
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 	PreparedQueryEndpoints map[UpstreamID]structs.CheckServiceNodes  // DEPRECATED:see:WatchedUpstreamEndpoints
@@ -139,6 +142,9 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
+
+	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
+	DestinationGateways  watch.Map[UpstreamID, structs.CheckServiceNodes]
 }
 
 // isEmpty is a test helper
@@ -152,8 +158,7 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
-		len(c.WatchedPeerTrustBundles) == 0 &&
-		len(c.PeerTrustBundles) == 0 &&
+		c.UpstreamPeerTrustBundles.Len() == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
@@ -161,10 +166,19 @@ func (c *configSnapshotConnectProxy) isEmpty() bool {
 		len(c.UpstreamConfig) == 0 &&
 		len(c.PassthroughUpstreams) == 0 &&
 		len(c.IntentionUpstreams) == 0 &&
-		!c.PeeringTrustBundlesSet &&
+		c.DestinationGateways.Len() == 0 &&
+		c.DestinationsUpstream.Len() == 0 &&
+		len(c.PeeredUpstreams) == 0 &&
+		!c.InboundPeerTrustBundlesSet &&
 		!c.MeshConfigSet &&
-		len(c.PeerUpstreamEndpoints) == 0 &&
+		c.PeerUpstreamEndpoints.Len() == 0 &&
 		len(c.PeerUpstreamEndpointsUseHostnames) == 0
+}
+
+func (c *configSnapshotConnectProxy) IsImplicitUpstream(uid UpstreamID) bool {
+	_, intentionImplicit := c.IntentionUpstreams[uid]
+	_, peeringImplicit := c.PeeredUpstreams[uid]
+	return intentionImplicit || peeringImplicit
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -230,7 +244,13 @@ type configSnapshotTerminatingGateway struct {
 	// GatewayServices is a map of service name to the config entry association
 	// between the gateway and a service. TLS configuration stored here is
 	// used for TLS origination from the gateway to the linked service.
+	// This map does not include GatewayServices that represent Endpoints to external
+	// destinations.
 	GatewayServices map[structs.ServiceName]structs.GatewayService
+
+	// DestinationServices is a map of service name to GatewayServices that represent
+	// a destination to an external destination of the service mesh.
+	DestinationServices map[structs.ServiceName]structs.GatewayService
 
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -269,6 +289,33 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
+// ValidDestinations returns the list of service keys (that represent exclusively endpoints) that have enough data to be emitted.
+func (c *configSnapshotTerminatingGateway) ValidDestinations() []structs.ServiceName {
+	out := make([]structs.ServiceName, 0, len(c.DestinationServices))
+	for svc := range c.DestinationServices {
+		// It only counts if ALL of our watches have come back (with data or not).
+
+		// Skip the service if we don't have a cert to present for mTLS.
+		if cert, ok := c.ServiceLeaves[svc]; !ok || cert == nil {
+			continue
+		}
+
+		// Skip the service if we haven't gotten our intentions yet.
+		if _, intentionsSet := c.Intentions[svc]; !intentionsSet {
+			continue
+		}
+
+		// Skip the service if we haven't gotten our service config yet to know
+		// the protocol.
+		if conf, ok := c.ServiceConfigs[svc]; !ok || len(conf.Destination.Addresses) == 0 {
+			continue
+		}
+
+		out = append(out, svc)
+	}
+	return out
+}
+
 // isEmpty is a test helper
 func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 	if c == nil {
@@ -286,6 +333,7 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		len(c.ServiceConfigs) == 0 &&
 		len(c.WatchedConfigs) == 0 &&
 		len(c.GatewayServices) == 0 &&
+		len(c.DestinationServices) == 0 &&
 		len(c.HostnameServices) == 0 &&
 		!c.MeshConfigSet
 }
@@ -334,23 +382,127 @@ type configSnapshotMeshGateway struct {
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 
-	// TODO(peering):
+	// ExportedServicesSlice is a sorted slice of services that are exported to
+	// connected peers.
 	ExportedServicesSlice []structs.ServiceName
 
-	// TODO(peering): svc -> peername slice
+	// ExportedServicesWithPeers is a map of exported service name to a sorted
+	// slice of peers that they are exported to.
 	ExportedServicesWithPeers map[structs.ServiceName][]string
 
-	// TODO(peering):  discard this maybe
-	WatchedExportedServices map[string]structs.ServiceList
+	// ExportedServicesSet indicates that the watch on the list of
+	// peer-exported services has completed at least once.
+	ExportedServicesSet bool
 
-	// TODO(peering):
-	WatchedExportedServicesSet bool
-
-	// TODO(peering):
+	// DiscoveryChain is a map of the peer-exported service names to their
+	// local compiled discovery chain. This will be populated regardless of
+	// L4/L7 status of the chain.
 	DiscoveryChain map[structs.ServiceName]*structs.CompiledDiscoveryChain
 
-	// TODO(peering):
+	// WatchedDiscoveryChains is a map of peer-exported service names to a
+	// cancel function.
 	WatchedDiscoveryChains map[structs.ServiceName]context.CancelFunc
+
+	// MeshConfig is the mesh config entry that should be used for services
+	// fronted by this mesh gateway.
+	MeshConfig *structs.MeshConfigEntry
+
+	// MeshConfigSet indicates that the watch on the mesh config entry has
+	// completed at least once.
+	MeshConfigSet bool
+
+	// Leaf is the leaf cert to be used by this mesh gateway.
+	Leaf *structs.IssuedCert
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
+
+	// PeeringTrustBundles is the list of trust bundles for peers where
+	// services have been exported to using this mesh gateway.
+	PeeringTrustBundles []*pbpeering.PeeringTrustBundle
+
+	// PeeringTrustBundlesSet indicates that the watch on the peer trust
+	// bundles has completed at least once.
+	PeeringTrustBundlesSet bool
+}
+
+// MeshGatewayValidExportedServices ensures that the following data is present
+// if it exists for a service before it returns that in the set of services to
+// expose.
+//
+// - peering info
+// - discovery chain
+func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceName {
+	out := make([]structs.ServiceName, 0, len(c.MeshGateway.ExportedServicesSlice))
+	for _, svc := range c.MeshGateway.ExportedServicesSlice {
+		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok {
+			continue // not possible
+		}
+
+		chain, ok := c.MeshGateway.DiscoveryChain[svc]
+		if !ok {
+			continue // ignore; not ready
+		}
+
+		if structs.IsProtocolHTTPLike(chain.Protocol) {
+			if c.MeshGateway.Leaf == nil {
+				continue // ignore; not ready
+			}
+		}
+		out = append(out, svc)
+	}
+	return out
+}
+
+func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckServiceNodes {
+	// Mesh gateways in remote DCs are discovered in two ways:
+	//
+	//	1. Via an Internal.ServiceDump RPC in the remote DC (GatewayGroups).
+	//	2. In the federation state that is replicated from the primary DC (FedStateGateways).
+	//
+	// We determine which set to use based on whichever contains the highest
+	// raft ModifyIndex (and is therefore most up-to-date).
+	//
+	// Previously, GatewayGroups was always given presedence over FedStateGateways
+	// but this was problematic when using mesh gateways for WAN federation.
+	//
+	// Consider the following example:
+	//
+	//	- Primary and Secondary DCs are WAN Federated via local mesh gateways.
+	//
+	//	- Secondary DC's mesh gateway is running on an ephemeral compute instance
+	//	  and is abruptly terminated and rescheduled with a *new IP address*.
+	//
+	//	- Primary DC's mesh gateway is no longer able to connect to the Secondary
+	//	  DC as its proxy is configured with the old IP address. Therefore any RPC
+	//	  from the Primary to the Secondary DC will fail (including the one to
+	//	  discover the gateway's new IP address).
+	//
+	//	- Secondary DC performs its regular anti-entropy of federation state data
+	//	  to the Primary DC (this succeeds as there is still connectivity in this
+	//	  direction).
+	//
+	//	- At this point the Primary DC's mesh gateway should observe the new IP
+	//	  address and reconfigure its proxy, however as we always prioritised
+	//	  GatewayGroups this didn't happen and the connection remained severed.
+	maxModifyIndex := func(vals structs.CheckServiceNodes) uint64 {
+		var max uint64
+		for _, v := range vals {
+			if i := v.Service.RaftIndex.ModifyIndex; i > max {
+				max = i
+			}
+		}
+		return max
+	}
+
+	endpoints := c.MeshGateway.GatewayGroups[key.String()]
+	fedStateEndpoints := c.MeshGateway.FedStateGateways[key.String()]
+
+	if maxModifyIndex(fedStateEndpoints) > maxModifyIndex(endpoints) {
+		return fedStateEndpoints
+	}
+	return endpoints
 }
 
 func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
@@ -417,10 +569,14 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 
 	return len(c.ExportedServicesSlice) == 0 &&
 		len(c.ExportedServicesWithPeers) == 0 &&
-		len(c.WatchedExportedServices) == 0 &&
-		!c.WatchedExportedServicesSet &&
+		!c.ExportedServicesSet &&
 		len(c.DiscoveryChain) == 0 &&
-		len(c.WatchedDiscoveryChains) == 0
+		len(c.WatchedDiscoveryChains) == 0 &&
+		!c.MeshConfigSet &&
+		c.LeafCertWatchCancel == nil &&
+		c.Leaf == nil &&
+		len(c.PeeringTrustBundles) == 0 &&
+		!c.PeeringTrustBundlesSet
 }
 
 type configSnapshotIngressGateway struct {
@@ -541,7 +697,9 @@ func (s *ConfigSnapshot) Valid() bool {
 		}
 		return s.Roots != nil &&
 			(s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0) &&
-			s.MeshGateway.WatchedExportedServicesSet
+			s.MeshGateway.ExportedServicesSet &&
+			s.MeshGateway.MeshConfigSet &&
+			s.MeshGateway.PeeringTrustBundlesSet
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
@@ -571,7 +729,6 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.ConnectProxy.WatchedUpstreams = nil
 		snap.ConnectProxy.WatchedGateways = nil
 		snap.ConnectProxy.WatchedDiscoveryChains = nil
-		snap.ConnectProxy.WatchedPeerTrustBundles = nil
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = nil
 		snap.TerminatingGateway.WatchedIntentions = nil
@@ -586,7 +743,6 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.IngressGateway.WatchedUpstreams = nil
 		snap.IngressGateway.WatchedGateways = nil
 		snap.IngressGateway.WatchedDiscoveryChains = nil
-		snap.IngressGateway.WatchedPeerTrustBundles = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
@@ -600,6 +756,19 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.ConnectProxy.Leaf
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.Leaf
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.Leaf
+	default:
+		return nil
+	}
+}
+
+func (s *ConfigSnapshot) PeeringTrustBundles() []*pbpeering.PeeringTrustBundle {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.InboundPeerTrustBundles
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.PeeringTrustBundles
 	default:
 		return nil
 	}
@@ -622,6 +791,8 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.IngressGateway.MeshConfig
 	case structs.ServiceKindTerminatingGateway:
 		return s.TerminatingGateway.MeshConfig
+	case structs.ServiceKindMeshGateway:
+		return s.MeshGateway.MeshConfig
 	default:
 		return nil
 	}
@@ -644,7 +815,7 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 }
 
 func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
-	nodes := u.PeerUpstreamEndpoints[uid]
+	nodes, _ := u.PeerUpstreamEndpoints.Get(uid)
 	if len(nodes) == 0 {
 		return structs.PeeringServiceMeta{}
 	}
@@ -667,19 +838,23 @@ func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.Peeri
 	return *csn.Service.Connect.PeerMeta
 }
 
+// PeeredUpstreamIDs returns a slice of peered UpstreamIDs from explicit config entries
+// and implicit imported services.
+// Upstreams whose trust bundles have not been stored in the snapshot are ignored.
 func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
-	out := make([]UpstreamID, 0, len(u.UpstreamConfig))
-	for uid := range u.UpstreamConfig {
-		if uid.Peer == "" {
-			continue
+	out := make([]UpstreamID, 0, u.PeerUpstreamEndpoints.Len())
+	u.PeerUpstreamEndpoints.ForEachKey(func(uid UpstreamID) bool {
+		if _, ok := u.PeerUpstreamEndpoints.Get(uid); !ok {
+			// uid might exist in the map but if Set hasn't been called, skip for now.
+			return true
 		}
 
-		if _, ok := u.PeerTrustBundles[uid.Peer]; uid.Peer != "" && !ok {
+		if _, ok := u.UpstreamPeerTrustBundles.Get(uid.Peer); !ok {
 			// The trust bundle for this upstream is not available yet, skip for now.
-			continue
+			return true
 		}
-
 		out = append(out, uid)
-	}
+		return true
+	})
 	return out
 }

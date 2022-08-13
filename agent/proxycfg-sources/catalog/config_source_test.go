@@ -116,7 +116,7 @@ func TestConfigSource_LocallyManagedService(t *testing.T) {
 	token := "token"
 
 	localState := testLocalState(t)
-	localState.AddService(&structs.NodeService{ID: serviceID.ID}, "")
+	localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "")
 
 	localWatcher := NewMockWatcher(t)
 	localWatcher.On("Watch", serviceID, nodeName, token).
