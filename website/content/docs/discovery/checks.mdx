@@ -128,6 +128,8 @@ There are several different kinds of checks:
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
+  Additional header fields can be set through the `header` field which is a map of lists of
+  strings, e.g. `{"x-foo": ["bar", "baz"]}`.
   To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
 - `H2ping + Interval` - These checks test an endpoint that uses http2
@@ -345,6 +347,9 @@ check = {
   grpc = "127.0.0.1:12345"
   grpc_use_tls = true
   interval = "10s"
+  metadata = {
+     key = ["value"]
+  }
 }
 ```
 
@@ -355,7 +360,8 @@ check = {
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
     "grpc_use_tls": true,
-    "interval": "10s"
+    "interval": "10s",
+    "metadata": { "key": ["value"] }
   }
 }
 ```
