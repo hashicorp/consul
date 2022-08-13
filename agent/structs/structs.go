@@ -88,7 +88,7 @@ const (
 
 const (
 	// LocalPeerKeyword is a reserved keyword used for indexing in the state store for objects in the local peer.
-	LocalPeerKeyword = "internal"
+	LocalPeerKeyword = "~"
 
 	// DefaultPeerKeyword is the PeerName to use to refer to the local
 	// cluster's own data, rather than replicated peered data.
@@ -682,6 +682,30 @@ func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
 }
 
+// PartitionSpecificRequest is used to query about a specific partition.
+type PartitionSpecificRequest struct {
+	Datacenter string
+
+	acl.EnterpriseMeta
+	QueryOptions
+}
+
+func (r *PartitionSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+	}
+}
+
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter string
@@ -776,9 +800,15 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter         string
-	Node               string
-	PeerName           string
+	Datacenter string
+	Node       string
+	PeerName   string
+	// MergeCentralConfig when set to true returns a service definition merged with
+	// the proxy-defaults/global and service-defaults/:service config entries.
+	// This can be used to ensure a full service definition is returned in the response
+	// especially when the service might not be written into the catalog that way.
+	MergeCentralConfig bool
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -801,6 +831,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Node,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.MergeCentralConfig,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -2204,6 +2235,11 @@ type IndexedServiceList struct {
 	QueryMeta
 }
 
+type IndexedPeeredServiceList struct {
+	Services []PeeredServiceName
+	QueryMeta
+}
+
 type IndexedServiceNodes struct {
 	ServiceNodes ServiceNodes
 	QueryMeta
@@ -2232,8 +2268,9 @@ type IndexedCheckServiceNodes struct {
 }
 
 type IndexedNodesWithGateways struct {
-	Nodes    CheckServiceNodes
-	Gateways GatewayServices
+	ImportedNodes CheckServiceNodes
+	Nodes         CheckServiceNodes
+	Gateways      GatewayServices
 	QueryMeta
 }
 
@@ -2243,7 +2280,8 @@ type DatacenterIndexedCheckServiceNodes struct {
 }
 
 type IndexedNodeDump struct {
-	Dump NodeDump
+	ImportedDump NodeDump
+	Dump         NodeDump
 	QueryMeta
 }
 

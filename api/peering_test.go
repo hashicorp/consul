@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"reflect"
 	"testing"
 	"time"
@@ -24,7 +25,9 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 			(reflect.DeepEqual(peer.PeerServerAddresses, aPeer.PeerServerAddresses)) &&
 			(peer.State == aPeer.State) &&
 			(peer.CreateIndex == aPeer.CreateIndex) &&
-			(peer.ModifyIndex) == aPeer.ModifyIndex
+			(peer.ModifyIndex == aPeer.ModifyIndex) &&
+			(peer.ImportedServiceCount == aPeer.ImportedServiceCount) &&
+			(peer.ExportedServiceCount == aPeer.ExportedServiceCount)
 
 		if isEqual {
 			return true
@@ -32,6 +35,97 @@ func peerExistsInPeerListings(peer *Peering, peerings []*Peering) bool {
 	}
 
 	return false
+}
+
+func TestAPI_Peering_ACLDeny(t *testing.T) {
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	peerings := c.Peerings()
+
+	testutil.RunStep(t, "generate token", func(t *testing.T) {
+		req := PeeringGenerateTokenRequest{PeerName: "peer1"}
+
+		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
+			_, _, err := peerings.GenerateToken(context.Background(), req, &WriteOptions{Token: "anonymous"})
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Permission denied")
+		})
+
+		testutil.RunStep(t, "with ACL token", func(t *testing.T) {
+			resp, wm, err := peerings.GenerateToken(context.Background(), req, &WriteOptions{Token: "root"})
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotNil(t, resp)
+		})
+	})
+
+	testutil.RunStep(t, "establish peering", func(t *testing.T) {
+		tokenJSON := `{"ServerAddresses":["127.0.0.1:8502"],"ServerName":"foo","PeerID":"716af65f-b844-f3bb-8aef-cfd7949f6873"}`
+		tokenB64 := base64.StdEncoding.EncodeToString([]byte(tokenJSON))
+
+		req := PeeringEstablishRequest{
+			PeerName:     "peer2",
+			PeeringToken: tokenB64,
+		}
+		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
+			_, _, err := peerings.Establish(context.Background(), req, &WriteOptions{Token: "anonymous"})
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Permission denied")
+		})
+
+		testutil.RunStep(t, "with ACL token", func(t *testing.T) {
+			resp, wm, err := peerings.Establish(context.Background(), req, &WriteOptions{Token: "root"})
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotNil(t, resp)
+		})
+	})
+
+	testutil.RunStep(t, "read peering", func(t *testing.T) {
+		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
+			_, _, err := peerings.Read(context.Background(), "peer1", &QueryOptions{Token: "anonymous"})
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Permission denied")
+		})
+
+		testutil.RunStep(t, "with ACL token", func(t *testing.T) {
+			resp, qm, err := peerings.Read(context.Background(), "peer1", &QueryOptions{Token: "root"})
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotNil(t, resp)
+		})
+	})
+
+	testutil.RunStep(t, "list peerings", func(t *testing.T) {
+		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
+			_, _, err := peerings.List(context.Background(), &QueryOptions{Token: "anonymous"})
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Permission denied")
+		})
+
+		testutil.RunStep(t, "with ACL token", func(t *testing.T) {
+			resp, qm, err := peerings.List(context.Background(), &QueryOptions{Token: "root"})
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotNil(t, resp)
+			require.Len(t, resp, 2)
+		})
+	})
+
+	testutil.RunStep(t, "delete peering", func(t *testing.T) {
+		testutil.RunStep(t, "without ACL token", func(t *testing.T) {
+			_, err := peerings.Delete(context.Background(), "peer1", &WriteOptions{Token: "anonymous"})
+			require.Error(t, err)
+			testutil.RequireErrorContains(t, err, "Permission denied")
+		})
+
+		testutil.RunStep(t, "with ACL token", func(t *testing.T) {
+			wm, err := peerings.Delete(context.Background(), "peer1", &WriteOptions{Token: "root"})
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+		})
+	})
 }
 
 func TestAPI_Peering_Read_ErrorHandling(t *testing.T) {
@@ -73,7 +167,7 @@ func TestAPI_Peering_List(t *testing.T) {
 	peerings := c.Peerings()
 
 	testutil.RunStep(t, "list with no peers", func(t *testing.T) {
-		// "call List when no peers should exist"
+		// call List when no peers should exist
 		resp, qm, err := peerings.List(ctx, nil)
 		require.NoError(t, err)
 		require.NotNil(t, qm)
@@ -81,7 +175,7 @@ func TestAPI_Peering_List(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "list with some peers", func(t *testing.T) {
-		// "call List when peers are present"
+		// call List when peers are present
 		resp1, wm, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer1"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
@@ -112,39 +206,54 @@ func TestAPI_Peering_List(t *testing.T) {
 	})
 }
 
-func TestAPI_Peering_GenerateToken(t *testing.T) {
+func TestAPI_Peering_GenerateToken_ExternalAddresses(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClientWithCA(t)
+	c, s := makeClient(t) // this is "dc1"
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	peerings := c.Peerings()
+	externalAddress := "32.1.2.3:8502"
 
-	t.Run("cannot have GenerateToken forward DC requests", func(t *testing.T) {
-		// Try to generate a token in dc2
-		_, _, err := peerings.GenerateToken(ctx, PeeringGenerateTokenRequest{PeerName: "peer2", Datacenter: "dc2"}, nil)
-		require.Error(t, err)
-	})
+	// Generate a token happy path
+	p1 := PeeringGenerateTokenRequest{
+		PeerName:                "peer1",
+		Meta:                    map[string]string{"foo": "bar"},
+		ServerExternalAddresses: []string{externalAddress},
+	}
+	resp, wm, err := c.Peerings().GenerateToken(ctx, p1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotNil(t, resp)
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	require.Contains(t, string(tokenJSON), externalAddress)
 }
 
-// TODO(peering): cover the following test cases: bad/ malformed input, peering with wrong token,
-// peering with the wrong PeerName
-
-// TestAPI_Peering_GenerateToken_Read_Initiate_Delete tests the following use case:
-// a server creates a peering token, reads the token, then another server calls initiate peering
+// TestAPI_Peering_GenerateToken_Read_Establish_Delete tests the following use case:
+// a server creates a peering token, reads the token, then another server calls establish peering
 // finally, we delete the token on the first server
-func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
+func TestAPI_Peering_GenerateToken_Read_Establish_Delete(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClientWithCA(t)
+	c, s := makeClient(t) // this is "dc1"
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultCtxDuration)
+	// make a "client" server in second DC for peering
+	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Datacenter = "dc2"
+	})
+	defer s2.Stop()
+
+	testNodeServiceCheckRegistrations(t, c2, "dc2")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	var token1 string
@@ -171,25 +280,18 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 
 		// token specific assertions on the "server"
 		require.Equal(t, "peer1", resp.Name)
-		require.Equal(t, PeeringStateInitial, resp.State)
+		require.Equal(t, PeeringStatePending, resp.State)
 		require.Equal(t, map[string]string{"foo": "bar"}, resp.Meta)
 	})
 
-	// make a "client" server in second DC for peering
-	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.Datacenter = "dc2"
-	})
-	defer s2.Stop()
-
-	testutil.RunStep(t, "initiate peering", func(t *testing.T) {
-		i := PeeringInitiateRequest{
-			Datacenter:   c2.config.Datacenter,
+	testutil.RunStep(t, "establish peering", func(t *testing.T) {
+		i := PeeringEstablishRequest{
 			PeerName:     "peer1",
 			PeeringToken: token1,
 			Meta:         map[string]string{"foo": "bar"},
 		}
 
-		_, wm, err := c2.Peerings().Initiate(ctx, i, nil)
+		_, wm, err := c2.Peerings().Establish(ctx, i, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 
@@ -199,10 +301,44 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 			require.NotNil(r, qm)
 
 			// require that the peering state is not undefined
-			require.Equal(r, PeeringStateInitial, resp.State)
+			require.Equal(r, PeeringStateEstablishing, resp.State)
 			require.Equal(r, map[string]string{"foo": "bar"}, resp.Meta)
+		})
+	})
 
-			// TODO(peering) -- let's go all the way and test in code either here or somewhere else that PeeringState does move to Active
+	testutil.RunStep(t, "look for active state of peering in dc2", func(t *testing.T) {
+		// read and list the peer to make sure the status transitions to active
+		retry.Run(t, func(r *retry.R) {
+			peering, qm, err := c2.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peering)
+			require.Equal(r, PeeringStateActive, peering.State)
+
+			peerings, qm, err := c2.Peerings().List(ctx, nil)
+
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peerings)
+			require.Equal(r, PeeringStateActive, peerings[0].State)
+		})
+	})
+
+	testutil.RunStep(t, "look for active state of peering in dc1", func(t *testing.T) {
+		// read and list the peer to make sure the status transitions to active
+		retry.Run(t, func(r *retry.R) {
+			peering, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peering)
+			require.Equal(r, PeeringStateActive, peering.State)
+
+			peerings, qm, err := c.Peerings().List(ctx, nil)
+
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.NotNil(r, peerings)
+			require.Equal(r, PeeringStateActive, peerings[0].State)
 		})
 	})
 
@@ -212,10 +348,12 @@ func TestAPI_Peering_GenerateToken_Read_Initiate_Delete(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 
-		// Read to see if the token is "gone"
-		resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
-		require.NoError(t, err)
-		require.NotNil(t, qm)
-		require.Nil(t, resp)
+		// Read to see if the token is gone
+		retry.Run(t, func(r *retry.R) {
+			resp, qm, err := c.Peerings().Read(ctx, "peer1", nil)
+			require.NoError(r, err)
+			require.NotNil(r, qm)
+			require.Nil(r, resp)
+		})
 	})
 }

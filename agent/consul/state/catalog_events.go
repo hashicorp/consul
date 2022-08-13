@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -71,17 +72,37 @@ func (e EventPayloadCheckServiceNode) ToSubscriptionEvent(idx uint64) *pbsubscri
 	}
 }
 
-func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.EnterpriseMeta) *stream.SubscribeRequest {
-	return &stream.SubscribeRequest{
-		Topic: req.Topic,
-		Subject: EventSubjectService{
-			Key:            req.Key,
-			EnterpriseMeta: entMeta,
-			PeerName:       req.PeerName,
+// EventPayloadServiceListUpdate is used as the Payload for a stream.Event when
+// services (not service instances) are registered/deregistered. These events
+// are used to materialize the list of services in a datacenter.
+type EventPayloadServiceListUpdate struct {
+	Op pbsubscribe.CatalogOp
+
+	Name           string
+	EnterpriseMeta acl.EnterpriseMeta
+	PeerName       string
+}
+
+func (e *EventPayloadServiceListUpdate) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	return &pbsubscribe.Event{
+		Index: idx,
+		Payload: &pbsubscribe.Event_Service{
+			Service: &pbsubscribe.ServiceListUpdate{
+				Op:             e.Op,
+				Name:           e.Name,
+				EnterpriseMeta: pbcommon.NewEnterpriseMetaFromStructs(e.EnterpriseMeta),
+				PeerName:       e.PeerName,
+			},
 		},
-		Token: req.Token,
-		Index: req.Index,
 	}
+}
+
+func (e *EventPayloadServiceListUpdate) Subject() stream.Subject { return stream.SubjectNone }
+
+func (e *EventPayloadServiceListUpdate) HasReadPermission(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.EnterpriseMeta.FillAuthzContext(&authzContext)
+	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -168,6 +189,65 @@ type nodeTuple struct {
 }
 
 var serviceChangeIndirect = serviceChange{changeType: changeIndirect}
+
+// ServiceListUpdateEventsFromChanges returns events representing changes to
+// the list of services from the given set of state store changes.
+func ServiceListUpdateEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
+	var events []stream.Event
+	for _, change := range changes.Changes {
+		if change.Table != tableKindServiceNames {
+			continue
+		}
+
+		kindName := changeObject(change).(*KindServiceName)
+
+		// TODO(peering): make this peer-aware.
+		payload := &EventPayloadServiceListUpdate{
+			Name:           kindName.Service.Name,
+			EnterpriseMeta: kindName.Service.EnterpriseMeta,
+		}
+
+		if change.Deleted() {
+			payload.Op = pbsubscribe.CatalogOp_Deregister
+		} else {
+			payload.Op = pbsubscribe.CatalogOp_Register
+		}
+
+		events = append(events, stream.Event{
+			Topic:   EventTopicServiceList,
+			Index:   changes.Index,
+			Payload: payload,
+		})
+	}
+	return events, nil
+}
+
+// ServiceListSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// all service names.
+func (s *Store) ServiceListSnapshot(_ stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	index, names, err := s.ServiceNamesOfKind(nil, "")
+	if err != nil {
+		return 0, err
+	}
+
+	if l := len(names); l > 0 {
+		events := make([]stream.Event, l)
+		for idx, name := range names {
+			events[idx] = stream.Event{
+				Topic: EventTopicServiceList,
+				Index: index,
+				Payload: &EventPayloadServiceListUpdate{
+					Op:             pbsubscribe.CatalogOp_Register,
+					Name:           name.Service.Name,
+					EnterpriseMeta: name.Service.EnterpriseMeta,
+				},
+			}
+		}
+		buf.Append(events)
+	}
+
+	return index, nil
+}
 
 // ServiceHealthEventsFromChanges returns all the service and Connect health
 // events that should be emitted given a set of changes to the state store.

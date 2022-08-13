@@ -1,0 +1,4 @@
+```release-note:improvement
+command: Add support for enabling TLS in the Envoy Prometheus endpoint via the `consul connect envoy` command. 
+Adds the `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file` flags.
+```

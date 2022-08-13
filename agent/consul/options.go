@@ -1,10 +1,12 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -13,6 +15,7 @@ import (
 )
 
 type Deps struct {
+	EventPublisher  *stream.EventPublisher
 	Logger          hclog.InterceptLogger
 	TLSConfigurator *tlsutil.Configurator
 	Tokens          *token.Store

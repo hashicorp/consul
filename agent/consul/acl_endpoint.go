@@ -17,10 +17,12 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -263,7 +265,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		return err
 	}
 
-	var authz ACLResolveResult
+	var authz resolver.Result
 
 	if args.TokenIDType == structs.ACLTokenAccessor {
 		var err error
@@ -290,7 +292,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 					a.srv.filterACLWithAuthorizer(authz, &token)
 
 					// token secret was redacted
-					if token.SecretID == redactedToken {
+					if token.SecretID == aclfilter.RedactedToken {
 						reply.Redacted = true
 					}
 				}
@@ -718,7 +720,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 				a.srv.filterACLWithAuthorizer(authz, &final)
 				if final != nil {
 					ret = append(ret, final)
-					if final.SecretID == redactedToken {
+					if final.SecretID == aclfilter.RedactedToken {
 						reply.Redacted = true
 					}
 				} else {

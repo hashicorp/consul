@@ -104,7 +104,7 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPHandlers).OperatorServerHealth)
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
 	registerEndpoint("/v1/peering/token", []string{"POST"}, (*HTTPHandlers).PeeringGenerateToken)
-	registerEndpoint("/v1/peering/initiate", []string{"POST"}, (*HTTPHandlers).PeeringInitiate)
+	registerEndpoint("/v1/peering/establish", []string{"POST"}, (*HTTPHandlers).PeeringEstablish)
 	registerEndpoint("/v1/peering/", []string{"GET", "DELETE"}, (*HTTPHandlers).PeeringEndpoint)
 	registerEndpoint("/v1/peerings", []string{"GET"}, (*HTTPHandlers).PeeringList)
 	registerEndpoint("/v1/query", []string{"GET", "POST"}, (*HTTPHandlers).PreparedQueryGeneral)

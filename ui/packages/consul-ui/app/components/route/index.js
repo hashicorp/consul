@@ -31,6 +31,12 @@ export default class RouteComponent extends Component {
     }
     return undefined;
   }
+
+  @action
+  exists(str) {
+    return this.routlet.exists(`${this.args.name}.${str}`);
+  }
+
   @action
   t(str, options) {
     if (str.includes('${')) {

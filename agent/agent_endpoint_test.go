@@ -28,6 +28,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -92,7 +93,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -127,7 +128,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	// Add another service
 	srv2 := &structs.NodeService{
@@ -139,7 +140,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 1234,
 	}
-	require.NoError(t, a.State.AddService(srv2, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
 	resp := httptest.NewRecorder()
@@ -187,7 +188,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 			Upstreams:              structs.TestUpstreams(t),
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -231,7 +232,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -280,7 +281,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -324,7 +325,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -369,7 +370,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, s := range services {
-		a.State.AddService(s, "")
+		a.State.AddServiceWithChecks(s, nil, "")
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -1645,8 +1646,8 @@ type fakeResolveTokenDelegate struct {
 	authorizer acl.Authorizer
 }
 
-func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (consul.ACLResolveResult, error) {
-	return consul.ACLResolveResult{Authorizer: f.authorizer}, nil
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (resolver.Result, error) {
+	return resolver.Result{Authorizer: f.authorizer}, nil
 }
 
 func TestAgent_Reload(t *testing.T) {
@@ -7993,7 +7994,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()

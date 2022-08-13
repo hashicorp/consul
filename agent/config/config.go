@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 
@@ -196,6 +197,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
 	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
 	Performance                      Performance         `mapstructure:"performance"`
 	PidFile                          *string             `mapstructure:"pid_file"`
 	Ports                            Ports               `mapstructure:"ports"`
@@ -261,18 +263,19 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	AEInterval                 *string  `mapstructure:"ae_interval"`
-	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
-	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
-	Consul                     Consul   `mapstructure:"consul"`
-	Revision                   *string  `mapstructure:"revision"`
-	SegmentLimit               *int     `mapstructure:"segment_limit"`
-	SegmentNameLimit           *int     `mapstructure:"segment_name_limit"`
-	SyncCoordinateIntervalMin  *string  `mapstructure:"sync_coordinate_interval_min"`
-	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
-	Version                    *string  `mapstructure:"version"`
-	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
-	VersionMetadata            *string  `mapstructure:"version_metadata"`
+	AEInterval                 *string    `mapstructure:"ae_interval"`
+	CheckDeregisterIntervalMin *string    `mapstructure:"check_deregister_interval_min"`
+	CheckReapInterval          *string    `mapstructure:"check_reap_interval"`
+	Consul                     Consul     `mapstructure:"consul"`
+	Revision                   *string    `mapstructure:"revision"`
+	SegmentLimit               *int       `mapstructure:"segment_limit"`
+	SegmentNameLimit           *int       `mapstructure:"segment_name_limit"`
+	SyncCoordinateIntervalMin  *string    `mapstructure:"sync_coordinate_interval_min"`
+	SyncCoordinateRateTarget   *float64   `mapstructure:"sync_coordinate_rate_target"`
+	Version                    *string    `mapstructure:"version"`
+	VersionPrerelease          *string    `mapstructure:"version_prerelease"`
+	VersionMetadata            *string    `mapstructure:"version_metadata"`
+	BuildDate                  *time.Time `mapstructure:"build_date"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
@@ -671,7 +674,6 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags"`
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url"`
-	DisableCompatOneNine               *bool    `mapstructure:"disable_compat_1.9"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
@@ -885,4 +887,8 @@ type TLS struct {
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
 	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+type Peering struct {
+	Enabled *bool `mapstructure:"enabled"`
 }

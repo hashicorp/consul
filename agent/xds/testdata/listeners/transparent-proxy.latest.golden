@@ -59,20 +59,20 @@
               }
             }
           ]
-        },
-        {
-          "filters": [
-            {
-              "name": "envoy.filters.network.tcp_proxy",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.original-destination",
-                "cluster": "original-destination"
-              }
-            }
-          ]
         }
       ],
+      "defaultFilterChain": {
+        "filters": [
+          {
+            "name": "envoy.filters.network.tcp_proxy",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+              "statPrefix": "upstream.original-destination",
+              "cluster": "original-destination"
+            }
+          }
+        ]
+      },
       "listenerFilters": [
         {
           "name": "envoy.filters.listener.original_dst",

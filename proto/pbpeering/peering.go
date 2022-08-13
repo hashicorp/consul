@@ -1,84 +1,68 @@
 package pbpeering
 
 import (
-	"strconv"
 	"time"
 
-	"github.com/mitchellh/hashstructure"
-
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
 
-// TODO(peering): These are byproducts of not embedding
-// types in our protobuf definitions and are temporary;
-// Hoping to replace them with 1 or 2 methods per request
-// using https://github.com/hashicorp/consul/pull/12507
-
 // RequestDatacenter implements structs.RPCInfo
 func (req *GenerateTokenRequest) RequestDatacenter() string {
-	return req.Datacenter
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// IsRead implements structs.RPCInfo
-func (req *GenerateTokenRequest) IsRead() bool {
-	return false
+// RequestDatacenter implements structs.RPCInfo
+func (req *EstablishRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// AllowStaleRead implements structs.RPCInfo
-func (req *GenerateTokenRequest) AllowStaleRead() bool {
-	return false
+// RequestDatacenter implements structs.RPCInfo
+func (req *PeeringReadRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// TokenSecret implements structs.RPCInfo
-func (req *GenerateTokenRequest) TokenSecret() string {
-	return req.Token
+// RequestDatacenter implements structs.RPCInfo
+func (req *PeeringListRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// SetTokenSecret implements structs.RPCInfo
-func (req *GenerateTokenRequest) SetTokenSecret(token string) {
-	req.Token = token
+// RequestDatacenter implements structs.RPCInfo
+func (req *PeeringWriteRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// HasTimedOut implements structs.RPCInfo
-func (req *GenerateTokenRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
+// RequestDatacenter implements structs.RPCInfo
+func (req *PeeringDeleteRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// Timeout implements structs.RPCInfo
-func (msg *GenerateTokenRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
-	return rpcHoldTimeout
+// RequestDatacenter implements structs.RPCInfo
+func (req *TrustBundleReadRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
-// IsRead implements structs.RPCInfo
-func (req *InitiateRequest) IsRead() bool {
-	return false
-}
-
-// AllowStaleRead implements structs.RPCInfo
-func (req *InitiateRequest) AllowStaleRead() bool {
-	return false
-}
-
-// TokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) TokenSecret() string {
-	return req.Token
-}
-
-// SetTokenSecret implements structs.RPCInfo
-func (req *InitiateRequest) SetTokenSecret(token string) {
-	req.Token = token
-}
-
-// HasTimedOut implements structs.RPCInfo
-func (req *InitiateRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) (bool, error) {
-	return time.Since(start) > rpcHoldTimeout, nil
-}
-
-// Timeout implements structs.RPCInfo
-func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime time.Duration, defaultQueryTime time.Duration) time.Duration {
-	return rpcHoldTimeout
+// RequestDatacenter implements structs.RPCInfo
+func (req *TrustBundleListByServiceRequest) RequestDatacenter() string {
+	// Cross-datacenter requests are not allowed for peering actions because
+	// they rely on WAN-federation.
+	return ""
 }
 
 // ShouldDial returns true when the peering was stored via the peering initiation endpoint,
@@ -86,43 +70,11 @@ func (msg *InitiateRequest) Timeout(rpcHoldTimeout time.Duration, maxQueryTime t
 // If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0 && p.State != PeeringState_TERMINATED
-}
-
-func (x ReplicationMessage_Response_Operation) GoString() string {
-	return x.String()
+	return len(p.PeerServerAddresses) > 0
 }
 
 func (x PeeringState) GoString() string {
 	return x.String()
-}
-
-func (r *TrustBundleReadRequest) CacheInfo() cache.RequestInfo {
-	info := cache.RequestInfo{
-		// TODO(peering): Revisit whether this is the token to use once request types accept a token.
-		Token:          r.Token(),
-		Datacenter:     r.Datacenter,
-		MinIndex:       0,
-		Timeout:        0,
-		MustRevalidate: false,
-
-		// TODO(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
-		//                Using an exponential backoff when the result hasn't changed may be preferable.
-		MaxAge: 1 * time.Second,
-	}
-
-	v, err := hashstructure.Hash([]interface{}{
-		r.Partition,
-		r.Name,
-	}, nil)
-	if err == nil {
-		// If there is an error, we don't set the key. A blank key forces
-		// no cache for this request so the request is forwarded directly
-		// to the server.
-		info.Key = strconv.FormatUint(v, 10)
-	}
-
-	return info
 }
 
 // ConcatenatedRootPEMs concatenates and returns all PEM-encoded public certificates
@@ -142,12 +94,16 @@ func (b *PeeringTrustBundle) ConcatenatedRootPEMs() string {
 // enumcover:PeeringState
 func PeeringStateToAPI(s PeeringState) api.PeeringState {
 	switch s {
-	case PeeringState_INITIAL:
-		return api.PeeringStateInitial
+	case PeeringState_PENDING:
+		return api.PeeringStatePending
+	case PeeringState_ESTABLISHING:
+		return api.PeeringStateEstablishing
 	case PeeringState_ACTIVE:
 		return api.PeeringStateActive
 	case PeeringState_FAILING:
 		return api.PeeringStateFailing
+	case PeeringState_DELETING:
+		return api.PeeringStateDeleting
 	case PeeringState_TERMINATED:
 		return api.PeeringStateTerminated
 	case PeeringState_UNDEFINED:
@@ -160,12 +116,16 @@ func PeeringStateToAPI(s PeeringState) api.PeeringState {
 // enumcover:api.PeeringState
 func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	switch t {
-	case api.PeeringStateInitial:
-		return PeeringState_INITIAL
+	case api.PeeringStatePending:
+		return PeeringState_PENDING
+	case api.PeeringStateEstablishing:
+		return PeeringState_ESTABLISHING
 	case api.PeeringStateActive:
 		return PeeringState_ACTIVE
 	case api.PeeringStateFailing:
 		return PeeringState_FAILING
+	case api.PeeringStateDeleting:
+		return PeeringState_DELETING
 	case api.PeeringStateTerminated:
 		return PeeringState_TERMINATED
 	case api.PeeringStateUndefined:
@@ -173,6 +133,18 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	default:
 		return PeeringState_UNDEFINED
 	}
+}
+
+func (p *Peering) IsActive() bool {
+	if p != nil && p.State == PeeringState_TERMINATED {
+		return false
+	}
+	if p == nil || p.DeletedAt == nil {
+		return true
+	}
+
+	// The minimum protobuf timestamp is the Unix epoch rather than go's zero.
+	return structs.IsZeroProtoTime(p.DeletedAt)
 }
 
 func (p *Peering) ToAPI() *api.Peering {
@@ -198,9 +170,9 @@ func (resp *GenerateTokenResponse) ToAPI() *api.PeeringGenerateTokenResponse {
 }
 
 // TODO consider using mog for this
-func (resp *InitiateResponse) ToAPI() *api.PeeringInitiateResponse {
-	var t api.PeeringInitiateResponse
-	InitiateResponseToAPI(resp, &t)
+func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
+	var t api.PeeringEstablishResponse
+	EstablishResponseToAPI(resp, &t)
 	return &t
 }
 
@@ -215,40 +187,26 @@ func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *Gener
 }
 
 // convenience
-func NewInitiateRequestFromAPI(req *api.PeeringInitiateRequest) *InitiateRequest {
+func NewEstablishRequestFromAPI(req *api.PeeringEstablishRequest) *EstablishRequest {
 	if req == nil {
 		return nil
 	}
-	t := &InitiateRequest{}
-	InitiateRequestFromAPI(req, t)
+	t := &EstablishRequest{}
+	EstablishRequestFromAPI(req, t)
 	return t
 }
 
-func (r *TrustBundleListByServiceRequest) CacheInfo() cache.RequestInfo {
-	info := cache.RequestInfo{
-		// TODO(peering): Revisit whether this is the token to use once request types accept a token.
-		Token:          r.Token(),
-		Datacenter:     r.Datacenter,
-		MinIndex:       0,
-		Timeout:        0,
-		MustRevalidate: false,
-
-		// TODO(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
-		//                Using an exponential backoff when the result hasn't changed may be preferable.
-		MaxAge: 1 * time.Second,
+func TimePtrFromProto(s *timestamp.Timestamp) *time.Time {
+	if s == nil {
+		return nil
 	}
+	t := structs.TimeFromProto(s)
+	return &t
+}
 
-	v, err := hashstructure.Hash([]interface{}{
-		r.Partition,
-		r.Namespace,
-		r.ServiceName,
-	}, nil)
-	if err == nil {
-		// If there is an error, we don't set the key. A blank key forces
-		// no cache for this request so the request is forwarded directly
-		// to the server.
-		info.Key = strconv.FormatUint(v, 10)
+func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
+	if s == nil {
+		return nil
 	}
-
-	return info
+	return structs.TimeToProto(*s)
 }

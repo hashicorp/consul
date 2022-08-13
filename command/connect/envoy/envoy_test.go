@@ -212,6 +212,72 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name: "prometheus-metrics-tls-ca-file",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path",
+				"-prometheus-ca-file", "../../../test/key/ourdomain.cer", "-prometheus-cert-file", "../../../test/key/ourdomain_server.cer",
+				"-prometheus-key-file", "../../../test/key/ourdomain_server.key"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
+				PrometheusCAFile:      "../../../test/key/ourdomain.cer",
+				PrometheusCertFile:    "../../../test/key/ourdomain_server.cer",
+				PrometheusKeyFile:     "../../../test/key/ourdomain_server.key",
+			},
+		},
+		{
+			Name: "prometheus-metrics-tls-ca-path",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path",
+				"-prometheus-ca-path", "../../../test/ca_path", "-prometheus-cert-file", "../../../test/key/ourdomain_server.cer",
+				"-prometheus-key-file", "../../../test/key/ourdomain_server.key"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
+				PrometheusCAPath:      "../../../test/ca_path",
+				PrometheusCertFile:    "../../../test/key/ourdomain_server.cer",
+				PrometheusKeyFile:     "../../../test/key/ourdomain_server.key",
+			},
+		},
+		{
 			Name: "token-arg",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},

@@ -59,6 +59,11 @@ variable "vpc_cidr" {
   description = "List of CIDR blocks for the VPC module"
 }
 
+variable "vpc_allwed_ssh_cidr" {
+  description = "List of CIDR blocks allowed to ssh to the test server; set to 0.0.0.0/0 to allow access from anywhere"
+  default     = "10.0.0.0/16"
+}
+
 variable "public_subnet_cidrs" {
   type        = list(string)
   description = "CIDR Block for the Public Subnet, must be within VPC CIDR range"

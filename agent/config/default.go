@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/raft"
 
@@ -103,6 +104,9 @@ func DefaultSource() Source {
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 			txn_max_req_len = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
+		peering = {
+			enabled = true
+		}
 		performance = {
 			leave_drain_time = "5s"
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
@@ -197,8 +201,8 @@ func NonUserSource() Source {
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64
-		
-		connect = { 
+
+		connect = {
 			# 0s causes the value to be ignored and operate without capping
 			# the max time before leaf certs can be generated after a roots change.
 			test_ca_leaf_root_change_spread = "0s"
@@ -210,7 +214,7 @@ func NonUserSource() Source {
 // versionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
-func versionSource(rev, ver, verPre, meta string) Source {
+func versionSource(rev, ver, verPre, meta string, buildDate time.Time) Source {
 	return LiteralSource{
 		Name: "version",
 		Config: Config{
@@ -218,6 +222,7 @@ func versionSource(rev, ver, verPre, meta string) Source {
 			Version:           &ver,
 			VersionPrerelease: &verPre,
 			VersionMetadata:   &meta,
+			BuildDate:         &buildDate,
 		},
 	}
 }
@@ -225,7 +230,8 @@ func versionSource(rev, ver, verPre, meta string) Source {
 // defaultVersionSource returns the version config source for the embedded
 // version numbers.
 func defaultVersionSource() Source {
-	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease, version.VersionMetadata)
+	buildDate, _ := time.Parse(time.RFC3339, version.BuildDate) // This has been checked elsewhere
+	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease, version.VersionMetadata, buildDate)
 }
 
 // DefaultConsulSource returns the default configuration for the consul agent.

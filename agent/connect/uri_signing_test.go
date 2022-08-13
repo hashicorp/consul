@@ -95,6 +95,30 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			input: &SpiffeIDService{Host: TestClusterID + ".fake", Namespace: "default", Datacenter: "dc1", Service: "web"},
 			want:  false,
 		},
+		{
+			name:  "mesh gateway - good",
+			id:    testSigning,
+			input: &SpiffeIDMeshGateway{Host: TestClusterID + ".consul", Datacenter: "dc1"},
+			want:  true,
+		},
+		{
+			name:  "mesh gateway - good midex case",
+			id:    testSigning,
+			input: &SpiffeIDMeshGateway{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Datacenter: "dc1"},
+			want:  true,
+		},
+		{
+			name:  "mesh gateway - different cluster",
+			id:    testSigning,
+			input: &SpiffeIDMeshGateway{Host: "55555555-4444-3333-2222-111111111111.consul", Datacenter: "dc1"},
+			want:  false,
+		},
+		{
+			name:  "mesh gateway - different TLD",
+			id:    testSigning,
+			input: &SpiffeIDMeshGateway{Host: TestClusterID + ".fake", Datacenter: "dc1"},
+			want:  false,
+		},
 	}
 
 	for _, tt := range tests {

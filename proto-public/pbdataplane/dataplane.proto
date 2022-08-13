@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package dataplane;
+package hashicorp.consul.dataplane;
 
 import "google/protobuf/struct.proto";
 

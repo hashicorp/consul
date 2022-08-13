@@ -1,0 +1,18 @@
+<div
+  class={{class-map
+    'consul-peer-form-token-actions'
+  }}
+  ...attributes
+>
+  <Action
+    ...attributes
+    {{with-copyable @token}}
+  >
+    Copy token
+  </Action>
+  <Action
+    {{on 'click' @onclose}}
+  >
+    Close
+  </Action>
+</div>

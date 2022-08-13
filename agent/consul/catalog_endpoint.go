@@ -8,13 +8,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -160,7 +161,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz ACLResolveResult, authzCtxFill func(*acl.AuthorizerContext)) error {
+func servicePreApply(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -230,7 +231,7 @@ func checkPreApply(check *structs.HealthCheck) {
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
 func vetRegisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.RegisterRequest,
 	ns *structs.NodeServices,
 ) error {
@@ -396,7 +397,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
 func vetDeregisterWithACL(
-	authz ACLResolveResult,
+	authz resolver.Result,
 	subj *structs.DeregisterRequest,
 	ns *structs.NodeService,
 	nc *structs.HealthCheck,
@@ -869,6 +870,11 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return err
 	}
 
+	var (
+		priorMergeHash uint64
+		ranMergeOnce   bool
+	)
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -878,10 +884,55 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 
+			mergedServices := services
+			var cfgIndex uint64
+			if services != nil && args.MergeCentralConfig {
+				var mergedNodeServices []*structs.NodeService
+				for _, ns := range services.Services {
+					mergedns := ns
+					if ns.IsSidecarProxy() || ns.IsGateway() {
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = mergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
+						if err != nil {
+							return err
+						}
+						if cfgIndex > index {
+							index = cfgIndex
+						}
+					}
+					mergedNodeServices = append(mergedNodeServices, mergedns)
+				}
+				if len(mergedNodeServices) > 0 {
+					mergedServices.Services = mergedNodeServices
+				}
+
+				// Generate a hash of the mergedServices driving this response.
+				// Use it to determine if the response is identical to a prior wakeup.
+				newMergeHash, err := hashstructure_v2.Hash(mergedServices, hashstructure_v2.FormatV2, nil)
+				if err != nil {
+					return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+				}
+				if ranMergeOnce && priorMergeHash == newMergeHash {
+					// the below assignment is not required as the if condition already validates equality,
+					// but makes it more clear that prior value is being reset to the new hash on each run.
+					priorMergeHash = newMergeHash
+					reply.Index = index
+					// NOTE: the prior response is still alive inside of *reply, which is desirable
+					return errNotChanged
+				} else {
+					priorMergeHash = newMergeHash
+					ranMergeOnce = true
+				}
+
+			}
+
 			reply.Index = index
 
-			if services != nil {
-				reply.NodeServices = *services
+			if mergedServices != nil {
+				reply.NodeServices = *mergedServices
 
 				raw, err := filter.Execute(reply.NodeServices.Services)
 				if err != nil {
@@ -985,6 +1036,7 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	}
 
 	state := c.srv.fsm.State()
-	*reply, err = state.VirtualIPForService(structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta))
+	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+	*reply, err = state.VirtualIPForService(psn)
 	return err
 }

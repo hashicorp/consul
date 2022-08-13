@@ -17,8 +17,9 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
-	grpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/resolver"
+	"github.com/hashicorp/consul/agent/consul/stream"
+	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -535,6 +536,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	}
 
 	return Deps{
+		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
 		TLSConfigurator: tls,
 		Tokens:          new(token.Store),

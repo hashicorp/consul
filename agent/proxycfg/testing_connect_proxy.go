@@ -42,11 +42,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -121,11 +117,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: meshConfigEntryID,
@@ -183,11 +175,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -292,11 +280,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result: &structs.IndexedIntentionMatches{
-				Matches: []structs.Intentions{
-					nil, // no intentions defined
-				},
-			},
+			Result:        structs.Intentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),

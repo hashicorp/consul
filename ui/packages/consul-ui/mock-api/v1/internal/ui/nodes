@@ -12,10 +12,12 @@
     ).map(
       function(item, i)
       {
+        const peerNameString = i === 0 ? '"PeerName": "billing",' : '"PeerName": "",'
         return `
           {
             "ID":"${fake.random.uuid()}",
             "Node":"node-${i}",
+            ${env('CONSUL_PEERINGS_ENABLE') ? peerNameString : ''}
             "Address":"${fake.internet.ip()}",
             "TaggedAddresses":{
               "lan":"${fake.internet.ip()}",
