@@ -191,7 +191,7 @@ Defines operations to perform on matching request headers when `rules.filters.ty
 | ---       | ---         | ---  | ---      |
 | `set` | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of objects | Optional |
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of objects | Optional |
-| `remove` | Configure this field to specifify an array of header names to remove from the request header. | Array of strings | Optional |
+| `remove` | Configure this field to specify an array of header names to remove from the request header. | Array of strings | Optional |
 
 
 ### rules.filters.urlRewrite
