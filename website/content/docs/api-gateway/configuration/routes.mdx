@@ -220,6 +220,7 @@ Specifies rules for matching incoming requests. You can apply [`filters`](#rules
 * [headers](#rules-matches-headers)
 * [query parameters](#rules-matches-queryparams)
 * [request method](#rules-matches-method)
+
 Each rule matches requests independently. As a result, a request matching any of the conditions is considered a match.  You can configure several matching rules for each type to widen or narrow matches.
 ### rules.matches.path
 
@@ -227,7 +228,7 @@ Specifies a list of objects that define matches based on URL path. The following
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
-| `type` | Specifies the type of comparison to use for matching the path value. You can specify the following types. <ul><li>`Exact`: Returns a match only when the entire path matches the `value` field (default).</li><li> `PathPrefix`: Returns a match when the path matches the regex defined in the `value` field.</li></ul> | String | Required |
+| `type` | Specifies the type of comparison to use for matching the path value. You can specify the following types. <ul><li>`Exact`: Returns a match only when the entire path matches the `value` field (default).</li><li> `PathPrefix`: Returns a match when the path has the prefix defined in the `value` field.</li><li>`RegularExpression`: Returns a match when the path matches the regex defined in the `value` field.</li></ul> | String | Required |
 | `value` | Specifies the value to match on. You can specify a specific string when `type` is `Exact` or `PathPrefix`. You can specify a regular expression if `type` is `RegularExpression`. | String | Required |
 
 ### rules.matches.headers
