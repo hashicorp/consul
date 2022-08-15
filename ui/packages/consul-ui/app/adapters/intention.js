@@ -36,16 +36,40 @@ export default class IntentionAdapter extends Adapter {
 
     // get the information we need from the id, which has been previously
     // encoded
-    const [
-      SourcePartition,
-      SourceNS,
-      SourceName,
-      DestinationPartition,
-      DestinationNS,
-      DestinationName,
-    ] = id.split(':').map(decodeURIComponent);
+    if (id.match(/^peer:/)) {
+      // id indicates we are dealing with a peered intention - handle this with
+      // different query-param for source - we need to prepend the peer
+      const [
+        peerIdentifier,
+        SourcePeer,
+        SourceNS,
+        SourceName,
+        DestinationPartition,
+        DestinationNS,
+        DestinationName,
+      ] = id.split(':').map(decodeURIComponent);
 
-    return request`
+      return request`
+      GET /v1/connect/intentions/exact?${{
+        source: `${peerIdentifier}:${SourcePeer}/${SourceNS}/${SourceName}`,
+        destination: `${DestinationPartition}/${DestinationNS}/${DestinationName}`,
+        dc: dc,
+      }}
+      Cache-Control: no-store
+
+      ${{ index }}
+    `;
+    } else {
+      const [
+        SourcePartition,
+        SourceNS,
+        SourceName,
+        DestinationPartition,
+        DestinationNS,
+        DestinationName,
+      ] = id.split(':').map(decodeURIComponent);
+
+      return request`
       GET /v1/connect/intentions/exact?${{
         source: `${SourcePartition}/${SourceNS}/${SourceName}`,
         destination: `${DestinationPartition}/${DestinationNS}/${DestinationName}`,
@@ -55,6 +79,7 @@ export default class IntentionAdapter extends Adapter {
 
       ${{ index }}
     `;
+    }
   }
 
   requestForCreateRecord(request, serialized, data) {

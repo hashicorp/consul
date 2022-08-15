@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -3467,11 +3468,11 @@ func TestVetRegisterWithACL(t *testing.T) {
 		}
 
 		// With an "allow all" authorizer the update should be allowed.
-		require.NoError(t, vetRegisterWithACL(ACLResolveResult{Authorizer: acl.ManageAll()}, args, nil))
+		require.NoError(t, vetRegisterWithACL(resolver.Result{Authorizer: acl.ManageAll()}, args, nil))
 	})
 
 	var perms acl.Authorizer = acl.DenyAll()
-	var resolvedPerms ACLResolveResult
+	var resolvedPerms resolver.Result
 
 	args := &structs.RegisterRequest{
 		Node:    "nope",
@@ -3483,7 +3484,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	node "node" {
 	  policy = "write"
 	} `)
-	resolvedPerms = ACLResolveResult{Authorizer: perms}
+	resolvedPerms = resolver.Result{Authorizer: perms}
 
 	// With that policy, the update should now be blocked for node reasons.
 	err := vetRegisterWithACL(resolvedPerms, args, nil)
@@ -3514,7 +3515,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 			ID:      "my-id",
 		},
 	}
-	err = vetRegisterWithACL(ACLResolveResult{Authorizer: perms}, args, ns)
+	err = vetRegisterWithACL(resolver.Result{Authorizer: perms}, args, ns)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Chain on a basic service policy.
@@ -3522,7 +3523,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	service "service" {
 	  policy = "write"
 	} `)
-	resolvedPerms = ACLResolveResult{Authorizer: perms}
+	resolvedPerms = resolver.Result{Authorizer: perms}
 
 	// With the service ACL, the update should go through.
 	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
@@ -3549,7 +3550,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	service "other" {
 	  policy = "write"
 	} `)
-	resolvedPerms = ACLResolveResult{Authorizer: perms}
+	resolvedPerms = resolver.Result{Authorizer: perms}
 
 	// Now it should go through.
 	require.NoError(t, vetRegisterWithACL(resolvedPerms, args, ns))
@@ -3655,7 +3656,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	service "other" {
 	  policy = "deny"
 	} `)
-	resolvedPerms = ACLResolveResult{Authorizer: perms}
+	resolvedPerms = resolver.Result{Authorizer: perms}
 
 	// This should get rejected.
 	err = vetRegisterWithACL(resolvedPerms, args, ns)
@@ -3682,7 +3683,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	node "node" {
 	  policy = "deny"
 	} `)
-	resolvedPerms = ACLResolveResult{Authorizer: perms}
+	resolvedPerms = resolver.Result{Authorizer: perms}
 
 	// This should get rejected because there's a node-level check in here.
 	err = vetRegisterWithACL(resolvedPerms, args, ns)
@@ -3733,7 +3734,7 @@ func TestVetDeregisterWithACL(t *testing.T) {
 	}
 
 	// With an "allow all" authorizer the update should be allowed.
-	if err := vetDeregisterWithACL(ACLResolveResult{Authorizer: acl.ManageAll()}, args, nil, nil); err != nil {
+	if err := vetDeregisterWithACL(resolver.Result{Authorizer: acl.ManageAll()}, args, nil, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -3966,7 +3967,7 @@ node "node" {
 		},
 	} {
 		t.Run(args.Name, func(t *testing.T) {
-			err = vetDeregisterWithACL(ACLResolveResult{Authorizer: args.Perms}, &args.DeregisterRequest, args.Service, args.Check)
+			err = vetDeregisterWithACL(resolver.Result{Authorizer: args.Perms}, &args.DeregisterRequest, args.Service, args.Check)
 			if !args.Expected {
 				if err == nil {
 					t.Errorf("expected error with %+v", args.DeregisterRequest)

@@ -33,8 +33,6 @@ import (
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
-//go:generate mockery --all --inpackage
-
 // TODO(kit): remove the namespace from these once the metrics themselves change
 var Gauges = []prometheus.GaugeDefinition{
 	{

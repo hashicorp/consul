@@ -11,24 +11,27 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/go-uuid"
-
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbstatus"
 	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestStreamResources_Server_Follower(t *testing.T) {
@@ -124,7 +127,7 @@ func TestStreamResources_Server_LeaderBecomesFollower(t *testing.T) {
 		}
 	}()
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	peerID := p.ID
 
 	// Set the initial roots and CA configuration.
@@ -311,7 +314,7 @@ func TestStreamResources_Server_Terminate(t *testing.T) {
 	}
 	srv.streams.timeNow = it.Now
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	var (
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
@@ -380,7 +383,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	// Set the initial roots and CA configuration.
 	_, rootA := writeInitialRootsAndCA(t, store)
 
-	p := writeInitiatedPeering(t, store, 1, "my-peer")
+	p := writeEstablishedPeering(t, store, 1, "my-peer")
 	var (
 		peerID       = p.ID     // for Send
 		remotePeerID = p.PeerID // for Recv
@@ -619,18 +622,12 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 }
 
 func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
-	testStreamResources_Server_ServiceUpdates(t, true)
-}
-func TestStreamResources_Server_ServiceUpdates_EnableMeshGateways(t *testing.T) {
-	testStreamResources_Server_ServiceUpdates(t, false)
-}
-func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways bool) {
 	publisher := stream.NewEventPublisher(10 * time.Second)
 	store := newStateStore(t, publisher)
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
 
 	// Set the initial roots and CA configuration.
 	_, _ = writeInitialRootsAndCA(t, store)
@@ -638,9 +635,8 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 	srv := NewService(
 		testutil.Logger(t),
 		Config{
-			Datacenter:             "dc1",
-			ConnectEnabled:         true,
-			DisableMeshGatewayMode: disableMeshGateways,
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
 		}, &testStreamBackend{
 			store: store,
 			pub:   publisher,
@@ -659,15 +655,18 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
 
+	mongoSvcDefaults := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "mongo",
+		Protocol: "grpc",
+	}
+	require.NoError(t, mongoSvcDefaults.Normalize())
+	require.NoError(t, mongoSvcDefaults.Validate())
 	lastIdx++
-	require.NoError(t, store.EnsureService(lastIdx, "foo", &structs.NodeService{
-		ID:      "mysql-sidecar-proxy",
-		Service: "mysql-sidecar-proxy",
-		Kind:    structs.ServiceKindConnectProxy,
-		Port:    5000,
-		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "mysql"},
-	}))
+	require.NoError(t, store.EnsureConfigEntry(lastIdx, mongoSvcDefaults))
 
+	// NOTE: for this test we'll just live in a fantasy realm where we assume
+	// that mongo understands gRPC
 	var (
 		mongoSN      = structs.NewServiceName("mongo", nil).String()
 		mongoProxySN = structs.NewServiceName("mongo-sidecar-proxy", nil).String()
@@ -694,6 +693,8 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				},
 			},
 		}
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
 		lastIdx++
 		require.NoError(t, store.EnsureConfigEntry(lastIdx, entry))
 
@@ -703,12 +704,14 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				// Roots tested in TestStreamResources_Server_CARootUpdates
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// no mongo instances exist
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
 				require.Nil(t, msg.GetResponse().Resource)
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// proxies can't export because no mesh gateway exists yet
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
@@ -724,6 +727,46 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				require.Len(t, nodes.Nodes, 1)
 			},
 			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				// proxies can't export because no mesh gateway exists yet
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_DELETE, msg.GetResponse().Operation)
+				require.Nil(t, msg.GetResponse().Resource)
+			},
+		)
+	})
+
+	testutil.RunStep(t, "register mesh gateway to send proxy updates", func(t *testing.T) {
+		gateway := &structs.CheckServiceNode{Node: &structs.Node{Node: "mgw", Address: "10.1.1.1"},
+			Service: &structs.NodeService{ID: "gateway-1", Kind: structs.ServiceKindMeshGateway, Service: "gateway", Port: 8443},
+			// TODO: checks
+		}
+
+		lastIdx++
+		require.NoError(t, store.EnsureNode(lastIdx, gateway.Node))
+
+		lastIdx++
+		require.NoError(t, store.EnsureService(lastIdx, "mgw", gateway.Service))
+
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
+				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
+
+				var nodes pbservice.IndexedCheckServiceNodes
+				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
+				require.Len(t, nodes.Nodes, 1)
+
+				pm := nodes.Nodes[0].Service.Connect.PeerMeta
+				require.Equal(t, "grpc", pm.Protocol)
+				spiffeIDs := []string{
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo",
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
+				}
+				require.Equal(t, spiffeIDs, pm.SpiffeID)
+			},
+			func(t *testing.T, msg *pbpeering.ReplicationMessage) {
 				require.Equal(t, pbpeering.TypeURLService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeering.ReplicationMessage_Response_UPSERT, msg.GetResponse().Operation)
@@ -732,8 +775,12 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				require.NoError(t, ptypes.UnmarshalAny(msg.GetResponse().Resource, &nodes))
 				require.Len(t, nodes.Nodes, 1)
 
-				svid := "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql"
-				require.Equal(t, []string{svid}, nodes.Nodes[0].Service.Connect.PeerMeta.SpiffeID)
+				pm := nodes.Nodes[0].Service.Connect.PeerMeta
+				require.Equal(t, "tcp", pm.Protocol)
+				spiffeIDs := []string{
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+				}
+				require.Equal(t, spiffeIDs, pm.SpiffeID)
 			},
 		)
 	})
@@ -776,6 +823,8 @@ func testStreamResources_Server_ServiceUpdates(t *testing.T, disableMeshGateways
 				},
 			},
 		}
+		require.NoError(t, entry.Normalize())
+		require.NoError(t, entry.Validate())
 		lastIdx++
 		err := store.EnsureConfigEntry(lastIdx, entry)
 		require.NoError(t, err)
@@ -811,7 +860,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 	// Create a peering
 	var lastIdx uint64 = 1
-	p := writeInitiatedPeering(t, store, lastIdx, "my-peering")
+	p := writeEstablishedPeering(t, store, lastIdx, "my-peering")
 
 	srv := NewService(
 		testutil.Logger(t),
@@ -929,6 +978,7 @@ func makeClient(
 type testStreamBackend struct {
 	pub           state.EventPublisher
 	store         *state.Store
+	applier       *testApplier
 	leader        func() bool
 	leaderAddress *leaderAddress
 }
@@ -990,11 +1040,62 @@ func (b *testStreamBackend) DecodeToken([]byte) (*structs.PeeringToken, error) {
 	return nil, nil
 }
 
-func (b *testStreamBackend) EnterpriseCheckPartitions(partition string) error {
+func (b *testStreamBackend) EnterpriseCheckPartitions(_ string) error {
+	return nil
+}
+
+func (b *testStreamBackend) EnterpriseCheckNamespaces(_ string) error {
 	return nil
 }
 
 func (b *testStreamBackend) Apply() Apply {
+	return b.applier
+}
+
+type testApplier struct {
+	store *state.Store
+}
+
+func (a *testApplier) CheckPeeringUUID(id string) (bool, error) {
+	panic("not implemented")
+}
+
+func (a *testApplier) PeeringWrite(req *pbpeering.PeeringWriteRequest) error {
+	panic("not implemented")
+}
+
+func (a *testApplier) PeeringDelete(req *pbpeering.PeeringDeleteRequest) error {
+	panic("not implemented")
+}
+
+func (a *testApplier) PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error {
+	panic("not implemented")
+}
+
+func (a *testApplier) PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error {
+	panic("not implemented")
+}
+
+// CatalogRegister mocks catalog registrations through Raft by copying the logic of FSM.applyRegister.
+func (a *testApplier) CatalogRegister(req *structs.RegisterRequest) error {
+	return a.store.EnsureRegistration(1, req)
+}
+
+// CatalogDeregister mocks catalog de-registrations through Raft by copying the logic of FSM.applyDeregister.
+func (a *testApplier) CatalogDeregister(req *structs.DeregisterRequest) error {
+	if req.ServiceID != "" {
+		if err := a.store.DeleteService(1, req.Node, req.ServiceID, &req.EnterpriseMeta, req.PeerName); err != nil {
+			return err
+		}
+	} else if req.CheckID != "" {
+		if err := a.store.DeleteCheck(1, req.Node, req.CheckID, &req.EnterpriseMeta, req.PeerName); err != nil {
+			return err
+		}
+	} else {
+		if err := a.store.DeleteNode(1, req.Node, &req.EnterpriseMeta, req.PeerName); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -1138,13 +1239,14 @@ func Test_processResponse_Validation(t *testing.T) {
 	}
 }
 
-// writeInitiatedPeering creates a peering with the provided name and ensures
+// writeEstablishedPeering creates a peering with the provided name and ensures
 // the PeerID field is set for the ID of the remote peer.
-func writeInitiatedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
+func writeEstablishedPeering(t *testing.T, store *state.Store, idx uint64, peerName string) *pbpeering.Peering {
 	remotePeerID, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 
 	peering := pbpeering.Peering{
+		ID:     testUUID(t),
 		Name:   peerName,
 		PeerID: remotePeerID,
 	}
@@ -1192,9 +1294,11 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 		}
 	}
 
+	const timeout = 10 * time.Second
+
 	var out []*pbpeering.ReplicationMessage
 	for len(out) < num {
-		msg, err := client.RecvWithTimeout(100 * time.Millisecond)
+		msg, err := client.RecvWithTimeout(timeout)
 		if err == io.EOF && msg == nil {
 			t.Fatalf("timed out with %d of %d events", len(out), num)
 		}
@@ -1246,4 +1350,860 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 	for i := 0; i < num; i++ {
 		checkFns[i](t, out[i])
 	}
+}
+
+func TestHandleUpdateService(t *testing.T) {
+	publisher := stream.NewEventPublisher(10 * time.Second)
+	store := newStateStore(t, publisher)
+
+	srv := NewService(
+		testutil.Logger(t),
+		Config{
+			Datacenter:     "dc1",
+			ConnectEnabled: true,
+		},
+		&testStreamBackend{
+			store:   store,
+			applier: &testApplier{store: store},
+			pub:     publisher,
+			leader: func() bool {
+				return false
+			},
+		},
+	)
+
+	type testCase struct {
+		name   string
+		seed   []*structs.RegisterRequest
+		input  *pbservice.IndexedCheckServiceNodes
+		expect map[string]structs.CheckServiceNodes
+	}
+
+	peerName := "billing"
+	remoteMeta := pbcommon.NewEnterpriseMetaFromStructs(*structs.DefaultEnterpriseMetaInPartition("billing-ap"))
+
+	// "api" service is imported from the billing-ap partition, corresponding to the billing peer.
+	// Locally it is stored to the default partition.
+	defaultMeta := *acl.DefaultEnterpriseMeta()
+	apiSN := structs.NewServiceName("api", &defaultMeta)
+
+	run := func(t *testing.T, tc testCase) {
+		// Seed the local catalog with some data to reconcile against.
+		for _, reg := range tc.seed {
+			require.NoError(t, srv.Backend.Apply().CatalogRegister(reg))
+		}
+
+		// Simulate an update arriving for billing/api.
+		require.NoError(t, srv.handleUpdateService(peerName, acl.DefaultPartitionName, apiSN, tc.input))
+
+		for svc, expect := range tc.expect {
+			t.Run(svc, func(t *testing.T) {
+				_, got, err := srv.Backend.Store().CheckServiceNodes(nil, svc, &defaultMeta, peerName)
+				require.NoError(t, err)
+				requireEqualInstances(t, expect, got)
+			})
+		}
+	}
+
+	tt := []testCase{
+		{
+			name: "upsert two service instances to the same node",
+			input: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-2",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-2-check",
+								ServiceID:      "api-2",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+			expect: map[string]structs.CheckServiceNodes{
+				"api": {
+					{
+						Node: &structs.Node{
+							ID:   "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node: "node-foo",
+
+							// The remote billing-ap partition is overwritten for all resources with the local default.
+							Partition: defaultMeta.PartitionOrEmpty(),
+
+							// The name of the peer "billing" is attached as well.
+							PeerName: peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-2",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-2-check",
+								ServiceID:      "api-2",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upsert two service instances to different nodes",
+			input: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+					{
+						Node: &pbservice.Node{
+							ID:        "c0f97de9-4e1b-4e80-a1c6-cd8725835ab2",
+							Node:      "node-bar",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-2",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							{
+								CheckID:        "node-bar-check",
+								Node:           "node-bar",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-2-check",
+								ServiceID:      "api-2",
+								Node:           "node-bar",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+			expect: map[string]structs.CheckServiceNodes{
+				"api": {
+					{
+						Node: &structs.Node{
+							ID:        "c0f97de9-4e1b-4e80-a1c6-cd8725835ab2",
+							Node:      "node-bar",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-2",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "node-bar-check",
+								Node:           "node-bar",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-2-check",
+								ServiceID:      "api-2",
+								Node:           "node-bar",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+					{
+						Node: &structs.Node{
+							ID:   "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node: "node-foo",
+
+							// The remote billing-ap partition is overwritten for all resources with the local default.
+							Partition: defaultMeta.PartitionOrEmpty(),
+
+							// The name of the peer "billing" is attached as well.
+							PeerName: peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "receiving a nil input leads to deleting data in the catalog",
+			seed: []*structs.RegisterRequest{
+				{
+					ID:       types.NodeID("c0f97de9-4e1b-4e80-a1c6-cd8725835ab2"),
+					Node:     "node-bar",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-2",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-bar",
+							ServiceID: "api-2",
+							CheckID:   types.CheckID("api-2-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-bar",
+							CheckID:  types.CheckID("node-bar-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-1",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "api-1",
+							CheckID:   types.CheckID("api-1-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+			},
+			input: nil,
+			expect: map[string]structs.CheckServiceNodes{
+				"api": {},
+			},
+		},
+		{
+			name: "deleting one service name from a node does not delete other service names",
+			seed: []*structs.RegisterRequest{
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "redis-2",
+						Service:        "redis",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "redis-2",
+							CheckID:   types.CheckID("redis-2-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-1",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "api-1",
+							CheckID:   types.CheckID("api-1-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+			},
+			// Nil input is for the "api" service.
+			input: nil,
+			expect: map[string]structs.CheckServiceNodes{
+				"api": {},
+				// Existing redis service was not affected by deletion.
+				"redis": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "redis-2",
+							Service:        "redis",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "node-foo-check",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+							{
+								CheckID:        "redis-2-check",
+								ServiceID:      "redis-2",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service checks are cleaned up when not present in a response",
+			seed: []*structs.RegisterRequest{
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-1",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "api-1",
+							CheckID:   types.CheckID("api-1-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+			},
+			input: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							// Service check was deleted
+						},
+					},
+				},
+			},
+			expect: map[string]structs.CheckServiceNodes{
+				// Service check should be gone
+				"api": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{},
+					},
+				},
+			},
+		},
+		{
+			name: "node checks are cleaned up when not present in a response",
+			seed: []*structs.RegisterRequest{
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "redis-2",
+						Service:        "redis",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "redis-2",
+							CheckID:   types.CheckID("redis-2-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-1",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "api-1",
+							CheckID:   types.CheckID("api-1-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+			},
+			input: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						Service: &pbservice.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							// Node check was deleted
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: remoteMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+			expect: map[string]structs.CheckServiceNodes{
+				// Node check should be gone
+				"api": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "api-1",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "api-1-check",
+								ServiceID:      "api-1",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+				"redis": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "redis-2",
+							Service:        "redis",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								CheckID:        "redis-2-check",
+								ServiceID:      "redis-2",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "replacing a service instance on a node cleans up the old instance",
+			seed: []*structs.RegisterRequest{
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "redis-2",
+						Service:        "redis",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "redis-2",
+							CheckID:   types.CheckID("redis-2-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+				{
+					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
+					Node:     "node-foo",
+					PeerName: peerName,
+					Service: &structs.NodeService{
+						ID:             "api-1",
+						Service:        "api",
+						EnterpriseMeta: defaultMeta,
+						PeerName:       peerName,
+					},
+					Checks: structs.HealthChecks{
+						{
+							Node:      "node-foo",
+							ServiceID: "api-1",
+							CheckID:   types.CheckID("api-1-check"),
+							PeerName:  peerName,
+						},
+						{
+							Node:     "node-foo",
+							CheckID:  types.CheckID("node-foo-check"),
+							PeerName: peerName,
+						},
+					},
+				},
+			},
+			input: &pbservice.IndexedCheckServiceNodes{
+				Nodes: []*pbservice.CheckServiceNode{
+					{
+						Node: &pbservice.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: remoteMeta.Partition,
+							PeerName:  peerName,
+						},
+						// New service ID and checks for the api service.
+						Service: &pbservice.NodeService{
+							ID:             "new-api-v2",
+							Service:        "api",
+							EnterpriseMeta: remoteMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*pbservice.HealthCheck{
+							{
+								Node:      "node-foo",
+								ServiceID: "new-api-v2",
+								CheckID:   "new-api-v2-check",
+								PeerName:  peerName,
+							},
+							{
+								Node:     "node-foo",
+								CheckID:  "node-foo-check",
+								PeerName: peerName,
+							},
+						},
+					},
+				},
+			},
+			expect: map[string]structs.CheckServiceNodes{
+				"api": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "new-api-v2",
+							Service:        "api",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:     "node-foo",
+								CheckID:  "node-foo-check",
+								PeerName: peerName,
+							},
+							{
+								CheckID:        "new-api-v2-check",
+								ServiceID:      "new-api-v2",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+				"redis": {
+					{
+						Node: &structs.Node{
+							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
+							Node:      "node-foo",
+							Partition: defaultMeta.PartitionOrEmpty(),
+							PeerName:  peerName,
+						},
+						Service: &structs.NodeService{
+							ID:             "redis-2",
+							Service:        "redis",
+							EnterpriseMeta: defaultMeta,
+							PeerName:       peerName,
+						},
+						Checks: []*structs.HealthCheck{
+							{
+								Node:     "node-foo",
+								CheckID:  "node-foo-check",
+								PeerName: peerName,
+							},
+							{
+								CheckID:        "redis-2-check",
+								ServiceID:      "redis-2",
+								Node:           "node-foo",
+								EnterpriseMeta: defaultMeta,
+								PeerName:       peerName,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func requireEqualInstances(t *testing.T, expect, got structs.CheckServiceNodes) {
+	t.Helper()
+
+	require.Equal(t, len(expect), len(got), "got differing number of instances")
+
+	for i := range expect {
+		// Node equality
+		require.Equal(t, expect[i].Node.ID, got[i].Node.ID, "node mismatch")
+		require.Equal(t, expect[i].Node.Partition, got[i].Node.Partition, "partition mismatch")
+		require.Equal(t, expect[i].Node.PeerName, got[i].Node.PeerName, "peer name mismatch")
+
+		// Service equality
+		require.Equal(t, expect[i].Service.ID, got[i].Service.ID, "service id mismatch")
+		require.Equal(t, expect[i].Service.PeerName, got[i].Service.PeerName, "peer name mismatch")
+		require.Equal(t, expect[i].Service.PartitionOrDefault(), got[i].Service.PartitionOrDefault(), "partition mismatch")
+
+		// Check equality
+		require.Equal(t, len(expect[i].Checks), len(got[i].Checks), "got differing number of check")
+
+		for j := range expect[i].Checks {
+			require.Equal(t, expect[i].Checks[j].CheckID, got[i].Checks[j].CheckID, "check id mismatch")
+			require.Equal(t, expect[i].Checks[j].PeerName, got[i].Checks[j].PeerName, "peer name mismatch")
+			require.Equal(t, expect[i].Checks[j].PartitionOrDefault(), got[i].Checks[j].PartitionOrDefault(), "partition mismatch")
+		}
+	}
+}
+
+func testUUID(t *testing.T) string {
+	v, err := lib.GenerateUUID(nil)
+	require.NoError(t, err)
+	return v
 }

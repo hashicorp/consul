@@ -1200,8 +1200,12 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	testutil.RunStep(t, "token used remotely should not work", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}
@@ -1235,8 +1239,12 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	testutil.RunStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}

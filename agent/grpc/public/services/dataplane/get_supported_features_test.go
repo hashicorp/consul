@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc/public"
 	"github.com/hashicorp/consul/agent/grpc/public/testutils"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
@@ -51,7 +52,7 @@ func TestSupportedDataplaneFeatures_Unauthenticated(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, acl.ErrNotFound)
+		Return(resolver.Result{}, acl.ErrNotFound)
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),
@@ -68,7 +69,7 @@ func TestSupportedDataplaneFeatures_PermissionDenied(t *testing.T) {
 	// Mock the ACL resolver to return a deny all authorizer
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(acl.DenyAll(), nil)
+		Return(testutils.TestAuthorizerDenyAll(t), nil)
 	ctx := public.ContextWithToken(context.Background(), testACLToken)
 	server := NewServer(Config{
 		Logger:      hclog.NewNullLogger(),

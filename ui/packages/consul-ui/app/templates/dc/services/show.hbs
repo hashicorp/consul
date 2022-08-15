@@ -2,12 +2,13 @@
   @name={{routeName}}
 as |route|>
     <DataLoader
-      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+    @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}/${peer}'
         (hash
           partition=route.params.partition
           nspace=route.params.nspace
           dc=route.params.dc
           name=route.params.name
+          peer=route.params.peer
         )
       }}
     as |loader|>
@@ -135,7 +136,7 @@ as |items item dc|}}
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
             <ol>
-                <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+              <li><a data-test-back href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
             </ol>
           </BlockSlot>
           <BlockSlot @name="header">
@@ -144,6 +145,7 @@ as |items item dc|}}
               </h1>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
+              <Consul::Service::PeerInfo @service={{item.Service}} />
           </BlockSlot>
           <BlockSlot @name="nav">
             {{#if (not-eq item.Service.Kind 'mesh-gateway')}}

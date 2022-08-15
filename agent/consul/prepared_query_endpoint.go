@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -159,7 +160,7 @@ func parseQuery(query *structs.PreparedQuery) error {
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
 	// which if we allowed in would be super hard to debug and understand.
-	if query.Token == redactedToken {
+	if query.Token == aclfilter.RedactedToken {
 		return fmt.Errorf("Bad Token '%s', it looks like a query definition with a redacted token was submitted", query.Token)
 	}
 

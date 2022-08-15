@@ -63,7 +63,7 @@ as |nspace dc items topology|}}
                     class="topology-metrics-notice"
                     id={{details.id}}
                     data-test-notice={{prop}}
-                    @type={{if (contains prop (array 'filtered-by-acls' 'no-dependencies'))
+                    @type={{if (includes prop (array 'filtered-by-acls' 'no-dependencies'))
                       'info'
                       'warning'
                     }}

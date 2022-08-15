@@ -63,7 +63,7 @@ type ConfigEntry interface {
 
 	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
-	// TODO(acl-error-enhancements) This should be ACLResolveResult or similar but we have to wait until we move things to the acl package
+	// TODO(acl-error-enhancements) This should be resolver.Result or similar but we have to wait until we move things to the acl package
 	CanRead(acl.Authorizer) error
 	CanWrite(acl.Authorizer) error
 
@@ -299,6 +299,16 @@ type DestinationConfig struct {
 
 	// Port allowed within this endpoint
 	Port int `json:",omitempty"`
+}
+
+func (d *DestinationConfig) HasHostname() bool {
+	ip := net.ParseIP(d.Address)
+	return ip == nil
+}
+
+func (d *DestinationConfig) HasIP() bool {
+	ip := net.ParseIP(d.Address)
+	return ip != nil
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
@@ -1043,6 +1053,7 @@ type ServiceConfigResponse struct {
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
+	Destination       DestinationConfig      `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }

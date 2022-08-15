@@ -97,7 +97,18 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 		uid := UpstreamIDFromString(uidString)
 
-		upstreamsSnapshot.PeerUpstreamEndpoints[uid] = resp.Nodes
+		filteredNodes := hostnameEndpoints(
+			s.logger,
+			GatewayKey{ /*empty so it never matches*/ },
+			resp.Nodes,
+		)
+		if len(filteredNodes) > 0 {
+			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = filteredNodes
+			upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames[uid] = struct{}{}
+		} else {
+			upstreamsSnapshot.PeerUpstreamEndpoints[uid] = resp.Nodes
+			delete(upstreamsSnapshot.PeerUpstreamEndpointsUseHostnames, uid)
+		}
 
 		if s.kind != structs.ServiceKindConnectProxy || s.proxyCfg.Mode != structs.ProxyModeTransparent {
 			return nil

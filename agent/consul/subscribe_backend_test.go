@@ -76,7 +76,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+		req := &pbsubscribe.SubscribeRequest{
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
+		}
 		streamHandle, err := streamClient.Subscribe(ctx, req)
 		require.NoError(t, err)
 
@@ -115,7 +122,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+		req := &pbsubscribe.SubscribeRequest{
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
+		}
 		streamHandle, err := streamClient.Subscribe(ctx, req)
 		require.NoError(t, err)
 
@@ -193,7 +207,14 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+	req := &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "redis",
+			},
+		},
+	}
 	_, err = streamClient.Subscribe(ctx, req)
 	require.Error(t, err)
 
@@ -383,7 +404,14 @@ type testLogger interface {
 }
 
 func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client pbsubscribe.StateChangeSubscriptionClient, i int, updateCount *uint64) error {
-	req := &pbsubscribe.SubscribeRequest{Topic: pbsubscribe.Topic_ServiceHealth, Key: "redis"}
+	req := &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "redis",
+			},
+		},
+	}
 	streamHandle, err := client.Subscribe(ctx, req)
 	switch {
 	case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):

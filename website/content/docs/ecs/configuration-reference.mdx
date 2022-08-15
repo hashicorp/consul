@@ -44,9 +44,109 @@ These are the top-level fields for the Consul ECS configuration format.
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
 | `bootstrapDir` | `string` | required | The directory at which to mount the shared volume where Envoy bootstrap configuration is written by `consul-ecs mesh-init`.  |
+| `consulCACertFile` | `string` | optional | The file path of the Consul server CA certificate.  |
+| `consulHTTPAddr` | `string` | optional | The HTTP(S) URL of the Consul server. Required when `authMethod.enabled` is set  |
+| [`consulLogin`](#consullogin) | `object` | optional | Configuration for logging into the AWS IAM auth method.  |
+| [`gateway`](#gateway) | `object` | optional | Configuration for the gateway proxy registration.  |
 | `healthSyncContainers` | `array` | optional | The names of containers that will have health check status synced from ECS into Consul. Cannot be specified with `service.checks`.  |
+| `logLevel` | `string` | optional | Sets the log level for the `consul-ecs mesh-init` and `consul-ecs health-sync` commands. Defaults to `INFO`. Must be one of `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, or `null`. |
 | [`proxy`](#proxy) | `object` | optional | Configuration for the sidecar proxy registration with Consul.  |
-| [`service`](#service) | `object` | required | Configuration for Consul service registration.  |
+| [`service`](#service) | `object` | optional | Configuration for Consul service registration.  |
+
+# `consulLogin`
+
+Configuration for logging into the AWS IAM auth method.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `enabled` | `boolean` | optional | Enables logging into Consul's AWS IAM auth method to obtain an ACL token. The auth method must be configured on the Consul server and the ECS task role must be trusted by the auth method. After logging in, the token is written to the file `<bootstrapDir>/service-token`.  |
+| `extraLoginFlags` | `array` | optional | Additional CLI flags to pass to the `consul login` command. These are appended to the command `consul login -type aws -method <name> -token-sink-file <file> -aws-auto-bearer-token -aws-include-identity`.  |
+| `includeEntity` | `boolean` | optional | Adds the `-aws-include-entity` flag to the `consul login` command. Defaults to `true`. Set to `false` to remove the flag from the command. The `-aws-include-entity` flag should only be passed if the Consul AWS IAM auth method is configured with `EnableIAMEntityDetails=true`.  |
+| `method` | `string` | optional | The name of Consul auth method. This is passed as the `-method` option to the `consul login` command. Defaults to `iam-ecs-service-token`.  |
+
+# `gateway`
+
+Configuration for the gateway proxy registration.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `kind` | `string` | required | Specifies the type of gateway to register. Must be `mesh-gateway`. |
+| [`lanAddress`](#gateway-lanaddress) | `object` | optional | LAN address and port for the gateway. If not specified, defaults to the task/node address.  |
+| `meta` | `object` | optional | Key-value pairs of metadata to include for the gateway.  |
+| `name` | `string` | optional | The name the gateway will be registered as in Consul. Defaults to the Task family name.  |
+| `namespace` | `string` | optional | <EnterpriseAlert inline /> Consul namespace in which the gateway will be registered.  |
+| `partition` | `string` | optional | <EnterpriseAlert inline /> Consul admin partition in which the gateway will be registered.  |
+| [`proxy`](#gateway-proxy) | `object` | optional | Object that contains the proxy parameters.  |
+| `tags` | `array` | optional | List of string values that can be used to add labels to the gateway.  |
+| [`wanAddress`](#gateway-wanaddress) | `object` | optional | WAN address and port for the gateway. If not specified, defaults to the task/node address.  |
+
+# `gateway.lanAddress`
+
+LAN address and port for the gateway. If not specified, defaults to the task/node address.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `address` | `string` | optional |   |
+| `port` | `integer` | optional |   |
+
+# `gateway.proxy`
+
+Object that contains the proxy parameters.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `config` | `object` | optional |   |
+
+# `gateway.wanAddress`
+
+WAN address and port for the gateway. If not specified, defaults to the task/node address.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `address` | `string` | optional |   |
+| `port` | `integer` | optional |   |
+
+# `proxy`
+
+Configuration for the sidecar proxy registration with Consul.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `config` | `object` | optional | Object value that specifies an opaque JSON configuration. The JSON is stored and returned along with the service instance when called from the API.  |
+| [`meshGateway`](#proxy-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy.  |
+| [`upstreams`](#proxy-upstreams) | `array` | optional | The list of the upstream services that the proxy should create listeners for.  |
+
+# `proxy.meshGateway`
+
+Specifies the mesh gateway configuration for the proxy.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `mode` | `string` | required | Specifies how upstreams with a remote destination datacenter are resolved. Must be one of `none`, `local`, or `remote`. |
+
+# `proxy.upstreams`
+
+The list of the upstream services that the proxy should create listeners for. Each `upstream` object may contain the following fields.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `config` | `object` | optional | Specifies opaque configuration options that will be provided to the proxy instance for the upstream.  |
+| `datacenter` | `string` | optional | Specifies the datacenter to issue the discovery query to.  |
+| `destinationName` | `string` | required | Specifies the name of the upstream service or prepared query to route the service mesh to.  |
+| `destinationNamespace` | `string` | optional | <EnterpriseAlert inline /> Specifies the namespace containing the upstream service.  |
+| `destinationPartition` | `string` | optional | <EnterpriseAlert inline /> Specifies the name of the admin partition containing the upstream service.  |
+| `destinationType` | `string` | optional | Specifies the type of discovery query the proxy should use for finding service mesh instances. Must be one of `service`, `prepared_query`, or `null`. |
+| `localBindAddress` | `string` | optional | Specifies the address to bind a local listener to.  |
+| `localBindPort` | `integer` | required | Specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port.  |
+| [`meshGateway`](#proxy-upstreams-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy for this upstream.  |
+
+## `proxy.upstreams.meshGateway`
+
+Specifies the mesh gateway configuration for the proxy for this upstream.
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `mode` | `string` | required | Specifies how the upstream with a remote destination datacenter gets resolved. Must be one of `none`, `local`, or `remote`. |
 
 # `service`
 
@@ -58,15 +158,15 @@ Configuration for Consul service registration.
 | `enableTagOverride` | `boolean` | optional | Determines if the anti-entropy feature for the service is enabled  |
 | `meta` | `object` | optional | Key-value pairs of metadata to include for the Consul service.  |
 | `name` | `string` | optional | The name the service will be registered as in Consul. Defaults to the Task family name if empty or null.  |
-| `namespace` | `string` | optional | The Consul namespace where the service will be registered [Consul Enterprise].  |
-| `partition` | `string` | optional | The Consul admin partition where the service will be registered [Consul Enterprise].  |
+| `namespace` | `string` | optional | <EnterpriseAlert inline /> The Consul namespace where the service will be registered.  |
+| `partition` | `string` | optional | <EnterpriseAlert inline /> The Consul admin partition where the service will be registered.  |
 | `port` | `integer` | required | Port the application listens on, if any.  |
 | `tags` | `array` | optional | List of string values that can be used to add service-level labels.  |
 | [`weights`](#service-weights) | `object` | optional | Configures the weight of the service in terms of its DNS service (SRV) response.  |
 
 # `service.checks`
 
-Defines the Consul checks for the service. Each check may contain these fields.
+Defines the Consul checks for the service. Each `check` object may contain the following fields.
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
@@ -87,14 +187,14 @@ Defines the Consul checks for the service. Each check may contain these fields.
 | `name` | `string` | optional | The name of the check.  |
 | `notes` | `string` | optional | Specifies arbitrary information for humans. This is not used by Consul internally.  |
 | `os_service` | `string` | optional | Specifies an `OS Service` check. Must be the name of the service which status will be checked every `interval`.  |
-| `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or`null`. |
+| `status` | `string` | optional | Specifies the initial status the health check. Must be one of `passing`, `warning`, `critical`, `maintenance`, or `null`. |
 | `successBeforePassing` | `integer` | optional | Specifies the number of consecutive successful results required before check status transitions to passing.  |
 | `tcp` | `string` | optional | Specifies this is a TCP check. Must be an IP/hostname plus port to which a TCP connection is made every `interval`.  |
-| `udp` | `string` | optional | Specifies this is a UDP check. Must be an IP/hostname plus port to which UDP datagrams are sent every `interval`.  |
 | `timeout` | `string` | optional | Specifies a timeout for outgoing connections. Applies to script, HTTP, TCP, UDP, and gRPC checks. Must be a duration string, such as `10s` or `5m`.  |
 | `tlsServerName` | `string` | optional | Specifies an optional string used to set the SNI host when connecting via TLS.  |
 | `tlsSkipVerify` | `boolean` | optional | Specifies if the certificate for an HTTPS check should not be verified.  |
 | `ttl` | `string` | optional | Specifies this is a TTL check. Must be a duration string, such as `10s` or `5m`.  |
+| `udp` | `string` | optional | Specifies this is a UDP check. Must be an IP/hostname plus port to which UDP datagrams are sent every `interval`.  |
 
 # `service.weights`
 
@@ -104,46 +204,4 @@ Configures the weight of the service in terms of its DNS service (SRV) response.
 | ----- | ---- | -------- | ----------- |
 | `passing` | `integer` | required | Weight for the service when its health checks are passing.  |
 | `warning` | `integer` | required | Weight for the service when it has health checks in `warning` status.  |
-
-# `proxy`
-
-Configuration for the sidecar proxy registration with Consul.
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `config` | `object` | optional | Object value that specifies an opaque JSON configuration. The JSON is stored and returned along with the service instance when called from the API.  |
-| [`meshGateway`](#proxy-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy.  |
-| [`upstreams`](#proxy-upstreams) | `array` | optional | The list of the upstream services that the proxy should create listeners for.  |
-
-# `proxy.upstreams`
-
-The list of the upstream services that the proxy should create listeners for. Each upstream may contain these fields.
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `config` | `object` | optional | Specifies opaque configuration options that will be provided to the proxy instance for the upstream.  |
-| `datacenter` | `string` | optional | Specifies the datacenter to issue the discovery query to.  |
-| `destinationName` | `string` | required | Specifies the name of the upstream service or prepared query to route the service mesh to.  |
-| `destinationNamespace` | `string` | optional | Specifies the namespace containing the upstream service [Consul Enterprise].  |
-| `destinationPartition` | `string` | optional | Specifies the name of the admin partition containing the upstream service [Consul Enterprise].  |
-| `destinationType` | `string` | optional | Specifies the type of discovery query the proxy should use for finding service mesh instances. Must be one of `service`, `prepared_query`, or`null`. |
-| `localBindAddress` | `string` | optional | Specifies the address to bind a local listener to.  |
-| `localBindPort` | `integer` | required | Specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port.  |
-| [`meshGateway`](#proxy-upstreams-meshgateway) | `object` | optional | Specifies the mesh gateway configuration for the proxy for this upstream.  |
-
-## `proxy.upstreams.meshGateway`
-
-Specifies the mesh gateway configuration for the proxy for this upstream.
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `mode` | `string` | required | Specifies how the upstream with a remote destination datacenter gets resolved. Must be one of `none`, `local`, or`remote`. |
-
-# `proxy.meshGateway`
-
-Specifies the mesh gateway configuration for the proxy.
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `mode` | `string` | required | Specifies how upstreams with a remote destination datacenter get resolved. Must be one of `none`, `local`, or`remote`. |
 

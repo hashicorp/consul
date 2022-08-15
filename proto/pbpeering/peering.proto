@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package peering;
 
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
 // TODO(peering): Handle this some other way
 import "proto/pbstatus/status.proto";
@@ -10,7 +11,7 @@ import "proto/pbstatus/status.proto";
 // between disparate Consul clusters.
 service PeeringService {
   rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse);
-  rpc Initiate(InitiateRequest) returns (InitiateResponse);
+  rpc Establish(EstablishRequest) returns (EstablishResponse);
   rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse);
   rpc PeeringList(PeeringListRequest) returns (PeeringListResponse);
   rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse);
@@ -38,19 +39,28 @@ enum PeeringState {
   // writes.
   UNDEFINED = 0;
 
-  // Initial means a Peering has been initialized and is awaiting
-  // acknowledgement from a remote peer.
-  INITIAL = 1;
+  // Pending means the peering was created by generating a peering token.
+  // Peerings stay in a pending state until the peer uses the token to dial
+  // the local cluster.
+  PENDING = 1;
+
+  // Establishing means the peering is being established from a peering token.
+  // This is the initial state for dialing peers.
+  ESTABLISHING = 2;
 
   // Active means that the peering connection is active and healthy.
-  ACTIVE = 2;
+  ACTIVE = 3;
 
   // Failing means the peering connection has been interrupted but has not yet
   // been terminated.
-  FAILING = 3;
+  FAILING = 4;
+
+  // Deleting means a peering was marked for deletion and is in the process
+  // of being deleted.
+  DELETING = 5;
 
   // Terminated means the peering relationship has been removed.
-  TERMINATED = 4;
+  TERMINATED = 6;
 }
 
 // Peering defines a peering relationship between two disparate Consul clusters
@@ -71,33 +81,44 @@ message Peering {
   // Partition is the local partition connecting to the peer.
   string Partition = 3;
 
+  // DeletedAt is the time when the Peering was marked for deletion
+  // This is nullable so that we can omit if empty when encoding in JSON
+  // mog: func-to=TimePtrFromProto func-from=TimePtrToProto
+  google.protobuf.Timestamp DeletedAt = 4;
+
   // Meta is a mapping of some string value to any other string value
-  map<string, string> Meta = 11;
+  map<string, string> Meta = 5;
 
   // State is one of the valid PeeringState values to represent the status of
   // peering relationship.
   //
   // mog: func-to=PeeringStateToAPI func-from=PeeringStateFromAPI
-  PeeringState State = 4;
+  PeeringState State = 6;
 
   // PeerID is the ID that our peer assigned to this peering.
   // This ID is to be used when dialing the peer, so that it can know who dialed it.
-  string PeerID = 5;
+  string PeerID = 7;
 
   // PeerCAPems contains all the CA certificates for the remote peer.
-  repeated string PeerCAPems = 6;
+  repeated string PeerCAPems = 8;
 
   // PeerServerName is the name of the remote server as it relates to TLS.
-  string PeerServerName = 7;
+  string PeerServerName = 9;
 
   // PeerServerAddresses contains all the the connection addresses for the remote peer.
-  repeated string PeerServerAddresses = 8;
+  repeated string PeerServerAddresses = 10;
+
+  // ImportedServiceCount is the count of how many services are imported from this peering.
+  uint64 ImportedServiceCount = 13;
+
+  // ExportedServiceCount is the count of how many services are exported to this peering.
+  uint64 ExportedServiceCount = 14;
 
   // CreateIndex is the Raft index at which the Peering was created.
-  uint64 CreateIndex = 9;
+  uint64 CreateIndex = 11;
 
   // ModifyIndex is the latest Raft index at which the Peering. was modified.
-  uint64 ModifyIndex = 10;
+  uint64 ModifyIndex = 12;
 }
 
 // PeeringTrustBundle holds the trust information for validating requests from a peer.
@@ -108,17 +129,21 @@ message PeeringTrustBundle {
   // PeerName associates the trust bundle with a peer.
   string PeerName = 2;
 
-  // Partition isolates the bundle from other trust bundles in separate partitions.
+  // Partition isolates the bundle from other trust bundles in separate local partitions.
   string Partition = 3;
 
   // RootPEMs holds ASN.1 DER encoded X.509 certificate data for the trust bundle.
   repeated string RootPEMs = 4;
 
+  // ExportedPartition references the remote partition of the peer
+  // which sent this trust bundle. Used for generating SpiffeIDs.
+  string ExportedPartition = 5;
+
   // CreateIndex is the Raft index at which the trust domain was created.
-  uint64 CreateIndex = 5;
+  uint64 CreateIndex = 6;
 
   // ModifyIndex is the latest Raft index at which the trust bundle was modified.
-  uint64 ModifyIndex = 6;
+  uint64 ModifyIndex = 7;
 }
 
 // @consul-rpc-glue: Datacenter,ReadTODO
@@ -183,10 +208,11 @@ message TrustBundleListByServiceRequest {
   string ServiceName = 1;
   string Namespace = 2;
   string Partition = 3;
+  string Kind = 4;
 
   // these are common fields required for implementing structs.RPCInfo methods
   // that are used to forward requests
-  string Datacenter = 4;
+  string Datacenter = 5;
 }
 
 message TrustBundleListByServiceResponse {
@@ -273,10 +299,10 @@ message GenerateTokenResponse {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringInitiateRequest
+// target=github.com/hashicorp/consul/api.PeeringEstablishRequest
 // output=peering.gen.go
 // name=API
-message InitiateRequest {
+message EstablishRequest {
   // Name of the remote peer.
   string PeerName = 1;
 
@@ -298,10 +324,10 @@ message InitiateRequest {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringInitiateResponse
+// target=github.com/hashicorp/consul/api.PeeringEstablishResponse
 // output=peering.gen.go
 // name=API
-message InitiateResponse {}
+message EstablishResponse {}
 
 message ReplicationMessage {
   oneof Payload {

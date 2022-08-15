@@ -13,6 +13,7 @@ export default class Intention extends Model {
   @attr('string') Datacenter;
   @attr('string') Description;
 
+  @attr('string') SourcePeer;
   @attr('string', { defaultValue: () => '*' }) SourceName;
   @attr('string', { defaultValue: () => '*' }) DestinationName;
   @attr('string', { defaultValue: () => 'default' }) SourceNS;

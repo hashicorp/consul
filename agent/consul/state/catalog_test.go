@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -555,7 +555,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	)
 
 	run := func(t *testing.T, peerName string) {
-		verifyNode := func(t *testing.T, s *Store, nodeLookup string) {
+		verifyNode := func(t *testing.T, s *Store, nodeLookup string, expectIdx uint64) {
 			idx, out, err := s.GetNode(nodeLookup, nil, peerName)
 			require.NoError(t, err)
 			byID := false
@@ -566,7 +566,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			}
 
 			require.NotNil(t, out)
-			require.Equal(t, uint64(1), idx)
+			require.Equal(t, expectIdx, idx)
 
 			require.Equal(t, "1.2.3.4", out.Address)
 			if byID {
@@ -661,8 +661,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Retrieve the node and verify its contents.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 1)
+			verifyNode(t, s, nodeName, 1)
 		})
 
 		// Add in a service definition.
@@ -686,8 +686,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the service got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 		})
@@ -726,8 +726,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the check got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 			verifyCheck(t, s)
@@ -776,8 +776,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			require.NoError(t, restore.Commit())
 
 			// Verify that the additional check got registered.
-			verifyNode(t, s, nodeID)
-			verifyNode(t, s, nodeName)
+			verifyNode(t, s, nodeID, 2)
+			verifyNode(t, s, nodeName, 2)
 			verifyService(t, s, nodeID)
 			verifyService(t, s, nodeName)
 			verifyChecks(t, s)
@@ -976,7 +976,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.2",
 	}
 	if err := s.EnsureNode(10, in2Modify); err != nil {
-		t.Fatalf("Renaming node2 into node1 should fail")
+		t.Fatalf("Renaming node2 into node1 should not fail: " + err.Error())
 	}
 
 	// Retrieve the node again
@@ -1550,20 +1550,16 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{tableNodes, tableServices, tableChecks} {
-		if idx := s.maxIndex(tbl); idx != 3 {
-			t.Fatalf("bad index: %d (%s)", idx, tbl)
-		}
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(3), catalogServicesMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(3), catalogNodesMaxIndex(tx, nil, ""))
 
 	// Deleting a nonexistent node should be idempotent and not return
 	// an error
 	if err := s.DeleteNode(4, "node1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableNodes); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogNodesMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_Node_Snapshot(t *testing.T) {
@@ -1690,7 +1686,8 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 30 {
+	// expect node1's max idx
+	if idx != 20 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1713,9 +1710,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 30 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(30), catalogServicesMaxIndex(s.db.ReadTxn(), nil, ""))
 
 	// Update a service registration.
 	ns1.Address = "1.1.1.2"
@@ -1744,9 +1739,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 40 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(40), catalogServicesMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_EnsureService_connectProxy(t *testing.T) {
@@ -1806,7 +1799,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(10, "node1", ns1))
 
 	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	vip, err := s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1837,7 +1830,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(11, "node1", ns2))
 
 	// Make sure the virtual IP has been incremented for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1853,7 +1846,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 
 	// Delete the first service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "foo", entMeta, ""))
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "connect-proxy"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "connect-proxy"}})
 	require.NoError(t, err)
 	assert.Equal(t, "", vip)
 
@@ -1874,7 +1867,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(13, "node1", ns3))
 
 	// Make sure the virtual IP is unchanged for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1902,7 +1895,7 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	require.NoError(t, s.EnsureService(14, "node1", ns4))
 
 	// Make sure the virtual IP has allocated from the previously freed service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "web"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "web"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1912,6 +1905,41 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
 	assert.Equal(t, vip, taggedAddress.Address)
 	assert.Equal(t, ns4.Port, taggedAddress.Port)
+
+	// Register a node1 in another peer (technically this node would be imported
+	// and stored through the peering stream handlers).
+	testRegisterNodeOpts(t, s, 15, "node1", func(node *structs.Node) error {
+		node.PeerName = "billing"
+		return nil
+	})
+	// Register an identical service but imported from a peer
+	ns5 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "4.4.4.4",
+		Port:    4444,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "web"},
+		EnterpriseMeta: *entMeta,
+		PeerName:       "billing",
+	}
+	require.NoError(t, s.EnsureService(15, "node1", ns5))
+
+	// Make sure the virtual IP is different from the identically named local service.
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{Peer: "billing", ServiceName: structs.ServiceName{Name: "web"}})
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.3", vip)
+
+	// Retrieve and verify
+	_, out, err = s.NodeServices(nil, "node1", nil, "billing")
+	require.NoError(t, err)
+	taggedAddress = out.Services["web-proxy"].TaggedAddresses[structs.TaggedAddressVirtualIP]
+	assert.Equal(t, vip, taggedAddress.Address)
+	assert.Equal(t, ns5.Port, taggedAddress.Port)
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
@@ -1938,7 +1966,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(10, "node1", ns1))
 
 	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(structs.ServiceName{Name: "foo"})
+	vip, err := s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.1", vip)
 
@@ -1968,7 +1996,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(11, "node1", ns2))
 
 	// Make sure the virtual IP has been incremented for the redis service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -1983,7 +2011,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 
 	// Delete the last  service and make sure it no longer has a virtual IP assigned.
 	require.NoError(t, s.DeleteService(12, "node1", "redis", entMeta, ""))
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "redis"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "redis"}})
 	require.NoError(t, err)
 	assert.Equal(t, "", vip)
 
@@ -2003,7 +2031,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	}
 	require.NoError(t, s.EnsureService(13, "node1", ns3))
 
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "backend"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "backend"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.2", vip)
 
@@ -2033,7 +2061,7 @@ func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	require.NoError(t, s.EnsureService(14, "node1", ns4))
 
 	// Make sure the virtual IP has been incremented for the frontend service.
-	vip, err = s.VirtualIPForService(structs.ServiceName{Name: "frontend"})
+	vip, err = s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "frontend"}})
 	require.NoError(t, err)
 	assert.Equal(t, "240.0.0.3", vip)
 
@@ -2571,21 +2599,15 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableServices); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if idx := s.maxIndex(tableChecks); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(4), catalogChecksMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
 
 	// Deleting a nonexistent service should be idempotent and not return an
 	// error, nor fire a watch.
 	if err := s.DeleteService(5, "node1", "service1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableServices); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -2906,9 +2928,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	testCheckOutput(t, 5, 5, "bbbmodified")
 
 	// Index tables were updated
-	if idx := s.maxIndex(tableChecks); idx != 5 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(5), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 }
 
 func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
@@ -3387,9 +3407,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if idx, check, err := s.NodeCheck("node1", "check1", nil, ""); idx != 3 || err != nil || check != nil {
 		t.Fatalf("Node check should have been deleted idx=%d, node=%v, err=%s", idx, check, err)
 	}
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index for checks: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -3407,18 +3425,14 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 
 	// Deleting a nonexistent check should be idempotent and not return an
 	// error.
 	if err := s.DeleteCheck(4, "node1", "check1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex(tableChecks); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(t, uint64(3), catalogChecksMaxIndex(s.db.ReadTxn(), nil, ""))
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}

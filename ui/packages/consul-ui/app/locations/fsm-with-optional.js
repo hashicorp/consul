@@ -8,6 +8,8 @@ if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
 
+OPTIONAL.peer = /^:([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+
 const trailingSlashRe = /\/$/;
 
 // see below re: ember double slashes
@@ -165,7 +167,7 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return ['partition', 'nspace'].reduce((prev, item) => {
+    return ['partition', 'nspace', 'peer'].reduce((prev, item) => {
       let value = '';
       if (typeof optional[item] !== 'undefined') {
         value = optional[item].match;
@@ -196,6 +198,10 @@ export default class FSMWithOptionalLocation {
     if (typeof hash.partition !== 'undefined') {
       hash.partition = `_${hash.partition}`;
     }
+    if (typeof hash.peer !== 'undefined') {
+      hash.peer = `:${hash.peer}`;
+    }
+
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }
@@ -295,11 +301,11 @@ export default class FSMWithOptionalLocation {
 
     if (withOptional) {
       const temp = url.split('/');
-      if (Object.keys(optional || {}).length === 0) {
-        optional = undefined;
-      }
-      optional = Object.values(optional || this.optional || {});
-      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
+      optional = {
+        ...this.optional,
+        ...(optional || {})
+      };
+      optional = Object.values(optional).filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

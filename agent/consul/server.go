@@ -126,6 +126,7 @@ const (
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
+	peeringDeletionRoutineName            = "peering deferred deletion"
 )
 
 var (
@@ -402,14 +403,12 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	eventPublisher := stream.NewEventPublisher(10 * time.Second)
-
 	fsmDeps := fsm.Deps{
 		Logger: flat.Logger,
 		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, eventPublisher)
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
-		Publisher: eventPublisher,
+		Publisher: flat.EventPublisher,
 	}
 
 	// Create server.
@@ -435,7 +434,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     fsm.NewFromDeps(fsmDeps),
-		publisher:               eventPublisher,
+		publisher:               flat.EventPublisher,
 	}
 
 	var recorder *middleware.RequestRecorder
@@ -696,7 +695,7 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 		Publisher:   s.publisher,
 		GetStore:    func() connectca.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		CAManager:   s.caManager,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
@@ -708,13 +707,13 @@ func NewServer(config *Config, flat Deps, publicGRPCServer *grpc.Server) (*Serve
 	dataplane.NewServer(dataplane.Config{
 		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
 		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Datacenter:  s.config.Datacenter,
 	}).Register(s.publicGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
 		Publisher:   s.publisher,
-		ACLResolver: plainACLResolver{s.ACLResolver},
+		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.publicGRPCServer)
 

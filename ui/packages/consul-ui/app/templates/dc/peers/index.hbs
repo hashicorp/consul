@@ -1,0 +1,170 @@
+<Route @name={{routeName}} as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/peers'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  (hash
+    value=(or sortBy "Name:asc")
+    change=(action (mut sortBy) value="target.selected")
+  )
+
+  (hash
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  loader.data
+
+as |sort filters items|}}
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title="Peers" />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0)}}
+        <Consul::Peer::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+      {{/if}}
+
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <DataCollection
+        @type="peer"
+        @sort={{sort.value}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+
+          <ListCollection
+            @items={{collection.items}}
+            @linkable="linkable peer"
+          as |item index|>
+            <BlockSlot @name="header">
+              <p>{{item.Name}}</p>
+            </BlockSlot>
+            <BlockSlot @name="details">
+              <div class="peers__list__peer-detail">
+                <Peerings::Badge @peering={{item}} />
+
+                <div
+                  {{tooltip
+                    (t 'routes.dc.peers.index.detail.imported.tooltip'
+                      name=item.Name
+                    )
+                  }}
+                >
+                  {{t 'routes.dc.peers.index.detail.imported.count'
+                    count=(format-number item.ImportedServiceCount)
+                  }}
+                </div>
+
+                <div
+                  {{tooltip
+                    (t 'routes.dc.peers.index.detail.exported.tooltip'
+                      name=item.Name
+                    )
+                  }}
+                >
+                  {{t 'routes.dc.peers.index.detail.exported.count'
+                    count=(format-number item.ExportedServiceCount)
+                  }}
+                </div>
+
+              </div>
+            </BlockSlot>
+            <BlockSlot @name="actions" as |Actions|>
+        {{#if (can 'delete peer' item=item)}}
+
+              <Actions as |Action|>
+        {{#if true}}
+                <Action data-test-edit-action @href={{href-to 'dc.peers.edit' item.Name}}>
+                  <BlockSlot @name="label">
+                    View
+                  </BlockSlot>
+                </Action>
+        {{/if}}
+              </Actions>
+        {{/if}}
+            </BlockSlot>
+          </ListCollection>
+
+          </collection.Collection>
+          <collection.Empty>
+          {{!-- TODO: do we need to check permissions here or will we receive an error automatically? --}}
+          <EmptyState
+            @login={{route.model.app.login.open}}
+          >
+            <BlockSlot @name="header">
+              <h2>
+                {{#if (gt items.length 0)}}
+                  No peers found
+                {{else}}
+                  Welcome to Peers
+                {{/if}}
+              </h2>
+            </BlockSlot>
+            <BlockSlot @name="body">
+              {{#if (gt items.length 0)}}
+                No peers where found matching that search, or you may not have access to view the peers you are searching for.
+              {{else}}
+                Peering allows an admin partition in one datacenter to communicate with a partition in a different
+                datacenter. There don't seem to be any peers for this admin partition, or you may not have
+                <code>peering:read</code> permissions to
+                access this view.
+              {{/if}}
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="docs-link">
+                {{!-- what's the docs for peering?--}}
+                <a href="https://www.consul.io/docs/agent/kv" rel="noopener noreferrer" target="_blank">
+                  Documentation on Peers
+                </a>
+              </li>
+              <li class="learn-link">
+                <a href="https://learn.hashicorp.com/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">
+                  Take the tutorial
+                </a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+    </BlockSlot>
+
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

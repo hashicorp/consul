@@ -23,6 +23,10 @@ references:
     BASH_ENV: .circleci/bash_env.sh
     VAULT_BINARY_VERSION: 1.9.4
     GO_VERSION: 1.18.1
+  envoy-versions: &supported_envoy_versions
+    - &default_envoy_version "1.19.5"
+    - "1.20.4"
+    - "1.21.3"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -30,7 +34,7 @@ references:
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v7-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v8-{{ checksum "ui/yarn.lock" }}
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -852,13 +856,23 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_19_3: &ENVOY_TESTS
+  envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
     parallelism: 4
     resource_class: medium
+    parameters:
+      envoy-version:
+        type: enum
+        enum: *supported_envoy_versions
+        default: *default_envoy_version
+      xds-target:
+        type: enum
+        enum: ["server", "client"]
+        default: "server"
     environment:
-      ENVOY_VERSION: "1.19.3"
+      ENVOY_VERSION: << parameters.envoy-version >>
+      XDS_TARGET: << parameters.xds-target >>
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -891,21 +905,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_20_2:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.20.2"
-
-  envoy-integration-test-1_21_1:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.21.1"
-
-  envoy-integration-test-1_22_0:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.22.0"
-
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
     docker:
@@ -928,21 +927,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *notify-slack-failure
-
-  trigger-oss-merge:
-    docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.12
-    steps:
-      - run: apk add --no-cache --no-progress curl jq
-      - run:
-          name: trigger oss merge
-          command: |
-            curl -s -X POST \
-                    --header "Circle-Token: ${CIRCLECI_API_TOKEN}" \
-                    --header "Content-Type: application/json" \
-                    -d '{"build_parameters": {"CIRCLE_JOB": "oss-merge"}}' \
-                    "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
       - run: *notify-slack-failure
 
   # Run load tests against a commit
@@ -1131,18 +1115,13 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_19_3:
+      - envoy-integration-test:
           requires:
             - dev-build
-      - envoy-integration-test-1_20_2:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_21_1:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_22_0:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              envoy-version: *supported_envoy_versions
+              xds-target: ["server", "client"]
       - compatibility-integration-test:
           requires:
             - dev-build
@@ -1180,16 +1159,6 @@ workflows:
           requires:
             - ember-build-ent
       - noop
-  workflow-automation:
-    unless: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - trigger-oss-merge:
-          context: team-consul
-          filters:
-            branches:
-              only:
-                - main
-                - /release\/\d+\.\d+\.x$/
 
   load-test:
     when: << pipeline.parameters.trigger-load-test >>

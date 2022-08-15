@@ -1,0 +1,81 @@
+---
+layout: docs
+page_title: Invoke Lambda Functions
+description: >-
+  This topic describes how to invoke AWS Lambda functions from the Consul service mesh.
+---
+
+# Invoke Lambda Functions
+
+This topic describes how to invoke AWS Lambda functions from the Consul service mesh.
+
+## Overview
+
+You can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connect proxies.
+
+
+### Terminating Gateway
+
+We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
+proxies, intentions, and all other Consul service mesh features.
+
+The terminating gateway must have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy)
+to invoke the function.
+
+The following diagram shows the invocation procedure:
+
+<ImageConfig width={700}>
+
+![Terminating Gateway to Lambda](/img/terminating_gateway_to_lambda.svg)
+
+</ImageConfig>
+
+1. Make an HTTP request to the local Connect proxy.
+1. The Connect proxy forwards the request to the terminating gateway.
+1. The terminating gateway invokes the function.
+
+### Connect Proxy
+
+You can invoke Lambda functions directly from a service's Connect proxy.
+This method has the following limitations:
+- Intentions are unsupported. Consul enforces intentions by validating the client certificates presented when a connection is received. Lambda does not support client certificate validation, which prevents Consul from supporting intentions using this method.
+- Transparent proxies are unsupported. This is because Lambda services are not
+  registered to a proxy.
+
+This method is secure because AWS IAM permissions is required to invoke Lambda functions. Additionally, all communication is encrypted with Amazon TLS when invoking Lambda resources. 
+
+The Envoy sidecar proxy must have the correct AWS IAM credentials to invoke the function. You can define the credentials in environment variables, EC2 metadata, or ECS task metadata.
+
+The following diagram shows the invocation procedure:
+
+<ImageConfig width={400}>
+
+![Connect Proxy to Lambda](/img/connect_proxy_to_lambda.svg)
+
+</ImageConfig>
+
+1. Make an HTTP request to the local Connect proxy.
+2. The Connect proxy invokes the Lambda.
+
+## Invoke a Lambda Function
+Before you can invoke a Lambda function, register the service used to invoke
+the Lambda function and the service running in Lambda with
+Consul (refer to [registration](/docs/lambda/registration) for
+instructions). The service used to invoke the function must be deployed to the
+service mesh.
+
+1. Update the invoking service to use the Lambda service as an upstream. In the following example, the `destination_name` for the invoking service (`api`) points to a Lambda service called `authentication`:
+    ```hcl
+    upstreams {
+      local_bind_port = 2345
+      destination_name = "authentication"
+    }
+    ```
+1. Issue the `consul services register` command to store the configuration:
+    ```shell-sesion
+     $ consul services register api-sidecar-proxy.hcl
+    ```
+1. Call the upstream service to invoke the Lambda function. In the following example, the `api` service invokes the `authentication` service at `localhost:2345`:
+    ```shell-session
+     $ curl https://localhost:2345
+    ```

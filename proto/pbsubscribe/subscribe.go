@@ -1,6 +1,10 @@
 package pbsubscribe
 
-import "time"
+import (
+	"time"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // RequestDatacenter implements structs.RPCInfo
 func (req *SubscribeRequest) RequestDatacenter() string {
@@ -35,4 +39,20 @@ func (req *SubscribeRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQue
 // Timeout implements structs.RPCInfo
 func (req *SubscribeRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	return rpcHoldTimeout
+}
+
+// EnterpriseMeta returns the EnterpriseMeta encoded in the request's Subject.
+func (req *SubscribeRequest) EnterpriseMeta() acl.EnterpriseMeta {
+	if req.GetWildcardSubject() {
+		// Note: EnterpriseMeta is ignored for the wildcard subject (as it will
+		// receive all events in the topic regardless of partition, namespace etc).
+		return acl.EnterpriseMeta{}
+	}
+
+	if sub := req.GetNamedSubject(); sub != nil {
+		return acl.NewEnterpriseMetaWithPartition(sub.Partition, sub.Namespace)
+	}
+
+	// Deprecated top-level Partition and Namespace fields.
+	return acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
 }

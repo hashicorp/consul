@@ -76,6 +76,7 @@
     "BindAddr": "127.0.0.1",
     "Bootstrap": false,
     "BootstrapExpect": 0,
+    "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
@@ -418,7 +419,6 @@
         "CirconusSubmissionInterval": "",
         "CirconusSubmissionURL": "",
         "Disable": false,
-        "DisableCompatOneNine": false,
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],

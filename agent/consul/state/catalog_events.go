@@ -71,19 +71,6 @@ func (e EventPayloadCheckServiceNode) ToSubscriptionEvent(idx uint64) *pbsubscri
 	}
 }
 
-func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.EnterpriseMeta) *stream.SubscribeRequest {
-	return &stream.SubscribeRequest{
-		Topic: req.Topic,
-		Subject: EventSubjectService{
-			Key:            req.Key,
-			EnterpriseMeta: entMeta,
-			PeerName:       req.PeerName,
-		},
-		Token: req.Token,
-		Index: req.Index,
-	}
-}
-
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
 // of stream.Events that describe the current state of a service health query.
 func (s *Store) ServiceHealthSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {

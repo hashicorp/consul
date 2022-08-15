@@ -22,7 +22,7 @@
                           "googleRe2": {
 
                           },
-                          "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
                         }
                       }
                     }
@@ -35,7 +35,7 @@
                             "googleRe2": {
 
                             },
-                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                           }
                         }
                       }
@@ -64,7 +64,7 @@
                     "googleRe2": {
 
                     },
-                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
               }

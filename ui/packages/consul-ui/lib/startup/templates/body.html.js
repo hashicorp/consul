@@ -66,6 +66,9 @@ ${
 {{if .NamespacesEnabled}}
   <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
+{{if .HCPEnabled}}
+  <script src="${rootURL}assets/consul-hcp/routes.js"></script>
+{{end}}
 `
     : `
 <script>
@@ -85,7 +88,8 @@ ${
   {
     'CONSUL_ACLS_ENABLE': 'consul-acls',
     'CONSUL_PARTITIONS_ENABLE': 'consul-partitions',
-    'CONSUL_NSPACES_ENABLE': 'consul-nspaces'
+    'CONSUL_NSPACES_ENABLE': 'consul-nspaces',
+    'CONSUL_HCP_ENABLE': 'consul-hcp'
   }
 );
 </script>

@@ -24,14 +24,18 @@ type MaterializerDeps struct {
 func newMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
 	return func(index uint64) *pbsubscribe.SubscribeRequest {
 		req := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        srvReq.ServiceName,
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key:       srvReq.ServiceName,
+					Namespace: srvReq.EnterpriseMeta.NamespaceOrEmpty(),
+					Partition: srvReq.EnterpriseMeta.PartitionOrEmpty(),
+					PeerName:  srvReq.PeerName,
+				},
+			},
 			Token:      srvReq.Token,
 			Datacenter: srvReq.Datacenter,
 			Index:      index,
-			Namespace:  srvReq.EnterpriseMeta.NamespaceOrEmpty(),
-			Partition:  srvReq.EnterpriseMeta.PartitionOrEmpty(),
-			PeerName:   srvReq.PeerName,
 		}
 		if srvReq.Connect {
 			req.Topic = pbsubscribe.Topic_ServiceHealthConnect

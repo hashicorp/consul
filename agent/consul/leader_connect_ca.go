@@ -1412,6 +1412,20 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {
 			return nil, err
 		}
+	case *connect.SpiffeIDMeshGateway:
+		// TODO(peering): figure out what is appropriate here for ACLs
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.MeshWriteAllowed(&authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the gateway URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
 	default:
 		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
 	}
@@ -1436,18 +1450,25 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
-	if !isService && !isAgent {
-		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
-	}
+	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
 
 	var entMeta acl.EnterpriseMeta
-	if isService {
+	switch {
+	case isService:
 		if !signingID.CanSign(spiffeID) {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
-	} else {
+
+	case isMeshGateway:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", mgwID.Host, signingID.Host())
+		}
+		entMeta.Merge(mgwID.GetEnterpriseMeta())
+
+	case isAgent:
 		// isAgent - if we support more ID types then this would need to be an else if
 		// here we are just automatically fixing the trust domain. For auto-encrypt and
 		// auto-config they make certificate requests before learning about the roots
@@ -1471,6 +1492,9 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 			csr.URIs = uris
 		}
 		entMeta.Merge(agentID.GetEnterpriseMeta())
+
+	default:
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, or mesh gateway ID")
 	}
 
 	commonCfg, err := config.GetCommonConfig()
@@ -1548,12 +1572,19 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 			CreateIndex: modIdx,
 		},
 	}
-	if isService {
+
+	switch {
+	case isService:
 		reply.Service = serviceID.Service
 		reply.ServiceURI = cert.URIs[0].String()
-	} else if isAgent {
+	case isMeshGateway:
+		reply.Kind = structs.ServiceKindMeshGateway
+		reply.KindURI = cert.URIs[0].String()
+	case isAgent:
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
+	default:
+		return nil, errors.New("not possible")
 	}
 
 	return &reply, nil

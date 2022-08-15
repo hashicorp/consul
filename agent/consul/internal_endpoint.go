@@ -69,17 +69,59 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, args.PeerName)
-			if err != nil {
-				return err
+			// we don't support calling this endpoint for a specific peer
+			if args.PeerName != "" {
+				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
 			}
-			reply.Index, reply.Dump = index, dump
+
+			// this maxIndex will be the max of the NodeDump calls and the PeeringList call
+			var maxIndex uint64
+			// Get data for local nodes
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
+			if err != nil {
+				return fmt.Errorf("could not get a node dump for local nodes: %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+			reply.Dump = dump
+
+			// get a list of all peerings
+			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("could not list peers for node dump %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+
+			// get node dumps for all peerings
+			for _, p := range listedPeerings {
+				index, importedDump, err := state.NodeDump(ws, &args.EnterpriseMeta, p.Name)
+				if err != nil {
+					return fmt.Errorf("could not get a node dump for peer %q: %w", p.Name, err)
+				}
+				reply.ImportedDump = append(reply.ImportedDump, importedDump...)
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+			}
+			reply.Index = maxIndex
 
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local node dump: %w", err)
 			}
 			reply.Dump = raw.(structs.NodeDump)
+
+			importedRaw, err := filter.Execute(reply.ImportedDump)
+			if err != nil {
+				return fmt.Errorf("could not filter peer node dump: %w", err)
+			}
+			reply.ImportedDump = importedRaw.(structs.NodeDump)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
@@ -111,12 +153,46 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			// Get, store, and filter nodes
-			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, args.PeerName)
+			// we don't support calling this endpoint for a specific peer
+			if args.PeerName != "" {
+				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
+			}
+
+			// this maxIndex will be the max of the ServiceDump calls and the PeeringList call
+			var maxIndex uint64
+
+			// get a local dump for services
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get a service dump for local nodes: %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
 			}
 			reply.Nodes = nodes
+
+			// get a list of all peerings
+			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("could not list peers for service dump %w", err)
+			}
+
+			if index > maxIndex {
+				maxIndex = index
+			}
+
+			for _, p := range listedPeerings {
+				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
+				if err != nil {
+					return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+				}
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+				reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+			}
 
 			// Get, store, and filter gateway services
 			idx, gatewayServices, err := state.DumpGatewayServices(ws)
@@ -125,16 +201,22 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 			reply.Gateways = gatewayServices
 
-			if idx > maxIdx {
-				maxIdx = idx
+			if idx > maxIndex {
+				maxIndex = idx
 			}
-			reply.Index = maxIdx
+			reply.Index = maxIndex
 
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not filter local service dump: %w", err)
 			}
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+
+			importedRaw, err := filter.Execute(reply.ImportedNodes)
+			if err != nil {
+				return fmt.Errorf("could not filter peer service dump: %w", err)
+			}
+			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
@@ -210,7 +292,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		})
 }
 
-// IntentionUpstreams returns the upstreams of a service. Upstreams are inferred from intentions.
+// IntentionUpstreams returns a service's upstreams which are inferred from intentions.
 // If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
 func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
@@ -224,6 +306,27 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreams", args, reply); done {
 		return err
 	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetService)
+}
+
+// IntentionUpstreamsDestination returns a service's upstreams which are inferred from intentions.
+// If intentions allow a connection from the target to some candidate destination, the candidate destination is considered
+// an upstream of the target. This performs the same logic as IntentionUpstreams endpoint but for destination upstreams only.
+func (m *Internal) IntentionUpstreamsDestination(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreamsDestination", args, reply); done {
+		return err
+	}
+	return m.internalUpstreams(args, reply, structs.IntentionTargetDestination)
+}
+
+func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList, intentionTarget structs.IntentionTargetType) error {
 
 	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
@@ -244,7 +347,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, intentionTarget)
 			if err != nil {
 				return err
 			}
@@ -272,7 +375,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		})
 }
 
-// GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
+// GatewayServiceDump returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
 	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, reply); done {
 		return err
@@ -350,7 +453,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	return err
 }
 
-// Match returns the set of intentions that match the given source/destination.
+// GatewayIntentions Match returns the set of intentions that match the given source/destination.
 func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
 	// Forward if necessary
 	if done, err := m.srv.ForwardRPC("Internal.GatewayIntentions", args, reply); done {
@@ -405,7 +508,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 					Partition: gs.Service.PartitionOrDefault(),
 					Name:      gs.Service.Name,
 				}
-				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)
+				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination, structs.IntentionTargetService)
 				if err != nil {
 					return err
 				}
@@ -464,6 +567,49 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 
 			reply.Index, reply.Services = index, serviceMap
 			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
+// PeeredUpstreams returns all imported services as upstreams for any service in a given partition.
+// Cluster peering does not replicate intentions so all imported services are considered potential upstreams.
+func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply *structs.IndexedPeeredServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if done, err := m.srv.ForwardRPC("Internal.PeeredUpstreams", args, reply); done {
+		return err
+	}
+
+	// TODO(peering): ACL for filtering
+	// authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	// if err != nil {
+	// 	return err
+	// }
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, vips, err := state.VirtualIPsForAllImportedServices(ws, args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			result := make([]structs.PeeredServiceName, 0, len(vips))
+			for _, vip := range vips {
+				result = append(result, vip.Service)
+			}
+
+			reply.Index, reply.Services = index, result
+
+			// TODO(peering): low priority: consider ACL filtering
+			// m.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }

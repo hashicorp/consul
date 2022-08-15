@@ -19,9 +19,12 @@ ${[1].map(() => {
     }
   );
 
+
+const peerNameString = location.search.peer ? `"PeerName": "${location.search.peer}",`: ''
 return `
 {
   "ID":"${node = location.pathname.get(4)}",
+  ${peerNameString}
   "Node":"${node}",
   "Address":"${ip = fake.internet.ip()}",
   "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},

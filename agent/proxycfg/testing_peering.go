@@ -51,6 +51,16 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 							Service: "payments-sidecar-proxy",
 							Kind:    structs.ServiceKindConnectProxy,
 							Port:    443,
+							TaggedAddresses: map[string]structs.ServiceAddress{
+								structs.TaggedAddressLAN: {
+									Address: "85.252.102.31",
+									Port:    443,
+								},
+								structs.TaggedAddressWAN: {
+									Address: "123.us-east-1.elb.notaws.com",
+									Port:    8443,
+								},
+							},
 							Connect: structs.ServiceConnect{
 								PeerMeta: &structs.PeeringServiceMeta{
 									SNI: []string{

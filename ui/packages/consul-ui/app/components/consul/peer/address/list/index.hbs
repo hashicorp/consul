@@ -1,0 +1,15 @@
+<ListCollection
+  class="consul-peer-address-list"
+  ...attributes
+  @items={{@items}}
+as |item|>
+    <BlockSlot @name="header">
+      <p>
+        {{item}}
+        <CopyButton
+          @value={{item}}
+          @name="Address"
+        />
+      </p>
+    </BlockSlot>
+</ListCollection>

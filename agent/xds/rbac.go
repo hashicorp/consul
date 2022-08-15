@@ -15,10 +15,16 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoy_listener_v3.Filter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, false)
+func makeRBACNetworkFilter(
+	intentions structs.Intentions,
+	intentionDefaultAllow bool,
+	localInfo rbacLocalInfo,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
+) (*envoy_listener_v3.Filter, error) {
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, localInfo, false, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +36,13 @@ func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow 
 	return makeFilter("envoy.filters.network.rbac", cfg)
 }
 
-func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoy_http_v3.HttpFilter, error) {
-	rules, err := makeRBACRules(intentions, intentionDefaultAllow, true)
+func makeRBACHTTPFilter(
+	intentions structs.Intentions,
+	intentionDefaultAllow bool,
+	localInfo rbacLocalInfo,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
+) (*envoy_http_v3.HttpFilter, error) {
+	rules, err := makeRBACRules(intentions, intentionDefaultAllow, localInfo, true, peerTrustBundles)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +53,12 @@ func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow boo
 	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
 }
 
-func intentionListToIntermediateRBACForm(intentions structs.Intentions, isHTTP bool) []*rbacIntention {
+func intentionListToIntermediateRBACForm(
+	intentions structs.Intentions,
+	localInfo rbacLocalInfo,
+	isHTTP bool,
+	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
+) []*rbacIntention {
 	sort.Sort(structs.IntentionPrecedenceSorter(intentions))
 
 	// Omit any lower-precedence intentions that share the same source.
@@ -50,13 +66,22 @@ func intentionListToIntermediateRBACForm(intentions structs.Intentions, isHTTP b
 
 	rbacIxns := make([]*rbacIntention, 0, len(intentions))
 	for _, ixn := range intentions {
-		rixn := intentionToIntermediateRBACForm(ixn, isHTTP)
+		// trustBundle is only applicable to imported services
+		trustBundle, ok := trustBundlesByPeer[ixn.SourcePeer]
+		if ixn.SourcePeer != "" && !ok {
+			// If the intention defines a source peer, we expect to
+			// see a trust bundle. Otherwise the config snapshot may
+			// not have yet received the bundles and we fail silently
+			continue
+		}
+
+		rixn := intentionToIntermediateRBACForm(ixn, localInfo, isHTTP, trustBundle)
 		rbacIxns = append(rbacIxns, rixn)
 	}
 	return rbacIxns
 }
 
-func removeSourcePrecedence(rbacIxns []*rbacIntention, intentionDefaultAction intentionAction) []*rbacIntention {
+func removeSourcePrecedence(rbacIxns []*rbacIntention, intentionDefaultAction intentionAction, localInfo rbacLocalInfo) []*rbacIntention {
 	if len(rbacIxns) == 0 {
 		return nil
 	}
@@ -99,17 +124,17 @@ func removeSourcePrecedence(rbacIxns []*rbacIntention, intentionDefaultAction in
 			continue
 		}
 
-		rixn.ComputedPrincipal = rixn.FlattenPrincipal()
+		rixn.ComputedPrincipal = rixn.FlattenPrincipal(localInfo)
 		out = append(out, rixn)
 	}
 
 	return out
 }
 
-func removeIntentionPrecedence(rbacIxns []*rbacIntention, intentionDefaultAction intentionAction) []*rbacIntention {
+func removeIntentionPrecedence(rbacIxns []*rbacIntention, intentionDefaultAction intentionAction, localInfo rbacLocalInfo) []*rbacIntention {
 	// Remove source precedence. After this completes precedence doesn't matter
 	// between any two intentions.
-	rbacIxns = removeSourcePrecedence(rbacIxns, intentionDefaultAction)
+	rbacIxns = removeSourcePrecedence(rbacIxns, intentionDefaultAction, localInfo)
 
 	numRetained := 0
 	for _, rbacIxn := range rbacIxns {
@@ -188,11 +213,27 @@ func removePermissionPrecedence(perms []*rbacPermission, intentionDefaultAction 
 	return out
 }
 
-func intentionToIntermediateRBACForm(ixn *structs.Intention, isHTTP bool) *rbacIntention {
+func intentionToIntermediateRBACForm(
+	ixn *structs.Intention,
+	localInfo rbacLocalInfo,
+	isHTTP bool,
+	bundle *pbpeering.PeeringTrustBundle,
+) *rbacIntention {
 	rixn := &rbacIntention{
-		Source:     ixn.SourceServiceName(),
+		Source: rbacService{
+			ServiceName: ixn.SourceServiceName(),
+			Peer:        ixn.SourcePeer,
+			TrustDomain: localInfo.trustDomain,
+		},
 		Precedence: ixn.Precedence,
 	}
+
+	// imported services will have addition metadata used to override SpiffeID creation
+	if bundle != nil {
+		rixn.Source.ExportedPartition = bundle.ExportedPartition
+		rixn.Source.TrustDomain = bundle.TrustDomain
+	}
+
 	if len(ixn.Permissions) > 0 {
 		if isHTTP {
 			rixn.Action = intentionActionLayer7
@@ -237,9 +278,20 @@ func intentionActionFromString(s structs.IntentionAction) intentionAction {
 	return intentionActionDeny
 }
 
+type rbacService struct {
+	structs.ServiceName
+
+	// Peer, ExportedPartition, and TrustDomain are
+	// only applicable to imported services and are
+	// used to override SPIFFEID fields.
+	Peer              string
+	ExportedPartition string
+	TrustDomain       string
+}
+
 type rbacIntention struct {
-	Source      structs.ServiceName
-	NotSources  []structs.ServiceName
+	Source      rbacService
+	NotSources  []rbacService
 	Action      intentionAction
 	Permissions []*rbacPermission
 	Precedence  int
@@ -252,7 +304,30 @@ type rbacIntention struct {
 	ComputedPrincipal *envoy_rbac_v3.Principal
 }
 
-func (r *rbacIntention) FlattenPrincipal() *envoy_rbac_v3.Principal {
+func (r *rbacIntention) FlattenPrincipal(localInfo rbacLocalInfo) *envoy_rbac_v3.Principal {
+	if !localInfo.expectXFCC {
+		return r.flattenPrincipalFromCert()
+
+	} else if r.Source.Peer == "" {
+		// NOTE: ixnSourceMatches should enforce that all of Source and NotSources
+		// are peered or not-peered, so we only need to look at the Source element.
+		return r.flattenPrincipalFromCert() // intention is not relevant to peering
+	}
+
+	// If this intention is an L7 peered one, then it is exclusively resolvable
+	// using XFCC, rather than the TLS SAN field.
+	fromXFCC := r.flattenPrincipalFromXFCC()
+
+	// Use of the XFCC one is gated on coming directly from our own gateways.
+	gwIDPattern := makeSpiffeMeshGatewayPattern(localInfo.trustDomain, localInfo.partition)
+
+	return andPrincipals([]*envoy_rbac_v3.Principal{
+		authenticatedPatternPrincipal(gwIDPattern),
+		fromXFCC,
+	})
+}
+
+func (r *rbacIntention) flattenPrincipalFromCert() *envoy_rbac_v3.Principal {
 	r.NotSources = simplifyNotSourceSlice(r.NotSources)
 
 	if len(r.NotSources) == 0 {
@@ -264,6 +339,23 @@ func (r *rbacIntention) FlattenPrincipal() *envoy_rbac_v3.Principal {
 	for _, src := range r.NotSources {
 		andIDs = append(andIDs, notPrincipal(
 			idPrincipal(src),
+		))
+	}
+	return andPrincipals(andIDs)
+}
+
+func (r *rbacIntention) flattenPrincipalFromXFCC() *envoy_rbac_v3.Principal {
+	r.NotSources = simplifyNotSourceSlice(r.NotSources)
+
+	if len(r.NotSources) == 0 {
+		return xfccPrincipal(r.Source)
+	}
+
+	andIDs := make([]*envoy_rbac_v3.Principal, 0, len(r.NotSources)+1)
+	andIDs = append(andIDs, xfccPrincipal(r.Source))
+	for _, src := range r.NotSources {
+		andIDs = append(andIDs, notPrincipal(
+			xfccPrincipal(src),
 		))
 	}
 	return andPrincipals(andIDs)
@@ -300,7 +392,7 @@ func (p *rbacPermission) Flatten() *envoy_rbac_v3.Permission {
 // simplifyNotSourceSlice will collapse NotSources elements together if any element is
 // a subset of another.
 // For example "default/web" is a subset of "default/*" because it is covered by the wildcard.
-func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceName {
+func simplifyNotSourceSlice(notSources []rbacService) []rbacService {
 	if len(notSources) <= 1 {
 		return notSources
 	}
@@ -311,7 +403,7 @@ func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceN
 		return countWild(notSources[i]) < countWild(notSources[j])
 	})
 
-	keep := make([]structs.ServiceName, 0, len(notSources))
+	keep := make([]rbacService, 0, len(notSources))
 	for i := 0; i < len(notSources); i++ {
 		si := notSources[i]
 		remove := false
@@ -329,6 +421,13 @@ func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceN
 	}
 
 	return keep
+}
+
+type rbacLocalInfo struct {
+	trustDomain string
+	datacenter  string
+	partition   string
+	expectXFCC  bool
 }
 
 // makeRBACRules translates Consul intentions into RBAC Policies for Envoy.
@@ -380,23 +479,33 @@ func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceN
 //     <default>    : DENY
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
-func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, isHTTP bool) (*envoy_rbac_v3.RBAC, error) {
-	// Note that we DON'T explicitly validate the trust-domain matches ours.
-	//
-	// For now we don't validate the trust domain of the _destination_ at all.
-	// The RBAC policies below ignore the trust domain and it's implicit that
-	// the request is for the correct cluster. We might want to reconsider this
-	// later but plumbing in additional machinery to check the clusterID here
-	// is not really necessary for now unless the Envoys are badly configured.
-	// Our threat model _requires_ correctly configured and well behaved
-	// proxies given that they have ACLs to fetch certs and so can do whatever
-	// they want including not authorizing traffic at all or routing it do a
-	// different service than they auth'd against.
-
+func makeRBACRules(
+	intentions structs.Intentions,
+	intentionDefaultAllow bool,
+	localInfo rbacLocalInfo,
+	isHTTP bool,
+	peerTrustBundles []*pbpeering.PeeringTrustBundle,
+) (*envoy_rbac_v3.RBAC, error) {
 	// TODO(banks,rb): Implement revocation list checking?
 
+	// TODO(peering): mkeeler asked that these maps come from proxycfg instead of
+	// being constructed in xds to save memory allocation and gc pressure. Low priority.
+	trustBundlesByPeer := make(map[string]*pbpeering.PeeringTrustBundle, len(peerTrustBundles))
+	for _, ptb := range peerTrustBundles {
+		trustBundlesByPeer[ptb.PeerName] = ptb
+	}
+
+	if isHTTP && len(peerTrustBundles) > 0 {
+		for _, ixn := range intentions {
+			if ixn.SourcePeer != "" {
+				localInfo.expectXFCC = true
+				break
+			}
+		}
+	}
+
 	// First build up just the basic principal matches.
-	rbacIxns := intentionListToIntermediateRBACForm(intentions, isHTTP)
+	rbacIxns := intentionListToIntermediateRBACForm(intentions, localInfo, isHTTP, trustBundlesByPeer)
 
 	// Normalize: if we are in default-deny then all intentions must be allows and vice versa
 	intentionDefaultAction := intentionActionFromBool(intentionDefaultAllow)
@@ -413,7 +522,7 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 	}
 
 	// Remove source and permissions precedence.
-	rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
+	rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction, localInfo)
 
 	// For L4: we should generate one big Policy listing all Principals
 	// For L7: we should generate one Policy per Principal and list all of the Permissions
@@ -434,7 +543,7 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoy_rbac_v3.Policy{
-				Principals:  []*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal},
+				Principals:  optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal}),
 				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
@@ -448,7 +557,7 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 	}
 	if len(principalsL4) > 0 {
 		rbac.Policies["consul-intentions-layer4"] = &envoy_rbac_v3.Policy{
-			Principals:  principalsL4,
+			Principals:  optimizePrincipals(principalsL4),
 			Permissions: []*envoy_rbac_v3.Permission{anyPermission()},
 		}
 	}
@@ -457,6 +566,20 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 		rbac.Policies = nil
 	}
 	return rbac, nil
+}
+
+func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
+	// If they are all ORs, then OR them together.
+	var orIds []*envoy_rbac_v3.Principal
+	for _, p := range orig {
+		or, ok := p.Identifier.(*envoy_rbac_v3.Principal_OrIds)
+		if !ok {
+			return orig
+		}
+		orIds = append(orIds, or.OrIds.Ids...)
+	}
+
+	return []*envoy_rbac_v3.Principal{orPrincipals(orIds)}
 }
 
 // removeSameSourceIntentions will iterate over intentions and remove any lower precedence
@@ -477,17 +600,20 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 	var (
 		out        = make(structs.Intentions, 0, len(intentions))
 		changed    = false
-		seenSource = make(map[structs.ServiceName]struct{})
+		seenSource = make(map[structs.PeeredServiceName]struct{})
 	)
 	for _, ixn := range intentions {
-		sn := ixn.SourceServiceName()
-		if _, ok := seenSource[sn]; ok {
+		psn := structs.PeeredServiceName{
+			ServiceName: ixn.SourceServiceName(),
+			Peer:        ixn.SourcePeer,
+		}
+		if _, ok := seenSource[psn]; ok {
 			// A higher precedence intention already used this exact source
 			// definition with a different destination.
 			changed = true
 			continue
 		}
-		seenSource[sn] = struct{}{}
+		seenSource[psn] = struct{}{}
 		out = append(out, ixn)
 	}
 
@@ -497,7 +623,7 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 	return out
 }
 
-// ixnSourceMatches deterines if the 'tester' service name is matched by the
+// ixnSourceMatches determines if the 'tester' service name is matched by the
 // 'against' service name via wildcard rules.
 //
 // For instance:
@@ -506,7 +632,9 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 // - (default/web, default/*) 		=> true,  because "all services in the default NS" includes "default/web"
 // - (default/*, */*)         		=> true,  "any service in any NS" includes "all services in the default NS"
 // - (default/default/*, other/*/*) => false, "any service in "other" partition" does NOT include services in the default partition"
-func ixnSourceMatches(tester, against structs.ServiceName) bool {
+//
+// Peer and partition must be exact names and cannot be compared with wildcards.
+func ixnSourceMatches(tester, against rbacService) bool {
 	// We assume that we can't have the same intention twice before arriving
 	// here.
 	numWildTester := countWild(tester)
@@ -518,17 +646,21 @@ func ixnSourceMatches(tester, against structs.ServiceName) bool {
 		return false
 	}
 
-	matchesAP := tester.PartitionOrDefault() == against.PartitionOrDefault() || against.PartitionOrDefault() == structs.WildcardSpecifier
+	matchesAP := tester.PartitionOrDefault() == against.PartitionOrDefault()
+	matchesPeer := tester.Peer == against.Peer
 	matchesNS := tester.NamespaceOrDefault() == against.NamespaceOrDefault() || against.NamespaceOrDefault() == structs.WildcardSpecifier
 	matchesName := tester.Name == against.Name || against.Name == structs.WildcardSpecifier
-	return matchesAP && matchesNS && matchesName
+	return matchesAP && matchesPeer && matchesNS && matchesName
 }
 
 // countWild counts the number of wildcard values in the given namespace and name.
-func countWild(src structs.ServiceName) int {
+func countWild(src rbacService) int {
 	// If Partition is wildcard, panic because it's not supported
 	if src.PartitionOrDefault() == structs.WildcardSpecifier {
 		panic("invalid state: intention references wildcard partition")
+	}
+	if src.Peer == structs.WildcardSpecifier {
+		panic("invalid state: intention references wildcard peer")
 	}
 
 	// If NS is wildcard, it must be 2 since wildcards only follow exact
@@ -556,6 +688,16 @@ func andPrincipals(ids []*envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 	}
 }
 
+func orPrincipals(ids []*envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_OrIds{
+			OrIds: &envoy_rbac_v3.Principal_Set{
+				Ids: ids,
+			},
+		},
+	}
+}
+
 func notPrincipal(id *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_NotId{
@@ -564,9 +706,12 @@ func notPrincipal(id *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 	}
 }
 
-func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
-	pattern := makeSpiffePattern(src.PartitionOrDefault(), src.NamespaceOrDefault(), src.Name)
+func idPrincipal(src rbacService) *envoy_rbac_v3.Principal {
+	pattern := makeSpiffePattern(src)
+	return authenticatedPatternPrincipal(pattern)
+}
 
+func authenticatedPatternPrincipal(pattern string) *envoy_rbac_v3.Principal {
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Authenticated_{
 			Authenticated: &envoy_rbac_v3.Principal_Authenticated{
@@ -580,37 +725,96 @@ func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
 	}
 }
 
-func makeSpiffePattern(sourceAP, sourceNS, sourceName string) string {
-	if sourceNS == structs.WildcardSpecifier && sourceName != structs.WildcardSpecifier {
-		panic(fmt.Sprintf("not possible to have a wildcarded namespace %q but an exact service %q", sourceNS, sourceName))
+func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
+	// Same match we normally would use.
+	idPattern := makeSpiffePattern(src)
+
+	// Remove the leading ^ and trailing $.
+	idPattern = idPattern[1 : len(idPattern)-1]
+
+	// Anchor to the first XFCC component
+	pattern := `^[^,]+;URI=` + idPattern + `(?:,.*)?$`
+
+	// By=spiffe://8c7db6d3-e4ee-aa8c-488c-dbedd3772b78.consul/gateway/mesh/dc/dc2;
+	// Hash=2a2db78ac351a05854a0abd350631bf98cc0eb827d21f4ed5935ccd287779eb6;
+	// Cert="-----BEGIN%20CERTIFICATE-----<SNIP>";
+	// Chain="-----BEGIN%20CERTIFICATE-----<SNIP>";
+	// Subject="";
+	// URI=spiffe://5583c38e-c1c0-fd1e-2079-170bb2f396ad.consul/ns/default/dc/dc1/svc/pong,
+
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_Header{
+			Header: &envoy_route_v3.HeaderMatcher{
+				Name: "x-forwarded-client-cert",
+				HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+							SafeRegex: makeEnvoyRegexMatch(pattern),
+						},
+					},
+				},
+			},
+		},
 	}
-	if sourceAP == structs.WildcardSpecifier {
+}
+
+const anyPath = `[^/]+`
+
+func makeSpiffePattern(src rbacService) string {
+	var (
+		host = src.TrustDomain
+		ap   = src.PartitionOrDefault()
+		ns   = src.NamespaceOrDefault()
+		svc  = src.Name
+	)
+
+	// Validate proper wildcarding
+	if ns == structs.WildcardSpecifier && svc != structs.WildcardSpecifier {
+		panic(fmt.Sprintf("not possible to have a wildcarded namespace %q but an exact service %q", ns, svc))
+	}
+	if ap == structs.WildcardSpecifier {
 		panic("not possible to have a wildcarded source partition")
 	}
-
-	const anyPath = `[^/]+`
-
-	// Match on any namespace or service if it is a wildcard, or on a specific value otherwise.
-	ns := sourceNS
-	if sourceNS == structs.WildcardSpecifier {
-		ns = anyPath
+	if src.Peer == structs.WildcardSpecifier {
+		panic("not possible to have a wildcarded source peer")
 	}
 
-	svc := sourceName
-	if sourceName == structs.WildcardSpecifier {
+	// Match on any namespace or service if it is a wildcard, or on a specific value otherwise.
+	if ns == structs.WildcardSpecifier {
+		ns = anyPath
+	}
+	if svc == structs.WildcardSpecifier {
 		svc = anyPath
+	}
+
+	// If service is imported from a peer, the SpiffeID must
+	// refer to its remote partition and trust domain.
+	if src.Peer != "" {
+		ap = src.ExportedPartition
+		host = src.TrustDomain
 	}
 
 	id := connect.SpiffeIDService{
 		Namespace: ns,
 		Service:   svc,
+		Host:      host,
 
-		// Trust domain and datacenter are not verified by RBAC, so we match on any value.
-		Host:       anyPath,
+		// Datacenter is not verified by RBAC, so we match on any value.
 		Datacenter: anyPath,
 
 		// Partition can only ever be an exact value.
-		Partition: sourceAP,
+		Partition: ap,
+	}
+
+	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)
+}
+
+func makeSpiffeMeshGatewayPattern(gwTrustDomain, gwPartition string) string {
+	id := connect.SpiffeIDMeshGateway{
+		Host:      gwTrustDomain,
+		Partition: gwPartition,
+		// Datacenter is not verified by RBAC, so we match on any value.
+		Datacenter: anyPath,
 	}
 
 	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)

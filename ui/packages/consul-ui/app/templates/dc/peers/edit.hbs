@@ -1,0 +1,68 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/peer/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+
+  loader.data
+as |dc partition nspace item|}}
+  <AppView>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+          <li><a data-test-back href={{href-to 'dc.peers'}}>All Peers</a></li>
+      </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title
+          @title={{item.Name}}
+        />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <TabNav @items={{
+        compact
+          (array
+            (hash
+              label="Addresses"
+              href=(href-to "dc.peers.edit.addresses")
+              selected=(is-href "dc.peers.edit.addresses")
+            )
+          )
+      }}/>
+      <Outlet
+        @name={{routeName}}
+        @model={{assign (hash
+          items=item.PeerServerAddresses
+        ) route.model}}
+      as |o|>
+        {{outlet}}
+      </Outlet>
+    </BlockSlot>
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

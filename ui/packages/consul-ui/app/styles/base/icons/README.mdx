@@ -150,7 +150,7 @@ use `-mask`, use `-icon` instead:
 >
 {{#each-in this.icons as |prop value|}}
 {{#if (and
-    (not (contains prop (array '--icon-name' '--icon-color' '--icon-size' '--icon-resolution')))
+    (not (includes prop (array '--icon-name' '--icon-color' '--icon-size' '--icon-resolution')))
     (not (string-includes prop '-24'))
   )
 }}

@@ -103,21 +103,50 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 	}
 }
 
+// TestCertsForMeshGateway generates a CA and Leaf suitable for returning as
+// mock CA root/leaf cache requests in a mesh-gateway for peering.
+func TestCertsForMeshGateway(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
+	t.Helper()
+
+	ca := connect.TestCA(t, nil)
+	roots := &structs.IndexedCARoots{
+		ActiveRootID: ca.ID,
+		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
+		Roots:        []*structs.CARoot{ca},
+	}
+	return roots, TestMeshGatewayLeafForCA(t, ca)
+}
+
+// TestMeshGatewayLeafForCA generates new mesh-gateway Leaf suitable for returning as mock CA
+// leaf cache response, signed by an existing CA.
+func TestMeshGatewayLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
+	leafPEM, pkPEM := connect.TestMeshGatewayLeaf(t, "default", ca)
+
+	leafCert, err := connect.ParseCert(leafPEM)
+	require.NoError(t, err)
+
+	return &structs.IssuedCert{
+		SerialNumber:  connect.EncodeSerialNumber(leafCert.SerialNumber),
+		CertPEM:       leafPEM,
+		PrivateKeyPEM: pkPEM,
+		Kind:          structs.ServiceKindMeshGateway,
+		KindURI:       leafCert.URIs[0].String(),
+		ValidAfter:    leafCert.NotBefore,
+		ValidBefore:   leafCert.NotAfter,
+	}
+}
+
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions() *structs.IndexedIntentionMatches {
-	return &structs.IndexedIntentionMatches{
-		Matches: []structs.Intentions{
-			[]*structs.Intention{
-				{
-					ID:              "foo",
-					SourceNS:        "default",
-					SourceName:      "billing",
-					DestinationNS:   "default",
-					DestinationName: "web",
-					Action:          structs.IntentionActionAllow,
-				},
-			},
+func TestIntentions() structs.Intentions {
+	return structs.Intentions{
+		{
+			ID:              "foo",
+			SourceNS:        "default",
+			SourceName:      "billing",
+			DestinationNS:   "default",
+			DestinationName: "web",
+			Action:          structs.IntentionActionAllow,
 		},
 	}
 }
@@ -712,7 +741,7 @@ func testConfigSnapshotFixture(
 			GatewayServices:                 &noopDataSource[*structs.ServiceSpecificRequest]{},
 			Health:                          &noopDataSource[*structs.ServiceSpecificRequest]{},
 			HTTPChecks:                      &noopDataSource[*cachetype.ServiceHTTPChecksRequest]{},
-			Intentions:                      &noopDataSource[*structs.IntentionQueryRequest]{},
+			Intentions:                      &noopDataSource[*structs.ServiceSpecificRequest]{},
 			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
 			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
@@ -914,7 +943,7 @@ func NewTestDataSources() *TestDataSources {
 		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
 		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
-		Intentions:                      NewTestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches](),
+		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways](),
 		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
@@ -938,7 +967,7 @@ type TestDataSources struct {
 	GatewayServices                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
-	Intentions                      *TestDataSource[*structs.IntentionQueryRequest, *structs.IndexedIntentionMatches]
+	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedNodesWithGateways]
 	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
