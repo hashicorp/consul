@@ -636,7 +636,7 @@ func setupTestVariationDiscoveryChain(
 						Destination: &structs.ServiceRouteDestination{
 							Service:      "retry-reset",
 							NumRetries:   15,
-							RetryOnReset: true,
+							RetryOn:      []string{"reset"},
 						},
 					},
 					{
@@ -656,7 +656,7 @@ func setupTestVariationDiscoveryChain(
 						Destination: &structs.ServiceRouteDestination{
 							Service:               "retry-all",
 							RetryOnConnectFailure: true,
-							RetryOnReset:          true,
+							RetryOn: 			   []string{"5xx", "gateway-error", "reset", "connect-failure", "envoy-ratelimited", "retriable-4xx", "refused-stream", "cancelled", "deadline-exceeded", "internal", "resource-exhausted", "unavailable"},
 							RetryOnStatusCodes:    []uint32{401, 409, 451},
 						},
 					},

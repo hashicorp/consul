@@ -322,7 +322,7 @@
               "route": {
                 "cluster": "retry-all.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "retryPolicy": {
-                  "retryOn": "connect-failure,reset,retriable-status-codes",
+                  "retryOn": "5xx,gateway-error,reset,connect-failure,envoy-ratelimited,retriable-4xx,refused-stream,cancelled,deadline-exceeded,internal,resource-exhausted,unavailable,retriable-status-codes",
                   "retriableStatusCodes": [
                     401,
                     409,

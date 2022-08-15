@@ -312,7 +312,7 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
-        RetryOnReset = true
+        RetryOn = ["reset"]
     }
   },
   {
@@ -327,7 +327,7 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
-        RetryOnReset = true
+        RetryOn = ["reset"]
     }
   }
 ]
@@ -348,7 +348,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
-        retryOnReset: true
+        retryOn: ['reset']
     - match:
         http:
           pathExact: /orders
@@ -357,7 +357,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
-        retryOnReset: true
+        retryOn: ['reset']
 ```
 
 
@@ -376,7 +376,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
-                "RetryOnReset": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         },
@@ -390,7 +390,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
-                "RetryOnReset": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         }
@@ -709,9 +709,11 @@ spec:
       description: 'Allows for connection failure errors to trigger a retry.',
     },
     {
-      name: 'RetryOnReset',
-      type: 'bool: false',
-      description: 'Allows for connection resets to trigger a retry.',
+      name: 'RetryOn',
+      type: 'array<string>',
+      description: `Allows for retrying requests for a list of conditions. One of:
+                      \`5xx\`, \`gateway-error\`, \`reset\`, \`connect-failure\`, \`envoy-ratelimited\`, \`retriable-4xx\`,
+                      \`refused-stream\`, \`cancelled\`, \`deadline-exceeded\`, \`internal\`, \`resource-exhausted\`, or \`unavailable\``,
     },
     {
       name: 'RetryOnStatusCodes',
