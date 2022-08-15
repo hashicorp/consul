@@ -395,6 +395,10 @@
           {
             "title": "Routes",
             "path": "api-gateway/configuration/routes"
+          },
+          {
+            "title": "MeshService",
+            "path": "api-gateway/configuration/meshservice"
           }
         ]
       }
