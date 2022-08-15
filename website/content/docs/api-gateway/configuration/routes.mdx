@@ -83,7 +83,7 @@ The following outline shows how to format the configurations for the `Route` obj
       * [`name`](#rules-matches-queryparams): string | required
       * [`value`](#rules-matches-queryparams): string | required
     * [`method`](#rules-matches-method): string | optional
- 
+
 
 ## Specification
 
@@ -108,18 +108,18 @@ The `rules` field contains a list of objects that define behaviors for network t
 
 * [`backendRefs`](#rules-backendrefs): Specifies which backend services the `Route` references when processing traffic.
 * [`filters`](#rules-filters): Specifies which operations Consul API Gateway performs when traffic goes through the `Route`.
-* [`matches`](#rules-matches): Deterines which requests Consul API Gateway processes.   
+* [`matches`](#rules-matches): Deterines which requests Consul API Gateway processes.
 
 Rules are optional.
 
-### rules.backendRefs 
+### rules.backendRefs
 
 This field specifies backend services that the `Route` references. The following table describes the parameters for `backendRefs`:
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
 | `group` | Specifies the Kubernetes API Group of the referenced backend. You can specify the following values: <ul><li>`""`: Specifies the core Kubernetes API group. This value must be used when `kind` is set to `Service`. This is the default value if unspecified.</li><li>`api-gateway.consul.hashicorp.com`: This value must be used when `kind` is set to `MeshService`.</li></ul> | String | Optional |
-| `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` documentation additional information.</li></ul> | String | Optional |
+| `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` [documentation](/docs/api-gateway/configuration/meshservice) for additional information.</li></ul> | String | Optional |
 | `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
 | `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
 | `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
@@ -168,14 +168,14 @@ The following example creates a route named `example-route` in namespace `gatewa
 
 ### rules.filters
 
-The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information). 
+The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
 * Type: Array of objects
 * Required: Optional
 
 ### rules.filters.type
 
-Specifies the type of filter you want to apply to the route. The parameter is optional and takes a string value. 
+Specifies the type of filter you want to apply to the route. The parameter is optional and takes a string value.
 
 You can specify the following values:
 
@@ -196,14 +196,14 @@ Defines operations to perform on matching request headers when `rules.filters.ty
 
 ### rules.filters.urlRewrite
 
-Specifies rules for rewriting the URL of incoming requests when `rules.filters.type` is configured to `URLRewrite`. 
+Specifies rules for rewriting the URL of incoming requests when `rules.filters.type` is configured to `URLRewrite`.
 
 * Type: Object
 * Required: Optional
 
 ### rules.filters.urlRewrite.path
 
-Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information). 
+Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
 The following table describes the parameters for `path`:
 
@@ -216,8 +216,8 @@ The following table describes the parameters for `path`:
 
 Specifies rules for matching incoming requests. You can apply [`filters`](#rulesfilters) to requests that match the defined rules. You can match incoming requests based on the following elements:
 
-* [paths](#rules-matches-path) 
-* [headers](#rules-matches-headers) 
+* [paths](#rules-matches-path)
+* [headers](#rules-matches-headers)
 * [query parameters](#rules-matches-queryparams)
 * [request method](#rules-matches-method)
 
@@ -263,15 +263,3 @@ Specifies a list of strings that define matches based on HTTP request method. Yo
 * `OPTIONS`
 * `TRACE`
 * `CONNECT`
-
-<!-- COMMENTING THIS OUT FOR NOW
-## MeshService
-
-The `MeshService` configuration holds a reference to an externally-managed Consul service mesh service and can be used as a `backendRef` for a [`Route`](#route).
-
-| Parameter                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type    | Default         |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
-| `name`                      | Specifies the service name for a Consul service. It is assumed this service will exist in either the `consulDestinationNamespace` or mirrored Consul namespace from where this custom resource is defined, depending on the Helm configuration.
-
-Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_meshservices.yaml) for the complete specification.
--->
