@@ -10,6 +10,9 @@ type CheckIDType = types.CheckID
 type NodeIDType = types.NodeID
 
 func RaftIndexToStructs(s *pbcommon.RaftIndex) structs.RaftIndex {
+	if s == nil {
+		return structs.RaftIndex{}
+	}
 	return structs.RaftIndex{
 		CreateIndex: s.CreateIndex,
 		ModifyIndex: s.ModifyIndex,

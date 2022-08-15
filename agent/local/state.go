@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/lib/stringslice"
 
 	"github.com/armon/go-metrics"
@@ -17,7 +18,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -45,10 +45,6 @@ var StateCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"acl", "blocked", "node", "registration"},
 		Help: "Increments whenever a registration fails for a node (blocked by an ACL)",
-	},
-	{
-		Name: []string{"acl", "blocked", "node", "deregistration"},
-		Help: "Increments whenever a deregistration fails for a node (blocked by an ACL)",
 	},
 }
 
@@ -154,7 +150,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (consul.ACLResolveResult, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 }
 
 // State is used to represent the node's services,
@@ -256,15 +252,6 @@ func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallback func() str
 	return fallback()
 }
 
-// AddService is used to add a service entry to the local state.
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (l *State) AddService(service *structs.NodeService, token string) error {
-	l.Lock()
-	defer l.Unlock()
-	return l.addServiceLocked(service, token)
-}
-
 func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
@@ -293,7 +280,9 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	return nil
 }
 
-// AddServiceWithChecks adds a service and its check tp the local state atomically
+// AddServiceWithChecks adds a service entry and its checks to the local state atomically
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
 func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string) error {
 	l.Lock()
 	defer l.Unlock()

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -137,6 +138,9 @@ func TestConfigHCL(nodeID string) string {
 		}
 		performance {
 			raft_multiplier = 1
+		}
+		peering {
+			enabled = true
 		}`, nodeID, connect.TestClusterID,
 	)
 }
@@ -216,7 +220,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 	bd.Logger = logger
 	// if we are not testing telemetry things, let's use a "mock" sink for metrics
 	if bd.RuntimeConfig.Telemetry.Disable {
-		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+		bd.MetricsConfig = &lib.MetricsConfig{
+			Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
+		}
 	}
 
 	if a.Config != nil && bd.RuntimeConfig.AutoReloadConfigCoalesceInterval == 0 {
@@ -471,6 +477,9 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
+
+	// allows registering objects with the PeerName
+	cfg.PeeringTestAllowPeerRegistrations = true
 
 	return cfg
 }

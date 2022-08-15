@@ -1,15 +1,9 @@
 @keyframes icon-user-organization {
-  50% {
-
-    background-color: var(--icon-color, var(--color-user-organization-500, currentColor));
-    -webkit-mask-image: var(--icon-org-24);
-    mask-image: var(--icon-org-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-user-organization-500, currentColor));
     -webkit-mask-image: var(--icon-org-16);
     mask-image: var(--icon-org-16);
+    background-color: var(--icon-color, var(--color-user-organization-500, currentColor));
+
   }
 }

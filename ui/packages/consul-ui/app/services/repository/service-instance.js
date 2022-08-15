@@ -13,14 +13,14 @@ export default class ServiceInstanceService extends RepositoryService {
     return super.shouldReconcile(...arguments) && item.Service.Service === params.id;
   }
 
-  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id')
+  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id/:peer')
   async findByService(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
     return this.authorizeBySlug(
-      async (resources) => {
+      async resources => {
         const instances = await this.query(params);
         set(instances, 'firstObject.Service.Resources', resources);
         return instances;
@@ -30,7 +30,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id/:peer')
   async findBySlug(params, configuration = {}) {
     return super.findBySlug(...arguments);
   }

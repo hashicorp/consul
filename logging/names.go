@@ -51,6 +51,7 @@ const (
 	Snapshot           string = "snapshot"
 	Partition          string = "partition"
 	Peering            string = "peering"
+	PeeringMetrics     string = "peering_metrics"
 	TerminatingGateway string = "terminating_gateway"
 	TLSUtil            string = "tlsutil"
 	Transaction        string = "txn"
@@ -61,4 +62,5 @@ const (
 	Watch              string = "watch"
 	XDS                string = "xds"
 	Vault              string = "vault"
+	Health             string = "health"
 )

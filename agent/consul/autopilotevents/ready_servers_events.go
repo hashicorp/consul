@@ -119,17 +119,17 @@ func NewReadyServersEventPublisher(config Config) *ReadyServersEventPublisher {
 	}
 }
 
-//go:generate mockery --name StateStore --inpackage --testonly
+//go:generate mockery --name StateStore --inpackage --filename mock_StateStore_test.go
 type StateStore interface {
 	GetNodeID(types.NodeID, *acl.EnterpriseMeta, string) (uint64, *structs.Node, error)
 }
 
-//go:generate mockery --name Publisher --inpackage --testonly
+//go:generate mockery --name Publisher --inpackage --filename mock_Publisher_test.go
 type Publisher interface {
 	Publish([]stream.Event)
 }
 
-//go:generate mockery --name timeProvider --inpackage --testonly
+//go:generate mockery --name timeProvider --inpackage --filename mock_timeProvider_test.go
 type timeProvider interface {
 	Now() time.Time
 }

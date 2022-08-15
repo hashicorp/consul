@@ -29,7 +29,7 @@ func realMain() int {
 	ui := &cli.BasicUI{
 		BasicUi: mcli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},
 	}
-	cmds := command.CommandsFromRegistry(ui)
+	cmds := command.RegisteredCommands(ui)
 	var names []string
 	for c := range cmds {
 		names = append(names, c)

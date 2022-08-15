@@ -32,7 +32,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
-	agent_grpc "github.com/hashicorp/consul/agent/grpc/private"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -1145,7 +1145,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	runStep(t, "Register a dummy node with a service", func(t *testing.T) {
+	testutil.RunStep(t, "Register a dummy node with a service", func(t *testing.T) {
 		req := &structs.RegisterRequest{
 			Node:       "node1",
 			Address:    "3.4.5.6",
@@ -1183,7 +1183,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	}
 
 	// Try to use it locally (it should work)
-	runStep(t, "token used locally should work", func(t *testing.T) {
+	testutil.RunStep(t, "token used locally should work", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
@@ -1198,10 +1198,14 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
 	})
 
-	runStep(t, "token used remotely should not work", func(t *testing.T) {
+	testutil.RunStep(t, "token used remotely should not work", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}
@@ -1216,7 +1220,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.True(t, event.Payload.(*pbsubscribe.Event_EndOfSnapshot).EndOfSnapshot)
 	})
 
-	runStep(t, "update anonymous token to read services", func(t *testing.T) {
+	testutil.RunStep(t, "update anonymous token to read services", func(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -1233,10 +1237,14 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		require.NotEmpty(t, token.SecretID)
 	})
 
-	runStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
+	testutil.RunStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
 		arg := &pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        "redis",
+			Topic: pbsubscribe.Topic_ServiceHealth,
+			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+				NamedSubject: &pbsubscribe.NamedSubject{
+					Key: "redis",
+				},
+			},
 			Token:      localToken2.SecretID,
 			Datacenter: "dc1",
 		}

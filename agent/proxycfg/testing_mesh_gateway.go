@@ -5,13 +5,17 @@ import (
 	"time"
 
 	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
-func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []cache.UpdateEvent) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
+func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
+	roots, _ := TestCertsForMeshGateway(t)
 
 	var (
 		populateServices    = true
@@ -38,7 +42,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		useFederationStates = false
 		deleteCrossDCEntry = false
 	case "service-subsets":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -60,7 +64,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "service-subsets2": // TODO(rb): make this merge with 'service-subsets'
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -95,7 +99,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "default-service-subsets2": // TODO(rb): rename to strip the 2 when the prior is merged with 'service-subsets'
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -132,7 +136,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "ignore-extra-resolvers":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -169,7 +173,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "service-timeouts":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: serviceResolversWatchID,
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -192,7 +196,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "non-hash-lb-injected":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: "service-resolvers", // serviceResolversWatchID
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -220,7 +224,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			},
 		})
 	case "hash-lb-ignored":
-		extraUpdates = append(extraUpdates, cache.UpdateEvent{
+		extraUpdates = append(extraUpdates, UpdateEvent{
 			CorrelationID: "service-resolvers", // serviceResolversWatchID
 			Result: &structs.IndexedConfigEntries{
 				Kind: structs.ServiceResolver,
@@ -253,10 +257,16 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		return nil
 	}
 
-	baseEvents := []cache.UpdateEvent{
+	baseEvents := []UpdateEvent{
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
+		},
+		{
+			CorrelationID: exportedServiceListWatchID,
+			Result: &structs.IndexedExportedServiceList{
+				Services: nil,
+			},
 		},
 		{
 			CorrelationID: serviceListWatchID,
@@ -275,10 +285,22 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			CorrelationID: datacentersWatchID,
 			Result:        &[]string{"dc1"},
 		},
+		{
+			CorrelationID: peeringTrustBundlesWatchID,
+			Result: &pbpeering.TrustBundleListByServiceResponse{
+				Bundles: nil,
+			},
+		},
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil,
+			},
+		},
 	}
 
 	if populateServices || useFederationStates {
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: datacentersWatchID,
 				Result:        &[]string{"dc1", "dc2", "dc4", "dc6"},
@@ -291,7 +313,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			foo = structs.NewServiceName("foo", nil)
 			bar = structs.NewServiceName("bar", nil)
 		)
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: "mesh-gateway:dc2",
 				Result: &structs.IndexedNodesWithGateways{
@@ -349,7 +371,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 
 		if deleteCrossDCEntry {
-			baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+			baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 				{
 					// Have the cross-dc query mechanism not work for dc2 so
 					// fedstates will infill.
@@ -399,7 +421,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			}
 		}
 
-		baseEvents = testSpliceEvents(baseEvents, []cache.UpdateEvent{
+		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
 			{
 				CorrelationID: federationStateListGatewaysWatchID,
 				Result: &structs.DatacenterIndexedCheckServiceNodes{
@@ -417,6 +439,281 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				},
 			},
 		})
+	}
+
+	return testConfigSnapshotFixture(t, &structs.NodeService{
+		Kind:    structs.ServiceKindMeshGateway,
+		Service: "mesh-gateway",
+		Address: "1.2.3.4",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{},
+		},
+		Meta: make(map[string]string),
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressLAN: {
+				Address: "1.2.3.4",
+				Port:    8443,
+			},
+			structs.TaggedAddressWAN: {
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+}
+
+func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
+	roots, leaf := TestCertsForMeshGateway(t)
+
+	var (
+		needPeerA   bool
+		needPeerB   bool
+		needLeaf    bool
+		discoChains = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
+		endpoints   = make(map[structs.ServiceName]structs.CheckServiceNodes)
+		entries     []structs.ConfigEntry
+	)
+
+	switch variant {
+	case "default-services-http":
+		proxyDefaults := &structs.ProxyConfigEntry{
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, proxyDefaults.Normalize())
+		require.NoError(t, proxyDefaults.Validate())
+		entries = append(entries, proxyDefaults)
+		fallthrough // to-case: "default-services-tcp"
+	case "default-services-tcp":
+		var (
+			fooSN = structs.NewServiceName("foo", nil)
+			barSN = structs.NewServiceName("bar", nil)
+			girSN = structs.NewServiceName("gir", nil)
+
+			fooChain = discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			barChain = discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+			girChain = discoverychain.TestCompileConfigEntries(t, "gir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+		)
+
+		assert.True(t, fooChain.Default)
+		assert.True(t, barChain.Default)
+		assert.True(t, girChain.Default)
+
+		needPeerA = true
+		needPeerB = true
+		needLeaf = true
+		discoChains[fooSN] = fooChain
+		discoChains[barSN] = barChain
+		discoChains[girSN] = girChain
+		endpoints[fooSN] = TestUpstreamNodes(t, "foo")
+		endpoints[barSN] = TestUpstreamNodes(t, "bar")
+		endpoints[girSN] = TestUpstreamNodes(t, "gir")
+
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: exportedServiceListWatchID,
+				Result: &structs.IndexedExportedServiceList{
+					Services: map[string]structs.ServiceList{
+						"peer-a": []structs.ServiceName{fooSN, barSN},
+						"peer-b": []structs.ServiceName{girSN},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: serviceListWatchID,
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{
+						fooSN,
+						barSN,
+						girSN,
+					},
+				},
+			},
+		)
+	case "chain-and-l7-stuff":
+		entries = []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "api",
+				Subsets: map[string]structs.ServiceResolverSubset{
+					"v2": {
+						Filter: "Service.Meta.version == v2",
+					},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "api-v2",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:       "api",
+					ServiceSubset: "v2",
+				},
+			},
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "split",
+				Splits: []structs.ServiceSplit{
+					{Weight: 60, Service: "alt"},
+					{Weight: 40, Service: "db"},
+				},
+			},
+			&structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "db",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/split",
+						}),
+						Destination: toService("split"),
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/api",
+						}),
+						Destination: toService("api-v2"),
+					},
+				},
+			},
+		}
+		for _, entry := range entries {
+			require.NoError(t, entry.Normalize())
+			require.NoError(t, entry.Validate())
+		}
+
+		var (
+			dbSN  = structs.NewServiceName("db", nil)
+			altSN = structs.NewServiceName("alt", nil)
+
+			dbChain = discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+		)
+
+		needPeerA = true
+		needLeaf = true
+		discoChains[dbSN] = dbChain
+		endpoints[dbSN] = TestUpstreamNodes(t, "db")
+		endpoints[altSN] = TestUpstreamNodes(t, "alt")
+
+		extraUpdates = append(extraUpdates,
+			UpdateEvent{
+				CorrelationID: datacentersWatchID,
+				Result:        &[]string{"dc1"},
+			},
+			UpdateEvent{
+				CorrelationID: exportedServiceListWatchID,
+				Result: &structs.IndexedExportedServiceList{
+					Services: map[string]structs.ServiceList{
+						"peer-a": []structs.ServiceName{dbSN},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: serviceListWatchID,
+				Result: &structs.IndexedServiceList{
+					Services: []structs.ServiceName{
+						dbSN,
+						altSN,
+					},
+				},
+			},
+		)
+
+	default:
+		t.Fatalf("unknown variant: %s", variant)
+		return nil
+	}
+
+	var peerTrustBundles []*pbpeering.PeeringTrustBundle
+	switch {
+	case needPeerA && needPeerB:
+		peerTrustBundles = TestPeerTrustBundles(t).Bundles
+	case needPeerA:
+		ptb := TestPeerTrustBundles(t)
+		peerTrustBundles = ptb.Bundles[0:1]
+	case needPeerB:
+		ptb := TestPeerTrustBundles(t)
+		peerTrustBundles = ptb.Bundles[1:2]
+	}
+
+	if needLeaf {
+		extraUpdates = append(extraUpdates, UpdateEvent{
+			CorrelationID: leafWatchID,
+			Result:        leaf,
+		})
+	}
+
+	for suffix, chain := range discoChains {
+		extraUpdates = append(extraUpdates, UpdateEvent{
+			CorrelationID: "discovery-chain:" + suffix.String(),
+			Result: &structs.DiscoveryChainResponse{
+				Chain: chain,
+			},
+		})
+	}
+
+	for suffix, nodes := range endpoints {
+		extraUpdates = append(extraUpdates, UpdateEvent{
+			CorrelationID: "connect-service:" + suffix.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: nodes,
+			},
+		})
+	}
+
+	baseEvents := []UpdateEvent{
+		{
+			CorrelationID: rootsWatchID,
+			Result:        roots,
+		},
+		{
+			CorrelationID: peeringTrustBundlesWatchID,
+			Result: &pbpeering.TrustBundleListByServiceResponse{
+				Bundles: peerTrustBundles,
+			},
+		},
+		{
+			CorrelationID: serviceListWatchID,
+			Result: &structs.IndexedServiceList{
+				Services: nil,
+			},
+		},
+		{
+			CorrelationID: serviceResolversWatchID,
+			Result: &structs.IndexedConfigEntries{
+				Kind:    structs.ServiceResolver,
+				Entries: nil,
+			},
+		},
+		{
+			CorrelationID: datacentersWatchID,
+			Result:        &[]string{"dc1"},
+		},
+		{
+			CorrelationID: meshConfigEntryID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil,
+			},
+		},
+		{
+			CorrelationID: exportedServiceListWatchID,
+			Result: &structs.IndexedExportedServiceList{
+				Services: nil,
+			},
+		},
 	}
 
 	return testConfigSnapshotFixture(t, &structs.NodeService{

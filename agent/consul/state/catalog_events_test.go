@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -1473,6 +1474,18 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t, "srv1", evNodeUnchanged),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1505,6 +1518,18 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t, "srv1"),
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("srv1"),
+				evTerminatingGatewayVirtualIPs("srv1"),
+			),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("srv1")),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1623,6 +1648,92 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
 				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+		},
+	})
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "destination1",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{
+			testServiceHealthDeregistrationEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1")),
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("destination1"),
+			),
+		},
+	})
+
+	run(t, eventsTestCase{
+		Name: "terminating gateway destination service-defaults wildcard",
+		Setup: func(s *Store, tx *txn) error {
+			configEntry := &structs.TerminatingGatewayConfigEntry{
+				Kind: structs.TerminatingGateway,
+				Name: "tgate1",
+				Services: []structs.LinkedService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			if err != nil {
+				return err
+			}
+			return s.ensureRegistrationTxn(tx, tx.Index, false,
+				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+		},
+		Mutate: func(s *Store, tx *txn) error {
+			configEntryDest := &structs.ServiceConfigEntry{
+				Kind:        structs.ServiceDefaults,
+				Name:        "destination1",
+				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
+			}
+			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+		},
+		WantEvents: []stream.Event{
+			testServiceHealthEvent(t,
+				"tgate1",
+				evConnectTopic,
+				evNodeUnchanged,
+				evServiceUnchanged,
+				evServiceTermingGateway("destination1"),
+				evTerminatingGatewayVirtualIPs("*"),
+			),
 		},
 	})
 }
@@ -2431,5 +2542,116 @@ func newPayloadCheckServiceNodeWithOverride(
 		},
 		overrideKey:       overrideKey,
 		overrideNamespace: overrideNamespace,
+	}
+}
+
+func TestServiceListUpdateSnapshot(t *testing.T) {
+	const index uint64 = 123
+
+	store := testStateStore(t)
+	require.NoError(t, store.EnsureRegistration(index, testServiceRegistration(t, "db")))
+
+	buf := &snapshotAppender{}
+	idx, err := store.ServiceListSnapshot(stream.SubscribeRequest{Subject: stream.SubjectNone}, buf)
+	require.NoError(t, err)
+	require.NotZero(t, idx)
+
+	require.Len(t, buf.events, 1)
+	require.Len(t, buf.events[0], 1)
+
+	payload := buf.events[0][0].Payload.(*EventPayloadServiceListUpdate)
+	require.Equal(t, pbsubscribe.CatalogOp_Register, payload.Op)
+	require.Equal(t, "db", payload.Name)
+}
+
+func TestServiceListUpdateEventsFromChanges(t *testing.T) {
+	const changeIndex = 123
+
+	testCases := map[string]struct {
+		setup  func(*Store, *txn) error
+		mutate func(*Store, *txn) error
+		events []stream.Event
+	}{
+		"register new service": {
+			mutate: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceList,
+					Index: changeIndex,
+					Payload: &EventPayloadServiceListUpdate{
+						Op:             pbsubscribe.CatalogOp_Register,
+						Name:           "db",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				},
+			},
+		},
+		"service already registered": {
+			setup: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			events: nil,
+		},
+		"deregister last instance of service": {
+			setup: func(store *Store, tx *txn) error {
+				return store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false)
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.deleteServiceTxn(tx, tx.Index, "node1", "db", nil, "")
+			},
+			events: []stream.Event{
+				{
+					Topic: EventTopicServiceList,
+					Index: changeIndex,
+					Payload: &EventPayloadServiceListUpdate{
+						Op:             pbsubscribe.CatalogOp_Deregister,
+						Name:           "db",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				},
+			},
+		},
+		"deregister (not the last) instance of service": {
+			setup: func(store *Store, tx *txn) error {
+				if err := store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db"), false); err != nil {
+					return err
+				}
+				if err := store.ensureRegistrationTxn(tx, changeIndex, false, testServiceRegistration(t, "db", regNode2), false); err != nil {
+					return err
+				}
+				return nil
+			},
+			mutate: func(store *Store, tx *txn) error {
+				return store.deleteServiceTxn(tx, tx.Index, "node1", "db", nil, "")
+			},
+			events: nil,
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			store := testStateStore(t)
+
+			if tc.setup != nil {
+				tx := store.db.WriteTxn(0)
+				require.NoError(t, tc.setup(store, tx))
+				require.NoError(t, tx.Commit())
+			}
+
+			tx := store.db.WriteTxn(0)
+			t.Cleanup(tx.Abort)
+
+			if tc.mutate != nil {
+				require.NoError(t, tc.mutate(store, tx))
+			}
+
+			events, err := ServiceListUpdateEventsFromChanges(tx, Changes{Index: changeIndex, Changes: tx.Changes()})
+			require.NoError(t, err)
+			require.Equal(t, tc.events, events)
+		})
 	}
 }

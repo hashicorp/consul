@@ -30,7 +30,7 @@ A Notification component specifically for LockSessions.
   </figcaption>
 
   <Consul::LockSession::Notifications
-    @type={{if (contains this.type (array 'success' 'error')) 'remove' 'kv'}}
+    @type={{if (includes this.type (array 'success' 'error')) 'remove' 'kv'}}
     @error={{if (eq this.type 'error') (hash
       status="403"
       detail=""

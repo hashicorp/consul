@@ -33,7 +33,12 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service and checks you register.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 - `ID` `(string: "")` - An optional UUID to assign to the node. This must be a 36-character UUID-formatted string.
 
@@ -87,13 +92,9 @@ The table below shows this endpoint's support for
   already registered. Note, if the parameter is enabled for a node that doesn't
   exist, it will still be created.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which the
-  service and checks will be registered. This value may be provided by either the
-  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
-  the namespace may be provided within the `Service` or `Check` fields but if
-  present in multiple places, they must all be the same. If not provided,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service and checks you register.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
@@ -184,7 +185,12 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
-### Parameters
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service and checks you deregister.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 The behavior of the endpoint depends on what keys are provided.
 
@@ -195,16 +201,16 @@ The behavior of the endpoint depends on what keys are provided.
 - `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
   agent's datacenter if not provided.
 
-- `CheckID` `(string: "")` - Specifies the ID of the check to remove.
+- `CheckID` `(string: "")` - Specifies the ID of the check to remove.
 
 - `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
   service and all associated checks will be removed.
 
-- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which the
-  service and checks will be deregistered. If not provided in the JSON body, the value of
-  the `ns` URL query parameter or the `X-Consul-Namespace` header will be used.
-  If not provided, the namespace will be inherited from the request's ACL
-  token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service and checks you deregister.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
+  You can also specify the namespace in the `Service` or `Check` fields;
+  if namespaces are specified in multiple places, they must all be the same.
 
 ### Sample Payloads
 
@@ -303,23 +309,20 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul catalog nodes`](/commands/catalog/nodes).
 
-### Parameters
+### Query Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
 
 - `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
-  `?near=_agent` will use the agent's node for the sort. This is specified as
-  part of the URL as a query parameter.
+  `?near=_agent` uses the agent's node for the sort.
 
 - `node-meta` `(string: "")` **Deprecated** - Use `filter` with the `Meta` selector instead.
   This parameter will be removed in a future version of Consul.
   Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
-  will filter the results to nodes with the specified key/value pairs. This is
-  specified as part of the URL as a query parameter.
+  filters the results to nodes with the specified key/value pairs.
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
@@ -402,21 +405,17 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul catalog services`](/commands/catalog/services).
 
-### Parameters
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 - `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
-  will filter the results to nodes with the specified key/value pairs. This is
-  specified as part of the URL as a query parameter.
+  filters the results to nodes with the specified key/value pairs.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -444,9 +443,9 @@ This endpoint returns the nodes providing a service in a given datacenter.
 
 @include 'http_api_results_filtered_by_acls.mdx'
 
-| Method | Path                        | Produces           |
-| ------ | --------------------------- | ------------------ |
-| `GET`  | `/catalog/service/:service` | `application/json` |
+| Method | Path                             | Produces           |
+| ------ | -------------------------------- | ------------------ |
+| `GET`  | `/catalog/service/:service_name` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api-docs/features/blocking),
@@ -458,40 +457,37 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | -------------------- | ------------------------ |
 | `YES`            | `all`             | `background refresh` | `node:read,service:read` |
 
-### Parameters
+### Path Parameters
 
-- `service` `(string: <required>)` - Specifies the name of the service for which
-  to list nodes. This is specified as part of the URL.
+- `service_name` `(string: <required>)` - Specifies the name of the service for which
+  to list nodes.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 - `tag` `(string: "")` **Deprecated** - Use `filter` with the `ServiceTags` selector instead.
   This parameter will be removed in a future version of Consul.
-  Specifies the tag to filter on. This is specified as part of
-  the URL as a query parameter. Can be used multiple times for additional filtering,
+  Specifies the tag to filter on.
+  Can be used multiple times for additional filtering,
   returning only the results that include all of the tag values provided.
 
 - `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
-  `?near=_agent` will use the agent's node for the sort. This is specified as
-  part of the URL as a query parameter.
+  `?near=_agent` uses the agent's node for the sort.
 
 - `node-meta` `(string: "")` **Deprecated** - Use `filter` with the `NodeMeta` selector instead.
   This parameter will be removed in a future version of Consul.
   Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
-  will filter the results to nodes with the specified key/value pairs. This is
-  specified as part of the URL as a query parameter.
+  filters the results to nodes with the specified key/value pairs.
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to use for the
-  query. This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -664,7 +660,7 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 | `GET`  | `/catalog/connect/:service` | `application/json` |
 
 Parameters and response format are the same as
-[`/catalog/service/:service`](/api-docs/catalog#list-nodes-for-service).
+[`/catalog/service/:service_name`](/api-docs/catalog#list-nodes-for-service).
 
 ## Retrieve Map of Services for a Node
 
@@ -672,9 +668,9 @@ This endpoint returns the node's registered services.
 
 @include 'http_api_results_filtered_by_acls.mdx'
 
-| Method | Path                  | Produces           |
-| ------ | --------------------- | ------------------ |
-| `GET`  | `/catalog/node/:node` | `application/json` |
+| Method | Path                       | Produces           |
+| ------ | -------------------------- | ------------------ |
+| `GET`  | `/catalog/node/:node_name` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api-docs/features/blocking),
@@ -686,22 +682,20 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------------------ |
 | `YES`            | `all`             | `none`        | `node:read,service:read` |
 
-### Parameters
+### Path Parameters
 
-- `node` `(string: <required>)` - Specifies the name of the node for which
-  to list services. This is specified as part of the URL.
+- `node_name` `(string: <required>)` - Specifies the name of the node to list services for.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -803,9 +797,9 @@ This endpoint returns the node's registered services.
 
 @include 'http_api_results_filtered_by_acls.mdx'
 
-| Method | Path                           | Produces           |
-| ------ | ------------------------------ | ------------------ |
-| `GET`  | `/catalog/node-services/:node` | `application/json` |
+| Method | Path                                | Produces           |
+| ------ | ----------------------------------- | ------------------ |
+| `GET`  | `/catalog/node-services/:node_name` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api-docs/features/blocking),
@@ -817,23 +811,21 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------------------ |
 | `YES`            | `all`             | `none`        | `node:read,service:read` |
 
-### Parameters
+### Path Parameters
 
-- `node` `(string: <required>)` - Specifies the name of the node for which
-  to list services. This is specified as part of the URL.
+- `node_name` `(string: <required>)` - Specifies the name of the node to list services for.
+
+### Query Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+  the datacenter of the agent being queried.
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to list services.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. The `*`
-  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
+  The namespace may be specified as '\*' to return results for all namespaces.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -953,20 +945,18 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `YES`            | `all`             | `none`        | `service:read` |
 
-### Parameters
+### Path Parameters
 
-- `gateway` `(string: <required>)` - Specifies the name of the node for which
-  to list services. This is specified as part of the URL.
+- `gateway` `(string: <required>)` - Specifies the name of the node to list services for.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
+### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the gateway.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header. If not provided, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. The `*`
-  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+- `dc` `(string: "")` - Specifies the datacenter to query.
+  This parameter defaults to the datacenter of the agent being queried.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the services you lookup.
+  The namespace may be specified as '\*' to return results for all namespaces.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -1075,3 +1065,15 @@ $ curl \
 
 - `FromWildcard` determines whether the service was associated with the gateway by providing a wildcard specifier
   in the gateway's configuration entry
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Catalog endpoints
+support several methods for specifying the namespace of resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to the [register entity](#register-entity) endpoint
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

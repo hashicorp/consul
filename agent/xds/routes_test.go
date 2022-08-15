@@ -8,9 +8,9 @@ import (
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 
-	"github.com/golang/protobuf/ptypes"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -20,18 +20,18 @@ import (
 )
 
 func TestRoutesFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	tests := []struct {
 		name               string
 		create             func(t testinf.T) *proxycfg.ConfigSnapshot
 		overrideGoldenName string
 	}{
-		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
 		{
 			name: "connect-proxy-with-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -143,6 +143,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
 		},
 		{
+			name:   "ingress-grpc-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+		},
+		{
 			name: "ingress-with-chain-and-router-header-manip",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "router-header-manip", nil, nil)
@@ -193,7 +197,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					// golden files for every test case and so not be any use!
 					setupTLSRootsAndLeaf(t, snap)
 
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					routes, err := g.routesFromSnapshot(snap)
@@ -332,7 +336,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
-								Ttl:  ptypes.DurationProto(0 * time.Second),
+								Ttl:  durationpb.New(0 * time.Second),
 							},
 						},
 					},
@@ -437,7 +441,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
-								Ttl:  ptypes.DurationProto(10 * time.Second),
+								Ttl:  durationpb.New(10 * time.Second),
 								Path: "/oven",
 							},
 						},
@@ -446,7 +450,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "chocolate-chip",
-								Ttl:  ptypes.DurationProto(0 * time.Second),
+								Ttl:  durationpb.New(0 * time.Second),
 								Path: "/oven",
 							},
 						},

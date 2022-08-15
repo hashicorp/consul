@@ -156,17 +156,20 @@ The Consul Helm only supports Helm 3.2+. Install the latest version of the Helm 
     kube-system       Active   18h
     ```
 
-1. Issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated
-   namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
+1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment. After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent. 
+    1. To install the latest version of Consul on Kubernetes, issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
-   ```shell-session
-   $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
-   NAME: consul
-   ...
-   ```
-
-The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment.
-After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent.
+       ```shell-session
+       $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
+       ```
+   
+    1. To install a specific version of Consul on Kubernetes, issue the following command with `--version` flag to install the specified version with the default configuration using Helm.  
+   
+       ```shell-session
+       $ export VERSION=0.43.0
+       $ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
+       ```
+  
 
 ### Customizing Your Installation
 

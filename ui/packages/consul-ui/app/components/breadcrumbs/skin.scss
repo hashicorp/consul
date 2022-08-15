@@ -8,7 +8,6 @@
 }
 %crumbs::before {
   text-decoration: none;
-  background-color: var(--transparent);
 }
 %breadcrumb-milestone::before {
   @extend %with-chevron-left-mask, %as-pseudo;

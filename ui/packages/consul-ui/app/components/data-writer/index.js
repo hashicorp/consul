@@ -21,5 +21,17 @@ export default Component.extend(Slotted, {
       set(this, 'data', data);
       this.dispatch('PERSIST');
     },
+    error: function(data, e) {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      set(
+        this,
+        'error',
+        typeof data.error.errors !== 'undefined' ?
+          data.error.errors.firstObject : data.error
+      );
+      this.dispatch('ERROR');
+    },
   },
 });

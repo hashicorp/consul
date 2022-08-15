@@ -428,6 +428,45 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-defaults-with-destination",
+			snake: `
+				kind = "service-defaults"
+				name = "external"
+				protocol = "tcp"
+				destination {
+					addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					port = 8080
+				}
+			`,
+			camel: `
+				Kind = "service-defaults"
+				Name = "external"
+				Protocol = "tcp"
+				Destination {
+					Addresses = [
+						"api.google.com",
+						"web.google.com"
+					]
+					Port = 8080
+				}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind:     "service-defaults",
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 8080,
+				},
+			},
+		},
+		{
 			name: "service-router: kitchen sink",
 			snake: `
 				kind = "service-router"
@@ -1694,6 +1733,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				http {
+					sanitize_x_forwarded_client_cert = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1722,6 +1764,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
+				HTTP {
+					SanitizeXForwardedClientCert = true
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1748,6 +1793,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 						},
 					},
+				},
+				HTTP: &MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
 				},
 			},
 		},
@@ -2381,6 +2429,139 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
+		},
+		"validate: nil destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: nil,
+					Port:      443,
+				},
+			},
+			validateErr: "must contain at least one valid address",
+		},
+		"validate: empty destination address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{},
+					Port:      443,
+				},
+			},
+			validateErr: "must contain at least one valid address",
+		},
+		"validate: destination ipv4 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"1.2.3.4"},
+					Port:      443,
+				},
+			},
+		},
+		"validate: destination ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:0db8:0000:8a2e:0370:7334:1234:5678"},
+					Port:      443,
+				},
+			},
+		},
+		"valid destination shortened ipv6 address": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:db8::8a2e:370:7334"},
+					Port:      443,
+				},
+			},
+		},
+		"validate: invalid destination port": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"2001:db8::8a2e:370:7334"},
+				},
+			},
+			validateErr: "Invalid Port number",
+		},
+		"validate: invalid hostname 1": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"*external.com"},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: invalid hostname 2": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "tcp",
+				Destination: &DestinationConfig{
+					Addresses: []string{"..hello."},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: all web traffic allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{"*"},
+					Port:      443,
+				},
+			},
+			validateErr: "Could not validate address",
+		},
+		"validate: multiple hostnames": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"web.google.com",
+					},
+					Port: 443,
+				},
+			},
+		},
+		"validate: duplicate addresses not allowed": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				Destination: &DestinationConfig{
+					Addresses: []string{
+						"api.google.com",
+						"api.google.com",
+					},
+					Port: 443,
+				},
+			},
+			validateErr: "Duplicate address",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)

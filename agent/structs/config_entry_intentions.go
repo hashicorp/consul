@@ -123,6 +123,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 	ixn := &Intention{
 		ID:                   src.LegacyID,
 		Description:          src.Description,
+		SourcePeer:           src.Peer,
 		SourcePartition:      src.PartitionOrEmpty(),
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
@@ -259,6 +260,9 @@ type SourceIntention struct {
 
 	// formerly Intention.SourceNS
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
+	// Peer is the name of the remote peer of the source service, if applicable.
+	Peer string `json:",omitempty"`
 }
 
 type IntentionPermission struct {
@@ -361,11 +365,11 @@ func (e *ServiceIntentionsConfigEntry) UpdateOver(rawPrev ConfigEntry) error {
 	}
 
 	var (
-		prevSourceByName     = make(map[ServiceName]*SourceIntention)
+		prevSourceByName     = make(map[PeeredServiceName]*SourceIntention)
 		prevSourceByLegacyID = make(map[string]*SourceIntention)
 	)
 	for _, src := range prev.Sources {
-		prevSourceByName[src.SourceServiceName()] = src
+		prevSourceByName[PeeredServiceName{Peer: src.Peer, ServiceName: src.SourceServiceName()}] = src
 		if src.LegacyID != "" {
 			prevSourceByLegacyID[src.LegacyID] = src
 		}
@@ -377,7 +381,7 @@ func (e *ServiceIntentionsConfigEntry) UpdateOver(rawPrev ConfigEntry) error {
 		}
 
 		// Check that the LegacyID fields are handled correctly during updates.
-		if prevSrc, ok := prevSourceByName[src.SourceServiceName()]; ok {
+		if prevSrc, ok := prevSourceByName[PeeredServiceName{Peer: src.Peer, ServiceName: src.SourceServiceName()}]; ok {
 			if prevSrc.LegacyID == "" {
 				return fmt.Errorf("Sources[%d].LegacyID: cannot set this field", i)
 			} else if src.LegacyID != prevSrc.LegacyID {
@@ -423,10 +427,17 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 			src.Type = IntentionSourceConsul
 		}
 
-		// If the source namespace is omitted it inherits that of the
-		// destination.
-		src.EnterpriseMeta.MergeNoWildcard(&e.EnterpriseMeta)
-		src.EnterpriseMeta.Normalize()
+		// Normalize the source's namespace and partition.
+		// If the source is not peered, it inherits the destination's
+		// EnterpriseMeta.
+		if src.Peer == "" {
+			src.EnterpriseMeta.MergeNoWildcard(&e.EnterpriseMeta)
+			src.EnterpriseMeta.Normalize()
+		} else {
+			// If the source is peered, normalize the namespace only,
+			// since peer is mutually exclusive with partition.
+			src.EnterpriseMeta.NormalizeNamespace()
+		}
 
 		// Compute the precedence only AFTER normalizing namespaces since the
 		// namespaces are factored into the calculation.
@@ -542,7 +553,7 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		return fmt.Errorf("Name is required")
 	}
 
-	if err := validateIntentionWildcards(e.Name, &e.EnterpriseMeta); err != nil {
+	if err := validateIntentionWildcards(e.Name, &e.EnterpriseMeta, ""); err != nil {
 		return err
 	}
 
@@ -562,18 +573,22 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		return fmt.Errorf("At least one source is required")
 	}
 
-	seenSources := make(map[ServiceName]struct{})
+	seenSources := make(map[PeeredServiceName]struct{})
 	for i, src := range e.Sources {
 		if src.Name == "" {
 			return fmt.Errorf("Sources[%d].Name is required", i)
 		}
 
-		if err := validateIntentionWildcards(src.Name, &src.EnterpriseMeta); err != nil {
+		if err := validateIntentionWildcards(src.Name, &src.EnterpriseMeta, src.Peer); err != nil {
 			return fmt.Errorf("Sources[%d].%v", i, err)
 		}
 
 		if err := validateSourceIntentionEnterpriseMeta(&src.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 			return fmt.Errorf("Sources[%d].%v", i, err)
+		}
+
+		if src.Peer != "" && src.PartitionOrEmpty() != "" {
+			return fmt.Errorf("Sources[%d].Peer: cannot set Peer and Partition at the same time.", i)
 		}
 
 		// Length of opaque values
@@ -583,6 +598,10 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		}
 
 		if legacyWrite {
+			if src.Peer != "" {
+				return fmt.Errorf("Sources[%d].Peer cannot be set by legacy intentions", i)
+			}
+
 			if len(src.LegacyMeta) > metaMaxKeyPairs {
 				return fmt.Errorf(
 					"Sources[%d].Meta exceeds maximum element count %d", i, metaMaxKeyPairs)
@@ -742,18 +761,22 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			}
 		}
 
-		serviceName := src.SourceServiceName()
-		if _, exists := seenSources[serviceName]; exists {
-			return fmt.Errorf("Sources[%d] defines %q more than once", i, serviceName.String())
+		psn := PeeredServiceName{Peer: src.Peer, ServiceName: src.SourceServiceName()}
+		if _, exists := seenSources[psn]; exists {
+			if psn.Peer != "" {
+				return fmt.Errorf("Sources[%d] defines peer(%q) %q more than once", i, psn.Peer, psn.ServiceName.String())
+			} else {
+				return fmt.Errorf("Sources[%d] defines %q more than once", i, psn.ServiceName.String())
+			}
 		}
-		seenSources[serviceName] = struct{}{}
+		seenSources[psn] = struct{}{}
 	}
 
 	return nil
 }
 
 // Wildcard usage verification
-func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta) error {
+func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta, peerName string) error {
 	ns := entMeta.NamespaceOrDefault()
 	if ns != WildcardSpecifier {
 		if strings.Contains(ns, WildcardSpecifier) {
@@ -771,6 +794,9 @@ func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta) error 
 	}
 	if strings.Contains(entMeta.PartitionOrDefault(), WildcardSpecifier) {
 		return fmt.Errorf("Partition: cannot use wildcard '*' in partition")
+	}
+	if strings.Contains(peerName, WildcardSpecifier) {
+		return fmt.Errorf("Peer: cannot use wildcard '*' in peer")
 	}
 	return nil
 }

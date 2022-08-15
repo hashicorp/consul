@@ -1,15 +1,9 @@
 @keyframes icon-map {
-  50% {
-
-    background-color: var(--icon-color, var(--color-map-500, currentColor));
-    -webkit-mask-image: var(--icon-map-24);
-    mask-image: var(--icon-map-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-map-500, currentColor));
     -webkit-mask-image: var(--icon-map-16);
     mask-image: var(--icon-map-16);
+    background-color: var(--icon-color, var(--color-map-500, currentColor));
+
   }
 }

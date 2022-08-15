@@ -13,7 +13,6 @@ import (
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
@@ -23,6 +22,9 @@ import (
 )
 
 func TestClustersFromSnapshot(t *testing.T) {
+	// TODO: we should move all of these to TestAllResourcesFromSnapshot
+	// eventually to test all of the xDS types at once with the same input,
+	// just as it would be triggered by our xDS server.
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -33,15 +35,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		overrideGoldenName string
 	}{
 		{
-			name: "defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
-			},
-		},
-		{
 			name: "connect-proxy-with-tls-outgoing-min-version-auto",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -60,7 +56,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -79,7 +75,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -98,7 +94,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "connect-proxy-with-tls-outgoing-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -170,6 +166,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+				}, nil)
+			},
+		},
+		{
+			name: "custom-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 3456
 				}, nil)
 			},
 		},
@@ -406,7 +410,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "ingress-gateway-with-tls-outgoing-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -425,7 +429,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "ingress-gateway-with-tls-outgoing-max-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -444,7 +448,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name: "ingress-gateway-with-tls-outgoing-cipher-suites",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []cache.UpdateEvent{
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "mesh",
 						Result: &structs.ConfigEntryResponse{
@@ -586,6 +590,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTerminatingGatewaySNI,
 		},
 		{
+			name:   "terminating-gateway-http2-upstream",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2,
+		},
+		{
+			name:   "terminating-gateway-http2-upstream-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2,
+		},
+		{
 			name:   "terminating-gateway-ignore-extra-resolvers",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
 		},
@@ -596,10 +608,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 		{
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
-		},
-		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
 		},
 		{
 			name:   "transparent-proxy-catalog-destinations-only",
@@ -627,7 +635,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					setupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)
@@ -714,6 +722,9 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 		case structs.ServiceKindIngressGateway:
 			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
 			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindMeshGateway:
+			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		}
 	}
 	if snap.Roots != nil {

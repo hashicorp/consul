@@ -24,16 +24,18 @@ as |item index|>
             {{else}}
               {{item.SourceName}}
             {{/if}}
-            {{#if (or (can 'use nspaces') (can 'use partitions'))}}
             {{! TODO: slugify }}
-            <em>
-              <span
-                class={{concat 'partition-' (or item.SourcePartition 'default')}}
-              >{{or item.SourcePartition 'default'}}</span> / <span
-                class={{concat 'nspace-' (or item.SourceNS 'default')}}
-              >{{or item.SourceNS 'default'}}</span>
+            <em class="consul-intention-list-table__meta-info">
+              <Consul::Bucket::List
+                @item={{hash
+                  Namespace=item.SourceNS
+                  Partition=item.SourcePartition
+                  PeerName=item.SourcePeer
+                }}
+                @nspace="-"
+                @partition="-"
+              />
             </em>
-            {{/if}}
           </a>
         </td>
         <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
@@ -69,7 +71,6 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
-{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}
@@ -153,9 +154,18 @@ as |item index|>
                 </InformedAction>
               </div>
             </li>
+          {{else}}
+            <li role="none">
+              <a
+                role="menuitem"
+                tabindex="-1"
+                href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
+              >
+                View
+              </a>
+            </li>
           {{/if}}
         </BlockSlot>
       </PopoverMenu>
     </BlockSlot>
-{{/if}}
 </TabularCollection>

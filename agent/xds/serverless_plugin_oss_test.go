@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
 	"github.com/hashicorp/consul/agent/xds/xdscommon"
@@ -23,10 +24,51 @@ import (
 )
 
 func TestServerlessPluginFromSnapshot(t *testing.T) {
+	// If opposite is true, the returned service defaults config entry will have
+	// payload-passthrough=true and invocation-mode=asynchronous.
+	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
+	// This is used to test all the permutations.
+	makeServiceDefaults := func(opposite bool) *structs.ServiceConfigEntry {
+		payloadPassthrough := "true"
+		if opposite {
+			payloadPassthrough = "false"
+		}
+
+		invocationMode := "synchronous"
+		if opposite {
+			invocationMode = "asynchronous"
+		}
+
+		return &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "db",
+			Protocol: "http",
+			Meta: map[string]string{
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": payloadPassthrough,
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/invocation-mode":     invocationMode,
+				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+			},
+		}
+	}
+
 	tests := []struct {
 		name   string
 		create func(t testinf.T) *proxycfg.ConfigSnapshot
 	}{
+		{
+			name: "lambda-connect-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeServiceDefaults(false))
+			},
+		},
+		{
+			name: "lambda-connect-proxy-opposite-meta",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeServiceDefaults(true))
+			},
+		},
 		{
 			name: "lambda-terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -54,7 +96,7 @@ func TestServerlessPluginFromSnapshot(t *testing.T) {
 					// golden files for every test case and so not be any use!
 					setupTLSRootsAndLeaf(t, snap)
 
-					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g := newResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					res, err := g.allResourcesFromSnapshot(snap)

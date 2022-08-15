@@ -65,7 +65,7 @@ parameters for an auth method of type `aws-iam`:
   be referenced in binding rules using `entity_tags.<tag>`. For example, if `IAMEntityTags` contains
   `service-name` and if a `service-name` tag exists on the IAM role or user, then you can reference
   the tag value using `entity_tags.service-name` in binding rules. If the tag is not present on the
-  IAM role or user, then `entity_tags.service-name` evalutes to the empty string in binding rules.
+  IAM role or user, then `entity_tags.service-name` evaluates to the empty string in binding rules.
 - `ServerIDHeaderValue` `(string: "")` - The value to require in the `X-Consul-IAM-ServerID` header
   in login requests. If set, clients must include the `X-Consul-IAM-ServerID` header in the AWS API
   requests used to login to the auth method, and the client-provided value for the header must match
@@ -199,7 +199,7 @@ Method](/api-docs/acl#login-to-auth-method) API request, using the following ste
   identity in the response. This is a strong guarantee of the client's identity.
 - Optionally, the auth method sends the `iam:GetRole` or `iam:GetUser` request to AWS,
   if `EnableIAMEntityDetails=true` in the auth method configuration. This request is pre-signed
-  by the client, so no other credentials or permisssions are required to make the request. Only the
+  by the client, so no other credentials or permissions are required to make the request. Only the
   client needs the `iam:GetRole` or `iam:GetUser` permission. AWS validates the client's signature
   when it receives the request. If the signature is valid, AWS returns the IAM role or user details.
   This response is not a guarantee of the client's identity - any role or user name may have been

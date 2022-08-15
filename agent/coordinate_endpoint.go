@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -14,7 +15,7 @@ func (s *HTTPHandlers) checkCoordinateDisabled() error {
 	if !s.agent.config.DisableCoordinates {
 		return nil
 	}
-	return UnauthorizedError{Reason: "Coordinate support disabled"}
+	return HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Coordinate support disabled"}
 }
 
 // sorter wraps a coordinate list and implements the sort.Interface to sort by
@@ -99,10 +100,7 @@ func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Reques
 		return nil, err
 	}
 
-	node, err := getPathSuffixUnescaped(req.URL.Path, "/v1/coordinate/node/")
-	if err != nil {
-		return nil, err
-	}
+	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
 	args := structs.NodeSpecificRequest{Node: node}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -156,7 +154,7 @@ func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Requ
 
 	args := structs.CoordinateUpdateRequest{}
 	if err := decodeBody(req.Body, &args); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)

@@ -19,26 +19,26 @@ with Consul.
 
 Use these links to navigate to a particular top-level stanza.
 
-- [`global`](#global)
-- [`server`](#server)
-- [`externalServers`](#externalservers)
-- [`client`](#client)
-- [`dns`](#dns)
-- [`ui`](#ui)
-- [`syncCatalog`](#synccatalog)
-- [`connectInject`](#connectinject)
-- [`controller`](#controller)
-- [`meshGateway`](#meshgateway)
-- [`ingressGateways`](#ingressgateways)
-- [`terminatingGateways`](#terminatinggateways)
-- [`apiGateway`](#apigateway)
-- [`webhookCertManager`](#webhookcertmanager)
-- [`prometheus`](#prometheus)
-- [`tests`](#tests)
+- [`global`](#h-global)
+- [`server`](#h-server)
+- [`externalServers`](#h-externalservers)
+- [`client`](#h-client)
+- [`dns`](#h-dns)
+- [`ui`](#h-ui)
+- [`syncCatalog`](#h-synccatalog)
+- [`connectInject`](#h-connectinject)
+- [`controller`](#h-controller)
+- [`meshGateway`](#h-meshgateway)
+- [`ingressGateways`](#h-ingressgateways)
+- [`terminatingGateways`](#h-terminatinggateways)
+- [`apiGateway`](#h-apigateway)
+- [`webhookCertManager`](#h-webhookcertmanager)
+- [`prometheus`](#h-prometheus)
+- [`tests`](#h-tests)
 
 ## All Values
 
-### global
+### global ((#h-global))
 
 - `global` ((#v-global)) - Holds values that affect multiple components of the chart.
 
@@ -58,8 +58,30 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (see `-domain` (https://consul.io/docs/agent/config/cli-flags#_domain)) and the domain services synced from
+    (see `-domain` (https://www.consul.io/docs/agent/config/cli-flags#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
+
+  - `peering` ((#v-global-peering)) - [Experimental] Configures the Cluster Peering feature. Requires Consul v1.13+ and Consul-K8s v0.45+.
+
+    - `enabled` ((#v-global-peering-enabled)) (`boolean: false`) - If true, the Helm chart enables Cluster Peering for the cluster. This option enables peering controllers and
+      allows use of the PeeringAcceptor and PeeringDialer CRDs for establishing service mesh peerings.
+
+    - `tokenGeneration` ((#v-global-peering-tokengeneration))
+
+      - `serverAddresses` ((#v-global-peering-tokengeneration-serveraddresses))
+
+        - `source` ((#v-global-peering-tokengeneration-serveraddresses-source)) (`string: ""`) - Source can be set to "","consul" or "static".
+
+          "" is the default source. If servers are enabled, it will check if `server.exposeService` is enabled, and read
+          the addresses from that service to use as the peering token server addresses. If using admin partitions and
+          only Consul client agents are enabled, the addresses in `externalServers.hosts` and `externalServers.grpcPort`
+          will be used.
+
+          "consul" will use the Consul advertise addresses in the peering token.
+
+          "static" will use the addresses specified in `global.peering.tokenGeneration.serverAddresses.static`.
+
+        - `static` ((#v-global-peering-tokengeneration-serveraddresses-static)) (`array<string>: []`) - Static addresses must be formatted "hostname|ip:port" where the port is the Consul server(s)' grpc port.
 
   - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
     It additionally indicates that you are running Consul Enterprise v1.11+ with a valid Consul Enterprise
@@ -203,6 +225,21 @@ Use these links to navigate to a particular top-level stanza.
         ```
         and check the name of `metadata.name`.
 
+      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's 
+        CA and issue a certificate and private key.
+        A Vault policy must be created which grants issue capabilities to 
+        `global.secretsBackend.vault.controller.tlsCert.secretName`.
+
+      - `connectInjectRole` ((#v-global-secretsbackend-vault-connectinjectrole)) (`string: ""`) - The Vault role to read Consul connect-injector webhook's CA
+        and issue a certificate and private key.
+        A Vault policy must be created which grants issue capabilities to 
+        `global.secretsBackend.vault.connectInject.tlsCert.secretName`.
+
+      - `consulCARole` ((#v-global-secretsbackend-vault-consulcarole)) (`string: ""`) - The Vault role for all Consul components to read the Consul's server's CA Certificate (unauthenticated).
+        The role should be connected to the service accounts of all Consul components, or alternatively `*` since it
+        will be used only against the `pki/cert/ca` endpoint which is unauthenticated. A policy must be created which grants
+        read capabilities to `global.tls.caCert.secretName`, which is usually `pki/cert/ca`.
+
       - `agentAnnotations` ((#v-global-secretsbackend-vault-agentannotations)) (`string: null`) - This value defines additional annotations for
         Vault agent on any pods where it'll be running.
         This should be formatted as a multi-line string.
@@ -212,11 +249,6 @@ Use these links to navigate to a particular top-level stanza.
           "sample/annotation1": "foo"
           "sample/annotation2": "bar"
         ```
-
-      - `consulCARole` ((#v-global-secretsbackend-vault-consulcarole)) (`string: ""`) - The Vault role for all Consul components to read the Consul's server's CA Certificate (unauthenticated).
-        The role should be connected to the service accounts of all Consul components, or alternatively `*` since it
-        will be used only against the `pki/cert/ca` endpoint which is unauthenticated. A policy must be created which grants
-        read capabilities to `global.tls.caCert.secretName`, which is usually `pki/cert/ca`.
 
       - `ca` ((#v-global-secretsbackend-vault-ca)) - Configuration for Vault server CA certificate. This certificate will be mounted
         to any pod where Vault agent needs to run.
@@ -260,8 +292,40 @@ Use these links to navigate to a particular top-level stanza.
             }
           ```
 
+      - `controller` ((#v-global-secretsbackend-vault-controller))
+
+        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
+          Kubernetes CRD creation, deletion, and update, to get TLS certificates
+          used issued from vault to send webhooks to the controller.
+
+          - `secretName` ((#v-global-secretsbackend-vault-controller-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for controller
+            webhooks.
+
+        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
+          Kubernetes CRD creation, deletion, and update, to get CA certificates
+          used issued from vault to send webhooks to the controller.
+
+          - `secretName` ((#v-global-secretsbackend-vault-controller-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for controller
+            webhooks.
+
+      - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
+
+        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on 
+          Kubernetes pod creation, deletion, and update, to get CA certificates
+          used issued from vault to send webhooks to the ConnectInject.
+
+          - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
+            Connect Inject webhooks.
+
+        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on 
+          Kubernetes pod creation, deletion, and update, to get TLS certificates
+          used issued from vault to send webhooks to the ConnectInject.
+
+          - `secretName` ((#v-global-secretsbackend-vault-connectinject-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for connect
+            inject webhooks.
+
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (see `-encrypt` (https://consul.io/docs/agent/config/cli-flags#_encrypt)).
+    (see `-encrypt` (https://www.consul.io/docs/agent/config/cli-flags#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -316,7 +380,7 @@ Use these links to navigate to a particular top-level stanza.
       Consul server(s) externally, for example, if you're using the UI.
 
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
-      and `verify_incoming_rpc` will be set to `true` for Consul servers and clients.
+      and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
       Please see https://consul.io/docs/k8s/operations/tls-on-existing-cluster
       for more details.
@@ -440,7 +504,8 @@ Use these links to navigate to a particular top-level stanza.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`.
 
-    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.
+    - `primaryDatacenter` ((#v-global-federation-primarydatacenter)) (`string: null`) - The name of the primary datacenter.  This should only be set for datacenters
+      that are not the primary datacenter.
 
     - `primaryGateways` ((#v-global-federation-primarygateways)) (`array<string>: []`) - A list of addresses of the primary mesh gateways in the form `<ip>:<port>`.
       (e.g. ["1.1.1.1:443", "2.3.4.5:443"]
@@ -448,10 +513,9 @@ Use these links to navigate to a particular top-level stanza.
     - `k8sAuthMethodHost` ((#v-global-federation-k8sauthmethodhost)) (`string: null`) - If you are setting `global.federation.enabled` to true and are in a secondary datacenter,
       set `k8sAuthMethodHost` to the address of the Kubernetes API server of the secondary datacenter.
       This address must be reachable from the Consul servers in the primary datacenter.
-
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes) for additional information.
+      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -500,7 +564,10 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
 
-### server
+  - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from 
+    the API before cancelling the request.
+
+### server ((#h-server))
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
   be disabled if you plan on connecting to a Consul cluster external to
@@ -615,7 +682,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `resources` ((#v-server-resources)) (`map`) - The resource requests (CPU, memory, etc.)
     for each of the server agents. This should be a YAML map corresponding to a Kubernetes
-    ResourceRequirements (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core)
+    ResourceRequirements (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core)
     object. NOTE: The use of a YAML string is deprecated.
 
     Example:
@@ -663,7 +730,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -796,6 +863,33 @@ Use these links to navigate to a particular top-level stanza.
       "sample/annotation2": "bar"
     ```
 
+  - `exposeService` ((#v-server-exposeservice)) - Configures a service to expose ports on the Consul servers over a Kubernetes Service.
+
+    - `enabled` ((#v-server-exposeservice-enabled)) (`boolean: -`) - When enabled, deploys a Kubernetes Service to reach the Consul servers.
+
+    - `type` ((#v-server-exposeservice-type)) (`string: LoadBalancer`) - Type of service, supports LoadBalancer or NodePort.
+
+    - `nodePort` ((#v-server-exposeservice-nodeport)) - If service is of type NodePort, configures the nodePorts.
+
+      - `http` ((#v-server-exposeservice-nodeport-http)) (`integer: null`) - Configures the nodePort to expose the Consul server http port.
+
+      - `https` ((#v-server-exposeservice-nodeport-https)) (`integer: null`) - Configures the nodePort to expose the Consul server https port.
+
+      - `serf` ((#v-server-exposeservice-nodeport-serf)) (`integer: null`) - Configures the nodePort to expose the Consul server serf port.
+
+      - `rpc` ((#v-server-exposeservice-nodeport-rpc)) (`integer: null`) - Configures the nodePort to expose the Consul server rpc port.
+
+      - `grpc` ((#v-server-exposeservice-nodeport-grpc)) (`integer: null`) - Configures the nodePort to expose the Consul server grpc port.
+
+    - `annotations` ((#v-server-exposeservice-annotations)) (`string: null`) - This value defines additional annotations for
+      server pods. This should be formatted as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
   - `service` ((#v-server-service)) - Server service properties.
 
     - `annotations` ((#v-server-service-annotations)) (`string: null`) - Annotations to apply to the server service.
@@ -810,7 +904,7 @@ Use these links to navigate to a particular top-level stanza.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
-### externalServers
+### externalServers ((#h-externalservers))
 
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
@@ -830,6 +924,8 @@ Use these links to navigate to a particular top-level stanza.
     wish to use separate hosts for the HTTPS connections.
 
   - `httpsPort` ((#v-externalservers-httpsport)) (`integer: 8501`) - The HTTPS port of the Consul servers.
+
+  - `grpcPort` ((#v-externalservers-grpcport)) (`integer: 8503`) - The GRPC port of the Consul servers.
 
   - `tlsServerName` ((#v-externalservers-tlsservername)) (`string: null`) - The server name to use as the SNI host header when connecting with HTTPS.
 
@@ -853,7 +949,7 @@ Use these links to navigate to a particular top-level stanza.
       -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
 
-### client
+### client ((#h-client))
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -864,7 +960,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://consul.io/docs/agent/config/config-files#retry-join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid `-retry-join` values (https://www.consul.io/docs/agent/config/cli-flags#_retry_join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -929,7 +1025,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/config) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1080,6 +1176,9 @@ Use these links to navigate to a particular top-level stanza.
 
     - `replicas` ((#v-client-snapshotagent-replicas)) (`integer: 2`) - The number of snapshot agents to run.
 
+    - `interval` ((#v-client-snapshotagent-interval)) (`string: 1h`) - Interval at which to perform snapshots.
+      See https://www.consul.io/commands/snapshot/agent#interval
+
     - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes or Vault secret that should be manually created to contain the entire
       config to be used on the snapshot agent.
       This is the preferred method of configuration since there are usually storage
@@ -1115,7 +1214,7 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-### dns
+### dns ((#h-dns))
 
 - `dns` ((#v-dns)) - Configuration for DNS configuration within the Kubernetes cluster.
   This creates a service that routes to all agents (client or server)
@@ -1146,7 +1245,7 @@ Use these links to navigate to a particular top-level stanza.
     This should be a multi-line string mapping directly to a Kubernetes
     ServiceSpec object.
 
-### ui
+### ui ((#h-ui))
 
 - `ui` ((#v-ui)) - Values that configure the Consul UI.
 
@@ -1238,7 +1337,7 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
-      https://www.consul.io/docs/agent/config/config-files#ui_config_metrics_provider
+      https://www.consul.io/docs/agent/options#ui_config_metrics_provider
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
@@ -1248,7 +1347,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets https://www.consul.io/docs/agent/options#ui_config_dashboard_url_templates_service.
 
-### syncCatalog
+### syncCatalog ((#h-synccatalog))
 
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
@@ -1324,6 +1423,9 @@ Use these links to navigate to a particular top-level stanza.
       already exist, it will be created. Turning this on overrides the
       `consulDestinationNamespace` setting.
       `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
+      If mirroring is enabled, avoid creating any Consul resources in the following 
+      Kubernetes namespaces, as Consul currently reserves these namespaces for 
+      system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-synccatalog-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
       to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
@@ -1421,7 +1523,16 @@ Use these links to navigate to a particular top-level stanza.
       anotherLabelKey: another-label-value
     ```
 
-### connectInject
+  - `annotations` ((#v-synccatalog-annotations)) (`string: null`) - This value defines additional annotations for
+    the catalog sync pods. This should be formatted as a multi-line string.
+
+    ```yaml
+    annotations: |
+      "sample/annotation1": "foo"
+      "sample/annotation2": "bar"
+    ```
+
+### connectInject ((#h-connectinject))
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
@@ -1451,6 +1562,19 @@ Use these links to navigate to a particular top-level stanza.
       to talk to Envoy.
       This value is also overridable via the "consul.hashicorp.com/transparent-proxy-overwrite-probes" annotation.
       Note: This value has no effect if transparent proxy is disabled on the pod.
+
+  - `disruptionBudget` ((#v-connectinject-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
+    for the service mesh sidecar injector.
+
+    - `enabled` ((#v-connectinject-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the 
+      service mesh sidecar injector. If this is enabled, it will only register the budget so long as
+      the service mesh is enabled.
+
+    - `maxUnavailable` ((#v-connectinject-disruptionbudget-maxunavailable)) (`integer: null`) - The maximum number of unavailable pods. By default, this will be
+      automatically computed based on the `connectInject.replicas` value to be `(n/2)-1`.
+      If you need to set this to `0`, you will need to add a
+      --set 'connectInject.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
+      command because of a limitation in the Helm templating language.
 
   - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.
@@ -1494,6 +1618,15 @@ Use these links to navigate to a particular top-level stanza.
     e.g "--log-level debug --disable-hot-restart"
 
   - `priorityClassName` ((#v-connectinject-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+  - `annotations` ((#v-connectinject-annotations)) (`string: null`) - This value defines additional annotations for
+    connect inject pods. This should be formatted as a multi-line string.
+
+    ```yaml
+    annotations: |
+      "sample/annotation1": "foo"
+      "sample/annotation2": "bar"
+    ```
 
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: null`) - The Docker image for Consul to use when performing Connect injection.
     Defaults to global.image.
@@ -1576,7 +1709,9 @@ Use these links to navigate to a particular top-level stanza.
       of the same name as their k8s namespace, optionally prefixed if
       `mirroringK8SPrefix` is set below. If the Consul namespace does not
       already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting.
+      `consulDestinationNamespace` setting. If mirroring is enabled, avoid creating any Consul 
+      resources in the following Kubernetes namespaces, as Consul currently reserves these 
+      namespaces for system use: "system", "universal", "operator", "root".
 
     - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
       to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
@@ -1629,6 +1764,16 @@ Use these links to navigate to a particular top-level stanza.
 
   - `sidecarProxy` ((#v-connectinject-sidecarproxy))
 
+    - `concurrency` ((#v-connectinject-sidecarproxy-concurrency)) (`string: 2`) - The number of worker threads to be used by the Envoy proxy.
+      By default the threading model of Envoy will use one thread per CPU core per envoy proxy. This
+      leads to unnecessary thread and memory usage and leaves unnecessary idle connections open. It is
+      advised to keep this number low for sidecars and high for edge proxies.
+      This will control the `--concurrency` flag to Envoy.
+      For additional information see also: https://blog.envoyproxy.io/envoy-threading-model-a8d44b922310
+
+      This setting can be overridden on a per-pod basis via this annotation:
+      - `consul.hashicorp.com/consul-envoy-proxy-concurrency`
+
     - `resources` ((#v-connectinject-sidecarproxy-resources)) (`map`) - Set default resources for sidecar proxy. If null, that resource won't
       be set.
       These settings can be overridden on a per-pod basis via these annotations:
@@ -1652,7 +1797,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container.
 
-### controller
+### controller ((#h-controller))
 
 - `controller` ((#v-controller)) - Controller handles config entry custom resources.
   Requires consul >= 1.8.4.
@@ -1705,7 +1850,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the ACL token.
 
-### meshGateway
+### meshGateway ((#h-meshgateway))
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
@@ -1821,6 +1966,26 @@ Use these links to navigate to a particular top-level stanza.
 
   - `tolerations` ((#v-meshgateway-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
 
+  - `topologySpreadConstraints` ((#v-meshgateway-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for mesh gateway pods.
+    This should be a multi-line YAML string matching the `topologySpreadConstraints` array
+    (https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) in a Pod Spec.
+
+    This requires K8S >= 1.18 (beta) or 1.19 (stable).
+
+    Example:
+
+    ```yaml
+    topologySpreadConstraints: |
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: {{ template "consul.name" . }}
+            release: "{{ .Release.Name }}"
+            component: mesh-gateway
+    ```
+
   - `nodeSelector` ((#v-meshgateway-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
 
   - `priorityClassName` ((#v-meshgateway-priorityclassname)) (`string: ""`) - Optional priorityClassName.
@@ -1834,7 +1999,7 @@ Use these links to navigate to a particular top-level stanza.
       'annotation-key': annotation-value
     ```
 
-### ingressGateways
+### ingressGateways ((#h-ingressgateways))
 
 - `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all
   ingress gateways are defined in `ingressGateways.defaults`. Any of
@@ -1901,6 +2066,26 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tolerations` ((#v-ingressgateways-defaults-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
 
+    - `topologySpreadConstraints` ((#v-ingressgateways-defaults-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for ingress gateway pods.
+      This should be a multi-line YAML string matching the `topologySpreadConstraints` array
+      (https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) in a Pod Spec.
+
+      This requires K8S >= 1.18 (beta) or 1.19 (stable).
+
+      Example:
+
+      ```yaml
+      topologySpreadConstraints: |
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: ingress-gateway
+      ```
+
     - `nodeSelector` ((#v-ingressgateways-defaults-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
 
     - `priorityClassName` ((#v-ingressgateways-defaults-priorityclassname)) (`string: ""`) - Optional priorityClassName.
@@ -1930,7 +2115,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
-### terminatingGateways
+### terminatingGateways ((#h-terminatinggateways))
 
 - `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all
   terminating gateways are defined in `terminatingGateways.defaults`. Any of
@@ -1974,6 +2159,26 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tolerations` ((#v-terminatinggateways-defaults-tolerations)) (`string: null`) - Optional YAML string to specify tolerations.
 
+    - `topologySpreadConstraints` ((#v-terminatinggateways-defaults-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for terminating gateway pods.
+      This should be a multi-line YAML string matching the `topologySpreadConstraints` array
+      (https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) in a Pod Spec.
+
+      This requires K8S >= 1.18 (beta) or 1.19 (stable).
+
+      Example:
+
+      ```yaml
+      topologySpreadConstraints: |
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: terminating-gateway
+      ```
+
     - `nodeSelector` ((#v-terminatinggateways-defaults-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
 
     - `priorityClassName` ((#v-terminatinggateways-defaults-priorityclassname)) (`string: ""`) - Optional priorityClassName.
@@ -2012,7 +2217,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
 
-### apiGateway
+### apiGateway ((#h-apigateway))
 
 - `apiGateway` ((#v-apigateway)) - Configuration settings for the Consul API Gateway integration
 
@@ -2051,25 +2256,16 @@ Use these links to navigate to a particular top-level stanza.
         - external-dns.alpha.kubernetes.io/hostname
         ```
 
-  - `consulNamespaces` ((#v-apigateway-consulnamespaces)) - <EnterpriseAlert inline /> These settings manage the API Gateway's interaction with
-    Consul namespaces (requires consul-ent v1.7+).
-    Also, `global.enableConsulNamespaces` must be true.
+    - `deployment` ((#v-apigateway-managedgatewayclass-deployment)) (`map`) - This value defines the number of pods to deploy for each Gateway as well as a min and max number of pods for all Gateways
 
-    - `consulDestinationNamespace` ((#v-apigateway-consulnamespaces-consuldestinationnamespace)) (`string: default`) - Name of the Consul namespace to register all
-      k8s services into. If the Consul namespace does not already exist,
-      it will be created. This will be ignored if `mirroringK8S` is true.
+      Example:
 
-    - `mirroringK8S` ((#v-apigateway-consulnamespaces-mirroringk8s)) (`boolean: false`) - If true, k8s services will be registered into a Consul namespace
-      of the same name as their k8s namespace, optionally prefixed if
-      `mirroringK8SPrefix` is set below. If the Consul namespace does not
-      already exist, it will be created. Turning this on overrides the
-      `consulDestinationNamespace` setting.
-      `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
-
-    - `mirroringK8SPrefix` ((#v-apigateway-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace
-      to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
-      service in the k8s `staging` namespace will be registered into the
-      `k8s-staging` Consul namespace.
+      ```yaml
+      deployment:
+        defaultInstances: 3
+        maxInstances: 8
+        minInstances: 1
+      ```
 
   - `serviceAccount` ((#v-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 
@@ -2120,7 +2316,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `initCopyConsulContainer` ((#v-apigateway-initcopyconsulcontainer)) (`map`) - The resource settings for the `copy-consul-bin` init container.
 
-### webhookCertManager
+### webhookCertManager ((#h-webhookcertmanager))
 
 - `webhookCertManager` ((#v-webhookcertmanager)) - Configuration settings for the webhook-cert-manager
   `webhook-cert-manager` ensures that cert bundles are up to date for the mutating webhook.
@@ -2129,14 +2325,14 @@ Use these links to navigate to a particular top-level stanza.
     This should be a multi-line string matching the Toleration array
     in a PodSpec.
 
-### prometheus
+### prometheus ((#h-prometheus))
 
 - `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
 
   - `enabled` ((#v-prometheus-enabled)) (`boolean: false`) - When true, the Helm chart will install a demo Prometheus server instance
     alongside Consul.
 
-### tests
+### tests ((#h-tests))
 
 - `tests` ((#v-tests)) - Control whether a test Pod manifest is generated when running helm template.
   When using helm install, the test Pod is not submitted to the cluster so this

@@ -1,15 +1,9 @@
 @keyframes icon-map-pin {
-  50% {
-
-    background-color: var(--icon-color, var(--color-map-pin-500, currentColor));
-    -webkit-mask-image: var(--icon-map-pin-24);
-    mask-image: var(--icon-map-pin-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-map-pin-500, currentColor));
     -webkit-mask-image: var(--icon-map-pin-16);
     mask-image: var(--icon-map-pin-16);
+    background-color: var(--icon-color, var(--color-map-pin-500, currentColor));
+
   }
 }

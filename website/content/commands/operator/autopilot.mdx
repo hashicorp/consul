@@ -42,13 +42,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator autopilot get-config [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-### Command Output
+#### Sample Output
 
 ```sh
 $ consul operator autopilot get-config
@@ -60,6 +54,12 @@ RedundancyZoneTag = ""
 DisableUpgradeMigration = false
 UpgradeMigrationTag = ""
 ```
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## set-config
 
@@ -77,11 +77,14 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator autopilot set-config [options]`
 
-#### API Options
+#### Sample Output
 
-@include 'http_api_options_client.mdx'
+```sh
+$ consul operator autopilot set-config -min-quorum=3
+Configuration updated!
+```
 
-@include 'http_api_options_server.mdx'
+The return code indicates success or failure.
 
 #### Command Options
 
@@ -110,14 +113,11 @@ Usage: `consul operator autopilot set-config [options]`
 - `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/cli-flags#_node_meta)
   tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
 
-### Command Output
+#### API Options
 
-```sh
-$ consul operator autopilot set-config -min-quorum=3
-Configuration updated!
-```
+@include 'http_api_options_client.mdx'
 
-The return code will indicate success or failure.
+@include 'http_api_options_server.mdx'
 
 ## state
 

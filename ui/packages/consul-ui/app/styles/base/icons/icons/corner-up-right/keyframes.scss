@@ -1,15 +1,9 @@
 @keyframes icon-corner-up-right {
-  50% {
-
-    background-color: var(--icon-color, var(--color-corner-up-right-500, currentColor));
-    -webkit-mask-image: var(--icon-corner-up-right-24);
-    mask-image: var(--icon-corner-up-right-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-corner-up-right-500, currentColor));
     -webkit-mask-image: var(--icon-corner-up-right-16);
     mask-image: var(--icon-corner-up-right-16);
+    background-color: var(--icon-color, var(--color-corner-up-right-500, currentColor));
+
   }
 }

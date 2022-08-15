@@ -1,15 +1,9 @@
 @keyframes icon-star-fill {
-  50% {
-
-    background-color: var(--icon-color, var(--color-star-fill-500, currentColor));
-    -webkit-mask-image: var(--icon-star-fill-24);
-    mask-image: var(--icon-star-fill-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-star-fill-500, currentColor));
     -webkit-mask-image: var(--icon-star-fill-16);
     mask-image: var(--icon-star-fill-16);
+    background-color: var(--icon-color, var(--color-star-fill-500, currentColor));
+
   }
 }

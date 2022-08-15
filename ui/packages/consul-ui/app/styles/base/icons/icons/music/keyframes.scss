@@ -1,15 +1,9 @@
 @keyframes icon-music {
-  50% {
-
-    background-color: var(--icon-color, var(--color-music-500, currentColor));
-    -webkit-mask-image: var(--icon-music-24);
-    mask-image: var(--icon-music-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-music-500, currentColor));
     -webkit-mask-image: var(--icon-music-16);
     mask-image: var(--icon-music-16);
+    background-color: var(--icon-color, var(--color-music-500, currentColor));
+
   }
 }

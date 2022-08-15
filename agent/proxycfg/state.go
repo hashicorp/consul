@@ -11,25 +11,17 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
 
-type CacheNotifier interface {
-	Notify(ctx context.Context, t string, r cache.Request,
-		correlationID string, ch chan<- cache.UpdateEvent) error
-}
-
-type Health interface {
-	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- cache.UpdateEvent) error
-}
-
 const (
 	coalesceTimeout                    = 200 * time.Millisecond
 	rootsWatchID                       = "roots"
+	peeringTrustBundlesWatchID         = "peering-trust-bundles"
 	leafWatchID                        = "leaf"
+	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
@@ -44,7 +36,13 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	peeredUpstreamsID                  = "peered-upstreams"
+	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
+	upstreamPeerWatchIDPrefix          = "upstream-peer:"
+	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	DestinationConfigEntryID           = "destination:"
+	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval   = 30 * time.Second
@@ -53,8 +51,7 @@ const (
 type stateConfig struct {
 	logger                hclog.Logger
 	source                *structs.QuerySource
-	cache                 CacheNotifier
-	health                Health
+	dataSources           DataSources
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
@@ -64,6 +61,7 @@ type stateConfig struct {
 // connect-proxy service. When a proxy registration is changed, the entire state
 // is discarded and a new one created.
 type state struct {
+	source          ProxySource
 	logger          hclog.Logger
 	serviceInstance serviceInstance
 	handler         kindHandler
@@ -72,7 +70,7 @@ type state struct {
 	// in Watch.
 	cancel func()
 
-	ch     chan cache.UpdateEvent
+	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
 }
@@ -87,7 +85,7 @@ type ServerSNIFunc func(dc, nodeName string) string
 type serviceInstance struct {
 	kind            structs.ServiceKind
 	service         string
-	proxyID         structs.ServiceID
+	proxyID         ProxyID
 	address         string
 	port            int
 	meta            map[string]string
@@ -124,6 +122,14 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 			if us.DestinationNamespace == "" {
 				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
 			}
+
+			// If PeerName is not empty, the DestinationPartition refers
+			// to the local Partition in which the Peer exists and the
+			// DestinationNamespace refers to the Namespace residing in
+			// the remote peer
+			if us.DestinationPeer == "" {
+				proxyCfg.Upstreams[idx].DestinationPeer = ns.PeerName
+			}
 		}
 	}
 
@@ -137,7 +143,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(ns *structs.NodeService, token string, config stateConfig) (*state, error) {
+func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig) (*state, error) {
 	// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 	// reasonable number of upstream watches to all deliver their initial
 	// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -145,9 +151,9 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	// conservative to handle larger numbers of upstreams correctly but gives
 	// some head room for normal operation to be non-blocking in most typical
 	// cases.
-	ch := make(chan cache.UpdateEvent, 10)
+	ch := make(chan UpdateEvent, 10)
 
-	s, err := newServiceInstanceFromNodeService(ns, token)
+	s, err := newServiceInstanceFromNodeService(id, ns, token)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +164,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	}
 
 	return &state{
+		source:          source,
 		logger:          config.logger.With("proxy", s.proxyID, "kind", s.kind),
 		serviceInstance: s,
 		handler:         handler,
@@ -167,7 +174,7 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	}, nil
 }
 
-func newKindHandler(config stateConfig, s serviceInstance, ch chan cache.UpdateEvent) (kindHandler, error) {
+func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) (kindHandler, error) {
 	var handler kindHandler
 	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
 
@@ -189,7 +196,7 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan cache.UpdateE
 	return handler, nil
 }
 
-func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (serviceInstance, error) {
+func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, token string) (serviceInstance, error) {
 	proxyCfg, err := copyProxyConfig(ns)
 	if err != nil {
 		return serviceInstance{}, err
@@ -208,7 +215,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 	return serviceInstance{
 		kind:            ns.Kind,
 		service:         ns.Service,
-		proxyID:         ns.CompoundServiceID(),
+		proxyID:         id,
 		address:         ns.Address,
 		port:            ns.Port,
 		meta:            meta,
@@ -220,7 +227,7 @@ func newServiceInstanceFromNodeService(ns *structs.NodeService, token string) (s
 
 type kindHandler interface {
 	initialize(ctx context.Context) (ConfigSnapshot, error)
-	handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error
+	handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error
 }
 
 // Watch initialized watches on all necessary cache data for the current proxy
@@ -253,7 +260,7 @@ func (s *state) Close() error {
 type handlerState struct {
 	stateConfig     // TODO: un-embed
 	serviceInstance // TODO: un-embed
-	ch              chan cache.UpdateEvent
+	ch              chan UpdateEvent
 }
 
 func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig) ConfigSnapshot {
@@ -402,7 +409,6 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 
 	i := s.serviceInstance
 	return ns.Kind != i.kind ||
-		i.proxyID != ns.CompoundServiceID() ||
 		i.address != ns.Address ||
 		i.port != ns.Port ||
 		!reflect.DeepEqual(i.proxyCfg, proxyCfg) ||
@@ -441,16 +447,16 @@ func hostnameEndpoints(logger hclog.Logger, localKey GatewayKey, nodes structs.C
 }
 
 type gatewayWatchOpts struct {
-	notifier   CacheNotifier
-	notifyCh   chan cache.UpdateEvent
-	source     structs.QuerySource
-	token      string
-	key        GatewayKey
-	upstreamID UpstreamID
+	internalServiceDump InternalServiceDump
+	notifyCh            chan UpdateEvent
+	source              structs.QuerySource
+	token               string
+	key                 GatewayKey
+	upstreamID          UpstreamID
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
-	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,

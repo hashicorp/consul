@@ -223,8 +223,8 @@ func TestAPI_HealthChecks(t *testing.T) {
 				ServiceName: "foo",
 				ServiceTags: []string{"bar"},
 				Type:        "ttl",
-				Partition:   defaultPartition,
-				Namespace:   defaultNamespace,
+				Partition:   splitDefaultPartition,
+				Namespace:   splitDefaultNamespace,
 			},
 		}
 

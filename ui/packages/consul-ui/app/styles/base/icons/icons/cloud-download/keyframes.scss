@@ -1,15 +1,9 @@
 @keyframes icon-cloud-download {
-  50% {
-
-    background-color: var(--icon-color, var(--color-cloud-download-500, currentColor));
-    -webkit-mask-image: var(--icon-cloud-download-24);
-    mask-image: var(--icon-cloud-download-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-cloud-download-500, currentColor));
     -webkit-mask-image: var(--icon-cloud-download-16);
     mask-image: var(--icon-cloud-download-16);
+    background-color: var(--icon-color, var(--color-cloud-download-500, currentColor));
+
   }
 }

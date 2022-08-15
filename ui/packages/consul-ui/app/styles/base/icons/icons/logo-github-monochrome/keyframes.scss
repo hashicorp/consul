@@ -1,15 +1,9 @@
 @keyframes icon-logo-github-monochrome {
-  50% {
-
-    background-color: var(--icon-color, var(--color-logo-github-monochrome-500, currentColor));
-    -webkit-mask-image: var(--icon-github-color-24);
-    mask-image: var(--icon-github-color-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-logo-github-monochrome-500, currentColor));
     -webkit-mask-image: var(--icon-github-color-16);
     mask-image: var(--icon-github-color-16);
+    background-color: var(--icon-color, var(--color-logo-github-monochrome-500, currentColor));
+
   }
 }

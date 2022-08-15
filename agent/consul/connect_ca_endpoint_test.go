@@ -442,7 +442,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 			// Make sure the new root has been added along with an intermediate
 			// cross-signed by the old root.
 			var newRootPEM string
-			runStep(t, "ensure roots look correct", func(t *testing.T) {
+			testutil.RunStep(t, "ensure roots look correct", func(t *testing.T) {
 				args := &structs.DCSpecificRequest{
 					Datacenter: "dc1",
 				}
@@ -483,7 +483,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				}
 			})
 
-			runStep(t, "verify the new config was set", func(t *testing.T) {
+			testutil.RunStep(t, "verify the new config was set", func(t *testing.T) {
 				args := &structs.DCSpecificRequest{
 					Datacenter: "dc1",
 				}
@@ -498,7 +498,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				assert.Equal(t, actual, expected)
 			})
 
-			runStep(t, "verify that new leaf certs get the cross-signed intermediate bundled", func(t *testing.T) {
+			testutil.RunStep(t, "verify that new leaf certs get the cross-signed intermediate bundled", func(t *testing.T) {
 				// Generate a CSR and request signing
 				spiffeId := connect.TestSpiffeIDService(t, "web")
 				csr, _ := connect.TestCSR(t, spiffeId)
@@ -509,7 +509,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				var reply structs.IssuedCert
 				require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
-				runStep(t, "verify that the cert is signed by the new CA", func(t *testing.T) {
+				testutil.RunStep(t, "verify that the cert is signed by the new CA", func(t *testing.T) {
 					roots := x509.NewCertPool()
 					require.True(t, roots.AppendCertsFromPEM([]byte(newRootPEM)))
 					leaf, err := connect.ParseCert(reply.CertPEM)
@@ -520,7 +520,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 					require.NoError(t, err)
 				})
 
-				runStep(t, "and that it validates via the intermediate", func(t *testing.T) {
+				testutil.RunStep(t, "and that it validates via the intermediate", func(t *testing.T) {
 					roots := x509.NewCertPool()
 					assert.True(t, roots.AppendCertsFromPEM([]byte(oldRoot.RootCert)))
 					leaf, err := connect.ParseCert(reply.CertPEM)
@@ -540,7 +540,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 					require.NoError(t, err)
 				})
 
-				runStep(t, "verify other fields", func(t *testing.T) {
+				testutil.RunStep(t, "verify other fields", func(t *testing.T) {
 					assert.Equal(t, "web", reply.Service)
 					assert.Equal(t, spiffeId.URI().String(), reply.ServiceURI)
 				})

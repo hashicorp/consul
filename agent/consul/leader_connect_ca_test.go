@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -58,7 +59,7 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 		}
 	})
 
-	runStep(t, "check primary DC", func(t *testing.T) {
+	testutil.RunStep(t, "check primary DC", func(t *testing.T) {
 		testrpc.WaitForTestAgent(t, serverDC1.RPC, "dc1")
 
 		codec := rpcClient(t, serverDC1)
@@ -71,7 +72,7 @@ func TestCAManager_Initialize_Vault_Secondary_SharedVault(t *testing.T) {
 		verifyLeafCert(t, roots.Roots[0], leafPEM)
 	})
 
-	runStep(t, "start secondary DC", func(t *testing.T) {
+	testutil.RunStep(t, "start secondary DC", func(t *testing.T) {
 		_, serverDC2 := testServerWithConfig(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -647,7 +648,7 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 		}
 	})
 
-	runStep(t, "check primary DC", func(t *testing.T) {
+	testutil.RunStep(t, "check primary DC", func(t *testing.T) {
 		testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 		codec := rpcClient(t, s1)
@@ -664,7 +665,7 @@ func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
 	// TODO: renew primary leaf signing cert
 	// TODO: rotate root
 
-	runStep(t, "run secondary DC", func(t *testing.T) {
+	testutil.RunStep(t, "run secondary DC", func(t *testing.T) {
 		_, sDC2 := testServerWithConfig(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
@@ -797,7 +798,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 
 	var origLeaf string
 	roots := structs.IndexedCARoots{}
-	runStep(t, "verify primary DC", func(t *testing.T) {
+	testutil.RunStep(t, "verify primary DC", func(t *testing.T) {
 		codec := rpcClient(t, serverDC1)
 		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
 		require.NoError(t, err)
@@ -825,7 +826,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 	})
 
 	var origLeafSecondary string
-	runStep(t, "start secondary DC", func(t *testing.T) {
+	testutil.RunStep(t, "start secondary DC", func(t *testing.T) {
 		joinWAN(t, serverDC2, serverDC1)
 		testrpc.WaitForActiveCARoot(t, serverDC2.RPC, "dc2", nil)
 
@@ -840,7 +841,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		origLeafSecondary = leafPEM
 	})
 
-	runStep(t, "renew leaf signing CA in primary", func(t *testing.T) {
+	testutil.RunStep(t, "renew leaf signing CA in primary", func(t *testing.T) {
 		previous := serverDC1.caManager.getLeafSigningCertFromRoot(roots.Active())
 
 		renewLeafSigningCert(t, serverDC1.caManager, serverDC1.caManager.primaryRenewIntermediate)
@@ -862,7 +863,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		verifyLeafCert(t, roots.Roots[0], origLeaf)
 	})
 
-	runStep(t, "renew leaf signing CA in secondary", func(t *testing.T) {
+	testutil.RunStep(t, "renew leaf signing CA in secondary", func(t *testing.T) {
 		previous := serverDC2.caManager.getLeafSigningCertFromRoot(roots.Active())
 
 		renewLeafSigningCert(t, serverDC2.caManager, serverDC2.caManager.secondaryRequestNewSigningCert)
@@ -885,7 +886,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		verifyLeafCert(t, roots.Roots[0], origLeaf)
 	})
 
-	runStep(t, "rotate root by changing the provider", func(t *testing.T) {
+	testutil.RunStep(t, "rotate root by changing the provider", func(t *testing.T) {
 		codec := rpcClient(t, serverDC1)
 		req := &structs.CARequest{
 			Op: structs.CAOpSetConfig,
@@ -919,7 +920,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		verifyLeafCertWithRoots(t, rootsSecondary, origLeafSecondary)
 	})
 
-	runStep(t, "rotate to a different external root", func(t *testing.T) {
+	testutil.RunStep(t, "rotate to a different external root", func(t *testing.T) {
 		setupPrimaryCA(t, vclient, "pki-primary-2/", rootPEM)
 
 		codec := rpcClient(t, serverDC1)
@@ -1001,7 +1002,7 @@ func generateExternalRootCA(t *testing.T, client *vaultapi.Client) string {
 		"ttl":         "2400h",
 	})
 	require.NoError(t, err, "failed to generate root")
-	return ca.EnsureTrailingNewline(resp.Data["certificate"].(string))
+	return lib.EnsureTrailingNewline(resp.Data["certificate"].(string))
 }
 
 func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM string) string {
@@ -1033,12 +1034,12 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	require.NoError(t, err, "failed to sign intermediate")
 
 	var buf strings.Builder
-	buf.WriteString(ca.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
-	buf.WriteString(ca.EnsureTrailingNewline(rootPEM))
+	buf.WriteString(lib.EnsureTrailingNewline(intermediate.Data["certificate"].(string)))
+	buf.WriteString(lib.EnsureTrailingNewline(rootPEM))
 
 	_, err = client.Logical().Write(path+"/intermediate/set-signed", map[string]interface{}{
 		"certificate": buf.String(),
 	})
 	require.NoError(t, err, "failed to set signed intermediate")
-	return ca.EnsureTrailingNewline(buf.String())
+	return lib.EnsureTrailingNewline(buf.String())
 }

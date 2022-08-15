@@ -15,6 +15,8 @@ type MeshConfigEntry struct {
 
 	TLS *MeshTLSConfig `json:",omitempty"`
 
+	HTTP *MeshHTTPConfig `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
@@ -40,6 +42,10 @@ type MeshDirectionalTLSConfig struct {
 	// Define a subset of cipher suites to restrict
 	// Only applicable to connections negotiated via TLS 1.2 or earlier
 	CipherSuites []types.TLSCipherSuite `json:",omitempty" alias:"cipher_suites"`
+}
+
+type MeshHTTPConfig struct {
+	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {

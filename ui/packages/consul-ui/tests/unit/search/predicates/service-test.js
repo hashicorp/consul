@@ -60,4 +60,39 @@ module('Unit | Search | Predicate | service', function() {
     ).search('hit');
     assert.equal(actual.length, 0);
   });
+  test('items can be found by Partition', function(assert) {
+    const search = new ExactSearch(
+      [
+        {
+          Name: 'name-a',
+          Partition: 'default',
+        },
+        {
+          Name: 'name-b',
+          Partition: 'lorem-ipsum',
+        },
+      ],
+      {
+        finders: predicates,
+      }
+    );
+
+    assert.deepEqual(
+      search.search('').map(i => i.Name),
+      ['name-a', 'name-b'],
+      'both items included in search'
+    );
+
+    assert.deepEqual(
+      search.search('def').map(i => i.Name),
+      ['name-a'],
+      'only item from default partition is included'
+    );
+
+    assert.deepEqual(
+      search.search('tomster').map(i => i.Name),
+      [],
+      'no item included when no Partition matches'
+    );
+  });
 });

@@ -37,6 +37,9 @@ export default class NodeSerializer extends Serializer.extend(EmbeddedRecordsMix
             }
             checks[item.ServiceID].push(item);
           });
+        if (item.PeerName === '') {
+          item.PeerName = undefined;
+        }
         serializer = this.store.serializerFor(relationship.type);
         item.Services = item.Services.map(service =>
           serializer.transformHasManyResponseFromNode(item, service, checks)

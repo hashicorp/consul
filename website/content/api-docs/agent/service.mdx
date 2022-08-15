@@ -39,16 +39,13 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
-### Parameters
+### Query Parameters
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
-  to list services. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the services in the specified namespace.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -162,16 +159,14 @@ The table below shows this endpoint's support for
   hash-based blocking
 </a> only.
 
-### Parameters
+### Path Parameters
 
-- `service_id` `(string: <required>)` - Specifies the ID of the service to
-  fetch. This is specified as part of the URL.
+- `service_id` `(string: <required>)` - Specifies the ID of the service to fetch.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the service's configuration. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -262,17 +257,6 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
-### Parameters
-
-- `service_name` `(string: <required>)` - Specifies the name of the service to
-  retrieve. This is specified as part of the URL.
-
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
-  the service's health data. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
-
 Those endpoints return the aggregated values of all health checks for the
 service instance(s) and will return the corresponding HTTP codes:
 
@@ -298,6 +282,15 @@ If you know the ID of service you want to target, it is recommended to use
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
+
+### Path Parameters
+
+- `service_name` `(string: <required>)` - Specifies the name of the service to retrieve.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Requests
 
@@ -597,11 +590,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul services register`](/commands/services/register).
 
-### Query string parameters
+### Query Parameters
 
 - `replace-existing-checks` - Missing health checks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
-### Parameters
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you register.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
 
 Note that this endpoint, unlike most also [supports `snake_case`](/docs/discovery/services#service-definition-parameter-case)
 service definition keys for compatibility with the config file format.
@@ -630,11 +626,9 @@ service definition keys for compatibility with the config file format.
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
-  which to register the service. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you register.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
 - `Port` `(int: 0)` - Specifies the port of the service.
 
@@ -772,16 +766,14 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul services deregister`](/commands/services/deregister).
 
-### Parameters
+### Path Parameters
 
-- `service_id` `(string: <required>)` - Specifies the ID of the service to
-  deregister. This is specified as part of the URL.
+- `service_id` `(string: <required>)` - Specifies the ID of the service to deregister.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
-  to deregister the service. This value can be specified as the `ns` URL query
-  parameter or the `X-Consul-Namespace` header. If not provided by either,
-  the namespace will be inherited from the request's ACL token or will default
-  to the `default` namespace. Added in Consul 1.7.0.
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you deregister.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -812,26 +804,23 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
 
-### Parameters
+### Path Parameters
 
-- `service_id` `(string: <required>)` - Specifies the ID of the service to put
-  in maintenance mode. This is specified as part of the URL.
+- `service_id` `(string: <required>)` - Specifies the ID of the service to put in maintenance mode.
+
+### Query Parameters
 
 - `enable` `(bool: <required>)` - Specifies whether to enable or disable
   maintenance mode. This is specified as part of the URL as a query string
   parameter.
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace
-  of the service to place into maintenance mode. This value can be specified as
-  the `ns` URL query parameter or the `X-Consul-Namespace` header. If not provided
-  by either, the namespace will be inherited from the request's ACL token or will
-  default to the `default` namespace. Added in Consul 1.7.0.
-
 - `reason` `(string: "")` - Specifies a text string explaining the reason for
   placing the node into maintenance mode. This is simply to aid human operators.
-  If no reason is provided, a default value will be used instead. This is
-  specified as part of the URL as a query string parameter, and, as such, must
-  be URI-encoded.
+  If no reason is provided, a default value is used instead.
+  This parameter must be URI-encoded.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you place into maintenance mode.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 ### Sample Request
 
@@ -840,3 +829,15 @@ $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
 ```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Local agent service endpoints
+support several methods for specifying the namespace of service resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to the [register](#register-check) endpoint
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

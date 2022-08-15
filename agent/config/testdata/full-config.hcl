@@ -305,6 +305,9 @@ node_meta {
 node_name = "otlLxGaI"
 non_voting_server = true
 partition = ""
+peering {
+    enabled = true
+}
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -647,13 +650,13 @@ telemetry {
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
+    retry_failed_connection = true
     filter_default = true
     prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
     metrics_prefix = "ftO6DySn"
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
-    disable_compat_1.9 = true
 }
 tls {
     defaults {

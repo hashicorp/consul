@@ -1,15 +1,9 @@
 @keyframes icon-shopping-bag {
-  50% {
-
-    background-color: var(--icon-color, var(--color-shopping-bag-500, currentColor));
-    -webkit-mask-image: var(--icon-shopping-bag-24);
-    mask-image: var(--icon-shopping-bag-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-shopping-bag-500, currentColor));
     -webkit-mask-image: var(--icon-shopping-bag-16);
     mask-image: var(--icon-shopping-bag-16);
+    background-color: var(--icon-color, var(--color-shopping-bag-500, currentColor));
+
   }
 }

@@ -2,50 +2,277 @@
 layout: api
 page_title: Consistency Modes
 description: >-
-  Most of the read query endpoints support multiple levels of consistency. Since
-  no policy will suit all clients' needs, these consistency modes allow the user
-  to have the ultimate say in how to balance the trade-offs inherent in a
-  distributed system.
+  Every Consul HTTP API read request uses one of several "consistency modes" that offer
+  different levels of response consistency and performance. By default, Consul uses a
+  consistency mode that is suitable for most use cases. Users can override consistency modes
+  to fine-tune these trade-offs for their own use case.
 ---
 
 # Consistency Modes
 
-Most of the read query endpoints support multiple levels of consistency. Since
-no policy will suit all clients' needs, these consistency modes allow the user
-to have the ultimate say in how to balance the trade-offs inherent in a
-distributed system.
+Every Consul HTTP API read request uses one of several _consistency modes_ that offer
+different levels of response consistency and performance. By default, Consul uses a
+consistency mode that is suitable for most use cases. Users can override consistency modes
+to fine-tune these trade-offs for their own use case at two levels:
+- Per interface (HTTP API, DNS)
+- Per request (HTTP API requests only)
 
-The three read modes are:
+## What is Consistency?
 
-- `default` - If not specified, the default is strongly consistent in almost all
-  cases. However, there is a small window in which a new leader may be elected
-  during which the old leader may service stale values. The trade-off is fast
-  reads but potentially stale values. The condition resulting in stale reads is
-  hard to trigger, and most clients should not need to worry about this case.
+Consul servers are responsible for maintaining state information like the registration and
+health status of services and nodes. To protect this state against the potential failure of
+Consul servers, this state is replicated across three or more Consul servers in production using a
+[consensus protocol](/docs/architecture/consensus).
+
+One Consul server is elected leader and acts as the ultimate authority on Consul's state.
+If a majority of Consul servers agree to a state change, the leader is responsible for recording
+the change and then distributing it to the non-leader Consul servers—known as followers.
+Because it takes time for a state change on the leader to propagate to the followers,
+followers may have a slightly outdated, or "stale", view of Consul's state.
+
+If a read request is handled by the current leader, the response is guaranteed to be
+fully _consistent_ (as up-to-date as possible).
+If the same request were handled by a follower, the response may be less consistent:
+based on a _stale_ (outdated) copy of the leader's state. 
+Consistency is highest if the response comes from the leader.
+But ensuring only the leader can respond to the request prevents spreading
+read request load across all Consul servers.
+
+The consistency mode controls which Consul servers can repond to read requests,
+enabling control over this inherent trade-off between consistency and performance.
+
+## Available Consistency Modes
+
+Each HTTP API endpoint documents its support for the three read consistency modes:
+
+- `stale` -
+  [Consul DNS queries use `stale` mode by default](#consul-dns-queries).
+  This mode allows any server to handle the read regardless of whether it is the leader.
+  The trade-off is very fast and scalable reads with a higher likelihood of stale values.
+  Results are generally consistent to within 50 milliseconds of the leader,
+  though there is no upper limit on this staleness.
+  Since this mode allows reads without a leader,
+  a cluster that is unavailable (no quorum) can still respond to queries.
+
+- `default` -
+  [Consul HTTP API queries use `default` mode by default](#consul-http-api-queries).
+  It is strongly consistent in almost all cases. 
+  However, there is a small window in which a new leader may be elected
+  during which the old leader may respond with stale values.
+  The trade-off is fast reads but potentially stale values.
+  The condition resulting in stale reads is hard to trigger,
+  and most clients should not need to worry about this case.
   Also, note that this race condition only applies to reads, not writes.
 
-- `consistent` - This mode is strongly consistent without caveats. It requires
-  that a leader verify with a quorum of peers that it is still leader. This
-  introduces an additional round-trip to all server nodes. The trade-off is
-  increased latency due to an extra round trip. Most clients should not use this
-  unless they cannot tolerate a stale read.
+- `consistent` -
+  This mode is strongly consistent without caveats.
+  It requires that a leader verify with a quorum of peers that it is still leader.
+  This introduces an additional round-trip to all server nodes.
+  The trade-off is increased latency due to an extra round trip.
+  Most clients should not use this unless they cannot tolerate a stale read.
 
-- `stale` - This mode allows any server to service the read regardless of
-  whether it is the leader. This means reads can be arbitrarily stale; however,
-  results are generally consistent to within 50 milliseconds of the leader. The
-  trade-off is very fast and scalable reads with a higher likelihood of stale
-  values. Since this mode allows reads without a leader, a cluster that is
-  unavailable will still be able to respond to queries.
+~> **Scaling read requests**: The most effective way to increase read scalability
+is to convert non-`stale` reads to `stale` reads. If most requests are already
+`stale` reads and additional load reduction is desired, use Consul Enterprise
+[redundancy zones](/docs/enterprise/redundancy) or
+[read replicas](/docs/enterprise/read-scale)
+to spread `stale` reads across additional, _non-voting_ Consul servers.
+Non-voting servers enhance read scalability without increasing the number
+of voting servers; adding more then 5 voting servers is not recommended because
+it decreases Consul's performance.
 
-To switch these modes, either the `stale` or `consistent` query parameters
-should be provided on requests. It is an error to provide both.
+### Intra-Datacenter Request Behavior
 
-Note that some endpoints support a `cached` parameter which has some of the same
-semantics as `stale` but different trade offs. This behavior is described in
-[agent caching feature documentation](/api-docs/features/caching).
+The following diagrams show how the intra-datacenter request path varies
+per consistency mode and the relative trade-offs between level of consistency and performance.
+
+<Tabs>
+<Tab heading="Stale reads">
+
+[![stale consistency mode read request path](/img/consistency-modes/consistency-mode-stale.png)](/img/consistency-modes/consistency-mode-stale.png)
+
+</Tab>
+
+<Tab heading="Default reads">
+
+[![default consistency mode read request path](/img/consistency-modes/consistency-mode-default.png)](/img/consistency-modes/consistency-mode-default.png)
+
+</Tab>
+<Tab heading="Consistent reads, all writes">
+
+[![consistent consistency mode read, any write request path](/img/consistency-modes/consistency-mode-consistent.png)](/img/consistency-modes/consistency-mode-consistent.png)
+
+</Tab>
+</Tabs>
+
+### Cross-Datacenter Request Behavior
+
+When making a request across federated Consul datacenters, requests are forwarded from
+a local server to any remote server. Once in the remote datecenter, the request path
+is the same as a [local request with the same consistency mode](#intra-datacenter-request-behavior).
+The following diagrams show the cross-datacenter request paths when Consul servers in datacenters are
+[federated either directly or via mesh gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+
+<Tabs>
+<Tab heading="Traditional WAN federation">
+
+[![consistency mode behavior across Consul datacenters with traditional WAN federation](/img/consistency-modes/consistency-mode-cross-datacenter-federation-traditional.png)](/img/consistency-modes/consistency-mode-cross-datacenter-federation-traditional.png)
+
+</Tab>
+
+<Tab heading="WAN federation via mesh gateways">
+
+[![consistency mode behavior across Consul datacenters with WAN federation via mesh gateways](/img/consistency-modes/consistency-mode-cross-datacenter-federation-mesh-gateways.png)](/img/consistency-modes/consistency-mode-cross-datacenter-federation-mesh-gateways.png)
+
+</Tab>
+</Tabs>
+
+## Usage
+
+### Consul DNS Queries
+
+When DNS queries are issued to [Consul's DNS interface](/docs/discovery/dns),
+Consul uses the `stale` consistency mode by default when interfacing with its
+underlying Consul service discovery HTTP APIs
+([Catalog](/api-docs/catalog), [Health](/api-docs/health), and [Prepared Query](/api-docs/query)).
+
+The consistency mode underlying Consul DNS queries cannot be overridden on a
+per-request basis.
+
+#### Changing the Default Consistency Mode
+
+If stronger consistency is required at the expense of increased latency,
+set [`dns_config.allow_stale`] to `false` to make Consul use the
+`default` consistency mode instead of `stale`
+when interfacing with the underlying Consul service discovery HTTP APIs.
+
+#### Limiting Staleness (Advanced Usage)
+
+~> **Caution**:
+  Configuring [`dns_config.max_stale`] may result in a prolonged outage
+  if your Consul servers become overloaded.
+  We do not recommend using this setting to limit staleness
+  unless it would be preferable for your services to be unavailable
+  than to receive results that are too stale.
+  If bounded result consistency is required by a service, consider
+  modifying the service to use `consistent` service discovery HTTP API queries
+  instead of DNS lookups.
+
+If Consul is configured to respond to DNS queries in `stale` consistency mode
+([`dns_config.allow_stale`] is `true`),
+you can set an upper limit on how stale a response is allowed to be by
+configuring [`dns_config.max_stale`].
+When the Consul agent handling the response is behind the leader by more than [`dns_config.max_stale`] time,
+the request will be forwarded to the leader for handling as in `default` consistency mode.
+
+A common cause for response staleness exceeding [`dns_config.max_stale`] is that
+Consul servers are overloaded by requests. Under these circumstances, [`dns_config.max_stale`]
+will make the overloading worse by converting cheap `stale` reads to more expensive `default` reads.
+
+### Consul HTTP API Queries
+
+All HTTP API read requests use the `default` consistency mode by default
+unless [overridden on a per-request basis](#overriding-a-request-s-consistency-mode).
+We do [not recommend changing the consistency mode used by default](#changing-the-default-consistency-mode-advanced-usage).
+
+Write requests do not support defining a consistency mode.
+All writes follow the behavior of the `consistent` consistency mode.
+
+#### Overriding a Request's Consistency Mode
+
+The HTTP API documentation for each endpoint lists which consistency modes can be used
+to override the default on a per-request basis. To use a supported consistency mode
+other than the default, include the desired consistency mode as a URL query parameter
+when calling the endpoint:
+- `stale`: Use the `stale` query parameter
+- `consistent`: Use the `consistent` query parameter
+- `default`: Use the `leader` query parameter;
+   only relevant [if the default consistency mode is changed to `stale`](#changing-the-default-consistency-mode-advanced-usage)
+
+#### Changing the Default Consistency Mode (Advanced Usage)
+
+~> **Caution**:
+  Configuring [`discovery_max_stale`] may result in a prolonged outage
+  if your Consul servers become overloaded.
+  We do not recommend using this setting to limit staleness
+  unless it would be preferable for your services to be unavailable
+  than to receive results that are too stale.
+  If bounded result consistency is required by a service, consider
+  modifying the service to use `consistent` mode
+  [on a per-request basis](#overriding-a-request-s-consistency-mode).
+
+The default consistency mode can be changed to `stale` for service discovery HTTP API endpoints,
+including:
+- [Catalog API](/api-docs/catalog)
+- [Health API](/api-docs/health)
+- [Prepared Query API](/api-docs/query)
+
+This allows Consul operators to spread service discovery read load across Consul servers
+with a centralized configuration change, avoiding the need to modify every service to
+explicitly set `stale` consistency mode in their requests.
+Services can still override this default on a per-request basis by
+[specifying a supported consistency mode as a query parameter in the request](#overriding-a-request-s-consistency-mode).
+
+To configure Consul servers that receive service discovery requests to use `stale`
+consistency mode unless overriden,
+set [`discovery_max_stale`] to a value greater than zero in their agent configuration.
+The `stale` consistency mode will be used by default unless the data is sufficiently stale:
+its Raft log's index is more than [`discovery_max_stale`] indices behind the leader's.
+Setting a positive value for [`discovery_max_stale`]
+is analogous to [limiting the staleness of Consul DNS queries](#limiting-staleness-advanced-usage)
+by setting [`dns_config.max_stale`].
+
+A common cause for response staleness exceeding [`discovery_max_stale`] is that
+Consul servers are overloaded by requests. Under these circumstances, [`discovery_max_stale`]
+will make the overloading worse by converting cheap `stale` reads to more expensive `default` reads.
+
+### Visibility into Response Staleness
 
 To support bounding the acceptable staleness of data, responses provide the
 `X-Consul-LastContact` header containing the time in milliseconds that a server
 was last contacted by the leader node. The `X-Consul-KnownLeader` header also
 indicates if there is a known leader. These can be used by clients to gauge the
 staleness of a result and take appropriate action.
+
+### Visibility into Consistency Mode Used
+
+The Consul DNS and HTTP API interfaces allow setting the consistency mode
+at different levels (interface and per-request).
+Advanced settings for the [DNS](#limiting-staleness-advanced-usage) and
+[HTTP API](#changing-the-default-consistency-mode-advanced-usage) interfaces can even
+cause the consistency mode to change from `stale` to `default` if results are sufficiently stale.
+
+To understand the consistency mode used for a particular HTTP API request,
+check the `X-Consul-Effective-Consistency` response header.
+The value of the header matches the
+[name of the query parameter associated with the consistency mode](#overriding-a-request-s-consistency-mode).
+In the following example, the header shows that the `default` consistency mode was used.
+
+```shell-session
+$ curl --include $CONSUL_HTTP_ADDR/v1/catalog/services
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+...
+X-Consul-Effective-Consistency: leader
+X-Consul-KnownLeader: true
+X-Consul-LastContact: 0
+
+{
+  "redis": [],
+  "postgresql": ["primary", "secondary"]
+}
+```
+
+The DNS interface does not support viewing the consistency mode used for a particular query.
+
+### Relationship to Request Caching
+
+Note that some HTTP API endpoints support a `cached` parameter which has some of the same
+semantics as `stale` consistency mode but different trade offs. This behavior is described in
+[agent caching feature documentation](/api-docs/features/caching)
+
+<!-- Common links references -->
+[`dns_config.allow_stale`]: /docs/agent/options#allow_stale)
+[`dns_config.max_stale`]: /docs/agent/options#max_stale
+[`discovery_max_stale`]: /docs/agent/options#discovery_max_stale

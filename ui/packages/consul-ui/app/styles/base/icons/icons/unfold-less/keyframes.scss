@@ -1,15 +1,9 @@
 @keyframes icon-unfold-less {
-  50% {
-
-    background-color: var(--icon-color, var(--color-unfold-less-500, currentColor));
-    -webkit-mask-image: var(--icon-unfold-close-24);
-    mask-image: var(--icon-unfold-close-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-unfold-less-500, currentColor));
     -webkit-mask-image: var(--icon-unfold-close-16);
     mask-image: var(--icon-unfold-close-16);
+    background-color: var(--icon-color, var(--color-unfold-less-500, currentColor));
+
   }
 }

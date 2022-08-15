@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 
@@ -196,6 +197,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
 	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
 	Performance                      Performance         `mapstructure:"performance"`
 	PidFile                          *string             `mapstructure:"pid_file"`
 	Ports                            Ports               `mapstructure:"ports"`
@@ -261,17 +263,19 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	AEInterval                 *string  `mapstructure:"ae_interval"`
-	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
-	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
-	Consul                     Consul   `mapstructure:"consul"`
-	Revision                   *string  `mapstructure:"revision"`
-	SegmentLimit               *int     `mapstructure:"segment_limit"`
-	SegmentNameLimit           *int     `mapstructure:"segment_name_limit"`
-	SyncCoordinateIntervalMin  *string  `mapstructure:"sync_coordinate_interval_min"`
-	SyncCoordinateRateTarget   *float64 `mapstructure:"sync_coordinate_rate_target"`
-	Version                    *string  `mapstructure:"version"`
-	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
+	AEInterval                 *string    `mapstructure:"ae_interval"`
+	CheckDeregisterIntervalMin *string    `mapstructure:"check_deregister_interval_min"`
+	CheckReapInterval          *string    `mapstructure:"check_reap_interval"`
+	Consul                     Consul     `mapstructure:"consul"`
+	Revision                   *string    `mapstructure:"revision"`
+	SegmentLimit               *int       `mapstructure:"segment_limit"`
+	SegmentNameLimit           *int       `mapstructure:"segment_name_limit"`
+	SyncCoordinateIntervalMin  *string    `mapstructure:"sync_coordinate_interval_min"`
+	SyncCoordinateRateTarget   *float64   `mapstructure:"sync_coordinate_rate_target"`
+	Version                    *string    `mapstructure:"version"`
+	VersionPrerelease          *string    `mapstructure:"version_prerelease"`
+	VersionMetadata            *string    `mapstructure:"version_metadata"`
+	BuildDate                  *time.Time `mapstructure:"build_date"`
 
 	// Enterprise Only
 	Audit Audit `mapstructure:"audit"`
@@ -402,6 +406,7 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
+	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
 	Shell                          *string             `mapstructure:"shell"`
@@ -505,6 +510,7 @@ type Upstream struct {
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
 	DestinationPartition *string `mapstructure:"destination_partition"`
+	DestinationPeer      *string `mapstructure:"destination_peer"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -605,7 +611,7 @@ type Connect struct {
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
 	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
-	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaft certs will be generated.
+	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
 	// certs by. This configuration is not exposed to users (not documented, and agent/config/default.go will override it)
 	TestCALeafRootChangeSpread *string `mapstructure:"test_ca_leaf_root_change_spread"`
@@ -668,10 +674,10 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags"`
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url"`
-	DisableCompatOneNine               *bool    `mapstructure:"disable_compat_1.9"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags"`
+	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection"`
 	FilterDefault                      *bool    `mapstructure:"filter_default"`
 	PrefixFilter                       []string `mapstructure:"prefix_filter"`
 	MetricsPrefix                      *string  `mapstructure:"metrics_prefix"`
@@ -868,4 +874,25 @@ type TLS struct {
 	InternalRPC TLSProtocolConfig `mapstructure:"internal_rpc"`
 	HTTPS       TLSProtocolConfig `mapstructure:"https"`
 	GRPC        TLSProtocolConfig `mapstructure:"grpc"`
+
+	// GRPCModifiedByDeprecatedConfig is a flag used to indicate that GRPC was
+	// modified by the deprecated field mapping (as apposed to a user-provided
+	// a grpc stanza). This prevents us from emitting a warning about an
+	// ineffectual grpc stanza when we modify GRPC to honor the legacy behaviour
+	// that setting `verify_incoming = true` at the top-level *does not* enable
+	// client certificate verification on the gRPC port.
+	//
+	// See: applyDeprecatedTLSConfig.
+	//
+	// Note: we use a *struct{} here because a simple bool isn't supported by our
+	// config merging logic.
+	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+type Peering struct {
+	Enabled *bool `mapstructure:"enabled"`
+
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
+	// This always gets overridden in NonUserSource()
+	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
 }

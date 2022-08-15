@@ -1,15 +1,9 @@
 @keyframes icon-keychain {
-  50% {
-
-    background-color: var(--icon-color, var(--color-keychain-500, currentColor));
-    -webkit-mask-image: var(--icon-keychain-24);
-    mask-image: var(--icon-keychain-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-keychain-500, currentColor));
     -webkit-mask-image: var(--icon-keychain-16);
     mask-image: var(--icon-keychain-16);
+    background-color: var(--icon-color, var(--color-keychain-500, currentColor));
+
   }
 }

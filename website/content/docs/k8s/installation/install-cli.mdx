@@ -114,15 +114,15 @@ These instructions describe how to install a specific version of the CLI and are
 
 Homebrew does not provide a method to install previous versions of a package. The Consul K8s CLI will need to be installed manually. Previous versions of the Consul K8s CLI could be used to install a specific version of Consul on the Kubernetes control plane. Manual upgrades to the Consul K8s CLI is also performed in the same manner, provided that the Consul K8s CLI was manually installed before. 
 
-1. Download the desired Consul K8s CLI using the following `curl` command. Enter the approriate version for your deployment via the `$VERSION` environment variable. 
+1. Download the desired Consul K8s CLI using the following `curl` command. Enter the appropriate version for your deployment via the `$VERSION` environment variable.
 
    ```shell-session
    $ export VERSION=0.39.0 && \
        curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
    ```
-   
-1. Unzip the zip file ouput to extract the `consul-k8s` CLI binary. This overwrites existing files and also creates a `.consul-k8s` subdirectory in your `$HOME` folder. 
-   
+
+1. Unzip the zip file output to extract the `consul-k8s` CLI binary. This overwrites existing files and also creates a `.consul-k8s` subdirectory in your `$HOME` folder.
+
    ```shell-session
    $ unzip -o consul-k8s-cli.zip -d ~/.consul-k8s
    ```

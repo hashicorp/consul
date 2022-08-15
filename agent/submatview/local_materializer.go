@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/lib/retry"
@@ -15,12 +16,18 @@ import (
 // and manages the local subscription to the event publisher
 // until the cache result is discarded when its TTL expires.
 type LocalMaterializer struct {
-	deps        Deps
-	backend     LocalBackend
+	deps        LocalMaterializerDeps
 	retryWaiter *retry.Waiter
 	handler     eventHandler
 
 	mat *materializer
+}
+
+type LocalMaterializerDeps struct {
+	Deps
+
+	Backend     LocalBackend
+	ACLResolver ACLResolver
 }
 
 var _ Materializer = (*LocalMaterializer)(nil)
@@ -29,11 +36,15 @@ type LocalBackend interface {
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
-func NewLocalMaterializer(backend LocalBackend, deps Deps) *LocalMaterializer {
+//go:generate mockery --name ACLResolver --inpackage
+type ACLResolver interface {
+	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
+}
+
+func NewLocalMaterializer(deps LocalMaterializerDeps) *LocalMaterializer {
 	m := LocalMaterializer{
-		backend: backend,
-		deps:    deps,
-		mat:     newMaterializer(deps.Logger, deps.View, deps.Waiter),
+		deps: deps,
+		mat:  newMaterializer(deps.Logger, deps.View, deps.Waiter),
 	}
 	return &m
 }
@@ -71,8 +82,18 @@ func (m *LocalMaterializer) subscribeOnce(ctx context.Context, req *pbsubscribe.
 
 	m.handler = initialHandler(req.Index)
 
-	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-	sub, err := m.backend.Subscribe(state.PBToStreamSubscribeRequest(req, entMeta))
+	entMeta := req.EnterpriseMeta()
+	authz, err := m.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	subReq, err := state.PBToStreamSubscribeRequest(req, entMeta)
+	if err != nil {
+		return err
+	}
+
+	sub, err := m.deps.Backend.Subscribe(subReq)
 	if err != nil {
 		return err
 	}
@@ -89,7 +110,12 @@ func (m *LocalMaterializer) subscribeOnce(ctx context.Context, req *pbsubscribe.
 			return err
 		}
 
+		if !event.Payload.HasReadPermission(authz) {
+			continue
+		}
+
 		e := event.Payload.ToSubscriptionEvent(event.Index)
+
 		m.handler, err = m.handler(m, e)
 		if err != nil {
 			m.mat.reset()

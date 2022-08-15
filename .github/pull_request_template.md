@@ -16,4 +16,3 @@ Please be mindful not to leak any customer or confidential information. HashiCor
 * [ ] updated test coverage
 * [ ] external facing docs updated
 * [ ] not a security concern
-* [ ] checklist [folder](./../docs/config) consulted

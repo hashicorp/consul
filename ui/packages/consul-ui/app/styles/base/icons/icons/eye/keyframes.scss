@@ -1,15 +1,9 @@
 @keyframes icon-eye {
-  50% {
-
-    background-color: var(--icon-color, var(--color-eye-500, currentColor));
-    -webkit-mask-image: var(--icon-eye-24);
-    mask-image: var(--icon-eye-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-eye-500, currentColor));
     -webkit-mask-image: var(--icon-eye-16);
     mask-image: var(--icon-eye-16);
+    background-color: var(--icon-color, var(--color-eye-500, currentColor));
+
   }
 }

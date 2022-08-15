@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -701,6 +702,135 @@ func (c *CheckTCP) check() {
 	}
 	conn.Close()
 	c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+}
+
+// CheckUDP is used to periodically send a UDP datagram to determine the health of a given check.
+// The check is passing if the connection succeeds, the response is bytes.Equal to the bytes passed
+// in or if the error returned is a timeout error
+// The check is critical if: the connection succeeds but the response is not equal to the bytes passed in,
+// the connection succeeds but the error returned is not a timeout error or the connection fails
+type CheckUDP struct {
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
+	UDP           string
+	Message       string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        hclog.Logger
+	StatusHandler *StatusHandler
+
+	dialer   *net.Dialer
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+}
+
+func (c *CheckUDP) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+
+	if c.dialer == nil {
+		// Create the socket dialer
+		c.dialer = &net.Dialer{
+			Timeout: 10 * time.Second,
+		}
+		if c.Timeout > 0 {
+			c.dialer.Timeout = c.Timeout
+		}
+	}
+
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	go c.run()
+}
+
+func (c *CheckUDP) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+}
+
+func (c *CheckUDP) run() {
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+
+}
+
+func (c *CheckUDP) check() {
+
+	conn, err := c.dialer.Dial(`udp`, c.UDP)
+
+	if err != nil {
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket connection failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
+	}
+	defer conn.Close()
+
+	n, err := fmt.Fprintf(conn, c.Message)
+	if err != nil {
+		c.Logger.Warn("Check socket write failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	if n != len(c.Message) {
+		c.Logger.Warn("Check socket short write",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+
+	if err != nil {
+		c.Logger.Warn("Check socket write failed",
+			"check", c.CheckID.String(),
+			"error", err,
+		)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+		return
+	}
+	_, err = bufio.NewReader(conn).Read(make([]byte, 1))
+	if err != nil {
+		if strings.Contains(err.Error(), "i/o timeout") {
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+			return
+		} else {
+			c.Logger.Warn("Check socket read failed",
+				"check", c.CheckID.String(),
+				"error", err,
+			)
+			c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
+			return
+		}
+	} else if err == nil {
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
+	}
 }
 
 // CheckDocker is used to periodically invoke a script to

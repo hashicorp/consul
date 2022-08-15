@@ -57,8 +57,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err = a.srv.DiscoveryChainRead(resp, req)
 			require.Error(t, err)
-			_, ok := err.(BadRequestError)
-			require.True(t, ok)
+			require.True(t, isHTTPBadRequest(err))
 		}))
 
 		require.True(t, t.Run(method+": read default chain", func(t *testing.T) {

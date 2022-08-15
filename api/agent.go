@@ -333,6 +333,7 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
+	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
 	TLSServerName          string              `json:",omitempty"`
@@ -427,6 +428,7 @@ type Upstream struct {
 	DestinationType      UpstreamDestType `json:",omitempty"`
 	DestinationPartition string           `json:",omitempty"`
 	DestinationNamespace string           `json:",omitempty"`
+	DestinationPeer      string           `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`

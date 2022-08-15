@@ -57,6 +57,10 @@ func NodeEnterpriseMetaInDefaultPartition() *acl.EnterpriseMeta {
 // FillAuthzContext stub
 func (_ *Node) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
+func (n *Node) OverridePartition(_ string) {
+	n.Partition = ""
+}
+
 func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}
@@ -112,6 +116,12 @@ func (n ServiceName) String() string {
 func ServiceNameFromString(input string) ServiceName {
 	id, _ := ParseServiceNameString(input)
 	return ServiceName{Name: id}
+}
+
+// Less implements sort.Interface.
+func (s ServiceList) Less(i, j int) bool {
+	a, b := s[i], s[j]
+	return a.Name < b.Name
 }
 
 func (cid CheckID) String() string {

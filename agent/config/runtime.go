@@ -61,6 +61,8 @@ type RuntimeConfig struct {
 	Revision                   string
 	Version                    string
 	VersionPrerelease          string
+	VersionMetadata            string
+	BuildDate                  time.Time
 
 	// consul config
 	ConsulCoordinateUpdateMaxBatches int
@@ -807,6 +809,18 @@ type RuntimeConfig struct {
 	// hcl: non_voting_server = (true|false)
 	// flag: -non-voting-server
 	ReadReplica bool
+
+	// PeeringEnabled enables cluster peering. This setting only applies for servers.
+	// When disabled, all peering RPC endpoints will return errors,
+	// peering requests from other clusters will receive errors, and any peerings already stored in this server's
+	// state will be ignored.
+	//
+	// hcl: peering { enabled = (true|false) }
+	PeeringEnabled bool
+
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow
+	// registrations for objects with `PeerName`
+	PeeringTestAllowPeerRegistrations bool
 
 	// PidFile is the file to store our PID in.
 	//
@@ -1629,6 +1643,14 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 	return cfg, nil
 }
 
+func (c *RuntimeConfig) VersionWithMetadata() string {
+	version := c.Version
+	if c.VersionMetadata != "" {
+		version += "+" + c.VersionMetadata
+	}
+	return version
+}
+
 // Sanitized returns a JSON/HCL compatible representation of the runtime
 // configuration where all fields with potential secrets had their
 // values replaced by 'hidden'. In addition, network addresses and
@@ -1689,6 +1711,10 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 	// check before isNumber
 	case isDuration(typ):
 		x := v.Interface().(time.Duration)
+		return reflect.ValueOf(x.String())
+
+	case isTime(typ):
+		x := v.Interface().(time.Time)
 		return reflect.ValueOf(x.String())
 
 	case isString(typ):
@@ -1762,6 +1788,7 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 }
 
 func isDuration(t reflect.Type) bool { return t == reflect.TypeOf(time.Second) }
+func isTime(t reflect.Type) bool     { return t == reflect.TypeOf(time.Time{}) }
 func isMap(t reflect.Type) bool      { return t.Kind() == reflect.Map }
 func isNetAddr(t reflect.Type) bool  { return t.Implements(reflect.TypeOf((*net.Addr)(nil)).Elem()) }
 func isPtr(t reflect.Type) bool      { return t.Kind() == reflect.Ptr }

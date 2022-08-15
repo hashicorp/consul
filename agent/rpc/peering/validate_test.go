@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestValidatePeeringToken(t *testing.T) {
@@ -19,14 +20,14 @@ func TestValidatePeeringToken(t *testing.T) {
 		{
 			name:    "empty",
 			token:   &structs.PeeringToken{},
-			wantErr: errPeeringTokenEmptyCA,
+			wantErr: errPeeringTokenEmptyServerAddresses,
 		},
 		{
 			name: "empty CA",
 			token: &structs.PeeringToken{
 				CA: []string{},
 			},
-			wantErr: errPeeringTokenEmptyCA,
+			wantErr: errPeeringTokenEmptyServerAddresses,
 		},
 		{
 			name: "invalid CA",
@@ -53,16 +54,6 @@ func TestValidatePeeringToken(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid address IP",
-			token: &structs.PeeringToken{
-				CA:              []string{validCA},
-				ServerAddresses: []string{"foo.bar.baz"},
-			},
-			wantErr: &errPeeringInvalidServerAddress{
-				"foo.bar.baz",
-			},
-		},
-		{
 			name: "invalid server name",
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},
@@ -84,6 +75,15 @@ func TestValidatePeeringToken(t *testing.T) {
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},
 				ServerAddresses: []string{validAddress},
+				ServerName:      validServerName,
+				PeerID:          validPeerID,
+			},
+		},
+		{
+			name: "valid token with hostname address",
+			token: &structs.PeeringToken{
+				CA:              []string{validCA},
+				ServerAddresses: []string{validHostnameAddress},
 				ServerName:      validServerName,
 				PeerID:          validPeerID,
 			},

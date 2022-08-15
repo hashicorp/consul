@@ -7,17 +7,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-
-	// TODO: replace this with net/netip when we upgrade to go1.18
-	"inet.af/netaddr"
 )
 
 // validatePeeringToken ensures that the token has valid values.
 func validatePeeringToken(tok *structs.PeeringToken) error {
-	if len(tok.CA) == 0 {
-		return errPeeringTokenEmptyCA
-	}
-
 	// the CA values here should be valid x509 certs
 	for _, certStr := range tok.CA {
 		// TODO(peering): should we put these in a cert pool on the token?
@@ -31,7 +24,7 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 		return errPeeringTokenEmptyServerAddresses
 	}
 	for _, addr := range tok.ServerAddresses {
-		host, portRaw, err := net.SplitHostPort(addr)
+		_, portRaw, err := net.SplitHostPort(addr)
 		if err != nil {
 			return &errPeeringInvalidServerAddress{addr}
 		}
@@ -41,9 +34,6 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 			return &errPeeringInvalidServerAddress{addr}
 		}
 		if port < 1 || port > 65535 {
-			return &errPeeringInvalidServerAddress{addr}
-		}
-		if _, err := netaddr.ParseIP(host); err != nil {
 			return &errPeeringInvalidServerAddress{addr}
 		}
 	}

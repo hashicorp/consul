@@ -20,7 +20,7 @@ Description:
       * Update version/version*.go files
       * Update CHANGELOG.md to put things into release mode
       * Create a release commit. It changes in the commit include the CHANGELOG.md
-        version files and the assetfs.
+        version files.
       * Tag the release
       * Generate the SHA256SUMS file for the binaries
       * Sign the SHA256SUMS file with a GPG key
@@ -35,7 +35,7 @@ Options:
                                  release mode
                                  Defaults to 1.
                                  
-   -b | --build      BOOL        Whether to perform the build of the ui's, assetfs and
+   -b | --build      BOOL        Whether to perform the build of the ui's and
                                  binaries. Defaults to 1.
                                  
    -S | --sign       BOOL        Whether to sign the generated SHA256SUMS file.

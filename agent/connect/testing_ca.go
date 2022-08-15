@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -23,6 +24,7 @@ import (
 //
 // NOTE: this is duplicated in the api package as testClusterID
 const TestClusterID = "11111111-2222-3333-4444-555555555555"
+const TestTrustDomain = TestClusterID + ".consul"
 
 // testCACounter is just an atomically incremented counter for creating
 // unique names for the CA certs.
@@ -289,6 +291,21 @@ func TestLeafWithNamespace(t testing.T, service, namespace string, root *structs
 	// both openssl verify (which we use as a sanity check in our tests of this
 	// package) and Go's TLS verification.
 	certPEM, keyPEM, err := testLeaf(t, service, namespace, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	return certPEM, keyPEM
+}
+
+func TestMeshGatewayLeaf(t testing.T, partition string, root *structs.CARoot) (string, string) {
+	// Build the SPIFFE ID
+	spiffeId := &SpiffeIDMeshGateway{
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+		Partition:  acl.PartitionOrDefault(partition),
+		Datacenter: "dc1",
+	}
+
+	certPEM, keyPEM, err := testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

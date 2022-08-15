@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerConnectProxy struct {
@@ -22,16 +23,21 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	snap.ConnectProxy.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.ConnectProxy.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
 	snap.ConnectProxy.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.ConnectProxy.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 	snap.ConnectProxy.PreparedQueryEndpoints = make(map[UpstreamID]structs.CheckServiceNodes)
+	snap.ConnectProxy.DestinationsUpstream = watch.NewMap[UpstreamID, *structs.ServiceConfigEntry]()
 	snap.ConnectProxy.UpstreamConfig = make(map[UpstreamID]*structs.Upstream)
 	snap.ConnectProxy.PassthroughUpstreams = make(map[UpstreamID]map[string]map[string]struct{})
 	snap.ConnectProxy.PassthroughIndices = make(map[string]indexedTarget)
+	snap.ConnectProxy.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
+	snap.ConnectProxy.DestinationGateways = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
+	snap.ConnectProxy.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
 
 	// Watch for root changes
-	err := s.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := s.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
 		Source:       *s.source,
@@ -40,8 +46,20 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+		Request: &pbpeering.TrustBundleListByServiceRequest{
+			ServiceName: s.proxyCfg.DestinationServiceName,
+			Namespace:   s.proxyID.NamespaceOrDefault(),
+			Partition:   s.proxyID.PartitionOrDefault(),
+		},
+		QueryOptions: structs.QueryOptions{Token: s.token},
+	}, peeringTrustBundlesWatchID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Watch the leaf cert
-	err = s.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+	err = s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.proxyCfg.DestinationServiceName,
@@ -52,26 +70,18 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch for intention updates
-	err = s.cache.Notify(ctx, cachetype.IntentionMatchName, &structs.IntentionQueryRequest{
-		Datacenter:   s.source.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: s.token},
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: s.proxyID.NamespaceOrDefault(),
-					Partition: s.proxyID.PartitionOrDefault(),
-					Name:      s.proxyCfg.DestinationServiceName,
-				},
-			},
-		},
+	err = s.dataSources.Intentions.Notify(ctx, &structs.ServiceSpecificRequest{
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		ServiceName:    s.proxyCfg.DestinationServiceName,
 	}, intentionsWatchID, s.ch)
 	if err != nil {
 		return snap, err
 	}
 
 	// Get information about the entire service mesh.
-	err = s.cache.Notify(ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.MeshConfig,
 		Name:           structs.MeshConfigMesh,
 		Datacenter:     s.source.Datacenter,
@@ -83,7 +93,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch for service check updates
-	err = s.cache.Notify(ctx, cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecksRequest{
+	err = s.dataSources.HTTPChecks.Notify(ctx, &cachetype.ServiceHTTPChecksRequest{
 		ServiceID:      s.proxyCfg.DestinationServiceID,
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
 	}, svcChecksWatchIDPrefix+structs.ServiceIDString(s.proxyCfg.DestinationServiceID, &s.proxyID.EnterpriseMeta), s.ch)
@@ -93,12 +103,30 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
-		err := s.cache.Notify(ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
+		err := s.dataSources.IntentionUpstreams.Notify(ctx, &structs.ServiceSpecificRequest{
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceName:    s.proxyCfg.DestinationServiceName,
 			EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		}, intentionUpstreamsID, s.ch)
+		if err != nil {
+			return snap, err
+		}
+		err = s.dataSources.PeeredUpstreams.Notify(ctx, &structs.PartitionSpecificRequest{
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			Datacenter:     s.source.Datacenter,
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		}, peeredUpstreamsID, s.ch)
+		if err != nil {
+			return snap, err
+		}
+		// We also infer upstreams from destinations (egress points)
+		err = s.dataSources.IntentionUpstreamsDestination.Notify(ctx, &structs.ServiceSpecificRequest{
+			Datacenter:     s.source.Datacenter,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			ServiceName:    s.proxyCfg.DestinationServiceName,
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		}, intentionUpstreamsDestinationID, s.ch)
 		if err != nil {
 			return snap, err
 		}
@@ -128,7 +156,8 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			dc = u.Datacenter
 		}
 		if s.proxyCfg.Mode == structs.ProxyModeTransparent && (dc == "" || dc == s.source.Datacenter) {
-			// In transparent proxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
+			// In transparent proxy mode, watches for upstreams in the local DC
+			// are handled by the IntentionUpstreams and PeeredUpstreams watch.
 			continue
 		}
 
@@ -155,7 +184,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 
 		switch u.DestinationType {
 		case structs.UpstreamDestTypePreparedQuery:
-			err = s.cache.Notify(ctx, cachetype.PreparedQueryName, &structs.PreparedQueryExecuteRequest{
+			err = s.dataSources.PreparedQuery.Notify(ctx, &structs.PreparedQueryExecuteRequest{
 				Datacenter:    dc,
 				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: defaultPreparedQueryPollInterval},
 				QueryIDOrName: u.DestinationName,
@@ -170,7 +199,52 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			fallthrough
 
 		case "":
-			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+			if u.DestinationPeer != "" {
+				// NOTE: An upstream that points to a peer by definition will
+				// only ever watch a single catalog query, so a map key of just
+				// "UID" is sufficient to cover the peer data watches here.
+
+				s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
+
+				snap.ConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, nil)
+				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
+					PeerName:   uid.Peer,
+					Datacenter: dc,
+					QueryOptions: structs.QueryOptions{
+						Token: s.token,
+					},
+					ServiceName: u.DestinationName,
+					Connect:     true,
+					// Note that Identifier doesn't type-prefix for service any more as it's
+					// the default and makes metrics and other things much cleaner. It's
+					// simpler for us if we have the type to make things unambiguous.
+					Source:         *s.source,
+					EnterpriseMeta: uid.EnterpriseMeta,
+				}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
+				if err != nil {
+					return snap, err
+				}
+
+				// Check whether a watch for this peer exists to avoid duplicates.
+				if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
+					peerCtx, cancel := context.WithCancel(ctx)
+					if err := s.dataSources.TrustBundle.Notify(peerCtx, &cachetype.TrustBundleReadRequest{
+						Request: &pbpeering.TrustBundleReadRequest{
+							Name:      uid.Peer,
+							Partition: uid.PartitionOrDefault(),
+						},
+						QueryOptions: structs.QueryOptions{Token: s.token},
+					}, peerTrustBundleIDPrefix+uid.Peer, s.ch); err != nil {
+						cancel()
+						return snap, fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)
+					}
+
+					snap.ConnectProxy.UpstreamPeerTrustBundles.InitWatch(uid.Peer, cancel)
+				}
+				continue
+			}
+
+			err = s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
 				QueryOptions:           structs.QueryOptions{Token: s.token},
 				Name:                   u.DestinationName,
@@ -193,7 +267,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	return snap, nil
 }
 
-func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEvent, snap *ConfigSnapshot) error {
+func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
@@ -205,18 +279,121 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
-	case u.CorrelationID == intentionsWatchID:
-		resp, ok := u.Result.(*structs.IndexedIntentionMatches)
+
+	case strings.HasPrefix(u.CorrelationID, peerTrustBundleIDPrefix):
+		resp, ok := u.Result.(*pbpeering.TrustBundleReadResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		if len(resp.Matches) > 0 {
-			// RPC supports matching multiple services at once but we only ever
-			// query with the one service we represent currently so just pick
-			// the one result set up.
-			snap.ConnectProxy.Intentions = resp.Matches[0]
+		peer := strings.TrimPrefix(u.CorrelationID, peerTrustBundleIDPrefix)
+		if resp.Bundle != nil {
+			snap.ConnectProxy.UpstreamPeerTrustBundles.Set(peer, resp.Bundle)
 		}
+
+	case u.CorrelationID == peeringTrustBundlesWatchID:
+		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		if len(resp.Bundles) > 0 {
+			snap.ConnectProxy.InboundPeerTrustBundles = resp.Bundles
+		}
+		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
+
+	case u.CorrelationID == intentionsWatchID:
+		resp, ok := u.Result.(structs.Intentions)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
+
+	case u.CorrelationID == peeredUpstreamsID:
+		resp, ok := u.Result.(*structs.IndexedPeeredServiceList)
+		if !ok {
+			return fmt.Errorf("invalid type for response %T", u.Result)
+		}
+
+		seenUpstreams := make(map[UpstreamID]struct{})
+		for _, psn := range resp.Services {
+			uid := NewUpstreamIDFromPeeredServiceName(psn)
+
+			if _, ok := seenUpstreams[uid]; ok {
+				continue
+			}
+			seenUpstreams[uid] = struct{}{}
+
+			s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
+
+			hctx, hcancel := context.WithCancel(ctx)
+			err := s.dataSources.Health.Notify(hctx, &structs.ServiceSpecificRequest{
+				PeerName:   uid.Peer,
+				Datacenter: s.source.Datacenter,
+				QueryOptions: structs.QueryOptions{
+					Token: s.token,
+				},
+				ServiceName: psn.ServiceName.Name,
+				Connect:     true,
+				// Note that Identifier doesn't type-prefix for service any more as it's
+				// the default and makes metrics and other things much cleaner. It's
+				// simpler for us if we have the type to make things unambiguous.
+				Source:         *s.source,
+				EnterpriseMeta: uid.EnterpriseMeta,
+			}, upstreamPeerWatchIDPrefix+uid.String(), s.ch)
+			if err != nil {
+				hcancel()
+				return fmt.Errorf("failed to watch health for %s: %v", uid, err)
+			}
+			snap.ConnectProxy.PeerUpstreamEndpoints.InitWatch(uid, hcancel)
+
+			// Check whether a watch for this peer exists to avoid duplicates.
+			if ok := snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched(uid.Peer); !ok {
+				peerCtx, cancel := context.WithCancel(ctx)
+				if err := s.dataSources.TrustBundle.Notify(peerCtx, &cachetype.TrustBundleReadRequest{
+					Request: &pbpeering.TrustBundleReadRequest{
+						Name:      uid.Peer,
+						Partition: uid.PartitionOrDefault(),
+					},
+					QueryOptions: structs.QueryOptions{Token: s.token},
+				}, peerTrustBundleIDPrefix+uid.Peer, s.ch); err != nil {
+					cancel()
+					return fmt.Errorf("error while watching trust bundle for peer %q: %w", uid.Peer, err)
+				}
+
+				snap.ConnectProxy.UpstreamPeerTrustBundles.InitWatch(uid.Peer, cancel)
+			}
+		}
+		snap.ConnectProxy.PeeredUpstreams = seenUpstreams
+
+		//
+		// Clean up data
+		//
+
+		validPeerNames := make(map[string]struct{})
+
+		// Iterate through all known endpoints and remove references to upstream IDs that weren't in the update
+		snap.ConnectProxy.PeerUpstreamEndpoints.ForEachKey(func(uid UpstreamID) bool {
+			// Peered upstream is explicitly defined in upstream config
+			if _, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok {
+				validPeerNames[uid.Peer] = struct{}{}
+				return true
+			}
+			// Peered upstream came from dynamic source of imported services
+			if _, ok := seenUpstreams[uid]; ok {
+				validPeerNames[uid.Peer] = struct{}{}
+				return true
+			}
+			snap.ConnectProxy.PeerUpstreamEndpoints.CancelWatch(uid)
+			return true
+		})
+
+		// Iterate through all known trust bundles and remove references to any unseen peer names
+		snap.ConnectProxy.UpstreamPeerTrustBundles.ForEachKey(func(peerName PeerName) bool {
+			if _, ok := validPeerNames[peerName]; !ok {
+				snap.ConnectProxy.UpstreamPeerTrustBundles.CancelWatch(peerName)
+			}
+			return true
+		})
 
 	case u.CorrelationID == intentionUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedServiceList)
@@ -351,7 +528,83 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				delete(snap.ConnectProxy.DiscoveryChain, uid)
 			}
 		}
+	case u.CorrelationID == intentionUpstreamsDestinationID:
+		resp, ok := u.Result.(*structs.IndexedServiceList)
+		if !ok {
+			return fmt.Errorf("invalid type for response %T", u.Result)
+		}
+		seenUpstreams := make(map[UpstreamID]struct{})
+		for _, svc := range resp.Services {
+			uid := NewUpstreamIDFromServiceName(svc)
+			seenUpstreams[uid] = struct{}{}
+			{
+				childCtx, cancel := context.WithCancel(ctx)
+				err := s.dataSources.ConfigEntry.Notify(childCtx, &structs.ConfigEntryQuery{
+					Kind:           structs.ServiceDefaults,
+					Name:           svc.Name,
+					Datacenter:     s.source.Datacenter,
+					QueryOptions:   structs.QueryOptions{Token: s.token},
+					EnterpriseMeta: svc.EnterpriseMeta,
+				}, DestinationConfigEntryID+svc.String(), s.ch)
+				if err != nil {
+					cancel()
+					return err
+				}
+				snap.ConnectProxy.DestinationsUpstream.InitWatch(uid, cancel)
+			}
+			{
+				childCtx, cancel := context.WithCancel(ctx)
+				err := s.dataSources.ServiceGateways.Notify(childCtx, &structs.ServiceSpecificRequest{
+					ServiceName:    svc.Name,
+					Datacenter:     s.source.Datacenter,
+					QueryOptions:   structs.QueryOptions{Token: s.token},
+					EnterpriseMeta: svc.EnterpriseMeta,
+					ServiceKind:    structs.ServiceKindTerminatingGateway,
+				}, DestinationGatewayID+svc.String(), s.ch)
+				if err != nil {
+					cancel()
+					return err
+				}
+				snap.ConnectProxy.DestinationGateways.InitWatch(uid, cancel)
+			}
+		}
 
+		snap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid UpstreamID) bool {
+			if _, ok := seenUpstreams[uid]; !ok {
+				snap.ConnectProxy.DestinationsUpstream.CancelWatch(uid)
+			}
+			return true
+		})
+
+		snap.ConnectProxy.DestinationGateways.ForEachKey(func(uid UpstreamID) bool {
+			if _, ok := seenUpstreams[uid]; !ok {
+				snap.ConnectProxy.DestinationGateways.CancelWatch(uid)
+			}
+			return true
+		})
+	case strings.HasPrefix(u.CorrelationID, DestinationConfigEntryID):
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationConfigEntryID)
+		uid := UpstreamIDFromString(pq)
+		serviceConf, ok := resp.Entry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for service default: %T", resp.Entry.GetName())
+		}
+
+		snap.ConnectProxy.DestinationsUpstream.Set(uid, serviceConf)
+	case strings.HasPrefix(u.CorrelationID, DestinationGatewayID):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		pq := strings.TrimPrefix(u.CorrelationID, DestinationGatewayID)
+		uid := UpstreamIDFromString(pq)
+		snap.ConnectProxy.DestinationGateways.Set(uid, resp.Nodes)
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {

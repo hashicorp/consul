@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -40,7 +41,7 @@ func (s *HTTPHandlers) SessionCreate(resp http.ResponseWriter, req *http.Request
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Session)); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 
@@ -69,13 +70,9 @@ func (s *HTTPHandlers) SessionDestroy(resp http.ResponseWriter, req *http.Reques
 	}
 
 	// Pull out the session id
-	var err error
-	args.Session.ID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/destroy/")
-	if err != nil {
-		return nil, err
-	}
+	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
 	if args.Session.ID == "" {
-		return nil, BadRequestError{Reason: "Missing session"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
 	}
 
 	var out string
@@ -96,21 +93,17 @@ func (s *HTTPHandlers) SessionRenew(resp http.ResponseWriter, req *http.Request)
 	}
 
 	// Pull out the session id
-	var err error
-	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/renew/")
-	if err != nil {
-		return nil, err
-	}
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
 	args.Session = args.SessionID
 	if args.SessionID == "" {
-		return nil, BadRequestError{Reason: "Missing session"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
 	}
 
 	var out structs.IndexedSessions
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
-		return nil, NotFoundError{Reason: fmt.Sprintf("Session id '%s' not found", args.SessionID)}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Session id '%s' not found", args.SessionID)}
 	}
 
 	return out.Sessions, nil
@@ -127,14 +120,10 @@ func (s *HTTPHandlers) SessionGet(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// Pull out the session id
-	var err error
-	args.SessionID, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/info/")
-	if err != nil {
-		return nil, err
-	}
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
 	args.Session = args.SessionID
 	if args.SessionID == "" {
-		return nil, BadRequestError{Reason: "Missing session"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing session"}
 	}
 
 	var out structs.IndexedSessions
@@ -184,13 +173,9 @@ func (s *HTTPHandlers) SessionsForNode(resp http.ResponseWriter, req *http.Reque
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/session/node/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")
 	if args.Node == "" {
-		return nil, BadRequestError{Reason: "Missing node name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
 	var out structs.IndexedSessions

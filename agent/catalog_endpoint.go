@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -136,7 +137,7 @@ func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Reque
 	}
 
 	if err := s.rewordUnknownEnterpriseFieldError(decodeBody(req.Body, &args)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Setup the default DC if not provided
@@ -166,7 +167,7 @@ func (s *HTTPHandlers) CatalogDeregister(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 	if err := s.rewordUnknownEnterpriseFieldError(decodeBody(req.Body, &args)); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Setup the default DC if not provided
@@ -356,14 +357,14 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		args.TagFilter = true
 	}
 
-	// Pull out the service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, pathPrefix)
-	if err != nil {
-		return nil, err
+	if _, ok := params["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
 	}
+
+	// Pull out the service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing service name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
 	// Make the RPC request
@@ -432,13 +433,9 @@ func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.R
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
 	if args.Node == "" {
-		return nil, BadRequestError{Reason: "Missing node name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
 	}
 
 	// Make the RPC request
@@ -497,13 +494,13 @@ func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the node name
-	var err error
-	args.Node, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/node-services/")
-	if err != nil {
-		return nil, err
-	}
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node-services/")
 	if args.Node == "" {
-		return nil, BadRequestError{Reason: "Missing node name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing node name"}
+	}
+
+	if _, ok := req.URL.Query()["merge-central-config"]; ok {
+		args.MergeCentralConfig = true
 	}
 
 	// Make the RPC request
@@ -548,13 +545,9 @@ func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *htt
 	}
 
 	// Pull out the gateway's service name
-	var err error
-	args.ServiceName, err = getPathSuffixUnescaped(req.URL.Path, "/v1/catalog/gateway-services/")
-	if err != nil {
-		return nil, err
-	}
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/gateway-services/")
 	if args.ServiceName == "" {
-		return nil, BadRequestError{Reason: "Missing gateway name"}
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing gateway name"}
 	}
 
 	// Make the RPC request

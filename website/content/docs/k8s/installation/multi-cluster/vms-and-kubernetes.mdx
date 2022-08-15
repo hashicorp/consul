@@ -35,13 +35,13 @@ The following sections detail how to export this data.
 1. Retrieve the certificate authority cert:
 
    ```sh
-   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" | base64decode }}' > consul-agent-ca.pem
+   kubectl get secrets/consul-ca-cert --namespace consul --template='{{index .data "tls.crt" | base64decode }}' > consul-agent-ca.pem
    ```
 
 1. And the certificate authority signing key:
 
    ```sh
-   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" | base64decode }}' > consul-agent-ca-key.pem
+   kubectl get secrets/consul-ca-key --namespace consul --template='{{index .data "tls.key" | base64decode }}' > consul-agent-ca-key.pem
    ```
 
 1. With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
@@ -102,7 +102,7 @@ The following sections detail how to export this data.
 Retrieve the WAN addresses of the mesh gateways:
 
 ```shell-session
-$ kubectl exec statefulset/consul-server -- sh -c \
+$ kubectl exec statefulset/consul-server --namespace consul -- sh -c \
   'curl --silent --insecure https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
 {
   "Address": "1.2.3.4",
@@ -129,7 +129,7 @@ primary_gateways = ["1.2.3.4:443"]
 If ACLs are enabled, you'll also need the replication ACL token:
 
 ```shell-session
-$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token | base64decode}}'
+$ kubectl get secrets/consul-acl-replication-acl-token --namespace consul --template='{{.data.token | base64decode}}'
 e7924dd1-dc3f-f644-da54-81a73ba0a178
 ```
 
@@ -273,6 +273,28 @@ kubectl create secret generic consul-federation \
     # --from-literal=gossipEncryptionKey="<your gossip encryption key>"
 ```
 
+If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
+must be specified in the config files for all secondary clusters because secondary clusters need
+to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
+by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/docs/security/acl/auth-methods)
+in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
+to retrieve global Consul ACL tokens from the primary.
+
+To determine the Kubernetes API URL, first get the cluster name in your kubeconfig:
+
+```shell-session
+$ export CLUSTER=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$(kubectl config current-context)\")].context.cluster}")
+```
+
+Then get the API URL:
+
+```shell-session
+$ kubectl config view -o jsonpath="{.clusters[?(@.name == \"$CLUSTER\")].cluster.server}"
+https://<some-url>
+```
+
+You'll use this URL when setting `global.federation.k8sAuthMethodHost`.
+
 Then use the following Helm config file:
 
 ```yaml
@@ -297,6 +319,8 @@ global:
 
   federation:
     enabled: true
+    k8sAuthMethodHost: <kubernetes-api-url>
+    primaryDatacenter: dc1
 
   # Delete this gossipEncryption section if gossip encryption is disabled.
   gossipEncryption:
@@ -312,14 +336,16 @@ meshGateway:
 server:
   extraConfig: |
     {
-      "primary_datacenter": "<your VM datacenter name>",
       "primary_gateways": ["<ip of your VM mesh gateway>", "<other ip>", ...]
     }
 ```
 
--> **NOTE: ** You must fill out the `server.extraConfig` section with the datacenter
-name of your primary datacenter running on VMs and with the IPs of your mesh
+Notes:
+
+1. You must fill out the `server.extraConfig` section with the IPs of your mesh
 gateways running on VMs.
+1. Set `global.federation.k8sAuthMethodHost` to the Kubernetes API URL of this cluster (including `https://`).
+1. `global.federation.primaryDatacenter` should be set to the name of your primary datacenter.
 
 With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).

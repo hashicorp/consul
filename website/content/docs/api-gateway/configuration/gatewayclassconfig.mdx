@@ -1,0 +1,201 @@
+---
+layout: docs
+page_title: Consul API Gateway GatewayClassConfig
+description:  >-
+  Consul API Gateway GatewayClassConfig
+---
+
+# GatewayClassConfig
+
+This topic provides full details about the `GatewayClassConfig` resource.
+
+## Introduction
+
+The `GatewayClassConfig` object contains Consul API Gateway-related configuration parameters. Apply the parameters by adding the [`GatewayClass`](#gatewayclass) object to your Kubernetes values file and specifying the name of the `GatewayClassConfig`.
+
+## Configuration model
+
+The following outline shows how to format the configurations in the `GatewayClassConfig` object. Click on a property name to view details about the configuration.
+
+* [`consul`](#consul): object | optional
+  * [`address`](#consul-address): string | optional
+  * [`authentication`](#consul-authentication): object | optional
+    * [`account`]([#consul-authentication-account): string | optional
+    * [`managed`](#consul-authentication-managed): bool  | optional
+    * [`method`](#consul-authentication-method): string | optional
+    * [`namespace`](#consul-authentication-namespace): string  | optional
+  * [`ports`](#consul-ports): object  | optional
+    * [`grpc`](#consul-ports-grpc): integer | optional
+    * [`http`](#consul-ports-http): integer | optional
+  * [`scheme`](#consul-scheme): string  | optional
+* [`copyAnnotations`](#copyAnnotations): object | optional
+  * [`service`](#copyAnnotations-service): array of strings | optional
+* [`deployment`](#deployment): object | optional
+  * [`defaultInstances`](#deployment-defaultinstances): integer | optional
+  * [`maxInstances`](#deployment-maxinstances): integer | optional
+  * [`minInstances`](#deployment-mininstances): integer | optional
+* [`image`](#image): object | optional
+  * [`consulAPIGateway`](#image-consulapigateway): string | optional
+  * [`envoy`](#image-envoy): string | optional
+* [`logLevel`](#loglevel): string | optional
+* [`nodeSelector`](#nodeselector): string | optional
+* [`serviceType`](#servicetype): string | optional
+* [`useHostPorts`](#usehostports): boolean | optional
+
+## Specification
+
+This topic provides details about the configuration parameters.
+
+### consul
+Specifies configurations that enable an instance of Consul API Gateway to interact with Consul.
+* Type: object
+* Required: optional
+
+### consul.address
+Specifies the address of the Consul server that the `Gateway` communicates with in the gateway pod. If unspecified, the pod attempts to use a local agent on the host where the pod is running.
+* Type: string
+* Required: optional
+* Default: local agent
+
+### consul.authentication.account
+Specifies the [Kubernetes service account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) to use for authentication.
+* Type: string
+* Required: optional
+
+### consul.authentication.managed
+Set to `true` to enable deployments to run with managed service accounts created by the gateway controller. The `consul.authentication.account` field is ignored when this option is enabled.
+* Type: boolean
+* Required: optional
+* Default: `false`
+
+### consul.authentication.method
+Specifies the [Consul auth method](/docs/security/acl/auth-methods) used for initial authentication by Consul API Gateway.
+* Type: string
+* Required: optional
+
+### consul.authentication.namespace
+Specifies the Consul namespace to use for authentication.
+* Type: string
+* Required: optional
+
+### consul.ports.grpc
+Specifies the gRPC port for Consul's xDS server.
+* Type: integer
+* Required: optional
+* Default: `8502`
+
+### consul.ports.http
+Specifies the Consul HTTP port to use for authentication.
+* Type: integer
+* Required: optional
+* Default: `8500`
+
+### consul.scheme
+Specifies the scheme to use for connecting to Consul.
+* Type: string
+* Required: optional
+* Default: `http`
+
+You can specify the following strings:
+* `http`
+* `https`
+
+### copyAnnotations.service
+Specifies an array of Kubernetes [annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/) to copy to the gateway service.
+* Type: Array of strings
+* Required: optional
+
+### deployment.defaultInstances
+Specifies the number of gateway instances to deploy per gateway configuration.
+* Type: Integer
+* Required: optional
+* Default: `1`
+
+### deployment.maxInstances
+Specifies the maximum allowed number of gateway instances per gateway configuration.
+* Type: Integer
+* Required: optional
+* Default: `8`
+
+### deployment.minInstances
+Specifies the minimum allowed number of gateway instances per gateway configuration.
+* Type: Integer
+* Required: optional
+* Default: `1`
+
+### image.consulAPIGateway
+Specifies the Docker image to use for the `consul-api-gateway` container. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
+
+The default value is suitable for most deployments, but you may require a specific version of the Consul API Gateway depending on your environment.
+* Type: string
+* Required: optional
+* Default: `"hashicorp/consul-api-gateway:RELEASE_VERSION"`
+
+### image.envoy
+Specifies the Docker image to use for the Envoy proxy container. View available image tags on [DockerHub](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags).
+
+The default value is suitable for most deployments, but you may require a specific version of Envoy depending on your environment.
+* Type: string
+* Required: optional
+* Default: `"envoyproxy/envoy:RELEASE_VERSION"`
+
+### logLevel
+Specifies the error reporting level for logs.
+* Type: string
+* Required: optional
+* Default: `info`
+
+You can specify the following strings:
+* `error`
+* `warning`
+* `info`
+* `debug`
+* `trace`
+
+### nodeSelector
+Pods normally run on multiple nodes. You can specify a set of parameters in the `nodeSelector` that constrain the nodes on which the pod can run, enabling the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information.
+
+* Type: string
+* Required: optional
+
+### serviceType
+Specifies the ingress methods for the gateway's Kubernetes service.
+* Type: string
+* Required: optional
+
+You can specify the following strings:
+* `ClusterIP`: The gateway is only accessible from inside the cluster.
+* `NodePort`: The gateway is exposed on each Kubernetes node at a static port.
+* `LoadBalancer`: The gateway is exposed to external traffic by a load balancer.
+
+For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
+
+### useHostPorts
+If set to `true`, then the Envoy container ports are mapped to host ports.
+* Type: boolean
+* Required: optional
+* Default: `false`
+
+
+## Example Configuration
+The following example creates a gateway class configuration called `test-gateway-class-config`. Traffic that passes through gateways created from the class configuration authenticate with Consul over HTTPS on port `8501`. Consul client agents communicate with server agents on port `8502` :
+
+<CodeBlockConfig filename="gateway.yaml">
+
+  ```yaml
+  apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
+  kind: GatewayClassConfig
+  metadata:
+    name: test-gateway-class-config
+  spec:
+    useHostPorts: true
+    logLevel: 'trace'
+    consul:
+      scheme: 'https'
+      ports:
+        http: 8501
+        grpc: 8502
+```
+</CodeBlockConfig>
+
+Refer to the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway/blob/main/config/crd/bases/api-gateway.consul.hashicorp.com_gatewayclassconfigs.yaml) for the complete specification.

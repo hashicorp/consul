@@ -1,15 +1,9 @@
 @keyframes icon-trend-down {
-  50% {
-
-    background-color: var(--icon-color, var(--color-trend-down-500, currentColor));
-    -webkit-mask-image: var(--icon-trend-down-24);
-    mask-image: var(--icon-trend-down-24);
-  }
-
   100% {
 
-    background-color: var(--icon-color, var(--color-trend-down-500, currentColor));
     -webkit-mask-image: var(--icon-trend-down-16);
     mask-image: var(--icon-trend-down-16);
+    background-color: var(--icon-color, var(--color-trend-down-500, currentColor));
+
   }
 }

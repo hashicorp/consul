@@ -85,6 +85,36 @@ func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 	}
 }
 
+func TestStructs_ACLServiceIdentities_Deduplicate(t *testing.T) {
+	identities := ACLServiceIdentities{
+		{ServiceName: "web", Datacenters: []string{"dc1"}},
+		{ServiceName: "web", Datacenters: []string{"dc2"}},
+		{ServiceName: "db", Datacenters: []string{"dc3"}},
+	}
+
+	require.ElementsMatch(t, ACLServiceIdentities{
+		{ServiceName: "web", Datacenters: []string{"dc1", "dc2"}},
+		{ServiceName: "db", Datacenters: []string{"dc3"}},
+	}, identities.Deduplicate())
+
+	require.Len(t, identities, 3, "original slice shouldn't have been mutated")
+}
+
+func TestStructs_ACLNodeIdentities_Deduplicate(t *testing.T) {
+	identities := ACLNodeIdentities{
+		{NodeName: "web", Datacenter: "dc1"},
+		{NodeName: "web", Datacenter: "dc2"},
+		{NodeName: "web", Datacenter: "dc1"},
+	}
+
+	require.Equal(t, ACLNodeIdentities{
+		{NodeName: "web", Datacenter: "dc1"},
+		{NodeName: "web", Datacenter: "dc2"},
+	}, identities.Deduplicate())
+
+	require.Len(t, identities, 3, "original slice shouldn't have been mutated")
+}
+
 func TestStructs_ACLToken_SetHash(t *testing.T) {
 
 	token := ACLToken{

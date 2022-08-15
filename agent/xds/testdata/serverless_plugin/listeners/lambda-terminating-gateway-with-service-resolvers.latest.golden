@@ -154,7 +154,8 @@
                     "name": "envoy.filters.http.aws_lambda",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
-                      "arn": "lambda-arn"
+                      "arn": "lambda-arn",
+                      "payloadPassthrough": true
                     }
                   },
                   {
@@ -168,6 +169,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 },
                 "stripAnyHostPort": true
               }
@@ -236,7 +245,8 @@
                     "name": "envoy.filters.http.aws_lambda",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
-                      "arn": "lambda-arn"
+                      "arn": "lambda-arn",
+                      "payloadPassthrough": true
                     }
                   },
                   {
@@ -250,6 +260,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 },
                 "stripAnyHostPort": true
               }
@@ -372,7 +390,8 @@
                     "name": "envoy.filters.http.aws_lambda",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
-                      "arn": "lambda-arn"
+                      "arn": "lambda-arn",
+                      "payloadPassthrough": true
                     }
                   },
                   {
@@ -386,6 +405,14 @@
                   "randomSampling": {
 
                   }
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 },
                 "stripAnyHostPort": true
               }
