@@ -1265,7 +1265,12 @@ module.exports = [
   },
   {
     source: '/docs/api-gateway/api-gateway-usage',
-    destination: '/docs/api-gateway/consul-api-gateway-install',
+    destination: '/docs/api-gateway/install',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/api-gateway/consul-api-gateway-install',
+    destination: '/docs/api-gateway/install',
     permanent: true,
   },
   {
