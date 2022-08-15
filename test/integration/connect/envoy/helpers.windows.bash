@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONTAINER_HOSTPORT=""
+# CONTAINER_HOSTPORT=""
 
 # This function uses regex to change the localhost with the corresponding container name.
 # This function uses regex to change the localhost with the corresponding container name.
@@ -8,39 +8,51 @@ function check_hostport {
     local HOSTPORT=$1
     if [[ $HOSTPORT == "localhost:8500" ]]
     then        
-        CONTAINER_HOSTPORT="envoy_consul-primary_1:8500"
+        ADDRESS=$(getIP_container envoy_consul-primary_1)
+        CONTAINER_HOSTPORT="${ADDRESS}:8500"
     elif [[ $HOSTPORT == *"localhost:21000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s1-sidecar-proxy_1:21000"}"
+        ADDRESS=$(getIP_container envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:21001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s2-sidecar-proxy_1:21000"}"
+        ADDRESS=$(getIP_container envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:19000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        ADDRESS=getIP_container envoy_s1-sidecar-proxy_1
+        echo "@@@@+++"
+        echo $ADDRESS
+        echo "+++@@@@"
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"localhost:19001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"envoy_s2-sidecar-proxy_1:19001"}"
+        ADDRESS=$(getIP_container envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"${ADDRESS}:19001"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        ADDRESS=$(getIP_container envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"envoy_s2-sidecar-proxy_1:19001"}"    
+        ADDRESS=$(getIP_container envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"${ADDRESS}:19001"}"    
     elif [[ $HOSTPORT == *"localhost:1234"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"envoy_s1-sidecar-proxy_1:1234"}"      
+        ADDRESS=$(getIP_container envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"${ADDRESS}:1234"}"      
     elif [[ $HOSTPORT == "localhost:2345" ]]
     then
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"envoy_s2-sidecar-proxy_1:2345"}"
+        ADDRESS=$(getIP_container envoy_s2-sidecar-proxy_1)
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"${ADDRESS}:2345"}"
      elif [[ $HOSTPORT == *"localhost:5000"* ]]
     then
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"envoy_s2_1:5000"}"                  
+        ADDRESS=$(getIP_container envoy_s2_1)
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"${ADDRESS}:5000"}"                  
     else
         return 1        
     fi
 }
-
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -878,7 +890,8 @@ function getIP {
 }
 
 function getIP_container {
-    docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
+  # echo "docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1"
+  docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
 }
 
 function setup_upsert_l4_intention {
@@ -963,70 +976,7 @@ function get_upstream_fortio_name {
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
   local HOST=${2:-"localhost"} $(check_hostport $2)
-  local PORT=${3:-5000}
-  local URL_PREFIX=${4:-""}
-  local DEBUG_HEADER_VALUE="${5:-""}"
-
-  run get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}"
-
-  echo "GOT: $output"
-
-  [ "$status" == 0 ]
-  [ "$output" == "FORTIO_NAME=${EXPECT_NAME}" ]
-}
-
-function assert_expected_fortio_name_pattern {
-  local EXPECT_NAME_PATTERN=$1
-  local HOST=${2:-"localhost"}
-  local PORT=${3:-5000}
-  local URL_PREFIX=${4:-""}
-  local DEBUG_HEADER_VALUE="${5:-""}"
-
-  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
-
-  if [[ "$GOT" =~ $EXPECT_NAME_PATTERN ]]; then
-      :
-  else
-    echo "expected name pattern: $EXPECT_NAME_PATTERN, actual name: $GOT" 1>&2
-    return 1
-  fi
-}
-
-function get_upstream_fortio_host_header {
-  local HOST=$1
-  local PORT=$2
-  local PREFIX=$3
-  local DEBUG_HEADER_VALUE="${4:-""}"
-  local extra_args
-  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
-      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
-  fi
-  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
-      "localhost:${PORT}${PREFIX}/debug"
-  [ "$status" == 0 ]
-  echo "$output" | grep -E "^Host: "
-}
-
-function assert_expected_fortio_host_header {
-  local EXPECT_HOST=$1
-  local HOST=${2:-"localhost"}
-  local PORT=${3:-5000}
-  local URL_PREFIX=${4:-""}
-  local DEBUG_HEADER_VALUE="${5:-""}"
-
-  GOT=$(get_upstream_fortio_host_header ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
-
-  if [ "$GOT" != "Host: ${EXPECT_HOST}" ]; then
-    echo "expected Host header: $EXPECT_HOST, actual Host header: $GOT" 1>&2
-    return 1
-  fi
-}
-
-function create_peering {
-  local GENERATE_PEER=$1
-  local ESTABLISH_PEER=$2
-  run curl -sL -XPOST "http://consul-${GENERATE_PEER}-client:8500/v1/peering/token" -d"{ \"PeerName\" : \"${GENERATE_PEER}-to-${ESTABLISH_PEER}\" }"
-  # echo "$output" >&3
+echo "$output" >&3
   [ "$status" == 0 ]
 
   local token
