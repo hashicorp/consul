@@ -236,6 +236,50 @@ spec:
 </Tab>
 </Tabs>
 
+### Terminating gateway destination
+
+Create a default destination that will be assigned to a terminating gateway. A destination
+represents a location outside the Consul cluster. They can be dialed directly when transparent proxy mode is enabled.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+  ```hcl
+  Kind = "service-defaults"
+  Name = "test-destination"
+  Protocol = "tcp"
+  Destination {
+    Addresses = ["test.com","test.org"]
+    Port = 443
+  }
+  ```
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceDefaults
+  metadata:
+    name: test-destination
+  spec:
+    destination:
+      addresses:
+        - "test.com"
+        - "test.org"
+      port: 443
+  ```
+
+  ```json
+  {
+    "Kind": "service-defaults",
+    "Name": "test-destination",
+    "Protocol": "http",
+    "Destination": {
+      "Addresses": ["test.com","test.org"],
+      "Port": 443
+    }
+  }
+  ```
+
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
@@ -624,6 +668,24 @@ spec:
           },
         },
       ],
+    },
+    {
+      name: 'Destination',
+      type: 'DestinationConfig: <optional>',
+      description: `Controls configuration specific to destinations through terminating-gateway. Added in v1.13.0.`,
+      children: [
+        {
+          name: 'Addresses',
+          type: 'array<string>: []',
+          description:`List of addresses associated with the destination. This can be a hostname or an IP address.
+          Wildcards are not accepted.`,
+        },
+        {
+          name: 'Port',
+          type: 'int: 0',
+          description: `Port number associated with the destination.`,
+        },
+      ]
     },
     {
       name: 'MeshGateway',

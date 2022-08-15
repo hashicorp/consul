@@ -197,6 +197,7 @@ type Config struct {
 	NodeID                           *string             `mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `mapstructure:"node_meta"`
 	NodeName                         *string             `mapstructure:"node_name"`
+	Peering                          Peering             `mapstructure:"peering"`
 	Performance                      Performance         `mapstructure:"performance"`
 	PidFile                          *string             `mapstructure:"pid_file"`
 	Ports                            Ports               `mapstructure:"ports"`
@@ -611,7 +612,7 @@ type Connect struct {
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation"`
 	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin"`
 
-	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaft certs will be generated.
+	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
 	// certs by. This configuration is not exposed to users (not documented, and agent/config/default.go will override it)
 	TestCALeafRootChangeSpread *string `mapstructure:"test_ca_leaf_root_change_spread"`
@@ -887,4 +888,12 @@ type TLS struct {
 	// Note: we use a *struct{} here because a simple bool isn't supported by our
 	// config merging logic.
 	GRPCModifiedByDeprecatedConfig *struct{} `mapstructure:"-"`
+}
+
+type Peering struct {
+	Enabled *bool `mapstructure:"enabled"`
+
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
+	// This always gets overridden in NonUserSource()
+	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
 }

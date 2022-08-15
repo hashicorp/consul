@@ -21,7 +21,7 @@ When Vault is configured as the controller and connect inject Webhook Certificat
 
 To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/docs/k8s/installation/vault/data-integration) section:
 
-### Setup per Consul datacenter
+These following steps will be repeated for each datacenter:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
   1. (Added) Create Vault PKI roles for controller and connect inject each that establish the domains that each is allowed to issue certificates for.
   1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
@@ -33,11 +33,9 @@ Complete the following prerequisites prior to implementing the integration descr
 1. You should be familiar with the [Data Integration Overview](/docs/k8s/installation/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/installation/vault).
 1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/server-tls) 
 1. Configure [Vault as the Service Mesh Certificate Provider on Kubernetes](/docs/k8s/installation/vault/data-integration/connect-ca)
-1. Complete the [Bootstrapping the PKI Engine for Controller and Connect Inject Webhooks](#bootstrapping-the-pki-engine-for-controller-and-connect-inject-webhooks) section.
 
-### Bootstrapping the PKI Engine for Controller and Connect Inject Webhooks
-
-The first step is to bootstrap the Vault cluster. Issue the following commands to enable and configure the PKI Secrets Engine to serve TLS certificates for the controller and connect inject webhooks:
+## Bootstrapping the PKI Engines
+Issue the following commands to enable and configure the PKI Secrets Engine to serve TLS certificates for the controller and connect inject webhooks:
 
 * Mount the PKI Secrets Engine for each:
 
@@ -72,138 +70,124 @@ The first step is to bootstrap the Vault cluster. Issue the following commands t
           common_name="<helm release name>-connect-injector" \
           ttl=87600h
   ```
-## Setup per Consul datacenter
-You will need to preform the following steps for each datacenter that you would like to manage controller and connect inject webhook certificates in Vault.  You will want to take care to create different names per datacenter for every pki mount, role, and policy. 
+## Create Vault Policies
+1. Create a policy that allows `["create", "update"]` access to the
+[certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`.
 
-### Create a Vault policy that authorizes the desired level of access to the secret
-To use Vault to issue controller or connect inject webhook certificates, you will need to create the Vault policies that will allow either controller or connect inject to access its respective certificate-issuing URL.
+    The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.secretsBackend.vault.controller.tlsCert.secretName` and `global.secretsBackend.vault.connectInject.tlsCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
-#### Create Vault Policies for the Controller and Connect Inject Webhook Certificates
+    ```shell-session
+    $ vault policy write controller-tls-policy - <<EOF
+    path controller/issue/controller-role {
+      capabilities = ["create", "update"]
+    }
+    EOF
+    ```
 
--> **Note:** The PKI secret paths referenced by the Vault Policies below will be your `global.secretsBackend.vault.controller.tlsCert.secretName` and `global.secretsBackend.vault.connectInject.tlsCert.secretName` Helm values respectively.
+    ```shell-session
+    $ vault policy write connect-inject-policy - <<EOF
+    path connect-inject/issue/connect-inject-role {
+      capabilities = ["create", "update"]
+    }
+    EOF
+    ```
 
-The next step is to create a policy that allows `["create", "update"]` access to the
-[certificate issuing URL](https://www.vaultproject.io/api/secret/pki#generate-certificate) so Consul controller and connect inject can fetch a new certificate/key pair and provide it to the Kubernetes `mutatingwebhookconfiguration`. Issue the following commands to create the policy:
+1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate),
+this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
 
+    The path to the secret referenced in the `path` resource is the same values that you will configure in the  `global.secretsBackend.vault.controller.caCert.secretName` and `global.secretsBackend.vault.connectInject.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
-```shell-session
-$ vault policy write controller-tls-policy - <<EOF
-path controller/issue/controller-role {
-  capabilities = ["create", "update"]
-}
-EOF
-```
+    ```shell-session
+    $ vault policy write controller-ca-policy - <<EOF
+    path controller/cert/ca {
+      capabilities = ["read"]
+    }
+    EOF
+    ```
 
-```shell-session
-$ vault policy write connect-inject-policy - <<EOF
-path connect-inject/issue/connect-inject-role {
-  capabilities = ["create", "update"]
-}
-EOF
-```
-#### Create Vault Policies for the CA URL
+    ```shell-session
+    $ vault policy write connect-inject-ca-policy - <<EOF
+    path connect-inject/cert/ca {
+      capabilities = ["read"]
+    }
+    EOF
+    ```
+1. Configure allowed domains for PKI certificates.
 
--> **Note:** The PKI secret paths referenced by the Vault Policies below will be your `global.secretsBackend.vault.controller.caCert.secretName` and `global.secretsBackend.vault.connectInject.caCert.secretName` Helm values respectively.
+    ```shell-session
+    $ vault write controller/roles/controller-role \
+        allowed_domains="<Allowed-domains-string>" \
+        allow_subdomains=true \
+        allow_bare_domains=true \
+        allow_localhost=true \
+        generate_lease=true \
+        max_ttl="720h"
+    ```
 
-Next, create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api/secret/pki#read-certificate). The policy is required so that Consul components can communicate with the Consul servers in order to fetch their auto-encryption certificates. Issue the following commands to create the policy:
+    ```shell-session
+    $ vault write connect-inject/roles/connect-inject-role \
+        allowed_domains="<Allowed-domains-string>" \
+        allow_subdomains=true \
+        allow_bare_domains=true \
+        allow_localhost=true \
+        generate_lease=true \
+        max_ttl="720h"
+    ```
 
-```shell-session
-$ vault policy write controller-ca-policy - <<EOF
-path controller/cert/ca {
-  capabilities = ["read"]
-}
-EOF
-```
+    To generate the `<Allowed-domains-string>` for each use the following script as a template:
 
-```shell-session
-$ vault policy write connect-inject-ca-policy - <<EOF
-path connect-inject/cert/ca {
-  capabilities = ["read"]
-}
-EOF
-```
-### Configure allowed domains for PKI certificates
+    ```shell-session
+    #!/bin/sh
 
-Issue the following command to create a Vault role for the controller PKI engine and set the default parameters for issuing certificates:
+    # NAME is set to either the value from `global.name` from your Consul K8s value file, or your $HELM_RELEASE_NAME-consul
+    export NAME=consulk8s
+    # NAMESPACE is where the Consul on Kubernetes is installed
+    export NAMESPACE=consul
+    # DATACENTER is the value of `global.datacenter` from your Helm values config file
+    export DATACENTER=dc1
 
-```shell-session
-$ vault write controller/roles/controller-role \
-    allowed_domains="<Allowed-domains-string>" \
-    allow_subdomains=true \
-    allow_bare_domains=true \
-    allow_localhost=true \
-    generate_lease=true \
-    max_ttl="720h"
-```
+    echo allowed_domains_controller=\"${NAME}-controller-webhook,${NAME}-controller-webhook.${NAMESPACE},${NAME}-controller-webhook.${NAMESPACE}.svc,${NAME}-controller-webhook.${NAMESPACE}.svc.cluster.local\""
 
-Issue the following command to create a Vault role for the connect inject PKI engine and set the default parameters for issuing certificates:
+    echo allowed_domains_connect_inject=\"${NAME}-connect-injector,${NAME}-connect-injector.${NAMESPACE},${NAME}-connect-injector.${NAMESPACE}.svc,${NAME}-connect-injector.${NAMESPACE}.svc.cluster.local\""
+    ```
 
-```shell-session
-$ vault write connect-inject/roles/connect-inject-role \
-    allowed_domains="<Allowed-domains-string>" \
-    allow_subdomains=true \
-    allow_bare_domains=true \
-    allow_localhost=true \
-    generate_lease=true \
-    max_ttl="720h"
-```
-
-To generate the `<Allowed-domains-string>` for each use the following script as a template:
-
-```shell-session
-#!/bin/sh
-
-# NAME is set to either the value from `global.name` from your Consul K8s value file, or your $HELM_RELEASE_NAME-consul
-export NAME=consulk8s
-# NAMESPACE is where the Consul on Kubernetes is installed
-export NAMESPACE=consul
-# DATACENTER is the value of `global.datacenter` from your Helm values config file
-export DATACENTER=dc1
-
-echo allowed_domains_controller=\"${NAME}-controller-webhook,${NAME}-controller-webhook.${NAMESPACE},${NAME}-controller-webhook.${NAMESPACE}.svc,${NAME}-controller-webhook.${NAMESPACE}.svc.cluster.local\""
-
-echo allowed_domains_connect_inject=\"${NAME}-connect-injector,${NAME}-connect-injector.${NAMESPACE},${NAME}-connect-injector.${NAMESPACE}.svc,${NAME}-connect-injector.${NAMESPACE}.svc.cluster.local\""
-```
-
-### Create a Vault auth roles that link the policy to each Consul on Kubernetes service account that requires access
-
--> **Note:** The Vault auth roles below will be your `global.secretsBackend.vault.controllerRole` and `global.secretsBackend.vault.connectInjectRole` Helm values respectively.
+1. Finally, Kubernetes auth roles need to be created for controller and connect inject webhooks.
 
 
-Finally, Kubernetes auth roles need to be created for controller and connect inject webhooks.
+    The path to the secret referenced in the `path` resource is the same values that you will configure in the  `global.secretsBackend.vault.controllerRole` and `global.secretsBackend.vault.connectInjectRole` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
 
-Role for Consul controller webhooks:
-```shell-session
-$ vault write auth/kubernetes/role/controller-role \
-    bound_service_account_names=<Consul controller service account> \
-    bound_service_account_namespaces=<Consul installation namespace> \
-    policies=controller-ca-policy \
-    ttl=1h
-```
+    Role for Consul controller webhooks:
+    ```shell-session
+    $ vault write auth/kubernetes/role/controller-role \
+        bound_service_account_names=<Consul controller service account> \
+        bound_service_account_namespaces=<Consul installation namespace> \
+        policies=controller-ca-policy \
+        ttl=1h
+    ```
 
-To find out the service account name of the Consul controller,
-you can run:
+    To find out the service account name of the Consul controller,
+    you can run:
 
-```shell-session
- $ helm template --release-name ${RELEASE_NAME} --show-only templates/controller-serviceaccount.yaml hashicorp/consul
-```
+    ```shell-session
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/controller-serviceaccount.yaml hashicorp/consul
+    ```
 
-Role for Consul connect inject webhooks:
+    Role for Consul connect inject webhooks:
 
-```shell-session
-$ vault write auth/kubernetes/role/connect-inject-role \
-    bound_service_account_names=<Consul connect inject service account> \
-    bound_service_account_namespaces=<Consul installation namespace> \
-    policies=connect-inject-ca-policy \
-    ttl=1h
-```
+    ```shell-session
+    $ vault write auth/kubernetes/role/connect-inject-role \
+        bound_service_account_names=<Consul connect inject service account> \
+        bound_service_account_namespaces=<Consul installation namespace> \
+        policies=connect-inject-ca-policy \
+        ttl=1h
+    ```
 
-To find out the service account name of the Consul connect inject, use the command below.
-```shell-session
- $ helm template --release-name ${RELEASE_NAME} --show-only templates/connect-inject-serviceaccount.yaml hashicorp/consul
-```
+    To find out the service account name of the Consul connect inject, use the command below.
+    ```shell-session
+    $ helm template --release-name ${RELEASE_NAME} --show-only templates/connect-inject-serviceaccount.yaml hashicorp/consul
+    ```
 
-### Update the Consul on Kubernetes helm chart
+## Update Consul on Kubernetes Helm chart
 
 Now that we've configured Vault, you can configure the Consul Helm chart to
 use the Server TLS certificates from Vault:

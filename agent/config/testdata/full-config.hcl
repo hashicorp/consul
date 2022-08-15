@@ -308,6 +308,9 @@ node_meta {
 node_name = "otlLxGaI"
 non_voting_server = true
 partition = ""
+peering {
+    enabled = true
+}
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5

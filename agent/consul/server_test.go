@@ -15,16 +15,17 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -36,8 +37,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -111,7 +110,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.GetN(t, 3)
+	ports := freeport.GetN(t, 4) // {server, serf_lan, serf_wan, grpc}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -167,6 +166,8 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// looks like several depend on it.
 	config.RPCHoldTimeout = 10 * time.Second
 
+	config.GRPCPort = ports[3]
+
 	config.ConnectEnabled = true
 	config.CAConfig = &structs.CAConfiguration{
 		ClusterID: connect.TestClusterID,
@@ -178,6 +179,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
+	config.PeeringEnabled = true
 	return dir, config
 }
 
@@ -239,6 +241,19 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	})
 	t.Cleanup(func() { srv.Shutdown() })
 
+	if srv.config.GRPCPort > 0 {
+		// Normally the gRPC server listener is created at the agent level and
+		// passed down into the Server creation.
+		externalGRPCAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+
+		ln, err := net.Listen("tcp", externalGRPCAddr)
+		require.NoError(t, err)
+		go func() {
+			_ = srv.externalGRPCServer.Serve(ln)
+		}()
+		t.Cleanup(srv.externalGRPCServer.Stop)
+	}
+
 	return dir, srv
 }
 
@@ -262,16 +277,8 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 func testGRPCIntegrationServer(t *testing.T, cb func(*Config)) (*Server, *grpc.ClientConn, rpc.ClientCodec) {
 	_, srv, codec := testACLServerWithConfig(t, cb, false)
 
-	// Normally the gRPC server listener is created at the agent level and passed down into
-	// the Server creation. For our tests, we need to ensure
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	go func() {
-		_ = srv.publicGRPCServer.Serve(ln)
-	}()
-	t.Cleanup(srv.publicGRPCServer.Stop)
-
-	conn, err := grpc.Dial(ln.Addr().String(), grpc.WithInsecure())
+	grpcAddr := fmt.Sprintf("127.0.0.1:%d", srv.config.GRPCPort)
+	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	require.NoError(t, err)
 
 	t.Cleanup(func() { _ = conn.Close() })
@@ -294,8 +301,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, grpc.NewServer())
-
+	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
 	if err != nil {
 		return nil, err
 	}
@@ -1992,7 +1998,7 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	// the actual tests
 	// when leadership has been established s2 should have the address of s1
 	// in the peering service
-	peeringLeaderAddr := s2.peeringService.Backend.LeaderAddress().Get()
+	peeringLeaderAddr := s2.peeringBackend.GetLeaderAddress()
 
 	require.Equal(t, s1.config.RPCAddr.String(), peeringLeaderAddr)
 	// test corollary by transitivity to future-proof against any setup bugs

@@ -5992,6 +5992,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		NodeMeta:                map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                "otlLxGaI",
 		ReadReplica:             true,
+		PeeringEnabled:          true,
 		PidFile:                 "43xN80Km",
 		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
 		PrimaryGatewaysInterval: 18866 * time.Second,

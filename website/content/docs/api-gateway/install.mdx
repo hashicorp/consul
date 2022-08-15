@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Install Consul API Gateway
+description:  >-
+  Installing Consul API Gateway
+---
+
+# Install Consul API Gateway
+
+This topic describes how to install and configure Consul API Gateway.
+
+## Requirements
+
+Ensure that the environment you are deploying Consul API Gateway in meets the requirements listed in the [Technical Specifications][tech-specs]. This includes validating that the requirements for minimum versions of software are met. Refer to the [Release Notes][rel-notes] for the version of API Gateway you are deploying.
+
+## Installation
+
+1. Set the version of Consul API Gateway you are installing as an environment variable. The following steps use this environment variable in commands and configurations.
+
+  ```shell-session
+  $ export VERSION=0.3.0
+  ```
+
+1. Issue the following command to install the CRDs:
+
+  ```shell-session
+  $ kubectl apply --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v$VERSION"
+  ```
+
+1. Create a `values.yaml` file for your Consul API Gateway deployment by copying the following content and running it in the environment where you set the `VERSION` environment variable. The Consul Helm chart uses this `values.yaml` file to deploy the API Gateway. Available versions of the [Consul](https://hub.docker.com/r/hashicorp/consul/tags) and [Consul API Gateway](https://hub.docker.com/r/hashicorp/consul-api-gateway/tags) Docker images can be found on DockerHub, with additional context on version compatibility published in [GitHub releases](https://github.com/hashicorp/consul-api-gateway/releases). For more options to configure your Consul API Gateway deployment through the Helm chart, refer to [Helm Chart Configuration - apiGateway](https://www.consul.io/docs/k8s/helm#apigateway).
+
+    <CodeBlockConfig filename="values.yaml">
+
+      ```shell
+        cat <<EOF > values.yaml
+          global:
+            name: consul
+          connectInject:
+            enabled: true
+          controller:
+            enabled: true
+          apiGateway:
+            enabled: true
+            image: hashicorp/consul-api-gateway:$VERSION
+        EOF
+      ```
+    </CodeBlockConfig>
+
+1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Available versions of the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) can be found in GitHub releases.
+
+  <Tabs>
+    <Tab heading="Consul K8s CLI (Mac Only)">
+
+    ~> **Note:** Refer to the official [Consul K8S CLI documentation](https://www.consul.io/docs/k8s/k8s-cli) to find additional settings.
+
+    ```shell-session
+    $ brew tap hashicorp/tap
+    ```
+
+    ```shell-session
+    $ brew install hashicorp/tap/consul-k8s
+    ```
+
+    ```shell-session
+    $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.12.2
+    ```
+
+    </Tab>
+    <Tab heading="Helm">
+
+    Add the HashiCorp Helm repository.
+
+    ```shell-session
+    $ helm repo add hashicorp https://helm.releases.hashicorp.com
+    ```
+    Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
+
+    ```shell-session
+    $ helm install consul hashicorp/consul --version 0.45.0 --values values.yaml --create-namespace --namespace consul
+    ```
+    </Tab>
+  </Tabs>
+
+<!--
+****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
+Only Reference style links should be added below this comment
+--->
+[tech-specs]: /docs/api-gateway/tech-specs
+[rel-notes]: /docs/release-notes

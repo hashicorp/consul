@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22.2"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.23.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -41,6 +41,20 @@ readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
 function network_snippet {
     local DC="$1"
     echo "--net container:envoy_consul-${DC}_1"
+}
+
+function aws_snippet {
+  local snippet=""
+
+  # The Lambda integration cases assume that a Lambda function exists in $AWS_REGION with an ARN of $AWS_LAMBDA_ARN.
+  # The AWS credentials must have permission to invoke the Lambda function.
+  [ -n "$(set | grep '^AWS_ACCESS_KEY_ID=')" ] && snippet="${snippet} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+  [ -n "$(set | grep '^AWS_SECRET_ACCESS_KEY=')" ] && snippet="${snippet} -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+  [ -n "$(set | grep '^AWS_SESSION_TOKEN=')" ] && snippet="${snippet} -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+  [ -n "$(set | grep '^AWS_LAMBDA_REGION=')" ] && snippet="${snippet} -e AWS_LAMBDA_REGION=$AWS_LAMBDA_REGION"
+  [ -n "$(set | grep '^AWS_LAMBDA_ARN=')" ] && snippet="${snippet} -e AWS_LAMBDA_ARN=$AWS_LAMBDA_ARN"
+
+  echo "$snippet"
 }
 
 function init_workdir {
@@ -170,7 +184,8 @@ function start_consul {
   # an agent.
   #
   # When XDS_TARGET=client we'll start a Consul server with its gRPC port
-  # disabled, and a client agent with its gRPC port enabled.
+  # disabled (but only if REQUIRE_PEERS is not set), and a client agent with
+  # its gRPC port enabled.
   #
   # When XDS_TARGET=server (or anything else) we'll run a single Consul server
   # with its gRPC port enabled.
@@ -196,6 +211,11 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
+    server_grpc_port="-1"
+    if is_set $REQUIRE_PEERS; then
+      server_grpc_port="8502"
+    fi
+
     docker run -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
@@ -206,7 +226,7 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -grpc-port -1 \
+      -grpc-port $server_grpc_port \
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
@@ -327,6 +347,7 @@ function verify {
     $WORKDIR_SNIPPET \
     --pid=host \
     $(network_snippet $CLUSTER) \
+    $(aws_snippet) \
     bats-verify \
     --pretty /workdir/${CLUSTER}/bats ; then
     echogreen "✓ PASS"
@@ -534,7 +555,7 @@ function suite_setup {
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
-    docker build -t bats-verify -f Dockerfile-bats .
+    retry_default docker build -t bats-verify -f Dockerfile-bats .
 
     # if this fails on CircleCI your first thing to try would be to upgrade
     # the machine image to the latest version using this listing:
@@ -545,13 +566,13 @@ function suite_setup {
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+    retry_default docker build -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
 }
 
 function suite_teardown {
@@ -673,6 +694,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
+    $(aws_snippet) \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${CLUSTER}/envoy/${service}-bootstrap.json \
@@ -759,6 +781,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
+    $(aws_snippet) \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
@@ -854,7 +877,7 @@ function common_run_container_tcpdump {
 
     # we cant run this in circle but its only here to temporarily enable.
 
-    docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
+    retry_default docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
 
     docker run -d --name $(container_name_prev) \
         $(network_snippet $DC) \

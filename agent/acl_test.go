@@ -274,10 +274,10 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 	// Try to register over a service without write privs to the existing
 	// service.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
-	}, "")
+	}, nil, "")
 	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
@@ -304,10 +304,10 @@ func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	require.Contains(t, err.Error(), "Unknown service")
 
 	// Update with write privs.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	err = vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
@@ -361,10 +361,10 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 
 	// Try to register over a service check without write privs to the
 	// existing service.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
@@ -410,10 +410,10 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	require.Contains(t, err.Error(), "Unknown check")
 
 	// Update service check with write privs.
-	a.State.AddService(&structs.NodeService{
+	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, "")
+	}, nil, "")
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",

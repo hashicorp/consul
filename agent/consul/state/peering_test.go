@@ -19,6 +19,9 @@ const (
 	testFooPeerID = "9e650110-ac74-4c5a-a6a8-9348b2bed4e9"
 	testBarPeerID = "5ebcff30-5509-4858-8142-a8e580f1863f"
 	testBazPeerID = "432feb2f-5476-4ae2-b33c-e43640ca0e86"
+
+	testFooSecretID = "e34e9c3d-a27d-4f82-a6d2-28a86af2be6b"
+	testBazSecretID = "dd3802bb-0c91-4b2a-be51-505bacae772b"
 )
 
 func insertTestPeerings(t *testing.T, s *Store) {
@@ -52,6 +55,37 @@ func insertTestPeerings(t *testing.T, s *Store) {
 		Value: 2,
 	})
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
+}
+
+func insertTestPeeringSecret(t *testing.T, s *Store, secret *pbpeering.PeeringSecrets, dialer bool) {
+	t.Helper()
+
+	tx := s.db.WriteTxn(0)
+	defer tx.Abort()
+
+	err := tx.Insert(tablePeeringSecrets, secret)
+	require.NoError(t, err)
+
+	var uuids []string
+	if establishment := secret.GetEstablishment().GetSecretID(); establishment != "" {
+		uuids = append(uuids, establishment)
+	}
+	if pending := secret.GetStream().GetPendingSecretID(); pending != "" {
+		uuids = append(uuids, pending)
+	}
+	if active := secret.GetStream().GetActiveSecretID(); active != "" {
+		uuids = append(uuids, active)
+	}
+
+	// Dialing peers do not track secret UUIDs because they don't generate them.
+	if !dialer {
+		for _, id := range uuids {
+			err = tx.Insert(tablePeeringSecretUUIDs, id)
+			require.NoError(t, err)
+		}
+	}
+
 	require.NoError(t, tx.Commit())
 }
 
@@ -141,6 +175,669 @@ func TestStateStore_PeeringReadByID(t *testing.T) {
 	}
 }
 
+func TestStateStore_PeeringSecretsRead(t *testing.T) {
+	s := NewStateStore(nil)
+
+	insertTestPeerings(t, s)
+
+	insertTestPeeringSecret(t, s, &pbpeering.PeeringSecrets{
+		PeerID: testFooPeerID,
+		Establishment: &pbpeering.PeeringSecrets_Establishment{
+			SecretID: testFooSecretID,
+		},
+	}, false)
+
+	type testcase struct {
+		name   string
+		peerID string
+		expect *pbpeering.PeeringSecrets
+	}
+	run := func(t *testing.T, tc testcase) {
+		secrets, err := s.PeeringSecretsRead(nil, tc.peerID)
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, tc.expect, secrets)
+	}
+	tcs := []testcase{
+		{
+			name:   "get foo",
+			peerID: testFooPeerID,
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: testFooSecretID,
+				},
+			},
+		},
+		{
+			name:   "get non-existent baz",
+			peerID: testBazPeerID,
+			expect: nil,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestStore_PeeringSecretsWrite(t *testing.T) {
+	dumpUUIDs := func(s *Store) []string {
+		tx := s.db.ReadTxn()
+		defer tx.Abort()
+
+		iter, err := tx.Get(tablePeeringSecretUUIDs, indexID)
+		require.NoError(t, err)
+
+		var resp []string
+		for entry := iter.Next(); entry != nil; entry = iter.Next() {
+			resp = append(resp, entry.(string))
+		}
+		return resp
+	}
+
+	var (
+		testSecretOne   = testUUID()
+		testSecretTwo   = testUUID()
+		testSecretThree = testUUID()
+		testSecretFour  = testUUID()
+	)
+
+	type testSeed struct {
+		peering *pbpeering.Peering
+		secrets *pbpeering.PeeringSecrets
+	}
+
+	type testcase struct {
+		name        string
+		seed        *testSeed
+		input       *pbpeering.SecretsWriteRequest
+		expect      *pbpeering.PeeringSecrets
+		expectUUIDs []string
+		expectErr   string
+	}
+
+	writeSeed := func(s *Store, seed *testSeed) {
+		tx := s.db.WriteTxn(1)
+		defer tx.Abort()
+
+		if seed.peering != nil {
+			require.NoError(t, tx.Insert(tablePeering, seed.peering))
+		}
+		if seed.secrets != nil {
+			require.NoError(t, tx.Insert(tablePeeringSecrets, seed.secrets))
+
+			var toInsert []string
+			if establishment := seed.secrets.GetEstablishment().GetSecretID(); establishment != "" {
+				toInsert = append(toInsert, establishment)
+			}
+			if pending := seed.secrets.GetStream().GetPendingSecretID(); pending != "" {
+				toInsert = append(toInsert, pending)
+			}
+			if active := seed.secrets.GetStream().GetActiveSecretID(); active != "" {
+				toInsert = append(toInsert, active)
+			}
+			for _, id := range toInsert {
+				require.NoError(t, tx.Insert(tablePeeringSecretUUIDs, id))
+			}
+		}
+
+		tx.Commit()
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		s := NewStateStore(nil)
+
+		// Optionally seed existing secrets for the peering.
+		if tc.seed != nil {
+			writeSeed(s, tc.seed)
+		}
+
+		err := s.PeeringSecretsWrite(10, tc.input)
+		if tc.expectErr != "" {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+			return
+		}
+		require.NoError(t, err)
+
+		// Validate that we read what we expect
+		secrets, err := s.PeeringSecretsRead(nil, tc.input.GetPeerID())
+		require.NoError(t, err)
+		require.NotNil(t, secrets)
+		prototest.AssertDeepEqual(t, tc.expect, secrets)
+
+		// Validate accounting of the UUIDs table
+		require.ElementsMatch(t, tc.expectUUIDs, dumpUUIDs(s))
+	}
+	tcs := []testcase{
+		{
+			name: "missing peer id",
+			input: &pbpeering.SecretsWriteRequest{
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{},
+			},
+			expectErr: "missing peer ID",
+		},
+		{
+			name: "unknown peer id",
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: testFooSecretID,
+					},
+				},
+			},
+			expectErr: "unknown peering",
+		},
+		{
+			name: "no secret IDs were embedded when generating token",
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID:  testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{},
+			},
+			expectErr: "missing secret ID",
+		},
+		{
+			name: "no secret IDs were embedded when establishing peering",
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID:  testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_Establish{},
+			},
+			expectErr: "missing secret ID",
+		},
+		{
+			name: "no secret IDs were embedded when exchanging secret",
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID:  testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{},
+			},
+			expectErr: "missing secret ID",
+		},
+		{
+			name: "no secret IDs were embedded when promoting pending secret",
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID:  testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{},
+			},
+			expectErr: "missing secret ID",
+		},
+		{
+			name: "dialing peer invalid request type - generate token",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name:                "foo",
+					ID:                  testFooPeerID,
+					PeerServerAddresses: []string{"10.0.0.1:5300"},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				// Dialing peer must only write secrets from Establish
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: testFooSecretID,
+					},
+				},
+			},
+			expectErr: "invalid request type",
+		},
+		{
+			name: "dialing peer invalid request type - exchange secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name:                "foo",
+					ID:                  testFooPeerID,
+					PeerServerAddresses: []string{"10.0.0.1:5300"},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				// Dialing peer must only write secrets from Establish
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						PendingStreamSecret: testFooSecretID,
+					},
+				},
+			},
+			expectErr: "invalid request type",
+		},
+		{
+			name: "dialing peer invalid request type - promote pending",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name:                "foo",
+					ID:                  testFooPeerID,
+					PeerServerAddresses: []string{"10.0.0.1:5300"},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				// Dialing peer must only write secrets from Establish
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						ActiveStreamSecret: testFooSecretID,
+					},
+				},
+			},
+			expectErr: "invalid request type",
+		},
+		{
+			name: "dialing peer does not track UUIDs",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name:                "foo",
+					ID:                  testFooPeerID,
+					PeerServerAddresses: []string{"10.0.0.1:5300"},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_Establish{
+					Establish: &pbpeering.SecretsWriteRequest_EstablishRequest{
+						ActiveStreamSecret: testFooSecretID,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					ActiveSecretID: testFooSecretID,
+				},
+			},
+			// UUIDs are only tracked for uniqueness in the generating cluster.
+			expectUUIDs: []string{},
+		},
+		{
+			name: "generate new establishment secret when secrets already existed",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testSecretOne,
+						ActiveSecretID:  testSecretTwo,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						EstablishmentSecret: testSecretThree,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: testSecretThree,
+				},
+				// Stream secrets are inherited
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: testSecretOne,
+					ActiveSecretID:  testSecretTwo,
+				},
+			},
+			expectUUIDs: []string{testSecretOne, testSecretTwo, testSecretThree},
+		},
+		{
+			name: "generate new token to replace establishment secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+					GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+						// Two replaces One
+						EstablishmentSecret: testSecretTwo,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: testSecretTwo,
+				},
+			},
+			expectUUIDs: []string{testSecretTwo},
+		},
+		{
+			name: "cannot exchange secret without existing secrets",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				// Do not seed an establishment secret.
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						PendingStreamSecret: testSecretOne,
+					},
+				},
+			},
+			expectErr: "no known secrets for peering",
+		},
+		{
+			name: "cannot exchange secret without establishment secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						// Attempt to replace One with Two
+						PendingStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expectErr: "peering was already established",
+		},
+		{
+			name: "cannot exchange secret without valid establishment secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						// Given secret Three does not match One
+						EstablishmentSecret: testSecretThree,
+						PendingStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expectErr: "invalid establishment secret",
+		},
+		{
+			name: "exchange secret to generate new pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						EstablishmentSecret: testSecretOne,
+						PendingStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: testSecretTwo,
+				},
+			},
+			// Establishment secret testSecretOne is discarded when exchanging for a stream secret
+			expectUUIDs: []string{testSecretTwo},
+		},
+		{
+			name: "exchange secret replaces pending stream secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretFour,
+					},
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID:  testSecretOne,
+						PendingSecretID: testSecretTwo,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_ExchangeSecret{
+					ExchangeSecret: &pbpeering.SecretsWriteRequest_ExchangeSecretRequest{
+						EstablishmentSecret: testSecretFour,
+
+						// Three replaces two
+						PendingStreamSecret: testSecretThree,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				// Establishment secret is discarded in favor of new pending secret.
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					// Active secret is not deleted until the new pending secret is promoted
+					ActiveSecretID:  testSecretOne,
+					PendingSecretID: testSecretThree,
+				},
+			},
+			expectUUIDs: []string{testSecretOne, testSecretThree},
+		},
+		{
+			name: "cannot promote pending without existing secrets",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				// Do not seed a pending secret.
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						ActiveStreamSecret: testSecretOne,
+					},
+				},
+			},
+			expectErr: "no known secrets for peering",
+		},
+		{
+			name: "cannot promote pending without existing pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						ActiveSecretID: testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						// Attempt to replace One with Two
+						ActiveStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expectErr: "invalid pending stream secret",
+		},
+		{
+			name: "cannot promote pending without valid pending secret",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testSecretTwo,
+						ActiveSecretID:  testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						// Attempting to write secret Three, but pending secret is Two
+						ActiveStreamSecret: testSecretThree,
+					},
+				},
+			},
+			expectErr: "invalid pending stream secret",
+		},
+		{
+			name: "promote pending secret and delete active",
+			seed: &testSeed{
+				peering: &pbpeering.Peering{
+					Name: "foo",
+					ID:   testFooPeerID,
+				},
+				secrets: &pbpeering.PeeringSecrets{
+					PeerID: testFooPeerID,
+					Establishment: &pbpeering.PeeringSecrets_Establishment{
+						SecretID: testSecretThree,
+					},
+					Stream: &pbpeering.PeeringSecrets_Stream{
+						PendingSecretID: testSecretTwo,
+						ActiveSecretID:  testSecretOne,
+					},
+				},
+			},
+			input: &pbpeering.SecretsWriteRequest{
+				PeerID: testFooPeerID,
+				Request: &pbpeering.SecretsWriteRequest_PromotePending{
+					PromotePending: &pbpeering.SecretsWriteRequest_PromotePendingRequest{
+						// Two gets promoted over One
+						ActiveStreamSecret: testSecretTwo,
+					},
+				},
+			},
+			expect: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					// Establishment secret remains valid when promoting a stream secret.
+					SecretID: testSecretThree,
+				},
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					ActiveSecretID: testSecretTwo,
+				},
+			},
+			expectUUIDs: []string{testSecretTwo, testSecretThree},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestStore_PeeringSecretsDelete(t *testing.T) {
+	const (
+		establishmentID = "b4b9cbae-4bbd-454b-b7ae-441a5c89c3b9"
+		pendingID       = "0ba06390-bd77-4c52-8397-f88c0867157d"
+		activeID        = "0b8a3817-aca0-4c06-94b6-b0763a5cd013"
+	)
+
+	type testCase struct {
+		dialer bool
+		secret *pbpeering.PeeringSecrets
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		s := NewStateStore(nil)
+
+		insertTestPeerings(t, s)
+		insertTestPeeringSecret(t, s, tc.secret, tc.dialer)
+
+		require.NoError(t, s.PeeringSecretsDelete(12, testFooPeerID, tc.dialer))
+
+		// The secrets should be gone
+		secrets, err := s.PeeringSecretsRead(nil, testFooPeerID)
+		require.NoError(t, err)
+		require.Nil(t, secrets)
+
+		uuids := []string{establishmentID, pendingID, activeID}
+		for _, id := range uuids {
+			free, err := s.ValidateProposedPeeringSecretUUID(id)
+			require.NoError(t, err)
+			require.True(t, free)
+		}
+	}
+
+	tt := map[string]testCase{
+		"acceptor": {
+			dialer: false,
+			secret: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: establishmentID,
+				},
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					PendingSecretID: pendingID,
+					ActiveSecretID:  activeID,
+				},
+			},
+		},
+		"dialer": {
+			dialer: true,
+			secret: &pbpeering.PeeringSecrets{
+				PeerID: testFooPeerID,
+				Stream: &pbpeering.PeeringSecrets_Stream{
+					ActiveSecretID: activeID,
+				},
+			},
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestStateStore_PeeringRead(t *testing.T) {
 	s := NewStateStore(nil)
 	insertTestPeerings(t, s)
@@ -192,9 +889,11 @@ func TestStore_Peering_Watch(t *testing.T) {
 	lastIdx++
 
 	// set up initial write
-	err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-		ID:   testFooPeerID,
-		Name: "foo",
+	err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testFooPeerID,
+			Name: "foo",
+		},
 	})
 	require.NoError(t, err)
 
@@ -214,9 +913,11 @@ func TestStore_Peering_Watch(t *testing.T) {
 		ws := newWatch(t, Query{Value: "bar"})
 
 		lastIdx++
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:   testBarPeerID,
-			Name: "bar",
+		err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:   testBarPeerID,
+				Name: "bar",
+			},
 		})
 		require.NoError(t, err)
 		require.True(t, watchFired(ws))
@@ -234,19 +935,23 @@ func TestStore_Peering_Watch(t *testing.T) {
 
 		// unrelated write shouldn't fire watch
 		lastIdx++
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:   testBarPeerID,
-			Name: "bar",
+		err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:   testBarPeerID,
+				Name: "bar",
+			},
 		})
 		require.NoError(t, err)
 		require.False(t, watchFired(ws))
 
 		// foo write should fire watch
 		lastIdx++
-		err = s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:        testFooPeerID,
-			Name:      "foo",
-			DeletedAt: structs.TimeToProto(time.Now()),
+		err = s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:        testFooPeerID,
+				Name:      "foo",
+				DeletedAt: structs.TimeToProto(time.Now()),
+			},
 		})
 		require.NoError(t, err)
 		require.True(t, watchFired(ws))
@@ -268,10 +973,11 @@ func TestStore_Peering_Watch(t *testing.T) {
 
 		// mark for deletion before actually deleting
 		lastIdx++
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+		err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
 			ID:        testBarPeerID,
 			Name:      "bar",
 			DeletedAt: structs.TimeToProto(time.Now()),
+		},
 		})
 		require.NoError(t, err)
 		require.True(t, watchFired(ws))
@@ -344,10 +1050,11 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 
 		lastIdx++
 		// insert a peering
-		err := s.PeeringWrite(lastIdx, &pbpeering.Peering{
+		err := s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &pbpeering.Peering{
 			ID:        testFooPeerID,
 			Name:      "foo",
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+		},
 		})
 		require.NoError(t, err)
 		count++
@@ -366,11 +1073,13 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 
 		// update peering
 		lastIdx++
-		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:        testFooPeerID,
-			Name:      "foo",
-			DeletedAt: structs.TimeToProto(time.Now()),
-			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:        testFooPeerID,
+				Name:      "foo",
+				DeletedAt: structs.TimeToProto(time.Now()),
+				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			},
 		}))
 		require.True(t, watchFired(ws))
 
@@ -404,9 +1113,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 	s := NewStateStore(nil)
 
 	type testcase struct {
-		name      string
-		input     *pbpeering.Peering
-		expectErr string
+		name          string
+		input         *pbpeering.PeeringWriteRequest
+		expectSecrets *pbpeering.PeeringSecrets
+		expectErr     string
 	}
 	run := func(t *testing.T, tc testcase) {
 		err := s.PeeringWrite(10, tc.input)
@@ -417,63 +1127,99 @@ func TestStore_PeeringWrite(t *testing.T) {
 		require.NoError(t, err)
 
 		q := Query{
-			Value:          tc.input.Name,
-			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(tc.input.Partition),
+			Value:          tc.input.Peering.Name,
+			EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(tc.input.Peering.Partition),
 		}
 		_, p, err := s.PeeringRead(nil, q)
 		require.NoError(t, err)
 		require.NotNil(t, p)
-		require.Equal(t, tc.input.State, p.State)
-		require.Equal(t, tc.input.Name, p.Name)
+		require.Equal(t, tc.input.Peering.State, p.State)
+		require.Equal(t, tc.input.Peering.Name, p.Name)
+
+		secrets, err := s.PeeringSecretsRead(nil, tc.input.Peering.ID)
+		require.NoError(t, err)
+		prototest.AssertDeepEqual(t, tc.expectSecrets, secrets)
 	}
 	tcs := []testcase{
 		{
 			name: "create baz",
-			input: &pbpeering.Peering{
-				ID:        testBazPeerID,
-				Name:      "baz",
-				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:        testBazPeerID,
+					Name:      "baz",
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+				SecretsRequest: &pbpeering.SecretsWriteRequest{
+					PeerID: testBazPeerID,
+					Request: &pbpeering.SecretsWriteRequest_GenerateToken{
+						GenerateToken: &pbpeering.SecretsWriteRequest_GenerateTokenRequest{
+							EstablishmentSecret: testBazSecretID,
+						},
+					},
+				},
+			},
+			expectSecrets: &pbpeering.PeeringSecrets{
+				PeerID: testBazPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: testBazSecretID,
+				},
 			},
 		},
 		{
 			name: "update baz",
-			input: &pbpeering.Peering{
-				ID:        testBazPeerID,
-				Name:      "baz",
-				State:     pbpeering.PeeringState_FAILING,
-				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:        testBazPeerID,
+					Name:      "baz",
+					State:     pbpeering.PeeringState_FAILING,
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
+			},
+			expectSecrets: &pbpeering.PeeringSecrets{
+				PeerID: testBazPeerID,
+				Establishment: &pbpeering.PeeringSecrets_Establishment{
+					SecretID: testBazSecretID,
+				},
 			},
 		},
 		{
 			name: "mark baz for deletion",
-			input: &pbpeering.Peering{
-				ID:        testBazPeerID,
-				Name:      "baz",
-				State:     pbpeering.PeeringState_TERMINATED,
-				DeletedAt: structs.TimeToProto(time.Now()),
-				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:        testBazPeerID,
+					Name:      "baz",
+					State:     pbpeering.PeeringState_DELETING,
+					DeletedAt: structs.TimeToProto(time.Now()),
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
 			},
+			// Secrets for baz should have been deleted
+			expectSecrets: nil,
 		},
 		{
 			name: "cannot update peering marked for deletion",
-			input: &pbpeering.Peering{
-				ID:   testBazPeerID,
-				Name: "baz",
-				// Attempt to add metadata
-				Meta: map[string]string{
-					"source": "kubernetes",
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:   testBazPeerID,
+					Name: "baz",
+					// Attempt to add metadata
+					Meta: map[string]string{
+						"source": "kubernetes",
+					},
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
-				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 			expectErr: "cannot write to peering that is marked for deletion",
 		},
 		{
 			name: "cannot create peering marked for deletion",
-			input: &pbpeering.Peering{
-				ID:        testFooPeerID,
-				Name:      "foo",
-				DeletedAt: structs.TimeToProto(time.Now()),
-				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			input: &pbpeering.PeeringWriteRequest{
+				Peering: &pbpeering.Peering{
+					ID:        testFooPeerID,
+					Name:      "foo",
+					DeletedAt: structs.TimeToProto(time.Now()),
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+				},
 			},
 			expectErr: "cannot create a new peering marked for deletion",
 		},
@@ -496,10 +1242,12 @@ func TestStore_PeeringDelete(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "can delete after marking for deletion", func(t *testing.T) {
-		require.NoError(t, s.PeeringWrite(11, &pbpeering.Peering{
-			ID:        testFooPeerID,
-			Name:      "foo",
-			DeletedAt: structs.TimeToProto(time.Now()),
+		require.NoError(t, s.PeeringWrite(11, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:        testFooPeerID,
+				Name:      "foo",
+				DeletedAt: structs.TimeToProto(time.Now()),
+			},
 		}))
 
 		q := Query{Value: "foo"}
@@ -680,9 +1428,11 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 	require.NoError(t, s.CASetConfig(lastIdx, ca))
 
 	lastIdx++
-	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.Peering{
-		ID:   testUUID(),
-		Name: "my-peering",
+	require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "my-peering",
+		},
 	}))
 
 	_, p, err := s.PeeringRead(nil, Query{
@@ -993,7 +1743,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				tp.peering.ID = testUUID()
 			}
 			lastIdx++
-			require.NoError(t, s.PeeringWrite(lastIdx, tp.peering))
+			require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: tp.peering}))
 
 			// New peerings can't be marked for deletion so there is a two step process
 			// of first creating the peering and then marking it for deletion by setting DeletedAt.
@@ -1005,7 +1755,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 					Name:      tp.peering.Name,
 					DeletedAt: structs.TimeToProto(time.Now()),
 				}
-				require.NoError(t, s.PeeringWrite(lastIdx, &copied))
+				require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &copied}))
 			}
 
 			// make sure it got created
@@ -1283,9 +2033,11 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 	testutil.RunStep(t, "creating peering does not yield trust bundles", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:   peerID1,
-			Name: "peer1",
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:   peerID1,
+				Name: "peer1",
+			},
 		}))
 
 		// The peering is only watched after the service is exported via config entry.
@@ -1382,9 +2134,11 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 	testutil.RunStep(t, "bundles for other peers are ignored", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:   peerID2,
-			Name: "peer2",
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:   peerID2,
+				Name: "peer2",
+			},
 		}))
 
 		lastIdx++
@@ -1437,10 +2191,12 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 	testutil.RunStep(t, "deleting the peering excludes its trust bundle", func(t *testing.T) {
 		lastIdx++
-		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.Peering{
-			ID:        peerID1,
-			Name:      "peer1",
-			DeletedAt: structs.TimeToProto(time.Now()),
+		require.NoError(t, store.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:        peerID1,
+				Name:      "peer1",
+				DeletedAt: structs.TimeToProto(time.Now()),
+			},
 		}))
 
 		require.True(t, watchFired(ws))

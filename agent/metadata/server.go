@@ -23,25 +23,26 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name         string // <node>.<dc>
-	ShortName    string // <node>
-	ID           string
-	Datacenter   string
-	Segment      string
-	Port         int
-	SegmentAddrs map[string]string
-	SegmentPorts map[string]int
-	WanJoinPort  int
-	LanJoinPort  int
-	Bootstrap    bool
-	Expect       int
-	Build        version.Version
-	Version      int
-	RaftVersion  int
-	Addr         net.Addr
-	Status       serf.MemberStatus
-	ReadReplica  bool
-	FeatureFlags map[string]int
+	Name             string // <node>.<dc>
+	ShortName        string // <node>
+	ID               string
+	Datacenter       string
+	Segment          string
+	Port             int
+	SegmentAddrs     map[string]string
+	SegmentPorts     map[string]int
+	WanJoinPort      int
+	LanJoinPort      int
+	ExternalGRPCPort int
+	Bootstrap        bool
+	Expect           int
+	Build            version.Version
+	Version          int
+	RaftVersion      int
+	Addr             net.Addr
+	Status           serf.MemberStatus
+	ReadReplica      bool
+	FeatureFlags     map[string]int
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -136,6 +137,18 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
+	externalGRPCPort := 0
+	externalGRPCPortStr, ok := m.Tags["grpc_port"]
+	if ok {
+		externalGRPCPort, err = strconv.Atoi(externalGRPCPortStr)
+		if err != nil {
+			return false, nil
+		}
+		if externalGRPCPort < 1 {
+			return false, nil
+		}
+	}
+
 	vsnStr := m.Tags["vsn"]
 	vsn, err := strconv.Atoi(vsnStr)
 	if err != nil {
@@ -160,24 +173,25 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
-		Name:         m.Name,
-		ShortName:    strings.TrimSuffix(m.Name, "."+datacenter),
-		ID:           m.Tags["id"],
-		Datacenter:   datacenter,
-		Segment:      segment,
-		Port:         port,
-		SegmentAddrs: segmentAddrs,
-		SegmentPorts: segmentPorts,
-		WanJoinPort:  wanJoinPort,
-		LanJoinPort:  int(m.Port),
-		Bootstrap:    bootstrap,
-		Expect:       expect,
-		Addr:         addr,
-		Build:        *buildVersion,
-		Version:      vsn,
-		RaftVersion:  raftVsn,
-		Status:       m.Status,
-		UseTLS:       useTLS,
+		Name:             m.Name,
+		ShortName:        strings.TrimSuffix(m.Name, "."+datacenter),
+		ID:               m.Tags["id"],
+		Datacenter:       datacenter,
+		Segment:          segment,
+		Port:             port,
+		SegmentAddrs:     segmentAddrs,
+		SegmentPorts:     segmentPorts,
+		WanJoinPort:      wanJoinPort,
+		LanJoinPort:      int(m.Port),
+		ExternalGRPCPort: externalGRPCPort,
+		Bootstrap:        bootstrap,
+		Expect:           expect,
+		Addr:             addr,
+		Build:            *buildVersion,
+		Version:          vsn,
+		RaftVersion:      raftVsn,
+		Status:           m.Status,
+		UseTLS:           useTLS,
 		// DEPRECATED - remove nonVoter check once support for that tag is removed
 		ReadReplica:  nonVoter || readReplica,
 		FeatureFlags: featureFlags,

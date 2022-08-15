@@ -57,6 +57,16 @@ const REQUIRED_PERMISSIONS = [
     Access: 'write',
   },
 ];
+const PEERING_PERMISSIONS = [
+  {
+    Resource: 'peering',
+    Access: 'read',
+  },
+  {
+    Resource: 'peering',
+    Access: 'write',
+  },
+];
 export default class PermissionService extends RepositoryService {
   @service('env') env;
   @service('abilities') _can;
@@ -146,7 +156,7 @@ export default class PermissionService extends RepositoryService {
 
   @dataSource('/:partition/:nspace/:dc/permissions')
   async findAll(params) {
-    params.resources = REQUIRED_PERMISSIONS;
+    params.resources = this.permissionsToRequest;
     this.permissions = await this.findByPermissions(params);
     /**/
     // Temporarily revert to pre-1.10 UI functionality by overwriting frontend
@@ -161,5 +171,13 @@ export default class PermissionService extends RepositoryService {
     });
     /**/
     return this.permissions;
+  }
+
+  get permissionsToRequest() {
+    if (this._can.can('use peers')) {
+      return [...REQUIRED_PERMISSIONS, ...PEERING_PERMISSIONS];
+    } else {
+      return REQUIRED_PERMISSIONS;
+    }
   }
 }

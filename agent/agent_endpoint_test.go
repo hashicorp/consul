@@ -93,7 +93,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -128,7 +128,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	// Add another service
 	srv2 := &structs.NodeService{
@@ -140,7 +140,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 		},
 		Port: 1234,
 	}
-	require.NoError(t, a.State.AddService(srv2, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv2, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
 	resp := httptest.NewRecorder()
@@ -188,7 +188,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 			Upstreams:              structs.TestUpstreams(t),
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -232,7 +232,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -281,7 +281,7 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -325,7 +325,7 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, a.State.AddService(srv1, ""))
+	require.NoError(t, a.State.AddServiceWithChecks(srv1, nil, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()
@@ -370,7 +370,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		},
 	}
 	for _, s := range services {
-		a.State.AddService(s, "")
+		a.State.AddServiceWithChecks(s, nil, "")
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -6799,7 +6799,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
-	{
+	t.Run("test blocking queries update leaf cert", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
 		a.srv.h.ServeHTTP(resp, req)
@@ -6815,7 +6815,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		// Should not be a cache hit! The data was updated in response to the blocking
 		// query being made.
 		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
-	}
+	})
 
 	t.Run("test non-blocking queries update leaf cert", func(t *testing.T) {
 		resp := httptest.NewRecorder()
@@ -6834,33 +6834,26 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 			// Set a new CA
 			ca3 := connect.TestCAConfigSet(t, a, nil)
 
-			resp := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 			require.NoError(t, err)
-			obj, err = a.srv.AgentConnectCALeafCert(resp, req)
-			require.NoError(t, err)
-			issued2 := obj.(*structs.IssuedCert)
-			require.NotEqual(t, issued.CertPEM, issued2.CertPEM)
-			require.NotEqual(t, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
-			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca3)
-
-			// Should not be a cache hit!
-			require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
-		}
-
-		// Test caching for the leaf cert
-		{
-
-			for fetched := 0; fetched < 4; fetched++ {
-
-				// Fetch it again
+			retry.Run(t, func(r *retry.R) {
 				resp := httptest.NewRecorder()
-				obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
-				require.NoError(t, err)
-				require.Equal(t, obj, obj2)
-			}
+				a.srv.h.ServeHTTP(resp, req)
+
+				// Should not be a cache hit!
+				require.Equal(r, "MISS", resp.Header().Get("X-Cache"))
+
+				dec := json.NewDecoder(resp.Body)
+				issued2 := &structs.IssuedCert{}
+				require.NoError(r, dec.Decode(issued2))
+
+				require.NotEqual(r, issued.CertPEM, issued2.CertPEM)
+				require.NotEqual(r, issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
+
+				// Verify that the cert is signed by the new CA
+				requireLeafValidUnderCA(r, issued2, ca3)
+			})
 		}
 	})
 }
@@ -7405,7 +7398,7 @@ func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot
 	})
 }
 
-func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert, ca *structs.CARoot) {
+func requireLeafValidUnderCA(t require.TestingT, issued *structs.IssuedCert, ca *structs.CARoot) {
 	leaf, intermediates, err := connect.ParseLeafCerts(issued.CertPEM)
 	require.NoError(t, err)
 
@@ -7994,7 +7987,7 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 			},
 		},
 	}
-	a.State.AddService(srv1, "")
+	a.State.AddServiceWithChecks(srv1, nil, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	resp := httptest.NewRecorder()

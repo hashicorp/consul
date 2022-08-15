@@ -15,53 +15,12 @@
             "hidden": true
           },
           {
-            "title": "What is a Service Mesh?",
+            "title": "Service Discovery",
+            "path": "intro/usecases/what-is-service-discovery"
+          },
+          {
+            "title": "Service Mesh",
             "path": "intro/usecases/what-is-a-service-mesh"
-          }
-        ]
-      },
-      {
-        "title": "Consul vs. Other Software",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "intro/vs"
-          },
-          {
-            "title": "Chef, Puppet, etc.",
-            "path": "intro/vs/chef-puppet"
-          },
-          {
-            "title": "Nagios",
-            "path": "intro/vs/nagios"
-          },
-          {
-            "title": "SkyDNS",
-            "path": "intro/vs/skydns"
-          },
-          {
-            "title": "SmartStack",
-            "path": "intro/vs/smartstack"
-          },
-          {
-            "title": "Serf",
-            "path": "intro/vs/serf"
-          },
-          {
-            "title": "Eureka",
-            "path": "intro/vs/eureka"
-          },
-          {
-            "title": "Istio",
-            "path": "intro/vs/istio"
-          },
-          {
-            "title": "Envoy and Other Proxies",
-            "path": "intro/vs/proxies"
-          },
-          {
-            "title": "Custom Solutions",
-            "path": "intro/vs/custom"
           }
         ]
       }
@@ -308,6 +267,10 @@
               {
                 "title": "Enabling Service-to-service Traffic Across Admin Partitions",
                 "path": "connect/gateways/mesh-gateway/service-to-service-traffic-partitions"
+              },
+              {
+                "title": "Enabling Service-to-service Traffic Across Peered Clusters",
+                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-peers"
               }
             ]
           },
@@ -325,7 +288,7 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering",
+            "title": "What is Cluster Peering?",
             "path": "connect/cluster-peering"
           },
           {
@@ -400,19 +363,44 @@
       },
       {
         "title": "Installation",
-        "path": "api-gateway/consul-api-gateway-install"
+        "path": "api-gateway/install"
       },
       {
         "title": "Technical Specifications",
         "path": "api-gateway/tech-specs"
       },
       {
-        "title": "Common Errors",
-        "path": "api-gateway/common-errors"
+        "title": "Upgrades",
+        "path": "api-gateway/upgrades"
       },
       {
-        "title": "Upgrades",
-        "path": "api-gateway/upgrade-specific-versions"
+        "title": "Usage",
+        "path": "api-gateway/usage"
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "api-gateway/configuration"
+          },
+          {
+            "title": "Gateway",
+            "path": "api-gateway/configuration/gateway"
+          },
+          {
+            "title": "GatewayClass",
+            "path": "api-gateway/configuration/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig",
+            "path": "api-gateway/configuration/gatewayclassconfig"
+          },
+          {
+            "title": "Routes",
+            "path": "api-gateway/configuration/routes"
+          }
+        ]
       }
     ]
   },
@@ -1290,6 +1278,10 @@
       {
         "title": "Consul ECS",
         "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-ecs/v0_5_x"
+          },
           {
             "title": "v0.4.x",
             "path": "release-notes/consul-ecs/v0_4_x"

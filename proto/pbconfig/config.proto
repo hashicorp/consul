@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package config;
+package hashicorp.consul.internal.config;
 
 message Config {
   string Datacenter = 1;

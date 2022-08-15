@@ -148,6 +148,12 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 
 		for uid, cancelFn := range snap.IngressGateway.WatchedDiscoveryChains {
 			if _, ok := watchedSvcs[uid]; !ok {
+				for targetID, cancelUpstreamFn := range snap.IngressGateway.WatchedUpstreams[uid] {
+					delete(snap.IngressGateway.WatchedUpstreams[uid], targetID)
+					delete(snap.IngressGateway.WatchedUpstreamEndpoints[uid], targetID)
+					cancelUpstreamFn()
+				}
+
 				cancelFn()
 				delete(snap.IngressGateway.WatchedDiscoveryChains, uid)
 			}

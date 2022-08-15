@@ -11,7 +11,7 @@ Feature: token-header
       dc: dc1
     ---
     Then the url should be /dc1/services
-    And a GET request was made to "/v1/internal/ui/services?dc=dc1&with-peers=true&ns=@namespace" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=dc1&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: ''
@@ -35,7 +35,7 @@ Feature: token-header
       dc: dc1
     ---
     Then the url should be /dc1/services
-    And a GET request was made to "/v1/internal/ui/services?dc=dc1&with-peers=true&ns=@namespace" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=dc1&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: [Token]

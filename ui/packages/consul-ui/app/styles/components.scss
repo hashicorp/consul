@@ -33,7 +33,6 @@
 @import 'consul-ui/components/popover-select';
 @import 'consul-ui/components/progress';
 @import 'consul-ui/components/radio-group';
-@import 'consul-ui/components/secret-button';
 @import 'consul-ui/components/sliding-toggle';
 @import 'consul-ui/components/table';
 @import 'consul-ui/components/tile';
@@ -75,7 +74,7 @@
 @import 'consul-ui/components/informed-action';
 @import 'consul-ui/components/tab-nav';
 @import 'consul-ui/components/search-bar';
-@import 'consul-ui/components/certificate';
+@import 'consul-ui/components/copyable-code';
 
 @import 'consul-ui/components/consul/loader';
 @import 'consul-ui/components/consul/tomography/graph';
@@ -104,7 +103,9 @@
 @import 'consul-ui/components/topology-metrics/series';
 @import 'consul-ui/components/topology-metrics/stats';
 @import 'consul-ui/components/topology-metrics/status';
+@import 'consul-ui/components/consul/intention/list/table';
+@import 'consul-ui/components/consul/peer';
 @import 'consul-ui/components/peerings/badge';
 @import 'consul-ui/components/consul/node/peer-info';
-@import 'consul-ui/components/consul/intention/list/table';
-@import 'consul-ui/components/consul/service/peer-info';
+@import 'consul-ui/components/consul/peer/info';
+@import 'consul-ui/components/consul/peer/form';

@@ -14,8 +14,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	gogrpc "google.golang.org/grpc"
 
-	grpc "github.com/hashicorp/consul/agent/grpc/private"
-	"github.com/hashicorp/consul/agent/grpc/private/resolver"
+	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"

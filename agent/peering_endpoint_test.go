@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -107,12 +108,110 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
 		require.Nil(t, token.CA)
-		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.ServerPort)}, token.ServerAddresses)
+		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.GRPCPort)}, token.ServerAddresses)
 		require.Equal(t, "server.dc1.consul", token.ServerName)
 
 		// The PeerID in the token is randomly generated so we don't assert on its value.
 		require.NotEmpty(t, token.PeerID)
 	})
+
+	t.Run("Success with external address", func(t *testing.T) {
+		externalAddress := "32.1.2.3"
+		body := &pbpeering.GenerateTokenRequest{
+			PeerName:                "peering-a",
+			ServerExternalAddresses: []string{externalAddress},
+		}
+
+		bodyBytes, err := json.Marshal(body)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+		var r pbpeering.GenerateTokenResponse
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
+
+		tokenJSON, err := base64.StdEncoding.DecodeString(r.PeeringToken)
+		require.NoError(t, err)
+
+		var token structs.PeeringToken
+		require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+		require.Nil(t, token.CA)
+		require.Equal(t, []string{externalAddress}, token.ServerAddresses)
+		require.Equal(t, "server.dc1.consul", token.ServerName)
+
+		// The PeerID in the token is randomly generated so we don't assert on its value.
+		require.NotEmpty(t, token.PeerID)
+	})
+}
+
+// Test for GenerateToken calls at various points in a peer's lifecycle
+func TestHTTP_Peering_GenerateToken_EdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	body := &pbpeering.GenerateTokenRequest{
+		PeerName: "peering-a",
+	}
+
+	bodyBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	getPeering := func(t *testing.T) *api.Peering {
+		t.Helper()
+		// Check state of peering
+		req, err := http.NewRequest("GET", "/v1/peering/peering-a", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+		var p *api.Peering
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&p))
+		return p
+	}
+
+	{
+		// Call once
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+		// Assertions tested in TestHTTP_Peering_GenerateToken
+	}
+
+	if !t.Run("generate token called again", func(t *testing.T) {
+		before := getPeering(t)
+		require.Equal(t, api.PeeringStatePending, before.State)
+
+		// Call again
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+		after := getPeering(t)
+		assert.NotEqual(t, before.ModifyIndex, after.ModifyIndex)
+		// blank out modify index so we can compare rest of struct
+		before.ModifyIndex, after.ModifyIndex = 0, 0
+		assert.Equal(t, before, after)
+
+	}) {
+		t.FailNow()
+	}
+
 }
 
 func TestHTTP_Peering_Establish(t *testing.T) {
@@ -167,30 +266,35 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		require.Contains(t, string(body), "PeeringToken is required")
 	})
 
-	// TODO(peering): add more failure cases
-
 	t.Run("Success", func(t *testing.T) {
-		token := structs.PeeringToken{
-			CA:              []string{validCA},
-			ServerName:      "server.dc1.consul",
-			ServerAddresses: []string{fmt.Sprintf("1.2.3.4:%d", 443)},
-			PeerID:          "a0affd3e-f1c8-4bb9-9168-90fd902c441d",
-		}
-		tokenJSON, _ := json.Marshal(&token)
-		tokenB64 := base64.StdEncoding.EncodeToString(tokenJSON)
-		body := &pbpeering.EstablishRequest{
-			PeerName:     "peering-a",
-			PeeringToken: tokenB64,
-			Meta:         map[string]string{"foo": "bar"},
-		}
+		a2 := NewTestAgent(t, "")
+		testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
 
-		bodyBytes, err := json.Marshal(body)
+		bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
+			PeerName: "foo",
+		})
 		require.NoError(t, err)
 
-		req, err := http.NewRequest("POST", "/v1/peering/establish", bytes.NewReader(bodyBytes))
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+		var r pbpeering.GenerateTokenResponse
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
+
+		b, err := json.Marshal(&pbpeering.EstablishRequest{
+			PeerName:     "zip",
+			PeeringToken: r.PeeringToken,
+			Meta:         map[string]string{"foo": "bar"},
+		})
+		require.NoError(t, err)
+
+		req, err = http.NewRequest("POST", "/v1/peering/establish", bytes.NewReader(b))
+		require.NoError(t, err)
+		resp = httptest.NewRecorder()
+		a2.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
 
 		// success response does not currently return a value so {} is correct
@@ -311,20 +415,16 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	foo := &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name:                "foo",
-			State:               pbpeering.PeeringState_ESTABLISHING,
-			PeerCAPems:          nil,
-			PeerServerName:      "fooservername",
-			PeerServerAddresses: []string{"addr1"},
-		},
-	}
-	_, err := a.rpcClientPeering.PeeringWrite(ctx, foo)
+	bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
+		PeerName: "foo",
+	})
 	require.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
 
 	t.Run("read existing token before attempting delete", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/peering/foo", nil)
@@ -335,8 +435,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 
 		var apiResp api.Peering
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
-
-		require.Equal(t, foo.Peering.Name, apiResp.Name)
+		require.Equal(t, "foo", apiResp.Name)
 	})
 
 	t.Run("delete the existing token we just read", func(t *testing.T) {

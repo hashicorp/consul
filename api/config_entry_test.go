@@ -107,8 +107,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		}
 
 		dest := &DestinationConfig{
-			Address: "my.example.com",
-			Port:    80,
+			Addresses: []string{"my.example.com"},
+			Port:      80,
 		}
 
 		service2 := &ServiceConfigEntry{
@@ -531,7 +531,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"Name": "external",
 				"Protocol": "http",
 				"Destination": {
-					"Address": "1.2.3.4/24",
+					"Addresses": [
+						"1.2.3.4"
+					],
 					"Port": 443
 				}
 			}
@@ -541,8 +543,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Name:     "external",
 				Protocol: "http",
 				Destination: &DestinationConfig{
-					Address: "1.2.3.4/24",
-					Port:    443,
+					Addresses: []string{"1.2.3.4"},
+					Port:      443,
 				},
 			},
 		},

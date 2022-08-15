@@ -52,12 +52,6 @@ Usage: `consul event [options] [payload]`
 The only required option is `-name` which specifies the event name. An optional
 payload can be provided as the final argument.
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 #### Command Options
 
 - `-name` - The name of the event.
@@ -69,3 +63,9 @@ payload can be provided as the final argument.
 - `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may
   do `-service mysql -tag secondary`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

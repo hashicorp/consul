@@ -1,5 +1,4 @@
 import Adapter from './application';
-import { inject as service } from '@ember/service';
 
 // TODO: Update to use this.formatDatacenter()
 
@@ -11,25 +10,12 @@ import { inject as service } from '@ember/service';
 // to the node.
 
 export default class NodeAdapter extends Adapter {
-  @service features;
-
-  get peeringQuery() {
-    const query = {};
-
-    if (this.features.isEnabled('peering')) {
-      query['with-peers'] = true;
-    }
-
-    return query;
-  }
-
   requestForQuery(request, { dc, ns, partition, index, id, uri }) {
     return request`
       GET /v1/internal/ui/nodes?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{
-        ...this.peeringQuery,
         ns,
         partition,
         index,

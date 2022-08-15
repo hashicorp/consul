@@ -38,23 +38,20 @@ in HCL or JSON format.
 This flexibility makes it easy to pair the command with the
 `services register` command since the argument syntax is the same.
 
-#### API Options
+#### Command Options
 
-@include 'http_api_options_client.mdx'
+- `-id` - Specifies the ID of a service instance to deregister.
+  Do not use this flag if any FILE arguments are given.
 
 #### Enterprise Options
 
-@include 'http_api_namespace_options.mdx'
-
 @include 'http_api_partition_options.mdx'
 
-#### Service Deregistration Flags
+@include 'http_api_namespace_options.mdx'
 
-The flags below should only be set if _no arguments_ are given. If no
-arguments are given, the flags below can be used to deregister a single
-service.
+#### API Options
 
-- `-id` - The ID of the service.
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

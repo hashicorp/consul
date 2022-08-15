@@ -1,0 +1,21 @@
+# Consul::Peer::Form
+
+```hbs preview-template
+<Consul::Peer::Form
+  @params={{hash
+    dc='dc1'
+    nspace=''
+    partition=''
+  }}
+as |form|>
+  <form.Form
+    @onchange={{noop}}
+    @onsubmit={{noop}}
+  as |form|>
+    <form.Fieldsets />
+    <form.Actions
+      @onclose={{noop}}
+    />
+  </form.Form>
+</Consul::Peer::Form>
+```

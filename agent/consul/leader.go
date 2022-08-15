@@ -315,7 +315,9 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.startFederationStateAntiEntropy(ctx)
 
-	s.startPeeringStreamSync(ctx)
+	if s.config.PeeringEnabled {
+		s.startPeeringStreamSync(ctx)
+	}
 
 	s.startDeferredDeletion(ctx)
 
@@ -758,7 +760,9 @@ func (s *Server) stopACLReplication() {
 }
 
 func (s *Server) startDeferredDeletion(ctx context.Context) {
-	s.startPeeringDeferredDeletion(ctx)
+	if s.config.PeeringEnabled {
+		s.startPeeringDeferredDeletion(ctx)
+	}
 	s.startTenancyDeferredDeletion(ctx)
 }
 
@@ -1067,6 +1071,11 @@ func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.Enterpri
 				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
 				"version":               parts.Build.String(),
 			},
+		}
+
+		grpcPortStr := member.Tags["grpc_port"]
+		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
+			service.Meta["grpc_port"] = grpcPortStr
 		}
 
 		// Attempt to join the consul server

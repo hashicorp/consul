@@ -74,9 +74,36 @@ type Catalog struct {
 	logger hclog.Logger
 }
 
+func hasPeerNameInRequest(req *structs.RegisterRequest) bool {
+	if req == nil {
+		return false
+	}
+	// nodes, services, checks
+	if req.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	if req.Service != nil && req.Service.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	if req.Check != nil && req.Check.PeerName != structs.DefaultPeerKeyword {
+		return true
+	}
+	for _, check := range req.Checks {
+		if check.PeerName != structs.DefaultPeerKeyword {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Register a service and/or check(s) in a node, creating the node if it doesn't exist.
 // It is valid to pass no service or checks to simply create the node itself.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
+	if !c.srv.config.PeeringTestAllowPeerRegistrations && hasPeerNameInRequest(args) {
+		return fmt.Errorf("cannot register requests with PeerName in them")
+	}
+
 	if done, err := c.srv.ForwardRPC("Catalog.Register", args, reply); done {
 		return err
 	}
@@ -176,7 +203,7 @@ func servicePreApply(service *structs.NodeService, authz resolver.Result, authzC
 
 	// Verify ServiceName provided if ID.
 	if service.ID != "" && service.Service == "" {
-		return fmt.Errorf("Must provide service name with ID")
+		return fmt.Errorf("Must provide service name (Service.Service) when service ID is provided")
 	}
 
 	// Check the service address here and in the agent endpoint

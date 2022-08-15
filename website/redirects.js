@@ -291,52 +291,6 @@ module.exports = [
     permanent: true,
   },
   { source: '/intro', destination: '/docs/intro', permanent: true },
-  { source: '/intro/vs', destination: '/docs/intro/vs', permanent: true },
-  {
-    source: '/intro/vs/chef-puppet',
-    destination: '/docs/intro/vs/chef-puppet',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/nagios',
-    destination: '/docs/intro/vs/nagios',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/skydns',
-    destination: '/docs/intro/vs/skydns',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/smartstack',
-    destination: '/docs/intro/vs/smartstack',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/serf',
-    destination: '/docs/intro/vs/serf',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/eureka',
-    destination: '/docs/intro/vs/eureka',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/istio',
-    destination: '/docs/intro/vs/istio',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/proxies',
-    destination: '/docs/intro/vs/proxies',
-    permanent: true,
-  },
-  {
-    source: '/intro/vs/custom',
-    destination: '/docs/intro/vs/custom',
-    permanent: true,
-  },
   {
     source: '/docs/k8s/ambassador',
     destination:
@@ -1317,6 +1271,16 @@ module.exports = [
   {
     source: '/docs/k8s/installation/vault/connect-ca',
     destination: '/docs/k8s/installation/vault/data-integration/connect-ca',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/common-errors',
+    destination: '/docs/api-gateway/usage#error-messages',
+    permanent: true,
+  },
+  {
+    source: '/docs/api-gateway/upgrade-specific-versions',
+    destination: '/docs/api-gateway/upgrades',
     permanent: true,
   },
 ]

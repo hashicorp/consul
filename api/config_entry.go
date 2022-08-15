@@ -181,8 +181,8 @@ type UpstreamConfig struct {
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul
 type DestinationConfig struct {
-	// Address of the endpoint; hostname, IP, or CIDR
-	Address string `json:",omitempty"`
+	// Addresses of the endpoint; hostname or IP
+	Addresses []string `json:",omitempty"`
 
 	// Port allowed within this endpoint
 	Port int `json:",omitempty"`

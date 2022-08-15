@@ -61,11 +61,13 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator area create [options]`
 
-#### API Options
+The following example output shows the ID of the newly-created network area:
 
-@include 'http_api_options_client.mdx'
+```text
+Created area "d2872ec5-68ea-b862-b75d-0bee99aca100" with peer datacenter "other"!
+```
 
-@include 'http_api_options_server.mdx'
+The return code indicates success or failure.
 
 #### Command Options
 
@@ -79,13 +81,11 @@ Usage: `consul operator area create [options]`
 - `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
   TLS if possible. Must be either `true` or `false`.
 
-The output looks like this, displaying the ID of the newly-created network area:
+#### API Options
 
-```text
-Created area "d2872ec5-68ea-b862-b75d-0bee99aca100" with peer datacenter "other"!
-```
+@include 'http_api_options_client.mdx'
 
-The return code will indicate success or failure.
+@include 'http_api_options_server.mdx'
 
 ## delete
 
@@ -103,27 +103,27 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator area delete [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Command Options
-
-- `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-  instead of a peer datacenter.
-
-- `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-  datacenter. This can be given instead of an ID.
-
 The output looks like this:
 
 ```text
 Deleted area "154941b0-80e2-9d69-c560-ab2c02807332"!
 ```
 
-The return code will indicate success or failure.
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## join
 
@@ -142,20 +142,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator area join [options] ADDRESSES`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Command Options
-
-- `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-  instead of a peer datacenter.
-
-- `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-  datacenter. This can be given instead of an ID.
-
 The output looks like this:
 
 ```text
@@ -168,7 +154,21 @@ Address   Joined  Error
 The `Error` field will have a human-readable error message if Consul was unable
 to join the given address.
 
-The return code will indicate success or failure.
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## list
 
@@ -186,12 +186,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator area list [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
 The output looks like this:
 
 ```text
@@ -206,7 +200,13 @@ Area                                  PeerDC  RetryJoin
 
 `RetryJoin` is the list of servers to join, defined when the area was created.
 
-The return code will indicate success or failure.
+The return code indicates success or failure.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## members
 
@@ -224,20 +224,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 | `operator:read` |
 
 Usage: `consul operator area members [options]`
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Command Options
-
-- `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-  instead of a peer datacenter.
-
-- `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-  datacenter. This can be given instead of an ID.
 
 The output looks like this:
 
@@ -271,7 +257,21 @@ spoken by the node.
 to the given server, in a human-readable format. This is computed using
 [network coordinates](/docs/architecture/coordinates).
 
-The return code will indicate success or failure.
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## update
 
@@ -289,28 +289,27 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator area update [options]`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Command Options
-
-- `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-  instead of a peer datacenter.
-
-- `-peer-datacenter=<value>` - Declares the peer Consul datacenter that will make up the other
-  side of this network area. Network areas always involve a pair of datacenters: the datacenter
-  where the area was created, and the peer datacenter. This is required.
-
-- `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
-  TLS if possible. Must be either `true` or `false`.
-
 The output looks like this:
 
 ```text
 Updated area "d2872ec5-68ea-b862-b75d-0bee99aca100"
 ```
 
-The return code will indicate success or failure.
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+- `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
+  TLS if possible. Must be either `true` or `false`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

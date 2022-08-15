@@ -14,7 +14,32 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.13.0
+## Consul 1.13.x
+
+### Service Mesh Compatibility
+
+Existing Consul deployments using service mesh (i.e., containing any registered 
+Connect proxies) should upgrade to **at least Consul 1.13.1**.
+
+Consul 1.13.0 contains a bug that prevents Consul server agents from restoring 
+saved state on startup if the state
+
+1. was generated before Consul 1.13 (such as during an upgrade), and
+2. contained any Connect proxy registrations.
+
+This bug is fixed in Consul versions 1.13.1 and newer.
+
+### gRPC TLS
+
+In prior Consul versions if HTTPS was enabled for the client API and exposed
+via `ports { https = NUMBER }` then the same TLS material was used to encrypt
+the gRPC port used for xDS. Now this is decoupled and activating TLS on the
+gRPC endpoint is controlled solely with the gRPC section of the new 
+[`tls` stanza](/docs/agent/config/config-files#tls-configuration-reference).
+
+If you have not yet switched to the new `tls` stanza and were NOT using HTTPS
+for the API then updating to Consul 1.13 will activate TLS for gRPC since the
+deprecated TLS settings are used as defaults.
 
 ### 1.9 Telemetry Compatibility
 
@@ -38,9 +63,11 @@ style `consul.api.http...` metrics and removing the configuration flag from your
 
 ### Nomad Namespace Incompatibility
 
-Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0.
+Nomad Enterprise users should not upgrade to Consul Enterprise 1.12.0, and instead should upgrade to 1.12.1 or later.
 
-Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces. To avoid errors, we recommend that Nomad Enterprise users wait to update Consul Enterprise until we fix this issue in a future release.
+Consul 1.12.0 Enterprise introduced a change that prevents Nomad Enterprise from removing services from non-default Consul namespaces.
+
+The Consul Enterprise codebase was updated with a fix for this issue in version 1.12.1.
 
 ### TLS Configuration
 
