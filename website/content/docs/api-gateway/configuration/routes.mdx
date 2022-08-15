@@ -121,15 +121,15 @@ This field specifies backend services that the `Route` references. The following
 | `group` | Specifies the Kubernetes API Group of the referenced backend. You can specify the following values: <ul><li>`""`: Specifies the core Kubernetes API group. This value must be used when `kind` is set to `Service`. This is the default value if unspecified.</li><li>`api-gateway.consul.hashicorp.com`: This value must be used when `kind` is set to `MeshService`.</li></ul> | String | Optional |
 | `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` [documentation](/docs/api-gateway/configuration/meshservice) for additional information.</li></ul> | String | Optional |
 | `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
-| `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
+| `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
 | `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
 | `weight` | Specifies the proportion of requests sent to the backend. Computed as weight divided by the sum of all weights in this `backendRefs` list. Defaults to `1`. A value of `0` indicates that no requests should be sent to the backend. | Integer | Optional |
 
 #### Example cross-namespace backendRef
 
-The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
+The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferenceGrant`, named `reference-grant` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
 
-<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+<CodeBlockConfig filename="route_with_referencegrant.yaml">
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -149,9 +149,9 @@ The following example creates a route named `example-route` in namespace `gatewa
   ---
 
   apiVersion: gateway.networking.k8s.io/v1alpha2
-  kind: ReferencePolicy
+  kind: ReferenceGrant
   metadata:
-    name: reference-policy
+    name: reference-grant
     namespace: service-namespace
   spec:
     from:
