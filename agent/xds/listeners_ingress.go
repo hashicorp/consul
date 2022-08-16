@@ -64,6 +64,13 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
 			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+
+			// Instruct envoy to assign outbound connections to worker threads in a balanced manner.
+			// TODO is this correct?
+			// if u.OutboundWorkerLoadBalancing {
+			// 	l.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+			// }
+
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:   uid.EnvoyID(),
 				useRDS:      useRDS,
@@ -83,6 +90,14 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
+
+			// Instruct envoy to assign outbound connections to worker threads in a balanced manner.
+			// TODO is this correct? It should be an outbound check instead of inbound.
+			// It may not be possible to do this because of the above comment mentioning that the port is shared.
+			// if cfgSnap.Proxy.InboundWorkerLoadBalancing {
+			// 	listener.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+			// }
+
 			opts := listenerFilterOpts{
 				useRDS:          true,
 				protocol:        listenerKey.Protocol,

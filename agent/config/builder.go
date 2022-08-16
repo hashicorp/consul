@@ -125,10 +125,10 @@ type LoadResult struct {
 //
 // The sources are merged in the following order:
 //
-//  * default configuration
-//  * config files in alphabetical order
-//  * command line arguments
-//  * overrides
+//   - default configuration
+//   - config files in alphabetical order
+//   - command line arguments
+//   - overrides
 //
 // The config sources are merged sequentially and later values overwrite
 // previously set values. Slice values are merged by concatenating the two slices.
@@ -1683,17 +1683,18 @@ func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	}
 
 	return &structs.ConnectProxyConfig{
-		DestinationServiceName: stringVal(v.DestinationServiceName),
-		DestinationServiceID:   stringVal(v.DestinationServiceID),
-		LocalServiceAddress:    stringVal(v.LocalServiceAddress),
-		LocalServicePort:       intVal(v.LocalServicePort),
-		LocalServiceSocketPath: stringVal(&v.LocalServiceSocketPath),
-		Config:                 v.Config,
-		Upstreams:              b.upstreamsVal(v.Upstreams),
-		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
-		Expose:                 b.exposeConfVal(v.Expose),
-		Mode:                   b.proxyModeVal(v.Mode),
-		TransparentProxy:       b.transparentProxyConfVal(v.TransparentProxy),
+		DestinationServiceName:     stringVal(v.DestinationServiceName),
+		DestinationServiceID:       stringVal(v.DestinationServiceID),
+		LocalServiceAddress:        stringVal(v.LocalServiceAddress),
+		LocalServicePort:           intVal(v.LocalServicePort),
+		LocalServiceSocketPath:     stringVal(&v.LocalServiceSocketPath),
+		Config:                     v.Config,
+		Upstreams:                  b.upstreamsVal(v.Upstreams),
+		MeshGateway:                b.meshGatewayConfVal(v.MeshGateway),
+		Expose:                     b.exposeConfVal(v.Expose),
+		Mode:                       b.proxyModeVal(v.Mode),
+		TransparentProxy:           b.transparentProxyConfVal(v.TransparentProxy),
+		InboundWorkerLoadBalancing: boolVal(v.InboundWorkerLoadBalancing),
 	}
 }
 
@@ -1701,18 +1702,19 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 	ups := make(structs.Upstreams, len(v))
 	for i, u := range v {
 		ups[i] = structs.Upstream{
-			DestinationType:      stringVal(u.DestinationType),
-			DestinationNamespace: stringVal(u.DestinationNamespace),
-			DestinationPartition: stringVal(u.DestinationPartition),
-			DestinationPeer:      stringVal(u.DestinationPeer),
-			DestinationName:      stringVal(u.DestinationName),
-			Datacenter:           stringVal(u.Datacenter),
-			LocalBindAddress:     stringVal(u.LocalBindAddress),
-			LocalBindPort:        intVal(u.LocalBindPort),
-			LocalBindSocketPath:  stringVal(u.LocalBindSocketPath),
-			LocalBindSocketMode:  b.unixPermissionsVal("local_bind_socket_mode", u.LocalBindSocketMode),
-			Config:               u.Config,
-			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
+			DestinationType:             stringVal(u.DestinationType),
+			DestinationNamespace:        stringVal(u.DestinationNamespace),
+			DestinationPartition:        stringVal(u.DestinationPartition),
+			DestinationPeer:             stringVal(u.DestinationPeer),
+			DestinationName:             stringVal(u.DestinationName),
+			Datacenter:                  stringVal(u.Datacenter),
+			LocalBindAddress:            stringVal(u.LocalBindAddress),
+			LocalBindPort:               intVal(u.LocalBindPort),
+			LocalBindSocketPath:         stringVal(u.LocalBindSocketPath),
+			LocalBindSocketMode:         b.unixPermissionsVal("local_bind_socket_mode", u.LocalBindSocketMode),
+			Config:                      u.Config,
+			MeshGateway:                 b.meshGatewayConfVal(u.MeshGateway),
+			OutboundWorkerLoadBalancing: boolVal(u.OutboundWorkerLoadBalancing),
 		}
 		if ups[i].DestinationType == "" {
 			ups[i].DestinationType = structs.UpstreamDestTypeService

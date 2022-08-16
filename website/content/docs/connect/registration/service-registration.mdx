@@ -158,6 +158,7 @@ The following table describes all parameters that can be defined in the `proxy` 
 | `upstreams` | An array of objects that specify the upstream services that the proxy should create listeners for. Refer to  [Upstream Configuration Reference](#upstream-configuration-reference) for details. | Optional | None |
 | `mesh_gateway` | Object value that specifies the mesh gateway configuration for the proxy. Refer to [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for details. | Optional | None |
 | `expose` | Object value that specifies a configuration for exposing HTTP paths through the proxy. <br/>This parameter is only compatible with Envoy proxies. <br/>Refer to [Expose Paths Configuration Reference](#expose-paths-configuration-reference) for details. | Optional | None |
+| `inbound_worker_load_balancing` | Boolean value that describes whether inbound connections for the service should be evenly distributed across proxy worker threads. <br/>This typically helps performance when long-lived high-traffic connections are traversing the proxy. The tradeoff is that establishing sockets will cost more CPU time. <br/>Supported when using Envoy for the proxy. | Optional | `false` |
 
 ### Upstream Configuration Reference
 
@@ -177,6 +178,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | `datacenter` | String value that specifies the datacenter to issue the discovery query to. | Optional | Defaults to the local datacenter. |
 | `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
+| `outbound_worker_load_balancing` | Boolean value that describes whether outbound connections for the upstream should be evenly distributed across proxy worker threads. <br/>This typically helps performance when long-lived high-traffic connections are traversing the proxy. The tradeoff is that establishing sockets will cost more CPU time. <br/>Supported when using Envoy for the proxy. | Optional | `false` |
 
 ### Upstream Configuration Examples
 

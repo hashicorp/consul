@@ -493,6 +493,8 @@ type ServiceProxy struct {
 
 	// Expose defines whether checks or paths are exposed through the proxy
 	Expose *ExposeConfig `mapstructure:"expose"`
+
+	InboundWorkerLoadBalancing *bool `mapstructure:"inbound_worker_load_balancing"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -540,6 +542,8 @@ type Upstream struct {
 
 	// Mesh Gateway Configuration
 	MeshGateway *MeshGatewayConfig `mapstructure:"mesh_gateway"`
+
+	OutboundWorkerLoadBalancing *bool `mapstructure:"outbound_worker_load_balancing"`
 }
 
 type MeshGatewayConfig struct {

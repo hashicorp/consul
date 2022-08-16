@@ -28,6 +28,7 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeLocal,
 				},
+				InboundWorkerLoadBalancing: true,
 				Upstreams: Upstreams{
 					{
 						DestinationType: UpstreamDestTypeService,
@@ -37,6 +38,7 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						MeshGateway: MeshGatewayConfig{
 							Mode: MeshGatewayModeLocal,
 						},
+						OutboundWorkerLoadBalancing: true,
 					},
 					{
 						DestinationType:  UpstreamDestTypePreparedQuery,
@@ -62,6 +64,7 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeLocal,
 				},
+				InboundWorkerLoadBalancing: true,
 				Upstreams: []api.Upstream{
 					{
 						DestinationType: UpstreamDestTypeService,
@@ -71,6 +74,7 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						MeshGateway: api.MeshGatewayConfig{
 							Mode: api.MeshGatewayModeLocal,
 						},
+						OutboundWorkerLoadBalancing: true,
 					},
 					{
 						DestinationType:  UpstreamDestTypePreparedQuery,

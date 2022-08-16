@@ -205,6 +205,12 @@ type ConnectProxyConfig struct {
 	// TransparentProxy defines configuration for when the proxy is in
 	// transparent mode.
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+
+	// InboundWorkerLoadBalancing defines whether the proxy should should utilize
+	// a load-balancing strategy when allocating connections to worker threads.
+	// TODO change this to an enum?
+	// TODO Explain more in this comment block.
+	InboundWorkerLoadBalancing bool `json:",omitempty" alias:"inbound_worker_load_balancing"`
 }
 
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
@@ -280,17 +286,18 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 // app.
 func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 	return &api.AgentServiceConnectProxyConfig{
-		DestinationServiceName: c.DestinationServiceName,
-		DestinationServiceID:   c.DestinationServiceID,
-		LocalServiceAddress:    c.LocalServiceAddress,
-		LocalServicePort:       c.LocalServicePort,
-		LocalServiceSocketPath: c.LocalServiceSocketPath,
-		Mode:                   api.ProxyMode(c.Mode),
-		TransparentProxy:       c.TransparentProxy.ToAPI(),
-		Config:                 c.Config,
-		Upstreams:              c.Upstreams.ToAPI(),
-		MeshGateway:            c.MeshGateway.ToAPI(),
-		Expose:                 c.Expose.ToAPI(),
+		DestinationServiceName:     c.DestinationServiceName,
+		DestinationServiceID:       c.DestinationServiceID,
+		LocalServiceAddress:        c.LocalServiceAddress,
+		LocalServicePort:           c.LocalServicePort,
+		LocalServiceSocketPath:     c.LocalServiceSocketPath,
+		Mode:                       api.ProxyMode(c.Mode),
+		TransparentProxy:           c.TransparentProxy.ToAPI(),
+		Config:                     c.Config,
+		Upstreams:                  c.Upstreams.ToAPI(),
+		MeshGateway:                c.MeshGateway.ToAPI(),
+		Expose:                     c.Expose.ToAPI(),
+		InboundWorkerLoadBalancing: c.InboundWorkerLoadBalancing,
 	}
 }
 
@@ -377,6 +384,12 @@ type Upstream struct {
 	// CentrallyConfigured indicates whether the upstream was defined in a proxy
 	// instance registration or whether it was generated from a config entry.
 	CentrallyConfigured bool `json:",omitempty" bexpr:"-"`
+
+	// OutboundWorkerLoadBalancing defines whether the proxy should should utilize
+	// a load-balancing strategy when allocating connections to worker threads.
+	// TODO change this to an enum?
+	// TODO Explain more in this comment block.
+	OutboundWorkerLoadBalancing bool `json:",omitempty" alias:"outbound_worker_load_balancing"`
 }
 
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
@@ -472,18 +485,19 @@ func (u *Upstream) Validate() error {
 // app.
 func (u *Upstream) ToAPI() api.Upstream {
 	return api.Upstream{
-		DestinationType:      api.UpstreamDestType(u.DestinationType),
-		DestinationNamespace: u.DestinationNamespace,
-		DestinationPartition: u.DestinationPartition,
-		DestinationPeer:      u.DestinationPeer,
-		DestinationName:      u.DestinationName,
-		Datacenter:           u.Datacenter,
-		LocalBindAddress:     u.LocalBindAddress,
-		LocalBindPort:        u.LocalBindPort,
-		LocalBindSocketPath:  u.LocalBindSocketPath,
-		LocalBindSocketMode:  u.LocalBindSocketMode,
-		Config:               u.Config,
-		MeshGateway:          u.MeshGateway.ToAPI(),
+		DestinationType:             api.UpstreamDestType(u.DestinationType),
+		DestinationNamespace:        u.DestinationNamespace,
+		DestinationPartition:        u.DestinationPartition,
+		DestinationPeer:             u.DestinationPeer,
+		DestinationName:             u.DestinationName,
+		Datacenter:                  u.Datacenter,
+		LocalBindAddress:            u.LocalBindAddress,
+		LocalBindPort:               u.LocalBindPort,
+		LocalBindSocketPath:         u.LocalBindSocketPath,
+		LocalBindSocketMode:         u.LocalBindSocketMode,
+		Config:                      u.Config,
+		MeshGateway:                 u.MeshGateway.ToAPI(),
+		OutboundWorkerLoadBalancing: u.OutboundWorkerLoadBalancing,
 	}
 }
 

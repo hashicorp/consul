@@ -396,6 +396,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					for _, v := range ns.Proxy.Upstreams {
+						// TODO the v here is a copy and doesn't actually change the test properly.
 						// Prepared queries do not get centrally configured upstream defaults merged into them.
 						if v.DestinationType == structs.UpstreamDestTypePreparedQuery {
 							continue
@@ -405,6 +406,24 @@ func TestListenersFromSnapshot(t *testing.T) {
 						v.CentrallyConfigured = true
 						v.DestinationNamespace = structs.WildcardSpecifier
 						v.DestinationName = structs.WildcardSpecifier
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-inbound-loadbalancer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.InboundWorkerLoadBalancing = true
+				}, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-outbound-loadbalancer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						ns.Proxy.Upstreams[i].OutboundWorkerLoadBalancing = true
 					}
 				}, nil)
 			},

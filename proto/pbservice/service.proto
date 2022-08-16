@@ -69,6 +69,10 @@ message ConnectProxyConfig {
 
   // LocalServiceSocketPath is the path to the unix domain socket for the local service instance
   string LocalServiceSocketPath = 11;
+
+	// InboundWorkerLoadBalancing defines whether the proxy should should utilize
+	// a load-balancing strategy when allocating connections to worker threads.
+  bool InboundWorkerLoadBalancing = 12;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -126,6 +130,11 @@ message Upstream {
   // LocalBindSocketPath is the socket to create to connect to the upstream service
   string LocalBindSocketPath = 10;
   string LocalBindSocketMode = 11;
+
+
+	// OutboundWorkerLoadBalancing defines whether the proxy should should utilize
+	// a load-balancing strategy when allocating connections to worker threads.
+	bool OutboundWorkerLoadBalancing = 14;
 }
 
 // ServiceConnect are the shared Connect settings between all service

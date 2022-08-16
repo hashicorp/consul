@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	"net"
 	"net/url"
 	"regexp"
@@ -18,6 +17,7 @@ import (
 	envoy_grpc_http1_bridge_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_http1_bridge/v3"
 	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
@@ -105,6 +105,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// destination IP address. If the filter is not present, no chain will match.
 			originalDstFilter,
 		}
+
+		// TODO do we need to set the loadbalancing on this tproxy outbound listener?
 	}
 
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
@@ -161,6 +163,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
+			}
+			// Instruct envoy to assign outbound connections to worker threads in a balanced manner.
+			if upstreamCfg.OutboundWorkerLoadBalancing {
+				upstreamListener.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
 			}
 			resources = append(resources, upstreamListener)
 
@@ -356,6 +362,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
+			// Instruct envoy to assign outbound connections to worker threads in a balanced manner.
+			if upstreamCfg.OutboundWorkerLoadBalancing {
+				upstreamListener.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+			}
 			resources = append(resources, upstreamListener)
 
 			// Avoid creating filter chains below for upstreams that have dedicated listeners
@@ -500,12 +510,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	}
 
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
-	for uid, u := range cfgSnap.ConnectProxy.UpstreamConfig {
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+	for uid, upstreamCfg := range cfgSnap.ConnectProxy.UpstreamConfig {
+		if upstreamCfg.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
 		}
 
-		cfg, err := structs.ParseUpstreamConfig(u.Config)
+		cfg, err := structs.ParseUpstreamConfig(upstreamCfg.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -525,11 +535,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		upstreamListener := makeListener(uid.EnvoyID(), u, envoy_core_v3.TrafficDirection_OUTBOUND)
+		upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
-			clusterName: connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+			clusterName: connect.UpstreamSNI(upstreamCfg, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
 			filterName:  uid.EnvoyID(),
 			routeName:   uid.EnvoyID(),
 			protocol:    cfg.Protocol,
@@ -539,6 +549,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 			filterChain,
+		}
+		// Instruct envoy to assign outbound connections to worker threads in a balanced manner.
+		if upstreamCfg.OutboundWorkerLoadBalancing {
+			upstreamListener.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
 		}
 		resources = append(resources, upstreamListener)
 	}
@@ -706,7 +720,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 	return path, nil
 }
 
-// listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
+// listenersFromSnapshotGateway returns the "listener" for a terminating-gateway, ingress-gateway, or mesh-gateway service
 func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	cfg, err := ParseGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
@@ -869,6 +883,14 @@ func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener,
 		return nil, err
 	}
 	return &l, nil
+}
+
+// makeListenerLoadBalanceConfig creates an envoy load balancer that will attempt to evenly distribute
+// connections across all worker threads for a listener.
+func makeListenerLoadBalanceConfig() *envoy_listener_v3.Listener_ConnectionBalanceConfig {
+	return &envoy_listener_v3.Listener_ConnectionBalanceConfig{
+		BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+	}
 }
 
 // Ensure that the first filter in each filter chain of a public listener is
@@ -1188,6 +1210,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
 
+	// Instruct envoy to assign inbound connections to worker threads in a balanced manner.
+	if cfgSnap.Proxy.InboundWorkerLoadBalancing {
+		l.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+	}
+
 	filterOpts := listenerFilterOpts{
 		protocol:         cfg.Protocol,
 		filterName:       name,
@@ -1352,6 +1379,10 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	port int,
 ) (*envoy_listener_v3.Listener, error) {
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+
+	// if cfgSnap.Proxy.InboundWorkerLoadBalancing {
+	// 	l.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+	// }
 
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
@@ -1605,6 +1636,12 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	}
 
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
+
+	// TODO is this correct? Technically, it should be based on either inbound or outbound config.
+	// if cfgSnap.Proxy.InboundWorkerLoadBalancing {
+	// 	l.ConnectionBalanceConfig = makeListenerLoadBalanceConfig()
+	// }
+
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
 	for _, svc := range cfgSnap.MeshGatewayValidExportedServices() {
