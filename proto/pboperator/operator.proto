@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package hashicorp.consul.operator;
+service OperatorService {
+  // Sign a leaf certificate for the service or agent identified by the SPIFFE
+  // ID in the given CSR's SAN.
+  rpc TransferLeader(TransferLeaderRequest) returns (TransferLeaderResponse) {}
+}
+
+message TransferLeaderRequest {
+  string ID = 1;
+}
+
+message TransferLeaderResponse {
+  // cert_pem is the PEM-encoded leaf certificate.
+  bool success = 1;
+}
