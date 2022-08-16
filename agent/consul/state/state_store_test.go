@@ -193,6 +193,12 @@ func testRegisterService(t *testing.T, s *Store, idx uint64, nodeID, serviceID s
 	testRegisterServiceWithChange(t, s, idx, nodeID, serviceID, false)
 }
 
+func testRegisterConnectService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
+	testRegisterServiceWithChangeOpts(t, s, idx, nodeID, serviceID, true, func(service *structs.NodeService) {
+		service.Connect = structs.ServiceConnect{Native: true}
+	})
+}
+
 func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
 	svc := &structs.NodeService{
 		ID:      serviceID,

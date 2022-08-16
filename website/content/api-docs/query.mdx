@@ -193,14 +193,25 @@ The table below shows this endpoint's support for
       handling the query to the servers in the remote datacenter is used to
       determine the priority.
 
-    - `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote
-      datacenters to forward the query to if there are no healthy nodes in the
+    - `Datacenters` `(array<string>: nil)` - Specifies a fixed list of WAN federated
+      datacenters to forward the query to when there are no healthy nodes in the
       local datacenter. Datacenters are queried in the order given in the
       list. If this option is combined with `NearestN`, then the `NearestN`
       queries will be performed first, followed by the list given by
       `Datacenters`. A given datacenter will only be queried one time during a
       failover, even if it is selected by both `NearestN` and is listed in
-      `Datacenters`.
+      `Datacenters`. Use `Targets` to failover to cluster peers.
+
+    - `Targets` `(array<Target>: nil)` - Specifies a sequential list of remote
+      datacenters and cluster peers to failover to if there are no healthy
+      service instances in the local datacenter.
+      This option cannot be used with `NearestN` or `Datacenters`.
+
+      - `PeerName` `(string: "")` - Specifies a [cluster peer](/docs/connect/cluster-peering) to use for
+        failover.
+
+      - `Datacenter` `(string: "")` - Specifies a WAN federated datacenter to forward the
+        query to.
 
   - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
     should be ignored when filtering unhealthy instances. This is mostly useful

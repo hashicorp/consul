@@ -55,7 +55,7 @@ export default class PeerService extends RepositoryService {
   @dataSource('/:partition/:ns/:dc/peer-initiate/')
   @dataSource('/:partition/:ns/:dc/peer/:name')
   async fetchOne({ partition, ns, dc, name }, { uri }, request) {
-    if (name === '') {
+    if (typeof name === 'undefined' || name === '') {
       const item = this.create({
         Datacenter: dc,
         Namespace: '',

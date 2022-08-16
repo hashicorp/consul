@@ -29,8 +29,8 @@ Without transparent proxy, application owners need to:
 
 With transparent proxy:
 
-1. Upstreams are inferred from service intentions, so no explicit configuration
-   is needed.
+1. Local upstreams are inferred from service intentions and peered upstreams are
+   inferred from imported services, so no explicit configuration is needed.
 1. Outbound connections pointing to a KubeDNS name "just work" — network rules
    redirect them through the proxy.
 1. Inbound traffic is forced to go through the proxy to prevent unauthorized
@@ -45,15 +45,15 @@ and only reaches intended destinations since the proxy can enforce security and 
 Previously, service mesh users would need to explicitly define upstreams for a service as a local listener on the sidecar
 proxy, and dial the local listener to reach the appropriate upstream. Users would also have to set intentions to allow
 specific services to talk to one another. Transparent proxying reduces this duplication, by determining upstreams
-implicitly from Service Intentions. Explicit upstreams are still supported in the [proxy service
+implicitly from Service Intentions and imported services from a peer. Explicit upstreams are still supported in the [proxy service
 registration](/docs/connect/registration/service-registration) on VMs and via the
 [annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
 
 To support transparent proxying, Consul's CLI now has a command
 [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and
-outbound listener on the sidecar. Consul also watches Service Intentions and configures the Envoy proxy with the appropriate
-upstream IPs. If the default ACL policy is "allow", then Service Intentions are not required. In Consul on Kubernetes,
-the traffic redirection command is automatically set up via an init container.
+outbound listener on the sidecar. Consul also watches Service Intentions and imported services then configures the Envoy
+proxy with the appropriate upstream IPs. If the default ACL policy is "allow", then Service Intentions are not required.
+In Consul on Kubernetes, the traffic redirection command is automatically set up via an init container.
 
 ## Prerequisites
 
@@ -62,7 +62,7 @@ the traffic redirection command is automatically set up via an init container.
 * To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to Consul >= `1.10.0`.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, all Connect services can talk to all other services.
-* If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`. 
+* If using Transparent Proxy, all worker nodes within a Kubernetes cluster must have the `ip_tables` kernel module running, e.g. `modprobe ip_tables`.
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.

@@ -58,7 +58,7 @@ export default class ConsulBucketList extends Component {
 
   get namespacePart() {
     const { item, nspace } = this.args;
-    const { abilities, partitionPart } = this;
+    const { abilities, partitionPart, peerPart } = this;
 
     const nspaceItem = {
       type: 'nspace',
@@ -71,15 +71,13 @@ export default class ConsulBucketList extends Component {
       return [nspaceItem];
     }
 
+    if (peerPart.length && abilities.can('use nspaces')) {
+      return [nspaceItem];
+    }
+
     if (nspace && abilities.can('use nspaces')) {
       if (item.Namespace !== nspace) {
-        return [
-          {
-            type: 'nspace',
-            label: 'Namespace',
-            item: item.Namespace,
-          },
-        ];
+        return [nspaceItem];
       }
     }
 
