@@ -105,12 +105,9 @@ func TestOperator_RaftLeaderTransferACL(t *testing.T) {
 	}
 
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftLeaderTransfer", &arg, &reply)
-	require.EqualError(t, err, "rpc error making call: Permission denied")
+	require.True(t, acl.IsErrPermissionDenied(err))
 
 	require.False(t, reply.Success)
-
-	// wait a bit to not catch it before election
-	time.Sleep(1 * time.Second)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {
@@ -123,7 +120,34 @@ func TestOperator_RaftLeaderTransferACL(t *testing.T) {
 		t.Fatalf("leader should have not changed %s != %s", afterLeader, beforeLeader)
 	}
 
-	arg.Token = "root"
+	// Create an ACL with operator read no permissions.
+	rules := `operator = "read"`
+	tokenRead := createToken(t, codec, rules)
+
+	arg.Token = tokenRead
+	err = msgpackrpc.CallWithCodec(codec, "Operator.RaftLeaderTransfer", &arg, &reply)
+	require.True(t, acl.IsErrPermissionDenied(err))
+
+	require.False(t, reply.Success)
+	// wait a bit to not catch it before election
+	time.Sleep(1 * time.Second)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		afterLeader := s1.raft.Leader()
+		require.NotEmpty(r, afterLeader)
+	})
+	afterLeader = s1.raft.Leader()
+	require.NotEmpty(t, afterLeader)
+	if afterLeader != beforeLeader {
+		t.Fatalf("leader should have not changed %s == %s", afterLeader, beforeLeader)
+	}
+
+	// Create an ACL with operator write permissions.
+	rules = `operator = "write"`
+	tokenWrite := createTokenWithPolicyNameFull(t, codec, "the-policy-write", rules, "root")
+
+	arg.Token = tokenWrite.SecretID
 	err = msgpackrpc.CallWithCodec(codec, "Operator.RaftLeaderTransfer", &arg, &reply)
 	require.NoError(t, err)
 

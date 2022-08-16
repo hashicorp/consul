@@ -20,7 +20,6 @@ import (
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
@@ -1172,13 +1171,6 @@ func (s *Server) Shutdown() error {
 }
 
 func (s *Server) attemptLeadershipTransfer(id raft.ServerID) (err error) {
-	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
-
-	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
-	if !ok {
-		return fmt.Errorf("minimum version not supported, minimu required version %s", LeaderTransferMinVersion)
-	}
-
 	var addr raft.ServerAddress
 	if id != "" {
 		addr, err = s.serverLookup.ServerAddr(id)
