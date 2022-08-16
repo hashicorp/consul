@@ -154,7 +154,7 @@ dev-docker: linux
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	#  'consul:local' tag is needed to run the integration tests
-	docker buildx create --use && docker buildx build -t 'consul:local' \
+	@docker buildx create --use && docker buildx build -t 'consul:local' \
        --platform linux/$(SYSTEM_ARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
@@ -169,7 +169,7 @@ remote-docker: check-remote-dev-image-env linux-amd64 linux-arm64
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
-	docker buildx create --use && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
+	@docker buildx create --use && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --push \
