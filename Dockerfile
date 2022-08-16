@@ -25,7 +25,7 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${VERSION}
 
 # This is the location of the releases.
@@ -132,7 +132,7 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${PRODUCT_VERSION}
 
 # Set up certificates and base tools.
@@ -222,7 +222,7 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${PRODUCT_VERSION}
 
 # Copy license for Red Hat certification.
