@@ -28,6 +28,10 @@ references:
     - "1.21.4"
     - "1.22.2"
     - "1.23.0"
+  nomad-versions: &supported_nomad_versions
+    - &default_nomad_version "1.3.3"
+    - "1.2.10"
+    - "1.1.16"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -560,17 +564,20 @@ jobs:
       - run: make ci.dev-docker
       - run: *notify-slack-failure
 
-  # Nomad 0.8 builds on go1.10
-  # Run integration tests on nomad/v0.8.7
-  nomad-integration-0_8:
+  nomad-integration-test: &NOMAD_TESTS
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.10
+      - image: docker.mirror.hashicorp.services/cimg/go:1.19
+    parameters:
+      nomad-version:
+        type: enum
+        enum: *supported_nomad_versions
+        default: *default_nomad_version
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: v0.8.7
+      NOMAD_VERSION: << parameters.nomad-version >>
     steps: &NOMAD_INTEGRATION_TEST_STEPS
-      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+      - run: git clone https://github.com/hashicorp/nomad.git --branch v${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
 
       # get consul binary
       - attach_workspace:
@@ -600,16 +607,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  # run integration tests on nomad/main
-  nomad-integration-main:
-    docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.18
-    environment:
-      <<: *ENVIRONMENT
-      NOMAD_WORKING_DIR: /home/circleci/go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: main
-    steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   # build frontend yarn cache
   frontend-cache:
@@ -1117,12 +1114,12 @@ workflows:
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-main:
+      - nomad-integration-test:
           requires:
             - dev-build
-      - nomad-integration-0_8:
-          requires:
-            - dev-build
+          matrix:
+            parameters:
+              nomad-version: *supported_nomad_versions
       - envoy-integration-test:
           requires:
             - dev-build
