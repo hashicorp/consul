@@ -2,7 +2,7 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/operator/raft/leadertransfer"
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 	"os"
 	"os/signal"
 	"syscall"
@@ -215,7 +215,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil }},
 		entry{"operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil }},
 		entry{"operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil }},
-		entry{"operator raft leader-transfer", func(ui cli.Ui) (cli.Command, error) { return leadertransfer.New(ui), nil }},
+		entry{"operator raft transfer-leader", func(ui cli.Ui) (cli.Command, error) { return transferleader.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},

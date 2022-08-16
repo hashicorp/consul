@@ -31,8 +31,8 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 	return reply, nil
 }
 
-// OperatorRaftLeaderTransfer is used to transfer raft cluster leadership to another node
-func (s *HTTPHandlers) OperatorRaftLeaderTransfer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// OperatorRaftTransferLeader is used to transfer raft cluster leadership to another node
+func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.LeaderTransferRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

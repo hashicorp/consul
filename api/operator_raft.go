@@ -63,7 +63,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 
 // RaftGetConfiguration is used to query the current Raft peer set.
 func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*RaftLeadershipTransfer, error) {
-	r := op.c.newRequest("POST", "/v1/operator/raft/leader-transfer")
+	r := op.c.newRequest("POST", "/v1/operator/raft/transfer-leader")
 	r.setQueryOptions(q)
 	_, resp, err := op.c.doRequest(r)
 	if err != nil {

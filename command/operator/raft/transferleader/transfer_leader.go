@@ -1,4 +1,4 @@
-package leadertransfer
+package transferleader
 
 import (
 	"flag"
