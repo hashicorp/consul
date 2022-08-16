@@ -121,15 +121,15 @@ This field specifies backend services that the `Route` references. The following
 | `group` | Specifies the Kubernetes API Group of the referenced backend. You can specify the following values: <ul><li>`""`: Specifies the core Kubernetes API group. This value must be used when `kind` is set to `Service`. This is the default value if unspecified.</li><li>`api-gateway.consul.hashicorp.com`: This value must be used when `kind` is set to `MeshService`.</li></ul> | String | Optional |
 | `kind` |  Specifies the Kubernetes Kind of the referenced backend. You can specify the following values: <ul><li>`Service` (default): Indicates that the `backendRef` references a Service in the Kubernetes cluster. </li><li>`MeshService`: Indicates that the `backendRef` references a service in the Consul mesh. Refer to the `MeshService` [documentation](/docs/api-gateway/configuration/meshservice) for additional information.</li></ul> | String | Optional |
 | `name` | Specifies the name of the Kubernetes Service or Consul mesh service resource. | String | Required |
-| `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferencePolicy](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
+| `namespace` | Specifies the Kubernetes namespace containing the Kubernetes Service or Consul mesh service resource. You must specify a value if the Service or Consul mesh service is defined in a different namespace from the `Route`. Defaults to the namespace of the `Route`. <br/>To create a route for a `backendRef` in a different namespace, you must also create a [ReferenceGrant](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant). Refer to the [example route](#example-cross-namespace-backendref) configured to reference across namespaces. | String | Optional |
 | `port` | Specifies the port number for accessing the Kubernetes or Consul service. | Integer | Required |
 | `weight` | Specifies the proportion of requests sent to the backend. Computed as weight divided by the sum of all weights in this `backendRefs` list. Defaults to `1`. A value of `0` indicates that no requests should be sent to the backend. | Integer | Optional |
 
 #### Example cross-namespace backendRef
 
-The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferencePolicy`, named `reference-policy` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
+The following example creates a route named `example-route` in namespace `gateway-namespace`. This route has a `backendRef` in namespace `service-namespace`. Traffic is allowed because the `ReferenceGrant`, named `reference-grant` in namespace `service-namespace`, allows traffic from `HTTPRoutes` in `gateway-namespace` to `Services` in `service-namespace`.
 
-<CodeBlockConfig filename="route_with_referencepolicy.yaml">
+<CodeBlockConfig filename="route_with_referencegrant.yaml">
 
   ```yaml
   apiVersion: gateway.networking.k8s.io/v1alpha2
@@ -149,9 +149,9 @@ The following example creates a route named `example-route` in namespace `gatewa
   ---
 
   apiVersion: gateway.networking.k8s.io/v1alpha2
-  kind: ReferencePolicy
+  kind: ReferenceGrant
   metadata:
-    name: reference-policy
+    name: reference-grant
     namespace: service-namespace
   spec:
     from:
@@ -191,7 +191,7 @@ Defines operations to perform on matching request headers when `rules.filters.ty
 | ---       | ---         | ---  | ---      |
 | `set` | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of objects | Optional |
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of objects | Optional |
-| `remove` | Configure this field to specifify an array of header names to remove from the request header. | Array of strings | Optional |
+| `remove` | Configure this field to specify an array of header names to remove from the request header. | Array of strings | Optional |
 
 
 ### rules.filters.urlRewrite
@@ -221,14 +221,15 @@ Specifies rules for matching incoming requests. You can apply [`filters`](#rules
 * [query parameters](#rules-matches-queryparams)
 * [request method](#rules-matches-method)
 
+Each rule matches requests independently. As a result, a request matching any of the conditions is considered a match.  You can configure several matching rules for each type to widen or narrow matches.
 ### rules.matches.path
 
 Specifies a list of objects that define matches based on URL path. The following table describes the parameters for the `path` field:
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
-| `type` | Specifies the type of comparison to use for matching the path value. You can specify the following types. <ul><li>`Exact`: Returns a match only when the entire path matches the `value` field (default).</li><li> `PathPrefix`: Returns a match when the path matches the regex defined in the `value` field.</li></ul> | String | Required |
-| `value` | Specifies value to match on. You can specify a specific string or a regular expression. | String | Required |
+| `type` | Specifies the type of comparison to use for matching the path value. You can specify the following types. <ul><li>`Exact`: Returns a match only when the entire path matches the `value` field (default).</li><li> `PathPrefix`: Returns a match when the path has the prefix defined in the `value` field.</li><li>`RegularExpression`: Returns a match when the path matches the regex defined in the `value` field.</li></ul> | String | Required |
+| `value` | Specifies the value to match on. You can specify a specific string when `type` is `Exact` or `PathPrefix`. You can specify a regular expression if `type` is `RegularExpression`. | String | Required |
 
 ### rules.matches.headers
 
