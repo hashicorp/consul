@@ -1111,6 +1111,9 @@ workflows:
           context: consul-ci
       - nomad-integration-test:
             - dev-build
+          matrix:
+            parameters:
+              nomad-version: *supported_nomad_versions
       - envoy-integration-test:
           requires:
             - dev-build
