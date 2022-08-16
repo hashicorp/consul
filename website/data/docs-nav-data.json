@@ -763,7 +763,12 @@
     ]
   },
   {
-    "title": "AWS Lambda <sup>BETA</sup>",
+    "title": "AWS Lambda",
+    "badge": {
+      "text": "BETA",
+      "type": "outlined",
+      "color": "neutral"
+    },
     "routes": [
       {
         "title": "Overview",
