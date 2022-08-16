@@ -567,6 +567,11 @@ jobs:
   nomad-integration-test: &NOMAD_TESTS
     docker:
       - image: docker.mirror.hashicorp.services/cimg/go:1.19
+    parameters:
+      nomad-version:
+        type: enum
+        enum: *supported_nomad_versions
+        default: *default_nomad_version
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /home/circleci/go/src/github.com/hashicorp/nomad
