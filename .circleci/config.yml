@@ -1110,6 +1110,7 @@ workflows:
           <<: *dev-upload
           context: consul-ci
       - nomad-integration-test:
+          requires:
             - dev-build
           matrix:
             parameters:
