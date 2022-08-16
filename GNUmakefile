@@ -134,7 +134,7 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
-SYSTEM_ARCH?=$(shell uname -m)
+GOARCH?=$(shell go env GOARCH)
 
 all: dev-build
 
@@ -155,7 +155,7 @@ dev-docker: linux
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	#  'consul:local' tag is needed to run the integration tests
 	@docker buildx create --use && docker buildx build -t 'consul:local' \
-       --platform linux/$(SYSTEM_ARCH) \
+       --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
@@ -197,8 +197,8 @@ endif
 
 # linux builds a linux binary compatible with the source platform
 linux:
-	@mkdir -p ./pkg/bin/linux_$(SYSTEM_ARCH)
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(SYSTEM_ARCH) go build -o ./pkg/bin/linux_$(SYSTEM_ARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	@mkdir -p ./pkg/bin/linux_$(GOARCH)
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 linux-amd64:
 	@mkdir -p ./pkg/bin/linux_amd64
