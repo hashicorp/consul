@@ -40,7 +40,8 @@ load helpers
 # Note: when failover is configured the cluster is named for the original
 # service not any destination related to failover.
 @test "s1 upstream should have healthy endpoints for s2 in both primary and failover" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 2
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.secondary HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2 via upstream s2 to start" {
@@ -48,7 +49,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.failover-target~s2.default.primary.*cx_total" 1
 }
 
 ################
@@ -63,8 +64,8 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2 secondary and unhealthy endpoints for s2 primary" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary UNHEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.primary UNHEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~s2.default.secondary HEALTHY 1
 }
 
 @test "reset envoy statistics" {
@@ -76,5 +77,5 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection again" {
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.failover-target~s2.default.secondary.*cx_total" 1
 }

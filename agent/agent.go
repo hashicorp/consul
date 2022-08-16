@@ -863,8 +863,18 @@ func (a *Agent) listenAndServeDNS() error {
 	return merr.ErrorOrNil()
 }
 
+// startListeners will return a net.Listener for every address unless an
+// error is encountered, in which case it will close all previously opened
+// listeners and return the error.
 func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
-	var ln []net.Listener
+	var lns []net.Listener
+
+	closeAll := func() {
+		for _, l := range lns {
+			l.Close()
+		}
+	}
+
 	for _, addr := range addrs {
 		var l net.Listener
 		var err error
@@ -873,22 +883,25 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 		case *net.UnixAddr:
 			l, err = a.listenSocket(x.Name)
 			if err != nil {
+				closeAll()
 				return nil, err
 			}
 
 		case *net.TCPAddr:
 			l, err = net.Listen("tcp", x.String())
 			if err != nil {
+				closeAll()
 				return nil, err
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
 		default:
+			closeAll()
 			return nil, fmt.Errorf("unsupported address type %T", addr)
 		}
-		ln = append(ln, l)
+		lns = append(lns, l)
 	}
-	return ln, nil
+	return lns, nil
 }
 
 // listenHTTP binds listeners to the provided addresses and also returns

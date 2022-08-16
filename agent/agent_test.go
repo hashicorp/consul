@@ -5857,6 +5857,73 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 
 }
 
+func TestAgent_startListeners(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	ports := freeport.GetN(t, 3)
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+		},
+		RuntimeConfig: &config.RuntimeConfig{
+			HTTPAddrs: []net.Addr{},
+		},
+		Cache: cache.New(cache.Options{}),
+	}
+
+	bd, err := initEnterpriseBaseDeps(bd, nil)
+	require.NoError(t, err)
+
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	// use up an address
+	used := net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[2]}
+	l, err := net.Listen("tcp", used.String())
+	require.NoError(t, err)
+	t.Cleanup(func() { l.Close() })
+
+	var lns []net.Listener
+	t.Cleanup(func() {
+		for _, ln := range lns {
+			ln.Close()
+		}
+	})
+
+	// first two addresses open listeners but third address should fail
+	lns, err = agent.startListeners([]net.Addr{
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[2]},
+	})
+	require.Contains(t, err.Error(), "address already in use")
+
+	// first two ports should be freed up
+	retry.Run(t, func(r *retry.R) {
+		lns, err = agent.startListeners([]net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		})
+		require.NoError(r, err)
+		require.Len(r, lns, 2)
+	})
+
+	// first two ports should be in use
+	retry.Run(t, func(r *retry.R) {
+		_, err = agent.startListeners([]net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+			&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+		})
+		require.Contains(r, err.Error(), "address already in use")
+	})
+
+}
+
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := ioutil.ReadFile("../test/ca/root.cer")

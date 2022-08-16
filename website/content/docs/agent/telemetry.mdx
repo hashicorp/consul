@@ -605,6 +605,10 @@ Any metric in this section can be turned off with the [`prefix_filter`](/docs/ag
 ## Cluster Health
 
 These metrics give insight into the health of the cluster as a whole.
+Query for the `consul.memberlist.*` and `consul.serf.*` metrics can be appended
+with certain labels to further distinguish data between different gossip pools.
+The supported label for OSS is `network`, while `segment`, `partition`, `area`
+are allowed for <EnterpriseAlert inline />.  
 
 | Metric                                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Unit                                    | Type    |
 |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|---------|
