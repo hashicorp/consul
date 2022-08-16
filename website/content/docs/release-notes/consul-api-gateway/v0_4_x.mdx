@@ -27,12 +27,8 @@ description: >-
 
 - **URL Path Prefix Rewrite**
   This release introduces support for rewriting a URL's path prefix when routing
-  HTTP traffic. This is configured by adding a `URLRewrite` filter to a
-  `HTTPRoute`. With this feature, the gateway can rewrite the URL path, in a
-  client's HTTP Request, before sending the request to a service. A simple
-  example of this is changing the path from `//store/checkout` to
-  `//cart/checkout`. Please see the product documentation for details on how to
-  configure this feature.
+  HTTP traffic. To use this functionality, add a `URLRewrite` filter to an
+  `HTTPRoute` configuration. This enables the gateway to rewrite the URL path in a client's HTTP request before sending the request to a service. For example, you could configure the gateway to change the path from `//store/checkout` to `//cart/checkout`. Refer to the [usage documentation](/docs/api-gateway/usage) for additional information.  
 
 ## What Has Changed
 
