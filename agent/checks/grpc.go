@@ -56,13 +56,10 @@ func (probe *GrpcHealthProbe) Check(target string, header map[string][]string) e
 
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	if len(header) > 0 {
-		var headerMD map[string]string = map[string]string{}
 		var kv []string
 
 		for k, v := range header {
-			headerMD[k] = strings.Join(v, ", ")
-			kv = append(kv, k)
-			kv = append(kv, headerMD[k])
+			kv = append(kv, k, strings.Join(v, ", "))
 		}
 
 		ctx = metadata.AppendToOutgoingContext(ctx, kv...)
