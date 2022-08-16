@@ -14,7 +14,20 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.13.0
+## Consul 1.13.x
+
+### Service Mesh Compatibility
+
+Existing Consul deployments using service mesh (i.e., containing any registered 
+Connect proxies) should upgrade to **at least Consul 1.13.1**.
+
+Consul 1.13.0 contains a bug that prevents Consul server agents from restoring 
+saved state on startup if the state
+
+1. was generated before Consul 1.13 (such as during an upgrade), and
+2. contained any Connect proxy registrations.
+
+This bug is fixed in Consul versions 1.13.1 and newer.
 
 ### gRPC TLS
 

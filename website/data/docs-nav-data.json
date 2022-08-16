@@ -399,6 +399,10 @@
           {
             "title": "Routes",
             "path": "api-gateway/configuration/routes"
+          },
+          {
+            "title": "MeshService",
+            "path": "api-gateway/configuration/meshservice"
           }
         ]
       }
@@ -1263,6 +1267,10 @@
       {
         "title": "Consul API Gateway",
         "routes": [
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-api-gateway/v0_4_x"
+          },
           {
             "title": "v0.3.x",
             "path": "release-notes/consul-api-gateway/v0_3_x"
