@@ -1998,7 +1998,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       Certificate Authority from the [`ca_file`](#tls_defaults_ca_file) or
       [`ca_path`](#tls_defaults_ca_path). By default, this is false, and Consul
       will not make use of TLS for outgoing connections. This applies to clients
-      and servers as both will make outgoing connections. This setting *does not*
+      and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
       interface.
 
@@ -2071,7 +2071,9 @@ specially crafted certificate signed by the CA can be used to gain full access t
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
-      is signed by a trusted CA. This setting *must* be enabled to prevent a
+      is signed by a trusted CA.
+
+      ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and Connect CA root keys*.
 
