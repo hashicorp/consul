@@ -2,6 +2,8 @@ package agent
 
 import (
 	"fmt"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"net/http"
 	"strconv"
 	"time"
@@ -33,23 +35,35 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 
 // OperatorRaftTransferLeader is used to transfer raft cluster leadership to another node
 func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args structs.LeaderTransferRequest
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
 	}
 
 	params := req.URL.Query()
 	_, hasID := params["id"]
+	ID := ""
 	if hasID {
-		args.ID = raft.ServerID(params.Get("id"))
+		ID = params.Get("id")
+	}
+	args := pboperator.TransferLeaderRequest{
+		ID: ID,
 	}
 
-	var reply structs.RaftConfigurationResponse
-	if err := s.agent.RPC("Operator.RaftLeaderTransfer", &args, &reply); err != nil {
+	var token string
+	s.parseToken(req, &token)
+	ctx := external.ContextWithToken(req.Context(), token)
+
+	result, err := s.agent.rpcClientOperator.TransferLeader(ctx, &args)
+	if err != nil {
 		return nil, err
 	}
+	if result.Success != true {
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: ", err.Error())}
+	}
 
-	return reply, nil
+	return result, nil
 }
 
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support
