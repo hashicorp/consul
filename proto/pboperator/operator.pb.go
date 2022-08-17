@@ -72,7 +72,7 @@ type TransferLeaderResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// cert_pem is the PEM-encoded leaf certificate.
+	// true if the transfer is a success
 	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 }
 

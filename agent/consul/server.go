@@ -815,7 +815,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			// Only forward the request if the dc in the request matches the server's datacenter.
 			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+				return false, fmt.Errorf("requests to transfer leader cannot be forwarded to remote datacenters")
 			}
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},

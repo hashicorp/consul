@@ -82,9 +82,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Display the current Raft peer configuration"
+const synopsis = "Transfer raft leadership to another node"
 const help = `
-Usage: consul operator raft list-peers [options]
+Usage: consul operator raft transfer-leader [options]
 
-  Displays the current Raft peer configuration.
+  Transfer raft leadership to another node.
 `

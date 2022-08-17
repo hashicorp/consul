@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
+func TestOperatorRaftTransferLeaderCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
@@ -16,7 +16,7 @@ func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
 
 // This only test that the command behave correctly when only one agent is present
 // and no leadership transfer is possible, testing for the functionality will be done at the RPC level.
-func TestOperatorRaftTransferWithSingleNode(t *testing.T) {
+func TestOperatorRaftTransferLeaderWithSingleNode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

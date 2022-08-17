@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"fmt"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -11,17 +10,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 )
-
-// errPeeringInvalidServerAddress is returned when an establish request contains
-// an invalid server address.
-type errPeeringInvalidServerAddress struct {
-	addr string
-}
-
-// Error implements the error interface
-func (e *errPeeringInvalidServerAddress) Error() string {
-	return fmt.Sprintf("%s is not a valid peering server address", e.addr)
-}
 
 // For private/internal gRPC handlers, protoc-gen-rpc-glue generates the
 // requisite methods to satisfy the structs.RPCInfo interface using fields
@@ -37,8 +25,8 @@ var readRequest struct {
 	structs.DCSpecificRequest
 }
 
-// Server implements pbpeering.PeeringService to provide RPC operations for
-// managing peering relationships.
+// Server implements pboperator.OperatorService to provide RPC operations for
+// managing operator operation.
 type Server struct {
 	Config
 }
@@ -100,11 +88,9 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 	pboperator.RegisterOperatorServiceServer(grpcServer, s)
 }
 
-// Backend defines the core integrations the Peering endpoint depends on. A
-// functional implementation will integrate with various subcomponents of Consul
-// such as the State store for reading and writing data, the CA machinery for
-// providing access to CA data and the RPC system for forwarding requests to
-// other servers.
+// Backend defines the core integrations the Operator endpoint depends on. A
+// functional implementation will integrate with various operator operation such as
+// raft, autopilot operation. The only currently implemented operation is raft leader transfer
 type Backend interface {
 	TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error)
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error)

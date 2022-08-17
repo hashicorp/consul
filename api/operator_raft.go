@@ -61,7 +61,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	return &out, nil
 }
 
-// RaftGetConfiguration is used to query the current Raft peer set.
+// RaftLeaderTransfer is used to transfer the current raft leader to another node
 func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*RaftLeadershipTransfer, error) {
 	r := op.c.newRequest("POST", "/v1/operator/raft/transfer-leader")
 	r.setQueryOptions(q)

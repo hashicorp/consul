@@ -22,8 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OperatorServiceClient interface {
-	// Sign a leaf certificate for the service or agent identified by the SPIFFE
-	// ID in the given CSR's SAN.
+	//Transfer raft leadership to another node
 	TransferLeader(ctx context.Context, in *TransferLeaderRequest, opts ...grpc.CallOption) (*TransferLeaderResponse, error)
 }
 
@@ -48,8 +47,7 @@ func (c *operatorServiceClient) TransferLeader(ctx context.Context, in *Transfer
 // All implementations should embed UnimplementedOperatorServiceServer
 // for forward compatibility
 type OperatorServiceServer interface {
-	// Sign a leaf certificate for the service or agent identified by the SPIFFE
-	// ID in the given CSR's SAN.
+	//Transfer raft leadership to another node
 	TransferLeader(context.Context, *TransferLeaderRequest) (*TransferLeaderResponse, error)
 }
 
