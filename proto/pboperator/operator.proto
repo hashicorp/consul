@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package hashicorp.consul.operator;
+package hashicorp.consul.internal.operator;
 
 // Operator defines a set of operators operation applicable to Consul
 service OperatorService {

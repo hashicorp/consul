@@ -36,7 +36,7 @@ func NewOperatorServiceClient(cc grpc.ClientConnInterface) OperatorServiceClient
 
 func (c *operatorServiceClient) TransferLeader(ctx context.Context, in *TransferLeaderRequest, opts ...grpc.CallOption) (*TransferLeaderResponse, error) {
 	out := new(TransferLeaderResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.operator.OperatorService/TransferLeader", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.operator.OperatorService/TransferLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func _OperatorService_TransferLeader_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.operator.OperatorService/TransferLeader",
+		FullMethod: "/hashicorp.consul.internal.operator.OperatorService/TransferLeader",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OperatorServiceServer).TransferLeader(ctx, req.(*TransferLeaderRequest))
@@ -92,7 +92,7 @@ func _OperatorService_TransferLeader_Handler(srv interface{}, ctx context.Contex
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var OperatorService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "hashicorp.consul.operator.OperatorService",
+	ServiceName: "hashicorp.consul.internal.operator.OperatorService",
 	HandlerType: (*OperatorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
