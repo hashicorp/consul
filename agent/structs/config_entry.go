@@ -3,11 +3,12 @@ package structs
 import (
 	"errors"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -961,6 +962,16 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+	EnforcingConsecutive5xx uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+
+	// MaxEjectionPercent is the maximum % of an upstream cluster that can be
+	// ejected due to outlier detection.
+	// Defaults to 10% but will eject at least one host regardless of the value.
+	MaxEjectionPercent uint32 `json:",omitempty" alias:"max_ejection_percent"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
