@@ -25,7 +25,7 @@ func TestOperatorRaftTransferLeaderWithSingleNode(t *testing.T) {
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
-	expected := "(cannot find peer)"
+	expected := "cannot find peer"
 
 	// Test the transfer-leader subcommand directly
 	ui := cli.NewMockUi()
