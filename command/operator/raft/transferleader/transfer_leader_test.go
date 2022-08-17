@@ -27,7 +27,7 @@ func TestOperatorRaftTransferLeaderWithSingleNode(t *testing.T) {
 
 	expected := "(cannot find peer)"
 
-	// Test the list-peers subcommand directly
+	// Test the transfer-leader subcommand directly
 	ui := cli.NewMockUi()
 	c := New(ui)
 
