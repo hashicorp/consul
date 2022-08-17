@@ -67,6 +67,12 @@ func (x *TransferLeaderRequest) GetID() string {
 	return ""
 }
 
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/api.TransferLeaderResponse
+// output=operator.gen.go
+// name=API
 type TransferLeaderResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

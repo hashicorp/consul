@@ -62,8 +62,9 @@ func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req 
 	if result.Success != true {
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: ", err.Error())}
 	}
-
-	return result, nil
+	reply := new(api.TransferLeaderResponse)
+	pboperator.TransferLeaderResponseToAPI(result, reply)
+	return reply, nil
 }
 
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support

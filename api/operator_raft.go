@@ -36,8 +36,8 @@ type RaftConfiguration struct {
 	Index uint64
 }
 
-// RaftConfiguration is returned when querying for the current Raft configuration.
-type RaftLeadershipTransfer struct {
+// TransferLeaderResponse is returned when querying for the current Raft configuration.
+type TransferLeaderResponse struct {
 	Success bool
 }
 
@@ -62,7 +62,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 }
 
 // RaftLeaderTransfer is used to transfer the current raft leader to another node
-func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*RaftLeadershipTransfer, error) {
+func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*TransferLeaderResponse, error) {
 	r := op.c.newRequest("POST", "/v1/operator/raft/transfer-leader")
 	r.setQueryOptions(q)
 	_, resp, err := op.c.doRequest(r)
@@ -74,7 +74,7 @@ func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*RaftLeadershipTransfer
 		return nil, err
 	}
 
-	var out RaftLeadershipTransfer
+	var out TransferLeaderResponse
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
