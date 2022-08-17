@@ -18,14 +18,14 @@ FROM docker.mirror.hashicorp.services/alpine:3.15 as official
 # This is the release of Consul to pull in.
 ARG VERSION
 
-LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
-      org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
-      org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=$VERSION \
-      org.opencontainers.image.vendor="HashiCorp" \
-      org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+LABEL authors="Consul Team <consul@hashicorp.com>" \
+      url="https://www.consul.io/" \
+      documentation="https://www.consul.io/docs" \
+      source="https://github.com/hashicorp/consul" \
+      version=$VERSION \
+      vendor="HashiCorp" \
+      title="consul" \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
 
 # This is the location of the releases.
 ENV HASHICORP_RELEASES=https://releases.hashicorp.com
@@ -124,14 +124,14 @@ ARG PRODUCT_NAME=$BIN_NAME
 # TARGETOS and TARGETARCH are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
 
-LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
-      org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
-      org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=${PRODUCT_VERSION} \
-      org.opencontainers.image.vendor="HashiCorp" \
-      org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+LABEL authors="Consul Team <consul@hashicorp.com>" \
+      url="https://www.consul.io/" \
+      documentation="https://www.consul.io/docs" \
+      source="https://github.com/hashicorp/consul" \
+      version=$PRODUCT_VERSION \
+      vendor="HashiCorp" \
+      title="consul" \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
 
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
@@ -206,21 +206,21 @@ ARG BIN_NAME
 # PRODUCT_NAME and PRODUCT_VERSION are the name of the software on releases.hashicorp.com
 # and the version to download. Example: PRODUCT_NAME=consul PRODUCT_VERSION=1.2.3.
 ENV BIN_NAME=$BIN_NAME
-ENV PRODUCT_VERSION=$PRODUCT_VERSION
+ENV VERSION=$PRODUCT_VERSION
 
 ARG PRODUCT_NAME=$BIN_NAME
 
 # TARGETOS and TARGETARCH are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
 
-LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
-      org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
-      org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=${PRODUCT_VERSION} \
-      org.opencontainers.image.vendor="HashiCorp" \
-      org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+LABEL authors="Consul Team <consul@hashicorp.com>" \
+      url="https://www.consul.io/" \
+      documentation="https://www.consul.io/docs" \
+      source="https://github.com/hashicorp/consul" \
+      version=$PRODUCT_VERSION \
+      vendor="HashiCorp" \
+      title="consul" \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
 
 # Copy license for Red Hat certification.
 COPY LICENSE /licenses/mozilla.txt
