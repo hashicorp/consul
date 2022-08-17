@@ -60,7 +60,7 @@ func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req 
 		return nil, err
 	}
 	if result.Success != true {
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: %w", err.Error())}
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: %w", err)}
 	}
 	reply := new(api.TransferLeaderResponse)
 	pboperator.TransferLeaderResponseToAPI(result, reply)
