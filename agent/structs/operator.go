@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"github.com/hashicorp/consul/acl"
 	"net"
 
 	"github.com/hashicorp/raft"
@@ -107,16 +106,4 @@ type NetworkSegment struct {
 	// RPCListener is whether to bind a separate RPC listener on the bind address
 	// for this segment.
 	RPCListener bool
-}
-
-// LeaderTransferRequest is used to query a raft leadership change
-type LeaderTransferRequest struct {
-	Datacenter         string
-	ID                 raft.ServerID
-	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	QueryOptions
-}
-
-func (l LeaderTransferRequest) RequestDatacenter() string {
-	return l.Datacenter
 }
