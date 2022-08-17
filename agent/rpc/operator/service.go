@@ -44,7 +44,7 @@ type Server struct {
 }
 
 func (s *Server) TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {
-	resp := &pboperator.TransferLeaderResponse{}
+	resp := &pboperator.TransferLeaderResponse{Success: false}
 	handled, err := s.ForwardRPC(&writeRequest, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
 		var err error
@@ -59,11 +59,11 @@ func (s *Server) TransferLeader(ctx context.Context, request *pboperator.Transfe
 	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(external.TokenFromContext(ctx), entMeta, &authzCtx)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 
 	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(&authzCtx); err != nil {
-		return nil, err
+		return resp, err
 	}
 
 	return s.Backend.TransferLeader(ctx, request)

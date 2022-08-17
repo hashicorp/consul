@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/rpc/operator"
 	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/raft"
 	"sync"
 )
 
@@ -24,13 +25,15 @@ func NewOperatorBackend(srv *Server) *OperatorBackend {
 	}
 }
 
-func (o OperatorBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
-	return o.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
+func (op OperatorBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
+	return op.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
 }
 
-func (o OperatorBackend) TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (op OperatorBackend) TransferLeader(ctx context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {
+	reply := new(pboperator.TransferLeaderResponse)
+	err := op.srv.attemptLeadershipTransfer(raft.ServerID(request.ID))
+	reply.Success = err == nil
+	return reply, err
 }
 
 var _ operator.Backend = (*OperatorBackend)(nil)
