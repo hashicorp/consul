@@ -5,39 +5,12 @@ import (
 
 	"net"
 
-	"github.com/hashicorp/consul/acl"
-
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 )
-
-// RaftLeaderTransfer is used to attempt a leadership transfer
-func (op *Operator) RaftLeaderTransfer(args *structs.LeaderTransferRequest, reply *structs.LeadershipTransferResponse) error {
-	if done, err := op.srv.ForwardRPC("Operator.RaftLeaderTransfer", args, reply); done {
-		return err
-	}
-	// This action requires operator read access.
-	authz, err := op.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	if err := op.srv.validateEnterpriseToken(authz.Identity()); err != nil {
-		return err
-	}
-	if authz.OperatorWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
-	}
-
-	if err := op.srv.attemptLeadershipTransfer(args.ID); err != nil {
-		reply.Success = false
-		return err
-	}
-	reply.Success = true
-	return nil
-}
 
 // RaftGetConfiguration is used to retrieve the current Raft configuration.
 func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply *structs.RaftConfigurationResponse) error {
