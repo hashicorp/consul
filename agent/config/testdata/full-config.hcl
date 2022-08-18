@@ -199,6 +199,7 @@ auto_encrypt = {
     dns_san = ["a.com", "b.com"]
     ip_san = ["192.168.4.139", "192.168.4.140"]
     allow_tls = true
+    grpc_server_tls = false
 }
 connect {
     ca_provider = "consul"
