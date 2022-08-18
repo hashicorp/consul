@@ -153,6 +153,12 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 								DestinationNamespace: "default",
 								DestinationPartition: "default",
 								DestinationName:      "zap",
+								Config: map[string]interface{}{
+									"passive_health_check": map[string]interface{}{
+										"Interval":    int64(20),
+										"MaxFailures": int64(4),
+									},
+								},
 							},
 						},
 					},
@@ -171,8 +177,8 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 							DestinationName:      "zap",
 							Config: map[string]interface{}{
 								"passive_health_check": map[string]interface{}{
-									"Interval":    int64(10),
-									"MaxFailures": int64(2),
+									"Interval":    int64(20),
+									"MaxFailures": int64(4),
 								},
 								"protocol": "grpc",
 							},

@@ -53,7 +53,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
 	github.com/hashicorp/vault/sdk v0.1.14-0.20200519221838-e0cfd64bc267
 	github.com/hashicorp/yamux v0.0.0-20210826001029-26ff87cf9493
-	github.com/imdario/mergo v0.3.6
+	github.com/imdario/mergo v0.3.13
 	github.com/kr/text v0.2.0
 	github.com/miekg/dns v1.1.41
 	github.com/mitchellh/cli v1.1.0
@@ -183,7 +183,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/resty.v1 v1.12.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.0 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89 // indirect
 	sigs.k8s.io/structured-merge-diff/v3 v3.0.0 // indirect
