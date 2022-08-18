@@ -198,6 +198,7 @@ type Configurator struct {
 		connectCAPems        []string
 		cert                 *tls.Certificate
 		verifyServerHostname bool
+		grpcIncoming         bool
 	}
 
 	// logger is not protected by a lock. It must never be changed after
@@ -270,6 +271,19 @@ func (c *Configurator) Update(config Config) error {
 	atomic.AddUint64(&c.version, 1)
 	c.log("Update")
 	return nil
+}
+
+func (c *Configurator) SetAutoTLSGRPCIncoming(value bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.autoTLS.grpcIncoming = value
+	return nil
+}
+
+func (c *Configurator) AutoTLSGRPCIncoming() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.autoTLS.grpcIncoming
 }
 
 // loadProtocolConfig loads the certificates etc. for a given ProtocolConfig
@@ -620,16 +634,15 @@ func (c *Configurator) Cert() *tls.Certificate {
 	return cert
 }
 
-// GRPCTLSConfigured returns whether there's a TLS certificate configured for
-// gRPC (either manually or by auto-config/auto-encrypt). It is checked, along
-// with the presence of an HTTPS port, to determine whether to enable TLS on
-// incoming gRPC connections.
+// GRPCServerUseTLS returns whether there's a TLS certificate configured for
+// (external) gRPC (either manually or by auto-config/auto-encrypt), and use
+// of TLS for gRPC has not been explicitly disabled at auto-encrypt.
 //
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) GRPCTLSConfigured() bool {
+func (c *Configurator) GRPCServerUseTLS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.grpc.cert != nil || c.autoTLS.cert != nil
+	return c.grpc.cert != nil || (c.autoTLS.grpcIncoming && c.autoTLS.cert != nil)
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to
