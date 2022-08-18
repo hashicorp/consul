@@ -1057,16 +1057,15 @@ func (configs OpaqueUpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config ma
 }
 
 type ServiceConfigResponse struct {
-	ProxyConfig           map[string]interface{}
-	UpstreamConfigs       map[string]map[string]interface{}
-	UpstreamIDConfigs     OpaqueUpstreamConfigs
-	MeshGateway           MeshGatewayConfig      `json:",omitempty"`
-	Expose                ExposeConfig           `json:",omitempty"`
-	TransparentProxy      TransparentProxyConfig `json:",omitempty"`
-	Mode                  ProxyMode              `json:",omitempty"`
-	Destination           DestinationConfig      `json:",omitempty"`
-	Meta                  map[string]string      `json:",omitempty"`
-	MaxInboundConnections int
+	ProxyConfig       map[string]interface{}
+	UpstreamConfigs   map[string]map[string]interface{}
+	UpstreamIDConfigs OpaqueUpstreamConfigs
+	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
+	Expose            ExposeConfig           `json:",omitempty"`
+	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
+	Mode              ProxyMode              `json:",omitempty"`
+	Destination       DestinationConfig      `json:",omitempty"`
+	Meta              map[string]string      `json:",omitempty"`
 	QueryMeta
 }
 
