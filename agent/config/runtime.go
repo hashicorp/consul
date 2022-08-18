@@ -479,6 +479,8 @@ type RuntimeConfig struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	AutoEncryptGRPCIncoming bool
+
 	// AutoConfig is a grouping of the configurations around the agent auto configuration
 	// process including how servers can authorize requests.
 	AutoConfig AutoConfig

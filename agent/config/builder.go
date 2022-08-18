@@ -956,6 +956,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
+		AutoEncryptGRPCIncoming:                boolValWithDefault(c.AutoEncrypt.GRPCIncoming, true),
 		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
