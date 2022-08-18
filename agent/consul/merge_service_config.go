@@ -312,6 +312,7 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if defaults == nil {
 		return service, nil
 	}
+
 	// We don't want to change s.registration in place since it is our source of
 	// truth about what was actually registered before defaults applied. So copy
 	// it first.
