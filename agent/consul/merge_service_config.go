@@ -159,7 +159,7 @@ func computeResolvedServiceConfig(
 			thisReply.Destination = *serviceConf.Destination
 		}
 		if serviceConf.MaxInboundConnections > 0 {
-			thisReply.MaxInboundConnections = *&serviceConf.MaxInboundConnections
+			thisReply.MaxInboundConnections = serviceConf.MaxInboundConnections
 		}
 
 		thisReply.Meta = serviceConf.Meta
