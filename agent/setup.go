@@ -92,11 +92,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-	err = d.TLSConfigurator.SetAutoTLSGRPCIncoming(cfg.AutoEncryptGRPCIncoming)
+	err = d.TLSConfigurator.SetAutoTLSGRPCServer(cfg.AutoEncryptGRPCServerTLS)
 	if err != nil {
 		return d, err
 	}
-	d.Logger.Info("AutoEncryptGRPCIncoming", "value", cfg.AutoEncryptGRPCIncoming)
 
 	d.RuntimeConfig = cfg
 	d.Tokens = new(token.Store)

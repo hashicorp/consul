@@ -600,7 +600,8 @@ type AutoEncrypt struct {
 	// AutoEncrypt.Sign requests.
 	AllowTLS *bool `mapstructure:"allow_tls"`
 
-	GRPCIncoming *bool `mapstructure:"grpc_incoming"`
+	// Enable AutoEncrypt for (external) gRPC Listener (default: true)
+	GRPCServerTLS *bool `mapstructure:"grpc_server_tls"`
 }
 
 // Connect is the agent-global connect configuration.
