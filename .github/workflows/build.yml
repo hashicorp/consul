@@ -7,7 +7,6 @@ on:
       # Push events on the main branch
       - main
       - release/**
-      - RELENG-20
 
 env:
   PKG_NAME: consul
