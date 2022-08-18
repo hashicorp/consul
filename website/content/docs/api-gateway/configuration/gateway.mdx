@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul API Gateway Gateway
 description:  >-
-  This topic descrbes how to configure the Consul API Gateway Gateway object
+  This topic describes how to configure the Consul API Gateway Gateway object
 ---
 
 # Gateway
@@ -159,7 +159,7 @@ Specifies the `tls` configurations for the `Gateway`. The `tls` object is requir
 
 | Parameter | Description | Type | Required |
 | ---       | ---         | ---  | ---      |
-| `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferencePolicy).</div>  | Object or array | Required if `tls` is set |
+| `certificateRefs` | <div style={{width:480}}>Specifies Kubernetes `name` and `namespace` objects that contains TLS certificates and private keys. <br/>The certificates establish a TLS handshake for requests that match the `hostname` of the associated `listener`. Each reference must be a Kubernetes Secret. If you are using a Secret in a namespace other than the `Gateway`'s, each reference must also have a corresponding [`ReferenceGrant`](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.ReferenceGrant).</div>  | Object or array | Required if `tls` is set |
 | `mode` | Specifies the TLS Mode. Should always be set to `Terminate` for `HTTPRoutes` | string | Required if `certificateRefs` is set |
 | `options` | Specifies additional Consul API Gateway options. | Map of strings | optional |
 
