@@ -1465,7 +1465,7 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 	})
 }
 
-func TestConfigurator_GRPCTLSConfigured(t *testing.T) {
+func TestConfigurator_GRPCServerUseTLS(t *testing.T) {
 	t.Run("certificate manually configured", func(t *testing.T) {
 		c := makeConfigurator(t, Config{
 			GRPC: ProtocolConfig{
@@ -1473,7 +1473,12 @@ func TestConfigurator_GRPCTLSConfigured(t *testing.T) {
 				KeyFile:  "../test/hostname/Alice.key",
 			},
 		})
-		require.True(t, c.GRPCTLSConfigured())
+		require.True(t, c.GRPCServerUseTLS())
+	})
+
+	t.Run("no certificate", func(t *testing.T) {
+		c := makeConfigurator(t, Config{})
+		require.False(t, c.GRPCServerUseTLS())
 	})
 
 	t.Run("AutoTLS", func(t *testing.T) {
@@ -1482,13 +1487,18 @@ func TestConfigurator_GRPCTLSConfigured(t *testing.T) {
 		bobCert := loadFile(t, "../test/hostname/Bob.crt")
 		bobKey := loadFile(t, "../test/hostname/Bob.key")
 		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
-
-		require.True(t, c.GRPCTLSConfigured())
+		require.NoError(t, c.SetAutoTLSGRPCServer(true))
+		require.True(t, c.GRPCServerUseTLS())
 	})
 
-	t.Run("no certificate", func(t *testing.T) {
+	t.Run("AutoTLS w/ GRPC Disabled", func(t *testing.T) {
 		c := makeConfigurator(t, Config{})
-		require.False(t, c.GRPCTLSConfigured())
+
+		bobCert := loadFile(t, "../test/hostname/Bob.crt")
+		bobKey := loadFile(t, "../test/hostname/Bob.key")
+		require.NoError(t, c.UpdateAutoTLSCert(bobCert, bobKey))
+		require.NoError(t, c.SetAutoTLSGRPCServer(false))
+		require.False(t, c.GRPCServerUseTLS())
 	})
 }
 

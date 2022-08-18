@@ -198,7 +198,7 @@ type Configurator struct {
 		connectCAPems        []string
 		cert                 *tls.Certificate
 		verifyServerHostname bool
-		grpcIncoming         bool
+		grpcServerUseTLS     bool
 	}
 
 	// logger is not protected by a lock. It must never be changed after
@@ -273,17 +273,12 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-func (c *Configurator) SetAutoTLSGRPCIncoming(value bool) error {
+// SetAutoTLSGRPCServer sets autoTLS' grpcServerUseTLS value.
+func (c *Configurator) SetAutoTLSGRPCServer(value bool) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.autoTLS.grpcIncoming = value
+	c.autoTLS.grpcServerUseTLS = value
 	return nil
-}
-
-func (c *Configurator) AutoTLSGRPCIncoming() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.autoTLS.grpcIncoming
 }
 
 // loadProtocolConfig loads the certificates etc. for a given ProtocolConfig
@@ -642,7 +637,7 @@ func (c *Configurator) Cert() *tls.Certificate {
 func (c *Configurator) GRPCServerUseTLS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.grpc.cert != nil || (c.autoTLS.grpcIncoming && c.autoTLS.cert != nil)
+	return c.grpc.cert != nil || (c.autoTLS.grpcServerUseTLS && c.autoTLS.cert != nil)
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to

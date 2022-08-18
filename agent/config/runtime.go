@@ -479,7 +479,9 @@ type RuntimeConfig struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
-	AutoEncryptGRPCIncoming bool
+	// AutoEncryptGRPCServerTLS enables auto_encrypt to be used for TLS
+	// of external gRPC Server listener.
+	AutoEncryptGRPCServerTLS bool
 
 	// AutoConfig is a grouping of the configurations around the agent auto configuration
 	// process including how servers can authorize requests.
