@@ -61,6 +61,7 @@
     },
     "AutoEncryptAllowTLS": false,
     "AutoEncryptDNSSAN": [],
+    "AutoEncryptGRPCServerTLS": false,
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
     "AutoReloadConfig": false,
