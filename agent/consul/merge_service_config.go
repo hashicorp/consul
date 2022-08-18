@@ -158,9 +158,6 @@ func computeResolvedServiceConfig(
 		if serviceConf.Destination != nil {
 			thisReply.Destination = *serviceConf.Destination
 		}
-		if serviceConf.MaxInboundConnections > 0 {
-			thisReply.MaxInboundConnections = serviceConf.MaxInboundConnections
-		}
 
 		if serviceConf.MaxInboundConnections > 0 {
 			if thisReply.ProxyConfig == nil {
