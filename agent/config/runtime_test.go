@@ -3146,6 +3146,54 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "auto_encrypt.grpc_server_tls defaults to true",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"auto_encrypt": {}
+			}`},
+		hcl: []string{`
+				auto_encrypt = {}
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.AutoEncryptGRPCServerTLS = true
+		},
+	})
+	run(t, testCase{
+		desc: "auto_encrypt.grpc_server_tls is enabled when true",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"auto_encrypt": { "grpc_server_tls": true }
+			}`},
+		hcl: []string{`
+				auto_encrypt = { grpc_server_tls = true }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.AutoEncryptGRPCServerTLS = true
+		},
+	})
+	run(t, testCase{
+		desc: "auto_encrypt.grpc_server_tls is disabled when false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"auto_encrypt": { "grpc_server_tls": false }
+			}`},
+		hcl: []string{`
+				auto_encrypt = { grpc_server_tls = false }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.AutoEncryptGRPCServerTLS = false
+		},
+	})
+	run(t, testCase{
 		desc: "rpc.enable_streaming = true has no effect when not running in server mode",
 		args: []string{
 			`-data-dir=` + dataDir,
