@@ -89,13 +89,13 @@ Registering the external services with Consul is a multi-step process:
 ### Register external services with Consul
 
 There are two ways to register an external service with Consul:
-1. If [`TransparentProxy`](/docs/k8s/helm#v-connectinject-transparentproxy) is enabled, you can declare external endpoints in the [`Destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of `service-defaults`.
+1. If [`TransparentProxy`](/docs/connect/transparent-proxy) is enabled, the preferred method is to declare external endpoints in the [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of `ServiceDefaults`.
 1. You can add the service as a node in the Consul catalog.
 
-#### Register an external service as a Destination
+#### Register an external service as a destination
 
-`Destination` fields allow clients to dial the external service directly and are valid only in [`TransparentProxy`](/docs/k8s/helm#v-connectinject-transparentproxy) mode.
-The following table describes traffic behaviors when using `Destination`s to route traffic through a terminating gateway:
+The [`destination`](/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial the external service directly. It is valid only in [`TransparentProxy`](/docs/connect/transparent-proxy)) mode.
+The following table describes traffic behaviors when using `destination`s to route traffic through a terminating gateway:
 
 | External Services Layer | Client dials | Client uses TLS | Allowed | Notes |
 |---|---|---|---|---|
@@ -109,11 +109,13 @@ The following table describes traffic behaviors when using `Destination`s to rou
 | L7 | IP | No | Allowed | There are no limitations on dialing IPs without TLS.  |
 
 You can provide a `caFile` to secure traffic between unencrypted clients that connect to external services through the terminating gateway.
-Refer to [Create the configuration entry for the terminating gateway](/docs/k8s/connect/terminating-gateways#create-the-configuration-entry-for-the-terminating-gateway) for details.
+Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
 
-Create a `service-defaults` custom resource for the external service:
+Also note that regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
 
-<CodeBlockConfig filename="service-defaults.yaml">
+Create a `ServiceDefaults` custom resource for the external service:
+
+<CodeBlockConfig filename="serviceDefaults.yaml">
 
 ```yaml
   apiVersion: consul.hashicorp.com/v1alpha1
@@ -133,10 +135,10 @@ Create a `service-defaults` custom resource for the external service:
 Apply the `ServiceDefaults` resource with `kubectl apply`:
 
 ```shell-session
-$ kubectl apply --filename service-defaults.yaml
+$ kubectl apply --filename serviceDefaults.yaml
 ```
 
-All other terminating gateway operations can use the name of the `service-defaults` in place of a typical Consul service name.
+All other terminating gateway operations can use the name of the `ServiceDefaults` in place of a typical Consul service name.
 
 #### Register an external service as a Catalog Node
 
@@ -261,11 +263,13 @@ spec:
 
 </CodeBlockConfig>
 
--> **NOTE**: If TLS is enabled for external services registered through the Consul catalog, you must include the `caFile` parameter that points to the system trust store of the terminating gateway container.
+If TLS is enabled for external services registered through the Consul catalog and you are not using [transparent proxy `destination`](#register-an-external-service-as-a-destination), you must include the [`caFile`](/docs/connect/config-entries/terminating-gateway#cafile) parameter that points to the system trust store of the terminating gateway container.
 By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
-Configure the `caFile` parameter to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
- * Consul Helm chart 0.43 or older
- * Or an Envoy image with an alpine base image
+Configure the [`caFile`](https://www.consul.io/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+- Consul Helm chart 0.43 or older
+- An Envoy image with an alpine base image
+
+For `ServiceDefaults` destinations, refer to [Register an external service as a destination](#register-an-external-service-as-a-destination).
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
@@ -273,7 +277,7 @@ Apply the `TerminatingGateway` resource with `kubectl apply`:
 $ kubectl apply --filename terminating-gateway.yaml
 ```
 
-If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
+If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service:
 
 <CodeBlockConfig filename="service-intentions.yaml">
 
@@ -291,6 +295,8 @@ spec:
 ```
 
 </CodeBlockConfig>
+
+-> **NOTE**: [L7 Intentions](/docs/connect/config-entries/service-intentions#permissions) are not currently supported for `ServiceDefaults` destinations.
 
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
@@ -372,7 +378,7 @@ $ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.
 
 </CodeBlockConfig>
 
-<CodeBlockConfig heading="External services registered with `service-defaults` destinations">
+<CodeBlockConfig heading="External services registered with `ServiceDefaults` destinations">
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl -vvvs https://example.com/
