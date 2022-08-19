@@ -3,44 +3,52 @@
 CONTAINER_HOSTPORT=""
 
 # This function uses regex to change the localhost with the corresponding container name.
-# This function uses regex to change the localhost with the corresponding container name.
 function check_hostport {
     local HOSTPORT=$1
     if [[ $HOSTPORT == "localhost:8500" ]]
     then        
-        CONTAINER_HOSTPORT="envoy_consul-primary_1:8500"
+        ADDRESS=$(nslookup envoy_consul-primary_1)
+        CONTAINER_HOSTPORT="${ADDRESS}:8500"
     elif [[ $HOSTPORT == *"localhost:21000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s1-sidecar-proxy_1:21000"}"
+        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:21001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"envoy_s2-sidecar-proxy_1:21000"}"
+        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:21000/"${ADDRESS}:21000"}"
     elif [[ $HOSTPORT == *"localhost:19000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"localhost:19001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"envoy_s2-sidecar-proxy_1:19001"}"
+        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:19001/"${ADDRESS}:19001"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19000"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"envoy_s1-sidecar-proxy_1:19000"}"
+        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19000/"${ADDRESS}:19000"}"
     elif [[ $HOSTPORT == *"127.0.0.1:19001"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"envoy_s2-sidecar-proxy_1:19001"}"    
+        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/127.0.0.1:19001/"${ADDRESS}:19001"}"    
     elif [[ $HOSTPORT == *"localhost:1234"* ]]
     then
-        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"envoy_s1-sidecar-proxy_1:1234"}"      
+        ADDRESS=$(nslookup envoy_s1-sidecar-proxy_1)
+        CONTAINER_HOSTPORT="${HOSTPORT/localhost:1234/"${ADDRESS}:1234"}"      
     elif [[ $HOSTPORT == "localhost:2345" ]]
     then
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"envoy_s2-sidecar-proxy_1:2345"}"
+        ADDRESS=$(nslookup envoy_s2-sidecar-proxy_1)
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:2345/"${ADDRESS}:2345"}"
      elif [[ $HOSTPORT == *"localhost:5000"* ]]
     then
-       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"envoy_s2_1:5000"}"                  
+        ADDRESS=$(nslookup envoy_s2_1)
+       CONTAINER_HOSTPORT="${HOSTPORT/localhost:5000/"${ADDRESS}:5000"}"                  
     else
         return 1        
     fi
 }
-
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server
 # under MIT license.
@@ -878,7 +886,7 @@ function getIP {
 }
 
 function getIP_container {
-    docker.exe inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
+  docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
 }
 
 function setup_upsert_l4_intention {
