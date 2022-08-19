@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.22.2"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.22-latest"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -551,7 +551,8 @@ function suite_setup {
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
-    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+    echo "docker build -t consul-dev-envoy:v${ENVOY_VERSION} --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f Dockerfile-consul-envoy ."
+    docker build -t consul-dev-envoy:v${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
 

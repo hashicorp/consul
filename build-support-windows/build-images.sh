@@ -38,7 +38,7 @@ docker tag "envoyproxy/envoy-windows:v${ENVOY_VERSION}" "${HASHICORP_DOCKER_PROX
 # Pull Kubernetes/pause image
 echo " "
 echo "Pull Kubernetes/pause image"
-docker mcr.microsoft.com/oss/kubernetes/pause:3.6
+docker pull mcr.microsoft.com/oss/kubernetes/pause:3.6
 # Tag Kubernetes/pause image
 echo " "
 echo "Tag Kubernetes/pause image"
