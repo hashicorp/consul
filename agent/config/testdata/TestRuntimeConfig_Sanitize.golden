@@ -61,7 +61,6 @@
     },
     "AutoEncryptAllowTLS": false,
     "AutoEncryptDNSSAN": [],
-    "AutoEncryptGRPCServerTLS": false,
     "AutoEncryptIPSAN": [],
     "AutoEncryptTLS": false,
     "AutoReloadConfig": false,
@@ -375,7 +374,8 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
+            "UseAutoCert": false
         },
         "HTTPS": {
             "CAFile": "",
@@ -387,6 +387,7 @@
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
             "VerifyServerHostname": false
+            "UseAutoCert": false
         },
         "InternalRPC": {
             "CAFile": "",
@@ -398,6 +399,7 @@
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
             "VerifyServerHostname": false
+            "UseAutoCert": false
         },
         "NodeName": "",
         "ServerName": ""

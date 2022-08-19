@@ -102,6 +102,10 @@ type ProtocolConfig struct {
 	//
 	// Note: this setting only applies to the Internal RPC configuration.
 	VerifyServerHostname bool
+
+	// UseAutoCert is used to enable usage of auto_encrypt/auto_config generated
+	// certificate & key material on external gRPC listener.
+	UseAutoCert bool
 }
 
 // Config configures the Configurator.
@@ -267,17 +271,10 @@ func (c *Configurator) Update(config Config) error {
 	c.grpc = *grpc
 	c.https = *https
 	c.internalRPC = *internalRPC
+	c.autoTLS.grpcServerUseTLS = config.GRPC.UseAutoCert
 
 	atomic.AddUint64(&c.version, 1)
 	c.log("Update")
-	return nil
-}
-
-// SetAutoTLSGRPCServer sets autoTLS' grpcServerUseTLS value.
-func (c *Configurator) SetAutoTLSGRPCServer(value bool) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.autoTLS.grpcServerUseTLS = value
 	return nil
 }
 
