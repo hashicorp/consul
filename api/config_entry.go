@@ -230,8 +230,8 @@ type ServiceConfigEntry struct {
 	ExternalSNI           string                  `json:",omitempty" alias:"external_sni"`
 	UpstreamConfig        *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
 	Destination           *DestinationConfig      `json:",omitempty"`
-	MaxInboundConnections int
-	Meta                  map[string]string `json:",omitempty"`
+	MaxInboundConnections int                     `json:",omitempty" alias:"max_inbound_connections"`
+	Meta                  map[string]string       `json:",omitempty"`
 	CreateIndex           uint64
 	ModifyIndex           uint64
 }
