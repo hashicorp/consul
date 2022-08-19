@@ -599,9 +599,6 @@ type AutoEncrypt struct {
 	// AllowTLS enables the RPC endpoint on the server to answer
 	// AutoEncrypt.Sign requests.
 	AllowTLS *bool `mapstructure:"allow_tls"`
-
-	// Enable AutoEncrypt for (external) gRPC Listener (default: true)
-	GRPCServerTLS *bool `mapstructure:"grpc_server_tls"`
 }
 
 // Connect is the agent-global connect configuration.
@@ -870,6 +867,7 @@ type TLSProtocolConfig struct {
 	VerifyIncoming       *bool   `mapstructure:"verify_incoming"`
 	VerifyOutgoing       *bool   `mapstructure:"verify_outgoing"`
 	VerifyServerHostname *bool   `mapstructure:"verify_server_hostname"`
+	UseAutoCert          *bool   `mapstructure:"use_auto_cert"`
 }
 
 type TLS struct {

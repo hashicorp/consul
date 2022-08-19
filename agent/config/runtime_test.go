@@ -3146,54 +3146,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "auto_encrypt.grpc_server_tls defaults to true",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`{
-				"auto_encrypt": {}
-			}`},
-		hcl: []string{`
-				auto_encrypt = {}
-			`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.AutoEncryptGRPCServerTLS = true
-		},
-	})
-	run(t, testCase{
-		desc: "auto_encrypt.grpc_server_tls is enabled when true",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`{
-				"auto_encrypt": { "grpc_server_tls": true }
-			}`},
-		hcl: []string{`
-				auto_encrypt = { grpc_server_tls = true }
-			`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.AutoEncryptGRPCServerTLS = true
-		},
-	})
-	run(t, testCase{
-		desc: "auto_encrypt.grpc_server_tls is disabled when false",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`{
-				"auto_encrypt": { "grpc_server_tls": false }
-			}`},
-		hcl: []string{`
-				auto_encrypt = { grpc_server_tls = false }
-			`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.AutoEncryptGRPCServerTLS = false
-		},
-	})
-	run(t, testCase{
 		desc: "rpc.enable_streaming = true has no effect when not running in server mode",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5596,6 +5548,125 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			"tls.grpc was provided but TLS will NOT be enabled on the gRPC listener without an HTTPS listener configured (e.g. via ports.https)",
 		},
 	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert defaults to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert defaults to false (II)",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {}
+			}
+		`},
+		hcl: []string{`
+			tls {
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert defaults to false (III)",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+			}
+		`},
+		hcl: []string{`
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert enabled when true",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"use_auto_cert": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {
+					use_auto_cert = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = true
+		},
+	})
+	run(t, testCase{
+		desc: "tls.grpc.use_auto_cert disabled when false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"grpc": {
+						"use_auto_cert": false
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				grpc {
+					use_auto_cert = false
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+			rt.TLS.GRPC.UseAutoCert = false
+		},
+	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -6388,6 +6459,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSMinVersion:  types.TLSv1_0,
 				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
+				UseAutoCert:    true,
 			},
 			HTTPS: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,

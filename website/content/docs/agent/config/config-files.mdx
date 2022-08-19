@@ -1389,10 +1389,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     the certificates requested by `auto_encrypt` from the server have these `ip_san`
     set as IP SAN.
 
-  - `grpc_server_tls` (Defaults to `true`) When true, auto_encrypt TLS settings will be
-     applied to gRPC listener. This is mainly intended for disabling TLS on gRPC server
-     while using auto_encrypt for other TLS usages (like HTTPS).
-
 - `encrypt` Equivalent to the [`-encrypt` command-line flag](/docs/agent/config/cli-flags#_encrypt).
 
 - `encrypt_verify_incoming` - This is an optional
@@ -2022,6 +2018,9 @@ specially crafted certificate signed by the CA can be used to gain full access t
     - `tls_cipher_suites` ((#tls_grpc_tls_cipher_suites)) Overrides [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
 
     - `verify_incoming` - ((#tls_grpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+
+    - `use_auto_cert` - (Defaults to `false`) When true, auto_encrypt TLS settings will be applied to gRPC listener.
+      This is mainly intended for disabling TLS on gRPC server while using auto_encrypt for other TLS usages (like HTTPS).
 
   - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
     the HTTPS interface you must define a port via [`ports.https`](#https_port).

@@ -956,7 +956,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
-		AutoEncryptGRPCServerTLS:               boolValWithDefault(c.AutoEncrypt.GRPCServerTLS, true),
 		AutoConfig:                             autoConfig,
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
@@ -2531,6 +2530,11 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
 	}
 
+	// And UseAutoCert right now only applies to external gRPC interface.
+	if t.Defaults.UseAutoCert != nil || t.HTTPS.UseAutoCert != nil || t.InternalRPC.UseAutoCert != nil {
+		return c, errors.New("use_auto_cert is only valid in the tls.grpc stanza")
+	}
+
 	// TLS is only enabled on the gRPC listener if there's an HTTPS port configured
 	// for historic and backwards-compatibility reasons.
 	if rt.HTTPSPort <= 0 && (t.GRPC != TLSProtocolConfig{} && t.GRPCModifiedByDeprecatedConfig == nil) {
@@ -2591,6 +2595,7 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 
 	mapCommon("https", t.HTTPS, &c.HTTPS)
 	mapCommon("grpc", t.GRPC, &c.GRPC)
+	c.GRPC.UseAutoCert = boolValWithDefault(t.GRPC.UseAutoCert, false)
 
 	c.ServerName = rt.ServerName
 	c.NodeName = rt.NodeName

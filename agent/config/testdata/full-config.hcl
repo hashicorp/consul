@@ -199,7 +199,6 @@ auto_encrypt = {
     dns_san = ["a.com", "b.com"]
     ip_san = ["192.168.4.139", "192.168.4.140"]
     allow_tls = true
-    grpc_server_tls = false
 }
 connect {
     ca_provider = "consul"
@@ -698,6 +697,7 @@ tls {
         tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
         tls_min_version = "TLSv1_0"
         verify_incoming = true
+        use_auto_cert   = true
     }
 }
 tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
