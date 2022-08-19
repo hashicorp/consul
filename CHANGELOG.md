@@ -28,6 +28,9 @@ connect: Terminating gateways with a wildcard service entry should no longer pic
 BREAKING CHANGES:
 
 * config-entry: Exporting a specific service name across all namespace is invalid.
+* connect: contains an upgrade compatibility issue when restoring snapshots containing service mesh proxy registrations from pre-1.13 versions of Consul [[GH-14107](https://github.com/hashicorp/consul/issues/14107)]. Fixed in 1.13.1 [[GH-14149](https://github.com/hashicorp/consul/issues/14149)]. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#all-service-mesh-deployments) for more information.
+* connect: if using auto-encrypt or auto-config, TLS is required for gRPC communication between Envoy and Consul as of 1.13.0; this TLS for gRPC requirement will be removed in a future 1.13 patch release. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#service-mesh-deployments-using-auto-encrypt-or-auto-config) for more information.
+* connect: if a pre-1.13 Consul agent's HTTPS port was not enabled, upgrading to 1.13 may turn on TLS for gRPC communication for Envoy and Consul depending on the agent's TLS configuration. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#grpc-tls) for more information.
 * connect: Removes support for Envoy 1.19 [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
 * telemetry: config flag `telemetry { disable_compat_1.9 = (true|false) }` has been removed. Before upgrading you should remove this flag from your config if the flag is being used. [[GH-13532](https://github.com/hashicorp/consul/issues/13532)]
 
