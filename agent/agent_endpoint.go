@@ -45,7 +45,11 @@ type Self struct {
 
 type XDSSelf struct {
 	SupportedProxies map[string][]string
-	Port             int
+	// Port could be used for either TLS or plain-text communication
+	// up through version 1.14. In order to maintain backwards-compatibility,
+	// Port will now default to TLS and fallback to the standard port value.
+	Port    int
+	PortTLS int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -78,7 +82,13 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
-			Port: s.agent.config.GRPCPort,
+			// Prefer the TLS port. See comment on the XDSSelf struct for details.
+			Port:    s.agent.config.GRPCTLSPort,
+			PortTLS: s.agent.config.GRPCTLSPort,
+		}
+		// Fallback to standard port if TLS is not enabled.
+		if xds.PortTLS <= 0 {
+			xds.Port = s.agent.config.GRPCPort
 		}
 	}
 

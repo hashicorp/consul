@@ -580,7 +580,9 @@ func TestLeader_Peering_DialerReestablishesConnectionOnError(t *testing.T) {
 	require.NoError(t, acceptingServer.Shutdown())
 
 	// Have to manually shut down the gRPC server otherwise it stays bound to the port.
-	acceptingServer.externalGRPCServer.Stop()
+	for i := range acceptingServer.externalGRPCServers {
+		acceptingServer.externalGRPCServers[i].Stop()
+	}
 
 	// Restart the server by re-using the previous acceptor's data directory and node id.
 	_, acceptingServerRestart := testServerWithConfig(t, func(c *Config) {
@@ -1490,7 +1492,9 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 
 	testutil.RunStep(t, "updated server addresses are picked up by the leader", func(t *testing.T) {
 		// force close the acceptor's gRPC server so the dialier retries with a new address.
-		acceptor.externalGRPCServer.Stop()
+		for i := range acceptor.externalGRPCServers {
+			acceptor.externalGRPCServers[i].Stop()
+		}
 
 		clone := proto.Clone(p.Peering)
 		updated := clone.(*pbpeering.Peering)

@@ -249,9 +249,9 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		ln, err := net.Listen("tcp", externalGRPCAddr)
 		require.NoError(t, err)
 		go func() {
-			_ = srv.externalGRPCServer.Serve(ln)
+			_ = srv.externalGRPCServers[0].Serve(ln)
 		}()
-		t.Cleanup(srv.externalGRPCServer.Stop)
+		t.Cleanup(srv.externalGRPCServers[0].Stop)
 	}
 
 	return dir, srv
@@ -301,7 +301,18 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 
-	srv, err := NewServer(c, deps, external.NewServer(deps.Logger.Named("grpc.external"), deps.TLSConfigurator))
+	// setup grpc servers
+	srvGRPC, srvGRPCTLS := external.BuildExternalGRPCServers(
+		c.GRPCPort, c.GRPCTLSPort, deps.TLSConfigurator, deps.Logger)
+	var grpcServers []*grpc.Server
+	if srvGRPC != nil {
+		grpcServers = append(grpcServers, srvGRPC)
+	}
+	if srvGRPCTLS != nil {
+		grpcServers = append(grpcServers, srvGRPCTLS)
+	}
+
+	srv, err := NewServer(c, deps, grpcServers)
 	if err != nil {
 		return nil, err
 	}
@@ -1208,7 +1219,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer())
+		s1, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1246,7 +1257,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer())
+		s2, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1280,7 +1291,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer())
+		s1, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1299,7 +1310,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer())
+		s2, err := NewServer(conf, deps, []*grpc.Server{grpc.NewServer()})
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")

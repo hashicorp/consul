@@ -639,7 +639,7 @@ func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 
 	addr := c.grpcAddr
 	if addr == "" {
-		port, err := c.lookupXDSPort()
+		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		}
@@ -648,7 +648,7 @@ func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 			// enabled.
 			port = 8502
 		}
-		addr = fmt.Sprintf("localhost:%v", port)
+		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
 
 	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
@@ -697,39 +697,47 @@ func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 	return g, nil
 }
 
-func (c *cmd) lookupXDSPort() (int, error) {
+func (c *cmd) lookupXDSPort() (int, string, error) {
 	self, err := c.client.Agent().Self()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	type response struct {
 		XDS struct {
-			Port int
+			Port    int
+			PortTLS int
 		}
 	}
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil && resp.XDS.Port != 0 {
-		return resp.XDS.Port, nil
+		// Determine the protocol based on the provided Port matching PortTLS
+		proto := "http://"
+		// TODO: Simplify this check after 1.14 when Port is guaranteed to be plain-text.
+		if resp.XDS.Port == resp.XDS.PortTLS {
+			proto = "https://"
+		}
+		return resp.XDS.Port, proto, nil
 	}
 
 	// Fallback to old API for the case where a new consul CLI is being used with
 	// an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
-		return 0, fmt.Errorf("unexpected agent response: no debug config")
+		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
 	}
+	// TODO what does this mean? What did the old API look like? How does this affect compatibility?
 	port, ok := cfg["GRPCPort"]
 	if !ok {
-		return 0, fmt.Errorf("agent does not have grpc port enabled")
+		return 0, "", fmt.Errorf("agent does not have grpc port enabled")
 	}
 	portN, ok := port.(float64)
 	if !ok {
-		return 0, fmt.Errorf("invalid grpc port in agent response")
+		return 0, "", fmt.Errorf("invalid grpc port in agent response")
 	}
 
-	return int(portN), nil
+	return int(portN), "", nil
 }
 
 func (c *cmd) Synopsis() string {

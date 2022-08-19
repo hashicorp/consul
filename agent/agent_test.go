@@ -2095,7 +2095,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 
 	run := func(t *testing.T, ca string) {
 		a := StartTestAgent(t, TestAgent{
-			UseTLS: true,
+			UseHTTPS: true,
 			HCL: `
 				enable_agent_tls_for_checks = true
 
@@ -3860,7 +3860,7 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := TestAgent{UseTLS: true}
+	a := TestAgent{UseHTTPS: true}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -5207,7 +5207,7 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 			server = ` + strconv.Itoa(srv.Config.RPCBindAddr.Port) + `
 		}
 		retry_join = ["` + srv.Config.SerfBindAddrLAN.String() + `"]`,
-		UseTLS: true,
+		UseHTTPS: true,
 	})
 
 	defer client.Shutdown()
