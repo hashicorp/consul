@@ -171,6 +171,10 @@ type protocolConfig struct {
 	// combinedCAPool is a pool containing both manualCAPEMs and the certificates
 	// received from auto-config/auto-encrypt.
 	combinedCAPool *x509.CertPool
+
+	// useAutoCert indicates wether we should use auto-encrypt/config data
+	// for TLS server/listener. NOTE: Only applies to external GRPC Server.
+	useAutoCert bool
 }
 
 // Configurator provides tls.Config and net.Dial wrappers to enable TLS for
@@ -202,7 +206,6 @@ type Configurator struct {
 		connectCAPems        []string
 		cert                 *tls.Certificate
 		verifyServerHostname bool
-		grpcServerUseTLS     bool
 	}
 
 	// logger is not protected by a lock. It must never be changed after
@@ -271,7 +274,6 @@ func (c *Configurator) Update(config Config) error {
 	c.grpc = *grpc
 	c.https = *https
 	c.internalRPC = *internalRPC
-	c.autoTLS.grpcServerUseTLS = config.GRPC.UseAutoCert
 
 	atomic.AddUint64(&c.version, 1)
 	c.log("Update")
@@ -329,6 +331,7 @@ func (c *Configurator) loadProtocolConfig(base Config, pc ProtocolConfig) (*prot
 		manualCAPEMs:   pems,
 		manualCAPool:   manualPool,
 		combinedCAPool: combinedPool,
+		useAutoCert:    pc.UseAutoCert,
 	}, nil
 }
 
@@ -634,7 +637,7 @@ func (c *Configurator) Cert() *tls.Certificate {
 func (c *Configurator) GRPCServerUseTLS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.grpc.cert != nil || (c.autoTLS.grpcServerUseTLS && c.autoTLS.cert != nil)
+	return c.grpc.cert != nil || (c.grpc.useAutoCert && c.autoTLS.cert != nil)
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to
