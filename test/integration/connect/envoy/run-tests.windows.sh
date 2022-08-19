@@ -62,6 +62,7 @@ function init_workdir {
 
   # Reload consul config from defaults
   cp consul-windows-base-cfg/*.hcl workdir/${CLUSTER}/consul/
+  cp consul-windows-base-cfg/envoy/*.json workdir/${CLUSTER}/envoy/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${CLUSTER}/consul \;
@@ -544,8 +545,10 @@ function workdir_cleanup {
 function suite_setup {
     # Cleanup from any previous unclean runs.
     suite_teardown
-    docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
-    
+    docker.exe network create -d transparent envoy-tests
+    # docker.exe network create -d transparent --subnet=10.244.0.0/24 -o com.docker.network.windowsshim.interface="Ethernet" envoy-tests
+    # docker.exe network create -d "nat" --subnet "10.244.0.0/24" envoy-tests &>/dev/null
+    # docker.exe network create -d "nat" envoy-tests &>/dev/null
     # Start the volume container
     #
     # This is a dummy container that we use to create volume and keep it
@@ -691,13 +694,18 @@ function run_container_s3-alpha {
 function common_run_container_sidecar_proxy {
   local service="$1"
   local CLUSTER="$2"
-
+  # if [ $1=="s1" ] ; then
+  #   IPSERV=10.244.0.170
+  # else
+  #   IPSERV=10.244.0.180
+  # fi
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker.exe run -d --name $(container_name_prev) \
+    --hostname ${1}-sidecar-proxy \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     "${HASHICORP_DOCKER_PROXY}/windows/envoy-windows:v${ENVOY_VERSION}" \
