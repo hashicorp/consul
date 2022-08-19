@@ -104,6 +104,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			MaxInboundConnections: 5,
 		}
 
 		dest := &DestinationConfig{
@@ -144,6 +145,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Protocol, readService.Protocol)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
+		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
 
 		// update it
 		service.Protocol = "tcp"
