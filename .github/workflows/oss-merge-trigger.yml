@@ -15,12 +15,20 @@ jobs:
     steps:
       - name: Trigger Merge
         env:
-          GIT_REF: ${{ github.ref_name }}
-          GIT_SHA: ${{ github.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-          GIT_ACTOR: ${{ github.actor }}
         run: |
+          # Build JSON payload to trigger oss-merge GitHub Action in Enterprise
+          # the primary reason for doing this is that jq should handle escaping
+          # JSON strings for us. This only runs the load test pipeline on the 'main' branch.
+          jsonData=$(jq --null-input -r \
+            --arg gitref ${{ github.ref_name }} \
+            --arg gitsha ${{ github.sha }} \
+            --arg gitactor ${{ github.actor }} \
+            --arg prnumber ${{ github.event.pull_request.number }} \
+            --arg prtitle ${{ github.event.pull_request.title }} \
+            '{ "event_type": "oss-merge", "client_payload": { "git-ref": $gitref, "git-sha": $gitsha, "git-actor": $gitactor, "pr-number": $prnumber, "pr-title": $prtitle } }' )
+          echo "Passing JSON payload to GitHub API: $jsonData"
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
+            -d "$jsonData" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
