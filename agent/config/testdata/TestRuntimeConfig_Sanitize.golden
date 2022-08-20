@@ -386,7 +386,7 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
             "UseAutoCert": false
         },
         "InternalRPC": {
@@ -398,7 +398,7 @@
             "TLSMinVersion": "",
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
-            "VerifyServerHostname": false
+            "VerifyServerHostname": false,
             "UseAutoCert": false
         },
         "NodeName": "",
