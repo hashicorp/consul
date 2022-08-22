@@ -1233,6 +1233,16 @@ type ServiceResolverRedirect struct {
 	Datacenter string `json:",omitempty"`
 }
 
+func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       r.Service,
+		ServiceSubset: r.ServiceSubset,
+		Namespace:     r.Namespace,
+		Partition:     r.Partition,
+		Datacenter:    r.Datacenter,
+	}
+}
+
 // There are some restrictions on what is allowed in here:
 //
 // - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
@@ -1275,6 +1285,14 @@ type ServiceResolverFailover struct {
 	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
 }
 
+func (t *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+	}
+}
+
 func (f *ServiceResolverFailover) isEmpty() bool {
 	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
 }
@@ -1297,6 +1315,17 @@ type ServiceResolverFailoverTarget struct {
 
 	// Peer specifies the name of the cluster peer to try during failover.
 	Peer string `json:",omitempty"`
+}
+
+func (t *ServiceResolverFailoverTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:       t.Service,
+		ServiceSubset: t.ServiceSubset,
+		Namespace:     t.Namespace,
+		Partition:     t.Partition,
+		Datacenter:    t.Datacenter,
+		Peer:          t.Peer,
+	}
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
