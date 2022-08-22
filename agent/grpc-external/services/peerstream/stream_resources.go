@@ -557,14 +557,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// At this point we have a valid ResourceURL and we are subscribed to it.
 
 				switch {
-				case req.ResponseNonce == "" && req.Error != nil:
-					return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
-
-				case req.ResponseNonce != "" && req.Error == nil: // ACK
+				case req.Error == nil: // ACK
 					// TODO(peering): handle ACK fully
 					status.TrackAck()
 
-				case req.ResponseNonce != "" && req.Error != nil: // NACK
+				case req.Error != nil: // NACK
 					// TODO(peering): handle NACK fully
 					logger.Warn("client peer was unable to apply resource", "code", req.Error.Code, "error", req.Error.Message)
 					status.TrackNack(fmt.Sprintf("client peer was unable to apply resource: %s", req.Error.Message))
