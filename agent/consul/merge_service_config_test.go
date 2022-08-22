@@ -18,7 +18,8 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 	}
 
 	sid := structs.ServiceID{
-		ID: "sid",
+		ID:             "sid",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	tests := []struct {
 		name string
