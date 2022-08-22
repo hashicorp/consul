@@ -4,6 +4,7 @@ import (
 	"testing"
 	time "time"
 
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	mock "github.com/stretchr/testify/mock"
@@ -164,7 +165,7 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		types.NodeID("792ae13c-d765-470b-852c-e073fdb6e849"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
 		nil,
@@ -174,7 +175,7 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		types.NodeID("65e79ff4-bbce-467b-a9d6-725c709fa985"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
 		nil,
@@ -184,9 +185,21 @@ func TestAutopilotStateToReadyServersWithTaggedAddresses(t *testing.T) {
 		types.NodeID("db11f0ac-0cbe-4215-80cc-b4e843f4df1e"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Times(3).Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
@@ -493,7 +506,7 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		types.NodeID("792ae13c-d765-470b-852c-e073fdb6e849"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "5.4.3.2"}},
 		nil,
@@ -503,7 +516,7 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		types.NodeID("65e79ff4-bbce-467b-a9d6-725c709fa985"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "1.2.3.4"}},
 		nil,
@@ -513,9 +526,21 @@ func TestReadyServerEventsSnapshotHandler(t *testing.T) {
 		types.NodeID("db11f0ac-0cbe-4215-80cc-b4e843f4df1e"),
 		structs.NodeEnterpriseMetaInDefaultPartition(),
 		structs.DefaultPeerKeyword,
-	).Once().Return(
+	).Times(2).Return(
 		uint64(0),
 		&structs.Node{TaggedAddresses: map[string]string{"wan": "9.8.7.6"}},
+		nil,
+	)
+
+	store.On("NodeService",
+		memdb.WatchSet(nil),
+		"",
+		structs.ConsulServiceID,
+		structs.NodeEnterpriseMetaInDefaultPartition(),
+		structs.DefaultPeerKeyword,
+	).Times(3).Return(
+		uint64(0),
+		nil,
 		nil,
 	)
 
