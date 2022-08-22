@@ -104,6 +104,7 @@ type Backend interface {
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
 	CatalogDeregister(req *structs.DeregisterRequest) error
+	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 }
 
 // StateStore provides a read-only interface for querying Peering data.
