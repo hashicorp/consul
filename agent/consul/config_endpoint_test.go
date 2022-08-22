@@ -1447,8 +1447,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":    int64(10),
-								"MaxFailures": int64(2),
+								"Interval":                int64(10),
+								"MaxFailures":             int64(2),
+								"EnforcingConsecutive5xx": int64(60),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",
