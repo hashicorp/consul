@@ -393,9 +393,6 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 	if err := args.Entry.Normalize(); err != nil {
 		return err
 	}
-	if err := args.Entry.Validate(); err != nil {
-		return err
-	}
 
 	if err := args.Entry.CanWrite(authz); err != nil {
 		return err
