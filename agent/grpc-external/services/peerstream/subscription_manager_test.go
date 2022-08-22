@@ -634,11 +634,22 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 	backend := newTestSubscriptionBackend(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	t.Cleanup(cancel)
 
 	// Create a peering
 	_, id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
+
+	payload := autopilotevents.EventPayloadReadyServers{
+		autopilotevents.ReadyServerInfo{
+			ID:          "9aeb73f6-e83e-43c1-bdc9-ca5e43efe3e4",
+			Address:     "198.18.0.1",
+			Version:     "1.13.1",
+			ExtGRPCPort: 8502,
+		},
+	}
+	// mock handler only gets called once during the initial subscription
+	backend.handler.expect("", 0, 1, payload)
 
 	// Only configure a tracker for CA roots events.
 	tracker := newResourceSubscriptionTracker()
@@ -651,22 +662,12 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 			ConnectEnabled: true,
 		},
 		connect.TestTrustDomain,
-		backend, func() StateStore {
+		backend,
+		func() StateStore {
 			return backend.store
 		},
 		tracker)
 	subCh := mgr.subscribe(ctx, id, "my-peering", partition)
-
-	payload := autopilotevents.EventPayloadReadyServers{
-		autopilotevents.ReadyServerInfo{
-			ID:          "9aeb73f6-e83e-43c1-bdc9-ca5e43efe3e4",
-			Address:     "198.18.0.1",
-			Version:     "1.13.1",
-			ExtGRPCPort: 8502,
-		},
-	}
-	// mock handler only gets called once during the initial subscription
-	backend.handler.expect("", 0, 1, payload)
 
 	testutil.RunStep(t, "initial events", func(t *testing.T) {
 		expectEvents(t, subCh,
