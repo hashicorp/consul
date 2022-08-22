@@ -161,8 +161,20 @@ func (s *Server) StreamResources(stream pbpeerstream.PeerStreamService_StreamRes
 	if p == nil {
 		return grpcstatus.Error(codes.InvalidArgument, "initial subscription for unknown PeerID: "+req.PeerID)
 	}
+	if !p.IsActive() {
+		logger.Warn("peering is marked as deleted or terminated", "peer_id", req.PeerID)
+		term := &pbpeerstream.ReplicationMessage{
+			Payload: &pbpeerstream.ReplicationMessage_Terminated_{
+				Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
+			},
+		}
+		logTraceSend(logger, term)
 
-	// TODO(peering): If the peering is marked as deleted, send a Terminated message and return
+		err := stream.Send(term)
+		if err != nil {
+			return grpcstatus.Error(codes.FailedPrecondition, "peering is marked as deleted: "+req.PeerID)
+		}
+	}
 
 	secrets, err := s.GetStore().PeeringSecretsRead(nil, req.PeerID)
 	if err != nil {
@@ -347,6 +359,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
 			ResourceURL: resourceURL,
@@ -630,6 +643,13 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					continue
 				}
 
+			case update.CorrelationID == subServerAddrs:
+				resp, err = makeServerAddrsResponse(update)
+				if err != nil {
+					logger.Error("failed to create server address response", "error", err)
+					continue
+				}
+
 			default:
 				logger.Warn("unrecognized update type from subscription manager: " + update.CorrelationID)
 				continue
@@ -640,6 +660,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 			replResp := makeReplicationResponse(resp)
 			if err := streamSend(replResp); err != nil {
+				// note: govet warns of context leak but it is cleaned up in a defer
 				return fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
 		}

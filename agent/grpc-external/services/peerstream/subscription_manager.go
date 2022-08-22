@@ -70,7 +70,7 @@ func newSubscriptionManager(
 		getStore:             getStore,
 		serviceSubReady:      remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLExportedService),
 		trustBundlesSubReady: remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLPeeringTrustBundle),
-		serverAddrsSubReady:  remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLServerAddress),
+		serverAddrsSubReady:  remoteSubTracker.SubscribedChan(pbpeerstream.TypeURLPeeringServerAddresses),
 	}
 }
 

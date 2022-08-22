@@ -103,6 +103,24 @@ func makeCARootsResponse(
 	}, nil
 }
 
+func makeServerAddrsResponse(
+	update cache.UpdateEvent,
+) (*pbpeerstream.ReplicationMessage_Response, error) {
+	any, _, err := marshalToProtoAny[*pbpeering.PeeringServerAddresses](update.Result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal: %w", err)
+	}
+
+	return &pbpeerstream.ReplicationMessage_Response{
+		ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: "server-addrs",
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
+	}, nil
+}
+
 // marshalToProtoAny takes any input and returns:
 // the protobuf.Any type, the asserted T type, and any errors
 // during marshalling or type assertion.
@@ -225,6 +243,13 @@ func (s *Server) handleUpsert(
 
 		return s.handleUpsertRoots(peerName, partition, roots)
 
+	case pbpeerstream.TypeURLPeeringServerAddresses:
+		addrs := &pbpeering.PeeringServerAddresses{}
+		if err := resource.UnmarshalTo(addrs); err != nil {
+			return fmt.Errorf("failed to unmarshal resource: %w", err)
+		}
+
+		return s.handleUpsertServerAddrs(peerName, partition, addrs)
 	default:
 		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
 	}

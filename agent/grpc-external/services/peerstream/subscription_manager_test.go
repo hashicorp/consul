@@ -641,7 +641,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 
 	// Only configure a tracker for CA roots events.
 	tracker := newResourceSubscriptionTracker()
-	tracker.Subscribe(pbpeerstream.TypeURLServerAddress)
+	tracker.Subscribe(pbpeerstream.TypeURLPeeringServerAddresses)
 
 	mgr := newSubscriptionManager(ctx,
 		testutil.Logger(t),

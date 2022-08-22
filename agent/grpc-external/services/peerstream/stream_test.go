@@ -1350,6 +1350,7 @@ func makeClient(t *testing.T, srv pbpeerstream.PeerStreamServiceServer, peerID s
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		init := &pbpeerstream.ReplicationMessage{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
