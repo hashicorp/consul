@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/proto/pbpeerstream"
@@ -256,9 +257,10 @@ func (s *Server) handleUpsert(
 }
 
 // handleUpdateService handles both deletion and upsert events for a service.
-// 	On an UPSERT event:
-// 		- All nodes, services, checks in the input pbNodes are re-applied through Raft.
-// 		- Any nodes, services, or checks in the catalog that were not in the input pbNodes get deleted.
+//
+//	On an UPSERT event:
+//		- All nodes, services, checks in the input pbNodes are re-applied through Raft.
+//		- Any nodes, services, or checks in the catalog that were not in the input pbNodes get deleted.
 //
 //	On a DELETE event:
 //		- A reconciliation against nil or empty input pbNodes leads to deleting all stored catalog resources
@@ -468,6 +470,33 @@ func (s *Server) handleUpsertRoots(
 		PeeringTrustBundle: trustBundle,
 	}
 	return s.Backend.PeeringTrustBundleWrite(req)
+}
+
+func (s *Server) handleUpsertServerAddrs(
+	peerName string,
+	partition string,
+	addrs *pbpeering.PeeringServerAddresses,
+) error {
+	q := state.Query{
+		Value:          peerName,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(partition),
+	}
+	_, existing, err := s.GetStore().PeeringRead(nil, q)
+	if err != nil {
+		return fmt.Errorf("failed to read peering: %w", err)
+	}
+	if existing == nil || !existing.IsActive() {
+		return fmt.Errorf("peering does not exist or has been marked for deletion")
+	}
+
+	// Clone to avoid mutating the existing data
+	p := proto.Clone(existing).(*pbpeering.Peering)
+	p.PeerServerAddresses = addrs.GetAddresses()
+
+	req := &pbpeering.PeeringWriteRequest{
+		Peering: p,
+	}
+	return s.Backend.PeeringWrite(req)
 }
 
 func (s *Server) handleDelete(
